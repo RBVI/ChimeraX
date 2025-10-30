@@ -46,7 +46,7 @@ def cmd_minimize(session, structure, *, dock_prep=True, live_updates=True, log_e
 
 def _minimize(session, structure, live_updates, log_energy, max_steps):
     from openmm.app import Topology, ForceField, element, HBonds, Simulation
-    from openmm.unit import angstrom, nanometer, kelvin, picosecond, picoseconds, Quantity
+    from openmm.unit import angstrom, nanometer, Quantity
     from openmm import LangevinIntegrator, LocalEnergyMinimizer, vec3, Context, MinimizationReporter
     from openmm import OpenMMException, Platform
     #from openmmtools.integrators import GradientDescentMinimizationIntegrator
@@ -183,7 +183,7 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
                     " analysis, consider deleting them and then minimizing."
                     % err_text[left_paren+1:right_paren])
         raise
-    integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 0.004*picoseconds)
+    integrator = make_integrator()
     #integrator = GradientDescentMinimizationIntegrator()
     from chimerax.atomic import Atoms
     cx_atoms = Atoms(reordered_atoms)
@@ -221,6 +221,8 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
     except OpenMMException as e:
         if "Error compiling kernel" in str(e):
             session.logger.warning("Using GPU for minimization failed, falling back to using CPU")
+            # Avoid OpenMM complaining about the integrator already being bound to a context
+            integrator = make_integrator()
             context = Context(system, integrator, Platform.getPlatformByName('CPU'))
         else:
             raise
@@ -231,6 +233,11 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
     final_crds = numpy.reshape(final_crds, (-1,3))
     cx_atoms.coords = final_crds[filter]
     session.logger.status("Minimization complete")
+
+def make_integrator():
+    from openmm import LangevinIntegrator
+    from openmm.unit import kelvin, picosecond, picoseconds
+    return LangevinIntegrator(300*kelvin, 1/picosecond, 0.004*picoseconds)
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, EnumOf, BoolArg, PositiveIntArg

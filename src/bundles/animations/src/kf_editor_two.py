@@ -108,7 +108,7 @@ from Qt.QtWidgets import (QAbstractItemView, QAbstractScrollArea, QApplication, 
                                QStyleOptionGraphicsItem, QVBoxLayout, QWidget,
                                QPushButton, QFrame, QDoubleSpinBox, QSpinBox, QFormLayout,
                                QGroupBox, QGridLayout, QStackedWidget, QButtonGroup,
-                               QDialog, QComboBox, QLineEdit)
+                               QDialog, QComboBox, QLineEdit, QToolButton)
 
 __all__ = [
     "KeyframeEditorWidget",
@@ -117,6 +117,9 @@ __all__ = [
 # Import scene timeline components for dual-mode support
 from .scene_timeline import SceneTimelineWidget
 from .scene_animation import SceneAnimation
+
+# Import icon utility
+from chimerax.ui.icons import get_qt_icon
 
 
 class CompactStackedWidget(QStackedWidget):
@@ -1451,6 +1454,7 @@ class KeyframeEditorWidget(QWidget):
         self.scene_timeline_widget.record_requested.connect(self.on_scene_record_requested)
         self.scene_timeline_widget.duration_changed.connect(self.on_scene_duration_changed)
         self.scene_timeline_widget.reset_requested.connect(self.on_scene_reset_requested)
+        self.scene_timeline_widget.preferences_requested.connect(self.show_preferences)
 
         # Connect scene animation signals to timeline controls
         self.scene_animation.signals.time_changed.connect(self.on_scene_animation_time_changed)
@@ -1550,12 +1554,14 @@ class KeyframeEditorWidget(QWidget):
         """Switch between keyframe and scene animation modes"""
         if button == self.keyframe_mode_btn:
             self.stacked_widget.setCurrentIndex(0)
-            if self.session:
-                self.session.logger.info("Switched to Keyframe Mode")
         elif button == self.scene_mode_btn:
             self.stacked_widget.setCurrentIndex(1)
-            if self.session:
-                self.session.logger.info("Switched to Scene Mode")
+
+    def show_preferences(self):
+        """Show the animations preferences dialog"""
+        from .settings import AnimationsPreferencesDialog
+        dialog = AnimationsPreferencesDialog(self.session, parent=self)
+        dialog.show()
 
     def on_scene_added(self, scene_name, time=None):
         """Handle scene addition in scene mode"""
@@ -1566,8 +1572,8 @@ class KeyframeEditorWidget(QWidget):
 
         if success:
             self.scene_timeline_widget.add_scene_marker(time, scene_name)
-            if self.session:
-                self.session.logger.info(f"Added scene '{scene_name}' to animation at {time:.2f}s")
+            #if self.session:
+            #self.session.logger.info(f"Added scene '{scene_name}' to animation at {time:.2f}s")
 
     def on_scene_removed(self, scene_name):
         """Handle scene removal in scene mode"""
@@ -1575,15 +1581,15 @@ class KeyframeEditorWidget(QWidget):
 
         if success:
             self.scene_timeline_widget.timeline_scene.remove_scene_marker(scene_name)
-            if self.session:
-                self.session.logger.info(f"Removed scene '{scene_name}' from animation")
+            #if self.session:
+            #    self.session.logger.info(f"Removed scene '{scene_name}' from animation")
 
     def on_scene_selected(self, scene_name):
         """Handle scene selection in scene mode"""
         if self.session and self.session.scenes.get_scene(scene_name):
             self.session.scenes.restore_scene(scene_name)
-            if self.session:
-                self.session.logger.info(f"Restored scene '{scene_name}'")
+            #if self.session:
+            #    self.session.logger.info(f"Restored scene '{scene_name}'")
 
     def on_scene_time_changed(self, time):
         """Handle time changes in scene mode for preview"""
@@ -1608,7 +1614,7 @@ class KeyframeEditorWidget(QWidget):
 
         # Check if there are scenes to record
         if not self.scene_animation.scenes:
-            self.session.logger.warning("No scenes to record. Add some scenes to the timeline first.")
+            #self.session.logger.warning("No scenes to record. Add some scenes to the timeline first.")
             return
 
         # Get save path and recording options using file dialog
@@ -1616,7 +1622,7 @@ class KeyframeEditorWidget(QWidget):
         if save_path:
             self.scene_animation.record(save_path, resolution=resolution)
             res_str = f" at {resolution}" if resolution else " at display resolution"
-            self.session.logger.info(f"Starting recording to {save_path}{res_str}")
+            #self.session.logger.info(f"Starting recording to {save_path}{res_str}")
 
     def _get_movie_save_path_and_options(self):
         """Get save path and recording options using enhanced dialog"""
@@ -1987,8 +1993,8 @@ class KeyframeEditorWidget(QWidget):
     def _on_frame_changed(self, frame: int):
         """Handle frame changes from the timeline."""
         self.frame_label.setText(f"Frame: {frame}")
-        if self.session:
-            self.session.logger.info(f"Frame changed to {frame}, evaluating animation...")
+        #if self.session:
+        #self.session.logger.info(f"Frame changed to {frame}, evaluating animation...")
         # Apply animation at this frame
         self._evaluate_animation_at_frame(frame)
 
@@ -2007,8 +2013,8 @@ class KeyframeEditorWidget(QWidget):
         # Calculate timer interval from FPS
         interval = int(1000 / self.fps)  # milliseconds
         self.playback_timer.start(interval)
-        if self.session:
-            self.session.logger.info(f"Started keyframe playback at {self.fps} FPS (interval: {interval}ms)")
+        #if self.session:
+        #    self.session.logger.info(f"Started keyframe playback at {self.fps} FPS (interval: {interval}ms)")
 
     def _pause_playback(self):
         """Pause timeline playback."""
@@ -2077,12 +2083,13 @@ class KeyframeEditorWidget(QWidget):
                                     elif hasattr(interpolated_value, '__iter__') and all(isinstance(p, Place) for p in interpolated_value):
                                         # List of Place objects
                                         model.positions = Places(interpolated_value)
-                                    else:
-                                        if self.session:
-                                            self.session.logger.warning(f"Invalid interpolated value type: {type(interpolated_value)}")
+                                    #else:
+										#pass
+                                        #if self.session:
+                                        #    self.session.logger.warning(f"Invalid interpolated value type: {type(interpolated_value)}")
                                 except Exception as e:
-                                    if self.session:
-                                        self.session.logger.error(f"Error setting model positions: {e}")
+                                    #if self.session:
+                                    #    self.session.logger.error(f"Error setting model positions: {e}")
                                     # Fallback: try to preserve current positions
                                     pass
 
@@ -2150,8 +2157,8 @@ class KeyframeEditorWidget(QWidget):
 
                     # Ensure both have same number of positions
                     if len(prev_positions) != len(next_positions):
-                        if self.session:
-                            self.session.logger.warning(f"Mismatched position counts: {len(prev_positions)} vs {len(next_positions)}")
+                        #if self.session:
+                        #    self.session.logger.warning(f"Mismatched position counts: {len(prev_positions)} vs {len(next_positions)}")
                         return prev_kf[1]  # Fallback
 
                     # Get interpolation center
@@ -2178,8 +2185,8 @@ class KeyframeEditorWidget(QWidget):
                         if isinstance(result, Place):
                             interpolated_positions.append(result)
                         else:
-                            if self.session:
-                                self.session.logger.warning(f"Position {i} interpolation returned {type(result)}, expected Place")
+                            #if self.session:
+                            #    self.session.logger.warning(f"Position {i} interpolation returned {type(result)}, expected Place")
                             interpolated_positions.append(prev_positions[i])  # Fallback
 
                     # Return in the same format as input
@@ -2188,8 +2195,8 @@ class KeyframeEditorWidget(QWidget):
                     else:
                         return Places(interpolated_positions)  # Multiple Places
                 except Exception as e:
-                    if self.session:
-                        self.session.logger.error(f"Error interpolating Place objects: {e}")
+                    #if self.session:
+                    #    self.session.logger.error(f"Error interpolating Place objects: {e}")
                     # Fallback to the previous keyframe value
                     return prev_kf[1]
 
@@ -2466,12 +2473,12 @@ class KeyframeEditorWidget(QWidget):
         # Get the scene from the session
         scene = self.session.scenes.get_scene(scene_name)
         if not scene:
-            self.session.logger.warning(f"Scene '{scene_name}' not found")
+            #self.session.logger.warning(f"Scene '{scene_name}' not found")
             return
 
         # Get models from the scene's named_view positions (these are the models that were saved)
         scene_models = list(scene.named_view.positions.keys())
-        self.session.logger.info(f"Dropping scene '{scene_name}' with {len(scene_models)} models at frame {frame}")
+        #self.session.logger.info(f"Dropping scene '{scene_name}' with {len(scene_models)} models at frame {frame}")
 
         # Create tracks for each model in the scene
         for model in scene_models:
@@ -2506,7 +2513,7 @@ class KeyframeEditorWidget(QWidget):
 
             # Add keyframe with the model positions from the scene (note: positions plural!)
             scene_positions = scene.named_view.positions[model]
-            self.session.logger.info(f"  Adding transform keyframe for {getattr(model, 'name', 'unnamed model')} with {len(scene_positions) if hasattr(scene_positions, '__len__') else 1} positions")
+            #self.session.logger.info(f"  Adding transform keyframe for {getattr(model, 'name', 'unnamed model')} with {len(scene_positions) if hasattr(scene_positions, '__len__') else 1} positions")
             self.insert_keyframe(subtrack_index, frame, scene_positions)
 
             # Also handle model-specific scene data if it exists
@@ -2709,7 +2716,7 @@ class KeyframeEditorWidget(QWidget):
             if name == scene_name:
                 # Add the scene to the scene animation manager at this time
                 self.scene_animation.add_scene_at_time(scene_name, time)
-                self.session.logger.info(f"Added scene '{scene_name}' to animation at {time:.2f}s")
+                #self.session.logger.info(f"Added scene '{scene_name}' to animation at {time:.2f}s")
                 break
 
     def on_scene_removed(self, scene_name):

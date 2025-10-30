@@ -149,14 +149,14 @@ class SceneAnimation(StateManager):
     ):
         """Add a scene at a specific time with transition settings"""
         if not self.session.scenes.get_scene(scene_name):
-            self.logger.warning(f"Scene '{scene_name}' does not exist")
+            #self.logger.warning(f"Scene '{scene_name}' does not exist")
             return False
 
         # Validate transition type
         if transition_type not in TRANSITION_TYPES:
-            self.logger.warning(
-                f"Unknown transition type '{transition_type}', using 'linear'"
-            )
+                    #self.logger.warning(
+            #f"Unknown transition type '{transition_type}', using 'linear'"
+            #)
             transition_type = "linear"
 
         # Remove any existing scene at this time
@@ -169,9 +169,9 @@ class SceneAnimation(StateManager):
         self.scenes.append((time, scene_name, transition_data))
         self.scenes.sort(key=lambda x: x[0])  # Keep sorted by time
 
-        self.logger.info(
-            f"Added scene '{scene_name}' at time {time:.2f}s with {transition_type} transition"
-        )
+        #self.logger.info(
+        #    f"Added scene '{scene_name}' at time {time:.2f}s with {transition_type} transition"
+        #)
         return True
 
     def remove_scene(self, scene_name: str):
@@ -180,10 +180,10 @@ class SceneAnimation(StateManager):
         self.scenes = [(t, s, td) for t, s, td in self.scenes if s != scene_name]
 
         if len(self.scenes) < original_count:
-            self.logger.info(f"Removed scene '{scene_name}' from animation")
+            #self.logger.info(f"Removed scene '{scene_name}' from animation")
             return True
         else:
-            self.logger.warning(f"Scene '{scene_name}' not found in animation")
+            #self.logger.warning(f"Scene '{scene_name}' not found in animation")
             return False
 
     def remove_scene_at_time(self, time: float):
@@ -192,16 +192,16 @@ class SceneAnimation(StateManager):
         self.scenes = [(t, s, td) for t, s, td in self.scenes if t != time]
 
         if len(self.scenes) < original_count:
-            self.logger.info(f"Removed scene at time {time:.2f}s")
+            #self.logger.info(f"Removed scene at time {time:.2f}s")
             return True
         else:
-            self.logger.warning(f"No scene found at time {time:.2f}s")
+            #self.logger.warning(f"No scene found at time {time:.2f}s")
             return False
 
     def set_duration(self, duration: float):
         """Set the total duration of the animation"""
         if duration <= 0:
-            self.logger.warning("Duration must be positive")
+            #self.logger.warning("Duration must be positive")
             return False
 
         self.duration = duration
@@ -209,7 +209,7 @@ class SceneAnimation(StateManager):
         # Remove any scenes beyond the new duration
         self.scenes = [(t, s, td) for t, s, td in self.scenes if t <= duration]
 
-        self.logger.info(f"Set animation duration to {duration:.2f}s")
+        #self.logger.info(f"Set animation duration to {duration:.2f}s")
         return True
 
     def get_effective_end_time(self):
@@ -230,7 +230,7 @@ class SceneAnimation(StateManager):
     def preview_at_time(self, time: float):
         """Preview the animation at a specific time"""
         if time < 0 or time > self.duration:
-            self.logger.warning(f"Time {time:.2f}s is outside animation duration")
+            #self.logger.warning(f"Time {time:.2f}s is outside animation duration")
             return
 
         self.current_time = time
@@ -275,7 +275,7 @@ class SceneAnimation(StateManager):
         # Only log occasionally to avoid spam during playback
         if hasattr(self, "_last_log_time"):
             if time - self._last_log_time > 5.0:  # Log even less frequently
-                self.logger.info(f"Previewing animation at {time:.2f}s")
+                #self.logger.info(f"Previewing animation at {time:.2f}s")
                 self._last_log_time = time
         else:
             self._last_log_time = time
@@ -283,17 +283,17 @@ class SceneAnimation(StateManager):
     def play(self, start_time: float = 0.0, reverse: bool = False):
         """Play the animation from start_time"""
         if self.is_playing:
-            self.logger.warning("Animation is already playing")
+            #self.logger.warning("Animation is already playing")
             return
 
         if not self.scenes:
-            self.logger.warning("No scenes to animate")
+            #self.logger.warning("No scenes to animate")
             return
 
         if start_time < 0 or start_time > self.duration:
-            self.logger.warning(
-                f"Start time {start_time:.2f}s is outside animation duration"
-            )
+            #self.logger.warning(
+            #f"Start time {start_time:.2f}s is outside animation duration"
+            #)
             return
 
         self.is_playing = True
@@ -306,9 +306,9 @@ class SceneAnimation(StateManager):
 
         if self.is_recording:
             # When recording, don't use timer - advance only after frames are captured
-            self.logger.status(
-                f"Recording animation at {self.fps} FPS (frame-synchronized)..."
-            )
+                #self.logger.status(
+                #    f"Recording animation at {self.fps} FPS (frame-synchronized)..."
+                #)
             # Set up frame capture synchronization
             self._setup_recording_sync()
             # Start with the first frame
@@ -453,7 +453,7 @@ class SceneAnimation(StateManager):
 
         # Emit playback stopped signal
         self.signals.playback_stopped.emit()
-        self.logger.status("Stopped animation")
+        #self.logger.status("Stopped animation")
 
     def set_fps(self, fps: int):
         """Update FPS and restart timer if playing"""
@@ -472,11 +472,11 @@ class SceneAnimation(StateManager):
                    If None, uses the setting from the animations preferences
         """
         if self.is_recording:
-            self.logger.warning("Already recording")
+            #self.logger.warning("Already recording")
             return
 
         if not self.scenes:
-            self.logger.warning("No scenes to record")
+            #self.logger.warning("No scenes to record")
             return
 
         try:
@@ -498,10 +498,10 @@ class SceneAnimation(StateManager):
             # print(f"DEBUG: Parsed size tuple: {size}")
 
             # Log recording info
-            if size:
-                self.logger.info(f"Recording at {size[0]}×{size[1]} resolution")
-            else:
-                self.logger.info("Recording at display resolution")
+            #if size:
+            #    #self.logger.info(f"Recording at {size[0]}×{size[1]} resolution")
+            #else:
+            #    #self.logger.info("Recording at display resolution")
 
             # Set up recording parameters
             record_params = {
@@ -528,7 +528,7 @@ class SceneAnimation(StateManager):
             self.play()
 
         except Exception as e:
-            self.logger.error(f"Failed to start recording: {str(e)}")
+            #self.logger.error(f"Failed to start recording: {str(e)}")
             self.is_recording = False
 
     def _finish_recording(self):
@@ -559,9 +559,10 @@ class SceneAnimation(StateManager):
             # print(f"DEBUG: Video duration at {self.fps} FPS: {actual_duration:.2f}s")
 
             if abs(actual_frame_count - expected_frames) > 1:
-                self.logger.warning(
-                    f"Frame count mismatch: expected {expected_frames}, got {actual_frame_count}"
-                )
+                pass
+                #self.logger.warning(
+                #    f"Frame count mismatch: expected {expected_frames}, got {actual_frame_count}"
+                #)
 
             # Always encode at the user's requested framerate
             movie_encode(
@@ -570,12 +571,13 @@ class SceneAnimation(StateManager):
                 framerate=self.fps,  # Use the user's requested FPS
             )
 
-            self.logger.info(
-                f"Animation recorded to {self._record_data['output_path']}"
-            )
+            #self.logger.info(
+            #    f"Animation recorded to {self._record_data['output_path']}"
+            #)
 
         except Exception as e:
-            self.logger.error(f"Failed to encode movie: {str(e)}")
+            pass
+            #self.logger.error(f"Failed to encode movie: {str(e)}")
         finally:
             self.is_recording = False
             self._record_data = None
@@ -769,7 +771,7 @@ class SceneAnimation(StateManager):
     def clear_all_scenes(self):
         """Remove all scenes from the animation"""
         self.scenes = []
-        self.logger.info("Cleared all scenes from animation")
+        #self.logger.info("Cleared all scenes from animation")
 
     def take_snapshot(self, session, flags):
         """Save state for session snapshots"""
@@ -783,7 +785,7 @@ class SceneAnimation(StateManager):
     def restore_from_data(self, data):
         """Restore state from snapshot data"""
         if data.get("version", 0) != self.version:
-            self.logger.warning(f"Version mismatch in animation data")
+            #self.logger.warning(f"Version mismatch in animation data")
             return
 
         self.duration = data.get("duration", self.DEFAULT_DURATION)
@@ -796,9 +798,10 @@ class SceneAnimation(StateManager):
             if self.session.scenes.get_scene(scene_name):
                 valid_scenes.append((time, scene_name, transition_data))
             else:
-                self.logger.warning(
-                    f"Scene '{scene_name}' no longer exists, removing from animation"
-                )
+                pass
+                #self.logger.warning(
+                #    f"Scene '{scene_name}' no longer exists, removing from animation"
+                #)
 
         self.scenes = valid_scenes
 
@@ -835,12 +838,12 @@ class SceneAnimation(StateManager):
             elif resolution in ["480p", "sd"]:
                 return (640, 480)
             else:
-                self.logger.warning(
-                    f"Unknown resolution '{resolution}', using display resolution"
-                )
+                    #self.logger.warning(
+                #f"Unknown resolution '{resolution}', using display resolution"
+                #)
                 return None
 
-        self.logger.warning(
-            f"Invalid resolution format '{resolution}', using display resolution"
-        )
+            #self.logger.warning(
+            #    f"Invalid resolution format '{resolution}', using display resolution"
+            #)
         return None

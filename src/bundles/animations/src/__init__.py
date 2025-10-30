@@ -28,10 +28,6 @@ class _MyAPI(BundleAPI):
         """Install scene manager into existing session"""
         from .animation import Animation
         session.add_state_manager("animations", Animation(session))
-        if session.ui.is_gui:
-            from . import settings
-            session.ui.triggers.add_handler('ready',
-                lambda *args, ses=session: settings.register_settings_options(ses))
 
     @staticmethod
     def register_command(bi, ci, logger):
