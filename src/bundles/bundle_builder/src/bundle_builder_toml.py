@@ -702,7 +702,7 @@ class Bundle:
                 for entry in globbed_items:
                     destination = os.path.join(path, os.path.basename(entry))
                     if os.path.isdir(entry):
-                        shutil.copytree(entry, destination)
+                        shutil.copytree(entry, destination, dirs_exist_ok=True)
                     else:
                         shutil.copy2(entry, destination)
 
