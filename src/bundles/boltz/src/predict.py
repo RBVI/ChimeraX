@@ -501,7 +501,7 @@ class BoltzRun:
         self._open = open		# Whether to open predictions when boltz finishes.
 
         from os.path import abspath, isabs
-        run_dir = abspath(run_directory) if run_directory and not isabs(run_directory) else None
+        run_dir = abspath(run_directory) if run_directory and not isabs(run_directory) else run_directory
         self._run_directory = run_dir	# Location of input and results files
         self._input_path = None		# YAML file path or directory of yaml files
         self._running = False		# Subprocess running
