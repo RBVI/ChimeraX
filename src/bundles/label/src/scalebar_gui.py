@@ -87,11 +87,10 @@ class Scalebar(ToolInstance):
     def _changed_options(self):
         cur_length, cur_color, cur_xpos, cur_ypos, cur_thickness =  self._scalebar_settings()
 
-        try:
-            length = self._length.value
-            xpos, ypos = self._xpos.value, self._ypos.value
-            thickness = self._thickness.value
-        except ValueError:
+        length = self._length.value
+        xpos, ypos = self._xpos.value, self._ypos.value
+        thickness = self._thickness.value
+        if length is None or xpos is None or ypos is None or thickness is None:
             self.session.logger.error('Bad number format in Scale Bar panel length, x, y, or thickness')
             return
 

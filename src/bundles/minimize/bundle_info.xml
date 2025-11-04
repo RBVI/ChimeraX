@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Minimize" version="1.2"
+<BundleInfo name="ChimeraX-Minimize" version="1.3.2"
 	    package="chimerax.minimize"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -28,7 +28,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: minimize :: Structure Editing :: minimize structures</ChimeraXClassifier>
-    <!-- <ChimeraXClassifier>Tool :: Dock Prep :: Structure Editing :: prepare structures for docking</ChimeraXClassifier> -->
+    <ChimeraXClassifier>Tool :: Minimize Structure :: Structure Editing :: Energy minimize a structure</ChimeraXClassifier> -->
   </Classifiers>
 
 </BundleInfo>

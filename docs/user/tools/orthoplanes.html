@@ -1,0 +1,79 @@
+<html lang="en">
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Tool: Orthoplanes</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Orthoplanes</h3>
+<p>
+<b>Orthoplanes</b> allows viewing axial, coronal, or
+sagittal slices of 3D <a href="volumeviewer.html">volume data</a>
+such as medical images or density maps in a separate window.
+Volume data can be opened with the command
+<a href="../commands/open.html"><b>open</b></a> (which automatically
+starts <a href="volumeviewer.html"><b>Volume Viewer</b></a>).
+Display color and thresholds (intensity/value mapping) can be adjusted
+with <a href="volumeviewer.html"><b>Volume Viewer</b></a> or the 
+<a href="../commands/volume.html"><b>volume</b></a> command.
+</p><p>
+See also:
+<a href="../commands/ui.html#view"><b>ui view</b></a>,
+<a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>,
+<a href="../tools/downloaddicom.html"><b>Download DICOM</b></a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-vr.html">
+DICOM in VR tutorial</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentat
+ions.html">DICOM segmentation tutorial</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
+target="_blank">ChimeraX for Medical Image Analysis</a>
+</p><p>
+Even without data, <b>Orthoplanes</b> can be started
+from the <b>Volume Data</b> section of the <b>Tools</b> menu.
+The <b>Orthoplanes</b> window can be manipulated
+like other panels in ChimeraX (<a href="../window.html#panels">more...</a>).
+</p><p>
+The <b>Model</b> menu on the top right allows choosing between the currently
+open volume models. The menu on the top left allows choosing the slice
+direction as <b>Axial</b>, <b>Coronal</b>, or <b>Sagittal</b>.
+</p><p>
+At the bottom of the window, there is a
+slider for navigating through the data planes along the corresponding axis.
+Alternatively, the following keys can be used,
+optionally + Shift for faster movement:
+</p>
+<ul>
+<li>letters A and D
+<li>left and right arrow keys
+</ul>
+<p>
+The depth of the current plane is reported to the right of the slider.
+</p><p>
+The slice view does not rotate,
+but zooming and translation follow the default
+<a href="ui.html#mousemode">mousemode assignments</a>.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2025</address>
+</body></html>

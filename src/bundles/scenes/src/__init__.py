@@ -21,7 +21,7 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "0.2.1"
+__version__ = "0.2.5"
 
 from chimerax.core.toolshed import BundleAPI
 
@@ -58,7 +58,6 @@ class _ScenesBundleAPI(BundleAPI):
     def start_tool(session, bi, ti):
         if ti.name == "Scenes":
             from .tool import ScenesTool
-
             return ScenesTool(session, ti.name)
         raise ValueError("unknown tool %s" % ti.name)
 

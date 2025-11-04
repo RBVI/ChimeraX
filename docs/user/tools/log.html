@@ -1,4 +1,4 @@
-<html>
+<html lang="en">
 
 <!--
 === UCSF ChimeraX Copyright ===
@@ -36,7 +36,6 @@ or to <a href="sequenceviewer.html">show the sequence of a chain</a>).
 Restoring a <a href="../commands/save.html#session">session</a> restores
 its <b>Log</b> contents as a collapsible section with a disclosure triangle.
 See also: 
-<a href="../preferences.html#log"><b>Log</b> preferences</a>,
 <a href="cli.html#history"><b>Command History</b></a>,
 <a href="helpviewer.html">ChimeraX browser</a>,
 <a href="../commands/log.html"><b>log</b></a>,
@@ -49,23 +48,37 @@ Like other tools, the <b>Log</b> can be opened from the <b>Tools</b> menu
 Its <a href="../window.html#context-menu">context menu</a> includes:
 </p>
 <ul>
-<li><b>Insert Image</b>
-&ndash; include a thumbnail image of the current display
-<li><b>Save As...</b> save contents to an HTML file
 <li><b>Clear</b> &ndash; remove all contents
 <li><b>Copy Selection</b>
-<li><b>Select All</b>
-<li><b>Raise Log When Logging Occurs</b>
-&ndash; whether to show the <b>Log</b> (bring to front if tabbed
-behind another panel, or reopen if closed) whenever some
-action or message adds to its contents; can be set as a
-<a href="../preferences.html#log">preference</a>
 <li><b>Executable Command Links</b>
 &ndash; whether command links should be executable or show help
 (saved as a <a href="../preferences.html#other">preference</a>)
+<li><b>Insert Image</b>
+&ndash; include a thumbnail image of the current display
+<li><b>Notifications</b>
+(settings saved as <a href="../preferences.html#other">preferences</a>)
+  <ul>
+<li><b>Errors Shown in Dialog</b>
+&ndash; whether error messages in the <b>Log</b>
+should also generate a separate dialog window
+<li><b>Raise Log When Logging Occurs</b>
+&ndash; whether to show the <b>Log</b>
+(bring to front if tabbed behind another panel, or reopen if closed)
+whenever some action or message adds to its contents
+<li><b>Warnings Shown in Dialog</b>
+&ndash; whether warning messages in the <b>Log</b>
+should also generate a separate dialog window
+  </ul>
+<li><b>Restoring Session Clears Dialog</b>
+&ndash; whether to clear the current contents from the <b>Log</b>
+before populating it with the contents from a
+<a href="../commands/save.html#session">session</a> that is being restored
+(saved as a <a href="../preferences.html#other">preference</a>)
+<li><b>Select All</b>
+<li><b>Save As...</b> save contents to an HTML file
 </ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2024</address>
+October 2025</address>
 </body></html>

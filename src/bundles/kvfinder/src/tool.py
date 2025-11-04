@@ -107,7 +107,6 @@ class LaunchKVFinderTool(ToolInstance):
         bbox.accepted.connect(self.find_cavities)
         # Since ApplyRole is not AcceptRole, simply connecting to the Apply button won't dismiss the dialog
         bbox.button(qbbox.Apply).clicked.connect(self.find_cavities)
-        bbox.accepted.connect(self.delete) # slots executed in the order they are connected
         bbox.rejected.connect(self.delete)
         if getattr(self, 'help', None) is None:
             bbox.button(qbbox.Help).setEnabled(False)
@@ -119,9 +118,13 @@ class LaunchKVFinderTool(ToolInstance):
         tw.manage(placement=None)
 
     def find_cavities(self):
+        self.tool_window.shown = False
+        self.session.ui.processEvents()
+        from chimerax.ui import tool_user_error
         structures = self.structures_list.value
         if not structures:
-            raise UserError("No structures chosen")
+            self.tool_window.shown = True
+            return tool_user_error("No structures chosen")
         from chimerax.atomic import AtomicStructure
         from chimerax.core.commands import run, concise_model_spec
         cmd = "kvfinder %s" % concise_model_spec(self.session, structures, relevant_types=AtomicStructure)
@@ -129,11 +132,15 @@ class LaunchKVFinderTool(ToolInstance):
         global _launch_settings
         for attr_name, default_value in self.cmd_defaults.items():
             cur_val = getattr(_launch_settings, attr_name)
+            if attr_name == "grid_spacing" and (cur_val <= 0.0 or cur_val >= 5.0):
+                self.tool_window.shown = True
+                return tool_user_error("Grid spacing value must be > 0.0 and < 5.0")
             if cur_val != default_value:
                 cmd += " " + camel_case(attr_name) + " %g" % cur_val
         if not self.replace_prev.isChecked():
             cmd += " replace false"
         run(self.session, cmd)
+        self.delete()
 
 
 _results_settings = None

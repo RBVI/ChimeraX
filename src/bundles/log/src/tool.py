@@ -42,10 +42,12 @@ _cxcmd_as_cmd_css = """
 }
 """
 
+
 def cxcmd_css(exec_links):
     from chimerax.core.colors import scheme_color
-    background = scheme_color('command')
-    base_css = _cxcmd_css.replace('BACKGROUND', background)
+
+    background = scheme_color("command")
+    base_css = _cxcmd_css.replace("BACKGROUND", background)
     if exec_links:
         return base_css + _cxcmd_as_cmd_css
     return base_css + _cxcmd_as_doc_css
@@ -133,68 +135,98 @@ function init_menus() {
 
 
 class Log(ToolInstance, HtmlLog):
-
     SESSION_ENDURING = True
     SESSION_SAVE = True
     help = "help:user/tools/log.html"
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
-        from .settings import settings
-        self.settings = settings
+        from .settings import get_settings
+        self.settings = get_settings(session)
         self.suppress_scroll = False
         self._log_file = None
         self.page_source = ""
         from chimerax.ui import MainToolWindow
+
         class LogToolWindow(MainToolWindow):
             def fill_context_menu(self, menu, x, y, session=session):
                 def save_image(ses=session):
                     from chimerax.core.commands import run
+
                     run(ses, "log thumbnail")
-                menu.addAction("Insert Image", save_image)
-                log_window = self.tool_instance.log_window
-                menu.addAction("Save As...", log_window.cm_save)
+
                 menu.addAction("Clear", self.tool_instance.clear)
                 menu.addAction("Copy Selection", lambda:
                     self.session.ui.clipboard().setText(log_window.selectedText()))
-                menu.addAction("Select All", lambda:
-                    log_window.page().triggerAction(log_window.page().SelectAll))
-                from Qt.QtGui import QAction
-                show_action = QAction("Raise Log When Logging Occurs", menu)
-                show_action.setCheckable(True)
-                show_action.setChecked(self.tool_instance.settings.show_if_new_content)
-                show_action.triggered.connect(lambda checked, settings=self.tool_instance.settings:
-                    setattr(settings, 'show_if_new_content', checked))
-                menu.addAction(show_action)
-                link_action = QAction("Executable Command Links", menu)
+                link_action = menu.addAction("Executable Command Links")
                 link_action.setCheckable(True)
                 link_action.setChecked(self.tool_instance.settings.exec_cmd_links)
                 link_action.triggered.connect(self.tool_instance.cm_set_cmd_links)
-                menu.addAction(link_action)
-        self.tool_window = LogToolWindow(self, close_destroys = False)
+                menu.addAction("Insert Image", save_image)
+                log_window = self.tool_instance.log_window
+                note_menu = menu.addMenu("Notifications")
+                raise_action = menu.addAction("Restoring Session Clears Dialog")
+                raise_action.setCheckable(True)
+                raise_action.setChecked(self.tool_instance.settings.session_restore_clears)
+                raise_action.triggered.connect(lambda checked, settings=self.tool_instance.settings:
+                    setattr(settings, "session_restore_clears", checked))
+                menu.addAction("Select All", lambda:
+                    log_window.page().triggerAction(log_window.page().SelectAll))
+                menu.addAction("Save As...", log_window.cm_save)
+
+                errors_action = note_menu.addAction("Errors Shown in Dialog")
+                errors_action.setCheckable(True)
+                errors_action.setChecked(self.tool_instance.settings.errors_raise_dialog)
+                errors_action.triggered.connect(lambda checked, settings=self.tool_instance.settings:
+                    setattr(settings, "errors_raise_dialog", checked))
+
+                raise_action = note_menu.addAction("Raise Log When Logging Occurs")
+                raise_action.setCheckable(True)
+                raise_action.setChecked(self.tool_instance.settings.show_if_new_content)
+                raise_action.triggered.connect(lambda checked, settings=self.tool_instance.settings:
+                    setattr(settings, "show_if_new_content", checked))
+
+                raise_action = note_menu.addAction("Warnings Shown in Dialog")
+                raise_action.setCheckable(True)
+                raise_action.setChecked(self.tool_instance.settings.warnings_raise_dialog)
+                raise_action.triggered.connect(lambda checked, settings=self.tool_instance.settings:
+                    setattr(settings, "warnings_raise_dialog", checked))
+
+        self.tool_window = LogToolWindow(self, close_destroys=False)
 
         parent = self.tool_window.ui_area
         from chimerax.ui.widgets import ChimeraXHtmlView
 
         from Qt.QtWebEngineCore import QWebEnginePage
-        class MyPage(QWebEnginePage):
 
+        class MyPage(QWebEnginePage):
             def acceptNavigationRequest(self, qurl, nav_type, is_main_frame):
-                if qurl.scheme() in ('http', 'https'):
+                if qurl.scheme() in ("http", "https"):
                     session = self.session
+
                     def show_url(url):
                         from chimerax.help_viewer import show_url
+
                         show_url(session, url)
+
                     session.ui.thread_safe(show_url, qurl.toString())
                     return False
                 return True
 
         class HtmlWindow(ChimeraXHtmlView):
-
             def __init__(self, session, parent, log):
                 from chimerax.ui.widgets.htmlview import create_chimerax_profile
-                profile = create_chimerax_profile(parent, interceptor=self.link_intercept)
-                super().__init__(session, parent, size_hint=(575, 500), tool_window=log.tool_window, profile=profile)
+
+                profile = create_chimerax_profile(
+                    parent, interceptor=self.link_intercept
+                )
+                super().__init__(
+                    session,
+                    parent,
+                    size_hint=(575, 500),
+                    tool_window=log.tool_window,
+                    profile=profile,
+                )
                 page = MyPage(self._profile, self)
                 page.session = self.session
                 self.setPage(page)
@@ -205,24 +237,34 @@ class Log(ToolInstance, HtmlLog):
                 ## to Handle the context menu, but apparently not for QWebView widgets,
                 ## so we define contextMenuEvent as a workaround.
                 # defer context menu to parent
-                #from Qt.QtCore import Qt
-                #self.setContextMenuPolicy(Qt.NoContextMenu)
+                # from Qt.QtCore import Qt
+                # self.setContextMenuPolicy(Qt.NoContextMenu)
 
             def link_intercept(self, request_info, *args, **kw):
                 # for #2289, don't scroll log when a link in it is clicked
                 qurl = request_info.requestUrl()
                 scheme = qurl.scheme()
-                if scheme == 'cxcmd':
+                if scheme == "cxcmd":
                     from Qt.QtCore import QUrl
-                    no_formatting = QUrl.UrlFormattingOption.None_
+                    from Qt import using_pyqt6, using_pyside6
+
+                    if using_pyqt6:
+                        no_formatting = QUrl.UrlFormattingOption.None_
+                    else:
+                        no_formatting = QUrl.ComponentFormattingOption(0)
                     cmd = qurl.toString(no_formatting)[6:].lstrip()  # skip cxcmd:
                     self.log.suppress_scroll = cmd and (
-                            cmd.split(maxsplit=1)[0] not in ('log', 'echo'))
+                        cmd.split(maxsplit=1)[0] not in ("log", "echo")
+                    )
                 from chimerax.ui.widgets.htmlview import chimerax_intercept
-                chimerax_intercept(request_info, *args, session=self.session, view=self, **kw)
+
+                chimerax_intercept(
+                    request_info, *args, session=self.session, view=self, **kw
+                )
 
             def cm_save(self):
                 from chimerax.ui.open_save import SaveDialog
+
                 fmt = session.data_formats["HTML"]
                 save_dialog = SaveDialog(session, self, "Save Log", data_formats=[fmt])
                 if not save_dialog.exec():
@@ -230,32 +272,39 @@ class Log(ToolInstance, HtmlLog):
                 filename = save_dialog.selectedFiles()[0]
                 if not filename:
                     from chimerax.core.errors import UserError
+
                     raise UserError("No file specified for save log contents")
                 self.log.save(filename)
 
         self.log_window = lw = HtmlWindow(session, parent, self)
         from Qt.QtCore import QTimer
+
         self.regulating_timer = QTimer()
         self.regulating_timer.timeout.connect(self._actually_show)
 
         from Qt.QtWidgets import QGridLayout, QErrorMessage
+
         class BiggerErrorDialog(QErrorMessage):
             def sizeHint(self):
                 from Qt.QtCore import QSize
+
                 return QSize(600, 300)
+
         self.error_dialog = BiggerErrorDialog(parent)
         self._add_report_bug_button()
         layout = QGridLayout(parent)
-        layout.setContentsMargins(0,0,0,0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.log_window, 0, 0)
         parent.setLayout(layout)
-        #self.log_window.EnableHistory(False)
+        # self.log_window.EnableHistory(False)
         self.page_source = ""
         self.tool_window.manage(placement="side")
         session.logger.add_log(self)
+
         # Don't record html history as log changes.
         def clear_history(okay, lw=lw):
             lw.history().clear()
+
         lw.loadFinished.connect(clear_history)
         self.show_page_source()
 
@@ -263,17 +312,19 @@ class Log(ToolInstance, HtmlLog):
         self.settings.exec_cmd_links = checked
         self._show()
 
-    def show_error_message(self, msg, bug = False):
+    def show_error_message(self, msg, bug=False):
         ed = self.error_dialog
         if bug:
             ed.report_bug_button.show()
         else:
             ed.report_bug_button.hide()
         from sys import platform
-        if platform == 'darwin':
+
+        if platform == "darwin":
             # To show the Report Bug button we need a non-native dialog on Mac.
             # ChimeraX bug #9392
             from Qt.QtCore import Qt
+
             self.session.ui.setAttribute(Qt.AA_DontUseNativeDialogs)
             ed.showMessage(msg)
             self.session.ui.setAttribute(Qt.AA_DontUseNativeDialogs, False)
@@ -281,16 +332,17 @@ class Log(ToolInstance, HtmlLog):
             ed.showMessage(msg)
 
     def _add_report_bug_button(self):
-        '''
+        """
         Add "Report a Bug" button to the error dialog.
         Unfortunately the QErrorMessage dialog being used has no API to add a button.
         So this code uses that implementation details of QErrorMessage to add the button.
         We could instead emulate QErrorMessage with a QMessageBox but it would require
         adding the queueing and "Show this message again" checkbox.
-        '''
+        """
         ed = self.error_dialog
         el = ed.layout()
         from Qt.QtWidgets import QGridLayout, QPushButton, QHBoxLayout
+
         if isinstance(el, QGridLayout):
             i = 0
             while True:
@@ -305,15 +357,16 @@ class Log(ToolInstance, HtmlLog):
                 brow = QHBoxLayout()
                 brow.addStretch(1)
                 brow.addWidget(w)
-                rb = QPushButton('Report Bug')
+                rb = QPushButton("Report Bug")
                 rb.clicked.connect(self._report_a_bug)
                 brow.addWidget(rb)
                 ed.report_bug_button = rb
                 el.addLayout(brow, row, col, rowspan, colspan)
 
     def _report_a_bug(self):
-        '''Show the bug report tool.'''
+        """Show the bug report tool."""
         from chimerax.bug_reporter import show_bug_reporter
+
         show_bug_reporter(self.session)
         self.error_dialog.done(0)
 
@@ -329,11 +382,12 @@ class Log(ToolInstance, HtmlLog):
         start_len = len(self.page_source)
         if image_info[0] is not None:
             from chimerax.core.logger import image_info_to_html
+
             self._append_message(image_info_to_html(msg, image_info))
         else:
-            from .settings import settings
-            if ((level >= self.LEVEL_ERROR and settings.errors_raise_dialog) or
-                    (level == self.LEVEL_WARNING and settings.warnings_raise_dialog)):
+            if (level >= self.LEVEL_ERROR and self.settings.errors_raise_dialog) or (
+                level == self.LEVEL_WARNING and self.settings.warnings_raise_dialog
+            ):
                 if not is_html:
                     dlg_msg = "<br>".join(msg.split("\n"))
                 else:
@@ -341,45 +395,50 @@ class Log(ToolInstance, HtmlLog):
                     # look misleadingly clickable; strip them...
                     search_text = msg
                     dlg_msg = ""
-                    while '<a href=' in search_text:
-                        before, partial = search_text.split('<a href=', 1)
+                    while "<a href=" in search_text:
+                        before, partial = search_text.split("<a href=", 1)
                         dlg_msg += before
                         html, text_plus = partial.split(">", 1)
-                        if '</a>' not in text_plus:
+                        if "</a>" not in text_plus:
                             # can't parse link, just use original message
                             dlg_msg = ""
                             search_text = msg
                             break
-                        link, search_text = text_plus.split('</a>', 1)
+                        link, search_text = text_plus.split("</a>", 1)
                         dlg_msg += link
                     dlg_msg += search_text
-                bug = (level == self.LEVEL_BUG)
+                bug = level == self.LEVEL_BUG
                 f = lambda self=self, msg=dlg_msg: self.show_error_message(msg, bug=bug)
                 self.session.ui.thread_safe(f)
             else:
                 # If we're not raising a dialog, at least try to bring the Log to the front
                 # if it is somehow obscured
-                if settings.show_if_new_content:
+                if self.settings.show_if_new_content:
                     self.tool_window.shown = True
 
             if not is_html:
                 from html import escape
+
                 msg = escape(msg)
                 msg = msg.replace("\n", "<br>\n")
 
             if level == self.LEVEL_ERROR:
                 from chimerax.core.logger import error_text_format
+
                 msg = error_text_format(msg)
             elif level == self.LEVEL_WARNING:
                 from chimerax.core.colors import scheme_color
-                color = scheme_color('warning')
+
+                color = scheme_color("warning")
                 msg = f'<p style="color:{color}">{msg}</p>'
 
             # compact repeated output, e.g. ISOLDE's 'stepto' command
             #
             # printing to stderr can produce extremely piecemeal logging (e.g. consecutive loggings of
             # a space character), so only try to compact if "<br>" or "<div" is in msg
-            if ("<br>" in msg and not msg.replace("<br>", " ").isspace()) or "<div" in msg:
+            if (
+                "<br>" in msg and not msg.replace("<br>", " ").isspace()
+            ) or "<div" in msg:
                 compaction_start_text = "[Repeated "
                 compaction_end_text = " time(s)]"
                 compaction_start = None
@@ -390,10 +449,18 @@ class Log(ToolInstance, HtmlLog):
                     except ValueError:
                         pass
                     else:
-                        if self.page_source[bracket_start:].startswith(compaction_start_text):
+                        if self.page_source[bracket_start:].startswith(
+                            compaction_start_text
+                        ):
                             try:
-                                compaction_number = int(self.page_source[
-                                    bracket_start+len(compaction_start_text):-len(compaction_end_text)])
+                                compaction_number = int(
+                                    self.page_source[
+                                        bracket_start
+                                        + len(compaction_start_text) : -len(
+                                            compaction_end_text
+                                        )
+                                    ]
+                                )
                             except ValueError:
                                 pass
                             else:
@@ -404,10 +471,17 @@ class Log(ToolInstance, HtmlLog):
                     test_text = self.page_source[:compaction_start]
                 if test_text.endswith(msg):
                     if compaction_start is None:
-                        self.page_source += compaction_start_text + "1" + compaction_end_text
+                        self.page_source += (
+                            compaction_start_text + "1" + compaction_end_text
+                        )
                     else:
-                        self.page_source = self.page_source[:compaction_start] + "%s%d%s" % (
-                            compaction_start_text, compaction_number+1, compaction_end_text)
+                        self.page_source = self.page_source[
+                            :compaction_start
+                        ] + "%s%d%s" % (
+                            compaction_start_text,
+                            compaction_number + 1,
+                            compaction_end_text,
+                        )
                 else:
                     self._append_message(msg)
             else:
@@ -429,16 +503,17 @@ class Log(ToolInstance, HtmlLog):
                 pass
 
     def record_to_file(self, file):
-        '''Save messages to a file for crash reporting.'''
+        """Save messages to a file for crash reporting."""
         self._log_file = file
         self._log_to_file(self.page_source)
-        
+
     def show_page_source(self):
         self.session.ui.thread_safe(self._show)
 
     def _show(self):
         # start() is documented to stop the timer if it is running
         from Qt import qt_object_is_deleted
+
         if qt_object_is_deleted(self.regulating_timer):
             return
         self.regulating_timer.start(100)
@@ -450,11 +525,11 @@ class Log(ToolInstance, HtmlLog):
             height = str(sp.y())
             self.suppress_scroll = False
         else:
-            height = 'document.body.scrollHeight'
+            height = "document.body.scrollHeight"
         css = cxcmd_css(self.settings.exec_cmd_links) + self.session.ui.dark_css()
         html = (
             f"<style>{css}</style>\n"
-            f"<body onload=\"window.scrollTo(0, {height});\">\n"
+            f'<body onload="window.scrollTo(0, {height});">\n'
             f"{self.page_source}"
             "</body>"
         )
@@ -473,8 +548,9 @@ class Log(ToolInstance, HtmlLog):
         if executable_links is None:
             executable_links = self.settings.exec_cmd_links
         from os.path import expanduser
+
         path = expanduser(path)
-        with open(path, 'w', encoding='utf-8') as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(
                 "<html>\n"
                 "<head>\n"
@@ -499,8 +575,8 @@ class Log(ToolInstance, HtmlLog):
             return self._cxcmd_script
         except AttributeError:
             import chimerax, os.path
-            fname = os.path.join(chimerax.app_data_dir, "docs", "js",
-                                 "cxlinks.js")
+
+            fname = os.path.join(chimerax.app_data_dir, "docs", "js", "cxlinks.js")
             with open(fname) as f:
                 self._cxcmd_script = f.read()
             return self._cxcmd_script
@@ -516,35 +592,52 @@ class Log(ToolInstance, HtmlLog):
     @classmethod
     def get_singleton(cls, session):
         from chimerax.core import tools
-        return tools.get_singleton(session, Log, 'Log')
+
+        return tools.get_singleton(session, Log, "Log")
 
     def set_state_from_snapshot(self, session, data):
         super().set_state_from_snapshot(session, data)
-        log_data = data['log data']
+        log_data = data["log data"]
         # don't blindly trust HTML in log_data
-        date = log_data['date']
-        if '<' in date:
-            session.logger.warning("Potentially malicious date found in session file's log data ignored")
+        date = log_data["date"]
+        if "<" in date:
+            session.logger.warning(
+                "Potentially malicious date found in session file's log data ignored"
+            )
             date = "unknown"
         from lxml import html
-        contents = log_data['contents']
+
+        contents = log_data["contents"]
         if not contents:
-            contents = '<html></html>'
+            contents = "<html></html>"
         tmp = html.fromstring(contents)
         script_elements = tmp.findall(".//script")
         if script_elements:
-            session.logger.warning("Potentially malicious HTML script elements found in session file's log data ignored")
+            session.logger.warning(
+                "Potentially malicious HTML script elements found in session file's log data ignored"
+            )
             for e in reversed(script_elements):
                 e.getparent().remove(e)
             contents = html.tostring(tmp)
         from chimerax.ui.html import disclosure
+
         # From CSS4, ButtonFace color should contrast with Canvas (text) color
-        prev_ses_html = disclosure('%s<p>&mdash;&mdash;&mdash; End of log from %s &mdash;&mdash;&mdash;</p>'
-            % (contents, date), summary= 'Log from %s' % date, background_color="ButtonFace")
-        if (self.settings.session_restore_clears and session.restore_options['clear log']
-                and not session.restore_options['combine']):
-            def clear_log_unless_error(trig_name, session, *, self=self, prev_ses_html=prev_ses_html):
-                if session.restore_options['error encountered']:
+        prev_ses_html = disclosure(
+            "%s<p>&mdash;&mdash;&mdash; End of log from %s &mdash;&mdash;&mdash;</p>"
+            % (contents, date),
+            summary="Log from %s" % date,
+            background_color="ButtonFace",
+        )
+        if (
+            self.settings.session_restore_clears
+            and session.restore_options["clear log"]
+            and not session.restore_options["combine"]
+        ):
+
+            def clear_log_unless_error(
+                trig_name, session, *, self=self, prev_ses_html=prev_ses_html
+            ):
+                if session.restore_options["error encountered"]:
                     # if the session did't restore successfully, don't clear the log
                     self._append_message(prev_ses_html)
                 else:
@@ -552,10 +645,13 @@ class Log(ToolInstance, HtmlLog):
                     class FakeLogger:
                         def __init__(self):
                             self.msgs = []
+
                         def info(self, msg):
                             self.msgs.append(msg)
+
                     fl = FakeLogger()
                     from chimerax.core.logger import log_version
+
                     log_version(fl)
                     version = "<br>".join(fl.msgs)
 
@@ -564,27 +660,32 @@ class Log(ToolInstance, HtmlLog):
                     if index == -1:
                         retain = version
                     else:
-                        retain = version + '<br>' + self.page_source[index:]
+                        retain = version + "<br>" + self.page_source[index:]
                     self.page_source = retain + prev_ses_html
                 from chimerax.core.triggerset import DEREGISTER
+
                 return DEREGISTER
-            session.triggers.add_handler('end restore session', clear_log_unless_error)
+
+            session.triggers.add_handler("end restore session", clear_log_unless_error)
         else:
             self._append_message(prev_ses_html)
-        #self.show_page_source()
+        # self.show_page_source()
 
     def take_snapshot(self, session, flags):
         from datetime import datetime
+
         data = super().take_snapshot(session, flags)
-        data['log data'] = {
-            'version': 1,
-            'date': datetime.now().ctime(),
-            'contents': self.page_source,
+        data["log data"] = {
+            "version": 1,
+            "date": datetime.now().ctime(),
+            "contents": self.page_source,
         }
         return data
 
+
 def log_html_to_plain_text(log_html_text):
     import html2text
+
     h = html2text.HTML2Text()
     h.unicode_snob = True
     h.ignore_links = True
@@ -592,20 +693,21 @@ def log_html_to_plain_text(log_html_text):
     # html2text doesn't understand css style display:None
     # so remove "duplicate" of command and add leading '> '
     import lxml.html
+
     html = lxml.html.fromstring(log_html_text)
     for node in html.find_class("cxcmd"):
         cxcmd_as_doc = False
         for child in node:
-            cls = child.attrib.get('class', None)
-            if cls == 'cxcmd_as_doc':
+            cls = child.attrib.get("class", None)
+            if cls == "cxcmd_as_doc":
                 cxcmd_as_doc = True
                 node.remove(child)
                 continue
-            if cls == 'cxcmd_as_cmd':
-                child.text = '> '
+            if cls == "cxcmd_as_cmd":
+                child.text = "> "
                 break
         if not cxcmd_as_doc:
-            node.text = '> '
-    src = lxml.html.tostring(html, encoding='unicode')
+            node.text = "> "
+    src = lxml.html.tostring(html, encoding="unicode")
     log_plain_text = h.handle(src)
     return log_plain_text

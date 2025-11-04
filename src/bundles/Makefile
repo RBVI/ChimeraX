@@ -19,7 +19,7 @@ PYTHON ?= $(APP_PYTHON_EXE)
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
 REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
-	  alphafold altloc_explorer amber_info aniso arrays atom_search \
+	  alphafold altloc_explorer amber_info animations aniso arrays atom_search \
 	  atomic atomic_lib axes_planes basic_actions bild \
 	  blastprotein boltz bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
@@ -34,7 +34,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  interfaces items_inspection io label iupac \
 	  kvfinder list_info log looking_glass maestro \
 	  map map_data map_eraser map_filter map_fit map_series \
-	  markers mask match_maker mcopy md_crds \
+	  markers mask match_maker mcopy mcp_server md_crds \
 	  medical_toolbar meeting minimize mlp model_series \
 	  mmcif mmtf model_archive model_panel modeller \
 	  mol2 mole morph mouse_modes movie mutation_scores nmrstar \
@@ -68,7 +68,7 @@ dir:	Makefile.dependencies
 
 $(SUBDIR_BUILD): dir
 
-install: 
+install:
 	$(MAKE) -C bundle_builder build
 	$(MAKE) -C core build
 	$(MAKE) -C toolshed_utils build

@@ -1,4 +1,4 @@
-<html>
+<html lang="en">
 
 <!--
 === UCSF ChimeraX Copyright ===
@@ -108,11 +108,13 @@ cavity, given the parameters above, and reports them in the
 are omitted from the results.
 </p><p>
 The cavities are discretized as points on a grid with
-<b>gridSpacing</b> <i>s</i> (default <b>0.6</b> &Aring;). 
-Using a smaller spacing gives a higher-resolution result,
-but can significantly increase the calculation time.
+<b>gridSpacing</b> <i>s</i> (default <b>0.6</b> &Aring;; must
+be greater than 0.0 and smaller than 5.0).
 These collections of dots are opened as (pseudo)atomic models
 in ChimeraX, each cavity as a separate submodel assigned a unique color.
+Grid spacing no greater than half the <b>probeIn</b> value
+is recommended; decreasing the spacing gives higher resolution,
+but may also increase the calculation time significantly.
 </p><p>
 The <b>showTool</b> option indicates whether to also tabulate the results in an
 interactive <a href="../tools/findcavities.html#cavitylist">cavity list</a>
@@ -147,5 +149,5 @@ closed in the same ways as other models, such as by using the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2025</address>
+October 2025</address>
 </body></html>

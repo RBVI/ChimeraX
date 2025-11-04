@@ -1,0 +1,106 @@
+<html lang="en">
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: scenes</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: scenes</h3>
+
+<a name="save"></a>
+<a name="rename"></a>
+<a name="restore"></a>
+<a name="delete"></a>
+<a name="list"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>scenes save</b> [&nbsp;<i>name</i>&nbsp;]
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>scenes rename</b>  &nbsp;<i>name</i>&nbsp; &nbsp;<i>new-name</i>
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>scenes restore</b> &nbsp;<i>name</i>
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>scenes delete</b> &nbsp;<i>name</i>
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>scenes list</b>
+</h3>
+<p>
+The <b>scenes</b> command allows saving and restoring ChimeraX
+<b><i>scenes</i></b>. A scene currently includes:
+</p>
+<ul>
+<li>model and clipping plane positions 
+(as in <a href="view.html#name"><b>view</b></a>)
+<li>atomic structure and <a href="../pseudobonds.html">pseudobond</a>
+display states and colors
+<li><a href="2dlabels.html">2D labels and arrows</a>
+<!-- #19150 volume data support-->
+<li><a href="../tools/volumeviewer.html">volume data</a> (map)
+display styles, levels, coloring, and masking (such as with
+<a href="surface.html#dust"><b>surface dust</b></a>)
+<li><a href="set.html#bgColor">background color</a>
+</ul>
+<p>
+<!-- 
+does not save:
+atom style (e.g. sticks vs. spheres), ribbon style, 3D labels visibility,
+size (atom radius, stick radius), molecular surface coloring (all? per-vertex?)
+-->
+<font color="brown">
+**In progress: not all aspects are saved; more will be added
+added as development proceeds**
+</font>
+</p><p>
+Users should not delete or close any models that appear in a scene, as
+trying to restore the scene will not regenerate them.
+</p><p>
+Scenes are saved in <a href="save.html#session">sessions</a>.
+Thumbnail images and names of the existing scenes are shown in the
+<a href="../tools/scenes.html"><b>Scenes</b></a> graphical interface.
+See also:
+<a href="view.html"><b>view</b></a>,
+<a href="../images.html">making images</a>,
+<a href="../movies.html">making movies</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/slac-workshop-oct2025/animations_oct2025.html"
+target="_blank">Animations in ChimeraX tutorial (2025)</a>
+</p><p>
+The current scene can be saved and named with <b>scenes save</b>:
+</p>
+<ul>
+<li>if <i>name</i> is omitted, an integer name will be automatically generated
+<li>if the <i>name</i> of an existing scene is supplied, that scene will be 
+overwritten with the current contents
+</ul>
+<p>
+An existing scene can be renamed with <b>scenes rename</b>,
+restored with <b>scenes restore</b>, or deleted with <b>scenes delete</b>.
+The command <b>scenes list</b> reports the names of the existing scenes
+in the <a href="../tools/log.html"><b>Log</b></a>.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+November 2025</address>
+</body></html>

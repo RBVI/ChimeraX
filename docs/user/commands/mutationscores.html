@@ -1,4 +1,4 @@
-<html>
+<html lang="en">
 
 <!--
 === UCSF ChimeraX Copyright ===
@@ -452,8 +452,9 @@ has not revealed any striking patterns.
 <a name="structure"></a>
 <b>mutationscores structure</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
-[&nbsp;<b>allowMismatches</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>alignSequences</b>&nbsp;&nbsp;<i>alignment-ID</i>&nbsp;|&nbsp;<i>sequence</i>&nbsp;]
+[&nbsp;<b>allowMismatches</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>alignSequences</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;|&nbsp;<i>alignment-ID</i>&nbsp;|&nbsp;<i>sequence</i>&nbsp;]
+[&nbsp;<b>minimumPercentIdentity</b></a>&nbsp;&nbsp;<i>percent-ID</i>&nbsp;]
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
 Designate one or more structure chains to be associated with the mutation 
@@ -466,9 +467,16 @@ Multiple structure chains can be associated per
 <a href="#mutationSet">mutation set</a>. 
 If the chain does not have exactly the same residue types as the wild type 
 in the mutation data, however, <b>allowMismatches true</b> is needed to
-force the association, and if the residue numbering is different, a sequence 
-alignment must be specified with the <b>alignSequences</b> option, either:
+force the association, and if the residue numbering is different, the
+alignment should be specified with the <b>alignSequences</b> option,
+with possible values:
 <ul>
+<li><b>true</b> &ndash; align the sequence determined from the mutation
+data (using X for any missing residues) with the specified structure chain 
+using the Needleman-Wunsch algorithm; if multiple structure chains are 
+specified, attempt aligning with each and discard those with less than 
+<b>minimumPercentIdentity</b> <i>percent-ID</i> (default <b>50</b>%)
+<li><b>false</b> &ndash; same as omitting the <b>alignSequences</b> option
 <li>a sequence alignment aleady open in the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
 specified by the <i>alignment-ID</i> shown in the title bar of that tool.
@@ -482,9 +490,7 @@ purposes.
 <br>&ndash; or &ndash;<br>
 <li>the sequence that goes with the mutation data, 
 to be aligned to the sequence(s) of the specified structure chain(s)
-using a Clustal Omega web service hosted by the 
-<a href="https://www.rbvi.ucsf.edu/Overview/index.html" 
-target="_blank">UCSF RBVI</a>. 
+using the Needleman-Wunsch algorithm.
 As with <a href="sequence.html#align"><b>sequence align</b></a>,
 a <i>sequence</i> can be given as:
   <ul>
@@ -501,6 +507,10 @@ in the form:
 (<a href="seqspec.html">details...</a>)
   </ul>
 </ul>
+<p>
+The <b>allowMismatches</b> option defaults to <b>true</b> if
+<b>alignSequences</b> is used, otherwise <b>false</b>.
+</p><p>
 Associations can also be specified with the 
 <a href="open.html#chains"><b>chains</b></a> option of the 
 <a href="open.html#local"><b>open</b></a> command at the time
@@ -531,5 +541,5 @@ with <a href="#list"><b>mutationscores list</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2025</address>
+October 2025</address>
 </body></html>

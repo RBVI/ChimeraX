@@ -1,4 +1,4 @@
-<html>
+<html lang="en">
 
 <!--
 === UCSF ChimeraX Copyright ===
@@ -80,9 +80,11 @@ One or more atomic models should be chosen from the resulting list.
 </p>
 <ul>
 <li><b>Grid spacing</b>
-(initial default <b>0.60</b> &Aring;)
-&ndash; a smaller spacing gives a higher-resolution result, 
-but can significantly increase the calculation time
+(initial default <b>0.60</b> &Aring;; must
+be greater than 0.0 and smaller than 5.0)
+&ndash; a value no greater than half the <b>Inner probe radius</b>
+is recommended; decreasing the spacing gives higher resolution, 
+but may also increase the calculation time significantly
 <li><b>Inner probe radius</b>
 (initial default <b>1.4</b> &Aring;)
 <li><b>Outer probe radius</b>
@@ -253,5 +255,5 @@ These types of coloring can be combined with surface transparency, for example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-June 2025</address>
+October 2025</address>
 </body></html>

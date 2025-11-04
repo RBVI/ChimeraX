@@ -551,6 +551,8 @@ class Label:
         # Used to be in LabelModel.update_drawing(), but that doesn't get called if display is False!
         d.display = self.visibility
         d.redraw_needed()
+        if self.text != d.name:
+            d.name = self.text
         
     def delete(self):
         d = self.drawing
@@ -590,6 +592,12 @@ class LabelModel(Model):
     def delete(self):
         Model.delete(self)
         self.label.delete()
+
+    def _set_label_display(self, display):
+        # Make sure label visibility attribute tracks model display changes.
+        self.label.visibility = display
+        Model.display.fset(self, display)
+    display = Model.display.setter(_set_label_display)
         
     def draw(self, renderer, draw_pass):
         if self._update_graphics(renderer):
@@ -705,11 +713,7 @@ class LabelModel(Model):
                 bg = [255*r for r in l.session.main_view.background_color]
             else:
                 bg = l.background
-            from chimerax.core.colors import contrast_with
-            if contrast_with([c/255 for c in bg[:3]])[0] == 0.0:
-                rgba8 = (0, 0, 0, 255)
-            else:
-                rgba8 = (255, 255, 255, 255)
+            rgba8 = _contrasting_rgba8(bg)
         else:
             rgba8 = tuple(l.color)
         return rgba8
@@ -768,4 +772,11 @@ class LabelModel(Model):
         ls = data['label state']
         params = {key:val for key,val in ls.items() if key in param_names}
         return params 
-        
+
+def _contrasting_rgba8(color):
+    from chimerax.core.colors import contrast_with
+    if contrast_with([c/255 for c in color[:3]])[0] == 0.0:
+        rgba8 = (0, 0, 0, 255)
+    else:
+        rgba8 = (255, 255, 255, 255)
+    return rgba8

@@ -367,7 +367,9 @@ class Model(State, Drawing):
         # Scene interface implementation
         if flags == State.SCENE:
             scene_data = {'version': MODEL_STATE_VERSION}
-            scene_attrs = ['selected', 'model_color', 'display']
+            scene_attrs = ['selected', 'display']
+            if self.model_color is not None:
+                scene_attrs.append('model_color')
             for attr in scene_attrs:
                 scene_data[attr] = getattr(self, attr)
             return scene_data
@@ -460,8 +462,10 @@ class Model(State, Drawing):
         you needn't implement this method (restore_scene() is sufficient).
 
         '''
-        #TODO: interpolate base Model state here
-        raise NotImplementedError("interpolate_scene not implemented")
+        for attr_name, val in scene1_data.items():
+            if attr_name in scene2_data:
+                #TODO: do something better for colors
+                setattr(self, attr_name, scene2_data[attr_name] if switchover else val)
 
     def save_geometry(self, session, flags):
         '''

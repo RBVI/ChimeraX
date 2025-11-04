@@ -29,8 +29,8 @@ from chimerax.core.commands import register, CmdDesc, StringArg, FloatArg
 def register_commands(logger):
     register("scenes save", save_scene_desc, save_scene)
     register("scenes delete", delete_scene_desc, delete_scene)
-    register("scenes edit", edit_scene_desc, edit_scene)
     register("scenes restore", restore_scene_desc, restore_scene)
+    register("scenes rename", rename_scene_desc, rename_scene)
     register("scenes list", list_scenes_desc, list_scenes)
 
 
@@ -56,17 +56,6 @@ delete_scene_desc = CmdDesc(
 )
 
 
-def edit_scene(session, scene_name: str):
-    """Edit the scene 'scene_name'."""
-    session.scenes.edit_scene(scene_name)
-
-
-edit_scene_desc = CmdDesc(
-    required=[("scene_name", StringArg)],
-    synopsis="Edit scene 'scene_name'."
-)
-
-
 def restore_scene(session, scene_name):
     """Restore the scene named 'scene_name'."""
     session.scenes.restore_scene(scene_name)
@@ -77,10 +66,20 @@ restore_scene_desc = CmdDesc(
     synopsis="Restore the scene named 'scene_name'."
 )
 
+def rename_scene(session, scene_name, new_scene_name):
+    """Rename the scene named 'scene_name' to 'new_scene_name'."""
+    session.scenes.rename_scene(scene_name, new_scene_name)
+
+
+rename_scene_desc = CmdDesc(
+    required=[("scene_name", StringArg), ("new_scene_name", StringArg)],
+    synopsis="Rename the scene named 'scene_name'."
+)
+
 
 def list_scenes(session):
     """List all saved scenes."""
-    for scene_name in session.scenes.get_scene_names():
+    for scene_name in session.scenes.scene_names:
         print(scene_name)
 
 
