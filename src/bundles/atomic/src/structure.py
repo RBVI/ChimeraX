@@ -278,6 +278,26 @@ class Structure(Model, StructureData):
                 if attr_name in values:
                     setattr(collection, attr_name, values[attr_name])
 
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        Model.interpolate_scene(self, scene1_data['model state'], scene2_data['model state'], fraction,
+            switchover=switchover)
+        # for now, we're just interpolating coordinate sets so that trajectories/morphs work;
+        # a more thorough approach will be needed for interpolating other attributes
+        interp_data = {}
+        switch_data = scene2_data if switchover else scene1_data
+        # prevent writing into original scene dictionaries...
+        for attr_level, attr_info in switch_data.items():
+            switch_info = {}
+            for attr_name, attr_vals in attr_info.items():
+                switch_info[attr_name] = attr_vals
+            interp_data[attr_level] = switch_info
+        csids = list(self.coordset_ids)
+        s1_index = csids.index(scene1_data['structure']['active_coordset_id'])
+        s2_index = csids.index(scene2_data['structure']['active_coordset_id'])
+        interp_index = int(s1_index + fraction * (s2_index - s1_index) + 0.5)
+        interp_data['structure']['active_coordset_id'] = csids[interp_index]
+        Structure.restore_scene(self, interp_data)
+
     def set_state_from_snapshot(self, session, data):
         StructureData.set_state_from_snapshot(self, session, data['structure state'])
         Model.set_state_from_snapshot(self, session, data['model state'])
@@ -1521,6 +1541,10 @@ class AtomicStructure(Structure):
         Scene interface implementation.
         """
         Structure.restore_scene(self, scene_data['structure state'])
+
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        Structure.interpolate_scene(self, scene1_data['structure state'], scene2_data['structure state'],
+            fraction, switchover=switchover)
 
     def set_state_from_snapshot(self, session, data):
         version = data.get('AtomicStructure version', 1)
