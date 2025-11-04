@@ -72,8 +72,15 @@ wheel = [
   "imagecodecs==2024.6.1",
   # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
   # try a newer version of jedi
+<<<<<<< HEAD
+  #"ipykernel==6.29.5",
+  #"ipython==8.26.0",
+  # openmmtools (if not installed by pip) complains if jax not installed
+  "jax==0.7.1",
+=======
   "ipykernel==6.30.1",
   "ipython==9.5.0",
+>>>>>>> beef1b6135d8dca31d109e3ebcdcee8dc93a1185
   # the version of jedi that works with ipython
   "jedi==0.19.2",
   "jupyter-client==8.6.3",
@@ -81,11 +88,18 @@ wheel = [
   # lz4 4.4.4 has problems decompressing what it encoded, ticket #18140
   "lz4==4.3.2",
   "matplotlib==3.10.5",
+<<<<<<< HEAD
+  # openmmtools (if not installed by pip) needs mdtraj
+  "mdtraj==1.11.0",
+=======
   "mcp==1.18.0",
+>>>>>>> beef1b6135d8dca31d109e3ebcdcee8dc93a1185
   "msgpack==1.1.1",
   "nibabel == 5.2.0",
   "netCDF4==1.6.5",
   "networkx==3.3",
+  # openmmtools (if not installed by pip) needs numba
+  "numba==0.61.2",
   "numpy==1.26.4",
   "openmm==8.2.0 ; platform_machine != 'aarch64'",
   "openmm-cuda-12==8.2.0 ; ((sys_platform == 'win32') or (sys_platform == 'linux')) and (platform_machine != 'aarch64')",
@@ -101,8 +115,12 @@ wheel = [
   "pybind11==3.0.1",
   "pycollada==0.8",
   "pydicom==2.4.4",
+  # openmmtools (if not installed by pip) needs pymbar
+  "pymbar==4.0.3",
   "pynrrd==1.0.0",
   "pyopenxr==1.1.4501",
+  # openmmtools (if not installed by pip) needs pyyaml
+  "pyyaml==6.0.2",
   "tcia_utils==1.5.1",
   "python-dateutil==2.9.0.post0",
   "requests==2.32.5",
