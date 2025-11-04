@@ -278,6 +278,26 @@ class Structure(Model, StructureData):
                 if attr_name in values:
                     setattr(collection, attr_name, values[attr_name])
 
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        Model.interpolate_scene(self, scene1_data['model state'], scene2_data['model state'], fraction,
+            switchover=switchover)
+        # for now, we're just interpolating coordinate sets so that trajectories/morphs work;
+        # a more thorough approach will be needed for interpolating other attributes
+        interp_data = {}
+        switch_data = scene2_data if switchover else scene1_data
+        # prevent writing into original scene dictionaries...
+        for attr_level, attr_info in switch_data.items():
+            switch_info = {}
+            for attr_name, attr_vals in attr_info.items():
+                switch_info[attr_name] = attr_vals
+            interp_data[attr_level] = switch_info
+        csids = list(self.coordset_ids)
+        s1_index = csids.index(scene1_data['structure']['active_coordset_id'])
+        s2_index = csids.index(scene2_data['structure']['active_coordset_id'])
+        interp_index = int(s1_index + fraction * (s2_index - s1_index) + 0.5)
+        interp_data['structure']['active_coordset_id'] = csids[interp_index]
+        Structure.restore_scene(self, interp_data)
+
     def set_state_from_snapshot(self, session, data):
         StructureData.set_state_from_snapshot(self, session, data['structure state'])
         Model.set_state_from_snapshot(self, session, data['model state'])
@@ -1307,29 +1327,52 @@ class AtomicStructure(Structure):
     default_missing_structure_radius = 0.075
     default_missing_structure_dashes = 6
 
+    # kludge to speed up added_to_session
+    _sibling_info = None
+
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
         self._set_chain_descriptions(self.session)
         self._determine_het_res_descriptions(self.session)
 
+    def _make_sibling_report(self, *args):
+        name, models, handler = self.__class__._sibling_info
+        if len(models) > 1:
+            # NMR ensemble
+            models[0]._report_ensemble_chain_descriptions(self.session, models)
+            models[0]._report_res_info(self.session)
+        else:
+            models[0]._report_chain_descriptions(self.session)
+            models[0]._report_res_info(self.session)
+        handler.remove()
+        self.__class__._sibling_info = None
+
     def added_to_session(self, session):
+        if self.__class__._sibling_info and self._log_info:
+            sib_name, sibs, handler = self.__class__._sibling_info
+            if sib_name != self.name or self.id[:-1] != sibs[0].id[:-1]:
+                self._make_sibling_report()
         super().added_to_session(session)
 
         if self._log_info:
             # don't report models in an NMR ensemble individually...
+
             if len(self.id) > 1:
-                sibs = [m for m in session.models
-                        if isinstance(m, AtomicStructure) and m.id[:-1] == self.id[:-1]]
-                if len(set([s.name for s in sibs])) > 1:
-                    # not an NMR ensemble
-                    self._report_chain_descriptions(session)
-                    self._report_res_info(session)
+                # looking through all models for siblings is very slow if there are thousands of them
+                # (e.g. large docking run), so this kludge...
+                if self.__class__._sibling_info is None:
+                    from chimerax.core.models import ADD_MODELS
+                    self.__class__._sibling_info = (self.name, [self],
+                        session.triggers.add_handler(ADD_MODELS, self._make_sibling_report))
                 else:
-                    sibs.sort(key=lambda m: m.id)
-                    if sibs[-1] == self:
-                        self._report_ensemble_chain_descriptions(session, sibs)
-                        self._report_res_info(session)
+                    sib_name, sibs, handler = self.__class__._sibling_info
+                    if self.name == sib_name and self.id[:-1] == sibs[0].id[:-1]:
+                        sibs.append(self)
+                    else:
+                        self._make_sibling_report()
             else:
+                if self.__class__._sibling_info:
+                    self._make_sibling_report()
                 self._report_chain_descriptions(session)
                 self._report_res_info(session)
             self._report_assemblies(session)
@@ -1499,6 +1542,10 @@ class AtomicStructure(Structure):
         """
         Structure.restore_scene(self, scene_data['structure state'])
 
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        Structure.interpolate_scene(self, scene1_data['structure state'], scene2_data['structure state'],
+            fraction, switchover=switchover)
+
     def set_state_from_snapshot(self, session, data):
         version = data.get('AtomicStructure version', 1)
         if version == 1:
@@ -1655,14 +1702,26 @@ class AtomicStructure(Structure):
                     chain = chain_lookup[chain_id]
                 except KeyError:
                     if non_chain_residues is None:
-                        non_chain_residues = { (r.chain_id, r.number): r
-                            for r in self.residues if r.chain is None }
+                        non_chain_residues = {}
+                        for r in self.residues:
+                            if r.chain is None:
+                                non_chain_residues.setdefault(r.chain_id, {})[r.number] = r
                     try:
-                        res = non_chain_residues[(chain_id, int(seq_id))]
+                        nc_residues = non_chain_residues[chain_id]
                     except KeyError:
                         session.logger.warning("No chain in structure corresponds to chain ID given"
                             " in local score info (chain '%s') or can't find residue %s in that chain"
                             % (chain_id, seq_id))
+                        break
+                    # non-chain residues may not have a number in the mmCIF [#19132]
+                    if len(nc_residues) == 1:
+                        res = list(nc_residues.values())[0]
+                    else:
+                        try:
+                            res = nc_residues[int(seq_id)]
+                        except KeyError:
+                            session.logger.warning("No non-polymeric residue in chain %s has sequence"
+                                " number %s" % (chain_id, seq_id))
                         break
                 else:
                     res = chain.residues[int(seq_id)-1]
