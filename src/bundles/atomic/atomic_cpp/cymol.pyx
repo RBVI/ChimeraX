@@ -606,6 +606,18 @@ cdef class CyAtom:
             return array((crd[0], crd[1], crd[2]))
         raise ValueError("Atom %s has no alt loc %s" % (self, loc))
 
+    def get_alt_loc_occupancy(self, loc):
+        '''Supported API.  Like the 'occupancy' property, but uses the given alt loc
+           (character) rather than the current alt loc.  Space character gets the
+           non-alt-loc coord."
+        '''
+        if self._deleted: raise RuntimeError("Atom already deleted")
+        if loc == ' ':
+            return self.occupancy
+        if self.has_alt_loc(loc):
+            return self.cpp_atom.occupancy(ord(loc[0]))
+        raise ValueError("Atom %s has no alt loc %s" % (self, loc))
+
     def get_alt_loc_scene_coord(self, loc):
         '''Supported API.  Like the 'scene_coord' property, but uses the given alt loc
            (character) rather than the current alt loc. Space character gets the

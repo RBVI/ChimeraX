@@ -198,6 +198,13 @@ class AltlocExplorerTool(ToolInstance):
                     run(ses, "altlocs change %s %s" % (loc, spec)))
                 but.clicked.connect(lambda *args, self=self, r=r: self._show_hbonds_opt.value
                     and self._apply_hb_params(residues=[r]))
+                num_al_atoms = tot_occ = 0
+                for a in r.atoms:
+                    if a.has_alt_loc(alt_loc):
+                        num_al_atoms += 1
+                        tot_occ += a.get_alt_loc_occupancy(alt_loc)
+                if num_al_atoms > 0:  # I don't _think_ this test is necessary
+                    but.setToolTip("%s occupancy: %g" % (alt_loc, tot_occ / num_al_atoms))
                 button_group.addButton(but)
                 but_layout.addWidget(but, alignment=Qt.AlignCenter)
             if row == rows_per_column-1:
