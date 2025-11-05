@@ -86,8 +86,6 @@ wheel = [
   "nibabel == 5.2.0",
   "netCDF4==1.6.5",
   "networkx==3.3",
-  # openmmtools (if not installed by pip) needs numba
-  "numba==0.61.2",
   "numpy==1.26.4",
   "openmm==8.2.0 ; platform_machine != 'aarch64'",
   "openmm-cuda-12==8.2.0 ; ((sys_platform == 'win32') or (sys_platform == 'linux')) and (platform_machine != 'aarch64')",
@@ -103,12 +101,8 @@ wheel = [
   "pybind11==3.0.1",
   "pycollada==0.8",
   "pydicom==2.4.4",
-  # openmmtools (if not installed by pip) needs pymbar
-  "pymbar==4.0.3",
   "pynrrd==1.0.0",
   "pyopenxr==1.1.4501",
-  # openmmtools (if not installed by pip) needs pyyaml
-  "pyyaml==6.0.2",
   "tcia_utils==1.5.1",
   "python-dateutil==2.9.0.post0",
   "requests==2.32.5",
