@@ -14,7 +14,7 @@
 from chimerax.core.tools import ToolInstance
 from chimerax.core.settings import Settings
 from Qt.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QLabel, QButtonGroup, QRadioButton, QWidget
-from Qt.QtWidgets import QPushButton, QScrollArea
+from Qt.QtWidgets import QPushButton, QScrollArea, QCheckBox
 from Qt.QtCore import Qt
 from chimerax.core.commands import run
 
@@ -52,16 +52,22 @@ class AltlocExplorerTool(ToolInstance):
         self._altlocs_layout.addWidget(self._no_structure_label)
         side_layout = QVBoxLayout()
         widgets_layout.addLayout(side_layout)
+        side_layout.addStretch(1)
+        all_locs = QCheckBox("Depict all alternatives")
+        all_locs.toggled.connect(self._depict_all_locs)
+        side_layout.addWidget(all_locs, alignment=Qt.AlignHCenter)
+        side_layout.addStretch(1)
         from chimerax.ui.options import OptionsPanel, BooleanOption
         panel = OptionsPanel(scrolled=False)
-        side_layout.addWidget(panel, alignment=Qt.AlignHCenter|Qt.AlignBottom)
+        side_layout.addWidget(panel, alignment=Qt.AlignHCenter)
         self._show_hbonds_opt = BooleanOption("", None, self._hbonds_shown_change, attr_name="show_hbonds",
             settings=AltlocExplorerSettings(session, tool_name))
         self._show_hbonds_opt.widget.setText("Show H-bonds")
         panel.add_option(self._show_hbonds_opt)
         params_but = QPushButton("H-bond parameters...")
         params_but.clicked.connect(self._show_hbonds_dialog)
-        side_layout.addWidget(params_but, alignment=Qt.AlignHCenter|Qt.AlignTop)
+        side_layout.addWidget(params_but, alignment=Qt.AlignHCenter)
+        side_layout.addStretch(1)
         self.hbond_params_window = tw.create_child_window("Altloc H-Bond Parameters", close_destroys=False)
         self._populate_hbond_params()
         self.hbond_params_window.manage(initially_hidden=True)
@@ -133,6 +139,11 @@ class AltlocExplorerTool(ToolInstance):
                         changed_residues.add(r)
             if changed_residues and self._show_hbonds_opt.value:
                 self._apply_hb_params(residues=changed_residues)
+
+    def _depict_all_locs(self, depict):
+        struct = self._structure_button.value
+        if struct:
+            run(self.session, "altlocs %s %s" % ("show" if depict else "hide", struct.atomspec))
 
     def _hbonds_shown_change(self, opt):
         struct = self._structure_button.value
