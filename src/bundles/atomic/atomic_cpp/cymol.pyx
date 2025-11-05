@@ -774,7 +774,8 @@ cdef class CyAtom:
         if style.startswith("simple"):
             atom_str = self.name
             if self.num_alt_locs > 0:
-                atom_str += " (alt loc %s)" % self.alt_loc
+                atom_str += " (alt loc %s, occupancy %g)" % (self.alt_loc,
+                    self.get_alt_loc_occupancy(self.alt_loc))
         elif style.startswith("command"):
             # have to get fancy if the atom name isn't unique in the residue
             atoms = self.residue.atoms
