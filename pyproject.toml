@@ -72,15 +72,8 @@ wheel = [
   "imagecodecs==2024.6.1",
   # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
   # try a newer version of jedi
-<<<<<<< HEAD
-  #"ipykernel==6.29.5",
-  #"ipython==8.26.0",
-  # openmmtools (if not installed by pip) complains if jax not installed
-  "jax==0.7.1",
-=======
   "ipykernel==6.30.1",
   "ipython==9.5.0",
->>>>>>> beef1b6135d8dca31d109e3ebcdcee8dc93a1185
   # the version of jedi that works with ipython
   "jedi==0.19.2",
   "jupyter-client==8.6.3",
@@ -88,12 +81,7 @@ wheel = [
   # lz4 4.4.4 has problems decompressing what it encoded, ticket #18140
   "lz4==4.3.2",
   "matplotlib==3.10.5",
-<<<<<<< HEAD
-  # openmmtools (if not installed by pip) needs mdtraj
-  "mdtraj==1.11.0",
-=======
   "mcp==1.18.0",
->>>>>>> beef1b6135d8dca31d109e3ebcdcee8dc93a1185
   "msgpack==1.1.1",
   "nibabel == 5.2.0",
   "netCDF4==1.6.5",
