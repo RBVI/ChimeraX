@@ -18,6 +18,7 @@ class GridCanvas:
     """
 
     TEXT_MARGIN = 2
+    HOVER_MOVE_THRESHOLD = 10000
 
     def __init__(self, parent, pg, alignment, grid_data, weights):
         from Qt.QtWidgets import QGraphicsView, QGraphicsScene, QGridLayout, QShortcut, QHBoxLayout, QLabel
@@ -341,6 +342,8 @@ class GridCanvas:
     def mouse_hover(self, event):
         if event.type() != event.GraphicsSceneHelp:
             return
+        if len(self.alignment.seqs) > self.HOVER_MOVE_THRESHOLD:
+            self.mouse_move(event, hover=True)
         from Qt.QtWidgets import QToolTip
         residues, row, col = self._residues_for_event(event)
         if not residues:
@@ -350,7 +353,10 @@ class GridCanvas:
         self.main_view.setToolTip(concise_residue_spec(self.pg.session, residues))
         QToolTip.showText(event.screenPos(), self.main_view.toolTip())
 
-    def mouse_move(self, event):
+    def mouse_move(self, event, *, hover=False):
+        if len(self.alignment.seqs) > self.HOVER_MOVE_THRESHOLD and not hover:
+            self.pg.status("", secondary=True)
+            return
         residues, event_row, event_col = self._residues_for_event(event)
         if event_col is None:
             text = ""
