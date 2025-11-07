@@ -42,7 +42,7 @@ class AltlocExplorerTool(ToolInstance):
         from chimerax.atomic.widgets import AtomicStructureMenuButton as ASMB
         # Try to filter out altloc models themselves from the list
         self._structure_button = button = ASMB(session,
-            filter_func=lambda s: len(s.id) == 1 or len(s.name) != 1)
+            filter_func=lambda s: len(s.id) == 1 or len(s.name) != 1 or s.num_residues > 1)
         button.value_changed.connect(self._structure_change)
         main_layout.addWidget(button)
         widgets_layout = QHBoxLayout()
