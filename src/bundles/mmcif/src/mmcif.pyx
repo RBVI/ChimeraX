@@ -142,7 +142,6 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
     for m in models:
         if "_missing_poly_seq" in m.metadata:
             m.set_metadata_entry("_missing_poly_seq", None)
-            m.connect_structure()
             from collections import Counter
             counts = Counter(m.chains.chain_ids)
             if any(cnt > 1 for cnt in counts.values()):

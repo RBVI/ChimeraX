@@ -37,10 +37,12 @@ FundingSources = ["NIH",
                   "EMBO",
                   "Wellcome Trust",
                   "other"]
-RegistrationURL = "https://www.rbvi.ucsf.edu/chimerax/cgi-bin/chimerax_registration.py"
-# RegistrationURL = "https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/chimerax_registration.py"
-DiscussionURL = "https://www.rbvi.ucsf.edu/mailman/subscribe/chimerax-users"
-AnnouncementsURL = "https://www.rbvi.ucsf.edu/mailman/subscribe/chimerax-announce"
+RegDomain = "www.rbvi.ucsf.edu"
+# RegDomain = "preview.rbvi.ucsf.edu"
+MailDomain = "www.rbvi.ucsf.edu"
+RegistrationURL = f"https://{RegDomain}/chimerax/cgi-bin/chimerax_registration.py"
+DiscussionURL = f"https://{MailDomain}/mailman/subscribe/chimerax-users"
+AnnouncementsURL = f"https://{MailDomain}/mailman/subscribe/chimerax-announce"
 ThankYou = """Thank you for registering your copy of ChimeraX.
 By providing the information requested you will
 be helping us document the impact this software

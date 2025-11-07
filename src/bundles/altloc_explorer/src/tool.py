@@ -14,7 +14,7 @@
 from chimerax.core.tools import ToolInstance
 from chimerax.core.settings import Settings
 from Qt.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QLabel, QButtonGroup, QRadioButton, QWidget
-from Qt.QtWidgets import QPushButton, QScrollArea
+from Qt.QtWidgets import QPushButton, QScrollArea, QCheckBox
 from Qt.QtCore import Qt
 from chimerax.core.commands import run
 
@@ -40,7 +40,9 @@ class AltlocExplorerTool(ToolInstance):
         parent.setLayout(main_layout)
 
         from chimerax.atomic.widgets import AtomicStructureMenuButton as ASMB
-        self._structure_button = button = ASMB(session)
+        # Try to filter out altloc models themselves from the list
+        self._structure_button = button = ASMB(session,
+            filter_func=lambda s: len(s.id) == 1 or len(s.name) != 1 or s.num_residues > 1)
         button.value_changed.connect(self._structure_change)
         main_layout.addWidget(button)
         widgets_layout = QHBoxLayout()
@@ -52,16 +54,22 @@ class AltlocExplorerTool(ToolInstance):
         self._altlocs_layout.addWidget(self._no_structure_label)
         side_layout = QVBoxLayout()
         widgets_layout.addLayout(side_layout)
+        side_layout.addStretch(1)
+        all_locs = QCheckBox("Show all altlocs")
+        all_locs.toggled.connect(self._depict_all_locs)
+        side_layout.addWidget(all_locs, alignment=Qt.AlignHCenter)
+        side_layout.addStretch(1)
         from chimerax.ui.options import OptionsPanel, BooleanOption
         panel = OptionsPanel(scrolled=False)
-        side_layout.addWidget(panel, alignment=Qt.AlignHCenter|Qt.AlignBottom)
+        side_layout.addWidget(panel, alignment=Qt.AlignHCenter)
         self._show_hbonds_opt = BooleanOption("", None, self._hbonds_shown_change, attr_name="show_hbonds",
             settings=AltlocExplorerSettings(session, tool_name))
         self._show_hbonds_opt.widget.setText("Show H-bonds")
         panel.add_option(self._show_hbonds_opt)
         params_but = QPushButton("H-bond parameters...")
         params_but.clicked.connect(self._show_hbonds_dialog)
-        side_layout.addWidget(params_but, alignment=Qt.AlignHCenter|Qt.AlignTop)
+        side_layout.addWidget(params_but, alignment=Qt.AlignHCenter)
+        side_layout.addStretch(1)
         self.hbond_params_window = tw.create_child_window("Altloc H-Bond Parameters", close_destroys=False)
         self._populate_hbond_params()
         self.hbond_params_window.manage(initially_hidden=True)
@@ -69,7 +77,6 @@ class AltlocExplorerTool(ToolInstance):
         self._structure_widget = None
         self._changes_handler = None
         self._button_lookup = {}
-        #TODO: react to alt loc additions/subtractions
 
         tw.manage(placement='side')
 
@@ -134,6 +141,11 @@ class AltlocExplorerTool(ToolInstance):
             if changed_residues and self._show_hbonds_opt.value:
                 self._apply_hb_params(residues=changed_residues)
 
+    def _depict_all_locs(self, depict):
+        struct = self._structure_button.value
+        if struct:
+            run(self.session, "altlocs %s %s" % ("show" if depict else "hide", struct.atomspec))
+
     def _hbonds_shown_change(self, opt):
         struct = self._structure_button.value
         if struct:
@@ -187,6 +199,13 @@ class AltlocExplorerTool(ToolInstance):
                     run(ses, "altlocs change %s %s" % (loc, spec)))
                 but.clicked.connect(lambda *args, self=self, r=r: self._show_hbonds_opt.value
                     and self._apply_hb_params(residues=[r]))
+                num_al_atoms = tot_occ = 0
+                for a in r.atoms:
+                    if a.has_alt_loc(alt_loc):
+                        num_al_atoms += 1
+                        tot_occ += a.get_alt_loc_occupancy(alt_loc)
+                if num_al_atoms > 0:  # I don't _think_ this test is necessary
+                    but.setToolTip("%s occupancy: %g" % (alt_loc, tot_occ / num_al_atoms))
                 button_group.addButton(but)
                 but_layout.addWidget(but, alignment=Qt.AlignCenter)
             if row == rows_per_column-1:

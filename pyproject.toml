@@ -80,7 +80,7 @@ wheel = [
   "lxml==6.0.2",
   # lz4 4.4.4 has problems decompressing what it encoded, ticket #18140
   "lz4==4.3.2",
-  "matplotlib==3.10.5",
+  "matplotlib==3.10.7",
   "mcp==1.18.0",
   "msgpack==1.1.1",
   "nibabel == 5.2.0",
