@@ -36,17 +36,13 @@ same set of atoms. In PDB format, for example, alternate locations are
 indicated by a character identifier in column 17 of ATOM and HETATM records.
 <!-- examples 1hf4, 1crc, 1a0m, 5nn8, 4ez4, 7qll, 6zx4 has many -->
 </p><p>
-For a given atom,
 <b><i>ChimeraX uses only one of the alternate locations at a time</b></i>
-for display and for any calculations. 
-For each contiguous (through-bond) set of atoms
+for calculations. For each contiguous (through-bond) set of atoms
 with alternate locations, the location used initially is that with
 the highest average atomic occupancy, then as a tie-breaker, the lowest
 average atomic B-factor, and if a  tie-breaker is still needed,
 by alphabetical order of the alternate location ID.
-</p><p>
-To view multiple alternate locations simultaneously, however, see
-the <a href="../commands/altlocs.html#show"><b>altlocs show</b></a> command.
+The <b>Altloc Explorer</b> allows changing which alternate locations are used.
 See also: <a href="rotamers.html"><b>Rotamers</b></a>,
 <a href="buildstructure.html"><b>Build Structure</b></a>,
 <a href="dockprep.html"><b>Dock Prep</b></a>,
@@ -61,6 +57,16 @@ from the <b>Structure Analysis</b> section of the
 (<a href="../window.html#panels">more...</a>).
 It is also implemented as the command
 <a href="../commands/altlocs.html"><b>altlocs</b></a>.
+</p><p>
+The option to <b>Show all altlocs</b> 
+allows viewing multiple alternate locations at the same time without
+changing which ones are used for calculations on the original structure..
+A separate submodel is generated for each alternate location.
+Initially, these altlocs are shown as thin sticks,
+but they can be selectively hidden/reshown (see
+<a href="../commands/altlocs.html#hide"><b>altlocs hide</b></a> and
+<a href="../commands/altlocs.html#show"><b>altlocs show</b></a>)
+and their styles, colors, <i>etc.</i> changed, just as in any atomic model.
 </p><p>
 The pulldown menu near the top of the dialog lists the current atomic models.
 Choosing a specific model lists any residues with alternate locations
@@ -82,5 +88,5 @@ clicking <b>Apply</b> recalculates the H-bonds accordingly.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2024</address>
+November 2025</address>
 </body></html>
