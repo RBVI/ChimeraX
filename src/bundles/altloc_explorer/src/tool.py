@@ -40,7 +40,9 @@ class AltlocExplorerTool(ToolInstance):
         parent.setLayout(main_layout)
 
         from chimerax.atomic.widgets import AtomicStructureMenuButton as ASMB
-        self._structure_button = button = ASMB(session)
+        # Try to filter out altloc models themselves from the list
+        self._structure_button = button = ASMB(session,
+            filter_func=lambda s: len(s.id) == 1 or len(s.name) != 1)
         button.value_changed.connect(self._structure_change)
         main_layout.addWidget(button)
         widgets_layout = QHBoxLayout()
@@ -53,7 +55,7 @@ class AltlocExplorerTool(ToolInstance):
         side_layout = QVBoxLayout()
         widgets_layout.addLayout(side_layout)
         side_layout.addStretch(1)
-        all_locs = QCheckBox("Depict all alternatives")
+        all_locs = QCheckBox("Show all altlocs")
         all_locs.toggled.connect(self._depict_all_locs)
         side_layout.addWidget(all_locs, alignment=Qt.AlignHCenter)
         side_layout.addStretch(1)
@@ -75,7 +77,6 @@ class AltlocExplorerTool(ToolInstance):
         self._structure_widget = None
         self._changes_handler = None
         self._button_lookup = {}
-        #TODO: react to alt loc additions/subtractions
 
         tw.manage(placement='side')
 
