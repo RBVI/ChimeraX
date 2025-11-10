@@ -133,7 +133,8 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
     if return_json:
         from chimerax.core.commands import JSONResult
         from json import JSONEncoder
-        open_data = { 'model specs': [m.string(style="command") for m in models] }
+        open_data = { 'model specs': [m.string(style="command") if hasattr(m, 'string') else '#'+m.id_string
+            for m in models] }
         return JSONResult(JSONEncoder().encode(open_data), models)
     return models
 
