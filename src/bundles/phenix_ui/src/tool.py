@@ -758,6 +758,10 @@ class LaunchFitLoopsTool(ToolInstance):
         self.no_table_label = QLabel(self.need_input_message)
         self.no_table_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.no_table_label.setWordWrap(True)
+        self.no_table_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        from chimerax.core.commands import run
+        self.no_table_label.linkActivated.connect(lambda link_text, ses=session, run=run:
+            run(ses, "help help:" + link_text))
         self.target_area.addWidget(self.no_table_label)
 
         self.table_area = QWidget()
@@ -1075,17 +1079,15 @@ class LaunchFitLoopsTool(ToolInstance):
                         if seq_known:
                             msg = f"Select residues you wish to remodel."
                         else:
-                            msg = f"The full %s {structure} is not provided in the structure's input file" \
-                                " and therefore the sequence within any missing structure gaps is not" \
-                                " known, making it impossible to model those gaps.  If you want to model" \
-                                " those gaps, you need to make the full sequence known to ChimeraX.  One" \
-                                " way to do that is to open a file containing the sequence (in a format" \
-                                " supported by ChimeraX; use the 'open formats' command to see a list) and" \
-                                " use the Structure\N{RIGHTWARDS ARROW}Update Chain Sequence... entry in" \
-                                " the Sequence tool's context menu to associate that sequence with the" \
-                                " chain.  If you are not trying to model the gaps, then just select the" \
-                                " residues you do wish to remodel." % (
-                                "sequence of" if structure.num_chains == 1 else "sequences of the chains in")
+                            msg = f"The input file of {structure} did not include its full sequence, and" \
+                                " without that information, the missing segments cannot be modeled because" \
+                                " their sequences are unknown. The full sequence can be added by opening a" \
+                                " <a href=\"user/commands/open.html#sequence\">file</a> containing that" \
+                                " sequence or <a href=\"user/fetch.html\">fetching</a> it from UniProt," \
+                                " and in the resulting Sequence window, choosing context menu entry" \
+                                " Structure\N{RIGHTWARDS ARROW}Update Chain Sequence to add the sequence" \
+                                " information to the associated protein structure chain (<a" \
+                                " href=\"user/tools/sequenceviewer.html#context\">details...</a>)."
                     self.no_table_label.setText(msg)
                     self.target_area.setCurrentWidget(self.no_table_label)
             else:
