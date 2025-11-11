@@ -198,6 +198,11 @@ class ScenesTool(ToolInstance):
         the deleted scene.
         """
         self.scroll_area.remove_scene_item(scene_name)
+        highlighted_item = self.scroll_area.highlighted_scene
+        self.scene_name_entry.setText(highlighted_item.name if highlighted_item else "")
+        self.update_button.setEnabled(bool(highlighted_item))
+        self.rename_button.setEnabled(bool(highlighted_item))
+        self.delete_button.setEnabled(bool(highlighted_item))
 
     def save_button_clicked(self):
         """
