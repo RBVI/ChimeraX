@@ -276,7 +276,16 @@ class Structure(Model, StructureData):
             values = scene_data.get(target, {})
             for attr_name in attr_names:
                 if attr_name in values:
-                    setattr(collection, attr_name, values[attr_name])
+                    try:
+                        setattr(collection, attr_name, values[attr_name])
+                    except ValueError:
+                        if len(collection) < len(values[attr_name]):
+                            self.session.logger.warning(f"{target.capitalize()} have been deleted"
+                                f" from {self} since scene was saved.  Cannot restore"
+                                f" {self} completely.  Do not delete {target} involved in pre-existing"
+                                f" scenes!")
+                            return
+                        raise
 
     def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
         Model.interpolate_scene(self, scene1_data['model state'], scene2_data['model state'], fraction,

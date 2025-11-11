@@ -366,11 +366,20 @@ class PseudobondGroup(PseudobondGroupData, Model):
         self.dashes = scene_data['dashes']
         pseudobonds = self.pseudobonds
         pb_state = scene_data['scene state']
-        pseudobonds.colors = pb_state['colors']
-        pseudobonds.displays = pb_state['displays']
-        pseudobonds.halfbonds = pb_state['halfbonds']
-        pseudobonds.radii = pb_state['radii']
-        pseudobonds.selecteds = pb_state['selecteds']
+        try:
+            pseudobonds.colors = pb_state['colors']
+            pseudobonds.displays = pb_state['displays']
+            pseudobonds.halfbonds = pb_state['halfbonds']
+            pseudobonds.radii = pb_state['radii']
+            pseudobonds.selecteds = pb_state['selecteds']
+        except ValueError:
+            if self.num_pseudobonds < len(pb_state['colors']):
+                self.session.logger.warning(f"Pseudobonds have been deleted"
+                    f" from {self} since scene was saved.  Cannot restore"
+                    f" {self} completely.  Do not delete pseudobonds involved in pre-existing"
+                    f" scenes!")
+                return
+            raise
 
     def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
         """
