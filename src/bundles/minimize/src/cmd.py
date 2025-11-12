@@ -170,21 +170,8 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
         omm_res.name = template.name
 
         forcefield.registerResidueTemplate(template)
-    try:
-        system = forcefield.createSystem(top, nonbondedCutoff=1*nanometer, constraints=HBonds)
-    except ValueError as e:
-        err_text = str(e)
-        if err_text.startswith("No template"):
-            left_paren = err_text.find('(')
-            right_paren = err_text.find(')')
-            if left_paren >= 0 and right_paren > left_paren:
-                raise LimitationError("Support for minimizing structures with non-standard residues"
-                    " (such as %s) not yet implemented.  If such residues are not crucial for your"
-                    " analysis, consider deleting them and then minimizing."
-                    % err_text[left_paren+1:right_paren])
-        raise
+    system = forcefield.createSystem(top, nonbondedCutoff=1*nanometer, constraints=HBonds)
     integrator = make_integrator()
-    #integrator = GradientDescentMinimizationIntegrator()
     from chimerax.atomic import Atoms
     cx_atoms = Atoms(reordered_atoms)
     session.logger.status("Starting minimization")
