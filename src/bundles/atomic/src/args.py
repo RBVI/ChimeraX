@@ -195,7 +195,7 @@ class SequencesArg(Annotation):
         return seqs, used, rest
 
 def _parse_sequence(seq_text, session):
-    if is_uniprot_id(seq_text):
+    if is_uniprot_id(seq_text, first_token_only = True):
         seq, sused, srest = UniProtSequenceArg.parse(seq_text, session)
         if len(srest) == 0:
             return seq
@@ -280,18 +280,19 @@ class UniProtIdArg(Annotation):
             raise AnnotationError('UniProt id "%s" must be 6 or 10 characters' % uid)
         return uid.upper(), used, rest
 
-def is_uniprot_id(text):
+def is_uniprot_id(id, first_token_only = False):
     # Name and accession format described here.
     # https://www.uniprot.org/help/accession_numbers
     # https://www.uniprot.org/help/entry_name
-    if len(text) == 0:
+    if len(id) == 0:
         return False
-    from chimerax.core.commands import next_token
-    id, text, rest = next_token(text)
+    if first_token_only:
+        from chimerax.core.commands import next_token
+        id, text, rest = next_token(id)
     if '_' in id:
         fields = id.split('_')
         f1,f2 = fields
-        if (f1.isalnum() and len(f1) <= 6 or len(f1) == 10 and
+        if (f1.isalnum() and (len(f1) <= 6 or len(f1) == 10) and
             f2.isalnum() and len(f2) <= 5):
             return True
     elif (len(id) >= 6 and id.isalnum() and
