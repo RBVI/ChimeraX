@@ -1747,6 +1747,17 @@ class KeyframeEditorWidget(QWidget):
         layout.addWidget(zoom_fit_btn)
 
         layout.addStretch()
+
+        # Preferences button with gear icon
+        from chimerax.ui.icons import get_qt_icon
+        from Qt.QtWidgets import QToolButton
+        self.preferences_btn = QToolButton()
+        self.preferences_btn.setIcon(get_qt_icon("gear"))
+        self.preferences_btn.setToolTip("Preferences")
+        self.preferences_btn.setFixedSize(30, 30)
+        self.preferences_btn.clicked.connect(self.show_preferences)
+        layout.addWidget(self.preferences_btn)
+
         return controls_frame
 
     @Slot(object)
