@@ -754,12 +754,14 @@ class TimelineSceneWidget(QWidget):
 
     def keyPressEvent(self, event):
         """Handle key presses for scene deletion"""
-        if event.key() == Qt.Key_Delete and self.selected_scene:
-            # Delete the selected scene
-            self.scene_deleted.emit(self.selected_scene)
-            self.selected_scene = None
-            self.update()
-            # Don't call super() to prevent forwarding to command line
+        if event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace:
+            if self.selected_scene:
+                # Delete the selected scene
+                self.scene_deleted.emit(self.selected_scene)
+                self.selected_scene = None
+                self.update()
+            # Accept the event regardless to prevent forwarding to command line
+            event.accept()
             return
         else:
             super().keyPressEvent(event)
@@ -1177,11 +1179,12 @@ class SceneTimelineWidget(QWidget):
         scene_animation = getattr(self.session, "_scene_animation_manager", None)
         if scene_animation:
             scene_animation.remove_scene(scene_name)
-            print(f"Scene '{scene_name}' removed from timeline and animation manager")
+            #print(f"Scene '{scene_name}' removed from timeline and animation manager")
         else:
-            print(
-                f"Scene '{scene_name}' removed from timeline (no animation manager found)"
-            )
+            #print(
+            #    f"Scene '{scene_name}' removed from timeline (no animation manager found)"
+            #)
+            pass
 
     def on_time_clicked(self, time):
         """Handle timeline click to preview at that time"""
