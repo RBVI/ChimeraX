@@ -230,12 +230,14 @@ class Task(State):
     def start(self, *args, **kw):
         """Start task running.
 
-        If a keyword arguments 'blocking' is present and true,
-        this method calls the instance 'run' method in the
-        current thread; otherwise, it calls the instance
-        'run' method in a separate thread.  The 'blocking'
-        keyword is passed through, so the 'run' methods in
-        derived classes will see it.
+        If a keyword argument 'blocking' is present and true
+        or numeric, this method calls the instance 'run' method
+        in the current thread (with a timeout of 'blocking'
+        seconds if blocking was numeric); otherwise, it calls
+        the instance 'run' method in a separate thread.  The
+        'blocking' keyword is passed through, so the 'run'
+        methods in derived classes will see it.  A timed out
+        thread will called the 'timed_out' method.
 
         """
         if self.state != TaskState.PENDING:
@@ -249,12 +251,18 @@ class Task(State):
         self.state = TaskState.RUNNING
         self._terminate = threading.Event()
         if blocking:
-            self._thread.join()
-            self.state = TaskState.FINISHED
-            # the non-blocking code path also has an on_finish()
-            # call that executes asynchronously
-            if self.launched_successfully:
-                self.session.ui.thread_safe(self.on_finish)
+            self._run_blocking_job(blocking)
+
+    def timed_out(self):
+        """Task has timed out.
+
+        If the 'blocking' argument to 'start' was numeric (specifying a timeout in seconds)
+        then this routine is called if the timeout occurs.  The routine should return True
+        if it wants to continue waiting for job completion with no timeout.  It should return
+        a numeric value to wait that many seconds before calling timed_out() again.  Finally,
+        it should raise chimerax.core.errors.CancelOperation to cancel the job.
+        """
+        return True
 
     def restore(self, *args, **kw):
         """Like start, but for restoring a task from a snapshot."""
@@ -278,12 +286,7 @@ class Task(State):
         self.state = TaskState.RUNNING
         self._terminate = threading.Event()
         if blocking:
-            self._thread.join()
-            self.state = TaskState.FINISHED
-            # the non-blocking code path also has an on_finish()
-            # call that executes asynchronously
-            if self.launched_successfully:
-                self.session.ui.thread_safe(self.on_finish)
+            self._run_blocking_job(blocking)
 
     def _cleanup(self):
         """Clean up after thread has ended.
@@ -294,6 +297,26 @@ class Task(State):
         """
         self._thread = None
         self._terminate = None
+
+    def _run_blocking_job(self, blocking):
+        while True:
+            timeout = None if blocking is True else blocking
+            if self._thread is not None:
+                self._thread.join(timeout=timeout)
+            if timeout is None or self._thread is None or not self._thread.is_alive():
+                self.state = TaskState.FINISHED
+                # the non-blocking code path also has an on_finish()
+                # call that executes asynchronously
+                if self.launched_successfully:
+                    self.session.ui.thread_safe(self.on_finish)
+                break
+            else:
+                from chimerax.core.errors import CancelOperation
+                try:
+                    blocking = self.timed_out()
+                except CancelOperation:
+                    self.state = TaskState.CANCELED
+                    raise
 
     def _run_function(self, func: callable, *args, **kw):
         blocking = kw.pop("blocking", False)
