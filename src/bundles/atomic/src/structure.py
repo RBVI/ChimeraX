@@ -300,9 +300,17 @@ class Structure(Model, StructureData):
             for attr_name, attr_vals in attr_info.items():
                 switch_info[attr_name] = attr_vals
             interp_data[attr_level] = switch_info
+        if 'structure' not in interp_data:
+            interp_data['structure'] = {}
         csids = list(self.coordset_ids)
-        s1_index = csids.index(scene1_data['structure']['active_coordset_id'])
-        s2_index = csids.index(scene2_data['structure']['active_coordset_id'])
+        try:
+            s1_index = csids.index(scene1_data['structure']['active_coordset_id'])
+        except KeyError:
+            s1_index = csids.index(self.active_coordset_id)
+        try:
+            s2_index = csids.index(scene2_data['structure']['active_coordset_id'])
+        except KeyError:
+            s2_index = csids.index(self.active_coordset_id)
         interp_index = int(s1_index + fraction * (s2_index - s1_index) + 0.5)
         interp_data['structure']['active_coordset_id'] = csids[interp_index]
         Structure.restore_scene(self, interp_data)
