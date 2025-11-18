@@ -1040,12 +1040,14 @@ class BoltzRun:
         self._session.logger.info(msg)
         self._report_runtime()
         # Create table of results
-        smiles = {p.name:p.ligand_smiles_string for p in self._predictions}
-        align_to = self._predictions[0]._align_to if self._predictions else None
-        from . import boltz_gui
-        t = boltz_gui.LigandPredictionsTable(self._session, self._predictions_directory,
-                                             smiles = smiles, align_to = align_to)
-        self._save_results_as_csv_file(t)
+        if self._session.ui.is_gui:
+            smiles = {p.name:p.ligand_smiles_string for p in self._predictions}
+            align_to = self._predictions[0]._align_to if self._predictions else None
+            from . import boltz_gui
+            t = boltz_gui.LigandPredictionsTable(self._session, self._predictions_directory,
+                                                 smiles = smiles, align_to = align_to)
+            self._save_results_as_csv_file(t)
+            # TODO: Would be nice to save csv file even if no gui is available.
 
     def _save_results_as_csv_file(self, table):
         from os.path import join
