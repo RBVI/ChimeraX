@@ -94,7 +94,17 @@ def realign_sequences(session, sequences, *, program=CLUSTAL_OMEGA, replacing=Fa
             params.update(options)
             session.logger.status("Starting %s alignment" % program)
             #input_file_map = [ ("input.fa", "text_file", input_file.name) ]
-            self.start(service_name, params, [input_file.name], blocking=True)
+            self.start(service_name, params, [input_file.name], blocking=30)
+
+        def timed_out(self):
+            if not session.ui.is_gui:
+                return True
+            from chimerax.ui.widgets import LongJobDialog
+            next_wait = LongJobDialog(job_name=f"{program} realignment job").run()
+            if next_wait is None:
+                from chimerax.core.errors import CancelOperation
+                raise CancelOperation(f"{program} realignment job cancelled")
+            return next_wait
 
         def on_finish(self):
             logger = session.logger
