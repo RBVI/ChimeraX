@@ -198,6 +198,8 @@ def expand_features(features):
             if begin is None or end is None:
                 continue
             blocks.append((begin, end))
+        if not blocks: # there may be no blocks where both ends are known; ticket #19086
+            continue
         if 'bond' in ftype:
             old_blocks = blocks[:]
             blocks = []

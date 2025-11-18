@@ -140,23 +140,40 @@ class TimelineControlWidget(QWidget):
         layout.addWidget(self.reverse_btn)
         layout.addStretch()
 
-        # Zoom controls
-        self.zoom_in_btn = QPushButton("+")
-        self.zoom_in_btn.setFixedSize(30, 30)
-        self.zoom_in_btn.setStyleSheet(
-            "background-color: #666; color: white; border-radius: 15px;"
-        )
-        self.zoom_in_btn.clicked.connect(self.increase_duration)
+        # Time adjustment controls
+        time_label = QLabel("Adjust Time:")
+        layout.addWidget(time_label)
 
-        self.zoom_out_btn = QPushButton("-")
-        self.zoom_out_btn.setFixedSize(30, 30)
-        self.zoom_out_btn.setStyleSheet(
-            "background-color: #666; color: white; border-radius: 15px;"
-        )
-        self.zoom_out_btn.clicked.connect(self.decrease_duration)
+        self.time_minus_30_btn = QPushButton("-30")
+        self.time_minus_30_btn.setFixedHeight(30)
+        self.time_minus_30_btn.clicked.connect(lambda: self.adjust_duration(-30))
 
-        layout.addWidget(self.zoom_in_btn)
-        layout.addWidget(self.zoom_out_btn)
+        self.time_minus_5_btn = QPushButton("-5")
+        self.time_minus_5_btn.setFixedHeight(30)
+        self.time_minus_5_btn.clicked.connect(lambda: self.adjust_duration(-5))
+
+        self.time_minus_1_btn = QPushButton("-1")
+        self.time_minus_1_btn.setFixedHeight(30)
+        self.time_minus_1_btn.clicked.connect(lambda: self.adjust_duration(-1))
+
+        self.time_plus_1_btn = QPushButton("+1")
+        self.time_plus_1_btn.setFixedHeight(30)
+        self.time_plus_1_btn.clicked.connect(lambda: self.adjust_duration(1))
+
+        self.time_plus_5_btn = QPushButton("+5")
+        self.time_plus_5_btn.setFixedHeight(30)
+        self.time_plus_5_btn.clicked.connect(lambda: self.adjust_duration(5))
+
+        self.time_plus_30_btn = QPushButton("+30")
+        self.time_plus_30_btn.setFixedHeight(30)
+        self.time_plus_30_btn.clicked.connect(lambda: self.adjust_duration(30))
+
+        layout.addWidget(self.time_minus_30_btn)
+        layout.addWidget(self.time_minus_5_btn)
+        layout.addWidget(self.time_minus_1_btn)
+        layout.addWidget(self.time_plus_1_btn)
+        layout.addWidget(self.time_plus_5_btn)
+        layout.addWidget(self.time_plus_30_btn)
         layout.addStretch()
 
         # Record button
@@ -218,15 +235,12 @@ class TimelineControlWidget(QWidget):
         self.time_changed.emit(0.0)
         self.reset_requested.emit()
 
-    def increase_duration(self):
-        """Increase animation duration by 1 second"""
-        self.duration += 1.0
-        self.duration_changed.emit(self.duration)
-
-    def decrease_duration(self):
-        """Decrease animation duration by 1 second (minimum 1 second)"""
-        if self.duration > 1.0:
-            self.duration -= 1.0
+    def adjust_duration(self, amount):
+        """Adjust animation duration by the specified amount in seconds"""
+        new_duration = self.duration + amount
+        # Ensure duration stays at minimum 1 second
+        if new_duration >= 1.0:
+            self.duration = new_duration
             self.duration_changed.emit(self.duration)
 
     def set_duration(self, duration):
@@ -754,12 +768,14 @@ class TimelineSceneWidget(QWidget):
 
     def keyPressEvent(self, event):
         """Handle key presses for scene deletion"""
-        if event.key() == Qt.Key_Delete and self.selected_scene:
-            # Delete the selected scene
-            self.scene_deleted.emit(self.selected_scene)
-            self.selected_scene = None
-            self.update()
-            # Don't call super() to prevent forwarding to command line
+        if event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace:
+            if self.selected_scene:
+                # Delete the selected scene
+                self.scene_deleted.emit(self.selected_scene)
+                self.selected_scene = None
+                self.update()
+            # Accept the event regardless to prevent forwarding to command line
+            event.accept()
             return
         else:
             super().keyPressEvent(event)
@@ -1177,11 +1193,12 @@ class SceneTimelineWidget(QWidget):
         scene_animation = getattr(self.session, "_scene_animation_manager", None)
         if scene_animation:
             scene_animation.remove_scene(scene_name)
-            print(f"Scene '{scene_name}' removed from timeline and animation manager")
+            #print(f"Scene '{scene_name}' removed from timeline and animation manager")
         else:
-            print(
-                f"Scene '{scene_name}' removed from timeline (no animation manager found)"
-            )
+            #print(
+            #    f"Scene '{scene_name}' removed from timeline (no animation manager found)"
+            #)
+            pass
 
     def on_time_clicked(self, time):
         """Handle timeline click to preview at that time"""

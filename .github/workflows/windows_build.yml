@@ -98,10 +98,10 @@ jobs:
       - name: Put the build date and commit in the environment
         shell: bash
         run: |
-          export BUILD_COMMIT=$(git rev-parse --short $GITHUB_SHA)
-          export BUILD_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
-          echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
-          echo "BUILD_COMMIT=$BUILD_COMMIT" >> $GITHUB_ENV
+          export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
+          export COMMIT_DATE=$(git log -1 --format=%cD $GITHUB_SHA)
+          echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
       - name: Upload ChimeraX
         uses: nick-fields/retry@v3
         with:
@@ -110,7 +110,7 @@ jobs:
           max_attempts: 1000
           timeout_minutes: 60
           shell: bash
-          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "date=$BUILD_DATE" -F "platform=windows" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax-installer.exe" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$COMMIT_HASH" -F "date=$COMMIT_DATE" -F "platform=windows" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax-installer.exe" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
   build-candidate:
     name: Candidate
     if: ${{ inputs.release_type == 'candidate' }}
@@ -186,10 +186,10 @@ jobs:
       - name: Put the build date and commit in the environment
         shell: bash
         run: |
-          export BUILD_COMMIT=$(git rev-parse --short $GITHUB_SHA)
-          export BUILD_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
-          echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
-          echo "BUILD_COMMIT=$BUILD_COMMIT" >> $GITHUB_ENV
+          export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
+          export COMMIT_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
+          echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
       - name: Upload ChimeraX
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'techpreview' }}
         uses: nick-fields/retry@v3
@@ -197,7 +197,7 @@ jobs:
           max_attempts: 1000
           timeout_minutes: 60
           shell: bash
-          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "date=$BUILD_DATE" -F "platform=windows" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax-installer.exe" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$COMMIT_HASH" -F "date=$COMMIT_DATE" -F "platform=windows" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax-installer.exe" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
       - name: Put the build version in the environment
         shell: bash
         run: |
@@ -210,7 +210,7 @@ jobs:
           max_attempts: 1000
           shell: bash
           timeout_minutes: 60
-          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "version=$BUILD_VERSION" -F "date=$BUILD_DATE" -F "platform=windows" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax-installer.exe" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$COMMIT_HASH" -F "version=$BUILD_VERSION" -F "date=$COMMIT_DATE" -F "platform=windows" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax-installer.exe" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
   build-production:
     name: Production
     if: ${{ inputs.release_type == 'production' }}
@@ -257,11 +257,11 @@ jobs:
       - name: Put the build date, commit, and version in the environment
         shell: bash
         run: |
-          export BUILD_COMMIT=$(git rev-parse --short $GITHUB_SHA)
-          export BUILD_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
+          export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
+          export COMMIT_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
           export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g')
-          echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
-          echo "BUILD_COMMIT=$BUILD_COMMIT" >> $GITHUB_ENV
+          echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
           echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
       - name: Upload ChimeraX
         uses: nick-fields/retry@v3
@@ -269,7 +269,7 @@ jobs:
           max_attempts: 1000
           shell: bash
           timeout_minutes: 60
-          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "version=$BUILD_VERSION" -F "date=$BUILD_DATE" -F "platform=windows" -F "file=@$GITHUB_WORKSPACE/chimerax-installer.exe" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_production_build.py
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$COMMIT_HASH" -F "version=$BUILD_VERSION" -F "date=$COMMIT_DATE" -F "platform=windows" -F "file=@$GITHUB_WORKSPACE/chimerax-installer.exe" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_production_build.py
 
   build-techpreview:
     name: Preview
@@ -323,10 +323,10 @@ jobs:
       - name: Put the build date and commit in the environment
         shell: bash
         run: |
-          export BUILD_COMMIT=$(git rev-parse --short $GITHUB_SHA)
-          export BUILD_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
-          echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
-          echo "BUILD_COMMIT=$BUILD_COMMIT" >> $GITHUB_ENV
+          export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
+          export COMMIT_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
+          echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
       - name: Upload ChimeraX
         uses: nick-fields/retry@v3
         with:
@@ -335,4 +335,4 @@ jobs:
           max_attempts: 1000
           timeout_minutes: 60
           shell: bash
-          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "date=$BUILD_DATE" -F "platform=windows" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax-installer.exe" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$COMMIT_HASH" -F "date=$COMMIT_DATE" -F "platform=windows" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax-installer.exe" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
