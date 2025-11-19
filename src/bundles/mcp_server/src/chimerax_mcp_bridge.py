@@ -256,19 +256,28 @@ async def check_existing_rest_server() -> tuple[bool, int]:
     return False, _default_port
 
 async def start_chimerax(port: Optional[int] = None, session_name: Optional[str] = None, force_new: bool = False) -> tuple[bool, int]:
-    """Start ChimeraX if not running, returns (success, port)"""
+    """Start ChimeraX if not running, returns (success, port)
+    
+    Args:
+        port: Port to start ChimeraX on (defaults to _default_port)
+        session_name: Optional name for the session
+        force_new: If True, don't try to reuse existing instances
+    """
     if port is None:
         port = _default_port
 
     # First check if there's already a ChimeraX with REST server running (unless forcing new)
-    if not force_new:
+    # NOTE: We only do this auto-discovery if port is None and force_new is False
+    # This prevents unexpected reuse when a specific port is requested
+    if not force_new and port == _default_port:
         has_rest, existing_port = await check_existing_rest_server()
         if has_rest:
-            print(f"Using existing ChimeraX REST server on port {existing_port}", file=sys.stderr)
+            print(f"Using existing ChimeraX REST server on port {existing_port} (default port: {_default_port})", file=sys.stderr)
             return True, existing_port
 
     # Check if already running on this port
     if await is_chimerax_running(port):
+        print(f"ChimeraX is already running on port {port}", file=sys.stderr)
         return True, port
 
     # If port is taken but not by ChimeraX, find a new one
@@ -436,7 +445,11 @@ async def get_session() -> aiohttp.ClientSession:
     return _session
 
 async def find_best_chimerax_instance() -> int:
-    """Find the best ChimeraX instance to use (prefer existing, fallback to default port)"""
+    """Find the best ChimeraX instance to use (prefer existing, fallback to default port)
+    
+    NOTE: This function no longer mutates _default_port to avoid unexpected behavior.
+    Use set_default_session() explicitly if you want to change the default port.
+    """
     global _default_port
 
     # First check if default port is running
@@ -445,15 +458,16 @@ async def find_best_chimerax_instance() -> int:
         return _default_port
 
     # Quick scan for any running ChimeraX instances (common ports only)
+    # NOTE: We scan but DO NOT change _default_port anymore to avoid confusion
     common_ports = [8081, 8082, 8083, 7955, 9000]  # Common alternatives
     for port in common_ports:
         if port == _default_port:
             continue  # Already checked
 
         if await is_chimerax_running(port):
-            # Found one! Update our default for future use
-            print(f"Found ChimeraX instance on port {port}, using as default", file=sys.stderr)
-            _default_port = port
+            # Found one! But DON'T change the default - just use it for this operation
+            print(f"WARNING: Found ChimeraX instance on port {port}, but default is still {_default_port}. "
+                  f"Use set_default_session({port}) if you want to make this the default.", file=sys.stderr)
             return port
 
     # No instances found, return default port (will trigger auto-start)
@@ -1653,12 +1667,19 @@ async def list_chimerax_instances() -> str:
 async def start_new_chimerax_session(session_name: Optional[str] = None, port: Optional[int] = None) -> str:
     """Start a new ChimeraX instance/session
 
+    Important behavior:
+    - If port is specified and ChimeraX is already running there, returns info about existing instance
+    - If port is not specified, finds an available port starting from 8080
+    - Always forces a new instance (doesn't reuse existing ones on different ports)
+    
     Args:
         session_name: Optional name for the session (defaults to session_<port>)
         port: Specific port to use (defaults to finding available port)
     """
     if port is None:
-        port = find_available_port()
+        # Find an available port, starting from the default
+        port = find_available_port(_default_port)
+        print(f"No port specified, found available port: {port}", file=sys.stderr)
 
     # Check if already running on this port
     if await is_chimerax_running(port):
@@ -1672,8 +1693,9 @@ async def start_new_chimerax_session(session_name: Optional[str] = None, port: O
         existing_session = _instances.get(port, {}).get("session_name", f"session_{port}")
         return f"ChimeraX is already running on port {port} (session: {existing_session}). To start a new session, use port {available_port} instead."
 
-    # Force a new instance by not reusing existing ones when session_name is provided
-    success, actual_port = await start_chimerax(port, session_name, force_new=bool(session_name))
+    # Force a new instance - always use force_new=True to avoid reusing existing instances
+    print(f"Starting new ChimeraX instance on port {port} (force_new=True)", file=sys.stderr)
+    success, actual_port = await start_chimerax(port, session_name, force_new=True)
     if success:
         # Use the requested session name, or get from instances if not provided
         if session_name is None:
