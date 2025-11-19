@@ -273,7 +273,7 @@ class RESTHandler(BaseHTTPRequestHandler):
                             python_vals.append(val)
                     response = {}
                     response["json values"] = json_vals
-                    response["python values"] = python_vals
+                    response["python values"] = make_json_friendly(python_vals)
                     response["log messages"] = rest_log.getvalue()
                     if error_info is None:
                         response["error"] = None
@@ -282,7 +282,7 @@ class RESTHandler(BaseHTTPRequestHandler):
                             "type": error_info.__class__.__name__,
                             "message": str(error_info),
                         }
-                    q.put(JSONEncoder(default=lambda x: None).encode(response))
+                    q.put(JSONEncoder().encode(response))
                 else:
                     q.put(rest_log.getvalue())
 
@@ -292,6 +292,18 @@ class RESTHandler(BaseHTTPRequestHandler):
         self._header(200, content_type, len(data))
         self.wfile.write(data)
 
+from chimerax.atomic import Structure, AtomicStructure, Chain, Atom, Bond, Residue
+_stringables = (Structure, AtomicStructure, Chain, Atom, Bond, Residue)
+def make_json_friendly(val):
+    if isinstance(val, _stringables):
+        return str(val)
+    if isinstance(val, dict):
+        return { make_json_friendly(k): make_json_friendly(v) for k, v in val.items() }
+    if isinstance(val, list):
+        return [make_json_friendly(v) for v in val]
+    if isinstance(val, tuple):
+        return tuple(make_json_friendly(v) for v in val)
+    return val
 
 class ByLevelPlainTextLog(StringPlainTextLog):
     propagate_to_chimerax = False

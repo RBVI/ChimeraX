@@ -1548,7 +1548,7 @@ def _guess_pae_associated_structure(session, pae_path):
     from chimerax.atomic import AtomicStructure
     from os.path import dirname
     structs = [m for m in session.models.list(type = AtomicStructure)
-               if hasattr(m, 'filename') and dirname(m.filename) == dirname(pae_path)]
+               if hasattr(m, 'filename') and m.filename is not None and dirname(m.filename) == dirname(pae_path)]
     return structs[0] if len(structs) == 1 else None
 
 # -----------------------------------------------------------------------------

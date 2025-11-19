@@ -50,10 +50,15 @@ class Structure(Model, StructureData):
     The data is managed by the :class:`.StructureData` base class
     which provides access to the C++ structures.
     """
-    ATOM_SCENE_ATTRS = ['colors', 'coords', 'displays', 'selected']
-    BOND_SCENE_ATTRS = ['colors', 'displays', 'halfbonds', 'selected']
-    RESIDUE_SCENE_ATTRS = ['ribbon_colors', 'ribbon_displays', 'ring_colors', 'ring_displays']
-    STRUCTURE_SCENE_ATTRS = ['active_coordset_id']
+    ATOM_SCENE_ATTRS = ['colors', 'coords', 'displays', 'draw_modes', 'radii', 'selected']
+    BOND_SCENE_ATTRS = ['colors', 'displays', 'halfbonds', 'radii', 'selected']
+    RESIDUE_SCENE_ATTRS = ['ribbon_adjusts', 'ribbon_colors', 'ribbon_displays', 'ribbon_hide_backbones',
+        'ring_colors', 'ring_displays', 'thin_rings', 'worm_radii']
+    STRUCTURE_SCENE_ATTRS = ['active_coordset_id', 'ball_scale', 'res_numbering', 'ribbon_mode_helix',
+        'ribbon_mode_strand', 'ribbon_orientation', 'ribbon_show_spine', 'ribbon_tether_opacity',
+        'ribbon_tether_scale', 'ribbon_tether_sides', 'ribbon_tether_shape', 'worm_ribbon']
+    simply_interpolable_attrs = set(['ball_scale', 'coords', 'radii', 'ribbon_adjusts',
+        'ribbon_tether_opacity', 'ribbon_tether_scale', 'worm_radii'])
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
                  auto_style = True, log_info = True):
@@ -276,7 +281,48 @@ class Structure(Model, StructureData):
             values = scene_data.get(target, {})
             for attr_name in attr_names:
                 if attr_name in values:
-                    setattr(collection, attr_name, values[attr_name])
+                    try:
+                        setattr(collection, attr_name, values[attr_name])
+                    except ValueError:
+                        if len(collection) < len(values[attr_name]):
+                            self.session.logger.warning(f"{target.capitalize()} have been deleted"
+                                f" from {self} since scene was saved.  Cannot restore"
+                                f" {self} completely.  Do not delete {target} involved in pre-existing"
+                                f" scenes!")
+                            return
+                        raise
+
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        Model.interpolate_scene(self, scene1_data['model state'], scene2_data['model state'], fraction,
+            switchover=switchover)
+        # for now, we're just interpolating coordinate sets so that trajectories/morphs work;
+        # a more thorough approach will be needed for interpolating other attributes
+        interp_data = {}
+        switch_data = scene2_data if switchover else scene1_data
+        # prevent writing into original scene dictionaries...
+        for attr_level, attr_info in switch_data.items():
+            interp_info = {}
+            for attr_name, attr_vals in attr_info.items():
+                if attr_name in self.simply_interpolable_attrs:
+                    interp_val = (1-fraction) * scene1_data[attr_level][attr_name] \
+                        + fraction * scene2_data[attr_level][attr_name]
+                elif attr_name == "active_coordset_id":
+                    csids = list(self.coordset_ids)
+                    try:
+                        s1_index = csids.index(scene1_data[attr_level][attr_name])
+                    except KeyError:
+                        s1_index = csids.index(self.active_coordset_id)
+                    try:
+                        s2_index = csids.index(scene2_data[attr_level][attr_name])
+                    except KeyError:
+                        s2_index = csids.index(self.active_coordset_id)
+                    interp_index = int(s1_index + fraction * (s2_index - s1_index) + 0.5)
+                    interp_val = csids[interp_index]
+                else:
+                    interp_val = attr_vals
+                interp_info[attr_name] = interp_val
+            interp_data[attr_level] = interp_info
+        Structure.restore_scene(self, interp_data)
 
     def set_state_from_snapshot(self, session, data):
         StructureData.set_state_from_snapshot(self, session, data['structure state'])
@@ -1521,6 +1567,10 @@ class AtomicStructure(Structure):
         Scene interface implementation.
         """
         Structure.restore_scene(self, scene_data['structure state'])
+
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        Structure.interpolate_scene(self, scene1_data['structure state'], scene2_data['structure state'],
+            fraction, switchover=switchover)
 
     def set_state_from_snapshot(self, session, data):
         version = data.get('AtomicStructure version', 1)

@@ -144,6 +144,29 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
+  def string(self, style=None):
+    '''Return a human-readable string for this volume model.
+    
+    Parameters
+    ----------
+    style : str or None
+        If "command" or starts with "command", returns just the atomspec (e.g., "#1").
+        Otherwise, returns the name and atomspec (e.g., "myvolume #1").
+    
+    Returns
+    -------
+    str
+        A string representation of this volume model.
+    '''
+    id = '#' + self.id_string
+    if style is not None and (style == "command" or style.startswith("command")):
+      return id
+    if not self.name:
+      return id
+    return '%s %s' % (self.name, id)
+
+  # ---------------------------------------------------------------------------
+  #
   def info_string(self):
 
     px,py,pz = self.data.step
