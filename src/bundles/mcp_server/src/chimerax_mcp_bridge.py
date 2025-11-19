@@ -38,6 +38,16 @@ Multi-Instance Usage:
 - Use start_new_chimerax_session() to create new instances
 - Use list_chimerax_instances() to see all running instances
 - Use set_default_session() to change default target
+
+Session Management Behavior:
+1. Default port starts at 8080 (configurable)
+2. start_new_chimerax_session() ALWAYS forces a new instance (no auto-reuse)
+3. Commands without session_id use auto-discovery:
+   - First checks default port
+   - Then scans common ports [8081, 8082, 8083, 7955, 9000]
+   - If none found, auto-starts on default port
+4. Auto-discovery NO LONGER changes the default port (use set_default_session() explicitly)
+5. check_chimerax_status() only checks, never starts ChimeraX
 """
 
 import os
