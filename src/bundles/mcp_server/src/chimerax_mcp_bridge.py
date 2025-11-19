@@ -202,8 +202,8 @@ def start_chimerax_daemon(port: int):
         os.setsid()  # Create new session
         pid = os.fork()
         if pid > 0:
-            # First child exits
-            sys.exit(0)
+            # First child exits immediately without Python cleanup to avoid fork crash
+            os._exit(0)
 
         # Second child (daemon)
         os.chdir("/")
