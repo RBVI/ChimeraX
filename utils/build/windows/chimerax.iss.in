@@ -4,11 +4,11 @@
 
 [Code]
 const
-    // Extract version of VC_redist.exe by looking at the File Version
+    // Extract version of vc_redist.x64.exe by looking at the File Version
     // in the Details tab of the Properties dialog.
     // For example: 14.25.28508.3 -> NeededMajor: 14, NeededMinor: 25
     NeededMajor = 14;
-    NeededMinor = 42;
+    NeededMinor = 40;  // Visual Studio 2022 (see below)
     RuntimeKey = 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64';
 
 function ShouldInstallVCRuntime: Boolean;
@@ -68,15 +68,15 @@ ExtraDiskSpaceRequired=20000000
 OutputBaseFilename=chimerax-installer
 OutputDir=$(BUILD_ROOT)
 PrivilegesRequired=none
-; SignTool=byparam signtool.exe sign /v /f $q$(HERE)/CodeSign.pfx$q /p CODESIGN /fd sha1 /t http://timestamp.comodoca.com/authenticode /d $qUCSF ChimeraX$q $f
-; SignTool=byparam signtool.exe sign /v /f $(HERE)/CodeSign.pfx /p CODESIGN /as /fd sha256 /td sha256 /tr http://timestamp.comodoca.com/rfc3161 /d $qUCSF ChimeraX$q $f 
+SignTool=byparam scsigntool.exe -pin CODESIGN sign /v /debug /a /sha1 CERT_SHA /fd sha1 /t http://timestamp.sectigo.com/authenticode /d $qUCSF ChimeraX$q $f
+SignTool=byparam scsigntool.exe -pin CODESIGN sign /v /a /sha1 CERT_SHA /as /fd sha256 /td sha256 /tr http://timestamp.sectigo.com/rfc3161 /d $qUCSF ChimeraX$q $f 
 SourceDir=$(BUILD_ROOT)
 UninstallDisplayIcon={app}\bin\share\ChimeraX.ico,0
 WizardImageFile=$(HERE)\chimerax-wizard.bmp
 WizardImageStretch=no
 WizardSmallImageFile=$(HERE)\chimerax-wizard-small.bmp
 WizardImageAlphaFormat=defined
-WizardStyle=modern
+WizardStyle=modern dynamic
 RestartIfNeededByRun=no
 
 [Messages]
@@ -91,7 +91,7 @@ Name: "quickchimeraxicon"; Description: "Create a ChimeraX &Quick Launch icon"; 
 Name: {autoappdata}\ChimeraX
 
 [Files]
-Source: "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Redist\MSVC\v143\vc_redist.x64.exe"; DestDir: "{tmp}"
+Source: "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\v143\vc_redist.x64.exe"; DestDir: "{tmp}"
 ; TODO: Send the rest of the app to {app} instead of {app}\bin
 Source: "ChimeraX.app\bin\*"; DestDir: "{app}\bin"; Excludes: "__pycache__"; Flags: ignoreversion recursesubdirs
 ; Add other non-empty directories as needed
@@ -116,7 +116,7 @@ Name: "{autodesktop}\ChimeraX $(VERSION)"; Filename: "{app}\bin\ChimeraX.exe"; T
 Name: "{autoappdata}\Microsoft\Internet Explorer\Quick Launch\ChimeraX $(VERSION)"; Filename: "{app}\bin\ChimeraX.exe"; Tasks: quickchimeraxicon; WorkingDir: "{autoappdata}\ChimeraX"
 
 [Run]
-Filename: "{tmp}/Vc_redist.x64.exe"; Parameters: "/install /passive /norestart"; StatusMsg: "{#VCmsg}"; Check: ShouldInstallVCRuntime
+Filename: "{tmp}/vc_redist.x64.exe"; Parameters: "/install /passive /norestart"; StatusMsg: "{#VCmsg}"; Check: ShouldInstallVCRuntime
 Filename: "{app}\bin\python.exe"; Description: "Precompile Python Modules"; Parameters: "-m compileall -q ""{app}"""; StatusMsg: "Precompiling Python Modules..."; Flags: postinstall runascurrentuser runhidden
 Filename: "{app}\bin\ChimeraX.exe"; Description: "Start ChimeraX"; WorkingDir: "{autoappdata}\ChimeraX"; Flags: postinstall unchecked nowait runasoriginaluser
 
