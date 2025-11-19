@@ -34,55 +34,92 @@ from Qt.QtGui import QPixmap, QIcon, QPainter, QColor, QPalette
 import io
 from PIL import Image
 
+from chimerax.scenes.tool import SCENE_EVENT_MIME_FORMAT
+
 
 class ActionThumbnailWidget(QWidget):
     """Widget displaying an action thumbnail (Rock, Roll, etc.)"""
 
     action_selected = Signal(str)  # action_name
 
-    def __init__(self, action_name, icon_name=None, parent=None):
+    def __init__(self, action_name, icon_name=None, size=80, parent=None):
         super().__init__(parent)
         self.action_name = action_name
-        self.setFixedSize(80, 80)
-        self.setStyleSheet("""
-            ActionThumbnailWidget {
+        self.widget_size = size
+        self.setFixedSize(size, size)
+
+        border_radius = size // 2
+        self.setStyleSheet(f"""
+            ActionThumbnailWidget {{
                 border: 2px solid #555;
-                border-radius: 40px;
+                border-radius: {border_radius}px;
                 background-color: #444;
-            }
-            ActionThumbnailWidget:hover {
+            }}
+            ActionThumbnailWidget:hover {{
                 border-color: #777;
                 background-color: #555;
-            }
+            }}
         """)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setContentsMargins(5, 5, 5, 5)
 
         # Icon label (circular)
         self.icon_label = QLabel()
-        self.icon_label.setFixedSize(60, 60)
+        icon_size = int(size * 0.625)  # 50/80 ratio
+        icon_border_radius = icon_size // 2
+        font_size = max(10, int(size * 0.225))  # Scale font with size
+        self.icon_label.setFixedSize(icon_size, icon_size)
         self.icon_label.setAlignment(Qt.AlignCenter)
-        self.icon_label.setStyleSheet("""
+        self.icon_label.setStyleSheet(f"""
             border: none;
             background-color: #666;
-            border-radius: 30px;
+            border-radius: {icon_border_radius}px;
             color: white;
             font-weight: bold;
+            font-size: {font_size}px;
         """)
 
-        # Set icon or text
-        if icon_name:
-            # Try to load icon, fallback to text
-            self.icon_label.setText(action_name[0].upper())
+        # Set text based on action name
+        if action_name == "rock":
+            self.icon_label.setText("⇄")  # Left-right arrows
+        elif action_name == "roll":
+            self.icon_label.setText("↻")  # Circular arrow
+        elif action_name == "precess":
+            self.icon_label.setText("◎")  # Double circle for wobble
         else:
             self.icon_label.setText(action_name[0].upper())
 
         layout.addWidget(self.icon_label, alignment=Qt.AlignCenter)
 
+        # Name label (only show for larger sizes)
+        if size >= 60:
+            name_label = QLabel(action_name.capitalize())
+            name_label.setAlignment(Qt.AlignCenter)
+            label_font_size = max(8, int(size * 0.125))
+            name_label.setStyleSheet(f"color: white; font-size: {label_font_size}px;")
+            layout.addWidget(name_label, alignment=Qt.AlignCenter)
+
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            self.action_selected.emit(self.action_name)
+            # Start drag operation
+            from Qt.QtCore import QMimeData, Qt as QtCore
+            from Qt.QtGui import QDrag
+
+            drag = QDrag(self)
+            mime_data = QMimeData()
+            mime_data.setText(self.action_name)
+            mime_data.setData(
+                "application/x-chimerax-action", self.action_name.encode()
+            )
+            drag.setMimeData(mime_data)
+
+            # Set drag pixmap (use the widget itself as preview)
+            pixmap = self.grab()
+            drag.setPixmap(pixmap)
+            drag.setHotSpot(event.pos())
+
+            drag.exec(QtCore.CopyAction)
         super().mousePressEvent(event)
 
 
@@ -129,11 +166,9 @@ class TimelineControlWidget(QWidget):
 
         self.reverse_btn = QPushButton()
         self.reverse_btn.setFixedSize(30, 30)
-        self.reverse_btn.setIconSize(
-            QSize(18, 18)
-        )  # Set icon size explicitly for proper centering
+        self.reverse_btn.setIconSize(QSize(18, 18))
         self.reverse_btn.clicked.connect(self.reset_timeline)
-        self._update_reverse_btn_icon()  # Set initial icon
+        self._update_reverse_btn_icon()
 
         layout.addWidget(self.play_btn)
         layout.addWidget(self.add_keyframe_btn)
@@ -174,6 +209,17 @@ class TimelineControlWidget(QWidget):
         layout.addWidget(self.time_plus_1_btn)
         layout.addWidget(self.time_plus_5_btn)
         layout.addWidget(self.time_plus_30_btn)
+
+        actions_label = QLabel("  Actions:")
+        layout.addWidget(actions_label)
+
+        self.rock_action = ActionThumbnailWidget("rock", size=40)
+        self.roll_action = ActionThumbnailWidget("roll", size=40)
+        self.precess_action = ActionThumbnailWidget("precess", size=40)
+
+        layout.addWidget(self.rock_action)
+        layout.addWidget(self.roll_action)
+        layout.addWidget(self.precess_action)
         layout.addStretch()
 
         # Record button
@@ -188,6 +234,7 @@ class TimelineControlWidget(QWidget):
         # Preferences button with gear icon
         from chimerax.ui.icons import get_qt_icon
         from Qt.QtWidgets import QToolButton
+
         self.preferences_btn = QToolButton()
         self.preferences_btn.setIcon(get_qt_icon("gear"))
         self.preferences_btn.setToolTip("Preferences")
@@ -295,6 +342,7 @@ class TimelineSceneWidget(QWidget):
         super().__init__(parent)
         self.duration = duration
         self.scene_markers = []  # List of (time, scene_name, thumbnail_pixmap, transition_data) tuples
+        self.action_segments = []  # List of (start_time, end_time, action_name) tuples for rock/roll
         self.current_time = 0.0
         self.drag_time = None  # Time position for drag preview
         self.setFixedHeight(120)  # Increased height for thumbnails
@@ -314,7 +362,15 @@ class TimelineSceneWidget(QWidget):
 
         # Dragging state for scene markers
         self.dragging_scene = None  # Scene name being dragged
-        self.potential_drag_scene = None  # Scene that might be dragged if mouse moves far enough
+        self.potential_drag_scene = (
+            None  # Scene that might be dragged if mouse moves far enough
+        )
+
+        # Dragging state for action segments
+        self.selected_action_segment = None  # Index of selected action segment
+        self.dragging_action_segment = None  # Index of action segment being dragged
+        self.resizing_action_segment = None  # (index, 'start' or 'end')
+        self.action_drag_offset = 0.0  # Offset for smooth dragging
         self.drag_start_pos = None  # Mouse position when drag started
         self.original_scene_time = None  # Original time of scene being dragged
 
@@ -383,6 +439,50 @@ class TimelineSceneWidget(QWidget):
 
                 if thumb_left <= x <= thumb_right:
                     return scene_name
+
+        return None
+
+    def _get_action_segment_at_position(self, x, y):
+        """Get index of action segment at click position, or None"""
+        # Check if y is in the action segment area (25-55 based on paintEvent)
+        if y < 25 or y > 55:
+            return None
+
+        width = self.width()
+
+        # Check each action segment
+        for i, segment_data in enumerate(self.action_segments):
+            start_time, end_time, action_name = segment_data[:3]
+            start_x = int((start_time / self.duration) * width)
+            end_x = int((end_time / self.duration) * width)
+
+            if start_x <= x <= end_x:
+                return i
+
+        return None
+
+    def _get_action_segment_edge_at_position(self, x, y):
+        """Check if click is near an edge of an action segment. Returns (index, 'start'/'end') or None"""
+        # Check if y is in the action segment area
+        if y < 25 or y > 55:
+            return None
+
+        width = self.width()
+        edge_threshold = 5  # pixels from edge to consider it a resize operation
+
+        # Check each action segment
+        for i, segment_data in enumerate(self.action_segments):
+            start_time, end_time, action_name = segment_data[:3]
+            start_x = int((start_time / self.duration) * width)
+            end_x = int((end_time / self.duration) * width)
+
+            # Check if near start edge
+            if abs(x - start_x) <= edge_threshold:
+                return (i, "start")
+
+            # Check if near end edge
+            if abs(x - end_x) <= edge_threshold:
+                return (i, "end")
 
         return None
 
@@ -475,7 +575,12 @@ class TimelineSceneWidget(QWidget):
                 if scene_name == self.selected_scene:
                     # Highlight selected scene with thicker, brighter border
                     painter.setPen(QColor(255, 255, 0, 255))  # Yellow selection
-                    painter.drawRect(thumb_rect_x - 1, thumb_rect_y - 1, thumb_rect_w + 2, thumb_rect_h + 2)
+                    painter.drawRect(
+                        thumb_rect_x - 1,
+                        thumb_rect_y - 1,
+                        thumb_rect_w + 2,
+                        thumb_rect_h + 2,
+                    )
                     painter.setPen(QColor(255, 255, 0, 200))
                 else:
                     painter.setPen(QColor(100, 150, 255, 200))
@@ -507,6 +612,55 @@ class TimelineSceneWidget(QWidget):
             # Draw transition curves between scenes
             self._draw_transition_curves(painter, width, height)
 
+            # Draw action segments (rock/roll)
+            for i, segment_data in enumerate(self.action_segments):
+                start_time, end_time, action_name = segment_data[:3]
+                start_x = int((start_time / self.duration) * width)
+                end_x = int((end_time / self.duration) * width)
+
+                # Determine if this segment is selected
+                is_selected = self.selected_action_segment == i
+
+                # Draw colored bar for action segment
+                if action_name == "rock":
+                    color = QColor(255, 165, 0, 150)  # Orange with transparency
+                    label = "⇄ ROCK"
+                elif action_name == "roll":
+                    color = QColor(138, 43, 226, 150)  # Purple with transparency
+                    label = "↻ ROLL"
+                elif action_name == "precess":
+                    color = QColor(0, 191, 255, 150)  # Deep sky blue with transparency
+                    label = "◎ PRECESS"
+                else:
+                    color = QColor(128, 128, 128, 150)  # Gray
+                    label = action_name.upper()
+
+                # Draw filled rectangle for action segment
+                painter.setBrush(color)
+                if is_selected:
+                    # Thicker, brighter border for selected segment
+                    painter.setPen(QColor(255, 255, 0, 255))  # Yellow selection
+                    painter.drawRect(start_x - 1, 24, end_x - start_x + 2, 32)
+                    painter.setPen(color.darker(120))
+                else:
+                    painter.setPen(color.darker(150))
+                segment_rect = painter.drawRect(start_x, 25, end_x - start_x, 30)
+
+                # Draw label in the middle of the segment
+                painter.setPen(QColor(255, 255, 255))
+                painter.setFont(font)
+                text_x = start_x + (end_x - start_x) // 2 - 20
+                painter.drawText(text_x, 43, label)
+
+                # Draw resize handles on selected segment
+                if is_selected:
+                    painter.setBrush(QColor(255, 255, 255))
+                    painter.setPen(QColor(0, 0, 0))
+                    # Left handle
+                    painter.drawRect(start_x - 2, 28, 4, 22)
+                    # Right handle
+                    painter.drawRect(end_x - 2, 28, 4, 22)
+
             # Draw current time indicator
             x = int((self.current_time / self.duration) * width)
             painter.setPen(QColor(255, 100, 100))
@@ -528,8 +682,13 @@ class TimelineSceneWidget(QWidget):
 
     def dragEnterEvent(self, event):
         """Handle drag enter events"""
+        # Check for ChimeraX action data (rock/roll)
+        if event.mimeData().hasFormat("application/x-chimerax-action"):
+            event.acceptProposedAction()
+            return
+
         # Check for ChimeraX scene data first (preferred)
-        if event.mimeData().hasFormat("application/x-chimerax-scene"):
+        if event.mimeData().hasFormat(SCENE_EVENT_MIME_FORMAT):
             event.acceptProposedAction()
             return
 
@@ -558,7 +717,8 @@ class TimelineSceneWidget(QWidget):
     def dragMoveEvent(self, event):
         """Handle drag move events"""
         if (
-            event.mimeData().hasFormat("application/x-chimerax-scene")
+            event.mimeData().hasFormat(SCENE_EVENT_MIME_FORMAT)
+            or event.mimeData().hasFormat("application/x-chimerax-action")
             or event.mimeData().hasText()
         ):
             # Update drag preview position
@@ -579,14 +739,53 @@ class TimelineSceneWidget(QWidget):
 
     def dropEvent(self, event):
         """Handle drop events"""
+        # Check if this is an action drop (rock/roll)
+        if event.mimeData().hasFormat("application/x-chimerax-action"):
+            try:
+                action_bytes = event.mimeData().data("application/x-chimerax-action")
+                action_name = action_bytes.data().decode("utf-8")
+
+                # Calculate drop time
+                if self.drag_time is not None:
+                    time = self.drag_time
+                else:
+                    x = event.position().x()
+                    time = (x / self.width()) * self.duration
+                    time = max(0, min(time, self.duration))
+
+                # Create action segment with default duration of 2 seconds
+                default_duration = 2.0
+                end_time = min(time + default_duration, self.duration)
+
+                # Get default config for this action type
+                from .scene_animation import ACTION_DEFAULTS
+
+                default_config = ACTION_DEFAULTS.get(action_name, {}).copy()
+
+                # Add action segment with config
+                self.action_segments.append(
+                    (time, end_time, action_name, default_config)
+                )
+                self.action_segments.sort(key=lambda x: x[0])  # Sort by start time
+
+                # Clear drag preview
+                self.drag_time = None
+                self.update()
+
+                event.acceptProposedAction()
+                return
+
+            except Exception as e:
+                print(f"Error handling action drop: {e}")
+
         scene_name = None
 
         # Try to get scene name from ChimeraX scene data first
-        if event.mimeData().hasFormat("application/x-chimerax-scene"):
+        if event.mimeData().hasFormat(SCENE_EVENT_MIME_FORMAT):
             try:
                 import json
 
-                scene_data_bytes = event.mimeData().data("application/x-chimerax-scene")
+                scene_data_bytes = event.mimeData().data(SCENE_EVENT_MIME_FORMAT)
                 scene_data_str = scene_data_bytes.data().decode("utf-8")
 
                 # Try to parse as JSON first
@@ -630,19 +829,51 @@ class TimelineSceneWidget(QWidget):
         if event.button() == Qt.LeftButton:
             # Calculate time from click position
             x = event.position().x()
+            y = event.position().y()
             time = (x / self.width()) * self.duration
             time = max(0, min(time, self.duration))  # Clamp to valid range
+
+            # Check if we clicked on an action segment edge first (higher priority)
+            edge_result = self._get_action_segment_edge_at_position(x, y)
+            if edge_result is not None:
+                segment_idx, edge_type = edge_result
+                self.resizing_action_segment = (segment_idx, edge_type)
+                self.selected_action_segment = segment_idx
+                self.drag_start_pos = x
+                self.setFocus()
+                self.setCursor(Qt.SizeHorCursor)  # Horizontal resize cursor
+                self.update()
+                return
+
+            # Check if we clicked on an action segment body
+            clicked_segment = self._get_action_segment_at_position(x, y)
+            if clicked_segment is not None:
+                self.selected_action_segment = clicked_segment
+                self.dragging_action_segment = clicked_segment
+                # Calculate offset from segment start for smooth dragging
+                start_time = self.action_segments[clicked_segment][0]
+                start_x = int((start_time / self.duration) * self.width())
+                self.action_drag_offset = x - start_x
+                self.setFocus()
+                self.setCursor(Qt.ClosedHandCursor)  # Drag cursor
+                self.update()
+                return
 
             # Check if we clicked on a scene marker
             clicked_scene = self._get_scene_at_position(x)
             if clicked_scene:
                 # Select the scene for potential deletion
                 self.selected_scene = clicked_scene
+                self.selected_action_segment = None  # Deselect action segments
                 self.setFocus()  # Ensure we can receive key events
 
                 # Prepare for potential scene dragging, but don't actually drag until significant movement
-                self.dragging_scene = None  # Don't set this until we actually start dragging
-                self.potential_drag_scene = clicked_scene  # Track which scene might be dragged
+                self.dragging_scene = (
+                    None  # Don't set this until we actually start dragging
+                )
+                self.potential_drag_scene = (
+                    clicked_scene  # Track which scene might be dragged
+                )
                 self.drag_start_pos = event.position()
                 self.original_scene_time = self._get_scene_time(clicked_scene)
                 self.dragging_playhead = False
@@ -668,14 +899,85 @@ class TimelineSceneWidget(QWidget):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
-        """Handle mouse movement for dragging scene markers or playhead"""
+        """Handle mouse movement for dragging scene markers, action segments, or playhead"""
+        x = event.position().x()
+        y = event.position().y()
+
+        # Handle action segment resizing
+        if self.resizing_action_segment is not None:
+            segment_idx, edge_type = self.resizing_action_segment
+            segment_data = self.action_segments[segment_idx]
+            start_time, end_time, action_name = segment_data[:3]
+            config = segment_data[3] if len(segment_data) > 3 else {}
+
+            # Calculate new time from mouse position
+            new_time = (x / self.width()) * self.duration
+            new_time = max(0, min(new_time, self.duration))
+
+            # Update the appropriate edge
+            if edge_type == "start":
+                # Don't let start go past end (min 0.1 second segment)
+                new_start = min(new_time, end_time - 0.1)
+                self.action_segments[segment_idx] = (
+                    new_start,
+                    end_time,
+                    action_name,
+                    config,
+                )
+            else:  # 'end'
+                # Don't let end go before start (min 0.1 second segment)
+                new_end = max(new_time, start_time + 0.1)
+                self.action_segments[segment_idx] = (
+                    start_time,
+                    new_end,
+                    action_name,
+                    config,
+                )
+
+            self.update()
+            return
+
+        # Handle action segment dragging (moving entire segment)
+        if self.dragging_action_segment is not None:
+            segment_idx = self.dragging_action_segment
+            segment_data = self.action_segments[segment_idx]
+            start_time, end_time, action_name = segment_data[:3]
+            config = segment_data[3] if len(segment_data) > 3 else {}
+            segment_duration = end_time - start_time
+
+            # Calculate new start time based on mouse position and offset
+            new_start_x = x - self.action_drag_offset
+            new_start_time = (new_start_x / self.width()) * self.duration
+
+            # Clamp to valid range
+            new_start_time = max(
+                0, min(new_start_time, self.duration - segment_duration)
+            )
+            new_end_time = new_start_time + segment_duration
+
+            # Update segment position
+            self.action_segments[segment_idx] = (
+                new_start_time,
+                new_end_time,
+                action_name,
+                config,
+            )
+            self.update()
+            return
+
         # Check if we have a potential drag that should become actual dragging
-        if self.potential_drag_scene and self.drag_start_pos and not self.dragging_scene:
+        if (
+            self.potential_drag_scene
+            and self.drag_start_pos
+            and not self.dragging_scene
+        ):
             current_pos = event.position()
             from Qt.QtWidgets import QApplication
 
             # Only start dragging if mouse has moved significantly (default drag distance)
-            if (current_pos - self.drag_start_pos).manhattanLength() > QApplication.startDragDistance():
+            if (
+                current_pos - self.drag_start_pos
+            ).manhattanLength() > QApplication.startDragDistance():
                 # Now start actually dragging
                 self.dragging_scene = self.potential_drag_scene
                 self.potential_drag_scene = None
@@ -707,11 +1009,42 @@ class TimelineSceneWidget(QWidget):
             self.time_clicked.emit(new_time)
             self.update()
 
+        # Update cursor based on hover position (when not dragging)
+        if (
+            not self.dragging_action_segment
+            and not self.resizing_action_segment
+            and not self.dragging_scene
+        ):
+            edge_result = self._get_action_segment_edge_at_position(x, y)
+            if edge_result is not None:
+                self.setCursor(Qt.SizeHorCursor)  # Resize cursor when over edge
+            else:
+                segment_idx = self._get_action_segment_at_position(x, y)
+                if segment_idx is not None:
+                    self.setCursor(
+                        Qt.OpenHandCursor
+                    )  # Open hand when over segment body
+                else:
+                    self.setCursor(Qt.ArrowCursor)  # Normal cursor otherwise
+
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
         """Handle mouse release to finish dragging"""
         if event.button() == Qt.LeftButton:
+            # Clear action segment dragging/resizing state
+            if (
+                self.dragging_action_segment is not None
+                or self.resizing_action_segment is not None
+            ):
+                self.dragging_action_segment = None
+                self.resizing_action_segment = None
+                self.action_drag_offset = 0.0
+                self.drag_start_pos = None
+                self.setCursor(Qt.ArrowCursor)  # Reset cursor
+                self.update()
+                return
+
             if self.dragging_scene:
                 # Calculate final time position for scene marker
                 x = event.position().x()
@@ -767,9 +1100,14 @@ class TimelineSceneWidget(QWidget):
         super().mouseDoubleClickEvent(event)
 
     def keyPressEvent(self, event):
-        """Handle key presses for scene deletion"""
+        """Handle key presses for scene and action segment deletion"""
         if event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace:
-            if self.selected_scene:
+            if self.selected_action_segment is not None:
+                # Delete the selected action segment
+                del self.action_segments[self.selected_action_segment]
+                self.selected_action_segment = None
+                self.update()
+            elif self.selected_scene:
                 # Delete the selected scene
                 self.scene_deleted.emit(self.selected_scene)
                 self.selected_scene = None
@@ -788,11 +1126,18 @@ class TimelineSceneWidget(QWidget):
             self.update()
 
     def contextMenuEvent(self, event):
-        """Show context menu on right-click for transition settings"""
-        # print(f"DEBUG: Context menu event at position {event.pos().x()}")
+        """Show context menu on right-click for transition settings or action settings"""
+        x = event.pos().x()
+        y = event.pos().y()
+
+        # Check if we right-clicked on an action segment first
+        clicked_segment_idx = self._get_action_segment_at_position(x, y)
+        if clicked_segment_idx is not None:
+            self._show_action_menu(clicked_segment_idx, event.globalPos())
+            return
+
         # Check if we right-clicked on a scene marker
-        clicked_scene = self._get_scene_at_position(event.pos().x())
-        # print(f"DEBUG: Clicked scene: {clicked_scene}")
+        clicked_scene = self._get_scene_at_position(x)
         if clicked_scene:
             self._show_transition_menu(clicked_scene, event.globalPos())
         else:
@@ -906,6 +1251,140 @@ class TimelineSceneWidget(QWidget):
         self._sync_to_scene_animation()
         self.update()
 
+    def _show_action_menu(self, segment_idx, global_pos):
+        """Show configuration menu for an action segment (rock/roll)"""
+        from .scene_animation import ACTION_DEFAULTS
+
+        segment_data = self.action_segments[segment_idx]
+        start_time, end_time, action_name = segment_data[:3]
+        config = (
+            segment_data[3]
+            if len(segment_data) > 3
+            else ACTION_DEFAULTS.get(action_name, {}).copy()
+        )
+
+        menu = QMenu(self)
+
+        # Delete option at the top
+        delete_action = menu.addAction(f"Delete '{action_name.capitalize()}' Segment")
+        delete_action.triggered.connect(
+            lambda: self._delete_action_segment(segment_idx)
+        )
+        menu.addSeparator()
+
+        # Axis submenu
+        axis_menu = menu.addMenu("Axis")
+        current_axis = config.get("axis", "y")
+        for axis in ["x", "y", "z"]:
+            action = QAction(axis.upper(), menu)
+            action.setCheckable(True)
+            action.setChecked(current_axis == axis)
+            action.setProperty("axis", axis)
+            action.setProperty("segment_idx", segment_idx)
+            action.triggered.connect(self._on_action_axis_changed)
+            axis_menu.addAction(action)
+
+        # Angle submenu (not applicable for precess, which only wobbles)
+        if action_name != "precess":
+            menu.addSeparator()
+
+            angle_menu = menu.addMenu("Angle")
+            current_angle = config.get("angle", 60)
+            for angle in [15, 30, 45, 60, 90, 120, 180]:
+                action = QAction(f"{angle}°", menu)
+                action.setCheckable(True)
+                action.setChecked(current_angle == angle)
+                action.setProperty("angle", angle)
+                action.setProperty("segment_idx", segment_idx)
+                action.triggered.connect(self._on_action_angle_changed)
+                angle_menu.addAction(action)
+
+            menu.addSeparator()
+
+        # Count submenu (number of oscillations/rotations)
+        count_menu = menu.addMenu("Count")
+        current_count = config.get("count", 1)
+        for count in [1, 2, 3, 4, 5]:
+            action = QAction(str(count), menu)
+            action.setCheckable(True)
+            action.setChecked(current_count == count)
+            action.setProperty("count", count)
+            action.setProperty("segment_idx", segment_idx)
+            action.triggered.connect(self._on_action_count_changed)
+            count_menu.addAction(action)
+
+        # Precession tilt options (precess only)
+        if action_name == "precess":
+            menu.addSeparator()
+
+            # Precession tilt submenu
+            tilt_menu = menu.addMenu("Precession Tilt")
+            current_tilt = config.get("precession_tilt", 10)
+            for tilt in [5, 10, 15, 20, 30, 45]:
+                action = QAction(f"{tilt}°", menu)
+                action.setCheckable(True)
+                action.setChecked(current_tilt == tilt)
+                action.setProperty("tilt", tilt)
+                action.setProperty("segment_idx", segment_idx)
+                action.triggered.connect(self._on_action_precession_tilt_changed)
+                tilt_menu.addAction(action)
+
+        menu.exec(global_pos)
+
+    def _on_action_axis_changed(self):
+        """Handle axis change for action segment"""
+        action = self.sender()
+        if action:
+            axis = action.property("axis")
+            segment_idx = action.property("segment_idx")
+            self._set_action_config(segment_idx, "axis", axis)
+
+    def _on_action_angle_changed(self):
+        """Handle angle change for action segment"""
+        action = self.sender()
+        if action:
+            angle = action.property("angle")
+            segment_idx = action.property("segment_idx")
+            self._set_action_config(segment_idx, "angle", angle)
+
+    def _on_action_count_changed(self):
+        """Handle count change for action segment"""
+        action = self.sender()
+        if action:
+            count = action.property("count")
+            segment_idx = action.property("segment_idx")
+            self._set_action_config(segment_idx, "count", count)
+
+    def _on_action_precession_tilt_changed(self):
+        """Handle precession tilt change for roll action"""
+        action = self.sender()
+        if action:
+            tilt = action.property("tilt")
+            segment_idx = action.property("segment_idx")
+            self._set_action_config(segment_idx, "precession_tilt", tilt)
+
+    def _set_action_config(self, segment_idx, key, value):
+        """Update a configuration value for an action segment"""
+        if 0 <= segment_idx < len(self.action_segments):
+            segment_data = self.action_segments[segment_idx]
+            start_time, end_time, action_name = segment_data[:3]
+            config = segment_data[3] if len(segment_data) > 3 else {}
+            config[key] = value
+            self.action_segments[segment_idx] = (
+                start_time,
+                end_time,
+                action_name,
+                config,
+            )
+            self.update()
+
+    def _delete_action_segment(self, segment_idx):
+        """Delete an action segment"""
+        if 0 <= segment_idx < len(self.action_segments):
+            del self.action_segments[segment_idx]
+            self.selected_action_segment = None
+            self.update()
+
     def _sync_to_scene_animation(self):
         """Sync timeline data to scene animation manager"""
         # print(f"DEBUG: _sync_to_scene_animation called")
@@ -931,6 +1410,7 @@ class TimelineSceneWidget(QWidget):
                         time,
                         transition_data.get("type", "linear"),
                         transition_data.get("fade_models", False),
+                        action=transition_data.get("action", None),
                     )
             else:
                 pass
@@ -1112,31 +1592,6 @@ class SceneTimelineWidget(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Actions panel (top)
-        # actions_frame = QFrame()
-        # actions_frame.setFrameStyle(QFrame.StyledPanel)
-        # actions_layout = QVBoxLayout(actions_frame)
-
-        # actions_header = QLabel("▼Actions")
-        # actions_header.setStyleSheet("font-weight: bold; color: white; padding: 5px;")
-        # actions_layout.addWidget(actions_header)
-
-        ## Actions container
-        # actions_container = QWidget()
-        # actions_grid = QHBoxLayout(actions_container)  # Horizontal layout for actions
-
-        # Add default actions
-        # for action in self.actions:
-        #    action_widget = ActionThumbnailWidget(action)
-        #    action_widget.action_selected.connect(self.apply_action)
-        #    actions_grid.addWidget(action_widget)
-
-        # actions_grid.addStretch()  # Push actions to the left
-        # actions_layout.addWidget(actions_container)
-
-        # Hide actions frame since we're not using it currently
-        # main_layout.addWidget(actions_frame)
-
         # Timeline panel
         timeline_frame = QFrame()
         timeline_frame.setFrameStyle(QFrame.StyledPanel)
@@ -1152,7 +1607,9 @@ class SceneTimelineWidget(QWidget):
         self.timeline_controls.add_scene_requested.connect(self.on_add_scene_requested)
         self.timeline_controls.duration_changed.connect(self.on_duration_changed)
         self.timeline_controls.reset_requested.connect(self.on_reset_requested)
-        self.timeline_controls.preferences_requested.connect(self.preferences_requested.emit)
+        self.timeline_controls.preferences_requested.connect(
+            self.preferences_requested.emit
+        )
         timeline_layout.addWidget(self.timeline_controls)
 
         # Timeline scene view
@@ -1165,10 +1622,6 @@ class SceneTimelineWidget(QWidget):
         timeline_layout.addWidget(self.timeline_scene)
 
         main_layout.addWidget(timeline_frame)
-
-        # Set panel proportions
-        main_layout.setStretch(0, 1)  # Actions panel (smaller)
-        main_layout.setStretch(1, 2)  # Timeline panel (larger)
 
     def on_scene_dropped(self, scene_name, time):
         """Handle scene dropped onto timeline"""
@@ -1193,11 +1646,11 @@ class SceneTimelineWidget(QWidget):
         scene_animation = getattr(self.session, "_scene_animation_manager", None)
         if scene_animation:
             scene_animation.remove_scene(scene_name)
-            #print(f"Scene '{scene_name}' removed from timeline and animation manager")
+            # print(f"Scene '{scene_name}' removed from timeline and animation manager")
         else:
-            #print(
+            # print(
             #    f"Scene '{scene_name}' removed from timeline (no animation manager found)"
-            #)
+            # )
             pass
 
     def on_time_clicked(self, time):
