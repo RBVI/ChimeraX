@@ -121,6 +121,7 @@ from .scene_animation import SceneAnimation
 # Import icon utility
 from chimerax.ui.icons import get_qt_icon
 
+from chimerax.scenes.tool import SCENE_EVENT_MIME_FORMAT
 
 class CompactStackedWidget(QStackedWidget):
     """Custom QStackedWidget that only uses the size of the current widget"""
@@ -727,21 +728,21 @@ class TimelineView(QGraphicsView):
 
     def dragEnterEvent(self, event):
         """Handle drag enter events."""
-        if event.mimeData().hasFormat("application/x-chimerax-scene"):
+        if event.mimeData().hasFormat(SCENE_EVENT_MIME_FORMAT):
             event.acceptProposedAction()
         else:
             event.ignore()
 
     def dragMoveEvent(self, event):
         """Handle drag move events."""
-        if event.mimeData().hasFormat("application/x-chimerax-scene"):
+        if event.mimeData().hasFormat(SCENE_EVENT_MIME_FORMAT):
             event.acceptProposedAction()
         else:
             event.ignore()
 
     def dropEvent(self, event):
         """Handle drop events."""
-        if event.mimeData().hasFormat("application/x-chimerax-scene"):
+        if event.mimeData().hasFormat(SCENE_EVENT_MIME_FORMAT):
             # Get the drop position
             pos = self.mapToScene(event.position().toPoint())
             
@@ -750,7 +751,7 @@ class TimelineView(QGraphicsView):
             frame = max(0, round(pos.x() / frame_width))
             
             # Extract scene data
-            scene_data_bytes = event.mimeData().data("application/x-chimerax-scene")
+            scene_data_bytes = event.mimeData().data(SCENE_EVENT_MIME_FORMAT)
             try:
                 import json
                 scene_data = json.loads(scene_data_bytes.data().decode('utf-8'))

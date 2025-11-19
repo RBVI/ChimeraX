@@ -34,6 +34,7 @@ from Qt.QtGui import QPixmap, QIcon, QPainter, QColor, QPalette
 import io
 from PIL import Image
 
+from chimerax.scenes.tool import SCENE_EVENT_MIME_FORMAT
 
 class ActionThumbnailWidget(QWidget):
     """Widget displaying an action thumbnail (Rock, Roll, etc.)"""
@@ -529,7 +530,7 @@ class TimelineSceneWidget(QWidget):
     def dragEnterEvent(self, event):
         """Handle drag enter events"""
         # Check for ChimeraX scene data first (preferred)
-        if event.mimeData().hasFormat("application/x-chimerax-scene"):
+        if event.mimeData().hasFormat(SCENE_EVENT_MIME_FORMAT):
             event.acceptProposedAction()
             return
 
@@ -558,7 +559,7 @@ class TimelineSceneWidget(QWidget):
     def dragMoveEvent(self, event):
         """Handle drag move events"""
         if (
-            event.mimeData().hasFormat("application/x-chimerax-scene")
+            event.mimeData().hasFormat(SCENE_EVENT_MIME_FORMAT)
             or event.mimeData().hasText()
         ):
             # Update drag preview position
@@ -582,11 +583,11 @@ class TimelineSceneWidget(QWidget):
         scene_name = None
 
         # Try to get scene name from ChimeraX scene data first
-        if event.mimeData().hasFormat("application/x-chimerax-scene"):
+        if event.mimeData().hasFormat(SCENE_EVENT_MIME_FORMAT):
             try:
                 import json
 
-                scene_data_bytes = event.mimeData().data("application/x-chimerax-scene")
+                scene_data_bytes = event.mimeData().data(SCENE_EVENT_MIME_FORMAT)
                 scene_data_str = scene_data_bytes.data().decode("utf-8")
 
                 # Try to parse as JSON first
