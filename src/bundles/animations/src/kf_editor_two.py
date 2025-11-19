@@ -1594,11 +1594,15 @@ class KeyframeEditorWidget(QWidget):
 
     def on_scene_time_changed(self, time):
         """Handle time changes in scene mode for preview"""
+        # Sync action segments from timeline
+        self.scene_animation.action_segments = list(self.scene_timeline_widget.timeline_scene.action_segments)
         self.scene_animation.preview_at_time(time)
 
     def on_scene_play_requested(self):
         """Handle play request from scene timeline"""
         current_time = self.scene_timeline_widget.timeline_controls.current_time
+        # Sync action segments from timeline
+        self.scene_animation.action_segments = list(self.scene_timeline_widget.timeline_scene.action_segments)
         self.scene_animation.play(start_time=current_time)
 
     def on_scene_pause_requested(self):
@@ -2769,7 +2773,7 @@ class KeyframeEditorWidget(QWidget):
         self.scene_animation.stop_playing()
 
     def _sync_timeline_to_scene_animation(self):
-        """Sync scene markers from timeline to scene animation manager"""
+        """Sync scene markers and action segments from timeline to scene animation manager"""
         # Clear existing scenes from animation manager
         self.scene_animation.clear_all_scenes()
 
@@ -2791,6 +2795,9 @@ class KeyframeEditorWidget(QWidget):
                 # Backward compatibility - no transition data
                 time, scene_name = marker_data[:2]
                 self.scene_animation.add_scene_at_time(scene_name, time)
+
+        # Sync action segments (rock/roll) from timeline
+        self.scene_animation.action_segments = list(self.scene_timeline_widget.timeline_scene.action_segments)
 
     # Scene Animation Signal Handlers
     def on_scene_animation_time_changed(self, time):
