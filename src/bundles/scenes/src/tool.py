@@ -116,6 +116,9 @@ class ScenesTool(ToolInstance):
         self.scene_entry_label = QLabel("Scene Name:")
         self.scene_name_entry = QLineEdit()
         self.scene_name_entry.returnPressed.connect(self.rename_button_clicked)
+        self.user_changed_scene_name = False
+        self.scene_name_entry.textEdited.connect(lambda *args, self=self:
+            setattr(self, "user_changed_scene_name", True))
         self.line_edit_layout = QHBoxLayout()
         self.line_edit_layout.setSpacing(10)
         self.line_edit_layout.addWidget(self.scene_entry_label)
@@ -190,6 +193,7 @@ class ScenesTool(ToolInstance):
         """
         highlighting = scene_name is not None
         self.scene_name_entry.setText(scene_name if highlighting else "")
+        self.user_changed_scene_name = False
         self.update_button.setEnabled(highlighting)
         self.rename_button.setEnabled(highlighting)
         self.delete_button.setEnabled(highlighting)
@@ -202,6 +206,7 @@ class ScenesTool(ToolInstance):
         self.scroll_area.remove_scene_item(scene_name)
         highlighted_item = self.scroll_area.highlighted_scene
         self.scene_name_entry.setText(highlighted_item.name if highlighted_item else "")
+        self.user_changed_scene_name = False
         self.update_button.setEnabled(bool(highlighted_item))
         self.rename_button.setEnabled(bool(highlighted_item))
         self.delete_button.setEnabled(bool(highlighted_item))
@@ -213,8 +218,11 @@ class ScenesTool(ToolInstance):
         scene_name = self.scene_name_entry.text().strip()
         if scene_name:
             if scene_name in self.session.scenes.scene_names:
-                tool_user_error(f"Scene named {StringArg.unparse(scene_name)} already exists")
-                return
+                if self.user_changed_scene_name:
+                    tool_user_error(f"Scene named {StringArg.unparse(scene_name)} already exists;"
+                        " either use Update to update that scene or supply a new scene name.")
+                    return
+                scene_name = ""
         run(self.session, f"scene save {StringArg.unparse(scene_name)}")
 
     def update_button_clicked(self):
