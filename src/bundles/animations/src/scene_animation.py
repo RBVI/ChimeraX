@@ -86,6 +86,14 @@ TRANSITION_TYPES = {
     "ease_in_out_cubic": EasingFunctions.ease_in_out_cubic,
 }
 
+# Action types for rock/roll animations (these apply motion during transitions)
+# Default configurations for action types
+ACTION_DEFAULTS = {
+    "rock": {"angle": 60, "axis": "y", "count": 1},  # Oscillate +/- angle degrees, count times
+    "roll": {"angle": 360, "axis": "y", "count": 1},  # Rotate continuously
+    "precess": {"axis": "y", "count": 1, "precession_tilt": 10},  # Wobble in cone around axis (no rotation)
+}
+
 
 class SceneAnimationSignals(QObject):
     """Signal emitter for SceneAnimation to avoid metaclass conflicts"""
@@ -121,6 +129,7 @@ class SceneAnimation(StateManager):
         self.duration = self.DEFAULT_DURATION
         self.scenes = []  # List of (time, scene_name, transition_data) tuples
         # transition_data = {'type': 'linear', 'fade_models': False}
+        self.action_segments = []  # List of (start_time, end_time, action_name) tuples for rock/roll
         self.current_time = 0.0
         self.is_playing = False
         self.is_recording = False
@@ -146,8 +155,9 @@ class SceneAnimation(StateManager):
         time: float,
         transition_type: str = "linear",
         fade_models: bool = False,
+        action: str = None,
     ):
-        """Add a scene at a specific time with transition settings"""
+        """Add a scene at a specific time with transition settings and optional action (rock/roll)"""
         if not self.session.scenes.get_scene(scene_name):
             #self.logger.warning(f"Scene '{scene_name}' does not exist")
             return False
@@ -159,11 +169,20 @@ class SceneAnimation(StateManager):
             #)
             transition_type = "linear"
 
+        # Validate action type if provided
+        if action and action not in ACTION_TYPES:
+            #self.logger.warning(f"Unknown action type '{action}', ignoring")
+            action = None
+
         # Remove any existing scene at this time
         self.scenes = [(t, s, td) for t, s, td in self.scenes if t != time]
 
         # Create transition data
-        transition_data = {"type": transition_type, "fade_models": fade_models}
+        transition_data = {
+            "type": transition_type,
+            "fade_models": fade_models,
+            "action": action  # Can be "rock", "roll", or None
+        }
 
         # Add new scene
         self.scenes.append((time, scene_name, transition_data))
@@ -238,10 +257,17 @@ class SceneAnimation(StateManager):
         # Find the appropriate scene or transition
         scene1, scene2, fraction = self._get_interpolation_at_time(time)
 
+        # Apply any active action segments (rock/roll) at this time
+        # This must happen BEFORE the early return check so actions work even when scenes don't change
+        self._apply_action_segments(time)
+
         # Check if this is the same as what we're currently displaying to avoid redundant updates
         if hasattr(self, "_last_scene_state"):
             if self._last_scene_state == (scene1, scene2, fraction):
                 return  # No change needed
+            # Reset action angle tracking if we changed scenes
+            if self._last_scene_state[:2] != (scene1, scene2):
+                self._last_action_angle = 0.0
 
         if scene1 == scene2:
             # No interpolation needed, just restore the scene (faster)
@@ -269,6 +295,11 @@ class SceneAnimation(StateManager):
                     scene1, scene2, fraction, fade_models=fade_models
                 )
 
+                # Apply action (rock/roll) if specified for the target scene
+                action = scene2_data.get("action") if scene2_data else None
+                if action:
+                    self._apply_action(action, fraction)
+
         # Cache the current state to avoid redundant updates
         self._last_scene_state = (scene1, scene2, fraction)
 
@@ -286,8 +317,9 @@ class SceneAnimation(StateManager):
             #self.logger.warning("Animation is already playing")
             return
 
-        if not self.scenes:
-            #self.logger.warning("No scenes to animate")
+        # Allow playback if we have either scenes OR action segments
+        if not self.scenes and not self.action_segments:
+            #self.logger.warning("No scenes or actions to animate")
             return
 
         if start_time < 0 or start_time > self.duration:
@@ -658,6 +690,138 @@ class SceneAnimation(StateManager):
             if name == scene_name:
                 return transition_data
         return None
+
+    def _apply_action(self, action: str, fraction: float):
+        """Apply rock/roll action during transition"""
+        if action not in ACTION_TYPES:
+            return
+
+        action_config = ACTION_TYPES[action]
+        action_type = action_config["type"]
+        axis = action_config["axis"]
+        angle = action_config["angle"]
+
+        # Calculate rotation angle based on action type and fraction
+        if action_type == "oscillate":  # Rock: oscillate back and forth
+            # Use sine wave to oscillate: goes 0 -> max -> 0 -> -max -> 0
+            rotation_angle = angle * math.sin(fraction * 2 * math.pi)
+        elif action_type == "rotate":  # Roll: continuous rotation
+            # Linear rotation from 0 to full angle
+            rotation_angle = angle * fraction
+        else:
+            return
+
+        # Calculate the incremental rotation since last frame
+        if not hasattr(self, '_last_action_angle'):
+            self._last_action_angle = 0.0
+
+        delta_angle = rotation_angle - self._last_action_angle
+        self._last_action_angle = rotation_angle
+
+        # Apply incremental rotation to the view
+        # Use ChimeraX's turn command to rotate the view
+        if abs(delta_angle) > 0.01:  # Only apply if there's a meaningful change
+            run(self.session, f"turn {axis} {delta_angle} center view")
+
+    def _apply_action_segments(self, time: float):
+        """Apply rock/roll actions from action segments at the current time"""
+        # Check if we have any action segments
+        if not self.action_segments:
+            return
+
+        # Find if we're in any action segment
+        for segment_data in self.action_segments:
+            start_time, end_time, action_name = segment_data[:3]
+            config = segment_data[3] if len(segment_data) > 3 else ACTION_DEFAULTS.get(action_name, {})
+
+            if start_time <= time <= end_time:
+                # Calculate fraction within this segment
+                segment_duration = end_time - start_time
+                if segment_duration > 0:
+                    fraction = (time - start_time) / segment_duration
+
+                    # Get config parameters
+                    angle = config.get("angle", 60)
+                    axis = config.get("axis", "y")
+                    count = config.get("count", 1)
+
+                    # Get center of rotation from the current view
+                    center = self.session.view.center_of_rotation
+
+                    # Track state per segment to handle multiple segments
+                    segment_key = (start_time, end_time, action_name)
+
+                    if action_name == "precess":
+                        # Precess: wobble camera in a cone around the axis without rotating
+                        # Uses two perpendicular axes to create circular wobble pattern
+                        precession_tilt = config.get("precession_tilt", 10)
+
+                        # Determine the two perpendicular axes for wobbling
+                        if axis == 'y':
+                            wobble_axis1, wobble_axis2 = 'x', 'z'
+                        elif axis == 'x':
+                            wobble_axis1, wobble_axis2 = 'y', 'z'
+                        else:  # axis == 'z'
+                            wobble_axis1, wobble_axis2 = 'x', 'y'
+
+                        # Calculate wobble angles using sin/cos to create circular motion
+                        # count determines how many full wobble cycles
+                        # Use (cos - 1) to ensure motion is periodic: starts and ends at zero
+                        wobble_phase = fraction * count * 2 * math.pi
+                        wobble_angle1 = precession_tilt * math.sin(wobble_phase)
+                        wobble_angle2 = precession_tilt * (math.cos(wobble_phase) - 1.0)
+
+                        # Track wobble angles separately for each axis
+                        if not hasattr(self, '_wobble_angles'):
+                            self._wobble_angles = {}
+
+                        wobble_key1 = (segment_key, "wobble1")
+                        wobble_key2 = (segment_key, "wobble2")
+
+                        last_wobble1 = self._wobble_angles.get(wobble_key1, 0.0)
+                        last_wobble2 = self._wobble_angles.get(wobble_key2, 0.0)
+
+                        delta_wobble1 = wobble_angle1 - last_wobble1
+                        delta_wobble2 = wobble_angle2 - last_wobble2
+
+                        self._wobble_angles[wobble_key1] = wobble_angle1
+                        self._wobble_angles[wobble_key2] = wobble_angle2
+
+                        # Apply wobble rotations on both perpendicular axes
+                        if abs(delta_wobble1) > 0.01:
+                            run(self.session, f"turn {wobble_axis1} {delta_wobble1} center {center[0]},{center[1]},{center[2]}", log=False)
+                        if abs(delta_wobble2) > 0.01:
+                            run(self.session, f"turn {wobble_axis2} {delta_wobble2} center {center[0]},{center[1]},{center[2]}", log=False)
+
+                    else:
+                        # Rock and Roll: calculate rotation angle
+                        if action_name == "rock":  # Oscillate
+                            # count determines how many full oscillations (back and forth cycles)
+                            rotation_angle = angle * math.sin(fraction * count * 2 * math.pi)
+                        elif action_name == "roll":  # Rotate
+                            # count determines how many full rotations
+                            rotation_angle = angle * count * fraction
+                        else:
+                            continue
+
+                        if not hasattr(self, '_segment_angles'):
+                            self._segment_angles = {}
+
+                        last_angle = self._segment_angles.get(segment_key, 0.0)
+                        delta_angle = rotation_angle - last_angle
+                        self._segment_angles[segment_key] = rotation_angle
+
+                        # Apply incremental rotation around the center of rotation
+                        if abs(delta_angle) > 0.01:
+                            # Use silent log level to avoid spamming
+                            run(self.session, f"turn {axis} {delta_angle} center {center[0]},{center[1]},{center[2]}", log=False)
+                return  # Only apply one segment at a time
+
+        # If we're not in any segment, reset tracking
+        if hasattr(self, '_segment_angles'):
+            self._segment_angles.clear()
+        if hasattr(self, '_wobble_angles'):
+            self._wobble_angles.clear()
 
     def _prepare_model_fading_at_scene_timestamp(
         self, current_scene_name: str, current_time: float

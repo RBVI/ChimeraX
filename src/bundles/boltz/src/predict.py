@@ -1040,12 +1040,14 @@ class BoltzRun:
         self._session.logger.info(msg)
         self._report_runtime()
         # Create table of results
-        smiles = {p.name:p.ligand_smiles_string for p in self._predictions}
-        align_to = self._predictions[0]._align_to if self._predictions else None
-        from . import boltz_gui
-        t = boltz_gui.LigandPredictionsTable(self._session, self._predictions_directory,
-                                             smiles = smiles, align_to = align_to)
-        self._save_results_as_csv_file(t)
+        if self._session.ui.is_gui:
+            smiles = {p.name:p.ligand_smiles_string for p in self._predictions}
+            align_to = self._predictions[0]._align_to if self._predictions else None
+            from . import boltz_gui
+            t = boltz_gui.LigandPredictionsTable(self._session, self._predictions_directory,
+                                                 smiles = smiles, align_to = align_to)
+            self._save_results_as_csv_file(t)
+            # TODO: Would be nice to save csv file even if no gui is available.
 
     def _save_results_as_csv_file(self, table):
         from os.path import join
@@ -1107,15 +1109,33 @@ def _chain_names(chains):
 
 # ------------------------------------------------------------------------------
 #
-def boltz_ligand_table(session, run_directory, align_to = None):
+def boltz_ligand_table(session, run_directory, include_smiles = True, align_to = None):
     '''Show a table of Boltz ligand binding prediction results.'''
     from os.path import join, basename, exists
     predictions_directory = join(run_directory, f'boltz_results_{basename(run_directory)}', 'predictions')
     if not exists(predictions_directory):
         from chimerax.core.errors import UserError
         raise UserError(f'Expected to find Boltz predictions in results directory {predictions_directory} which does not exist.')
+    smiles = _ligand_smiles_strings(run_directory) if include_smiles else {}
     from . import boltz_gui
-    boltz_gui.LigandPredictionsTable(session, predictions_directory, align_to = align_to)
+    boltz_gui.LigandPredictionsTable(session, predictions_directory, smiles = smiles, align_to = align_to)
+
+# ------------------------------------------------------------------------------
+#
+def _ligand_smiles_strings(run_directory):
+    smiles = {}
+    from os import listdir
+    from os.path import join, splitext
+    for filename in listdir(run_directory):
+        if filename.endswith('.yaml'):
+            yaml_path = join(run_directory, filename)
+            with open(yaml_path, 'r') as yaml_file:
+                lines = yaml_file.readlines()
+                ysmiles = [line.split()[1].replace('"','') for line in lines if 'smiles:' in line]
+                if ysmiles:
+                    name = splitext(filename)[0]
+                    smiles[name] = '.'.join(ysmiles)
+    return smiles
 
 # ------------------------------------------------------------------------------
 #
@@ -1521,7 +1541,8 @@ def register_boltz_predict_command(logger):
 
     desc = CmdDesc(
         required = [('run_directory', OpenFolderNameArg),],
-        keyword = [('align_to', AtomicStructureArg),],
+        keyword = [('include_smiles', BoolArg),
+                   ('align_to', AtomicStructureArg),],
         synopsis = 'Show table of Boltz ligand binding prediction results',
         url = 'help:boltz_help.html'
     )

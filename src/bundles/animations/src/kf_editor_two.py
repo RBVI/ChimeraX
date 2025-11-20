@@ -121,6 +121,7 @@ from .scene_animation import SceneAnimation
 # Import icon utility
 from chimerax.ui.icons import get_qt_icon
 
+from chimerax.scenes.tool import SCENE_EVENT_MIME_FORMAT
 
 class CompactStackedWidget(QStackedWidget):
     """Custom QStackedWidget that only uses the size of the current widget"""
@@ -727,21 +728,21 @@ class TimelineView(QGraphicsView):
 
     def dragEnterEvent(self, event):
         """Handle drag enter events."""
-        if event.mimeData().hasFormat("application/x-chimerax-scene"):
+        if event.mimeData().hasFormat(SCENE_EVENT_MIME_FORMAT):
             event.acceptProposedAction()
         else:
             event.ignore()
 
     def dragMoveEvent(self, event):
         """Handle drag move events."""
-        if event.mimeData().hasFormat("application/x-chimerax-scene"):
+        if event.mimeData().hasFormat(SCENE_EVENT_MIME_FORMAT):
             event.acceptProposedAction()
         else:
             event.ignore()
 
     def dropEvent(self, event):
         """Handle drop events."""
-        if event.mimeData().hasFormat("application/x-chimerax-scene"):
+        if event.mimeData().hasFormat(SCENE_EVENT_MIME_FORMAT):
             # Get the drop position
             pos = self.mapToScene(event.position().toPoint())
             
@@ -750,7 +751,7 @@ class TimelineView(QGraphicsView):
             frame = max(0, round(pos.x() / frame_width))
             
             # Extract scene data
-            scene_data_bytes = event.mimeData().data("application/x-chimerax-scene")
+            scene_data_bytes = event.mimeData().data(SCENE_EVENT_MIME_FORMAT)
             try:
                 import json
                 scene_data = json.loads(scene_data_bytes.data().decode('utf-8'))
@@ -1593,11 +1594,15 @@ class KeyframeEditorWidget(QWidget):
 
     def on_scene_time_changed(self, time):
         """Handle time changes in scene mode for preview"""
+        # Sync action segments from timeline
+        self.scene_animation.action_segments = list(self.scene_timeline_widget.timeline_scene.action_segments)
         self.scene_animation.preview_at_time(time)
 
     def on_scene_play_requested(self):
         """Handle play request from scene timeline"""
         current_time = self.scene_timeline_widget.timeline_controls.current_time
+        # Sync action segments from timeline
+        self.scene_animation.action_segments = list(self.scene_timeline_widget.timeline_scene.action_segments)
         self.scene_animation.play(start_time=current_time)
 
     def on_scene_pause_requested(self):
@@ -2768,7 +2773,7 @@ class KeyframeEditorWidget(QWidget):
         self.scene_animation.stop_playing()
 
     def _sync_timeline_to_scene_animation(self):
-        """Sync scene markers from timeline to scene animation manager"""
+        """Sync scene markers and action segments from timeline to scene animation manager"""
         # Clear existing scenes from animation manager
         self.scene_animation.clear_all_scenes()
 
@@ -2790,6 +2795,9 @@ class KeyframeEditorWidget(QWidget):
                 # Backward compatibility - no transition data
                 time, scene_name = marker_data[:2]
                 self.scene_animation.add_scene_at_time(scene_name, time)
+
+        # Sync action segments (rock/roll) from timeline
+        self.scene_animation.action_segments = list(self.scene_timeline_widget.timeline_scene.action_segments)
 
     # Scene Animation Signal Handlers
     def on_scene_animation_time_changed(self, time):

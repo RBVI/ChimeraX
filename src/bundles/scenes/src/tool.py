@@ -22,6 +22,8 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+SCENE_EVENT_MIME_FORMAT = "application/x-chimerax-scene"
+
 import base64
 from chimerax.core.tools import ToolInstance
 from chimerax.ui import MainToolWindow, tool_user_error
@@ -114,6 +116,9 @@ class ScenesTool(ToolInstance):
         self.scene_entry_label = QLabel("Scene Name:")
         self.scene_name_entry = QLineEdit()
         self.scene_name_entry.returnPressed.connect(self.rename_button_clicked)
+        self.user_changed_scene_name = False
+        self.scene_name_entry.textEdited.connect(lambda *args, self=self:
+            setattr(self, "user_changed_scene_name", True))
         self.line_edit_layout = QHBoxLayout()
         self.line_edit_layout.setSpacing(10)
         self.line_edit_layout.addWidget(self.scene_entry_label)
@@ -188,6 +193,7 @@ class ScenesTool(ToolInstance):
         """
         highlighting = scene_name is not None
         self.scene_name_entry.setText(scene_name if highlighting else "")
+        self.user_changed_scene_name = False
         self.update_button.setEnabled(highlighting)
         self.rename_button.setEnabled(highlighting)
         self.delete_button.setEnabled(highlighting)
@@ -200,6 +206,7 @@ class ScenesTool(ToolInstance):
         self.scroll_area.remove_scene_item(scene_name)
         highlighted_item = self.scroll_area.highlighted_scene
         self.scene_name_entry.setText(highlighted_item.name if highlighted_item else "")
+        self.user_changed_scene_name = False
         self.update_button.setEnabled(bool(highlighted_item))
         self.rename_button.setEnabled(bool(highlighted_item))
         self.delete_button.setEnabled(bool(highlighted_item))
@@ -211,8 +218,11 @@ class ScenesTool(ToolInstance):
         scene_name = self.scene_name_entry.text().strip()
         if scene_name:
             if scene_name in self.session.scenes.scene_names:
-                tool_user_error(f"Scene named {StringArg.unparse(scene_name)} already exists")
-                return
+                if self.user_changed_scene_name:
+                    tool_user_error(f"Scene named {StringArg.unparse(scene_name)} already exists;"
+                        " either use Update to update that scene or supply a new scene name.")
+                    return
+                scene_name = ""
         run(self.session, f"scene save {StringArg.unparse(scene_name)}")
 
     def update_button_clicked(self):
@@ -313,6 +323,7 @@ class SceneScrollArea(QScrollArea):
         self.scene_items = []
         self.highlighted_scene = None
         self.init_scene_item_widgets(session)
+        self.setAcceptDrops(True)
 
     def init_scene_item_widgets(self, session):
         """
@@ -477,6 +488,24 @@ class SceneScrollArea(QScrollArea):
         ]
         self.update_grid()  # Make sure the grid layout reflects the new ordering
 
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasFormat(SCENE_EVENT_MIME_FORMAT):
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        if event.mimeData().hasFormat(SCENE_EVENT_MIME_FORMAT):
+            event.acceptProposedAction()
+            import json
+            scene_data_bytes = event.mimeData().data(SCENE_EVENT_MIME_FORMAT)
+            scene_data_str = scene_data_bytes.data().decode("utf-8")
+            try:
+                scene_data = json.loads(scene_data_str)
+                scene_name = scene_data.get("name")
+            except json.JSONDecodeError:
+                # Fallback: treat as plain scene name
+                scene_name = scene_data_str
+            self._reorder_from_drop_pos(scene_name, event.position())
+
     def mousePressEvent(self, event):
         """
         Handle mouse press events on the scroll area. If clicked on blank area, deselect highlighted scene.
@@ -499,6 +528,46 @@ class SceneScrollArea(QScrollArea):
                 self.set_highlighted_scene(None)
 
         super().mousePressEvent(event)
+
+    def _reorder_from_drop_pos(self, scene_name, drop_pos):
+        drop_x, drop_y = drop_pos.x(), drop_pos.y()
+        row_items = []
+        for si in self.scene_items:
+            si_x, si_y = si.pos().x(), si.pos().y()
+            si_w, si_h = si.size().width(), si.size().height()
+            if drop_y < si_y or drop_y > si_y + si_h:
+                continue
+            row_items.append(si)
+        if not row_items:
+            return
+        for si in row_items:
+            if drop_x < si.pos().x() + si.size().width()/2:
+                try:
+                    left = self.scene_items[self.scene_items.index(si)-1]
+                except IndexError:
+                    left = None
+                right = si
+                break
+        else:
+            # right of the entire row
+            left = row_items[-1]
+            try:
+                right = self.scene_items[self.scene_items.index(left)+1]
+            except IndexError:
+                right = None
+        if (left and left.name == scene_name) or (right and right.name == scene_name):
+            # dropped into same place
+            return
+        drop_si = [si for si in self.scene_items if si.name == scene_name][0]
+        self.scene_items.remove(drop_si)
+        for i, si in enumerate(self.scene_items):
+            if si == left:
+                self.scene_items = self.scene_items[:i+1] + [drop_si] + self.scene_items[i+1:]
+                break
+            if si == right:
+                self.scene_items = self.scene_items[:i] + [drop_si] + self.scene_items[i:]
+                break
+        self.update_grid()
 
 
 class SceneItem(QWidget):
@@ -635,17 +704,17 @@ class SceneItem(QWidget):
                     pass
 
                 mime_data.setData(
-                    "application/x-chimerax-scene",
+                    SCENE_EVENT_MIME_FORMAT,
                     json.dumps(scene_data).encode("utf-8"),
                 )
             else:
                 # Fallback to just the name
                 mime_data.setData(
-                    "application/x-chimerax-scene", self.name.encode("utf-8")
+                    SCENE_EVENT_MIME_FORMAT, self.name.encode("utf-8")
                 )
         else:
             # Fallback to just the name
-            mime_data.setData("application/x-chimerax-scene", self.name.encode("utf-8"))
+            mime_data.setData(SCENE_EVENT_MIME_FORMAT, self.name.encode("utf-8"))
 
         drag.setMimeData(mime_data)
 
