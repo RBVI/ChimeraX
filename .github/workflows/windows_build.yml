@@ -76,7 +76,6 @@ jobs:
         run: make report-coverage
       - name: Put the test outcome in the environment
         run: |
-          set -e
           if [ "${{ steps.test-exes.outcome }}" = "failure" ] || [ "${{ steps.test-wheel.outcome }}" = "failure" ] || [ "${{ steps.test-distribution.outcome }}" = "failure" ]; then
             echo "TEST_OUTCOME=Failing" >> $GITHUB_ENV
           else
@@ -91,12 +90,10 @@ jobs:
           command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "platform=windows" -F "build_type=${{ inputs.release_type }}" -F "outcome=$TEST_OUTCOME" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/confirm_tests.py
       - name: Copy scripts into the package
         run: |
-          set -e
           cp utils/build/windows/remove_pycache.py ChimeraX.app/bin/
       - name: Put the build date and commit in the environment
         shell: bash
         run: |
-          set -e
           export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
           export COMMIT_DATE=$(git log -1 --pretty='format:%cD' $GITHUB_SHA)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
@@ -164,7 +161,6 @@ jobs:
         run: make report-coverage
       - name: Put the test outcome in the environment
         run: |
-          set -e
           if [ "${{ steps.test-exes.outcome }}" = "failure" ] || [ "${{ steps.test-wheel.outcome }}" = "failure" ] || [ "${{ steps.test-distribution.outcome }}" = "failure" ]; then
             echo "TEST_OUTCOME=Failing" >> $GITHUB_ENV
           else
@@ -179,12 +175,10 @@ jobs:
           command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "platform=windows" -F "build_type=${{ inputs.release_type }}" -F "outcome=$TEST_OUTCOME" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/confirm_tests.py
       - name: Copy scripts into the package
         run: |
-          set -e
           cp utils/build/windows/remove_pycache.py ChimeraX.app/bin/
       - name: Put the build date and commit in the environment
         shell: bash
         run: |
-          set -e
           export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
           export COMMIT_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
@@ -202,7 +196,6 @@ jobs:
       - name: Put the build version in the environment
         shell: bash
         run: |
-          set -e
           export BUILD_VERSION=$(echo ${{ inputs.branch }} | sed -e 's/.*v//g')
           echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
       - name: Upload ChimeraX
@@ -250,12 +243,10 @@ jobs:
         run: make report-coverage
       - name: Copy scripts into the package
         run: |
-          set -e
           cp utils/build/windows/remove_pycache.py ChimeraX.app/bin/
       - name: Put the build date, commit, and version in the environment
         shell: bash
         run: |
-          set -e
           export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
           export COMMIT_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
           export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g')
@@ -315,12 +306,10 @@ jobs:
         run: make report-coverage
       - name: Copy scripts into the package
         run: |
-          set -e
           cp utils/build/windows/remove_pycache.py ChimeraX.app/bin/
       - name: Put the build date and commit in the environment
         shell: bash
         run: |
-          set -e
           export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
           export COMMIT_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV

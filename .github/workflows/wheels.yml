@@ -53,13 +53,11 @@ jobs:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - name: Install the 3DConnexion Framework
         run: |
-          set -e
           hdiutil attach 3DxWareMac_v10-8-7_r3836.dmg -nobrowse -noverify
           sudo installer -pkg /Volumes/3Dconnexion\ Software/Install\ 3Dconnexion\ software.pkg -target /
           hdiutil detach /Volumes/3Dconnexion\ Software
       - name: Set up uv
         run: |
-          set -e
           curl -LsSf https://astral.sh/uv/install.sh | sh
           uv venv -p 3.11.4
           source .venv/bin/activate
@@ -68,37 +66,31 @@ jobs:
         continue-on-error: true
         id: test-exes
         run: |
-          set -e
           source .venv/bin/activate
           UV_BUILD=1 USE_COVERAGE=1 make pytest-both-exes
       - name: Run wheel tests
         continue-on-error: true
         id: test-wheel
         run: |
-          set -e
           source .venv/bin/activate
           UV_BUILD=1 USE_COVERAGE=1 make pytest-wheel
       - name: Run distribution tests
         continue-on-error: true
         id: test-distribution
         run: |
-          set -e
           source .venv/bin/activate
           UV_BUILD=1 USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: |
-          set -e
           source .venv/bin/activate 
           UV_BUILD=1 make report-coverage
       - name: Copy the ChimeraX directory out of the virtual environment
         run: |
-          set -e
           mkdir -p build/wheel/
           mv .venv/lib/python3.11/site-packages/chimerax build/wheel
           rm -rf .venv/lib/python3.11/site-packages/chimerax*
       - name: Copy the wheel build files to build/wheel
         run: |
-          set -e
           cp pyproject.toml build/wheel
           cp utils/build/wheel/make_init.py build/wheel
           cp utils/build/wheel/setup.py build/wheel
@@ -106,7 +98,6 @@ jobs:
           cp utils/build/wheel/make_init.py build/wheel
       - name: Remove UI files and add an __init__.py
         run: |
-          set -e
           source .venv/bin/activate
           cd build/wheel
           python filter_modules.py
@@ -116,13 +107,11 @@ jobs:
       - name: Reinstall the wheel we just made
         continue-on-error: true
         run: |
-          set -e
           source .venv/bin/activate
           uv pip install build/wheel/dist/*.whl
       - name: Test the wheel again
         continue-on-error: true
         run: |
-          set -e
           source .venv/bin/activate
           UV_BUILD=1 USE_COVERAGE=1 make pytest-wheel
       # TODO: - name: Upload the wheel

@@ -57,7 +57,6 @@ jobs:
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@master
       - run: |
-          set -e
           brew install python@3.10
           python3.10 -m pip install lief dmgbuild
           patch --ignore-whitespace -d /usr/local/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
@@ -72,7 +71,6 @@ jobs:
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - name: Install the 3DConnexion Framework
         run: |
-          set -e
           hdiutil attach 3DxWareMac_v10-8-7_r3836.dmg -nobrowse -noverify
           sudo installer -pkg /Volumes/3Dconnexion\ Software/Install\ 3Dconnexion\ software.pkg -target /
           hdiutil detach /Volumes/3Dconnexion\ Software
@@ -98,7 +96,6 @@ jobs:
 
       - name: Put the test outcome in the environment
         run: |
-          set -e
           if [ "${{ steps.test-exes.outcome }}" = "failure" ] || [ "${{ steps.test-wheel.outcome }}" = "failure" ] || [ "${{ steps.test-distribution.outcome }}" = "failure" ]; then
             echo "TEST_OUTCOME=Failing" >> $GITHUB_ENV
           else
@@ -115,7 +112,6 @@ jobs:
         if: ${{ inputs.release_type == 'production' }}
         shell: bash
         run: |
-          set -e
           export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g') >> $GITHUB_ENV
           echo BUILD_VERSION=$BUILD_VERSION >> $GITHUB_ENV
           echo CHIMERAX_APP_NAME=ChimeraX-$BUILD_VERSION.app >> $GITHUB_ENV
@@ -124,14 +120,12 @@ jobs:
         if: ${{ inputs.release_type == 'daily' }}
         shell: bash
         run: |
-          set -e
           echo CHIMERAX_APP_NAME=ChimeraX_Daily.app >> $GITHUB_ENV
 
       - name: Put the app name in GITHUB_ENV (candidate)
         if: ${{ inputs.release_type == 'candidate' }}
         shell: bash
         run: |
-          set -e
           export BUILD_VERSION=$(echo ${{ inputs.branch }} | sed -e 's/.*v//g')
           export CHIMERAX_DATE=$(date +'%Y.%m.%d')
           echo CHIMERAX_APP_NAME=ChimeraX-$BUILD_VERSION-rc$CHIMERAX_DATE.app >> $GITHUB_ENV
@@ -140,20 +134,17 @@ jobs:
         if: ${{ inputs.release_type == 'techpreview' }}
         shell: bash
         run: |
-          set -e
           echo CHIMERAX_APP_NAME=ChimeraX_Techpreview.app >> $GITHUB_ENV
 
       - name: Put the app name in GITHUB_ENV (canary)
         if: ${{ inputs.release_type == 'canary' }}
         shell: bash
         run: |
-          set -e
           echo CHIMERAX_APP_NAME=ChimeraX_Canary.app >> $GITHUB_ENV
 
       - name: Rename the generic ChimeraX.app to the build name and patch dmgbuildsettings
         shell: bash
         run: |
-          set -e
           mv ChimeraX.app $CHIMERAX_APP_NAME
           sed "s/ChimeraX.app/$CHIMERAX_APP_NAME/" utils/build/macos/dmgbuildsettings.json > dmgbuildsettings.json
           mv dmgbuildsettings.json utils/build/macos/dmgbuildsettings.json
@@ -163,7 +154,6 @@ jobs:
       - name: Mask input parameters
         shell: bash
         run: |
-          set -e
           export MAC_SIGNING_TEAM_ID=${{ secrets.MAC_NOTARIZATION_TEAM_ID }}
           export MAC_SIGNING_APP_PW=${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
           export MAC_SIGNING_PROVIDER=${{ secrets.MAC_NOTARIZATION_PROVIDER }}
@@ -192,7 +182,6 @@ jobs:
       - name: Install the Apple certificate and provisioning profile
         shell: bash
         run: |
-          set -e
           # create variables
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
           PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
@@ -219,7 +208,6 @@ jobs:
       - name: Sign the macOS Package
         shell: bash
         run: |
-          set -e
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           python3.10 utils/build/macos/notarize.py sign \
           -a $CHIMERAX_APP_NAME \
@@ -236,13 +224,11 @@ jobs:
       - name: Verify that ChimeraX will pass macOS Gatekeeper
         shell: bash
         run: |
-          set -e
           spctl --assess --type execute --verbose=4 $CHIMERAX_APP_NAME
 
       - name: Make the DMG
         shell: bash
         run: |
-          set -e
           python3.10 -m dmgbuild -s ./utils/build/macos/dmgbuildsettings.json "ChimeraX Installer" ChimeraX.dmg
 
       - name: Notarize the DMG
@@ -254,7 +240,6 @@ jobs:
 
       - name: Put the build date and commit in the environment
         run: |
-          set -e
           export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
           export COMMIT_DATE=$(git log -1 --pretty='format:%cD' $GITHUB_SHA)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
@@ -272,7 +257,6 @@ jobs:
       - name: Put release version in the environment
         if: ${{ inputs.release_type == 'candidate' }}
         run: |
-          set -e
           export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g')
           echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
       - name: Upload ChimeraX (Candidate)

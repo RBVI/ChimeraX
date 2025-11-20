@@ -25,7 +25,6 @@ jobs:
     steps:
       - name: Update system packages
         run: |
-          set -e
           dnf update -y
           dnf install -y dbus-daemon flatpak flatpak-builder git-lfs python3-aiohttp python3-tenacity python3-gobject xorg-x11-server-Xvfb ccache zstd libappstream-glib jq
           dnf clean all
@@ -68,12 +67,10 @@ jobs:
         run: sed -i -e 's/\(FLATPAK_APPNAME=[^ ]* \)/\1BUILD_TYPE="${{ inputs.release_type}}" /' arm-flatpak.yml
       - name: Unpack the bundles to build/sync
         run: |
-          set -e
           mkdir wheels
           tar -xvf linux-bundles.tar.gz -C wheels
       - name: Unpack the include tarball to include
         run: |
-          set -e
           tar -xvf linux-include.tar.gz
       - name: Build the rest of ChimeraX
         uses: flatpak/flatpak-github-actions/flatpak-builder@master
@@ -85,7 +82,6 @@ jobs:
       # For now, we're skipping tests for the Flatpak
       - name: Put the build date and commit in the environment
         run: |
-          set -e
           export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
           export COMMIT_DATE=$(git log -1 --pretty='format:%cD' $GITHUB_SHA)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
@@ -102,7 +98,6 @@ jobs:
       - name: Put release version in the environment
         if: ${{ inputs.release_type == 'candidate' || inputs.release_type == 'production' }}
         run: |
-          set -e
           export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g')
           echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
       - name: Upload ChimeraX (Candidate)

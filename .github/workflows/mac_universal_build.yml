@@ -40,7 +40,6 @@ jobs:
           ref: ${{ inputs.branch || 'develop' }}
       - name: Set up Python
         run: |
-          set -e
           brew install python@3.10
           python3.10 -m pip install setuptools==54.0
           python3.10 -m pip install lief
@@ -65,7 +64,6 @@ jobs:
       - name: Get the version of the production build and put the app name in the env (production)
         if: ${{ inputs.release_type == 'production' }}
         run: |
-          set -e
           export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g') >> $GITHUB_ENV
           echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
           echo "CHIMERAX_APP_NAME=ChimeraX-$BUILD_VERSION.app" >> $GITHUB_ENV
@@ -73,7 +71,6 @@ jobs:
       - name: Put the URLs of the ChimeraXes in GitHub's environment
         if: ${{ inputs.release_type != 'production' }}
         run: |
-          set -e
           export CHIMERAX_AMD64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=macosx&build_type=${{ inputs.release_type }}&architecture=x86_64"
           export CHIMERAX_ARM64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=mac_arm64&build_type=${{ inputs.release_type }}&architecture=arm64"
           echo "CHIMERAX_AMD64_URL=$CHIMERAX_AMD64_URL" >> $GITHUB_ENV
@@ -82,7 +79,6 @@ jobs:
       - name: Put the URLs of the ChimeraXes in GitHub's environment (production)
         if: ${{ inputs.release_type == 'production' }}
         run: |
-          set -e
           export CHIMERAX_AMD64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=macosx&build_type=${{ inputs.release_type }}&architecture=x86_64&version=$BUILD_VERSION"
           export CHIMERAX_ARM64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=mac_arm64&build_type=${{ inputs.release_type }}&architecture=arm64&version=$BUILD_VERSION"
           echo "CHIMERAX_AMD64_URL=$CHIMERAX_AMD64_URL" >> $GITHUB_ENV
@@ -101,13 +97,11 @@ jobs:
       - name: Give the Intel ChimeraX a standard name (non-production)
         if: ${{ inputs.release_type != 'production' }}
         run: |
-          set -e
           mv chimerax-${{ inputs.release_type}}.dmg chimerax_intel.dmg
 
       - name: Give the Intel ChimeraX a standard name (production)
         if: ${{ inputs.release_type == 'production' }}
         run: |
-          set -e
           mv ChimeraX-$BUILD_VERSION.dmg chimerax_intel.dmg
 
       - name: Download the ARM ChimeraX
@@ -122,18 +116,15 @@ jobs:
       - name: Give the ARM ChimeraX a standard name (non-production)
         if: ${{ inputs.release_type != 'production' }}
         run: |
-          set -e
           mv chimerax-${{ inputs.release_type}}.dmg chimerax_arm.dmg
 
       - name: Give the ARM ChimeraX a standard name (production)
         if: ${{ inputs.release_type == 'production' }}
         run: |
-          set -e
           mv ChimeraX-$BUILD_VERSION.dmg chimerax_arm.dmg
 
       - name: Extract the ChimeraXes
         run: |
-          set -e
           hdiutil attach chimerax_intel.dmg
           cp -R /Volumes/ChimeraX\ Installer/*.app chimerax_intel.app
           hdiutil detach /Volumes/ChimeraX\ Installer
@@ -144,17 +135,14 @@ jobs:
           rm chimerax_arm.dmg
       - name: Make the universal build
         run: |
-          set -e
           python3.10 ./utils/build/macos/make_universal.py chimerax_arm64.app chimerax_intel.app ChimeraX.app 2>&1
       # Local machines keep the executable bits on these files. Runner machines for whatever reason do not.
       # Perhaps they are quarantined? al2co doesn't have this problem?
       - name: Make ambertools executable
         run: |
-          set -e
           chmod +x ChimeraX.app/Contents/bin/amber*/bin/*
       - name: Remove unneeded ChimeraXes
         run: |
-          set -e
           rm -r chimerax_arm64.app
           rm -r chimerax_intel.app
 
@@ -166,14 +154,12 @@ jobs:
         if: ${{ inputs.release_type == 'daily' }}
         shell: bash
         run: |
-          set -e
           echo CHIMERAX_APP_NAME=ChimeraX_Daily.app >> $GITHUB_ENV
 
       - name: Put the app name in GITHUB_ENV (candidate)
         if: ${{ inputs.release_type == 'candidate' }}
         shell: bash
         run: |
-          set -e
           export BUILD_VERSION=$(echo ${{ inputs.branch }} | sed -e 's/.*v//g')
           export CHIMERAX_DATE=$(date +'%Y.%m.%d')
           echo CHIMERAX_APP_NAME=ChimeraX-$BUILD_VERSION-rc$CHIMERAX_DATE.app >> $GITHUB_ENV
@@ -182,20 +168,17 @@ jobs:
         if: ${{ inputs.release_type == 'techpreview' }}
         shell: bash
         run: |
-          set -e
           echo CHIMERAX_APP_NAME=ChimeraX_Techpreview.app >> $GITHUB_ENV
 
       - name: Put the app name in GITHUB_ENV (canary)
         if: ${{ inputs.release_type == 'canary' }}
         shell: bash
         run: |
-          set -e
           echo CHIMERAX_APP_NAME=ChimeraX_Canary.app >> $GITHUB_ENV
 
       - name: Rename the generic ChimeraX.app to the build name and patch dmgbuildsettings
         shell: bash
         run: |
-          set -e
           mv ChimeraX.app $CHIMERAX_APP_NAME
           sed "s/ChimeraX.app/$CHIMERAX_APP_NAME/" utils/build/macos/dmgbuildsettings.json > dmgbuildsettings.json
           mv dmgbuildsettings.json utils/build/macos/dmgbuildsettings.json
@@ -205,7 +188,6 @@ jobs:
       - name: Mask input parameters
         shell: bash
         run: |
-          set -e
           export MAC_SIGNING_TEAM_ID=${{ secrets.MAC_NOTARIZATION_TEAM_ID }}
           export MAC_SIGNING_APP_PW=${{ secrets.MAC_NOTARIZATION_APP_PSWD }}
           export MAC_SIGNING_PROVIDER=${{ secrets.MAC_NOTARIZATION_PROVIDER }}
@@ -234,7 +216,6 @@ jobs:
       - name: Install the Apple certificate and provisioning profile
         shell: bash
         run: |
-          set -e
           # create variables
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
           PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
@@ -261,7 +242,6 @@ jobs:
       - name: Sign the macOS Package
         shell: bash
         run: |
-          set -e
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           python3.10 utils/build/macos/notarize.py sign \
           -a $CHIMERAX_APP_NAME \
@@ -278,13 +258,11 @@ jobs:
       - name: Verify that ChimeraX will pass macOS Gatekeeper
         shell: bash
         run: |
-          set -e
           spctl --assess --type execute $CHIMERAX_APP_NAME
 
       - name: Make the DMG
         shell: bash
         run: |
-          set -e
           python3.10 -m dmgbuild -s ./utils/build/macos/dmgbuildsettings.json "ChimeraX Installer" ChimeraX.dmg
 
       - name: Notarize the DMG
@@ -296,7 +274,6 @@ jobs:
 
       - name: Put the build date and commit in the environment
         run: |
-          set -e
           export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
           export COMMIT_DATE=$(git log -1 --pretty='format:%cD' $GITHUB_SHA)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
@@ -314,7 +291,6 @@ jobs:
       - name: Put release version in the environment
         if: ${{ inputs.release_type == 'candidate' || inputs.release_type == 'production' }}
         run: |
-          set -e
           export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g')
           echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
       - name: Upload ChimeraX (Candidate)
