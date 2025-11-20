@@ -767,7 +767,10 @@ class Alignment(State):
 
     def remove_observer(self, observer):
         """Called when an observer is done with the alignment (see add_observer)"""
-        self.observers.remove(observer)
+        # Observers may be slow to remove themselves if the removal is because
+        # of garbage collection [#18702], so this test...
+        if not self._in_destroy:
+            self.observers.remove(observer)
 
     def resume_notify_observers(self):
         self._observer_notification_suspended -= 1
