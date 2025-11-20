@@ -60,13 +60,16 @@ jobs:
           key: linux-bundles-x64-${{ inputs.release_type }}-${{ github.sha }}
       - name: Unpack the bundles to build/sync
         run: |
+          set -e
           mkdir wheels
           tar -xvf linux-bundles.tar.gz -C wheels
       - name: Unpack the include tarball to include
         run: |
+          set -e
           tar -xvf linux-include.tar.gz
       - name: Build the rest of ChimeraX
         run: |
+          set -e
           MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial BUILD_TYPE="${{ inputs.release_type }}" make -j$(nproc) -C prereqs install
           MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial BUILD_TYPE="${{ inputs.release_type }}" make -j$(nproc) -C prereqs app-install
           make -C src/apps/ChimeraX install BUILD_TYPE="${{ inputs.release_type }}"
@@ -94,6 +97,7 @@ jobs:
         run: make report-coverage
       - name: Put the test outcome in the environment
         run: |
+          set -e
           if [ "${{ steps.test-exes.outcome }}" = "failure" ] || [ "${{ steps.test-wheel.outcome }}" = "failure" ] || [ "${{ steps.test-distribution.outcome }}" = "failure" ]; then
             echo "TEST_OUTCOME=Failing" >> $GITHUB_ENV
           else
@@ -110,6 +114,7 @@ jobs:
       - run: mv rpmbuild/RPMS/x86_64/ucsf-chimerax*.rpm ./chimerax.rpm
       - name: Put the build date and commit in the environment
         run: |
+          set -e
           export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
           export COMMIT_DATE=$(git log -1 --pretty='format:%cD' $GITHUB_SHA)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
@@ -126,6 +131,7 @@ jobs:
       - name: Put release version in the environment
         if: ${{ inputs.release_type == 'candidate' || inputs.release_type == 'production' }}
         run: |
+          set -e
           export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g')
           echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
       - name: Upload ChimeraX (Candidate)
