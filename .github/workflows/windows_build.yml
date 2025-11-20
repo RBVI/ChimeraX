@@ -95,7 +95,7 @@ jobs:
         shell: bash
         run: |
           export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
-          export COMMIT_DATE=$(git log -1 --format=%cD $GITHUB_SHA)
+          export COMMIT_DATE=$(git log -1 --pretty='format:%cD' $GITHUB_SHA)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
       - name: Build tarball
