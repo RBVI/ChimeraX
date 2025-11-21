@@ -236,6 +236,7 @@ class Structure(Model, StructureData):
             residues = self.residues
             scene_data = {
                 'model state': Model.take_snapshot(self, session, flags),
+                'ribbon state': self.ribbon_xs_mgr.take_snapshot(session, flags),
                 'atoms': { attr_name: getattr(atoms, attr_name)
                     for attr_name in self.ATOM_SCENE_ATTRS
                 },
@@ -291,6 +292,9 @@ class Structure(Model, StructureData):
                                 f" scenes!")
                             return
                         raise
+        ribbon_data = scene_data.get('ribbon state', None)
+        if ribbon_data is not None:
+            self.ribbon_xs_mgr.set_state_from_snapshot(self.session, ribbon_data)
 
     def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
         Model.interpolate_scene(self, scene1_data['model state'], scene2_data['model state'], fraction,
