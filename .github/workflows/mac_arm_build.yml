@@ -226,7 +226,7 @@ jobs:
       - name: Make the DMG
         shell: bash
         run: |
-          python3.10 -m dmgbuild -s ./utils/build/macos/dmgbuildsettings.json "ChimeraX Installer" ChimeraX.dmg
+          python3.10 -m dmgbuild -s ./utils/build/macos/dmgbuildsettings.json --detach-retries 30 "ChimeraX Installer" ChimeraX.dmg
 
       - name: Notarize the DMG
         uses: nick-fields/retry@v3
