@@ -94,8 +94,8 @@ jobs:
       - name: Put the build date and commit in the environment
         shell: bash
         run: |
-          export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
-          export COMMIT_DATE=$(git log -1 --pretty='format:%cD' $GITHUB_SHA)
+          export COMMIT_HASH=$(git rev-parse --short HEAD)
+          export COMMIT_DATE=$(git log -1 --pretty='format:%cD' HEAD)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
       - name: Build tarball
@@ -179,8 +179,8 @@ jobs:
       - name: Put the build date and commit in the environment
         shell: bash
         run: |
-          export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
-          export COMMIT_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
+          export COMMIT_HASH=$(git rev-parse --short HEAD)
+          export COMMIT_DATE=$(git log -1 --pretty='format:%cD' HEAD)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
       - name: Build tarball
@@ -247,8 +247,8 @@ jobs:
       - name: Put the build date, commit, and version in the environment
         shell: bash
         run: |
-          export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
-          export COMMIT_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
+          export COMMIT_HASH=$(git rev-parse --short HEAD)
+          export COMMIT_DATE=$(git log -1 --pretty='format:%cD' HEAD)
           export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g')
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
@@ -310,8 +310,8 @@ jobs:
       - name: Put the build date and commit in the environment
         shell: bash
         run: |
-          export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
-          export COMMIT_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
+          export COMMIT_HASH=$(git rev-parse --short HEAD)
+          export COMMIT_DATE=$(git log -1 --pretty='format:%cD' HEAD)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
       - name: Build tarball
