@@ -63,7 +63,7 @@ class MutationScatterPlot(Graph):
         self.mutation_set_name = ''
         self._correlation_shown = False
         self._bounds_artists = []
-        self._drag_colors_structure = True
+        self._drag_colors_structure = False
         self._last_drag_box = None
         self._last_define_attr_name = None
         self._last_color_palette = None
@@ -109,8 +109,8 @@ class MutationScatterPlot(Graph):
                               'mutations', ('all', 'drag box'))
         controls2 = EntriesRow(frame,        
                                '            ',
-                               'score', ('mean', 'sum absolute', 'sum'),
-                               'palette', ('white to red', 'white to blue'),
+                               'score', ('mean', 'count', 'sum absolute', 'sum', 'min', 'median', 'max', 'stddev'),
+                               'palette', ('blue to red', 'white to red', 'white to blue'),
                                ('Adjust colors', self._show_render_by_attribute_gui))
         self._color_score_menu, self._color_which_menu = controls.values
         self._color_score_type_menu, self._color_palette_menu = controls2.values
@@ -602,45 +602,76 @@ class MutationScatterPlot(Graph):
         session = self.session
         scores = mutation_scores(session, mutation_set_name)
 
-        ranges = None
-        if which == 'drag box':
-            box = self._last_drag_box
-            if box is None:
-                which = 'all'
-            else:
-                score1, min1, max1, score2, min2, max2 = box
-                range1 = f'{score1} >= {"%.3g"%min1} and {score1} <= {"%.3g"%max1}'
-                range2 = f'{score2} >= {"%.3g"%min2} and {score2} <= {"%.3g"%max2}'
-                ranges = f'{range1} and {range2}'
-                if score2 == score_name:
-                    range_name = f'{score2}_{"%.3g"%min2}_{"%.3g"%max2}_{score1}_{"%.3g"%min1}_{"%.3g"%max1}'
-                else:
-                    range_name = f'{score1}_{"%.3g"%min1}_{"%.3g"%max1}_{score2}_{"%.3g"%min2}_{"%.3g"%max2}'
-        if ranges:
-            if score1 == score_name:
-                attr_name = f'{range_name}_{score_type}'
-            else:
-                attr_name = f'{score_name}_{range_name}_{score_type}'
-        else:
-            attr_name = f'{score_name}_{score_type}'
+        ranges, range_name = self._box_ranges(score_name) if which == 'drag box' else (None,None)
+        if ranges is None:
+            which = 'all'
+
+        attr_name = self._attribute_name(score_name, range_name, score_type)
         self._last_define_attr_name = attr_name
+
         cmd_score = f'mutationscores define {attr_name} from {score_name} combine {score_type}'
         if ranges:
             cmd_score += f' ranges "{ranges}"'
         if len(mutation_all_scores(session)) > 1:
             cmd_score += f' mutationSet {mutation_set_name}'
         rvalues = self._run_command(cmd_score)
+        min_score, max_score = rvalues.value_range()
 
         chains = scores.associated_chains()
         from chimerax.atomic import concise_chain_spec
         chain_spec = concise_chain_spec(chains)
-        color = 'red' if palette == 'white to red' else 'blue'
-        min_score, max_score = rvalues.value_range()
-        threshold = 0.66*max_score
-        self._last_color_palette = (min_score, 'white', threshold, color)
-        palette_spec = f'{"%.3g"%min_score},white:{"%.3g"%threshold},{color}'
-        cmd_color = f'color byattribute r:{attr_name} {chain_spec} palette {palette_spec}'
+
+        palette_spec = self._palette_specifier(palette, min_score, max_score, which)
+
+        cmd_color = f'color byattribute r:{attr_name} {chain_spec} palette {palette_spec} noValueColor white'
         self._run_command(cmd_color)
+
+    def _box_ranges(self, score_name):
+        box = self._last_drag_box
+        if box is None:
+            return None, None
+
+        score1, min1, max1, score2, min2, max2 = box
+        range1 = f'{score1} >= {"%.3g"%min1} and {score1} <= {"%.3g"%max1}'
+        range2 = f'{score2} >= {"%.3g"%min2} and {score2} <= {"%.3g"%max2}'
+        ranges = f'{range1} and {range2}'
+        if score2 == score_name:
+            range_name = f'{score2}_{"%.3g"%min2}_{"%.3g"%max2}_{score1}_{"%.3g"%min1}_{"%.3g"%max1}'
+        else:
+            range_name = f'{score1}_{"%.3g"%min1}_{"%.3g"%max1}_{score2}_{"%.3g"%min2}_{"%.3g"%max2}'
+        return ranges, range_name
+    
+    def _attribute_name(self, score_name, range_name, score_type):
+        if range_name:
+            if range_name.startswith(score_name):
+                attr_name = f'{range_name}_{score_type}'
+            else:
+                attr_name = f'{score_name}_{range_name}_{score_type}'
+        else:
+            attr_name = f'{score_name}_{score_type}'
+        return attr_name
+
+    def _palette_specifier(self, palette, min_score, max_score, which):
+        if palette == 'blue to red':
+            if min_score >= 0:
+                palette = 'white to red'
+            elif max_score <= 0:
+                palette = 'white to blue'
+        if palette == 'white to red':
+            colors = ('white', '#ff7f7f', 'red')
+        elif palette == 'white to blue':
+            colors = ('white', '#7f7fff', 'blue')
+        else:
+            colors = ('blue', 'white', 'white', 'red')
+        if which == 'drag box' and min_score < 0 and abs(min_score) > abs(max_score):
+            min_score, max_score = max_score, min_score
+        if palette == 'blue to red':
+            thresholds = (0.66*min_score, 0.33*min_score, 0.33*max_score, 0.66*max_score)
+        else:
+            thresholds = (min_score, (min_score+0.66*max_score)/2, 0.66*max_score)
+        self._last_color_palette = tuple(zip(thresholds, colors))
+        palette_spec = ':'.join(f'{"%.3g"%thresh},{color}'for thresh, color in zip(thresholds, colors))
+        return palette_spec
 
     def _show_render_by_attribute_gui(self):
         if self._last_define_attr_name is None or self._last_color_palette is None:
@@ -665,10 +696,9 @@ class MutationScatterPlot(Graph):
         rc_markers = rba_gui.render_color_markers
         while len(rc_markers) > 0:
             rc_markers.pop()
-        thresh1, color1, thresh2, color2 = self._last_color_palette
         rc_markers.coord_type = 'absolute'
-        rc_markers.append(((thresh1, 0.0), color1))
-        rc_markers.append(((thresh2, 0.0), color2))
+        for thresh, color in self._last_color_palette:
+            rc_markers.append(((thresh, 0.0), color))
         rc_markers.coord_type = 'relative'
 
     # ---------------------------------------------------------------------------
