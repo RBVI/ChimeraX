@@ -40,6 +40,24 @@ jobs:
       branch: ${{ matrix.branch }}
       release_type: ${{ matrix.release_type }}
     secrets: inherit
+  build-rocky10-docker:
+    name: Build ChimeraX for Rocky 10
+    needs: [build-rocky8-docker]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - branch: release/v1.11
+            release_type: candidate
+          - branch: develop
+            release_type: daily
+    #          - branch: pyside6
+    #            release_type: techpreview
+    uses: ./.github/workflows/rocky10_build.yml
+    with:
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
+    secrets: inherit
   build-ubuntu:
     name: Build ChimeraX for Ubuntu
     needs: [build-rocky8-docker]
