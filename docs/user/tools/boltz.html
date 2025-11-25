@@ -126,19 +126,35 @@ target="_blank">PDB Chemical Component Dictionary (CCD)</a>
 <li><a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
 target="_blank">SMILES</a> string
 (small organic molecules)
-<!-- batch prediction 
+<a name="batch"></a>
 <li>each ligand 
 <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
-target="_blank">SMILES</a> &ndash; a list of ligands for batch prediction
-of each single ligand with the other components;
-each line in the list should be of the form <i>name</i>,<i>SMILES</i>
-<p>
-results columns:
+target="_blank">SMILES</a> string &ndash; a list of ligands for 
+<b><i>batch prediction</i></b> of each single ligand with the other components;
+each line in the list should be of the form <i>name</i>,<i>SMILES</i> 
+(or simply <i>SMILES</i> to give names ligand1, ligand2, ... in the results)
+</ul>
+  <blockquote>
+Batch prediction results will be shown in a table listing the ligand names,
+ipTM confidence scores, affinity scores (if predicted, see 
+<a href="#options">options</a>), binding probabilities, and SMILES strings.
+<!--
 ipTM = confidence, affinity = semiquantitative prediction of affinity
 trained on IC50 and Kd values, binding probability = trained on binary 
 classification of positive/negative binders
 -->
-</ul>
+Clicking a column header sorts the table by the values in that column,
+and selecting one or more rows and clicking <b>Open</b> opens the 
+corresponding structure prediction(s).
+The results are written as a comma-separated values file (.bzlig), 
+and this file can be accessed later from the
+<a href="filehistory.html"><b>File History</b></a> to reshow the table.
+Another way to reshow the table is with the command
+<a href="../commands/boltz.html#ligandtable"><b>boltz ligandtable</b></a>,
+by specifying the directory in which Boltz was run.
+The table's <a href="../window.html#context-menu">context menu</a> 
+includes an option to write the results as a .bzlig file.
+  </blockquote>
 <p>
 The current set of components to model are listed in a table, with the polymer
 residue count tallied underneath to help assess the size of the calculation
@@ -501,5 +517,5 @@ polymers.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2025</address>
+November 2025</address>
 </body></html>

@@ -94,8 +94,8 @@ jobs:
       - name: Put the build date and commit in the environment
         shell: bash
         run: |
-          export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
-          export COMMIT_DATE=$(git log -1 --format=%cD $GITHUB_SHA)
+          export COMMIT_HASH=$(git rev-parse --short HEAD)
+          export COMMIT_DATE=$(git log -1 --pretty='format:%cD' HEAD)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
       - name: Build tarball
@@ -103,8 +103,6 @@ jobs:
       - name: Upload ChimeraX
         uses: nick-fields/retry@v3
         with:
-          # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
-          # GitHub Actions couldn't contact Plato.
           max_attempts: 1000
           timeout_minutes: 60
           shell: bash
@@ -179,8 +177,8 @@ jobs:
       - name: Put the build date and commit in the environment
         shell: bash
         run: |
-          export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
-          export COMMIT_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
+          export COMMIT_HASH=$(git rev-parse --short HEAD)
+          export COMMIT_DATE=$(git log -1 --pretty='format:%cD' HEAD)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
       - name: Build tarball
@@ -198,14 +196,16 @@ jobs:
         run: |
           export BUILD_VERSION=$(echo ${{ inputs.branch }} | sed -e 's/.*v//g')
           echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
+      - name: Build tarball
+        run: tar zcf ChimeraX.tar.gz ChimeraX.app
       - name: Upload ChimeraX
-        if: ${{ inputs.release_type == 'candidate' || inputs.release_type == 'production' }}
         uses: nick-fields/retry@v3
         with:
           max_attempts: 1000
-          shell: bash
           timeout_minutes: 60
-          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$COMMIT_HASH" -F "version=$BUILD_VERSION" -F "date=$COMMIT_DATE" -F "platform=windows" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax-installer.exe" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+          shell: bash
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$COMMIT_HASH" -F "version=$BUILD_VERSION" -F "date=$COMMIT_DATE" -F "platform=windows" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/ChimeraX.tar.gz" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+
   build-production:
     name: Production
     if: ${{ inputs.release_type == 'production' }}
@@ -247,8 +247,8 @@ jobs:
       - name: Put the build date, commit, and version in the environment
         shell: bash
         run: |
-          export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
-          export COMMIT_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
+          export COMMIT_HASH=$(git rev-parse --short HEAD)
+          export COMMIT_DATE=$(git log -1 --pretty='format:%cD' HEAD)
           export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g')
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
@@ -261,7 +261,7 @@ jobs:
           max_attempts: 1000
           shell: bash
           timeout_minutes: 60
-          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$BUILD_COMMIT" -F "version=$BUILD_VERSION" -F "date=$BUILD_DATE" -F "platform=windows" -F "file=@$GITHUB_WORKSPACE/ChimeraX.tar.gz" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$COMMIT_HASH" -F "version=$BUILD_VERSION" -F "date=$COMMIT_DATE" -F "platform=windows" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/ChimeraX.tar.gz" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
 
   build-techpreview:
     name: Preview
@@ -310,8 +310,8 @@ jobs:
       - name: Put the build date and commit in the environment
         shell: bash
         run: |
-          export COMMIT_HASH=$(git rev-parse --short $GITHUB_SHA)
-          export COMMIT_DATE=$(git show $(git rev-parse $GITHUB_SHA) --no-patch --no-notes --pretty='%cd' | date -u)
+          export COMMIT_HASH=$(git rev-parse --short HEAD)
+          export COMMIT_DATE=$(git log -1 --pretty='format:%cD' HEAD)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
       - name: Build tarball

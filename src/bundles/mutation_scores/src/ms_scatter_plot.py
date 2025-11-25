@@ -63,7 +63,10 @@ class MutationScatterPlot(Graph):
         self.mutation_set_name = ''
         self._correlation_shown = False
         self._bounds_artists = []
-        self._drag_colors_structure = True
+        self._drag_colors_structure = False
+        self._last_drag_box = None
+        self._last_define_attr_name = None
+        self._last_color_palette = None
         nodes = edges = []
         Graph.__init__(self, session, nodes, edges,
                        tool_name = 'Mutation scores plot', title = 'Mutation scores plot',
@@ -73,6 +76,18 @@ class MutationScatterPlot(Graph):
         layout = parent.layout()
 
         # Add x-axis, y-axis and mutation set menus.
+        menus_frame = self._create_axes_menus(parent)
+        layout.addWidget(menus_frame)
+
+        # Add structure coloring controls
+        cc = self._create_coloring_controls(parent)
+        layout.addWidget(cc)
+        
+        # Add status line
+        sl = self._create_status_line(parent)
+        layout.addWidget(sl)
+
+    def _create_axes_menus(self, parent):
         from chimerax.ui.widgets import EntriesRow
         menus = EntriesRow(parent,
                            ' X axis', ('score1', 'score2'),
@@ -81,20 +96,38 @@ class MutationScatterPlot(Graph):
         self._x_axis_menu, self._y_axis_menu, self._mutation_set_menu = menus.values
         for m in menus.values:
             menu = m.widget.menu()
-            menu.aboutToShow.connect(lambda menu=menu: self._menu_about_to_show(menu))
+            menu.aboutToShow.connect(lambda *,menu=menu: self._menu_about_to_show(menu))
             menu.triggered.connect(self._menu_selection_changed)
-        layout.addWidget(menus.frame)
+        return menus.frame
 
-        # Add status line
+    def _create_coloring_controls(self, parent):
+        from chimerax.ui.widgets import column_frame, EntriesRow
+        frame, layout = column_frame(parent, spacing=0)
+        controls = EntriesRow(frame,
+                              ('Color structures', self._color_structures),
+                              'using', ('score1', 'score2'),  # Will be replaced when menu posted
+                              'mutations', ('all', 'drag box'))
+        controls2 = EntriesRow(frame,        
+                               '            ',
+                               'score', ('mean', 'count', 'sum absolute', 'sum', 'min', 'median', 'max', 'stddev'),
+                               'palette', ('blue to red', 'white to red', 'white to blue'),
+                               ('Adjust colors', self._show_render_by_attribute_gui))
+        self._color_score_menu, self._color_which_menu = controls.values
+        self._color_score_type_menu, self._color_palette_menu = controls2.values
+        smenu = self._color_score_menu.widget.menu()
+        smenu.aboutToShow.connect(lambda *,menu=smenu: self._menu_about_to_show(menu))
+        return frame
+
+    def _create_status_line(self, parent, font_size = 14):
         from Qt.QtWidgets import QLabel, QSizePolicy
         self._status_line = sl = QLabel(parent)
         sl.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         from Qt.QtGui import QFontDatabase
         font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
-        font.setPointSize(14)
+        font.setPointSize(font_size)
         sl.setFont(font)	# Fixed space font so text maintains alignment
-        layout.addWidget(sl)
-
+        return sl
+    
     def _menu_about_to_show(self, menu):
         menu.clear()
         if menu is self._mutation_set_menu.widget.menu():
@@ -143,6 +176,7 @@ class MutationScatterPlot(Graph):
         self._x_axis_menu.value = x_score_name
         self._y_axis_menu.value = y_score_name
         self._mutation_set_menu.value = self.mutation_set_name = mset.name
+        self._color_score_menu.value = x_score_name
         
         points = []
         point_names = []
@@ -334,6 +368,8 @@ class MutationScatterPlot(Graph):
         x1, y1, x2, y2 = event1.xdata, event1.ydata, event2.xdata, event2.ydata
         xmin, xmax = min(x1,x2), max(x1,x2)
         ymin, ymax = min(y1,y2), max(y1,y2)
+        x_score_name, y_score_name = self._x_axis_menu.value, self._y_axis_menu.value
+        self._last_drag_box = (x_score_name,xmin,xmax,y_score_name,ymin,ymax)
         rnodes = []
         for node in self.nodes:
             x,y,z = node.position
@@ -550,8 +586,121 @@ class MutationScatterPlot(Graph):
         self._run_command(command % rspec)
     def _run_command(self, command):
         from chimerax.core.commands import run
-        run(self.session, command)
+        return run(self.session, command)
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _color_structures(self):
+        score_name = self._color_score_menu.value
+        which = self._color_which_menu.value # 'all' or 'drag box'
+        score_type = self._color_score_type_menu.value # 'mean', 'sum absolute', 'sum'
+        score_type = score_type.replace(" ", "_")
+        palette = self._color_palette_menu.value # 'white to red', 'white to blue'
+
+        from .ms_data import mutation_all_scores, mutation_scores
+        mutation_set_name = self._mutation_set_menu.value
+        session = self.session
+        scores = mutation_scores(session, mutation_set_name)
+
+        ranges, range_name = self._box_ranges(score_name) if which == 'drag box' else (None,None)
+        if ranges is None:
+            which = 'all'
+
+        attr_name = self._attribute_name(score_name, range_name, score_type)
+        self._last_define_attr_name = attr_name
+
+        cmd_score = f'mutationscores define {attr_name} from {score_name} combine {score_type}'
+        if ranges:
+            cmd_score += f' ranges "{ranges}"'
+        if len(mutation_all_scores(session)) > 1:
+            cmd_score += f' mutationSet {mutation_set_name}'
+        rvalues = self._run_command(cmd_score)
+        min_score, max_score = rvalues.value_range()
+
+        chains = scores.associated_chains()
+        from chimerax.atomic import concise_chain_spec
+        chain_spec = concise_chain_spec(chains)
+
+        palette_spec = self._palette_specifier(palette, min_score, max_score, which)
+
+        cmd_color = f'color byattribute r:{attr_name} {chain_spec} palette {palette_spec} noValueColor white'
+        self._run_command(cmd_color)
+
+    def _box_ranges(self, score_name):
+        box = self._last_drag_box
+        if box is None:
+            return None, None
+
+        score1, min1, max1, score2, min2, max2 = box
+        range1 = f'{score1} >= {"%.3g"%min1} and {score1} <= {"%.3g"%max1}'
+        range2 = f'{score2} >= {"%.3g"%min2} and {score2} <= {"%.3g"%max2}'
+        ranges = f'{range1} and {range2}'
+        if score2 == score_name:
+            range_name = f'{score2}_{"%.3g"%min2}_{"%.3g"%max2}_{score1}_{"%.3g"%min1}_{"%.3g"%max1}'
+        else:
+            range_name = f'{score1}_{"%.3g"%min1}_{"%.3g"%max1}_{score2}_{"%.3g"%min2}_{"%.3g"%max2}'
+        return ranges, range_name
     
+    def _attribute_name(self, score_name, range_name, score_type):
+        if range_name:
+            if range_name.startswith(score_name):
+                attr_name = f'{range_name}_{score_type}'
+            else:
+                attr_name = f'{score_name}_{range_name}_{score_type}'
+        else:
+            attr_name = f'{score_name}_{score_type}'
+        return attr_name
+
+    def _palette_specifier(self, palette, min_score, max_score, which):
+        if palette == 'blue to red':
+            if min_score >= 0:
+                palette = 'white to red'
+            elif max_score <= 0:
+                palette = 'white to blue'
+        if palette == 'white to red':
+            colors = ('white', '#ff7f7f', 'red')
+        elif palette == 'white to blue':
+            colors = ('white', '#7f7fff', 'blue')
+        else:
+            colors = ('blue', 'white', 'white', 'red')
+        if which == 'drag box' and min_score < 0 and abs(min_score) > abs(max_score):
+            min_score, max_score = max_score, min_score
+        if palette == 'blue to red':
+            thresholds = (0.66*min_score, 0.33*min_score, 0.33*max_score, 0.66*max_score)
+        else:
+            thresholds = (min_score, (min_score+0.66*max_score)/2, 0.66*max_score)
+        self._last_color_palette = tuple(zip(thresholds, colors))
+        palette_spec = ':'.join(f'{"%.3g"%thresh},{color}'for thresh, color in zip(thresholds, colors))
+        return palette_spec
+
+    def _show_render_by_attribute_gui(self):
+        if self._last_define_attr_name is None or self._last_color_palette is None:
+            self.session.logger.error('Color the structure first, then you can adjust colors')
+            return
+
+        rba_gui = self._run_command('ui tool show "Render/Select by Attribute"')
+        rba_gui._new_target('residues')
+
+        # Set models
+        mutation_set_name = self._mutation_set_menu.value
+        from .ms_data import mutation_scores
+        scores = mutation_scores(self.session, mutation_set_name)
+        chains = scores.associated_chains()
+        models = list(set(chain.structure for chain in chains))
+        rba_gui.model_list.set_value(models)
+
+        rba_gui._new_render_attr(self._last_define_attr_name)
+
+        # Set histogram bars.
+        # TODO: Next time event loop is run the model item chooser causes a callback that resets the histogram.
+        rc_markers = rba_gui.render_color_markers
+        while len(rc_markers) > 0:
+            rc_markers.pop()
+        rc_markers.coord_type = 'absolute'
+        for thresh, color in self._last_color_palette:
+            rc_markers.append(((thresh, 0.0), color))
+        rc_markers.coord_type = 'relative'
+
     # ---------------------------------------------------------------------------
     # Session save and restore.
     #

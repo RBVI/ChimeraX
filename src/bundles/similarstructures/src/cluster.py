@@ -112,6 +112,8 @@ def _log_cluster_structure_names(hit_names, cluster_numbers, logger):
 
 from chimerax.umap import UmapPlot
 class SimilarStructurePlot(UmapPlot):
+    help = 'help:user/tools/foldseek.html#clusters'
+
     def __init__(self, session):
         self._similar_structures_id = None
         self._query_residues = None

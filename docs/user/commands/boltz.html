@@ -63,6 +63,7 @@ target="_blank">computational screening for protein-protein interactions</a>
 <blockquote>
 <a href="#install"><b>Installing Boltz</b></a>
 <br><a href="#predict"><b>Running a Boltz Prediction</b></a>
+<br><a href="#ligandtable"><b>Reopening Batch Ligand Predictions</b></a>
 <br><a href="../tools/boltz.html#limitations"><b>Limitations</b></a>
 </blockquote>
 
@@ -300,7 +301,33 @@ If specified, this sets the default location for future ChimeraX sessions.
 or allow ChimeraX use during the computation (default, <b>wait false</b>).
 </ul>
 
+<a name="ligandtable"></a>
+<p class="nav">
+[<a href="#top">back to top: boltz</a>]
+<h3>Reopening Batch Ligand Predictions</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>boltz ligandtable</b> &nbsp;<i>runDirectory</i>&nbsp;
+[&nbsp;<b>includeSmiles</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>alignTo</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model</i></a>&nbsp;]
+</blockquote>
+<p>
+The <b>boltz ligandtable</b> command opens a previously calculated set of
+<a href="../tools/boltz.html#batch">batch ligand predictions</a>
+and shows them in a <a href="../tools/boltz.html#batch">table</a>.
+The results are found under <i>runDirectory</i> (where Boltz was run). 
+This directory can be specified as a pathname or the word 
+<a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+The <b>includeSmiles</b> option (default <b>true</b>)
+indicates whether to include the ligand
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
+target="_blank">SMILES</a> strings in the table.
+The <b>alignTo</b> option indicates that any results opened with the table's
+<b>Open</b> button should be superimposed on the specified atomic model.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2025</address>
+November 2025</address>
 </body></html>

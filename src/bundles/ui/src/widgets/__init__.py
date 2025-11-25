@@ -19,7 +19,7 @@ if qt_have_web_engine():
     from .htmlview import HtmlView, ChimeraXHtmlView
 from .citation import Citation
 from .color_button import ColorButton, MultiColorButton, hex_color_name
-from .composite import radio_buttons, button_row, vertical_layout, horizontal_layout, row_frame
+from .composite import radio_buttons, button_row, vertical_layout, horizontal_layout, row_frame, column_frame
 from .composite import EntriesRow, CollapsiblePanel, ModelMenu
 from .disclosure import DisclosureArea
 from .histogram import MarkedHistogram

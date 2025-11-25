@@ -46,5 +46,5 @@ category = "General"
 description = "Create, play back, edit, and save animation timelines."
 
 [tool.chimerax.tool."Animations"]
-category = "General"
+category = "Depiction"
 description = "Create, play back, edit, and save animation timelines."
