@@ -184,13 +184,13 @@ def phenix_ligand_fit(session, model, ligand=None, center=None, in_map=None, res
     if extent_type == "length":
         from chimerax.geometry import distance
         longest = None
-        for i, a1 in enumerate(ligand_models[0].atoms):
-            for a2 in ligand_models[0].atoms[i+1:]:
+        for i, a1 in enumerate(ligand_model.atoms):
+            for a2 in ligand_model.atoms[i+1:]:
                 d = distance(a1.coord, a2.coord)
                 if longest is None or d > longest:
                     longest = d
         if longest is None:
-            longest = ligand_models[0].atoms[0].radius
+            longest = ligand_model.atoms[0].radius
         extent_angstroms = extent_value * longest
     elif extent_type == "angstroms":
         extent_angstroms = extent_value
