@@ -48,6 +48,7 @@ _additional_categories = (
     "entity_src_gen",
     "entity_src_nat",
     "exptl",
+    "ihm_struct_assembly",
     "ma_alignment",	# 'Model Archive' alignment [#5601]
     "ma_template_details",
     "ma_template_ref_db_details",
@@ -89,7 +90,7 @@ def _initialize(session):
 
 def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, atomic=True,
                max_models=None, log_info=True, extra_categories=(), combine_sym_atoms=True,
-               slider=True, ignore_styling=False, fetch_emdb_map=False):
+               slider=True, ignore_styling=False, fetch_emdb_map=False, ihm_warning=True):
     # mmCIF parsing requires an uncompressed file
 
     if not _initialized:
@@ -184,6 +185,13 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         _fetch_emdb_map_for_mmcif_model(models[0])
     if log is not None and not models:
         log.warning("No mmCIF models found.\n")
+    if ihm_warning and models and 'ihm_struct_assembly' in models[0].metadata:
+        log.warning('This mmCIF file contains IHM (integrative hybrid model) data.'
+                    ' You may want to open it by choosing the Integrative Hybrid Models'
+		    ' in the File / Fetch By ID dialog'
+    		    ' or in the File Type menu of the File / Open dialog'
+		    ' or use a command like "open 8zze format ihm"'
+		    ' to read additional IHM data.\n')
     return models, info
 
 
