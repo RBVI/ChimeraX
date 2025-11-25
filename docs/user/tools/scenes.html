@@ -54,13 +54,12 @@ added as development proceeds**
 </p><p>
 Users should not delete or close any models or their parts that appear 
 in a scene, as trying to restore the scene will not regenerate them.
-</p><p>
 Scenes are saved in <a href="../commands/save.html#session">sessions</a>.
 The <b>Scenes</b> tool is also implemented as the 
 <a href="../commands/scenes.html"><b>scenes</b></a> command.
 See also: 
 <!--
-<a href="animation.html"><b>Animation</b></a>
+<a href="animations.html"><b>Animations</b></a>,
 -->
 <a href="../images.html">making images</a>,
 <a href="../movies.html">making movies</a>
@@ -78,16 +77,19 @@ alt="Scenes dialog" width="300px">
 <b>Tools</b> menu and manipulated like other panels 
 (<a href="../window.html#panels">more...</a>).
 Currently saved scenes are shown as thumbnail images.
+Clicking the <b>Add</b> button saves the current contents of the graphics window
+as a new scene with the specified name, if any, otherwise
+an automatically generated integer name.
+The thumbnails can be reordered by drag-and-drop.
+</p><p>
 <a name="chosen"></a>
 Clicking a thumbnail <b><i>chooses</i></b> the scene, restores it, 
 draws an outline around its thumbnail, and places its name in the entry field. 
 Clicking a blank area of the dialog unchooses the scene, removes the outline,
 and clears the name entry field.
 </p><p>
-When no scene is chosen, clicking <b>Save</b> saves the current contents of the
-graphics window as a new scene with specified name, if any, otherwise an
-automatically generated integer name.
-When a scene is chosen, available actions include:
+When a thumbnail is <a href="#chosen">chosen</a>, the following
+actions become available:
 </p>
 <ul>
 <li><b>Update</b>
@@ -97,6 +99,8 @@ When a scene is chosen, available actions include:
 <li><b>Delete</b>
 &ndash; delete the chosen scene
 </ul>
+<p>
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 

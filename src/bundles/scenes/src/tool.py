@@ -83,6 +83,8 @@ class ScenesTool(ToolInstance):
     SESSION_ENDURING = False
     SESSION_SAVE = True
 
+    help = "help:user/tools/scenes.html"
+
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
         self.display_name = "Scenes"
