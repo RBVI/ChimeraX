@@ -32,7 +32,7 @@ jobs:
           flatpak remote-add --if-not-exists flathub-beta https://flathub.org/beta-repo/flathub-beta.flatpakrepo
           flatpak install -y flathub org.flatpak.Builder
           flatpak install -y flathub org.freedesktop.Platform//24.08 org.freedesktop.Sdk//24.08
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - name: Fetch Plato prerequisites
