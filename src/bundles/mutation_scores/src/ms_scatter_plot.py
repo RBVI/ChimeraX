@@ -106,16 +106,19 @@ class MutationScatterPlot(Graph):
         controls = EntriesRow(frame,
                               ('Color structures', self._color_structures),
                               'using', ('score1', 'score2'),  # Will be replaced when menu posted
-                              'mutations', ('all', 'drag box'))
+                              'mutations', ('all', 'drag box'),
+                              'value', ('mean', 'count', 'sum absolute', 'sum', 'min', 'median', 'max', 'stddev'))
         controls2 = EntriesRow(frame,        
                                '            ',
-                               'score', ('mean', 'count', 'sum absolute', 'sum', 'min', 'median', 'max', 'stddev'),
-                               'palette', ('blue to red', 'white to red', 'white to blue'),
-                               ('Adjust colors', self._show_render_by_attribute_gui))
-        self._color_score_menu, self._color_which_menu = controls.values
-        self._color_score_type_menu, self._color_palette_menu = controls2.values
+                               'palette', ('blue to red', 'red to blue', 'white to red', 'white to blue'),
+                               ('Adjust colors', self._show_render_by_attribute_gui),
+                               ('Previous colorings', self._show_color_history_gui))
+        self._color_score_menu, self._color_which_menu, self._color_score_type_menu = controls.values
+        self._color_palette_menu = controls2.values[0]
         smenu = self._color_score_menu.widget.menu()
         smenu.aboutToShow.connect(lambda *,menu=smenu: self._menu_about_to_show(menu))
+        from .ms_color_history import _mutation_color_history
+        _mutation_color_history(self.session, create = True)  # Start tracking mutation residue coloring
         return frame
 
     def _create_status_line(self, parent, font_size = 14):
@@ -652,20 +655,22 @@ class MutationScatterPlot(Graph):
         return attr_name
 
     def _palette_specifier(self, palette, min_score, max_score, which):
-        if palette == 'blue to red':
+        if palette in ('blue to red', 'red to blue'):
             if min_score >= 0:
-                palette = 'white to red'
+                palette = 'white to red' if palette == 'blue to red' else 'white to blue'
             elif max_score <= 0:
-                palette = 'white to blue'
+                palette = 'white to blue' if palette == 'blue to red' else 'white to red'
         if palette == 'white to red':
             colors = ('white', '#ff7f7f', 'red')
         elif palette == 'white to blue':
             colors = ('white', '#7f7fff', 'blue')
-        else:
+        elif palette == 'blue to red':
             colors = ('blue', 'white', 'white', 'red')
+        elif palette == 'red to blue':
+            colors = ('red', 'white', 'white', 'blue')
         if which == 'drag box' and min_score < 0 and abs(min_score) > abs(max_score):
             min_score, max_score = max_score, min_score
-        if palette == 'blue to red':
+        if palette in ('blue to red', 'red to blue'):
             thresholds = (0.66*min_score, 0.33*min_score, 0.33*max_score, 0.66*max_score)
         else:
             thresholds = (min_score, (min_score+0.66*max_score)/2, 0.66*max_score)
@@ -678,29 +683,16 @@ class MutationScatterPlot(Graph):
             self.session.logger.error('Color the structure first, then you can adjust colors')
             return
 
-        rba_gui = self._run_command('ui tool show "Render/Select by Attribute"')
-        rba_gui._new_target('residues')
-
-        # Set models
         mutation_set_name = self._mutation_set_menu.value
         from .ms_data import mutation_scores
-        scores = mutation_scores(self.session, mutation_set_name)
-        chains = scores.associated_chains()
-        models = list(set(chain.structure for chain in chains))
-        rba_gui.model_list.set_value(models)
+        mset = mutation_scores(self.session, mutation_set_name)
 
-        rba_gui._new_render_attr(self._last_define_attr_name)
+        _show_render_by_attribute_panel(self.session, mset, self._last_define_attr_name, self._last_color_palette)
 
-        # Set histogram bars.
-        # TODO: Next time event loop is run the model item chooser causes a callback that resets the histogram.
-        rc_markers = rba_gui.render_color_markers
-        while len(rc_markers) > 0:
-            rc_markers.pop()
-        rc_markers.coord_type = 'absolute'
-        for thresh, color in self._last_color_palette:
-            rc_markers.append(((thresh, 0.0), color))
-        rc_markers.coord_type = 'relative'
-
+    def _show_color_history_gui(self):
+        from .ms_color_history import MutationColorHistoryPanel
+        return MutationColorHistoryPanel.get_singleton(self.session, create=True)
+        
     # ---------------------------------------------------------------------------
     # Session save and restore.
     #
@@ -740,6 +732,8 @@ class MutationScatterPlot(Graph):
         sp.mutation_set_name = sp._mutation_set_menu.value = data['mutation_set_name']
         sp._x_axis_menu.value = data.get('x_label')
         sp._y_axis_menu.value = data.get('y_label')
+        sp._color_score_menu.value = data.get('x_label')
+
         sp._set_nodes(data['xy'], point_names = data['point_names'], colors = data['colors'],
                       title = data['title'], x_label = data['x_label'], y_label = data['y_label'],
                       node_font_size = data['font_size'], node_area = data['node_area'], label_nodes = data['label_nodes'],
@@ -749,6 +743,39 @@ class MutationScatterPlot(Graph):
             sp.show_least_squares_fit()
         return sp
 
+def _show_render_by_attribute_panel(session, mutation_set, attribute_name,
+                                    palette = None, no_value_color = None):
+    from chimerax.core.commands import run
+    rba_gui = run(session, 'ui tool show "Render/Select by Attribute"')
+    rba_gui._new_target('residues')
+
+    # Set models
+    chains = mutation_set.associated_chains()
+    models = list(set(chain.structure for chain in chains))
+    rba_gui.model_list.set_value(models)
+
+    rba_gui._new_render_attr(attribute_name)
+
+    # Set histogram bars.
+    if palette:
+        # Need to delay the palette setting because the model_list change
+        # causes a delayed callback when the Qt event loop is next run
+        # that resets the palette to the defaults.
+        def _set_render_by_attribute_palette(rba_gui=rba_gui, palette=palette):
+            rc_markers = rba_gui.render_color_markers
+            while len(rc_markers) > 0:
+                rc_markers.pop()
+            rc_markers.coord_type = 'absolute'
+            for thresh, color in palette:
+                rc_markers.append(((thresh, 0.0), color))
+            rc_markers.coord_type = 'relative'
+        timer = session.ui.timer(1, _set_render_by_attribute_palette)
+        rba_gui._set_palette_timer = timer  # Keep timer from being deleted
+
+    if no_value_color:
+        rba_gui.color_no_value.setChecked(True)
+        rba_gui.no_value_color.color = no_value_color
+    
 def _find_close_residues(residue, residues, distance):
     rxyz = residue.atoms.coords
     aatoms = residues.atoms
