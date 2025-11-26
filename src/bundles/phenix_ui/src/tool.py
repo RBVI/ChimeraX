@@ -1451,7 +1451,9 @@ class PickBlobDialog(QDialog):
         self.pick_text = "Pick volume blob"
         self.translate_text = "Translate scene"
 
-        from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QGroupBox, QRadioButton
+        from Qt.QtWidgets import (
+            QHBoxLayout, QButtonGroup, QGroupBox, QRadioButton, QDoubleSpinBox, QCheckBox
+        )
         button_area = QGroupBox("Right Mouse Function")
         button_area.setAlignment(Qt.AlignHCenter)
         layout.addWidget(button_area)
@@ -1471,7 +1473,22 @@ class PickBlobDialog(QDialog):
         self.other_button.setEnabled(False)
         self.mouse_handler = self.session.triggers.add_handler("set mouse mode", self._mouse_mode_changed)
 
-        #self.add_custom_widgets(layout)
+        hide_density_layout = QHBoxLayout()
+        hide_density_layout.setSpacing(2)
+        layout.addLayout(hide_density_layout)
+        hide_density_layout.addStretch(1)
+        self.hide_density = QCheckBox("Hide density within ")
+        self.hide_density.setChecked(False)
+        self.hide_density.toggled.connect(self._hide_density)
+        hide_density_layout.addWidget(self.hide_density)
+        self.hide_dist = QDoubleSpinBox()
+        self.hide_dist.setRange(0.5, 5.0)
+        self.hide_dist.setDecimals(1)
+        self.hide_dist.setSingleStep(0.1)
+        self.hide_dist.setValue(1.8)
+        hide_density_layout.addWidget(self.hide_dist)
+        hide_density_layout.addWidget(QLabel("\N{ANGSTROM SIGN} of existing structure"))
+        hide_density_layout.addStretch(1)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Cancel)
@@ -1481,7 +1498,7 @@ class PickBlobDialog(QDialog):
         bbox.rejected.connect(self.close)
         layout.addWidget(bbox)
 
-        self.check_models = [receptor, map]
+        self.receptor, self.map = self.check_models = [receptor, map]
         from chimerax.core.models import REMOVE_MODELS
         self.remove_models_handler = session.triggers.add_handler(REMOVE_MODELS, self._check_still_valid)
         from chimerax.atomic import get_triggers
@@ -1525,6 +1542,13 @@ class PickBlobDialog(QDialog):
             if rm in self.check_models:
                 self.close()
                 break
+
+    def _hide_density(self, hide):
+        from chimerax.core.commands import run
+        if hide:
+            run(self.session, f"volume zone {self.map.atomspec} near #!{self.receptor.id_string} range {self.hide_dist.value()} invert true")
+        else:
+            run(self.session, f"volume unzone {self.map.atomspec}")
 
     def _mouse_mode_changed(self, trig_name, trig_data):
         button, modifiers, mode = trig_data
