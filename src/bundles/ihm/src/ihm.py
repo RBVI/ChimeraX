@@ -637,7 +637,7 @@ class IHMModel(Model):
     #
     def read_atomic_models(self, path, mgroup):
         from chimerax.mmcif import open_mmcif
-        models, msg = open_mmcif(self.session, path, auto_style = False)
+        models, msg = open_mmcif(self.session, path, auto_style = False, ihm_warning = False)
 
         # Assign IHM model ids.
         if models:
