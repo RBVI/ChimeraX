@@ -18,6 +18,14 @@ jobs:
       branch: master
       release_type: production
     secrets: inherit
+  build-rocky10-docker:
+    name: Build ChimeraX for Rocky 10
+    needs: [build-rocky8-docker]
+    uses: ./.github/workflows/rocky10_build.yml
+    with:
+      branch: master
+      release_type: production
+    secrets: inherit
   build-ubuntu:
     name: Build ChimeraX for Ubuntu
     needs: [build-rocky8-docker]
