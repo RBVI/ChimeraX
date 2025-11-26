@@ -46,6 +46,7 @@
     <ChimeraXClassifier>Command :: mutationscores list :: Molecular structure :: List names of sets of mutations scores</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: mutationscores structure :: Molecular structure :: Associate a structure with a set of mutations scores</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: mutationscores close :: Molecular structure :: Close a set of mutations scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores color :: Molecular structure :: Color residues using previous colorings based on mutations scores</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
