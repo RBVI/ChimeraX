@@ -299,17 +299,27 @@ class Structure(Model, StructureData):
     def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
         Model.interpolate_scene(self, scene1_data['model state'], scene2_data['model state'], fraction,
             switchover=switchover)
-        # for now, we're just interpolating coordinate sets so that trajectories/morphs work;
-        # a more thorough approach will be needed for interpolating other attributes
         interp_data = {}
         switch_data = scene2_data if switchover else scene1_data
         # prevent writing into original scene dictionaries...
+        from numpy import rint, uint8, array
         for attr_level, attr_info in switch_data.items():
             interp_info = {}
             for attr_name, attr_vals in attr_info.items():
-                if attr_name in self.simply_interpolable_attrs:
+                if attr_name in self.simply_interpolable_attrs or attr_name.endswith("colors"):
+                    if attr_name == "coords":
+                        try:
+                            if scene1_data["structure"]["active_coordset_id"] \
+                            != scene2_data["structure"]["active_coordset_id"]:
+                                # interpolating coordinate sets; avoid also interpolating coordinates
+                                continue
+                        except KeyError:
+                            # one or both scenes don't have cs_id info
+                            pass
                     interp_val = (1-fraction) * scene1_data[attr_level][attr_name] \
                         + fraction * scene2_data[attr_level][attr_name]
+                    if attr_name.endswith("colors"):
+                        interp_val = array(rint(interp_val), dtype=uint8)
                 elif attr_name == "active_coordset_id":
                     csids = list(self.coordset_ids)
                     try:
