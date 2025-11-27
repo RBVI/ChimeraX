@@ -394,12 +394,16 @@ class PseudobondGroup(PseudobondGroupData, Model):
         source_data = scene2_data if switchover else scene1_data
         self.dashes = source_data['dashes']
 
+        from numpy import rint, array, uint8
         pseudobonds = self.pseudobonds
         pb_state = source_data['scene state']
-        pseudobonds.colors = pb_state['colors']
+        pb_state1 = scene1_data['scene state']
+        pb_state2 = scene2_data['scene state']
+        color_interp_val = (1-fraction) * pb_state1['colors'] + fraction * pb_state2['colors']
+        pseudobonds.colors = array(rint(color_interp_val), dtype=uint8)
         pseudobonds.displays = pb_state['displays']
         pseudobonds.halfbonds = pb_state['halfbonds']
-        pseudobonds.radii = pb_state['radii']
+        pseudobonds.radii = (1-fraction) * pb_state1['radii'] + fraction * pb_state2['radii']
         pseudobonds.selecteds = pb_state['selecteds']
 
 # -----------------------------------------------------------------------------
