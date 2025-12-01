@@ -2306,9 +2306,11 @@ class VolumeSurface(Surface):
         matrix = matrix.repeat(2, axis = a)
 
     from ._map import contour_surface
+    algorithm = 0 if rendering_options.surface_algorithm == 'flyingEdges' else 1
     varray, tarray, narray = contour_surface(matrix, level,
                                              cap_faces = rendering_options.cap_faces,
-                                             calculate_normals = True)
+                                             calculate_normals = True,
+                                             algorithm = algorithm)
 
     if plane_axis:
       for a in plane_axis:
@@ -2418,6 +2420,7 @@ class VolumeSurface(Surface):
                         'square_mesh': ro.square_mesh,
                         'cap_faces': ro.cap_faces,
                         'flip_normals': ro.flip_normals,
+                        'surface_algorithm': ro.surface_algorithm,
                         }
     changed = (self._contour_settings != contour_settings)
     if changed:
@@ -3012,6 +3015,8 @@ class RenderingOptions:
     self.smoothing_factor = .3
     self.square_mesh = True
     self.cap_faces = True
+    self.surface_algorithm = 'marchingCubes'  # 'flyingEdges' or 'marchingCubes'
+    self.surface_algorithms = ('flyingEdges', 'marchingCubes')  # Read-only list of allowed values
     self.orthoplanes_shown = (False, False, False)
     self.orthoplane_positions = (0,0,0) # image rendering
     self.tilted_slab_axis = (0,0,1)	# volume xyz coordinates
