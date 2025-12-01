@@ -28,6 +28,9 @@
 // Calculate constant intensity surfaces for volumes.
 // Uses the marching cubes algorithm.
 //
+#ifndef MARCHING_CUBES_HEADER_INCLUDED
+#define MARCHING_CUBES_HEADER_INCLUDED
+
 #include <math.h>		// use sqrt()
 
 #include "contourdata.h"	// use cube_edges, triangle_table
@@ -715,16 +718,6 @@ void CSurface<Data_Type>::normals(float *normals)
     }
 }
 
-// ----------------------------------------------------------------------------
-//
-template <class Data_Type>
-Contour_Surface *surface(const Data_Type *grid, const AIndex size[3],
-			 const GIndex stride[3], float threshold, bool cap_faces)
-{
-  CSurface<Data_Type> *cs = new CSurface<Data_Type>(grid, size, stride,
-						    threshold, cap_faces,
-						    CONTOUR_ARRAY_BLOCK_SIZE);
-  return cs;
-}
-
 } // end of namespace Contour_Calculation
+
+#endif // MARCHING_CUBES_HEADER_INCLUDED
