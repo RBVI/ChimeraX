@@ -987,6 +987,15 @@ See also: <a href="material.html"><b>material</b></a>
   <a name="capFaces"><b>capFaces</b> &nbsp;<b>true</b> | false</a>
   <br>Cover the faces of the volume data box where high values would be exposed.
 </blockquote>
+<blockquote>
+  <a href="#top" class="nounder">&bull;</a>
+  <a name="surfaceAlgorithm"><b>surfaceAlgorithm</b>
+  &nbsp;flyingEdges | <b>marchingCubes</b></a>
+  <br>Which isosurface extraction algorithm to use.
+  The default <b>marchingCubes</b> is the standard algorithm.
+  The <b>flyingEdges</b> algorithm uses OpenMP parallelism for
+  faster surface computation on multi-core systems.
+</blockquote>
 
 <a name="dispsolid"></a>
 <p class="nav">
@@ -1446,6 +1455,7 @@ detail in their respective sections:
  </li><li>twoSidedLighting
  </li><li>flipNormals
  </li><li>capFaces
+ </li><li>surfaceAlgorithm
  </li></ul>
 </li><li><a href="#dispsolid"><b>Image Display</b></a>
  <ul>
