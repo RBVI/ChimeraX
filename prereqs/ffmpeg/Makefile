@@ -20,6 +20,7 @@ app-install: $(FFMPEG_PREBUILT)
 
 $(FFMPEG_PREBUILT):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(FFMPEG_PREBUILT)
+	chmod +x $(FFMPEG_PREBUILT)
 
 clean:
 	rm -f $(FFMPEG_PREBUILT)
