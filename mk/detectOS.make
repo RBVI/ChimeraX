@@ -33,7 +33,7 @@ ifeq ($(OS),Linux)
 		OSARCH = LinuxArm64
 	else
 		# MACHINE is i686
-		OSARCH	= Linux
+		OSARCH = Linux
 	endif
 	DISTRO_NAME ?= $(shell . /etc/os-release && echo $$ID)
 	DISTRO_VER ?= $(shell . /etc/os-release && echo $$VERSION_ID)
