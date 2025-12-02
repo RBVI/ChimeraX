@@ -381,6 +381,15 @@ class GridCanvas:
                     text += " and %d with %s" % (associations[label], label)
         self.pg.status(text, secondary=True)
 
+    def prevalence_from_cells(self):
+        seqs = self._check_cells()
+        if not hasattr(self, 'prevalence_tool'):
+            from .prevalence_tool import PrevalenceTool
+            self.prevalence_tool = PrevalenceTool(self,
+                self.pg.tool_window.create_child_window("Prevalence Changes", close_destroys=False))
+            self.prevalence_tool.tool_window.manage(None)
+        self.prevalence_tool.tool_window.shown = True
+
     def refresh(self, seq, left=0, right=None):
         if seq not in self.alignment.headers:
             # Since grids typically don't contain StructureSeqs, this won't

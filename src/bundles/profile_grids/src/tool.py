@@ -98,10 +98,12 @@ class ProfileGridsTool(ToolInstance):
     def fill_context_menu(self, menu, x, y):
         from Qt.QtGui import QAction
         cell_menu = menu.addMenu("Chosen Cells")
+        action = QAction("Change in Prevalence...", cell_menu)
+        action.triggered.connect(lambda *args, f=self.grid_canvas.prevalence_from_cells: f())
+        cell_menu.addAction(action)
         action = QAction("List Sequence Names", cell_menu)
         action.triggered.connect(lambda *args, f=self.grid_canvas.list_from_cells: f())
         cell_menu.addAction(action)
-        cell_menu.setEnabled(bool(self.grid_canvas.chosen_cells))
         alignment_menu = cell_menu.addMenu("New Alignment")
         viewers = self.session.alignments.registered_viewers("alignment")
         viewers.sort()
@@ -109,6 +111,7 @@ class ProfileGridsTool(ToolInstance):
             alignment_menu.addAction(viewer.title())
         alignment_menu.triggered.connect(
             lambda action, f=self.grid_canvas.alignment_from_cells: f(action.text().lower()))
+        cell_menu.setEnabled(bool(self.grid_canvas.chosen_cells))
 
         self.alignment.add_headers_menu_entry(menu)
 
