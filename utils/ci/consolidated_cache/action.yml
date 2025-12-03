@@ -134,7 +134,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/ffmpeg/ffmpeg-6.1.1-Darwin64.exe
+          prereqs/ffmpeg/ffmpeg-6.1.1-DarwinIntel64.exe
         key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (Linux Intel)
@@ -255,7 +255,7 @@ runs:
           if [ "${{ inputs.architecture }}" = "arm64" ] ; then
             curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-6.1.1-DarwinArm64.exe -O -J
           else
-            curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-6.6.1-Darwin64.exe -O -J
+            curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-6.6.1-DarwinIntel64.exe -O -J
           fi
         fi
         if [ "${{ inputs.platform }}" = "windows" ] ; then
@@ -268,13 +268,14 @@ runs:
       if: ${{ steps[format('cache-ambertools-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
       run: |
         if [ "${{ inputs.platform }}" = "linux" ] ; then
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Rocky-8.10.tar.bz2 -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Rocky-9.6.tar.bz2 -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.04.tar.bz2 -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2 -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2 -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-24-Linux-Freedesktop-24.08.tar.bz2 -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-24-Linux-arm-Freedesktop-24.08.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Rocky-8.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Rocky-9.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Rocky-10.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-24-Linux-Freedesktop-24.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-24-Linux-arm-Freedesktop-24.tar.bz2 -O -J
         fi
         if [ "${{ inputs.platform }}" = "macos" ] ; then
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-flibs-20-Darwin.tar.bz2 -O -J
