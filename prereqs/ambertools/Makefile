@@ -24,7 +24,7 @@ UPLOAD_PREBUILT=false
 ifeq ($(OS),Linux)
 SUPPORTED_DISTROS := Ubuntu CentOS Debian Rocky Freedesktop
 # CentOS uses "CentOS Linux", hence the second awk in the following line
-LINUX_FLAVOR = $(shell grep '^NAME=' /etc/os-release | sed -e 's/.*="//' -e 's/\( .\)*"//')
+LINUX_FLAVOR = $(shell grep '^NAME=' /etc/os-release | sed -e 's/.*="//' -e 's/\( .*\)*"//')
 LINUX_RELEASE = $(shell grep '^VERSION_ID=' /etc/os-release | sed -e 's/.*="//' -e 's/\..*//')
 AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS)-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
 ifdef FLATPAK_DIST
