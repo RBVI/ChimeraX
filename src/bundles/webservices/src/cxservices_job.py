@@ -21,7 +21,7 @@ the ChimeraX REST server and monitors its status.
 import json
 import logging
 import datetime
-from urllib3.exceptions import MaxRetryError, NewConnectionError
+from urllib3.exceptions import MaxRetryError, NewConnectionError, ProtocolError
 from typing import Any, Dict, List, Optional, Union
 from urllib.error import URLError
 
@@ -155,7 +155,7 @@ class CxServicesJob(Job):
             self.end_time = datetime.datetime.now()
             reason = json.loads(e.body)["description"]
             self.thread_safe_error("Error launching job: %s" % reason)
-        except (URLError, MaxRetryError, NewConnectionError) as e:
+        except (URLError, MaxRetryError, NewConnectionError, ProtocolError) as e:
             self.state = TaskState.FAILED
             self.end_time = datetime.datetime.now()
             self.thread_safe_error(
@@ -252,6 +252,8 @@ class CxServicesJob(Job):
             content = self.chimerax_api.get_results(self.job_id)
         except ApiException:
             return None
+        except ProtocolError:
+            return None
         else:
             return content
 
@@ -282,7 +284,7 @@ class CxServicesJob(Job):
         """
         try:
             content = self.chimerax_api.get_file(self.job_id, filename)
-        except ApiException as e:
+        except (ApiException, ProtocolError) as e:
             raise KeyError("%s: %s" % (filename, str(e)))
         if encoding is None:
             return content
