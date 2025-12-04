@@ -1542,7 +1542,7 @@ async def superpose_residue(
     
     return format_chimerax_response(combined_result, context)
 
-@mcp.tool()
+# @mcp.tool()
 async def show_hide_objects(
     action: str,
     atomspec: str,
