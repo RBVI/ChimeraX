@@ -94,10 +94,9 @@ def mcp_stop(session):
 
 def mcp_info(session):
     """Show MCP server status and configuration"""
-    from chimerax.core.commands import run
-    import json
-    import os
-    import sys
+
+    # Check Claude Desktop configuration file
+    config_status = _check_claude_configuration(session)
 
     # Check REST server status and configuration
     rest_server = _get_rest_server()
@@ -106,67 +105,118 @@ def mcp_info(session):
         json_enabled = getattr(rest_server, "json", False)
         log_enabled = rest_server.log
 
-        json_status = "✓ enabled" if json_enabled else "✗ disabled"
-        log_status = "✓ enabled" if log_enabled else "✗ disabled"
-
-        mcp_ready = json_enabled and log_enabled
-        mcp_status = "✓ ready" if mcp_ready else "⚠ needs configuration"
-
         rest_status = f"REST server is running on port {port}<br>"
-        rest_status += f"&nbsp;&nbsp;JSON output: {json_status}<br>"
-        rest_status += f"&nbsp;&nbsp;Log capture: {log_status}<br>"
-        rest_status += f"&nbsp;&nbsp;MCP compatibility: {mcp_status}"
-
-        if not mcp_ready:
-            rest_status += (
-                "<br>&nbsp;&nbsp;💡 Run 'mcp start' to enable MCP compatibility"
-            )
+        if not (json_enabled and log_enabled):
+            rest_status += "<br>&nbsp;&nbsp;💡 Run 'mcp start' to enable JSON and logging required MCP"
     else:
-        rest_status = "REST server is not running"
+        rest_status = f"REST server is not running, start it with ChimeraX command 'mcp start'"
 
+    status_info = f"{config_status}<br><br>{rest_status}<br><br>"
+    session.logger.info(status_info, is_html=True)
+
+    return status_info
+
+def _check_claude_configuration(session):
+    try:
+        msg = mcp_setup(session, check_only = True)
+    except UserError as e:
+        msg = str(e)
+    return msg
+
+def mcp_setup(session, config_file_name = 'claude_desktop_config.json', check_only = False):
+    "Write Claude Desktop configuration file to allow it to control ChimeraX using MCP."
+
+    from sys import platform
+    if platform == 'darwin':
+        from os.path import expanduser
+        config_dir = expanduser('~/Library/Application Support/Claude')
+    elif platform == 'win32':
+        from os import environ
+        appdata_dir = environ.get('APPDATA')
+        if not appdata_dir:
+            from chimerax.core.errors import UserError
+            raise UserError('Could not determine Claude Desktop configuration directory because APPDATA environment variable not set')
+        from os.path import join
+        config_dir = join(appdata_dir, 'Claude')
+    else:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Location of Claude Desktop configuration directory on "{platform}" is unknown')
+
+    from os.path import isdir
+    if not isdir(config_dir):
+        from chimerax.core.errors import UserError
+        raise UserError(f'The Claude Desktop configuration directory "{config_dir}" does not exist.  You need to install Claude Desktop on your computer and run it before configuring it for use with ChimeraX.')
+
+    from os.path import join, isfile
+    config_path = join(config_dir, config_file_name)
+    if isfile(config_path):
+        with open(config_path, 'r') as f:
+            import json
+            config_data = json.load(f)
+        mcp_config = config_data.get('mcpServers')
+        if mcp_config:
+            if 'chimerax' in mcp_config:
+                command_path = mcp_config['chimerax']['command']
+                config_chimerax_path = _chimerax_directory_from_executable(command_path)
+                import sys
+                current_chimerax_path = _chimerax_directory_from_executable(sys.executable)
+                if config_chimerax_path == current_chimerax_path:
+                    msg = f'The Claude Desktop configuration file "{config_path}" is already set up to use ChimeraX.'
+                    if check_only:
+                        return msg
+                    from chimerax.core.errors import UserError
+                    raise UserError(msg)
+                msg = f'Claude is configured to use a different ChimeraX version {config_chimerax_path}.'
+                if check_only:
+                    return msg
+                msg += f' The configuration will be updated to use the ChimeraX you are now running {current_chimerax_path}'
+                session.logger.info(msg)
+        else:
+            config_data['mcpServers'] = {}
+    else:
+        config_data = {'mcpServers': {}}
+
+    if check_only:
+        return 'Claude Desktop is not configured to use ChimeraX.  Run the ChimeraX command "mcp setup" to write the Claude Desktop configuration file.'
+
+    config_data['mcpServers']['chimerax'] = _mcp_configuration_data()
+
+    with open(config_path, 'w') as f:
+        import json
+        json.dump(config_data, f, indent=4)
+
+    session.logger.info(f'Updated Claude Desktop configuration file {config_path} to use ChimeraX')
+
+def _mcp_configuration_data():
     # Get the bridge script path
-    bundle_dir = os.path.dirname(__file__)
-    bridge_path = os.path.join(bundle_dir, "chimerax_mcp_bridge.py")
+    from os.path import dirname, join, realpath
+    bundle_dir = dirname(__file__)
+    bridge_path = join(bundle_dir, "chimerax_mcp_bridge.py")
 
     # Get ChimeraX's Python executable path
-    chimerax_python_dir = os.path.dirname(sys.executable)
-    chimerax_python = (
-        chimerax_python_dir + os.sep + "python3.11"
-    )  # Ensure correct path format
+    from sys import executable, platform, version_info
+    python_executable_dir = dirname(realpath(executable))
+    if platform == 'darwin':
+        # On Mac the ChimeraX executable is in Contents/MacOS but the Python executable is in Contents/bin
+        python_executable_dir = join(dirname(python_executable_dir), 'bin')
+    python_executable_name = 'python.exe' if platform == 'win32' else f'python{version_info.major}.{version_info.minor}'
+    python_path = join(python_executable_dir, python_executable_name)
+    
+    mcp_config = {
+        'command': python_path,
+        'args': [bridge_path]
+    }
+    return mcp_config
 
-    # Generate Claude configuration (no env needed - bridge auto-discovers)
-    config_lines = [
-        "{",
-        '  "mcpServers": {',
-        '    "chimerax": {',
-        f'      "command": "{chimerax_python}",',
-        f'      "args": ["{bridge_path}"]',
-        "    }",
-        "  }",
-        "}",
-    ]
-    config_json = "\n".join(config_lines)
-
-    status_info = f"{rest_status}<br><br>"
-    status_info += f"MCP Bridge Setup:<br>"
-    status_info += f"&nbsp;&nbsp;Bridge script: {bridge_path}<br>"
-    status_info += f"&nbsp;&nbsp;ChimeraX Python: {chimerax_python}<br><br>"
-    status_info += f"Claude Desktop Configuration:<br>"
-    status_info += f"Copy this JSON to your Claude Desktop config file:<br><br>"
-    status_info += f"<pre><code>{config_json}</code></pre><br>"
-    if (
-        rest_server is not None
-        and getattr(rest_server, "json", False)
-        and rest_server.log
-    ):
-        status_info += f"Usage: MCP bridge ready - start Claude Desktop to connect"
-    else:
-        status_info += f"Usage: Run 'mcp start' to configure REST server for MCP bridge connections"
-
-    session.logger.info(status_info, is_html=True)
-    return True, status_info
-
-
+def _chimerax_directory_from_executable(exec_path):
+    from sys import platform
+    num_levels = {'darwin': 3, 'win32': 2}.get(platform, 2)
+    path = exec_path
+    from os.path import dirname
+    for count in range(num_levels):
+        path = dirname(path)
+    return path
+        
 mcp_start_desc = CmdDesc(
     optional=[("port", IntArg)],
     synopsis="Start REST server for MCP bridge connections (default port: 8080)",
@@ -176,9 +226,12 @@ mcp_stop_desc = CmdDesc(synopsis="Stop the REST server")
 
 mcp_info_desc = CmdDesc(synopsis="Show MCP bridge status and configuration")
 
+mcp_setup_desc = CmdDesc(synopsis="Write Claude Desktop configuration file to allow it to control ChimeraX using MCP.")
+
 
 def register_commands(logger):
     """Register MCP commands with ChimeraX"""
     register("mcp start", mcp_start_desc, mcp_start, logger=logger)
     register("mcp stop", mcp_stop_desc, mcp_stop, logger=logger)
     register("mcp info", mcp_info_desc, mcp_info, logger=logger)
+    register("mcp setup", mcp_setup_desc, mcp_setup, logger=logger)
