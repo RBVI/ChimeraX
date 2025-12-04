@@ -355,7 +355,7 @@ def get_docs_path():
     current_dir = os.path.dirname(bridge_path)
 
     # Look for docs in ChimeraX structure
-    for _ in range(10):
+    for _ in range(11):
         current_dir = os.path.dirname(current_dir)
 
         # Check for installed docs location
@@ -1021,6 +1021,7 @@ async def run_command(command: str, session_id: Optional[int] = None) -> str:
         command: ChimeraX command to execute (e.g., 'open 1gcn', 'color #1/A red')
         session_id: ChimeraX session port (defaults to primary session)
     """
+
     # Validate that show/hide commands are not being used
     command_stripped = command.strip().lower()
     if command_stripped.startswith('show ') or command_stripped.startswith('hide ') or command_stripped == 'show' or command_stripped == 'hide':
