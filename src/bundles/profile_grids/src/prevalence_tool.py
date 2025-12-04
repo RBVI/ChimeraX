@@ -22,13 +22,257 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.ui import tool_user_error
+
 class PrevalenceTool:
 
     def __init__(self, grid, tool_window):
         self.grid = grid
         self.tool_window = tool_window
+        self._prev_chosen_cells = None
 
-        from Qt.QtWidgets import QVBoxLayout, QLabel
+        from Qt.QtWidgets import QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QPushButton
+        from Qt.QtCore import Qt
+        from chimerax.ui.widgets import ColorButton
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Interface here"))
+        layout.addWidget(QLabel("Show changes in prevalence relative to chosen cells by..."),
+            alignment=Qt.AlignCenter)
+
+        layout.addLayout(self._layout_main_colors(True))
+
+        chosen_layout = QHBoxLayout()
+        chosen_layout.setContentsMargins(0,0,0,0)
+        chosen_layout.addStretch(1)
+        layout.addLayout(chosen_layout)
+        inner_layout = QVBoxLayout()
+        inner_layout.setSpacing(2)
+        chosen_cells_layout = QHBoxLayout()
+        chosen_cells_layout.setSpacing(0)
+        inner_layout.addLayout(chosen_cells_layout)
+        do_color, color = self.grid.pg.settings.prevalence_chosen_color_info
+        self.do_color_chosen_box = QCheckBox("Color chosen cells:  ")
+        self.do_color_chosen_box.setChecked(do_color)
+        chosen_cells_layout.addWidget(self.do_color_chosen_box)
+        self.chosen_color_button = ColorButton(max_size=(16,16))
+        self.chosen_color_button.color = color
+        chosen_cells_layout.addWidget(self.chosen_color_button)
+        chosen_cells_layout.addStretch(1)
+        unchosen_cells_layout = QHBoxLayout()
+        unchosen_cells_layout.setSpacing(0)
+        inner_layout.addLayout(unchosen_cells_layout)
+        do_color, color = self.grid.pg.settings.prevalence_unchosen_color_info
+        self.do_color_unchosen_box = QCheckBox("Color unchosen cells in chosen columns:  ")
+        self.do_color_unchosen_box.setChecked(do_color)
+        unchosen_cells_layout.addWidget(self.do_color_unchosen_box)
+        self.unchosen_color_button = ColorButton(max_size=(16,16))
+        self.unchosen_color_button.color = color
+        unchosen_cells_layout.addWidget(self.unchosen_color_button)
+        unchosen_cells_layout.addStretch(1)
+        chosen_layout.addLayout(inner_layout)
+        chosen_layout.addStretch(1)
+
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(0)
+        layout.addLayout(button_layout)
+        button_layout.addStretch(1)
+        revert_but = QPushButton("Revert")
+        revert_but.clicked.connect(self.revert_color)
+        button_layout.addWidget(revert_but)
+        button_layout.addWidget(QLabel(" to default coloring   "))
+        button_layout.addStretch(1)
+        apply_but = QPushButton("Apply")
+        apply_but.clicked.connect(self.color_by_prevalence)
+        button_layout.addWidget(apply_but)
+        button_layout.addWidget(QLabel(" above settings"))
+        button_layout.addStretch(1)
+
         tool_window.ui_area.setLayout(layout)
+
+    def color_by_prevalence(self):
+        from Qt.QtGui import QColor, QBrush
+        if self.do_main_box.isChecked():
+            waypoints = self._gather_waypoints()
+            if not waypoints:
+                return
+            # Use same color for text of main cells, and white only if all the colors are dark
+            from chimerax.core.colors import contrast_with
+            contrasts = set()
+            for factor, rgba in waypoints:
+                contrasts.add(contrast_with([c/255.0 for c in rgba[:3]]))
+                if len(contrasts) > 1:
+                    break
+            if len(contrasts) > 1:
+                text_rgb = (0,0,0)
+            else:
+                text_rgb = (int(round(c * 255.0)) for c in contrasts.pop())
+            text_brush = QBrush(QColor(*[int(round(c * 255.0)) for c in text_rgb]))
+            seqs = self.grid.seqs_from_cells()
+            if self._prev_chosen_cells is None \
+            or self._prev_chosen_cells != list(self.grid.chosen_cells.keys()):
+                self.grid.pg.status("Computing subgrid", secondary=True)
+                self._grid, weights = self.grid.pg.compute_grid(seqs)
+                self.grid.pg.status("", secondary=True)
+                self._prev_chosen_cells = list(self.grid.chosen_cells.keys())
+                self._chosen_cols = set([col for row, col in self._prev_chosen_cells])
+            tot_sub_seqs = len(seqs)
+            tot_orig_seqs = len(self.grid.alignment.seqs)
+            orig_grid = self.grid.grid_data
+            sub_grid = self._grid
+            smooth_transition = self.transition_button.text() == "smooth"
+            for row, rects in self.grid.cell_rects.items():
+                for col, rect in enumerate(rects):
+                    if col in self._chosen_cols:
+                        continue
+                    orig_num = orig_grid[row][col]
+                    if orig_num == 0:
+                        cell_factor = 1.0
+                    else:
+                        sub_num = sub_grid[row][col]
+                        cell_factor = (sub_num / tot_sub_seqs) / (orig_num / tot_orig_seqs)
+                    prev_factor, prev_color = None, None
+                    for factor, rgba in waypoints:
+                        if cell_factor <= factor:
+                            if prev_factor is None:
+                                cell_rgb = rgba[:3]
+                            else:
+                                fraction = (cell_factor - prev_factor) / (factor - prev_factor)
+                                if smooth_transition:
+                                    cell_rgb = [int(round((1 - fraction) * prev_rgba[c])
+                                        + fraction * rgba[c]) for c in range(3)]
+                                else:
+                                    cell_rgb = (prev_rgba if fraction < 0.5 else rgba)[:3]
+                            rect.setBrush(QBrush(QColor(*cell_rgb)))
+                            text_info = self.grid.cell_text_infos.get((row,col), None)
+                            if text_info is not None:
+                                text_info[0].setBrush(text_brush)
+                            break
+                        prev_factor = factor
+                        prev_rgba = rgba
+                    else:
+                        rect.setBrush(QBrush(QColor(*prev_rgba[:3])))
+                        text_info = self.grid.cell_text_infos.get((row,col), None)
+                        if text_info is not None:
+                            text_info[0].setBrush(text_brush)
+
+        if self.do_color_chosen_box.isChecked():
+            rgb8 = self.chosen_color_button.color[:3]
+            brush = QBrush(QColor(*rgb8))
+            for row, col in self.grid.chosen_cells.keys():
+                rect = self.grid.cell_rects[row][col]
+                rect.setBrush(brush)
+
+        if self.do_color_unchosen_box.isChecked():
+            rgb8 = self.unchosen_color_button.color[:3]
+            brush = QBrush(QColor(*rgb8))
+            for chosen_col in set([col for row, col in self.grid.chosen_cells]):
+                for row in range(len(self.grid.cell_rects)):
+                    if (row,col) in self.grid.chosen_cells:
+                        continue
+                    self.grid.cell_rects[row][col].setBrush(brush)
+
+    def revert_color(self):
+        from Qt.QtGui import QColor, QBrush
+        from chimerax.core.colors import contrast_with
+        divisor = sum(self.grid.weights)
+        for row, rects in self.grid.cell_rects.items():
+            for col, rect in enumerate(rects):
+                val = self.grid.grid_data[row,col]
+                fraction = val / divisor
+                non_blue = int(255 * (1.0 - fraction) + 0.5)
+                rect.setBrush(QBrush(QColor(non_blue, non_blue, 255)))
+                try:
+                    cell_text = self.grid.cell_text_infos[(row,col)][0]
+                except KeyError:
+                    continue
+                text_rgb = contrast_with((non_blue/255.0, non_blue/255.0, 1.0))
+                cell_text.setBrush(QBrush(QColor(*[int(round(c * 255.0)) for c in text_rgb])))
+
+    def _gather_waypoints(self):
+        waypoint_info = {}
+        for row_widgets in self._main_widgets:
+            factor = row_widgets.factor_box.value()
+            color = row_widgets.color_button.color
+            if factor in waypoint_info and waypoint_info[factor] != color:
+                return tool_user_error("Cannot assign two different colors to same factor (%gx)" % factor)
+            waypoint_info[factor] = color
+        if len(waypoint_info) < 2:
+            return tool_user_error("Less than 2 distinct factor values")
+        return sorted(list(waypoint_info.items()))
+
+    def _layout_main_colors(self, first_time=False):
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QPushButton
+        from Qt.QtWidgets import QDoubleSpinBox, QGridLayout, QGroupBox, QMenu
+        from Qt.QtCore import Qt
+        from chimerax.ui.widgets import ColorButton
+        from collections import namedtuple
+        PrevalenceTuple = namedtuple("PrevalenceTuple", ["label1", "factor_box", "label2", "color_button"])
+        if first_time:
+            # first time setup
+            do_main, color_info, do_small, small_thresold, small_color, smooth_transitions \
+                = self.grid.pg.settings.prevalence_main_color_info
+            self.do_main_box = QGroupBox("Color other columns by prevalence change:")
+            self.do_main_box.setCheckable(True)
+            self.do_main_box.setChecked(do_main)
+            main_layout = QHBoxLayout()
+            main_layout.addStretch(1)
+            main_layout.addWidget(self.do_main_box)
+            main_layout.addStretch(1)
+            self._main_widgets = []
+            layout = QVBoxLayout()
+            layout.setSpacing(5)
+            layout.setContentsMargins(0,0,0,0)
+            self.do_main_box.setLayout(layout)
+
+            num_waypoints_layout = QHBoxLayout()
+            num_waypoints_layout.setSpacing(0)
+            num_waypoints_layout.addStretch(1)
+            num_waypoints_layout.addWidget(QLabel("Use "))
+            self.num_waypoints_box = QSpinBox()
+            self.num_waypoints_box.setRange(2,7)
+            self.num_waypoints_box.setValue(len(color_info))
+            self.num_waypoints_box.valueChanged.connect(lambda *args, f=self._layout_main_colors: f())
+            num_waypoints_layout.addWidget(self.num_waypoints_box)
+            num_waypoints_layout.addWidget(QLabel(" colors/thresholds"))
+            num_waypoints_layout.addStretch(1)
+            layout.addLayout(num_waypoints_layout)
+
+            self._dynamic_layout = QGridLayout()
+            self._dynamic_layout.setSpacing(0)
+            self._dynamic_layout.setColumnStretch(4, 1)
+
+            for row, row_ci in enumerate(color_info):
+                threshold, color = row_ci
+                label1 = QLabel("Color cells with ")
+                factor_box = QDoubleSpinBox()
+                factor_box.setRange(0.0, 999.9)
+                factor_box.setDecimals(1)
+                factor_box.setSingleStep(0.5)
+                factor_box.setValue(threshold)
+                factor_box.setAlignment(Qt.AlignRight)
+                factor_box.setSuffix("x")
+                label2 = QLabel(" prevalence: ")
+                color_button = ColorButton()
+                color_button.color = color
+                row_widgets = PrevalenceTuple(label1, factor_box, label2, color_button)
+                self._main_widgets.append(row_widgets)
+                for col, widget in enumerate(row_widgets):
+                    self._dynamic_layout.addWidget(widget, row, col)
+
+            layout.addLayout(self._dynamic_layout)
+
+            transition_layout = QHBoxLayout()
+            transition_layout.setSpacing(0)
+            layout.addLayout(transition_layout)
+            transition_layout.addStretch(1)
+            transition_layout.addWidget(QLabel("Color transitions: "))
+            self.transition_button = QPushButton("smooth" if smooth_transitions else "sharp")
+            menu = QMenu(self.transition_button)
+            menu.addAction("sharp")
+            menu.addAction("smooth")
+            menu.triggered.connect(lambda act, but=self.transition_button: but.setText(act.text()))
+            self.transition_button.setMenu(menu)
+            transition_layout.addWidget(self.transition_button)
+            transition_layout.addStretch(1)
+            return main_layout
+        #reformatting
+        layout = self.do_main_box.layout()

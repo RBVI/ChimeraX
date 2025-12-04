@@ -27,6 +27,15 @@ from copy import deepcopy
 
 class _PGSettings(Settings):
     EXPLICIT_SAVE = { k: v[-1] for k, v in defaults.items() }
+    AUTO_SAVE = {
+        "prevalence_main_color_info": (
+            True, [(0.0, "firebrick"), (1.0, "light gray"), (2.0, "forest green")],
+            True, 0.5, "dark gray",
+            True
+        ),
+        "prevalence_chosen_color_info": (True, "white"),
+        "prevalence_unchosen_color_info": (True, "dark gray"),
+    }
 
 def init(session):
     # each Profile Grids instance has its own settings instance
