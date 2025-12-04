@@ -284,8 +284,8 @@ async def start_chimerax(port: Optional[int] = None, session_name: Optional[str]
         if platform.system() == "Windows":
             # Windows doesn't have fork, use subprocess with DETACHED_PROCESS
             cmd = [chimerax_path, "--cmd", f"remotecontrol rest start port {port} json true log true"]
-            subprocess.Popen(cmd, creationflags=subprocess.DETACHED_PROCESS,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.Popen(cmd, creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True)
         else:
             # Unix-like systems: use double-fork
             if not start_chimerax_daemon(port):
