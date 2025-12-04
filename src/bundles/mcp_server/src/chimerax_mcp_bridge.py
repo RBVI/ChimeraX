@@ -1458,7 +1458,7 @@ async def color_models(color: str, target: str = "all", session_id: Optional[int
     
     return format_chimerax_response(result, context)
 
-@mcp.tool()
+# @mcp.tool()
 async def save_image(filename: str, width: int = 1920, height: int = 1080, supersample: int = 3, session_id: Optional[int] = None) -> str:
     """Save a screenshot of the current view
 
