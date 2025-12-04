@@ -77,75 +77,49 @@ from mcp.server.fastmcp import FastMCP
 def find_chimerax_executable():
     """Find ChimeraX executable, starting from bridge script location"""
 
+    install_dir = _chimerax_installation_directory()
+    if install_dir:
+        from sys import platform
+        if platform == 'darwin':
+            exe_path = os.path.join(install_dir, 'Contents', 'MacOS', 'ChimeraX')
+        elif platform == 'win32':
+            exe_path = os.path.join(install_dir, 'bin', 'ChimeraX.exe')
+        else:
+            exe_path = os.path.join(install_dir, 'bin', 'ChimeraX')  # Linux
+        if not os.path.exists(exe_path):
+            exe_path = None
+    else:
+        exe_path = None
+
+    return exe_path
+
+def _chimerax_installation_directory():
     # First, try to find ChimeraX relative to this bridge script
     bridge_path = os.path.abspath(__file__)
 
-    # Work backwards from bridge to find ChimeraX executable
-    current_dir = os.path.dirname(bridge_path)
+    from sys import platform
+    if platform == 'darwin':
+        cdir = _find_parent_directory(bridge_path, 'Contents')
+    elif platform == 'win32':
+        cdir = _find_parent_directory(bridge_path, 'bin')
+    else:
+        # Linux
+        cdir = _find_parent_directory(bridge_path, 'lib')
 
-    # Look for ChimeraX structure patterns
-    for _ in range(10):  # Limit search depth
-        current_dir = os.path.dirname(current_dir)
+    install_dir = os.path.dirname(cdir) if cdir else None
 
-        # Check for macOS app bundle structure
-        if current_dir.endswith('.app'):
-            chimerax_exe = os.path.join(current_dir, 'Contents', 'bin', 'ChimeraX')
-            if os.path.exists(chimerax_exe):
-                return chimerax_exe
-
-        # For development builds, look for ChimeraX.app at this level
-        chimerax_app = os.path.join(current_dir, 'ChimeraX.app')
-        if os.path.exists(chimerax_app):
-            chimerax_exe = os.path.join(chimerax_app, 'Contents', 'bin', 'ChimeraX')
-            if os.path.exists(chimerax_exe):
-                return chimerax_exe
-
-        # Check for Linux/Windows structure - bin directory at this level
-        bin_dir = os.path.join(current_dir, 'bin')
-        if os.path.exists(bin_dir):
-            # Try different executable names
-            for exe_name in ['ChimeraX', 'chimerax', 'ChimeraX.exe']:
-                chimerax_exe = os.path.join(bin_dir, exe_name)
-                if os.path.exists(chimerax_exe):
-                    return chimerax_exe
-
-    # Fallback to system paths if relative detection fails
-    system = platform.system()
-
-    if system == "Darwin":  # macOS
-        paths = [
-            "/Applications/ChimeraX.app/Contents/bin/ChimeraX",
-            "/Applications/ChimeraX-Daily.app/Contents/bin/ChimeraX",
-            "~/Applications/ChimeraX.app/Contents/bin/ChimeraX"
-        ]
-    elif system == "Windows":
-        paths = [
-            "C:\\Program Files\\ChimeraX\\bin\\ChimeraX.exe",
-            "C:\\Program Files (x86)\\ChimeraX\\bin\\ChimeraX.exe",
-            os.path.expanduser("~\\AppData\\Local\\ChimeraX\\bin\\ChimeraX.exe")
-        ]
-    else:  # Linux
-        paths = [
-            "/usr/local/bin/chimerax",
-            "/opt/chimerax/bin/chimerax",
-            os.path.expanduser("~/chimerax/bin/chimerax")
-        ]
-
-    # Also check PATH
-    try:
-        result = subprocess.run(["which", "chimerax"], capture_output=True, text=True)
-        if result.returncode == 0:
-            paths.insert(0, result.stdout.strip())
-    except:
-        pass
-
-    for path in paths:
-        expanded_path = os.path.expanduser(path)
-        if os.path.exists(expanded_path):
-            return expanded_path
-
+    return install_dir
+    
+def _find_parent_directory(path, dir_name):
+    while path:
+        if os.path.basename(path) == dir_name:
+            return path
+        parent = os.path.dirname(path)
+        if parent == path:
+            break
+        path = parent
     return None
-
+    
 def find_available_port(start_port: int = 8080) -> int:
     """Find an available port starting from start_port"""
     import socket
@@ -350,27 +324,22 @@ mcp = FastMCP("ChimeraX Bridge")
 
 def get_docs_path():
     """Get the path to ChimeraX documentation"""
-    # Find docs relative to bridge script location
-    bridge_path = os.path.abspath(__file__)
-    current_dir = os.path.dirname(bridge_path)
 
-    # Look for docs in ChimeraX structure
-    for _ in range(11):
-        current_dir = os.path.dirname(current_dir)
+    install_dir = _chimerax_installation_directory()
+    if install_dir:
+        from sys import platform
+        if platform == 'darwin':
+            docs_path = os.path.join(install_dir, 'Contents', 'share', 'docs')
+        elif platform == 'win32':
+            docs_path = os.path.join(install_dir, 'bin', 'share', 'docs')
+        else:
+            docs_path = os.path.join(install_dir, 'share', 'docs')  # Linux
+        if not os.path.exists(docs_path):
+            docs_path = None
+    else:
+        docs_path = None
 
-        # Check for installed docs location
-        docs_path = os.path.join(current_dir, 'Contents', 'share', 'docs')
-        if os.path.exists(docs_path):
-            return docs_path
-
-        # Check for ChimeraX.app at this level
-        chimerax_app = os.path.join(current_dir, 'ChimeraX.app')
-        if os.path.exists(chimerax_app):
-            docs_path = os.path.join(chimerax_app, 'Contents', 'share', 'docs')
-            if os.path.exists(docs_path):
-                return docs_path
-
-    return None
+    return docs_path
 
 def list_available_commands():
     """List all available ChimeraX commands with documentation"""
