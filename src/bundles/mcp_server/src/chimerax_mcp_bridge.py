@@ -1164,9 +1164,6 @@ def _format_single_model_info(model: dict) -> list:
 async def list_models(session_id: Optional[int] = None) -> str:
     """List all models currently loaded in ChimeraX with key details.
 
-    Use this regularly to find out what models are loaded and check which 
-    ones are set to be visible.
-    
     Returns a summary line with the total number of models, followed by detailed 
     information for each model, including whether it is visible. 
     The format varies by model type:
