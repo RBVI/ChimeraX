@@ -1022,6 +1022,7 @@ async def run_command(command: str, session_id: Optional[int] = None) -> str:
         session_id: ChimeraX session port (defaults to primary session)
     """
 
+    '''
     # Validate that show/hide commands are not being used
     command_stripped = command.strip().lower()
     if command_stripped.startswith('show ') or command_stripped.startswith('hide ') or command_stripped == 'show' or command_stripped == 'hide':
@@ -1030,7 +1031,8 @@ async def run_command(command: str, session_id: Optional[int] = None) -> str:
             "Please use the dedicated show_hide_objects() or show_hide_hydrogens() tools instead. "
             "These specialized tools provide better parameter validation and error handling."
         )
-    
+    '''
+
     result = await run_chimerax_command(command, session_id)
     session_info = f" on session {session_id}" if session_id else ""
     context = f"Command executed{session_info}: {command}"
