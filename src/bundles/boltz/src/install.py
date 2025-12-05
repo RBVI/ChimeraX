@@ -37,7 +37,7 @@ def boltz_install(session, directory = None, download_model_weights_and_ccd = Tr
             raise UserError(f'You must install Boltz into a new or empty directory.  The directory {directory} already exists and is not empty.')
 
     import platform
-    if True or platform.system() == 'Darwin' and platform.machine() == 'x86_64':
+    if platform.system() == 'Darwin' and platform.machine() == 'x86_64':
         from chimerax.core.errors import UserError
         raise UserError('Boltz requires newer Torch versions that are not available on Intel Macs.')
 
