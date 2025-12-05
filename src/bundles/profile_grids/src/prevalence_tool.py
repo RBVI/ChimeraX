@@ -119,46 +119,57 @@ class PrevalenceTool:
             orig_grid = self.grid.grid_data
             sub_grid = self._grid
             smooth_transition = self.transition_button.text() == "smooth"
-            for row, rects in self.grid.cell_rects.items():
+            do_small = self.do_small_box.isChecked()
+            if do_small:
+                small_brush = QBrush(QColor(*self.small_color_button.color[:3]))
+                small_cutoff = int(self.small_percent_box.value() * tot_orig_seqs / 100.0)
+            for row, rect_info in self.grid.cell_rects.items():
+                grid_row, rects = rect_info
                 for col, rect in enumerate(rects):
                     if col in self._chosen_cols:
                         continue
-                    orig_num = orig_grid[row][col]
-                    if orig_num == 0:
-                        cell_factor = 1.0
-                    else:
-                        sub_num = sub_grid[row][col]
-                        cell_factor = (sub_num / tot_sub_seqs) / (orig_num / tot_orig_seqs)
-                    prev_factor, prev_color = None, None
-                    for factor, rgba in waypoints:
-                        if cell_factor <= factor:
-                            if prev_factor is None:
-                                cell_rgb = rgba[:3]
-                            else:
-                                fraction = (cell_factor - prev_factor) / (factor - prev_factor)
-                                if smooth_transition:
-                                    cell_rgb = [int(round((1 - fraction) * prev_rgba[c])
-                                        + fraction * rgba[c]) for c in range(3)]
-                                else:
-                                    cell_rgb = (prev_rgba if fraction < 0.5 else rgba)[:3]
-                            rect.setBrush(QBrush(QColor(*cell_rgb)))
-                            text_info = self.grid.cell_text_infos.get((row,col), None)
-                            if text_info is not None:
-                                text_info[0].setBrush(text_brush)
-                            break
-                        prev_factor = factor
-                        prev_rgba = rgba
-                    else:
-                        rect.setBrush(QBrush(QColor(*prev_rgba[:3])))
+                    orig_num = orig_grid[grid_row][col]
+                    if do_small and orig_num <= small_cutoff:
+                        rect.setBrush(small_brush)
                         text_info = self.grid.cell_text_infos.get((row,col), None)
                         if text_info is not None:
                             text_info[0].setBrush(text_brush)
+                    else:
+                        if orig_num == 0:
+                            cell_factor = 1.0
+                        else:
+                            sub_num = sub_grid[grid_row][col]
+                            cell_factor = (sub_num / tot_sub_seqs) / (orig_num / tot_orig_seqs)
+                        prev_factor, prev_color = None, None
+                        for factor, rgba in waypoints:
+                            if cell_factor <= factor:
+                                if prev_factor is None:
+                                    cell_rgb = rgba[:3]
+                                else:
+                                    fraction = (cell_factor - prev_factor) / (factor - prev_factor)
+                                    if smooth_transition:
+                                        cell_rgb = [int(round((1 - fraction) * prev_rgba[c])
+                                            + fraction * rgba[c]) for c in range(3)]
+                                    else:
+                                        cell_rgb = (prev_rgba if fraction < 0.5 else rgba)[:3]
+                                rect.setBrush(QBrush(QColor(*cell_rgb)))
+                                text_info = self.grid.cell_text_infos.get((row,col), None)
+                                if text_info is not None:
+                                    text_info[0].setBrush(text_brush)
+                                break
+                            prev_factor = factor
+                            prev_rgba = rgba
+                        else:
+                            rect.setBrush(QBrush(QColor(*prev_rgba[:3])))
+                            text_info = self.grid.cell_text_infos.get((row,col), None)
+                            if text_info is not None:
+                                text_info[0].setBrush(text_brush)
 
         if self.do_color_chosen_box.isChecked():
             rgb8 = self.chosen_color_button.color[:3]
             brush = QBrush(QColor(*rgb8))
             for row, col in self.grid.chosen_cells.keys():
-                rect = self.grid.cell_rects[row][col]
+                rect = self.grid.cell_rects[row][1][col]
                 rect.setBrush(brush)
 
         if self.do_color_unchosen_box.isChecked():
@@ -168,15 +179,16 @@ class PrevalenceTool:
                 for row in range(len(self.grid.cell_rects)):
                     if (row,col) in self.grid.chosen_cells:
                         continue
-                    self.grid.cell_rects[row][col].setBrush(brush)
+                    self.grid.cell_rects[row][1][col].setBrush(brush)
 
     def revert_color(self):
         from Qt.QtGui import QColor, QBrush
         from chimerax.core.colors import contrast_with
         divisor = sum(self.grid.weights)
-        for row, rects in self.grid.cell_rects.items():
+        for row, rect_info in self.grid.cell_rects.items():
+            grid_row, rects = rect_info
             for col, rect in enumerate(rects):
-                val = self.grid.grid_data[row,col]
+                val = self.grid.grid_data[grid_row,col]
                 fraction = val / divisor
                 non_blue = int(255 * (1.0 - fraction) + 0.5)
                 rect.setBrush(QBrush(QColor(non_blue, non_blue, 255)))
@@ -201,14 +213,14 @@ class PrevalenceTool:
 
     def _layout_main_colors(self, first_time=False):
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QPushButton
-        from Qt.QtWidgets import QDoubleSpinBox, QGridLayout, QGroupBox, QMenu
+        from Qt.QtWidgets import QDoubleSpinBox, QGridLayout, QGroupBox, QMenu, QCheckBox
         from Qt.QtCore import Qt
         from chimerax.ui.widgets import ColorButton
         from collections import namedtuple
         PrevalenceTuple = namedtuple("PrevalenceTuple", ["label1", "factor_box", "label2", "color_button"])
         if first_time:
             # first time setup
-            do_main, color_info, do_small, small_thresold, small_color, smooth_transitions \
+            do_main, color_info, do_small, small_threshold, small_color, smooth_transitions \
                 = self.grid.pg.settings.prevalence_main_color_info
             self.do_main_box = QGroupBox("Color other columns by prevalence change:")
             self.do_main_box.setCheckable(True)
@@ -224,7 +236,7 @@ class PrevalenceTool:
             self.do_main_box.setLayout(layout)
 
             num_waypoints_layout = QHBoxLayout()
-            num_waypoints_layout.setSpacing(0)
+            num_waypoints_layout.setSpacing(1)
             num_waypoints_layout.addStretch(1)
             num_waypoints_layout.addWidget(QLabel("Use "))
             self.num_waypoints_box = QSpinBox()
@@ -236,6 +248,9 @@ class PrevalenceTool:
             num_waypoints_layout.addStretch(1)
             layout.addLayout(num_waypoints_layout)
 
+            centering_layout = QHBoxLayout()
+            layout.addLayout(centering_layout)
+            centering_layout.addStretch(1)
             self._dynamic_layout = QGridLayout()
             self._dynamic_layout.setSpacing(0)
             self._dynamic_layout.setColumnStretch(4, 1)
@@ -257,8 +272,29 @@ class PrevalenceTool:
                 self._main_widgets.append(row_widgets)
                 for col, widget in enumerate(row_widgets):
                     self._dynamic_layout.addWidget(widget, row, col)
+            centering_layout.addLayout(self._dynamic_layout)
+            centering_layout.addStretch(1)
 
-            layout.addLayout(self._dynamic_layout)
+            small_layout = QHBoxLayout()
+            small_layout.setSpacing(0)
+            layout.addLayout(small_layout)
+            small_layout.addStretch(1)
+            self.do_small_box = QCheckBox("But color cells with less than ")
+            self.do_small_box.setChecked(do_small)
+            small_layout.addWidget(self.do_small_box)
+            self.small_percent_box = QDoubleSpinBox()
+            self.small_percent_box.setRange(0.0, 99.999)
+            self.small_percent_box.setDecimals(3)
+            self.small_percent_box.setSingleStep(0.5)
+            self.small_percent_box.setValue(small_threshold)
+            self.small_percent_box.setAlignment(Qt.AlignRight)
+            self.small_percent_box.setSuffix("%")
+            small_layout.addWidget(self.small_percent_box)
+            small_layout.addWidget(QLabel(" of sequences originally: "))
+            self.small_color_button = ColorButton(max_size=(16,16))
+            self.small_color_button.color = small_color
+            small_layout.addWidget(self.small_color_button)
+            small_layout.addStretch(1)
 
             transition_layout = QHBoxLayout()
             transition_layout.setSpacing(0)
