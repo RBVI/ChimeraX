@@ -90,10 +90,15 @@ class PrevalenceTool:
 
     def color_by_prevalence(self):
         from Qt.QtGui import QColor, QBrush
-        if self.do_main_box.isChecked():
-            waypoints = self._gather_waypoints()
-            if not waypoints:
-                return
+        waypoints = self._gather_waypoints()
+        if not waypoints:
+            return
+        do_main_color = self.do_main_box.isChecked()
+        do_small = self.do_small_box.isChecked()
+        small_percent = self.small_percent_box.value()
+        small_color = self.small_color_button.color
+        smooth_transitions = self.transition_button.text() == "smooth"
+        if do_main_color:
             # Use same color for text of main cells, and white only if all the colors are dark
             from chimerax.core.colors import contrast_with
             contrasts = set()
@@ -118,11 +123,10 @@ class PrevalenceTool:
             tot_orig_seqs = len(self.grid.alignment.seqs)
             orig_grid = self.grid.grid_data
             sub_grid = self._grid
-            smooth_transition = self.transition_button.text() == "smooth"
-            do_small = self.do_small_box.isChecked()
+            smooth_transitions = self.transition_button.text() == "smooth"
             if do_small:
-                small_brush = QBrush(QColor(*self.small_color_button.color[:3]))
-                small_cutoff = int(self.small_percent_box.value() * tot_orig_seqs / 100.0)
+                small_brush = QBrush(QColor(*small_color[:3]))
+                small_cutoff = int(small_percent * tot_orig_seqs / 100.0)
             for row, rect_info in self.grid.cell_rects.items():
                 grid_row, rects = rect_info
                 for col, rect in enumerate(rects):
@@ -147,7 +151,7 @@ class PrevalenceTool:
                                     cell_rgb = rgba[:3]
                                 else:
                                     fraction = (cell_factor - prev_factor) / (factor - prev_factor)
-                                    if smooth_transition:
+                                    if smooth_transitions:
                                         cell_rgb = [int(round((1 - fraction) * prev_rgba[c])
                                             + fraction * rgba[c]) for c in range(3)]
                                     else:
@@ -165,21 +169,33 @@ class PrevalenceTool:
                             if text_info is not None:
                                 text_info[0].setBrush(text_brush)
 
-        if self.do_color_chosen_box.isChecked():
-            rgb8 = self.chosen_color_button.color[:3]
+        do_chosen_color = self.do_color_chosen_box.isChecked()
+        chosen_color = self.chosen_color_button.color
+        if do_chosen_color:
+            rgb8 = chosen_color[:3]
             brush = QBrush(QColor(*rgb8))
             for row, col in self.grid.chosen_cells.keys():
                 rect = self.grid.cell_rects[row][1][col]
                 rect.setBrush(brush)
 
-        if self.do_color_unchosen_box.isChecked():
-            rgb8 = self.unchosen_color_button.color[:3]
+        do_unchosen_color = self.do_color_unchosen_box.isChecked()
+        unchosen_color = self.unchosen_color_button.color
+        if do_unchosen_color:
+            rgb8 = unchosen_color[:3]
             brush = QBrush(QColor(*rgb8))
             for chosen_col in set([col for row, col in self.grid.chosen_cells]):
                 for row in range(len(self.grid.cell_rects)):
                     if (row,col) in self.grid.chosen_cells:
                         continue
                     self.grid.cell_rects[row][1][col].setBrush(brush)
+
+        self.grid.pg.settings.prevalence_main_color_info = (
+            do_main_color, waypoints,
+            do_small, small_percent, tuple(small_color),
+            smooth_transitions
+        )
+        self.grid.pg.settings.prevalence_chosen_color_info = (do_chosen_color, tuple(chosen_color))
+        self.grid.pg.settings.prevalence_unchosen_color_info = (do_unchosen_color, tuple(unchosen_color))
 
     def revert_color(self):
         from Qt.QtGui import QColor, QBrush
@@ -203,7 +219,7 @@ class PrevalenceTool:
         waypoint_info = {}
         for row_widgets in self._main_widgets:
             factor = row_widgets.factor_box.value()
-            color = row_widgets.color_button.color
+            color = tuple(row_widgets.color_button.color)
             if factor in waypoint_info and waypoint_info[factor] != color:
                 return tool_user_error("Cannot assign two different colors to same factor (%gx)" % factor)
             waypoint_info[factor] = color
