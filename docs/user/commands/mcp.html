@@ -25,6 +25,10 @@ or derivations thereof.
 class="clRighticon" title="User Guide Index"/></a>
 
 <h3><a href="../index.html#commands">Command</a>: mcp</h3>
+<a name="start"></a>
+<a name="stop"></a>
+<a name="info"></a>
+<a name="setup"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>mcp start</b> [&nbsp;<i>port</i>&nbsp;]
 </h3>
@@ -45,8 +49,8 @@ target="_blank">Model Context Protocol</a>
 developed by <a href="https://www.anthropic.com/" 
 target="_blank">Anthropic</a>. 
 The capability for Claude to interact with ChimeraX was
-first implemented by Alexis Rohou at Genentech, and then incorporated into
-ChimeraX as the <b>mcp</b> command.
+first implemented by Alexis Rohou at Genentech and subsequently incorporated 
+into ChimeraX as the <b>mcp</b> command.
 See also: 
 <a href="remotecontrol.html"><b>remotecontrol</b></a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/claude-dec2025/claude_mcp.html"
@@ -69,6 +73,26 @@ ChimeraX using MCP. The file name and location depends on the platform:
   <li>on Windows: ~/AppData/Roaming/Claude/claude_desktop_config.json
   </ul>
 </ul>
+
+<a name="instructions"></a>
+<p class="nav">
+[<a href="#top">back to top: mcp</a>]
+</p>
+<h3>Set Up Claude Desktop to Control ChimeraX</h3>
+<ol>
+<li>Install <a href="https://www.claude.com/download"
+target="_blank">Claude Desktop</a> on Mac or Windows,
+start it, and create a free account.
+<li>Start ChimeraX and enter command <b>mcp setup</b> to generate the 
+configuration file needed for Claude Desktop to control ChimeraX.
+<li>Quit Claude Desktop and ChimeraX. 
+Make sure to use Claude menu File / Exit when quitting; due to a bug in
+Claude Desktop (version 1.0.1405), closing it with the window frame "X" 
+button leaves hidden Claude subprocesses running that will prevent it from 
+reading the configuration file when restarted.
+<li>Restart Claude Desktop and test by typing into Claude 
+&ldquo;Show me a conotoxin protein in ChimeraX&rdquo;.
+</ol>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
