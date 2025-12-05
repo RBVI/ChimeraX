@@ -231,7 +231,7 @@ class PrevalenceTool:
             main_layout.addStretch(1)
             self._main_widgets = []
             layout = QVBoxLayout()
-            layout.setSpacing(5)
+            layout.setSpacing(0)
             layout.setContentsMargins(0,0,0,0)
             self.do_main_box.setLayout(layout)
 
@@ -266,14 +266,37 @@ class PrevalenceTool:
                 factor_box.setAlignment(Qt.AlignRight)
                 factor_box.setSuffix("x")
                 label2 = QLabel(" prevalence: ")
-                color_button = ColorButton()
+                color_button = ColorButton(pause_delay=0.5)
                 color_button.color = color
+                color_button.color_pause.connect(self._update_palette_chooser)
                 row_widgets = PrevalenceTuple(label1, factor_box, label2, color_button)
                 self._main_widgets.append(row_widgets)
                 for col, widget in enumerate(row_widgets):
                     self._dynamic_layout.addWidget(widget, row, col)
             centering_layout.addLayout(self._dynamic_layout)
             centering_layout.addStretch(1)
+
+            palette_layout = QHBoxLayout()
+            palette_layout.setSpacing(0)
+            layout.addLayout(palette_layout)
+            palette_layout.addStretch(1)
+            from chimerax.ui.widgets import PaletteChooser
+            self.palette_chooser = PaletteChooser(self._palette_applied,
+                label="Set prevalence colors from palette ")
+            palette_layout.addWidget(self.palette_chooser)
+            palette_layout.addStretch(1)
+            self._update_palette_chooser()
+
+            reverse_layout = QHBoxLayout()
+            reverse_layout.setContentsMargins(0,0,0,0)
+            reverse_layout.setSpacing(0)
+            layout.addLayout(reverse_layout)
+            reverse_layout.addStretch(1)
+            rev_but = QPushButton("Reverse")
+            rev_but.clicked.connect(self._reverse_colors)
+            reverse_layout.addWidget(rev_but)
+            reverse_layout.addWidget(QLabel(" prevalence colors"))
+            reverse_layout.addStretch(1)
 
             small_layout = QHBoxLayout()
             small_layout.setSpacing(0)
@@ -342,9 +365,27 @@ class PrevalenceTool:
                 self._dynamic_layout.addWidget(factor_box, row, 1)
                 label2 = QLabel(prev_row.label2.text())
                 self._dynamic_layout.addWidget(label2, row, 2)
-                color_button = ColorButton()
+                color_button = ColorButton(pause_delay=0.5)
                 color_button.color = prev_row.color_button.color
+                color_button.color_pause.connect(self._update_palette_chooser)
                 self._dynamic_layout.addWidget(color_button, row, 3)
                 row_widgets = PrevalenceTuple(label1, factor_box, label2, color_button)
                 self._main_widgets.append(row_widgets)
+        self._update_palette_chooser()
 
+    def _palette_applied(self, palette_name):
+        for row_widgets, rgba in zip(self._main_widgets, self.palette_chooser.rgbas):
+            row_widgets.color_button.color = rgba
+
+    def _reverse_colors(self):
+        rgbas = []
+        for row_widgets in self._main_widgets:
+            rgbas.append([c for c in row_widgets.color_button.color])
+        for row_widgets, rgba in zip(self._main_widgets, reversed(rgbas)):
+            row_widgets.color_button.color = rgba
+
+    def _update_palette_chooser(self, *args):
+        rgbas = []
+        for row_widgets in self._main_widgets:
+            rgbas.append([c/255.0 for c in row_widgets.color_button.color])
+        self.palette_chooser.rgbas = rgbas

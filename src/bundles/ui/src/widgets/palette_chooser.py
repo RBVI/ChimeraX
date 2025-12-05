@@ -28,13 +28,18 @@ class PaletteChooser(QWidget):
     If 'auto_apply' is True, palettes will be applied as soon as the user selects them from the palette
     menu.  If it is False, the widget will have a separate Apply button and palettes will only be applied
     when that button is clicked.
+
+    'label' can be a boolean or a string.  If True then the label will be placed to the left of the
+    palette menu, with the text "Palette:" if auto_apply is False, otherwise "palette" (which is between
+    the Apply button and the palette menu).  If 'label' is a string, then the default text will be replaced
+    by the given string.  If 'label' is False, then no label will be added.
     """
 
     NO_PALETTE = "custom"
     NO_NUM_PALETTES_PREFIX = "No "
     NO_NUM_PALETTES_SUFFIX = "-color palettes known"
 
-    def __init__(self, apply_cb, *, auto_apply=True):
+    def __init__(self, apply_cb, *, auto_apply=True, label=True):
         super().__init__()
         self._apply_cb = apply_cb
         self._auto_apply = auto_apply
@@ -47,7 +52,8 @@ class PaletteChooser(QWidget):
             self.apply_button = QPushButton("Apply")
             self.apply_button.clicked.connect(self._apply_palette)
             layout.addWidget(self.apply_button, alignment=Qt.AlignRight)
-        layout.addWidget(QLabel("Palette:" if auto_apply else "palette"))
+        if label is not False:
+            layout.addWidget(QLabel(("Palette:" if auto_apply else "palette") if label is True else label))
         self.palette_menu_button = QPushButton()
         self.palette_menu = QMenu()
         self.palette_menu.triggered.connect(self._palette_menu_cb)
