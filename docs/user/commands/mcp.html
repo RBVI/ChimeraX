@@ -1,0 +1,104 @@
+<html lang="en">
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: mcp</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: mcp</h3>
+<a name="setup"></a>
+<a name="start"></a>
+<a name="stop"></a>
+<a name="info"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>mcp setup</b>
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>mcp start</b> [&nbsp;<i>port</i>&nbsp;]
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>mcp info</b>
+</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>mcp stop</b>
+</h3>
+<p>
+The <b>mcp</b> command enables ChimeraX to listen for commands from the 
+<a href="https://www.claude.com/download" target="_blank">Claude Desktop</a>
+AI chatbot using the 
+<a href="https://en.wikipedia.org/wiki/Model_Context_Protocol"
+target="_blank">Model Context Protocol</a>
+developed by <a href="https://www.anthropic.com/" 
+target="_blank">Anthropic</a>. 
+Running ChimeraX from Claude was first implemented by Alexis Rohou 
+at Genentech and subsequently incorporated 
+into ChimeraX as the <b>mcp</b> command.
+See also: 
+<a href="remotecontrol.html"><b>remotecontrol</b></a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/claude-dec2025/claude_mcp.html"
+target="_blank">Claude Chat to Operate ChimeraX</a>
+</p>
+<ul>
+<li><b>mcp setup</b>
+&ndash; write 
+<a href="https://www.claude.com/download" target="_blank">Claude Desktop</a>
+configuration file to allow it to control ChimeraX using MCP.
+The file name and location depends on the platform:
+  <ul>
+  <li>on Mac: ~/Library/Application Support/Claude/claude_desktop_config.json
+  <li>on Windows: ~/AppData/Roaming/Claude/claude_desktop_config.json
+  </ul>
+<li><b>mcp start</b> [&nbsp;<i>port</i>&nbsp;]
+&ndash; start the ChimeraX REST server for MCP bridge connections using 
+port number <i>port</i> (default <b>8080</b>)
+<li><b>mcp info</b>
+&ndash; check to see if ChimeraX is listening for commands 
+via REST server on localhost port 8080
+<li><b>mcp stop</b>
+&ndash; stop the ChimeraX REST server
+</ul>
+
+<a name="instructions"></a>
+<p class="nav">
+[<a href="#top">back to top: mcp</a>]
+</p>
+<h3>Set Up Claude Desktop to Control ChimeraX</h3>
+<ol>
+<li>Install 
+<a href="https://www.claude.com/download" target="_blank">Claude Desktop</a>
+for Mac or Windows (not available for other platforms),
+start it, and create a free account.
+<li>Start ChimeraX and enter command <b>mcp setup</b> to generate the 
+configuration file needed for Claude Desktop to control ChimeraX.
+<li>Quit Claude Desktop and ChimeraX. 
+Make sure to use Claude menu File / Exit when quitting; due to a bug in
+Claude Desktop (version 1.0.1405), closing it with the window frame "X" 
+button leaves hidden Claude subprocesses running that will prevent it from 
+reading the configuration file when restarted.
+<li>Restart Claude Desktop and test by giving Claude a natural language 
+request, <i>e.g.</i>, &ldquo;Show me a conotoxin protein in ChimeraX&rdquo;
+</ol>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+December 2025</address>
+</body></html>

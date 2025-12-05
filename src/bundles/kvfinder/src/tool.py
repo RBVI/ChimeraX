@@ -358,6 +358,11 @@ class KVFinderResultsDialog(ToolInstance):
             return
         if len(new_data) < len(old_data):
             self.table.data = new_data
+            if self.contacting is not None:
+                for rm in removed_models:
+                    if rm in self.contacting:
+                        del self.contacting[rm]
+                        del self.non_backbone_contacting[rm]
 
     def _process_settings(self, setting_name=None):
         selected = self.table.selected

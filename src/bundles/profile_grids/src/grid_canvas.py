@@ -241,7 +241,7 @@ class GridCanvas:
             if i in self.empty_rows:
                 continue
             rects = []
-            self.cell_rects[displayed_row] = rects
+            self.cell_rects[displayed_row] = (i, rects)
             for j in range(columns):
                 x = j * width
                 val = self.grid_data[i,j]
