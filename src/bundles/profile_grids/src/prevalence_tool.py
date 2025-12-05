@@ -312,17 +312,39 @@ class PrevalenceTool:
             return main_layout
         #reformatting
         layout = self.do_main_box.layout()
-        num_way_points = self.num_waypoints_box.value()
-        if num_way_points < len(self._main_widgets):
+        num_waypoints = self.num_waypoints_box.value()
+        if num_waypoints < len(self._main_widgets):
             last_row = self._main_widgets.pop()
-            for row_widgets in self._main_widgets[num_way_points-1:]:
+            for row_widgets in self._main_widgets[num_waypoints-1:]:
                 for widget in row_widgets:
                     self._dynamic_layout.removeWidget(widget)
                     widget.deleteLater()
             for col, widget in enumerate(last_row):
                 self._dynamic_layout.removeWidget(widget)
-                self._dynamic_layout.addWidget(widget, num_way_points-1, col)
-            self._main_widgets = self._main_widgets[:num_way_points-1]
+                self._dynamic_layout.addWidget(widget, num_waypoints-1, col)
+            self._main_widgets = self._main_widgets[:num_waypoints-1]
             self._main_widgets.append(last_row)
-        elif num_way_points > len(self._main_widgets):
-            pass
+        elif num_waypoints > len(self._main_widgets):
+            while len(self._main_widgets) < num_waypoints:
+                row = len(self._main_widgets)
+                prev_row = self._main_widgets[row-1]
+                label1 = QLabel(prev_row.label1.text())
+                self._dynamic_layout.addWidget(label1, row, 0)
+                factor_box = QDoubleSpinBox()
+                factor_box.setRange(0.0, 999.9)
+                factor_box.setDecimals(1)
+                factor_box.setSingleStep(0.5)
+                prev_val = prev_row.factor_box.value()
+                prev2_val = self._main_widgets[row-2].factor_box.value()
+                factor_box.setValue(max(prev_val, prev2_val) + abs(prev_val - prev2_val))
+                factor_box.setAlignment(Qt.AlignRight)
+                factor_box.setSuffix("x")
+                self._dynamic_layout.addWidget(factor_box, row, 1)
+                label2 = QLabel(prev_row.label2.text())
+                self._dynamic_layout.addWidget(label2, row, 2)
+                color_button = ColorButton()
+                color_button.color = prev_row.color_button.color
+                self._dynamic_layout.addWidget(color_button, row, 3)
+                row_widgets = PrevalenceTuple(label1, factor_box, label2, color_button)
+                self._main_widgets.append(row_widgets)
+
