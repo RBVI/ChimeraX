@@ -153,7 +153,7 @@ class GridCanvas:
         self.handlers = [ self.pg.session.triggers.add_handler(SELECTION_CHANGED, self.update_selection) ]
 
     def alignment_from_cells(self, viewer):
-        seqs = self._check_cells()
+        seqs = self.seqs_from_cells()
         if len(seqs) == 1:
             seq_viewers = self.pg.session.alignments.registered_viewers("sequence")
             if viewer not in seq_viewers:
@@ -234,29 +234,35 @@ class GridCanvas:
         y = 0
         # adjust for rectangle outline width / inter-line spacing
         y_adjust = 2
-        self._cell_text_infos = []
+        self.cell_text_infos = {}
+        self.cell_rects = {}
+        displayed_row = 0
         for i in range(rows):
             if i in self.empty_rows:
                 continue
+            rects = []
+            self.cell_rects[displayed_row] = (i, rects)
             for j in range(columns):
                 x = j * width
                 val = self.grid_data[i,j]
                 fraction = val / divisor
                 # The "cell chosen" contrast color has to change if this color changes
+                # Also, the prevalence dialog's "Revert to default coloring"
                 non_blue = int(255 * (1.0 - fraction) + 0.5)
                 fill_color = QColor(non_blue, non_blue, 255)
-                self.main_scene.addRect(x, y, width, height, brush=QBrush(fill_color))
+                rects.append(self.main_scene.addRect(x, y, width, height, brush=QBrush(fill_color)))
                 if val > 0.0:
                     text_rgb = contrast_with((non_blue/255.0, non_blue/255.0, 1.0))
                     text_val = self._cell_text(val, fraction)
                     cell_text = self.main_scene.addSimpleText(text_val, self.font)
                     self._center_cell_text(cell_text, x, y, y_adjust)
                     cell_text.setBrush(QBrush(QColor(*[int(255 * channel + 0.5) for channel in text_rgb])))
-                    self._cell_text_infos.append((cell_text, x, y, y_adjust, val, fraction))
+                    self.cell_text_infos[(displayed_row,j)] = (cell_text, x, y, y_adjust, val, fraction)
             label_text = self.main_label_scene.addSimpleText(self.row_labels[i], self.font)
             label_width = self.font_metrics.horizontalAdvance(self.row_labels[i] + ' ')
             label_text.moveBy((self.max_label_width - label_width) / 2, y + y_adjust)
             y += height
+            displayed_row += 1
         self.header_groups = {}
         self.header_label_items = {}
         self.displayed_headers = []
@@ -287,7 +293,7 @@ class GridCanvas:
         self._update_scene_rects()
 
     def list_from_cells(self):
-        seqs = self._check_cells()
+        seqs = self.seqs_from_cells()
         _SeqList(self.pg.session, seqs).show()
 
     def main_event_filter(self, watcher, event):
@@ -381,6 +387,15 @@ class GridCanvas:
                     text += " and %d with %s" % (associations[label], label)
         self.pg.status(text, secondary=True)
 
+    def prevalence_from_cells(self):
+        seqs = self.seqs_from_cells()
+        if not hasattr(self, 'prevalence_tool'):
+            from .prevalence_tool import PrevalenceTool
+            self.prevalence_tool = PrevalenceTool(self,
+                self.pg.tool_window.create_child_window("Prevalence Changes", close_destroys=False))
+            self.prevalence_tool.tool_window.manage(None)
+        self.prevalence_tool.tool_window.shown = True
+
     def refresh(self, seq, left=0, right=None):
         if seq not in self.alignment.headers:
             # Since grids typically don't contain StructureSeqs, this won't
@@ -400,6 +415,19 @@ class GridCanvas:
             self._choose_cell(row, col)
         check_box = self.mouse_selects if state['mouse selects'] else self.mouse_chooses
         check_box.setChecked(True)
+
+    def seqs_from_cells(self):
+        from chimerax.core.errors import UserError
+        if not self.chosen_cells:
+            raise UserError("No grid cells are chosen.\n"
+                "Choose cells by changing mouse-click mode at bottom of window to '%s'\n"
+                " and then clicking on desired cell(s)" % self._choose_cell_text)
+
+        # since cells in the same column 'union' together, but columns intersect, organize by column...
+        aln_seqs = self._get_chosen_seqs()
+        if not aln_seqs:
+            raise UserError("No sequences match the chosen cells")
+        return aln_seqs
 
     def show_header(self, header):
         self.displayed_headers.append(header)
@@ -473,19 +501,6 @@ class GridCanvas:
         cell_text.setZValue(1)
         bbox = cell_text.boundingRect()
         cell_text.moveBy((width - bbox.width())/2, y_adjust + (height - bbox.height())/2)
-
-    def _check_cells(self):
-        from chimerax.core.errors import UserError
-        if not self.chosen_cells:
-            raise UserError("No grid cells are chosen.\n"
-                "Choose cells by changing mouse-click mode at bottom of window to '%s'\n"
-                " and then clicking on desired cell(s)" % self._choose_cell_text)
-
-        # since cells in the same column 'union' together, but columns intersect, organize by column...
-        aln_seqs = self._get_chosen_seqs()
-        if not aln_seqs:
-            raise UserError("No sequences match the chosen cells")
-        return aln_seqs
 
     def _choose_cell(self, row, col):
         from Qt.QtGui import QPen, QColor, QPolygonF
@@ -608,7 +623,7 @@ class GridCanvas:
         self._report_chosen_seqs()
 
     def _update_cell_texts(self):
-        for cell_text, *pos_args, val, fraction in self._cell_text_infos:
+        for cell_text, *pos_args, val, fraction in self.cell_text_infos.values():
             cell_text.setText(self._cell_text(val, fraction))
             self._center_cell_text(cell_text, *pos_args)
 

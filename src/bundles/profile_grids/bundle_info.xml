@@ -25,7 +25,7 @@
     <Dependency name="ChimeraX-AlignmentHdrs" version="~=3.2"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=14.0"/>
-    <Dependency name="ChimeraX-UI" version="~=1.24"/>
+    <Dependency name="ChimeraX-UI" version="~=1.50"/>
   </Dependencies>
 
   <Providers manager="alignments">

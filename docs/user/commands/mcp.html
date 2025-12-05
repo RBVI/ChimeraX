@@ -46,7 +46,7 @@ The <b>mcp</b> command enables ChimeraX to listen for commands from the
 <a href="https://www.claude.com/download" target="_blank">Claude Desktop</a>
 AI chatbot using the 
 <a href="https://en.wikipedia.org/wiki/Model_Context_Protocol"
-target="_blank">Model Context Protocol</a>
+target="_blank">Model Context Protocol</a> (MCP)
 developed by <a href="https://www.anthropic.com/" 
 target="_blank">Anthropic</a>. 
 Running ChimeraX from Claude was first implemented by Alexis Rohou 
@@ -59,17 +59,19 @@ target="_blank">Claude Chat to Operate ChimeraX</a>
 </p>
 <ul>
 <li><b>mcp setup</b>
-&ndash; write 
+&ndash; write a
 <a href="https://www.claude.com/download" target="_blank">Claude Desktop</a>
-configuration file to allow it to control ChimeraX using MCP.
-The file name and location depends on the platform:
+configuration file to allow it to control ChimeraX using MCP; 
+this only needs to be done once per computer and ChimeraX version.
+The configuration file name and location depend on the platform:
   <ul>
   <li>on Mac: ~/Library/Application Support/Claude/claude_desktop_config.json
   <li>on Windows: ~/AppData/Roaming/Claude/claude_desktop_config.json
   </ul>
 <li><b>mcp start</b> [&nbsp;<i>port</i>&nbsp;]
 &ndash; start the ChimeraX REST server for MCP bridge connections using 
-port number <i>port</i> (default <b>8080</b>)
+port number <i>port</i> (default <b>8080</b>);
+this is not required if ChimeraX is started by Claude
 <li><b>mcp info</b>
 &ndash; check to see if ChimeraX is listening for commands 
 via REST server on localhost port 8080
