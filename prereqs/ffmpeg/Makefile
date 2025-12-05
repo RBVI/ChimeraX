@@ -13,9 +13,11 @@ FFMPEG_PREBUILT=ffmpeg-${FFMPEG_VERSION}-${OSARCH}.exe
 
 
 install: $(FFMPEG_PREBUILT)
+	chmod +x $(FFMPEG_PREBUILT)
 	$(RSYNC) $(FFMPEG_PREBUILT) $(bindir)/ffmpeg$(PROG_EXT)
 
 app-install: $(FFMPEG_PREBUILT)
+	chmod +x $(FFMPEG_PREBUILT)
 	$(RSYNC) $(FFMPEG_PREBUILT) $(app_bindir)/ffmpeg$(PROG_EXT)
 
 $(FFMPEG_PREBUILT):

@@ -70,14 +70,6 @@ Packages not from PyPi compiled for specific tools
 --------------------------------------------------
 * cxservices - used by remotecontrol command REST service
 * expat - used to build the Python expat XML parser module, used by ChimeraX registration checking code
-* ffmpeg - executable for recording videos, compiling ffmpeg uses these libraries
-
-  * libogg - Ogg audio format
-  * libtheora - Theora video format
-  * libvpx - VP9 video format
-  * x264 - H.264 video format
-  * yasm - assembler for compiling optimized assembly code
-
 * gdcm - used to read DICOM files, used by pydicom
 * lineprofiler - used to profile python code, see command-line `--lineprofile <https://www.cgl.ucsf.edu/chimerax/docs/user/options.html>`_ option
 * mesa - off-screen rendering in nogui mode using OSMesa (off-screen mesa), only used on Linux
