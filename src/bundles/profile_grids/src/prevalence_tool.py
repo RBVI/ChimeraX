@@ -104,7 +104,7 @@ class PrevalenceTool:
             if len(contrasts) > 1:
                 text_rgb = (0,0,0)
             else:
-                text_rgb = (int(round(c * 255.0)) for c in contrasts.pop())
+                text_rgb = contrasts.pop()
             text_brush = QBrush(QColor(*[int(round(c * 255.0)) for c in text_rgb]))
             seqs = self.grid.seqs_from_cells()
             if self._prev_chosen_cells is None \
@@ -312,3 +312,17 @@ class PrevalenceTool:
             return main_layout
         #reformatting
         layout = self.do_main_box.layout()
+        num_way_points = self.num_waypoints_box.value()
+        if num_way_points < len(self._main_widgets):
+            last_row = self._main_widgets.pop()
+            for row_widgets in self._main_widgets[num_way_points-1:]:
+                for widget in row_widgets:
+                    self._dynamic_layout.removeWidget(widget)
+                    widget.deleteLater()
+            for col, widget in enumerate(last_row):
+                self._dynamic_layout.removeWidget(widget)
+                self._dynamic_layout.addWidget(widget, num_way_points-1, col)
+            self._main_widgets = self._main_widgets[:num_way_points-1]
+            self._main_widgets.append(last_row)
+        elif num_way_points > len(self._main_widgets):
+            pass
