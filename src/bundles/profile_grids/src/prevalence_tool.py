@@ -185,9 +185,9 @@ class PrevalenceTool:
             brush = QBrush(QColor(*rgb8))
             for chosen_col in set([col for row, col in self.grid.chosen_cells]):
                 for row in range(len(self.grid.cell_rects)):
-                    if (row,col) in self.grid.chosen_cells:
+                    if (row,chosen_col) in self.grid.chosen_cells:
                         continue
-                    self.grid.cell_rects[row][1][col].setBrush(brush)
+                    self.grid.cell_rects[row][1][chosen_col].setBrush(brush)
 
         self.grid.pg.settings.prevalence_main_color_info = (
             do_main_color, waypoints,
