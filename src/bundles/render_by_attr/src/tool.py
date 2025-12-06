@@ -356,6 +356,31 @@ class RenderByAttrTool(ToolInstance):
 
         tw.manage(placement=None)
 
+    def configure(self, *, models=None, target=None, tab=None):
+        from chimerax.core.commands import commas
+        if models is not None:
+            self.model_list.value = models
+
+        if target is not None:
+            menu = self.target_menu_button.menu()
+            for action in menu.actions():
+                if action.text().lower() == target.lower():
+                    action.trigger()
+                    break
+            else:
+                raise ValueError("No target named '%s'; target names are: %s" % (target,
+                    commas([act.text() for act in menu.actions()], "and")))
+
+        if tab is not None:
+            tab_widget = self.mode_widget
+            for index in range(tab_widget.count()):
+                if tab_widget.tabText(index).lower() == tab.lower():
+                    tab_widget.setCurrentIndex(index)
+                    break
+            else:
+                raise ValueError("No tab named '%s'; tab names are: %s" % (tab,
+                    commas([tab_widget.tabText(i) for i in range(tab_widget.count())], "and")))
+
     @property
     def default_render_color_markers(self):
         return self._clone_markers(self._default_render_color_markers)
