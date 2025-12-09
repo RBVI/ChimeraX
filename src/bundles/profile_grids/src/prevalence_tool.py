@@ -113,81 +113,79 @@ class PrevalenceTool:
         waypoints = self._gather_waypoints()
         if not waypoints:
             return
-        do_main_color = self.do_main_box.isChecked()
         do_small = self.do_small_box.isChecked()
         small_percent = self.small_percent_box.value()
         small_color = self.small_color_button.color
         smooth_transitions = self.transition_button.text() == "smooth"
-        if do_main_color:
-            # Use same color for text of main cells, and white only if all the colors are dark
-            from chimerax.core.colors import contrast_with
-            contrasts = set()
-            for factor, rgba in waypoints:
-                contrasts.add(contrast_with([c/255.0 for c in rgba[:3]]))
-                if len(contrasts) > 1:
-                    break
+        # Use same color for text of main cells, and white only if all the colors are dark
+        from chimerax.core.colors import contrast_with
+        contrasts = set()
+        for factor, rgba in waypoints:
+            contrasts.add(contrast_with([c/255.0 for c in rgba[:3]]))
             if len(contrasts) > 1:
-                text_rgb = (0,0,0)
-            else:
-                text_rgb = contrasts.pop()
-            text_brush = QBrush(QColor(*[int(round(c * 255.0)) for c in text_rgb]))
-            seqs = self.grid.seqs_from_cells()
-            if self._prev_chosen_cells is None \
-            or self._prev_chosen_cells != list(self.grid.chosen_cells.keys()):
-                self.grid.pg.status("Computing subgrid", secondary=True)
-                self._grid, weights = self.grid.pg.compute_grid(seqs)
-                self.grid.pg.status("", secondary=True)
-                self._prev_chosen_cells = list(self.grid.chosen_cells.keys())
-                self._chosen_cols = set([col for row, col in self._prev_chosen_cells])
-            tot_sub_seqs = len(seqs)
-            tot_orig_seqs = len(self.grid.alignment.seqs)
-            orig_grid = self.grid.grid_data
-            sub_grid = self._grid
-            smooth_transitions = self.transition_button.text() == "smooth"
-            if do_small:
-                small_brush = QBrush(QColor(*small_color[:3]))
-                small_cutoff = int(small_percent * tot_orig_seqs / 100.0)
-            for row, rect_info in self.grid.cell_rects.items():
-                grid_row, rects = rect_info
-                for col, rect in enumerate(rects):
-                    if col in self._chosen_cols:
-                        continue
-                    orig_num = orig_grid[grid_row][col]
-                    if do_small and orig_num <= small_cutoff:
-                        rect.setBrush(small_brush)
-                        text_info = self.grid.cell_text_infos.get((row,col), None)
-                        if text_info is not None:
-                            text_info[0].setBrush(text_brush)
+                break
+        if len(contrasts) > 1:
+            text_rgb = (0,0,0)
+        else:
+            text_rgb = contrasts.pop()
+        text_brush = QBrush(QColor(*[int(round(c * 255.0)) for c in text_rgb]))
+        seqs = self.grid.seqs_from_cells()
+        if self._prev_chosen_cells is None \
+        or self._prev_chosen_cells != list(self.grid.chosen_cells.keys()):
+            self.grid.pg.status("Computing subgrid", secondary=True)
+            self._grid, weights = self.grid.pg.compute_grid(seqs)
+            self.grid.pg.status("", secondary=True)
+            self._prev_chosen_cells = list(self.grid.chosen_cells.keys())
+            self._chosen_cols = set([col for row, col in self._prev_chosen_cells])
+        tot_sub_seqs = len(seqs)
+        tot_orig_seqs = len(self.grid.alignment.seqs)
+        orig_grid = self.grid.grid_data
+        sub_grid = self._grid
+        smooth_transitions = self.transition_button.text() == "smooth"
+        if do_small:
+            small_brush = QBrush(QColor(*small_color[:3]))
+            small_cutoff = int(small_percent * tot_orig_seqs / 100.0)
+        for row, rect_info in self.grid.cell_rects.items():
+            grid_row, rects = rect_info
+            for col, rect in enumerate(rects):
+                if col in self._chosen_cols:
+                    continue
+                orig_num = orig_grid[grid_row][col]
+                if do_small and orig_num <= small_cutoff:
+                    rect.setBrush(small_brush)
+                    text_info = self.grid.cell_text_infos.get((row,col), None)
+                    if text_info is not None:
+                        text_info[0].setBrush(text_brush)
+                else:
+                    if orig_num == 0:
+                        cell_factor = 1.0
                     else:
-                        if orig_num == 0:
-                            cell_factor = 1.0
-                        else:
-                            sub_num = sub_grid[grid_row][col]
-                            cell_factor = (sub_num / tot_sub_seqs) / (orig_num / tot_orig_seqs)
-                        prev_factor, prev_color = None, None
-                        for factor, rgba in waypoints:
-                            if cell_factor <= factor:
-                                if prev_factor is None:
-                                    cell_rgb = rgba[:3]
+                        sub_num = sub_grid[grid_row][col]
+                        cell_factor = (sub_num / tot_sub_seqs) / (orig_num / tot_orig_seqs)
+                    prev_factor, prev_color = None, None
+                    for factor, rgba in waypoints:
+                        if cell_factor <= factor:
+                            if prev_factor is None:
+                                cell_rgb = rgba[:3]
+                            else:
+                                fraction = (cell_factor - prev_factor) / (factor - prev_factor)
+                                if smooth_transitions:
+                                    cell_rgb = [int(round((1 - fraction) * prev_rgba[c])
+                                        + fraction * rgba[c]) for c in range(3)]
                                 else:
-                                    fraction = (cell_factor - prev_factor) / (factor - prev_factor)
-                                    if smooth_transitions:
-                                        cell_rgb = [int(round((1 - fraction) * prev_rgba[c])
-                                            + fraction * rgba[c]) for c in range(3)]
-                                    else:
-                                        cell_rgb = (prev_rgba if fraction < 0.5 else rgba)[:3]
-                                rect.setBrush(QBrush(QColor(*cell_rgb)))
-                                text_info = self.grid.cell_text_infos.get((row,col), None)
-                                if text_info is not None:
-                                    text_info[0].setBrush(text_brush)
-                                break
-                            prev_factor = factor
-                            prev_rgba = rgba
-                        else:
-                            rect.setBrush(QBrush(QColor(*prev_rgba[:3])))
+                                    cell_rgb = (prev_rgba if fraction < 0.5 else rgba)[:3]
+                            rect.setBrush(QBrush(QColor(*cell_rgb)))
                             text_info = self.grid.cell_text_infos.get((row,col), None)
                             if text_info is not None:
                                 text_info[0].setBrush(text_brush)
+                            break
+                        prev_factor = factor
+                        prev_rgba = rgba
+                    else:
+                        rect.setBrush(QBrush(QColor(*prev_rgba[:3])))
+                        text_info = self.grid.cell_text_infos.get((row,col), None)
+                        if text_info is not None:
+                            text_info[0].setBrush(text_brush)
 
         do_chosen_color = self.do_color_chosen_box.isChecked()
         chosen_color = self.chosen_color_button.color
@@ -210,7 +208,7 @@ class PrevalenceTool:
                     self.grid.cell_rects[row][1][chosen_col].setBrush(brush)
 
         self.grid.pg.settings.prevalence_main_color_info = (
-            do_main_color, waypoints,
+            True, waypoints,
             do_small, small_percent, tuple(small_color),
             smooth_transitions
         )
@@ -248,7 +246,6 @@ class PrevalenceTool:
     def _coloring_from_settings(self, coloring_info):
         do_main, color_info, do_small, small_threshold, small_color, smooth_transitions \
             = coloring_info["prevalence_main_color_info"]
-        self.do_main_box.setChecked(do_main)
         self.num_waypoints_box.setValue(len(color_info))
         from Qt.QtWidgets import QLabel, QSpinBox, QPushButton
         for row_info, row_widgets in zip(color_info, self._main_widgets):
@@ -287,14 +284,12 @@ class PrevalenceTool:
         from Qt.QtCore import Qt
         from chimerax.ui.widgets import ColorButton
         from collections import namedtuple
-        PrevalenceTuple = namedtuple("PrevalenceTuple", ["label1", "factor_box", "label2", "color_button"])
+        PrevalenceTuple = namedtuple("PrevalenceTuple", ["factor_box", "color_button"])
         if first_time:
-            # first time setup
+            # first time setup; do_main is vestigial (do_main_box used to be checkable)
             do_main, color_info, do_small, small_threshold, small_color, smooth_transitions \
                 = self.grid.pg.settings.prevalence_main_color_info
             self.do_main_box = QGroupBox("Color other columns by prevalence change:")
-            self.do_main_box.setCheckable(True)
-            self.do_main_box.setChecked(do_main)
             main_layout = QHBoxLayout()
             main_layout.addStretch(1)
             main_layout.addWidget(self.do_main_box)
@@ -327,7 +322,6 @@ class PrevalenceTool:
 
             for row, row_ci in enumerate(color_info):
                 threshold, color = row_ci
-                label1 = QLabel("Color cells with ")
                 factor_box = QDoubleSpinBox()
                 factor_box.setRange(0.0, 999.9)
                 factor_box.setDecimals(1)
@@ -335,11 +329,10 @@ class PrevalenceTool:
                 factor_box.setValue(threshold)
                 factor_box.setAlignment(Qt.AlignRight)
                 factor_box.setSuffix("x")
-                label2 = QLabel(" prevalence: ")
                 color_button = ColorButton(pause_delay=0.5)
                 color_button.color = color
                 color_button.color_pause.connect(self._update_palette_chooser)
-                row_widgets = PrevalenceTuple(label1, factor_box, label2, color_button)
+                row_widgets = PrevalenceTuple(factor_box, color_button)
                 self._main_widgets.append(row_widgets)
                 for col, widget in enumerate(row_widgets):
                     self._dynamic_layout.addWidget(widget, row, col)
@@ -352,7 +345,7 @@ class PrevalenceTool:
             palette_layout.addStretch(1)
             from chimerax.ui.widgets import PaletteChooser
             self.palette_chooser = PaletteChooser(self._palette_applied,
-                label="Set prevalence colors from palette ")
+                label="Set colors from palette ")
             palette_layout.addWidget(self.palette_chooser)
             palette_layout.addStretch(1)
             self._update_palette_chooser()
@@ -365,7 +358,7 @@ class PrevalenceTool:
             rev_but = QPushButton("Reverse")
             rev_but.clicked.connect(self._reverse_colors)
             reverse_layout.addWidget(rev_but)
-            reverse_layout.addWidget(QLabel(" prevalence colors"))
+            reverse_layout.addWidget(QLabel(" colors"))
             reverse_layout.addStretch(1)
 
             small_layout = QHBoxLayout()
