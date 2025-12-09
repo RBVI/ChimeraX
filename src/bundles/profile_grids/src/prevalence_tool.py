@@ -35,8 +35,9 @@ class PrevalenceTool:
         from Qt.QtCore import Qt
         from chimerax.ui.widgets import ColorButton
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Show changes in prevalence relative to chosen cells by..."),
-            alignment=Qt.AlignCenter)
+        layout.setSpacing(2)
+        layout.addWidget(QLabel("Color by <i>N</i>-fold change in chosen sequences"
+            " relative to entire alignment"), alignment=Qt.AlignCenter)
 
         layout.addLayout(self._layout_main_colors(True))
 
@@ -71,20 +72,39 @@ class PrevalenceTool:
         chosen_layout.addLayout(inner_layout)
         chosen_layout.addStretch(1)
 
+        go_back_layout = QHBoxLayout()
+        go_back_layout.setSpacing(0)
+        layout.addLayout(go_back_layout)
+        go_back_layout.addStretch(2)
+        revert_but = QPushButton("Revert")
+        revert_but.clicked.connect(self.revert_coloring)
+        go_back_layout.addWidget(revert_but)
+        go_back_layout.addWidget(QLabel(" to last-used settings"))
+        go_back_layout.addStretch(1)
+        go_back_layout.addSpacing(5)
+        go_back_layout.addStretch(1)
+        reset_but = QPushButton("Reset")
+        reset_but.clicked.connect(self.reset_coloring)
+        go_back_layout.addWidget(reset_but)
+        go_back_layout.addWidget(QLabel(" to factory defaults"))
+        go_back_layout.addStretch(2)
+
         button_layout = QHBoxLayout()
         button_layout.setSpacing(0)
         layout.addLayout(button_layout)
+        button_layout.addStretch(2)
+        remove_but = QPushButton("Remove")
+        remove_but.clicked.connect(self.remove_coloring)
+        button_layout.addWidget(remove_but)
+        button_layout.addWidget(QLabel(" prevalence coloring"))
         button_layout.addStretch(1)
-        revert_but = QPushButton("Revert")
-        revert_but.clicked.connect(self.revert_color)
-        button_layout.addWidget(revert_but)
-        button_layout.addWidget(QLabel(" to default coloring   "))
+        button_layout.addSpacing(5)
         button_layout.addStretch(1)
         apply_but = QPushButton("Apply")
         apply_but.clicked.connect(self.color_by_prevalence)
         button_layout.addWidget(apply_but)
         button_layout.addWidget(QLabel(" above settings"))
-        button_layout.addStretch(1)
+        button_layout.addStretch(2)
 
         tool_window.ui_area.setLayout(layout)
 
@@ -197,7 +217,7 @@ class PrevalenceTool:
         self.grid.pg.settings.prevalence_chosen_color_info = (do_chosen_color, tuple(chosen_color))
         self.grid.pg.settings.prevalence_unchosen_color_info = (do_unchosen_color, tuple(unchosen_color))
 
-    def revert_color(self):
+    def remove_coloring(self):
         from Qt.QtGui import QColor, QBrush
         from chimerax.core.colors import contrast_with
         divisor = sum(self.grid.weights)
@@ -214,6 +234,40 @@ class PrevalenceTool:
                     continue
                 text_rgb = contrast_with((non_blue/255.0, non_blue/255.0, 1.0))
                 cell_text.setBrush(QBrush(QColor(*[int(round(c * 255.0)) for c in text_rgb])))
+
+    def reset_coloring(self):
+        from .settings import prevalence_defaults
+        self._coloring_from_settings(prevalence_defaults)
+
+    def revert_coloring(self):
+        from .settings import prevalence_defaults
+        self._coloring_from_settings({ key: getattr(self.grid.pg.settings, key)
+            for key in prevalence_defaults.keys()
+        })
+
+    def _coloring_from_settings(self, coloring_info):
+        do_main, color_info, do_small, small_threshold, small_color, smooth_transitions \
+            = coloring_info["prevalence_main_color_info"]
+        self.do_main_box.setChecked(do_main)
+        self.num_waypoints_box.setValue(len(color_info))
+        from Qt.QtWidgets import QLabel, QSpinBox, QPushButton
+        for row_info, row_widgets in zip(color_info, self._main_widgets):
+            for widget, value in zip([rw for rw in row_widgets if not isinstance(rw, QLabel)], row_info):
+                if isinstance(widget, QSpinBox):
+                    widget.setValue(value)
+                else:
+                    widget.color = value
+        self._update_palette_chooser()
+        self.do_small_box.setChecked(do_small)
+        self.small_percent_box.setValue(small_threshold)
+        self.small_color_button.color = small_color
+        self.transition_button.setText("smooth" if smooth_transitions else "sharp")
+        do_color, color = coloring_info["prevalence_chosen_color_info"]
+        self.do_color_chosen_box.setChecked(do_color)
+        self.chosen_color_button.color = color
+        do_uncolor, uncolor = coloring_info["prevalence_unchosen_color_info"]
+        self.do_color_unchosen_box.setChecked(do_uncolor)
+        self.unchosen_color_button.color = uncolor
 
     def _gather_waypoints(self):
         waypoint_info = {}
@@ -352,6 +406,9 @@ class PrevalenceTool:
         #reformatting
         layout = self.do_main_box.layout()
         num_waypoints = self.num_waypoints_box.value()
+        prev_values = [widgets.factor_box.value() for widgets in self._main_widgets]
+        prev_min = min(prev_values)
+        prev_max = max(prev_values)
         if num_waypoints < len(self._main_widgets):
             last_row = self._main_widgets.pop()
             for row_widgets in self._main_widgets[num_waypoints-1:]:
@@ -373,9 +430,6 @@ class PrevalenceTool:
                 factor_box.setRange(0.0, 999.9)
                 factor_box.setDecimals(1)
                 factor_box.setSingleStep(0.5)
-                prev_val = prev_row.factor_box.value()
-                prev2_val = self._main_widgets[row-2].factor_box.value()
-                factor_box.setValue(max(prev_val, prev2_val) + abs(prev_val - prev2_val))
                 factor_box.setAlignment(Qt.AlignRight)
                 factor_box.setSuffix("x")
                 self._dynamic_layout.addWidget(factor_box, row, 1)
@@ -387,6 +441,12 @@ class PrevalenceTool:
                 self._dynamic_layout.addWidget(color_button, row, 3)
                 row_widgets = PrevalenceTuple(label1, factor_box, label2, color_button)
                 self._main_widgets.append(row_widgets)
+        else:
+            return
+        for i, row_widgets in enumerate(self._main_widgets):
+            row_widgets.factor_box.setValue(
+                prev_min + (prev_max - prev_min) * i / (len(self._main_widgets) - 1))
+
         self._update_palette_chooser()
 
     def _palette_applied(self, palette_name):
@@ -399,6 +459,7 @@ class PrevalenceTool:
             rgbas.append([c for c in row_widgets.color_button.color])
         for row_widgets, rgba in zip(self._main_widgets, reversed(rgbas)):
             row_widgets.color_button.color = rgba
+        self._update_palette_chooser()
 
     def _update_palette_chooser(self, *args):
         rgbas = []
