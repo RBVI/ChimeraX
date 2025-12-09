@@ -356,7 +356,7 @@ class RenderByAttrTool(ToolInstance):
 
         tw.manage(placement=None)
 
-    def configure(self, *, models=None, target=None, tab=None):
+    def configure(self, *, models=None, target=None, tab=None, attr_name=None):
         from chimerax.core.commands import commas
         if models is not None:
             self.model_list.value = models
@@ -380,6 +380,18 @@ class RenderByAttrTool(ToolInstance):
             else:
                 raise ValueError("No tab named '%s'; tab names are: %s" % (tab,
                     commas([tab_widget.tabText(i) for i in range(tab_widget.count())], "and")))
+
+        if attr_name is not None:
+            menu = (self.render_attr_menu_button if self.mode_widget.tabText(
+                self.mode_widget.currentIndex()) == "Render" else self.select_attr_menu_button).menu()
+            menu.aboutToShow.emit()
+            for action in menu.actions():
+                if action.text() == attr_name:
+                    action.trigger()
+                    break
+            else:
+                raise ValueError("No attribute named '%s'; attribute names are: %s" % (attr_name,
+                    commas([act.text() for act in menu.actions()], "and")))
 
     @property
     def default_render_color_markers(self):
