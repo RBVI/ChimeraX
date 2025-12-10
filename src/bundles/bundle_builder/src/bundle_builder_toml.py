@@ -90,6 +90,19 @@ from numpy import get_include as get_numpy_include_dirs
 
 cpu_count = os.cpu_count()
 
+
+def _find_openmp_mac():
+    """Return (include_dir, lib_dir) for libomp on macOS, or (None, None) if not found."""
+    candidates = [
+        '/opt/homebrew/opt/libomp',  # Apple Silicon
+        '/usr/local/opt/libomp',      # Intel
+    ]
+    for path in candidates:
+        if os.path.exists(os.path.join(path, 'lib', 'libomp.dylib')):
+            return (os.path.join(path, 'include'), os.path.join(path, 'lib'))
+    return (None, None)
+
+
 try:
     from pybind11.setup_helpers import Pybind11Extension
 except:
@@ -706,6 +719,24 @@ class Bundle:
                     else:
                         shutil.copy2(entry, destination)
 
+    def _copy_openmp_lib(self):
+        omp_inc, omp_lib = _find_openmp_mac()
+        if not omp_lib:
+            return
+        src = os.path.join(omp_lib, 'libomp.dylib')
+        dst = os.path.join("src", "lib", "libomp.dylib")
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copy2(src, dst)
+        # Change the library's install_name so binaries linking against it
+        # record @rpath/libomp.dylib instead of the absolute Homebrew path
+        subprocess.run(
+            ["install_name_tool", "-id", "@rpath/libomp.dylib", dst],
+            check=True
+        )
+        if self.package not in self.setup_arguments["package_data"]:
+            self.setup_arguments["package_data"][self.package] = []
+        self.setup_arguments["package_data"][self.package].append("lib/libomp.dylib")
+
     # Since we aren't trusting setuptools to compile libraries properly we have
     # to remove them ourselves. Work around the prepare_metadata_for_build_editable
     # bug.
@@ -808,6 +839,14 @@ class Bundle:
             pass
         # Copy additional files into package source tree
         self._copy_extrafiles()
+        # Copy libomp.dylib on macOS if any module uses OpenMP
+        uses_openmp = any(
+            getattr(cm, 'uses_openmp', False) for cm in self.c_modules
+        ) or any(
+            getattr(cl, 'uses_openmp', False) for cl in self.c_libraries
+        )
+        if sys.platform == "darwin" and uses_openmp:
+            self._copy_openmp_lib()
         if build_exts:
             # Build C libraries and executables
             for lib in self.c_libraries:
@@ -973,6 +1012,7 @@ class _CompiledCode:
         self.macros = []
         self.target_lang = attrs.get("target-lang", None)
         self.limited_api = attrs.get("limited-api", None)
+        self.uses_openmp = attrs.get("uses-openmp", False)
         defines = attrs.get("define-macros", [])
         self.source_files = []
         for entry in source_files:
@@ -1099,6 +1139,21 @@ class _CompiledCode:
             if not any([flag.startswith("-std=") for flag in self.compile_arguments]):
                 cpp_flags.append("-std=c++11")
             extra_link_args = []
+        if self.uses_openmp:
+            if sys.platform == "darwin":
+                omp_inc, omp_lib = _find_openmp_mac()
+                if omp_inc:
+                    inc_dirs.append(omp_inc)
+                    lib_dirs.append(omp_lib)
+                    cpp_flags.extend(['-Xpreprocessor', '-fopenmp'])
+                    libraries.append('omp')
+                    extra_link_args.append('-Wl,-rpath,@loader_path')
+                # else: silently skip, pragmas become no-ops
+            elif sys.platform == "win32":
+                cpp_flags.append('/openmp')
+            else:
+                cpp_flags.append('-fopenmp')
+                extra_link_args.append('-fopenmp')
         for req in self.requires:
             if not os.path.exists(req):
                 return None

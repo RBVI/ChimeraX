@@ -20,7 +20,7 @@
     <Category name="Volume Data"/>
   </Categories>
 
-  <CModule name="_map">
+  <CModule name="_map" usesOpenMP="true">
     <SourceFile>_map/boxcut.cpp</SourceFile>
     <SourceFile>_map/colors.cpp</SourceFile>
     <SourceFile>_map/contourpy.cpp</SourceFile>
@@ -41,18 +41,6 @@
     <SourceFile>_map/interpolate.cpp</SourceFile>
     <SourceFile>_map/moments.cpp</SourceFile>
     <Library>arrays</Library>
-    <!-- 
-    <CompileArgument platform="mac">-Xpreprocessor</CompileArgument>
-    <CompileArgument platform="mac">-fopenmp</CompileArgument>
-    <CompileArgument platform="mac">-I/opt/homebrew/opt/libomp/include</CompileArgument>
-    <CompileArgument platform="mac">-I/usr/local/opt/libomp/include</CompileArgument>
-    <LinkArgument platform="mac">-L/opt/homebrew/opt/libomp/lib</LinkArgument>
-    <LinkArgument platform="mac">-L/usr/local/opt/libomp/lib</LinkArgument>
-    <LinkArgument platform="mac">-lomp</LinkArgument>
-    <CompileArgument platform="linux">-fopenmp</CompileArgument>
-    <LinkArgument platform="linux">-fopenmp</LinkArgument>
-    <CompileArgument platform="windows">/openmp</CompileArgument>
-    -->
   </CModule>
 
   <Dependencies>
