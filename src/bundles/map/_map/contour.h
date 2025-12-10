@@ -55,48 +55,15 @@ class Contour_Surface
   virtual TIndex triangle_count() = 0;
   virtual void geometry(float *vertex_xyz, VIndex *triangle_vertex_indices) = 0;
   virtual void normals(float *normals) = 0;
-  // Combined method for algorithms that can compute normals inline (e.g., Flying Edges)
-  // Default implementation just calls geometry() then normals()
-  virtual void geometry_with_normals(float *vertex_xyz, VIndex *triangle_vertex_indices,
-                                     float *normals_xyz) {
-    geometry(vertex_xyz, triangle_vertex_indices);
-    normals(normals_xyz);
-  }
 };
-
-// Algorithm constants
-const int ALGORITHM_FLYING_EDGES = 0;
-const int ALGORITHM_MARCHING_CUBES = 1;
 
 template <class Data_Type>
 Contour_Surface *surface(const Data_Type *grid,
 			 const AIndex size[3], const GIndex stride[3],
-			 float threshold, bool cap_faces, int algorithm = ALGORITHM_MARCHING_CUBES);
-
-// Forward declare marching cubes surface class
-template <class Data_Type> class CSurface;
-
+			 float threshold, bool cap_faces);
 }
 
-// Include algorithm implementations
-#include "flying_edges.h"
-#include "marching_cubes.h"
+#include "contour.cpp"	// template implementation
 
-namespace Contour_Calculation
-{
-  template <class Data_Type>
-  Contour_Surface *surface(const Data_Type *grid,
-			   const AIndex size[3], const GIndex stride[3],
-			   float threshold, bool cap_faces, int algorithm)
-  {
-    if (algorithm == ALGORITHM_MARCHING_CUBES) {
-      return new CSurface<Data_Type>(grid, size, stride, threshold, cap_faces,
-                                     CONTOUR_ARRAY_BLOCK_SIZE);
-    }
-    // Default: Flying Edges
-    return new FlyingEdges::FlyingEdgesSurfaceWrapper<Data_Type>(grid, size, stride,
-								  threshold, cap_faces);
-  }
-}
 
 #endif

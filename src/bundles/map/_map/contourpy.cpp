@@ -41,7 +41,7 @@ using namespace Contour_Calculation;
 //
 template <class T>
 void contour_surface(const Reference_Counted_Array::Array<T> &data,
-		     float threshold, bool cap_faces, int algorithm, Contour_Surface **cs)
+		     float threshold, bool cap_faces, Contour_Surface **cs)
 {
   // contouring calculation requires contiguous array
   // put sizes in x, y, z order
@@ -49,7 +49,7 @@ void contour_surface(const Reference_Counted_Array::Array<T> &data,
 		    static_cast<AIndex>(data.size(1)),
 		    static_cast<AIndex>(data.size(0))};
   GIndex stride[3] = {data.stride(2), data.stride(1), data.stride(0)};
-  *cs = surface(data.values(), size, stride, threshold, cap_faces, algorithm);
+  *cs = surface(data.values(), size, stride, threshold, cap_faces);
 }
 
 // ----------------------------------------------------------------------------
@@ -58,14 +58,14 @@ static PyObject *surface_py2(PyObject *, PyObject *args, PyObject *keywds)
 {
   PyObject *py_data;
   float threshold;
-  int cap_faces = 1, return_normals = 0, algorithm = 1;
-  const char *kwlist[] = {"data", "threshold", "cap_faces", "calculate_normals", "algorithm", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("Of|ppi"),
+  int cap_faces = 1, return_normals = 0;
+  const char *kwlist[] = {"data", "threshold", "cap_faces", "calculate_normals", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("Of|pp"),
 				   (char **)kwlist,
 				   &py_data, &threshold, &cap_faces,
-				   &return_normals, &algorithm))
+				   &return_normals))
     return NULL;
-
+  
   Numeric_Array data;
   if (!array_from_python(py_data, 3, &data))
     return NULL;
@@ -73,7 +73,7 @@ static PyObject *surface_py2(PyObject *, PyObject *args, PyObject *keywds)
   Contour_Surface *cs;
   Py_BEGIN_ALLOW_THREADS
   call_template_function(contour_surface, data.value_type(),
-  			 (data, threshold, cap_faces, algorithm, &cs));
+  			 (data, threshold, cap_faces, &cs));
   Py_END_ALLOW_THREADS
 
   float *vxyz, *nxyz;
@@ -83,10 +83,9 @@ static PyObject *surface_py2(PyObject *, PyObject *args, PyObject *keywds)
   PyObject *tv_indices = python_int_array(cs->triangle_count(), 3, &tvi);
 
   Py_BEGIN_ALLOW_THREADS
+  cs->geometry(vxyz, reinterpret_cast<VIndex *>(tvi));
   if (return_normals)
-      cs->geometry_with_normals(vxyz, reinterpret_cast<VIndex *>(tvi), nxyz);
-  else
-      cs->geometry(vxyz, reinterpret_cast<VIndex *>(tvi));
+      cs->normals(nxyz);
 
   delete cs;
   Py_END_ALLOW_THREADS
