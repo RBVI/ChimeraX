@@ -49,18 +49,6 @@ else:
 cpu_count = os.cpu_count()
 
 
-def _find_openmp_mac():
-    """Return (include_dir, lib_dir) for libomp on macOS, or (None, None) if not found."""
-    candidates = [
-        "/opt/homebrew/opt/libomp",  # Apple Silicon
-        "/usr/local/opt/libomp",  # Intel
-    ]
-    for path in candidates:
-        if os.path.exists(os.path.join(path, "lib", "libomp.dylib")):
-            return (os.path.join(path, "include"), os.path.join(path, "lib"))
-    return (None, None)
-
-
 # Python version was 3.7 in ChimeraX 1.0
 CHIMERAX1_0_PYTHON_VERSION = Version("3.7")
 
@@ -104,12 +92,6 @@ class BundleBuilder:
             pass
         # Copy additional files into package source tree
         self._copy_extrafiles(self.extrafiles)
-        # Copy libomp.dylib on macOS if any module uses OpenMP
-        uses_openmp = any(
-            getattr(cm, "uses_openmp", False) for cm in self.c_modules
-        ) or any(getattr(cl, "uses_openmp", False) for cl in self.c_libraries)
-        if sys.platform == "darwin" and uses_openmp:
-            self._copy_openmp_lib()
         # Build C libraries and executables
         import os
 
@@ -158,12 +140,6 @@ class BundleBuilder:
             pass
         # Copy additional files into package source tree
         self._copy_extrafiles(self.extrafiles)
-        # Copy libomp.dylib on macOS if any module uses OpenMP
-        uses_openmp = any(
-            getattr(cm, "uses_openmp", False) for cm in self.c_modules
-        ) or any(getattr(cl, "uses_openmp", False) for cl in self.c_libraries)
-        if sys.platform == "darwin" and uses_openmp:
-            self._copy_openmp_lib()
         # Build C libraries and executables
         import os
 
@@ -518,11 +494,9 @@ class BundleBuilder:
             except ValueError:
                 minor = 1
             uses_numpy = cm.get("usesNumpy") == "true"
-            uses_openmp = cm.get("usesOpenMP") == "true"
             c = _CModule(
                 mod_name,
                 uses_numpy,
-                uses_openmp,
                 major,
                 minor,
                 self.installed_library_dir,
@@ -537,7 +511,6 @@ class BundleBuilder:
             c = _CLibrary(
                 lib.get("name", ""),
                 lib.get("usesNumpy") == "true",
-                lib.get("usesOpenMP") == "true",
                 lib.get("static") == "true",
                 self.installed_library_dir,
                 self.limited_api,
@@ -702,29 +675,6 @@ class BundleBuilder:
                     if os.path.exists(dstdir):
                         shutil.rmtree(dstdir)
                     shutil.copytree(src, dstdir)
-
-    def _copy_openmp_lib(self):
-        omp_inc, omp_lib = _find_openmp_mac()
-        # For this library, we'll just return if we don't have it,
-        # and OpenMP code will run single-threaded
-        if not omp_lib:
-            return
-        import shutil
-        import subprocess
-
-        src = os.path.join(omp_lib, "libomp.dylib")
-        dst = os.path.join("src", "lib", "libomp.dylib")
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        shutil.copyfile(src, dst)
-        # Change the library's install_name so binaries linking against it
-        # record @rpath/libomp.dylib instead of the absolute Homebrew path
-        subprocess.run(
-            ["install_name_tool", "-id", "@rpath/libomp.dylib", dst],
-            check=True
-        )
-        if self.package not in self.setup_arguments["package_data"]:
-            self.setup_arguments["package_data"][self.package] = []
-        self.setup_arguments["package_data"][self.package].append("lib/libomp.dylib")
 
     def _expand_datafiles(self, files):
         import os
@@ -945,10 +895,9 @@ class BundleBuilder:
 
 
 class _CompiledCode:
-    def __init__(self, name, uses_numpy, uses_openmp, install_dir, limited_api):
+    def __init__(self, name, uses_numpy, install_dir, limited_api):
         self.name = name
         self.uses_numpy = uses_numpy
-        self.uses_openmp = uses_openmp
         self.requires = []
         self.source_files = []
         self.frameworks = []
@@ -1036,23 +985,6 @@ class _CompiledCode:
             libraries = self.libraries
             cpp_flags = ["-std=c++11"]
             extra_link_args = []
-        if self.uses_openmp:
-            if sys.platform == "darwin":
-                omp_inc, omp_lib = _find_openmp_mac()
-                if omp_inc:
-                    inc_dirs.append(omp_inc)
-                    # Link against our local copy in src/lib which has the
-                    # install_name changed to @rpath/libomp.dylib
-                    lib_dirs.append(os.path.join("src", "lib"))
-                    cpp_flags.extend(["-Xpreprocessor", "-fopenmp"])
-                    libraries.append("omp")
-                    extra_link_args.append("-Wl,-rpath,@loader_path/lib")
-                # else: silently skip, pragmas become no-ops
-            elif sys.platform == "win32":
-                cpp_flags.append("/openmp")
-            else:
-                cpp_flags.append("-fopenmp")
-                extra_link_args.append("-fopenmp")
         for req in self.requires:
             if not os.path.exists(req):
                 return None
@@ -1177,10 +1109,8 @@ class _CompiledCode:
 
 
 class _CModule(_CompiledCode):
-    def __init__(
-        self, name, uses_numpy, uses_openmp, major, minor, libdir, limited_api
-    ):
-        super().__init__(name, uses_numpy, uses_openmp, libdir, limited_api)
+    def __init__(self, name, uses_numpy, major, minor, libdir, limited_api):
+        super().__init__(name, uses_numpy, libdir, limited_api)
         self.major = major
         self.minor = minor
 
@@ -1219,8 +1149,8 @@ class _CModule(_CompiledCode):
 
 
 class _CLibrary(_CompiledCode):
-    def __init__(self, name, uses_numpy, uses_openmp, static, libdir, limited_api):
-        super().__init__(name, uses_numpy, uses_openmp, libdir, limited_api)
+    def __init__(self, name, uses_numpy, static, libdir, limited_api):
+        super().__init__(name, uses_numpy, libdir, limited_api)
         self.static = static
 
     def compile(self, logger, dependencies, debug=False):
@@ -1333,7 +1263,7 @@ class _CExecutable(_CompiledCode):
             # Remove .exe suffix because it will be added
             if name.endswith(".exe"):
                 name = name[:-4]
-        super().__init__(name, False, False, execdir, limited_api)
+        super().__init__(name, False, execdir, limited_api)
 
     def compile(self, logger, dependencies, debug=False):
         compiler, objs, extra_link_args = self.compile_objects(
