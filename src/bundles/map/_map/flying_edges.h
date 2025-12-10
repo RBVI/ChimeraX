@@ -149,7 +149,7 @@ public:
   // Compute normals from gradient at each vertex position (fallback when not
   // inlined)
   void normals(float *normals_xyz, const float *vertex_xyz) {
-    // #pragma omp parallel for schedule(static)
+    #pragma omp parallel for schedule(static)
     for (VIndex v = 0; v < total_vertices; ++v) {
       float x = vertex_xyz[v * 3 + 0];
       float y = vertex_xyz[v * 3 + 1];
@@ -397,7 +397,7 @@ private:
     const GIndex zstride = stride[2];
     const Data_Type thresh = static_cast<Data_Type>(threshold);
 
-    // #pragma omp parallel for collapse(2) schedule(static)
+    #pragma omp parallel for collapse(2) schedule(static)
     for (int64_t k = 0; k < nz; ++k) {
       for (int64_t j = 0; j < ny; ++j) {
         const AIndex row_index = k * ny + j;
@@ -446,14 +446,14 @@ private:
 
     // Thread-local storage for counts - each thread gets its own copy
     // Will be reduced into edge_meta_data at the end
-    // #pragma omp parallel
+    #pragma omp parallel
     {
       // Thread-local accumulators (zeroed)
       std::vector<VIndex> local_y_ints(num_x_rows, 0);
       std::vector<VIndex> local_z_ints(num_x_rows, 0);
       std::vector<TIndex> local_num_tris(num_x_rows, 0);
 
-      // #pragma omp for collapse(2) schedule(static) nowait
+      #pragma omp for collapse(2) schedule(static) nowait
       for (int64_t k = 0; k < (int64_t)(nz - 1); ++k) {
         for (int64_t j = 0; j < (int64_t)(ny - 1); ++j) {
           // Row indices for the 4 x-rows bounding this voxel row
@@ -580,7 +580,7 @@ private:
       }
 
       // Reduce thread-local counts into global edge_meta_data
-      // #pragma omp critical
+      #pragma omp critical
       {
         for (AIndex i = 0; i < num_x_rows; ++i) {
           edge_meta_data[i].y_ints += local_y_ints[i];
@@ -763,7 +763,7 @@ private:
     const GIndex ystride = stride[1];
     const GIndex zstride = stride[2];
 
-    // #pragma omp parallel for collapse(2) schedule(static)
+    #pragma omp parallel for collapse(2) schedule(static)
     for (int64_t k = 0; k < (int64_t)(nz - 1); ++k) {
       for (int64_t j = 0; j < (int64_t)(ny - 1); ++j) {
         // Get metadata for the 4 x-rows
