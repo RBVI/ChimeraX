@@ -29,6 +29,7 @@ class GridCanvas:
         self.alignment = alignment
         self.grid_data = grid_data
         self.weights = weights
+        self._destroyed = False
 
         import string
         self.row_labels = list(string.ascii_uppercase) + ['?', 'gap', 'misc']
@@ -202,6 +203,7 @@ class GridCanvas:
                 self._update_scene_rects()
 
     def destroy(self):
+        self._destroyed = True
         for handler in self.handlers:
             handler.remove()
 
@@ -656,7 +658,11 @@ class GridCanvas:
         # Apparently the height of the horizontal scrollbar gets added to main view at some point,
         # need to compensate
         from Qt.QtCore import QTimer, Qt
-        def adjust_scrollbars(mlv=self.main_label_view, mv=self.main_view):
+        def adjust_scrollbars(self=self, mlv=self.main_label_view, mv=self.main_view):
+            if self._destroyed:
+                return
+            mlv = self.main_label_view
+            mv = self.main_view
             sb1 = mlv.verticalScrollBar()
             sb2 = mv.verticalScrollBar()
             min_val = min(sb1.minimum(), sb2.minimum())
@@ -670,7 +676,9 @@ class GridCanvas:
             mvr = mv.viewport().rect()
             if lvr.height() > mvr.height():
                 mlv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-                def right_scroll(mlv=mlv):
+                def right_scroll(self=self, mlv=mlv):
+                    if self._destroyed:
+                        return
                     hsb = mlv.horizontalScrollBar()
                     hsb.setValue(hsb.maximum())
                 QTimer.singleShot(100, right_scroll)
