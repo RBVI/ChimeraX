@@ -36,7 +36,7 @@ jobs:
     name: Build ChimeraX for Intel Macs
     runs-on: macos-15-intel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - uses: Tiryoh/gha-jobid-action@v1

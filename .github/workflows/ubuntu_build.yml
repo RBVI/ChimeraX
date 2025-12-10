@@ -21,7 +21,7 @@ jobs:
       PYOPENGL_PLATFORM: egl
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh

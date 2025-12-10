@@ -72,14 +72,15 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/ambertools/ambertools-20-Linux-Rocky-8.10.tar.bz2
-          prereqs/ambertools/ambertools-20-Linux-Rocky-9.6.tar.bz2
-          prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.04.tar.bz2
-          prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2
-          prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2
-          prereqs/ambertools/ambertools-20-Linux-Freedesktop-23.08.tar.bz2
-          prereqs/ambertools/ambertools-24-Linux-Freedesktop-24.08.tar.bz2
-          prereqs/ambertools/ambertools-24-Linux-arm-Freedesktop-24.08.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Rocky-8.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Rocky-9.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Rocky-10.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Freedesktop-23.tar.bz2
+          prereqs/ambertools/ambertools-24-Linux-Freedesktop-24.tar.bz2
+          prereqs/ambertools/ambertools-24-Linux-arm-Freedesktop-24.tar.bz2
         key: ${{ runner.os }}-${{ inputs.architecture }}-ambertools
 
     - name: Restore cached ambertools (Windows)

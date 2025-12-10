@@ -44,17 +44,7 @@ class ProfileGridsTool(ToolInstance):
         parent.setMouseTracking(True)
         from .grid_canvas import GridCanvas
         if session_data is None:
-            import os
-            num_cpus = os.cpu_count()
-            if num_cpus is None:
-                num_cpus = 1
-            from ._profile_grids import compute_profile
-            weights = [getattr(seq, 'weight', 1.0) for seq in alignment.seqs]
-            grid_data = compute_profile([seq.cpp_pointer for seq in alignment.seqs], weights, num_cpus)
-            # the returned grid data is (num positions x num symbols), which is the transpose of what we
-            # display, so to reduce confusion in the code, transpose it
-            import numpy
-            grid_data = numpy.transpose(grid_data)
+            grid_data, weights = self.compute_grid(alignment.seqs)
         else:
             grid_data, weights = session_data
         self.grid_canvas = GridCanvas(parent, self, self.alignment, grid_data, weights)
@@ -90,6 +80,19 @@ class ProfileGridsTool(ToolInstance):
 
         self.grid_canvas.alignment_notification(note_name, note_data)
 
+    def compute_grid(self, seqs):
+        import os
+        num_cpus = os.cpu_count()
+        if num_cpus is None:
+            num_cpus = 1
+        from ._profile_grids import compute_profile
+        weights = [getattr(seq, 'weight', 1.0) for seq in seqs]
+        grid_data = compute_profile([seq.cpp_pointer for seq in seqs], weights, num_cpus)
+        # the returned grid data is (num positions x num symbols), which is the transpose of what we
+        # display, so to reduce confusion in the code, transpose it
+        import numpy
+        return numpy.transpose(grid_data), weights
+
     def delete(self):
         self.grid_canvas.destroy()
         self.alignment.detach_viewer(self)
@@ -98,10 +101,12 @@ class ProfileGridsTool(ToolInstance):
     def fill_context_menu(self, menu, x, y):
         from Qt.QtGui import QAction
         cell_menu = menu.addMenu("Chosen Cells")
+        action = QAction("Change in Prevalence...", cell_menu)
+        action.triggered.connect(lambda *args, f=self.grid_canvas.prevalence_from_cells: f())
+        cell_menu.addAction(action)
         action = QAction("List Sequence Names", cell_menu)
         action.triggered.connect(lambda *args, f=self.grid_canvas.list_from_cells: f())
         cell_menu.addAction(action)
-        cell_menu.setEnabled(bool(self.grid_canvas.chosen_cells))
         alignment_menu = cell_menu.addMenu("New Alignment")
         viewers = self.session.alignments.registered_viewers("alignment")
         viewers.sort()
@@ -109,6 +114,7 @@ class ProfileGridsTool(ToolInstance):
             alignment_menu.addAction(viewer.title())
         alignment_menu.triggered.connect(
             lambda action, f=self.grid_canvas.alignment_from_cells: f(action.text().lower()))
+        cell_menu.setEnabled(bool(self.grid_canvas.chosen_cells))
 
         self.alignment.add_headers_menu_entry(menu)
 
