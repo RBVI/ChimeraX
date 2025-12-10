@@ -29,6 +29,7 @@ class PrevalenceTool:
     def __init__(self, grid, tool_window):
         self.grid = grid
         self.tool_window = tool_window
+        tool_window.help = "help:user/tools/profilegrid.html#context"
         self._prev_chosen_cells = None
 
         from Qt.QtWidgets import QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QPushButton
