@@ -22,11 +22,14 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def prep_input(structure, origin, extent, show_box, probe_in, probe_out, step):
+def prep_input(structure, include_atoms, origin, extent, show_box, box_name, probe_in, probe_out, step):
 # Get atomic information of the target structure
     atom_infos = []
     atoms = structure.atoms
-    for a in atoms.filter(atoms.structure_categories == "main"):
+    receptor_atoms = atoms.filter(atoms.structure_categories == "main")
+    if include_atoms is not None:
+        receptor_atoms = receptor_atoms | include_atoms.filter(include_atoms.structures == structure)
+    for a in receptor_atoms:
         atom_infos.append(
             (
                 a.residue.number,
@@ -80,8 +83,8 @@ def prep_input(structure, origin, extent, show_box, probe_in, probe_out, step):
                 bild_f.flush()
                 from chimerax.core.commands import run, StringArg
                 session = structure.session
-                run(session, "open %s id %s name 'cavity search box'" % (StringArg.unparse(bild_f.name),
-                    ".".join([str(x) for x in session.models.next_id(structure)])))
+                run(session, "open %s id %s name '%s'" % (StringArg.unparse(bild_f.name),
+                    ".".join([str(x) for x in session.models.next_id(structure)]), box_name))
 
         from pyKVFinder.grid import _get_vertices_from_box, _get_sincos, _get_dimensions
         from _pyKVFinder import _filter_pdb
