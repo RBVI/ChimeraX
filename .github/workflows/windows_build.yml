@@ -45,6 +45,7 @@ jobs:
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
         with:
           job_name: ${{ format('Build ChimeraX for Windows ({0}, {1}) / Daily', inputs.branch, inputs.release_type) }}
+          per_page: 100
       - name: Note the run and job IDs on Plato
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
         uses: nick-fields/retry@v3
@@ -134,6 +135,7 @@ jobs:
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
         with:
           job_name: ${{ format('Build ChimeraX for Windows ({0}, {1}) / Candidate', inputs.branch, inputs.release_type) }}
+          per_page: 100
       - name: Note the run and job IDs on Plato
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
         uses: nick-fields/retry@v3
