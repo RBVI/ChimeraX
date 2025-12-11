@@ -135,6 +135,8 @@ class Collection(State):
 
     def __eq__(self, items):
         if not isinstance(items, Collection):
+            if isinstance(items, self._object_class):
+                return self._pointers == items._c_pointer.value
             return False
         import numpy
         return numpy.array_equal(items._pointers, self._pointers)

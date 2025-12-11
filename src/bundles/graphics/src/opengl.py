@@ -502,9 +502,6 @@ class Render:
         # Camera origin, y, and xshift for SHADER_STEREO_360 mode
         self._stereo_360_params = ((0,0,0),(0,1,0),0)
 
-        self._mono_camera_origin = (0, 0, 0)
-        self._mono_camera_fov = 60
-
         # OpenGL texture size limit
         self._max_3d_texture_size = None
 
@@ -748,7 +745,7 @@ class Render:
         if self.SHADER_TEXTURE_CUBEMAP & c:
             shader.set_integer("texcube", 0)
         if self.SHADER_VOLUME_RAYCASTING & c:
-            self._set_camera_params()
+            self._set_raycasting_background()
             self._set_window_params()
         if not (self.SHADER_VERTEX_COLORS & c or self.SHADER_SHOW_DEPTH_BUFFER & c):
             self.set_model_color()
@@ -816,6 +813,7 @@ class Render:
     def flush_shader_cache(self):
         self._opengl_context.shader_programs = {}
         self._opengl_context.current_shader_program = None
+
     def set_projection_matrix(self, pm=None):
         '''
         Set the shader to use the given 4x4 OpenGL projection matrix.
@@ -830,6 +828,14 @@ class Render:
         p = self.current_shader_program
         if p is not None and not (p.capabilities & self.SHADER_NO_PROJECTION_MATRIX):
             p.set_matrix('projection_matrix', pm)
+        # For volume raycasting, also set the inverse projection matrix
+        if p is not None and p.capabilities & self.SHADER_VOLUME_RAYCASTING:
+            import numpy
+            try:
+                inv_pm = numpy.linalg.inv(pm)
+                p.set_matrix('inverse_projection_matrix', inv_pm)
+            except numpy.linalg.LinAlgError:
+                pass  # Singular matrix, skip
 
     def set_view_matrix(self, vm):
         '''Set the camera view matrix, mapping scene to camera coordinates.'''
@@ -874,16 +880,19 @@ class Render:
                 if cmm:
                     p.set_matrix('model_matrix', cmm.opengl_matrix())
                     self.set_clip_parameters()
-            if (
-                self.SHADER_STEREO_360 & p.capabilities
-                or self.SHADER_VOLUME_RAYCASTING & p.capabilities
-            ):
+            if self.SHADER_STEREO_360 & p.capabilities:
                 cmm = self.current_model_matrix
                 cvm = self.current_view_matrix
-                if cmm and not self.SHADER_VOLUME_RAYCASTING & p.capabilities:
+                if cmm:
                     p.set_matrix('model_matrix', cmm.opengl_matrix())
                 if cvm:
                     p.set_matrix('view_matrix', cvm.opengl_matrix())
+            if self.SHADER_VOLUME_RAYCASTING & p.capabilities:
+                cvm = self.current_view_matrix
+                if cvm:
+                    # Raycasting needs inverse view matrix (camera to scene)
+                    inv_vm = cvm.inverse(is_orthonormal=True)
+                    p.set_matrix('inverse_view_matrix', inv_vm.opengl_matrix())
             if not self.lighting.move_lights_with_camera:
                 self.update_lighting_parameters()
 
@@ -1432,30 +1441,18 @@ class Render:
     def finish_rendering(self):
         GL.glFinish()
 
-    def _set_camera_params(self, camera_origin=None, camera_fov=None):
-        if camera_origin is None:
-            camera_origin = self._mono_camera_origin
-            camera_fov = self._mono_camera_fov
-        else:
-            self._mono_camera_origin = camera_origin
-            self._mono_camera_fov = camera_fov
+    def _set_raycasting_background(self):
         p = self.current_shader_program
         if p is not None and p.capabilities & self.SHADER_VOLUME_RAYCASTING:
-            import math
-
-            p.set_vector3("camera_pos", tuple(camera_origin))
-            p.set_float("camera_fov", camera_fov)
             p.set_rgba("background_color", self._last_background_color)
-            # p.set_float("focal_length", 1.0 / math.tan(math.radians(camera_fov / 2)))
 
     def _set_window_params(self) -> None:
         p = self.current_shader_program
         if p is not None and p.capabilities & self.SHADER_VOLUME_RAYCASTING:
-            pscale = self.pixel_scale()
-            width = self.opengl_context.window.width() * pscale
-            height = self.opengl_context.window.height() * pscale
+            # Using the render target size instead of the context's window's
+            # size gives the proper viewport dimensions to stereo cameras
+            width, height = self.render_size()
             p.set_vector2("window_size", (width, height))
-            # p.set_float("aspect_ratio", (width / height))
 
     def set_volume_parameters(
         self,
@@ -3201,7 +3198,7 @@ class Texture:
         d = data if data.flags['C_CONTIGUOUS'] else data.copy()
         # OpenGL doesn't support float64 textures so if for some reason that's the data type
         # we end up with truncate it to float32
-        from numpy import float64, float32 
+        from numpy import float64, float32
         if d.dtype == float64:
             self.data = d.astype(float32)
         else:
