@@ -1255,15 +1255,7 @@ class VolumeRaycastDrawing(Drawing):
         renderer.enable_capabilities |= renderer.SHADER_VOLUME_RAYCASTING
         depth_cue_enabled = renderer.enable_capabilities & renderer.SHADER_DEPTH_CUE
         renderer.enable_capabilities &= ~renderer.SHADER_DEPTH_CUE
-        view = self._image_render._session.main_view
-        from chimerax.graphics.camera import MonoCamera
-
-        if isinstance(view.camera, MonoCamera):
-            renderer._set_camera_params(
-                view.camera.position.origin(), view.camera.field_of_view
-            )
-        else:
-            renderer._set_camera_params(view.camera.position.origin(), 1)
+        renderer._set_raycasting_background()
         renderer._set_window_params()
         # Get the full bounds so users can crop the volume to regions of interest
         # See VTK
