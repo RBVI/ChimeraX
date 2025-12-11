@@ -121,8 +121,8 @@ jobs:
             release_type: candidate
           - branch: develop
             release_type: daily
-    #          - branch: flying_edges
-    #            release_type: techpreview
+          - branch: flying_edges
+            release_type: techpreview
     uses: ./.github/workflows/mac_arm_build.yml
     with:
       branch: ${{ matrix.branch }}
