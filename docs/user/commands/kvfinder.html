@@ -35,11 +35,13 @@ class="clRighticon" title="User Guide Index"/></a>
 [&nbsp;<b>removalDistance</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>volumeCutoff</b>&nbsp;&nbsp;<i>minvol</i>&nbsp;]
 [&nbsp;<b>gridSpacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
-[&nbsp;<b>showTool</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>includeAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>boxAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;[&nbsp;<b>boxPad</b>&nbsp;&nbsp;<i>p</i>&nbsp;]]
 [&nbsp;<b>boxOrigin</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
 [&nbsp;<b>boxExtent</b>&nbsp;&nbsp;<i>length</i>&nbsp;|&nbsp;<i>lx,ly,lz</i>&nbsp;]
 [&nbsp;<b>showBox</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>showTool</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <br>
 </blockquote>
 </h3>
@@ -116,6 +118,34 @@ Grid spacing no greater than half the <b>probeIn</b> value
 is recommended; decreasing the spacing gives higher resolution,
 but may also increase the calculation time significantly.
 </p><p>
+By default, the entire macromolecular surface will be examined.
+However,
+</p>
+<ol>
+<li>the <b>includeAtoms</b> option allows specifying additional atoms
+  to include in that surface (for example, a cofactor)
+<li>cavity-finding can be limited to a rectangular box:
+  <ul>
+  <li>around specified atoms with <b>boxAtoms</b> option, with padding 
+  as per the <b>boxPad</b> option (default <b>2.0</b> &Aring;)
+  <li>alternatively, defined by giving <i>both</i>:
+    <ul>
+    <li><b>boxOrigin</b> <i>x,y,z</i> 
+    &ndash; coordinates of the corner of the box separated by commas only
+    <li><b>boxExtent</b> <i>length</i>&nbsp;|&nbsp;<i>lx,ly,lz</i>
+    &ndash; box side length given as a single number in &Aring; 
+    for a cubic box, or as three numbers separated by commas only 
+    for the box dimensions along X, Y, and Z
+    </ul>
+  </ul>
+</ol>
+<p>
+The <b>showBox</b> option indicates whether to create a box-outline model 
+when the search is limited to a box (default <b>true</b>).
+The model is named <b>cavity search box</b> and can be hidden/shown or 
+closed in the same ways as other models, such as by using the 
+<a href="../tools/modelpanel.html"><b>Model Panel</b></a>.
+</p><p>
 The <b>showTool</b> option indicates whether to also tabulate the results in an
 interactive <a href="../tools/findcavities.html#cavitylist">cavity list</a>
 (default <b>true</b>).
@@ -126,28 +156,9 @@ and <a href="../tools/findcavities.html#cavitylist">cavity list</a>.
 If <b>false</b>, a new
 <a href="../tools/findcavities.html#cavitylist">cavity list</a>
 and additional cavity models will be created without closing the existing ones.
-</p><p>
-By default, the entire macromolecular surface will be examined.
-However, the calculation can be limited to a rectangular box by specifying
-<i>both</i> of the following:
-</p>
-<ul>
-<li><b>boxOrigin</b> <i>x,y,z</i> 
-&ndash; coordinates of the corner of the box separated by commas only
-<li><b>boxExtent</b> <i>length</i>&nbsp;|&nbsp;<i>lx,ly,lz</i>
-&ndash; box side length given as a single number in &Aring; 
-for a cubic box, or as three numbers separated by commas only 
-for the box dimensions along X, Y, and Z
-</ul>
-<p>
-The <b>showBox</b> option indicates whether to create a box-outline model 
-when the search is limited to a box (default <b>true</b>).
-The model is named <b>cavity search box</b> and can be hidden/shown or 
-closed in the same ways as other models, such as by using the 
-<a href="../tools/modelpanel.html"><b>Model Panel</b></a>.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2025</address>
+December 2025</address>
 </body></html>
