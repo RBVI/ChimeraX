@@ -734,6 +734,34 @@ class LabelModel(Model):
         # TODO
         pass
 
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        from chimerax.core.colors import Color
+        params = {}
+        scene2_params = LabelModel._label_restore_parameters(scene2_data, label_change)
+        for param_name, value1 in LabelModel._label_restore_parameters(scene1_data, label_change).items():
+            value2 = scene2_params[param_name]
+            if param_name.endswith("color"):
+                if value1 is None:
+                    if value2 is None:
+                        value = None
+                    else:
+                        value = value2 if switchover else None
+                else:
+                    if value2 is None:
+                        value = None if switchover else value1
+                    else:
+                        value = [round((1-fraction) * value1[i] + fraction * value2[i]) for i in range(4)]
+                if value is not None:
+                    value = Color(value)
+            elif isinstance(value1, str) or value1 is None or value2 is None:
+                value = value2 if switchover else value1
+            elif isinstance(value1, int):
+                value = round(((1-fraction) * value1 + fraction * value2))
+            else:
+                value = (1-fraction) * value1 + fraction * value2
+            params[param_name] = value
+        label_change(self.session, [self.label], **params)
+
     def take_snapshot(self, session, flags):
         from chimerax.core.state import State
         if flags == State.SCENE:
