@@ -268,7 +268,6 @@ class SceneManager(StateManager):
             _interpolate_clip_planes(v1, v2, fraction, current_view)
 
         # Interpolate model-specific scene data
-        # When only camera moved, skip model interpolation for performance (except for volumes)
         current_models = self.session.scenes.scene_relevant_models
         for model in current_models:
             # Check if both scenes have data for this model
@@ -283,13 +282,8 @@ class SceneManager(StateManager):
                                 hasattr(model, 'region') and
                                 hasattr(model, 'data'))
 
-                    # Skip interpolation if only camera moved (unless it's a volume)
-                    if not models_actually_moved and not is_volume:
-                        continue
-
                     # Use model's interpolation (will use custom if available, or base Model implementation)
-                    model.interpolate_scene(scene1_data, scene2_data, fraction,
-                                          switchover=(fraction >= 0.5 and not models_actually_moved))
+                    model.interpolate_scene(scene1_data, scene2_data, fraction, switchover=(fraction >= 0.5))
 
         # Handle model fading if enabled
         if fade_models:

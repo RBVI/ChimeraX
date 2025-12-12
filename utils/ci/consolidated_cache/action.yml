@@ -72,14 +72,15 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/ambertools/ambertools-20-Linux-Rocky-8.10.tar.bz2
-          prereqs/ambertools/ambertools-20-Linux-Rocky-9.6.tar.bz2
-          prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.04.tar.bz2
-          prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2
-          prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2
-          prereqs/ambertools/ambertools-20-Linux-Freedesktop-23.08.tar.bz2
-          prereqs/ambertools/ambertools-24-Linux-Freedesktop-24.08.tar.bz2
-          prereqs/ambertools/ambertools-24-Linux-arm-Freedesktop-24.08.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Rocky-8.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Rocky-9.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Rocky-10.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.tar.bz2
+          prereqs/ambertools/ambertools-20-Linux-Freedesktop-23.tar.bz2
+          prereqs/ambertools/ambertools-24-Linux-Freedesktop-24.tar.bz2
+          prereqs/ambertools/ambertools-24-Linux-arm-Freedesktop-24.tar.bz2
         key: ${{ runner.os }}-${{ inputs.architecture }}-ambertools
 
     - name: Restore cached ambertools (Windows)
@@ -107,15 +108,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/ffmpeg/ffmpeg-3.2.4.tar.bz2
-          prereqs/ffmpeg/ffmpeg-6.1.tar.xz
-          prereqs/ffmpeg/libtheora-1.1.1.tar.xz
-          prereqs/ffmpeg/libogg-1.3.2.tar.xz
-          prereqs/ffmpeg/libvpx-1.6.1.tar.xz
-          prereqs/ffmpeg/libvpx-1.13.1.tar.gz
-          prereqs/ffmpeg/yasm-1.3.0.tar.bz2
-          prereqs/ffmpeg/x264-20170123-90a61ec.tar.xz
-          prereqs/ffmpeg/x264-stable.tar.xz
+          prereqs/ffmpeg/ffmpeg-6.1.1-Linux64.exe
         key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
 
     - name: Restore cached ffmpeg (Windows)
@@ -124,7 +117,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/ffmpeg/ffmpeg-3.2.4-Windows.exe
+          prereqs/ffmpeg/ffmpeg-6.1.1-Windows64.exe
         key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
 
     - name: Restore cached ffmpeg (macOS arm64)
@@ -133,7 +126,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/ffmpeg/ffmpeg-6.0-Darwin-arm64.exe
+          prereqs/ffmpeg/ffmpeg-6.1.1-DarwinArm64.exe
         key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
 
     - name: Restore cached ffmpeg (macOS Intel)
@@ -142,7 +135,7 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/ffmpeg/ffmpeg-3.2.4-Darwin.exe
+          prereqs/ffmpeg/ffmpeg-6.1.1-DarwinIntel64.exe
         key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (Linux Intel)
@@ -257,30 +250,17 @@ runs:
       if: ${{ steps[format('cache-ffmpeg-{0}-{1}', inputs.platform, inputs.architecture)].outputs.cache-hit != 'true' && (inputs.platform != 'linux' || inputs.architecture == 'x86_64') }}
       run: |
         if [ "${{ inputs.platform }}" = "linux" ] ; then
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-3.2.4.tar.bz2 -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-6.1.tar.xz -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libtheora-1.1.1.tar.xz -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libogg-1.3.2.tar.xz -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libvpx-1.6.1.tar.xz -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/libvpx-1.13.1.tar.gz -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/yasm-1.3.0.tar.bz2 -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/x264-20170123-90a61ec.tar.xz -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/x264-stable.tar.xz -O -J
-          mv libtheora* prereqs/ffmpeg/
-          mv libogg* prereqs/ffmpeg/
-          mv libvpx* prereqs/ffmpeg/
-          mv yasm* prereqs/ffmpeg/
-          mv x264* prereqs/ffmpeg/
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-6.1.1-Linux64.exe -O -J
         fi
         if [ "${{ inputs.platform }}" = "macos" ] ; then
           if [ "${{ inputs.architecture }}" = "arm64" ] ; then
-            curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-6.0-Darwin-arm64.exe -O -J
+            curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-6.1.1-DarwinArm64.exe -O -J
           else
-            curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-3.2.4-Darwin.exe -O -J
+            curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-6.6.1-DarwinIntel64.exe -O -J
           fi
         fi
         if [ "${{ inputs.platform }}" = "windows" ] ; then
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-3.2.4-Windows.exe -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ffmpeg/ffmpeg-6.6.1-Windows64.exe -O -J
         fi
         mv ffmpeg* prereqs/ffmpeg/
 
@@ -289,13 +269,14 @@ runs:
       if: ${{ steps[format('cache-ambertools-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
       run: |
         if [ "${{ inputs.platform }}" = "linux" ] ; then
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Rocky-8.10.tar.bz2 -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Rocky-9.6.tar.bz2 -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.04.tar.bz2 -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.04.tar.bz2 -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.04.tar.bz2 -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-24-Linux-Freedesktop-24.08.tar.bz2 -O -J
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-24-Linux-arm-Freedesktop-24.08.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Rocky-8.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Rocky-9.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Rocky-10.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-20.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-22.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-20-Linux-Ubuntu-24.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-24-Linux-Freedesktop-24.tar.bz2 -O -J
+          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-24-Linux-arm-Freedesktop-24.tar.bz2 -O -J
         fi
         if [ "${{ inputs.platform }}" = "macos" ] ; then
           curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/ambertools/ambertools-flibs-20-Darwin.tar.bz2 -O -J

@@ -26,6 +26,13 @@ case $CENTOS_VER in
 		dnf -y --setopt=exclude='*.i?86' group install "Development Tools"
 		PREREQ_FILE="${ROOT}/utils/centos/9.txt"
 		;;
+	'10')
+		dnf install 'dnf-command(config-manager)'
+		/usr/bin/crb enable
+		dnf update -y
+		dnf -y --setopt=exclude='*.i?86' group install "Development Tools"
+		PREREQ_FILE="${ROOT}/utils/centos/10.txt"
+		;;
 esac
 
 mapfile -t packages < "$PREREQ_FILE" ; dnf --setopt=exclude='*.i?86' install -y "${packages[@]}"

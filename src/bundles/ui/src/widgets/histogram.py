@@ -371,7 +371,7 @@ class MarkedHistogram(QWidget):
 
     @redraw_delay.setter
     def redraw_delay(self, secs):
-        self._redraw_timer.setInterval(secs * 1000)
+        self._redraw_timer.setInterval(round(secs * 1000))
 
     @property
     def scaling(self):

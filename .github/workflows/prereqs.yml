@@ -17,7 +17,7 @@ jobs:
       change_in_win32: ${{ steps.changes.outputs.change_in_win32 }}
       any_changed: ${{ steps.changes.outputs.change_in_python == 'true' || steps.changes.outputs.change_in_ambertools == 'true' || steps.changes.outputs.change_in_ffmpeg == 'true' || steps.changes.outputs.change_in_cxservicemexs == 'true' ||  steps.changes.outputs.change_in_libglu == 'true' || steps.changes.outputs.change_in_libglu == 'true' || steps.changes.outputs.change_in_openmm == 'true' || steps.changes.outputs.change_in_qtshim == 'true' || steps.changes.outputs.change_in_rsync == 'true' || steps.changes.outputs.change_in_win32 }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v3
         id: changes
         with:
@@ -32,7 +32,7 @@ jobs:
         os: [ubuntu-22.04, ubuntu-20.04]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
 
@@ -83,7 +83,7 @@ jobs:
       - run: export GIT_DISCOVERY_ACROSS_FILESYSTEMS=1
       - run: dnf update -y
       - run: dnf install -y git-all
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: chown -R $(id -u):$(id -g) $PWD
       - run: ${PWD}/utils/set_up_centos.sh
 
@@ -126,7 +126,7 @@ jobs:
     if: needs.files-changed.outputs.any_changed == 'true'
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - run: make build-dirs build-app-dirs
 
@@ -170,7 +170,7 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64

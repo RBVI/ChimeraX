@@ -21,7 +21,7 @@ jobs:
       PYOPENGL_PLATFORM: egl
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh
@@ -36,6 +36,7 @@ jobs:
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
         with:
           job_name: ${{ format('Build ChimeraX for Ubuntu ({0}, {1}) / build-ubuntu ({2})', inputs.branch, inputs.release_type, matrix.os) }}
+          per_page: 100
       - name: Note the run and job IDs on Plato
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
         uses: nick-fields/retry@v3

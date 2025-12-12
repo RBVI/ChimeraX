@@ -103,6 +103,24 @@ without changing any preferences
 <li><b>Restore</b> populates the dialog with the last saved preferences
 </ul>
 <p>
+Additional settings:
+<ul>
+<li><b>Restrict search to box around selected atoms with padding [<i>p</i>]</b>
+(default <b>off</b>)
+&ndash; whether to limit the search space to a rectangular box around
+the current <a href="../selection.html">selection</a>, with specified padding
+(default <b>2.0</b> &Aring;)
+<li><b>Include selected atoms as part of macromolecule</b> (default <b>off</b>)
+&ndash; whether to consider the current <a href="../selection.html">selection</a>
+(for example, a cofactor) as part of the receptor instead of ignoring it
+<li><b>Replace existing results, if any</b> (default <b>on</b>) 
+&ndash; whether to overwrite the cavity dots and
+<a href="#cavitylist">cavity list</a> when the calculation is
+re-run on the same atomic model. Otherwise, a new
+<a href="#cavitylist">cavity list</a> and additional
+cavity models will be created without closing the existing ones.
+</ul>
+<p>
 Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
 runs the calculation. The first time the tool is used,
 it may take a little longer to run as
@@ -115,13 +133,6 @@ and reported in the <a href="log.html"><b>Log</b></a>.
 In the graphics window, the cavities are shown as clouds of points 
 on a grid. These collections of dots are opened as (pseudo)atomic models
 in ChimeraX, each cavity as a separate submodel assigned a unique color.
-</p><p>
-<b>Replace existing results, if any</b> (default <b>on</b>) 
-indicates whether to overwrite the cavity dots and
-<a href="#cavitylist">cavity list</a> when the calculation is
-re-run on the same atomic model. Otherwise, a new
-<a href="#cavitylist">cavity list</a> and additional
-cavity models will be created without closing the existing ones.
 <p><p>
 For more details on the method and/or to adjust additional parameters,
 see the <a href="../commands/kvfinder.html"><b>kvfinder</b></a> command.
@@ -255,5 +266,5 @@ These types of coloring can be combined with surface transparency, for example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2025</address>
+December 2025</address>
 </body></html>

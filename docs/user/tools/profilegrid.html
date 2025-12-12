@@ -127,14 +127,22 @@ since <a href="sequenceviewer.html#association">association</a>
 uses the best match.
 </p>
 
-<blockquote><b>
-<a href="#context">Context Menu</a>
+<blockquote>
+<b><a href="#context">Context Menu</a></b>
 <!--
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&#149;
+show residue-type prevalence changes for a chosen subset of sequences
+vs. all sequences
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&#149;
+list sequence names 
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&#149;
+create a new alignment
+
 <br><a href="#headers">Headers and Residue Attributes</a>
 <br><a href="sequenceviewer.html#association">Sequence-Structure Association</a>
 -->
-<br><a href="#settings">Settings</a>
-</b></blockquote>
+<br><b><a href="#settings">Settings</a></b>
+</blockquote>
 
 <a name="context"></a>
 <p class="nav">
@@ -149,6 +157,61 @@ includes:
 <li><b>Chosen Cells</b> 
 &ndash; actions based on the <a href="#chosen">chosen</a> cells, if any:
  <ul>
+ <li><b>Change in Prevalence...</b> bring up a dialog for showing 
+changes in residue-type prevalences for the chosen subset of sequences 
+relative to all sequences:
+<br>
+   <ul>
+   <li><b>Color other columns by prevalence change</b>:
+how to color columns without chosen cells
+      <ul class="none">
+      <li><b>Use [<i>N</i>] colors/thresholds</b> (initial default <b>3</b>)
+&ndash; the fold-change values (coloring thresholds) can be edited directly,
+and each color changed by clicking its color well and using the 
+system color editor
+      <li><b>Set colors from palette</b> &ndash; change the colors collectively
+by choosing a <a href="../commands/palettes.html"><b>palette</b></a>
+from the pulldown menu
+(initial default <b>^rdbu-3</b>:
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td style="background:#67a9cf" width="30px" title="#67a9cf"></td>
+<td style="background:#f7f7f7" width="30px" title="#f7f7f7"></td>
+<td style="background:#ef8a62" width="30px" title="#ef8a62"></td>
+</tr></table>)
+      <li><b>Reverse</b> &ndash; reverse the order of the colors
+      <li><b>But color cells with less than [<i>percent</i>] of sequences
+originally [<i>color</i>]</b> 
+(initial default on, color cells with original full-alignment prevalence 
+&lt;<b>0.5</b>% in
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr><span="nowrap">
+<td style="background:darkgray" width="10px" title="darkgray"></td></span>
+</tr></table>)
+      <li><b>Color transitions</b>:
+         <ul>
+         <li><b>smooth</b> (initial default) &ndash; between threshold values,
+interpolate from one color to the next
+         <li><b>sharp</b> &ndash; change color abruptly halfway between the
+threshold values
+         </ul>
+      </ul>
+      <li><b>Color chosen cells [<i>color</i>]</b> (initial default on and
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td style="background:white" width="10px" title="white"></td>
+</tr></table>)
+      <li><b>Color unchosen cells in chosen columns [<i>color</i>]</b>
+(initial default on and
+<table border cellpadding="4" cellspacing="0"
+style="display:inline-block; vertical-align:middle"><tr>
+<td style="background:darkgray" width="10px" title="darkgray"></td>
+</tr></table>)
+      <li><b>Revert</b> dialog to the last-used settings
+      <li><b>Reset</b> dialog to factory-default settings
+      <li><b>Remove</b> prevalence coloring
+      <li><b>Apply</b> the current settings
+      </ul>
  <li><b>List Sequence Names</b> &ndash; list the names of the corresponding 
 sequences in a separate dialog for copying or saving to a text file
  <li><b>New Alignment</b> &ndash; open the corresponding sequences in a
@@ -172,9 +235,9 @@ based on <b>C&alpha;</b> for peptides, <b>C4'</b> for nucleic acids
 Headers are saved to a simple text format that lists the alignment positions
 and values. See also: 
 <a href="../commands/sequence.html#header"><b>sequence header</b></a>
+  </ul>
   <li><b>Settings...</b> show the <a href="#settings"><b>Profile Grid</b>
 preferences</a> to control cell contents
-  </ul>
 </ul>
 
 <a name="settings"></a>
@@ -381,5 +444,5 @@ or a &ldquo;consensus&rdquo; sequence, if any, read from MSF)
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2025</address>
+December 2025</address>
 </body></html>

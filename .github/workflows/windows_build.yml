@@ -26,7 +26,7 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - uses: msys2/setup-msys2@v2
@@ -45,6 +45,7 @@ jobs:
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
         with:
           job_name: ${{ format('Build ChimeraX for Windows ({0}, {1}) / Daily', inputs.branch, inputs.release_type) }}
+          per_page: 100
       - name: Note the run and job IDs on Plato
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
         uses: nick-fields/retry@v3
@@ -115,7 +116,7 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - uses: msys2/setup-msys2@v2
@@ -134,6 +135,7 @@ jobs:
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
         with:
           job_name: ${{ format('Build ChimeraX for Windows ({0}, {1}) / Candidate', inputs.branch, inputs.release_type) }}
+          per_page: 100
       - name: Note the run and job IDs on Plato
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
         uses: nick-fields/retry@v3
@@ -214,7 +216,7 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - uses: msys2/setup-msys2@v2
@@ -271,7 +273,7 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - uses: msys2/setup-msys2@v2

@@ -35,7 +35,7 @@ jobs:
   build-mac-universal:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - name: Set up Python
@@ -51,6 +51,7 @@ jobs:
         id: get_job_id
         with:
           job_name: ${{ format('Build Universal ChimeraX for macOS ({0}, {1}) / build-mac-universal', inputs.branch, inputs.release_type) }}
+          per_page: 100
       - name: Note the run and job IDs on Plato
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
         uses: nick-fields/retry@v3
