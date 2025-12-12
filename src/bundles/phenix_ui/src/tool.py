@@ -1546,9 +1546,9 @@ class PickBlobDialog(QDialog):
     def _hide_density(self, hide):
         from chimerax.core.commands import run
         if hide:
-            run(self.session, f"volume zone {self.map.atomspec} near #!{self.receptor.id_string} range {self.hide_dist.value()} invert true")
+            run(self.session, f"surface zone {self.map.atomspec} near #!{self.receptor.id_string} distance {self.hide_dist.value()}; surface invert {self.map.atomspec}")
         else:
-            run(self.session, f"volume unzone {self.map.atomspec}")
+            run(self.session, f"surface unzone {self.map.atomspec}")
 
     def _mouse_mode_changed(self, trig_name, trig_data):
         button, modifiers, mode = trig_data
