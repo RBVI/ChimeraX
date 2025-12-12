@@ -691,7 +691,9 @@ class MutationScatterPlot(Graph):
 
     def _show_color_history_gui(self):
         from .ms_color_history import MutationColorHistoryPanel
-        return MutationColorHistoryPanel.get_singleton(self.session, create=True)
+        mch = MutationColorHistoryPanel.get_singleton(self.session, create=True)
+        mch.display(True)
+        return mch
         
     # ---------------------------------------------------------------------------
     # Session save and restore.
