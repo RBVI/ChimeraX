@@ -1,4 +1,4 @@
-def start_server(runs_directory, host = None, port = 30172):
+def start_server(runs_directory, boltz_exe, host = None, port = 30172):
     # Get the hostname
     if not host:
         host = _default_host()
@@ -17,7 +17,7 @@ def start_server(runs_directory, host = None, port = 30172):
         print(f'read boltz input zip data, {len(zip_data)} bytes')
         if zip_data:
             try:
-                zip_result = run_boltz_prediction(runs_directory, zip_data)
+                zip_result = run_boltz_prediction(runs_directory, boltz_exe, zip_data)
             except Exception as e:
                 import traceback
                 msg = f'Error: {str(e)}\n\n{traceback.format_exc()}'
@@ -41,7 +41,7 @@ def read_socket_data(connection, buffer_size = 1024*1024):
     data = b''.join(blocks)
     return data
 
-def run_boltz_prediction(runs_directory, zip_data):
+def run_boltz_prediction(runs_directory, boltz_exe, zip_data):
     from tempfile import NamedTemporaryFile
     tf = NamedTemporaryFile(dir = runs_directory, prefix = 'boltz_job_', suffix = '.zip', delete = False)
     path = tf.name
@@ -59,7 +59,7 @@ def run_boltz_prediction(runs_directory, zip_data):
     zf.extractall(run_dir)
 
     print ('running boltz')
-    run_boltz(run_dir)
+    run_boltz(run_dir, boltz_exe)
 
     from os.path import join, basename
     job_id = basename(path).removesuffix('.zip').removeprefix('boltz_job_')
@@ -83,7 +83,7 @@ def make_zip_file_from_directory(folder_path, zip_path):
                 # Write file with its path relative to the original folder
                 zipf.write(file_path, file_path[root_len:])
 
-def run_boltz(directory):
+def run_boltz(directory, boltz_exe):
     from sys import platform
     if platform == 'darwin':
         env = {}
@@ -97,12 +97,14 @@ def run_boltz(directory):
     else:
         env = None
 
-    from os.path import join
+    from os.path import join, basename
     command_file = join(directory, 'command')
     with open(command_file, 'r') as f:
         cmd_string = f.read()
     command_args = cmd_string.split()
-    
+    command_args[0] = boltz_exe  # Use server boltz executable location
+    command_args[2] = basename(command_args[2])  # Don't use absolute path to .yaml file from client machine.
+
     from subprocess import Popen, PIPE
     # To continue to run even if ChimeraX exits use start_new_session=True
     p = Popen(command_args, cwd = directory,
@@ -174,16 +176,24 @@ def send_to_server(zip_data, host, port):
 
 def boltz_server(session, operation = None,
                  host = None, port = 30172,
+                 boltz_exe = None,
                  jobs_directory = '~/boltz_server_jobs',
                  server_log = 'boltz_server_log'):
     if host is None:
         host = _default_host()
     from os.path import expanduser
     jobs_directory = expanduser(jobs_directory)
+    if boltz_exe is None:
+        from .settings import _boltz_settings
+        settings = _boltz_settings(session)
+        from .install import find_executable
+        boltz_exe = find_executable(settings.boltz22_install_location, 'boltz')
+    boltz_exe = expanduser(boltz_exe)
     from chimerax.core.python_utils import chimerax_python_executable
     python_exe = chimerax_python_executable()
 
-    cmd = [python_exe, __file__, 'start', host, str(port), jobs_directory]
+    cmd = [python_exe, __file__, 'start', host, str(port),
+           boltz_exe, jobs_directory]
 
     from os.path import expanduser, exists, join
     jobs_directory = expanduser(jobs_directory)
@@ -216,7 +226,10 @@ def register_boltz_server_command(logger):
     desc = CmdDesc(
         optional = [('operation', EnumOf(['start']))],
         keyword = [('host', StringArg),
-                   ('port', IntArg)],
+                   ('port', IntArg),
+                   ('boltz_exe', StringArg),
+                   ('jobs_directory', StringArg),
+                   ],
         synopsis = 'Start a Boltz prediction server',
         url = 'help:boltz_help.html'
     )
@@ -230,8 +243,9 @@ if __name__ == '__main__':
     if run_dir == 'start':
         host = argv[2]
         port = int(argv[3])
-        jobs_directory = argv[4]
-        start_server(jobs_directory, host, port)
+        boltz_exe = argv[4]
+        jobs_directory = argv[5]
+        start_server(jobs_directory, boltz_exe, host, port)
     else:
         host = argv[2]
         port = int(argv[3])
