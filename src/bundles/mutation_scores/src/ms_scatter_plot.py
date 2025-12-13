@@ -673,7 +673,14 @@ class MutationScatterPlot(Graph):
         if palette in ('blue to red', 'red to blue'):
             thresholds = (0.66*min_score, 0.33*min_score, 0.33*max_score, 0.66*max_score)
         else:
-            thresholds = (min_score, (min_score+0.66*max_score)/2, 0.66*max_score)
+            # Intended all positive or all negative scores with white closer to zero.
+            if abs(max_score) >= abs(min_score):
+                high_score = (min_score + 0.66*(max_score-min_score))
+                thresholds = (min_score, (min_score+high_score)/2, high_score)
+            else:
+                high_score = (max_score - 0.66*(max_score-min_score))
+                thresholds = (max_score, (min_score+high_score)/2, high_score)
+                
         self._last_color_palette = tuple(zip(thresholds, colors))
         palette_spec = ':'.join(f'{"%.3g"%thresh},{color}'for thresh, color in zip(thresholds, colors))
         return palette_spec
