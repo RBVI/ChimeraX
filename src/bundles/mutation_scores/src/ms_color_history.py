@@ -88,7 +88,12 @@ class MutationColorHistory(StateManager):
         return None
 
     def attribute_names(self):
-        return list(self._attribute_coloring_parameters.keys())
+        # Remove deleted attributes
+        acp = self._attribute_coloring_parameters
+        for name in tuple(acp.keys()):
+            if self.mutation_set_for_attribute(name) is None:
+                del acp[name]
+        return list(acp.keys())
 
     def options(self, attribute_name):
         return self._attribute_coloring_parameters.get(attribute_name, {})
