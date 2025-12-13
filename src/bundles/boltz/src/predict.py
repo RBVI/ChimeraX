@@ -690,7 +690,7 @@ class BoltzRun:
             stderr = f.read()
 
         pdir = join(self._predictions_directory, self.name)
-        from os.path  import exists:
+        from os.path import exists
         if exists(pdir):
             from os import listdir
             struct_files = [filename for filename in listdir()
