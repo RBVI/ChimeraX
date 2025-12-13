@@ -689,9 +689,14 @@ class BoltzRun:
         with open(join(run_dir, 'stderr'), 'r') as f:
             stderr = f.read()
 
-        from os import listdir
-        struct_files = [filename for filename in listdir(join(self._predictions_directory, self.name))
-                        if filename.endswith('.cif')]
+        pdir = join(self._predictions_directory, self.name)
+        from os.path  import exists:
+        if exists(pdir):
+            from os import listdir
+            struct_files = [filename for filename in listdir()
+                            if filename.endswith('.cif')]
+        else:
+            struct_files = []
         exit_code = 0 if struct_files else 1
         self._process_completed(exit_code, stdout, stderr)
         
