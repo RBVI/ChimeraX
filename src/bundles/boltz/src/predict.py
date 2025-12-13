@@ -26,7 +26,8 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
                   protein = [], dna = [], rna = [],
                   ligand_ccd = [], ligand_smiles = [], for_each_smiles_ligand = [],
                   name = None, results_directory = None,
-                  device = None, kernels = None, precision = None, float16 = False,
+                  device = None, use_server = False, server_host = '', server_port = 30172,
+                  kernels = None, precision = None, float16 = False,
                   samples = 1, recycles = 3, seed = None,
                   affinity = None, steering = False,
                   msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
@@ -76,7 +77,8 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
             
     br = BoltzRun(session, predictions, name = name, run_directory = results_directory,
                   samples = samples, recycles = recycles, seed = seed, use_steering_potentials = steering,
-                  device = device, use_kernels = kernels, precision = precision, cuda_bfloat16 = float16,
+                  device = device, use_server = use_server, server_host = server_host, server_port = server_port,
+                  use_kernels = kernels, precision = precision, cuda_bfloat16 = float16,
                   msa_only = msa_only, use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
                   open = open, wait = wait)
 
@@ -483,7 +485,8 @@ class BoltzMolecule:
 class BoltzRun:
     def __init__(self, session, structures, name = None, run_directory = None,
                  samples = 1, recycles = 3, seed = None, use_steering_potentials = False,
-                 device = 'default', use_kernels = None, precision = None, cuda_bfloat16 = False,
+                 device = 'default', use_server = False, server_host = '', server_port = 30172,
+                 use_kernels = None, precision = None, cuda_bfloat16 = False,
                  msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                  open = True, wait = False):
 
@@ -493,6 +496,9 @@ class BoltzRun:
         self._samples = samples		# Number of predicted structures
         self._recycles = recycles	# Number of boltz recycling steps
         self._device = device		# gpu, cpu or default, or None (uses settings value)
+        self._use_server = use_server	# True or False
+        self._server_host = server_host # Host name, e.g. minsky.cgl.ucsf.edu
+        self._server_port = server_port # Port number
         self._use_kernels = use_kernels	# whether to use cuequivariance module for triangle attention
         self._precision = precision	# "32", "bf16-mixed", "16", "bf16-true"
         self._cuda_bfloat16 = cuda_bfloat16	# Save memory using 16-bit instead of 32-bit float
@@ -631,6 +637,65 @@ class BoltzRun:
 
         self._log_prediction_info()
 
+        command = self._prediction_command()
+        self._write_command_file(command)
+
+        from time import time
+        self._start_time = time()
+
+        if self._use_server:
+            self._run_on_server()
+        else:
+            self._start_subprocess(command)
+
+    def _start_subprocess(self, command):
+        from sys import platform
+        if platform == 'darwin':
+            env = {}
+            # On Mac PyTorch uses MPS (metal performance shaders) but not all functions are implemented
+            # on the GPU (Feb 10, 2025) so PYTORCH_ENABLE_MPS_FALLBACK=1 allows these to run on the CPU.
+            env['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
+            # On Mac the huggingface.co URLs get SSL certificate errors unless we setup
+            # certifi root certificates.
+            import certifi
+            env["SSL_CERT_FILE"] = certifi.where()
+        else:
+            env = None
+
+        from subprocess import Popen, PIPE
+        from .install import _no_subprocess_window
+        # To continue to run even if ChimeraX exits use start_new_session=True
+        p = Popen(command, cwd = self._run_directory,
+                  stdout = PIPE, stderr = PIPE, env=env,
+                  creationflags = _no_subprocess_window())
+        self._process = p
+
+        self._monitor_boltz_output()
+        
+        if self._wait:
+            self._check_process_completion()
+        else:
+            self._session.triggers.add_handler('new frame', self._check_process_completion)
+
+    def _run_on_server(self):
+        '''This blocks until the prediction is finished.'''
+        run_dir = self._run_directory
+        from .server import predict_on_server
+        predict_on_server(run_dir, self._server_host, self._server_port)
+
+        from os.path import join
+        with open(join(run_dir, 'stdout'), 'r') as f:
+            stdout = f.read()
+        with open(join(run_dir, 'stderr'), 'r') as f:
+            stderr = f.read()
+
+        from os import listdir
+        struct_files = [filename for filename in listdir(join(self._predictions_directory, self.name))
+                        if filename.endswith('.cif')]
+        exit_code = 0 if struct_files else 1
+        self._process_completed(exit_code, stdout, stderr)
+        
+    def _prediction_command(self):
         boltz_venv = self._settings.boltz22_install_location
         from .install import find_executable
         boltz_exe = find_executable(boltz_venv, 'boltz')
@@ -667,43 +732,16 @@ class BoltzRun:
         if self._seed is not None:
             command.extend(['--seed', str(self._seed)])
 
-        from sys import platform
-        if platform == 'darwin':
-            env = {}
-            # On Mac PyTorch uses MPS (metal performance shaders) but not all functions are implemented
-            # on the GPU (Feb 10, 2025) so PYTORCH_ENABLE_MPS_FALLBACK=1 allows these to run on the CPU.
-            env['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
-            # On Mac the huggingface.co URLs get SSL certificate errors unless we setup
-            # certifi root certificates.
-            import certifi
-            env["SSL_CERT_FILE"] = certifi.where()
-        else:
-            env = None
+        return command
 
+    def _write_command_file(self, command):
         # Save command to a file
         from os.path import join
         command_file = join(self._run_directory, 'command')
         self._command = cmd = ' '.join(command)
         with open(command_file, 'w') as f:
             f.write(cmd)
-
-        from subprocess import Popen, PIPE
-        from .install import _no_subprocess_window
-        # To continue to run even if ChimeraX exits use start_new_session=True
-        p = Popen(command, cwd = self._run_directory,
-                  stdout = PIPE, stderr = PIPE, env=env,
-                  creationflags = _no_subprocess_window())
-        self._process = p
-        from time import time
-        self._start_time = time()
-
-        self._monitor_boltz_output()
-        
-        if self._wait:
-            self._check_process_completion()
-        else:
-            self._session.triggers.add_handler('new frame', self._check_process_completion)
-
+    
     @property
     def _need_msa_server(self):
         for p in self._predictions:
@@ -747,8 +785,9 @@ class BoltzRun:
 
         stdout = ''.join(self._stdout.all_lines())
         stderr = ''.join(self._stderr.all_lines())
+        self._save_stdout_stderr(stdout, stderr)
 
-        self._process_completed(stdout, stderr)
+        self._process_completed(p.returncode, stdout, stderr)
 
         return 'delete handler'
 
@@ -817,17 +856,18 @@ class BoltzRun:
     @property
     def stage_info(self):
         return self._stage if not self._stage_detail else (self._stage + ' ' + self._stage_detail)
-    
-    def _process_completed(self, stdout, stderr):
-        
+
+    def _save_stdout_stderr(self, stdout, stderr):
         dir = self._run_directory
         from os.path import join
         with open(join(dir, 'stdout'), 'w') as f:
             f.write(stdout)
         with open(join(dir, 'stderr'), 'w') as f:
             f.write(stderr)
+    
+    def _process_completed(self, exit_code, stdout, stderr):
 
-        msg = self._prediction_failed_message(self._process.returncode, stdout, stderr)
+        msg = self._prediction_failed_message(exit_code, stdout, stderr)
         if msg:
             self._session.logger.error(msg)
             success = False
@@ -1521,6 +1561,9 @@ def register_boltz_predict_command(logger):
                    ('name', StringArg),
                    ('results_directory', SaveFolderNameArg),
                    ('device', EnumOf(['default', 'cpu', 'gpu'])),
+                   ('use_server', BoolArg),
+                   ('server_host', StringArg),
+                   ('server_port', IntArg),
                    ('kernels', BoolArg),
                    ('precision', EnumOf(['32', 'bf16-mixed', '16', 'bf16-true'])),
                    ('float16', BoolArg),
