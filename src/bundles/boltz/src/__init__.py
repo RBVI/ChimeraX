@@ -61,4 +61,11 @@ class _BoltzBundle(BundleAPI):
                         return { 'align_to': AtomicStructureArg, }
                 return BoltzLigandsInfo()
 
+    # Make class name to class for session restore
+    @staticmethod
+    def get_class(class_name):
+        if class_name == 'BoltzHistoryPanel':
+            from .history import BoltzHistoryPanel
+            return BoltzHistoryPanel
+
 bundle_api = _BoltzBundle()

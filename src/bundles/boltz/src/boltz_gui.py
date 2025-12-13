@@ -522,6 +522,7 @@ class BoltzPredictionGUI(ToolInstance):
             ('Predict', self._predict),
             ('Error plot', self._error_plot),
             ('Options', self._show_or_hide_options),
+            ('History', self._show_history_table),
             ('Help', self._show_help),
         ]
         show_install = self._need_to_install_boltz()
@@ -944,6 +945,12 @@ class BoltzPredictionGUI(ToolInstance):
                                                  options = QFileDialog.Option.ShowDirsOnly)
         if path:
             self._install_directory.value = path
+
+    # ---------------------------------------------------------------------------
+    #
+    def _show_history_table(self):
+        from .history import show_predictions_panel
+        show_predictions_panel(self.session)
             
     # ---------------------------------------------------------------------------
     #
