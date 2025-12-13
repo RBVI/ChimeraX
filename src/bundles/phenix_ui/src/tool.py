@@ -1287,7 +1287,7 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         from .ligand_fit import ijk_min_max
         ijk_min, ijk_max = ijk_min_max(map, initial_center, extent_angstroms)
         map.new_region(ijk_min, ijk_max, map.region[-1], adjust_step=False, adjust_voxel_limit=False)
-        map.rendering_options.show_outline_box = True
+        map.set_parameters(show_outline_box=True)
         map.add_volume_change_callback(self._vol_change_cb)
         self.center = initial_center
 
