@@ -7,29 +7,57 @@ def start_server(runs_directory, boltz_exe, host = None, port = 30172):
     server_socket = socket.socket()
     server_socket.bind((host, port))
 
-    server_socket.listen()  # Listen for up to 2 incoming connections
+    server_socket.listen()
 
+    prediction_queue = create_prediction_queue()
+    
     while True:
-        conn, address = server_socket.accept()  # Accept new connection
-        print("Connection from: " + str(address))
+        client_socket, address = server_socket.accept()  # Accept new connection
 
-        zip_data = read_socket_data(conn)
-        print(f'read boltz input zip data, {len(zip_data)} bytes')
-        if zip_data:
-            try:
-                zip_result = run_boltz_prediction(runs_directory, boltz_exe, zip_data)
-            except Exception as e:
-                import traceback
-                msg = f'Error: {str(e)}\n\n{traceback.format_exc()}'
-                conn.send(msg.encode())
+        try:
+            zip_data = read_socket_data(client_socket)
+            if is_zip_data(zip_data):
+                log(f'Read boltz input zip data, {len(zip_data)} bytes')
+                zip_path, job_id = write_zip_file(runs_directory, zip_data)
+                log(f'Wrote zip file for server job {zip_path}, job id {job_id}')
+                p = BoltzPrediction(job_id, zip_path, boltz_exe, client_socket, address)
+                prediction_queue.put(p)
+                msg = f'Job id: {job_id}'.encode('utf-8')
+            elif zip_data.startswith(b'status: '):
+                job_id = zip_data[8:].decode('utf-8')
+                log(f'Status check for job {job_id}')
+                msg = check_status(client_socket, runs_directory, job_id)
             else:
-                print(f'sending boltz results back to client, {len(zip_result)} bytes')
-                conn.send(zip_result)
-
-        print(f'finished boltz server job, closing connection {address}')
-        conn.close()
+                log(f'Invalid server connection, {len(zip_data)} bytes')
+                msg = b'Invalid server request'
+            client_socket.send(msg)
+            client_socket.close()
+        except Exception as e:
+            import traceback
+            msg = f'Error: {str(e)}\n\n{traceback.format_exc()}'
+            client_socket.send(msg.encode())
+            client_socket.close()
 
     server_socket.close()
+
+def create_prediction_queue():
+    import queue
+    prediction_queue = queue.Queue()
+
+    from threading import Thread
+    t = Thread(target=run_queued_predictions, args=(prediction_queue,))
+    t.daemon = True # Daemon threads don't block the main program from exiting
+    t.start()
+
+    return prediction_queue
+    
+def run_queued_predictions(prediction_queue):
+    while True:
+        try:
+            p = prediction_queue.get()
+            p.run()
+        except Exception as e:
+            log(f'error running prediction queue: {str(e)}')
 
 def read_socket_data(connection, buffer_size = 1024*1024):
     blocks = []
@@ -41,35 +69,56 @@ def read_socket_data(connection, buffer_size = 1024*1024):
     data = b''.join(blocks)
     return data
 
-def run_boltz_prediction(runs_directory, boltz_exe, zip_data):
+def is_zip_data(zip_data):
+    return zip_data[:4] == bytearray([0x50, 0x4B, 0x03, 0x04])
+
+def write_zip_file(runs_directory, zip_data):
     from tempfile import NamedTemporaryFile
     tf = NamedTemporaryFile(dir = runs_directory, prefix = 'boltz_job_', suffix = '.zip', delete = False)
-    path = tf.name
+    zip_path = tf.name
     tf.write(zip_data)
     tf.close()
-    print(f'wrote zip file for server job {path}')
-    from zipfile import ZipFile
-    zf = ZipFile(path)
+    from os.path import basename
+    job_id = basename(zip_path).removeprefix('boltz_job_').removesuffix('.zip')
+    return zip_path, job_id
 
-    run_dir = path.removesuffix('.zip')
+class BoltzPrediction:
+    def __init__(self, job_id, zip_path, boltz_exe, socket, address):
+        self._job_id = job_id
+        self._zip_path = zip_path
+        self._boltz_exe = boltz_exe
+        self._socket = socket
+        self._address = address
+    def run(self):
+        try:
+            run_boltz_prediction(self._zip_path, self._boltz_exe)
+            log(f'prediction {self._job_id} finished')
+        except Exception as e:
+            import traceback
+            log(f'Error running job {self._job_id}: {str(e)}\n\n{traceback.format_exc()}')
+
+def run_boltz_prediction(zip_path, boltz_exe):
+    from zipfile import ZipFile
+    zf = ZipFile(zip_path)
+
+    run_dir = zip_path.removesuffix('.zip')
     from os import mkdir
     mkdir(run_dir)
 
-    print(f'extracting prediction input to {run_dir}')
+    log(f'extracting prediction input to {run_dir}')
     zf.extractall(run_dir)
 
-    print ('running boltz')
+    log('running boltz')
     run_boltz(run_dir, boltz_exe)
 
-    from os.path import join, basename
-    job_id = basename(path).removesuffix('.zip').removeprefix('boltz_job_')
-    results_zip = join(runs_directory, f'boltz_results_{job_id}.zip')
-    print (f'creating boltz results zip file {results_zip}')
-    make_zip_file_from_directory(run_dir, results_zip)
-
-    with open(results_zip, 'rb') as f:
-        zip_results_data = f.read()
-    return zip_results_data
+    from os.path import join, basename, dirname
+    job_id = basename(zip_path).removesuffix('.zip').removeprefix('boltz_job_')
+    results_zip = join(dirname(run_dir), f'boltz_results_{job_id}.zip')
+    log(f'creating boltz results zip file {results_zip}')
+    results_zip_tmp = results_zip + '.tmp'
+    make_zip_file_from_directory(run_dir, results_zip_tmp)
+    from os import rename
+    rename(results_zip_tmp, results_zip)
 
 def make_zip_file_from_directory(folder_path, zip_path):
     # Get the root directory length for relative paths
@@ -105,17 +154,21 @@ def run_boltz(directory, boltz_exe):
     command_args[0] = boltz_exe  # Use server boltz executable location
     command_args[2] = basename(command_args[2])  # Don't use absolute path to .yaml file from client machine.
 
+    from time import time
+    t_start = time()
     from subprocess import Popen, PIPE
-    # To continue to run even if ChimeraX exits use start_new_session=True
     p = Popen(command_args, cwd = directory,
               stdout = PIPE, stderr = PIPE, env=env,
               creationflags = _no_subprocess_window())
     stdout, stderr = p.communicate()
-
+    t_end = time()
+    
     with open(join(directory, 'stdout'), 'wb') as f:
         f.write(stdout)
     with open(join(directory, 'stderr'), 'wb') as f:
         f.write(stderr)
+    with open(join(directory, 'time'), 'w') as f:
+        f.write('%.2f' % (t_end - t_start))
 
 def _no_subprocess_window():
     '''The Python subprocess module only has the CREATE_NO_WINDOW flag on Windows.'''
@@ -127,6 +180,23 @@ def _no_subprocess_window():
         flags = 0
     return flags
 
+def check_status(client_socket, runs_directory, job_id):
+    from os.path import join, exists
+    job_dir = join(runs_directory, f'boltz_job_{job_id}')
+    if exists(job_dir):
+        results_zip = join(runs_directory, f'boltz_results_{job_id}.zip')
+        if exists(results_zip):
+            with open(results_zip, 'rb') as f:
+                msg = f.read()
+        else:
+            msg = b'Running'
+    else:
+        if exists(job_dir + '.zip'):
+            msg = b'Not yet started'
+        else:
+            msg = b'No such job'
+    return msg
+    
 def predict_on_server(run_dir, host = None, port = 30172):
     zip_path = run_dir + '.zip'
     make_zip_file_from_directory(run_dir, zip_path)
@@ -135,15 +205,33 @@ def predict_on_server(run_dir, host = None, port = 30172):
 
     if not host:
         host = _default_host()
-    zip_result = send_to_server(zip_data, host, port)
+    print(f'Sending job request to server ({len(zip_data)} bytes)')
 
-    zip_result_path = f'{run_dir}_output.zip'
-    with open(zip_result_path, 'wb') as f:
-        f.write(zip_result)
+    try:
+        msg = send_to_server(zip_data, host, port)
+    except ConnectionRefusedError:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Could not connect to {host}:{port}, connection refused')
+    if msg.startswith(b'Job id: '):
+        job_id = msg[8:].decode('utf-8')
+        print(f'Server {host}:{port} queued job {job_id}')
+    else:
+        raise RuntimeError(msg.decode('utf-8'))
+    return job_id
 
-    from zipfile import ZipFile
-    zf = ZipFile(zip_result_path)
-    zf.extractall(run_dir)
+def get_results(job_id, run_dir, host = None, port = 30172):
+    msg = send_to_server(f'status: {job_id}'.encode('utf-8'), host, port)
+    if is_zip_data(msg):
+        zip_result_path = f'{run_dir}_output.zip'
+        with open(zip_result_path, 'wb') as f:
+            f.write(msg)
+
+        from zipfile import ZipFile
+        zf = ZipFile(zip_result_path)
+        zf.extractall(run_dir)
+        return 'Done'
+
+    return msg.decode('utf-8')
 
 def _default_host():
     import socket
@@ -159,20 +247,19 @@ def send_to_server(zip_data, host, port):
     client_socket = socket.socket()  # Instantiate
     client_socket.connect((host, port))  # Connect to the server
 
-    print (f'sending prediction input to server, {len(zip_data)} bytes')
     client_socket.send(zip_data)
     client_socket.shutdown(socket.SHUT_WR)
-    print ('finished sending prediction input to server')
 
-    print ('waiting for prediction results from server')
-    zip_result = read_socket_data(client_socket)
-    if zip_result.startswith(b'Error:'):
-        print (f'got error server: {zip_result.decode("utf-8")}')
-    else:
-        print (f'got prediction results from server, {len(zip_result)} bytes')
+    response = read_socket_data(client_socket)
     client_socket.close()  # Close the connection
 
-    return zip_result
+    return response
+
+def log(msg):
+    from sys import stderr
+    from datetime import datetime
+    time_stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    stderr.write(f'{time_stamp}: {msg}\n')
 
 def boltz_server(session, operation = None,
                  host = None, port = 30172,

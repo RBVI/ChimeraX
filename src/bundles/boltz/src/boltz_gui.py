@@ -810,6 +810,7 @@ class BoltzPredictionGUI(ToolInstance):
         sr = EntriesRow(f, False, 'Use server host', '', 'port', 30172)
         self._use_server, self._server_host, self._server_port = us,sh,sp = sr.values
         us.value = settings.use_server
+        sh.pixel_width = 200
         sh.value = settings.server_host
         sp.value = settings.server_port
         

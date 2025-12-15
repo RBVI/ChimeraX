@@ -261,7 +261,7 @@ class PredictionDirectory:
         stdout_path = join(directory, 'stdout')
         have_stdout = exists(stdout_path)
         done_time = getctime(stdout_path) if have_stdout else submit_time
-        self.run_time = done_time - submit_time  # Seconds
+        self.run_time = self._run_time(submit_time, done_time) # Seconds
         self.status = 'done' if struct_files else ('failed' if have_stdout else '')
 
     def _structure_files(self):
@@ -277,7 +277,22 @@ class PredictionDirectory:
                     spaths = [join(sdir, file) for file in listdir(sdir) if file.endswith('.cif')]
                     struct_files.extend(spaths)
         return struct_files
-        
+
+    def _run_time(self, submit_time, done_time):
+        t = None
+        from os.path import join, exists
+        time_path = join(self.directory, 'time')
+        if exists(time_path):
+            with open(time_path, 'r') as f:
+                line = f.readline().strip()
+                try:
+                    t = float(line)
+                except:
+                    pass
+        if t is None:
+            t = done_time - submit_time
+        return t
+    
     def open_structures(self, session, align = True):
         models = []
         paths = self._structure_files()

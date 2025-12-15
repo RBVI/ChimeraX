@@ -697,8 +697,41 @@ class BoltzRun:
         '''This blocks until the prediction is finished.'''
         run_dir = self._run_directory
         from .server import predict_on_server
-        predict_on_server(run_dir, self._server_host, self._server_port)
+        job_id = predict_on_server(run_dir, self._server_host, self._server_port)
 
+        class WaitForServerPrediction:
+            def __init__(self, prediction, job_id, run_dir, host, port, check_interval = 10):
+                self._prediction = prediction
+                self._job_id = job_id
+                self._run_dir = run_dir
+                self._server_host = host
+                self._server_port = port
+                self._check_interval = check_interval
+                from time import time
+                self._next_check_time = time() + check_interval
+                triggers = prediction._session.triggers
+                triggers.add_handler('new frame', self._check_for_server_results)
+            def _check_for_server_results(self, trigger_name, trigger_data):
+                from time import time
+                if time() < self._next_check_time:
+                    return
+                self._next_check_time = time() + self._check_interval
+                
+                from .server import get_results
+                msg = get_results(self._job_id, self._run_dir, self._server_host, self._server_port)
+                if msg == 'Done':
+                    self._prediction._server_job_finished(self._run_dir)
+                    return 'delete handler'
+                elif msg == 'No such job':
+                    self._prediction._session.logger.error(f'Boltz server could not find job {self._job_id}')
+                    return 'delete handler'
+                else:
+                    self._prediction._set_stage(msg)
+#                    self._prediction._session.logger.status(f'Boltz server prediction job {self._job_id}: {msg}')
+            
+        WaitForServerPrediction(self, job_id, run_dir, self._server_host, self._server_port)
+
+    def _server_job_finished(self, run_dir):
         from os.path import join
         with open(join(run_dir, 'stdout'), 'r') as f:
             stdout = f.read()
