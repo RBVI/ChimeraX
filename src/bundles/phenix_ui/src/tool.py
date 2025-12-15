@@ -1586,8 +1586,7 @@ class PickBlobDialog(QDialog):
                 break
 
 class LaunchLigandFitTool(ToolInstance):
-    #help = "help:user/tools/localemfitting.html"
-    help = None
+    help = "help:user/tools/fitligand.html"
 
     CENTER_BLOB = "picked volume blob"
     CENTER_MODEL = "center of model..."
