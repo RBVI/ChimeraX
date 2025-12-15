@@ -320,19 +320,22 @@ class BoltzPrediction:
             self.name = default_name
         return self.name + '.yaml'
 
-    def yaml_input(self, msa_cache_directory = None):
+    def yaml_input(self, msa_cache_directory = None, msa_directory = None, msa_relative_to_path = None):
         yaml_lines = ['version: 1',
                       'sequences:']
 
         # Create yaml for polymers
-        msa_cache_files = self._msa_cache_files(msa_cache_directory)
+        msa_files = self._msa_cache_files(msa_cache_directory)
+        if msa_directory:
+            msa_files = self._copy_msa_files(msa_files, msa_directory, msa_relative_to_path)
+
         for mc in self._molecular_components:
             if mc.type in ('protein', 'dna', 'rna'):
                 polymer_entry = [f'  - {mc.type}:',
                                  f'      id: [{", ".join(mc.chain_ids)}]',
                                  f'      sequence: {mc.sequence_string}']
-                if msa_cache_files and mc.type == 'protein':
-                    msa_path = msa_cache_files[mc.sequence_string]
+                if msa_files and mc.type == 'protein':
+                    msa_path = msa_files[mc.sequence_string]
                     polymer_entry.append(f'      msa: {msa_path}')
                 yaml_lines.extend(polymer_entry)
 
@@ -368,13 +371,25 @@ class BoltzPrediction:
             protein_seqs = [mc.sequence_string for mc in self._molecular_components if mc.type == 'protein']
             msa_cache_files = _find_msa_cache_files(protein_seqs, msa_cache_directory)
         else:
-            msa_cache_files = []
+            msa_cache_files = {}
 
         from os.path import dirname
         self.cached_msa_dir = dirname(tuple(msa_cache_files.values())[0]) if msa_cache_files else None
 
         return msa_cache_files
 
+    def _copy_msa_files(self, msa_files, msa_directory, msa_relative_to_path):
+        # Copy MSA files to run directory so they are sent to server.
+        from shutil import copy2
+        for path in set(msa_files.values()):
+            copy2(path, msa_directory)
+        from os.path import join, basename, relpath
+        copied_msa_files = {seq:join(msa_directory, basename(msa_path)) for seq, msa_path in msa_files.items()}
+        if msa_relative_to_path:
+            copied_msa_files = {seq:relpath(msa_path, msa_relative_to_path)
+                                for seq, msa_path in copied_msa_files.items()}
+        return copied_msa_files
+    
     @property
     def using_cached_msa(self):
         return self.cached_msa_dir is not None
@@ -553,8 +568,9 @@ class BoltzRun:
             self.name = basename(dir)
 
         msa_cache_dir = self._msa_cache_dir if self._use_msa_cache else None
-        yaml = [(p.yaml_filename(self.name), p.yaml_input(msa_cache_dir)) for p in self._predictions]
-
+        msa_directory = msa_relative_to_path = (self._run_directory if self._use_server else None)
+        yaml = [(p.yaml_filename(self.name), p.yaml_input(msa_cache_dir, msa_directory, msa_relative_to_path))
+                for p in self._predictions]
         for i, (filename, yaml_text) in enumerate(yaml):
             if filename is None:
                 name = self.name if len(yaml) == 1 else f'{self.name}_{i+1}'
@@ -693,7 +709,7 @@ class BoltzRun:
         from os.path import exists
         if exists(pdir):
             from os import listdir
-            struct_files = [filename for filename in listdir()
+            struct_files = [filename for filename in listdir(pdir)
                             if filename.endswith('.cif')]
         else:
             struct_files = []
@@ -1267,7 +1283,7 @@ def _torch_has_cuda(session):
 # ------------------------------------------------------------------------------
 #
 def _find_msa_cache_files(protein_seqs, msa_cache_dir):
-    msa_cache_files = []
+    msa_cache_files = {}
     from os.path import exists, join, splitext, expanduser
     msa_cache_dir = expanduser(msa_cache_dir)
     index_path = join(msa_cache_dir, 'index')
