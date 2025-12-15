@@ -649,7 +649,8 @@ class BoltzRun:
 
     def _run_boltz(self):
         self._running = True
-        self._set_stage('starting Boltz')
+        msg = f'sending to server {self._server_host}' if self._use_server else 'starting Boltz'
+        self._set_stage(msg)
 
         self._log_prediction_info()
 
@@ -726,8 +727,8 @@ class BoltzRun:
                     self._prediction._session.logger.error(f'Boltz server could not find job {self._job_id}')
                     return 'delete handler'
                 else:
-                    self._prediction._set_stage(msg)
-#                    self._prediction._session.logger.status(f'Boltz server prediction job {self._job_id}: {msg}')
+                    status = f'{msg} {self._job_id} on {self._server_host}'
+                    self._prediction._set_stage(status)
             
         WaitForServerPrediction(self, job_id, run_dir, self._server_host, self._server_port)
 
