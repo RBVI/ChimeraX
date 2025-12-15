@@ -700,6 +700,10 @@ class BoltzRun:
         from .server import predict_on_server
         job_id = predict_on_server(run_dir, self._server_host, self._server_port)
 
+        active_jobs = list(self._settings.active_server_jobs)
+        active_jobs.append(run_dir)
+        self._settings.active_server_jobs = active_jobs
+
         class WaitForServerPrediction:
             def __init__(self, prediction, job_id, run_dir, host, port, check_interval = 10):
                 self._prediction = prediction
@@ -739,6 +743,11 @@ class BoltzRun:
         with open(join(run_dir, 'stderr'), 'r') as f:
             stderr = f.read()
 
+        jobs = self._settings.active_server_jobs
+        if run_dir in jobs:
+            jobs.remove(run_dir)
+            self._settings.active_server_jobs = list(jobs)
+            
         pdir = join(self._predictions_directory, self.name)
         from os.path import exists
         if exists(pdir):

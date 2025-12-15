@@ -40,7 +40,7 @@ class _BoltzBundle(BundleAPI):
         elif command_name == 'boltz install':
             from . import install
             install.register_boltz_install_command(logger)
-        elif command_name == 'boltz server':
+        elif command_name.startswith('boltz server'):
             from . import server
             server.register_boltz_server_command(logger)
 
