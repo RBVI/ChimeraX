@@ -37,6 +37,7 @@
     <ChimeraXClassifier>Command :: boltz predict :: Structure Prediction :: Predict a structure using Boltz</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: boltz install :: Structure Prediction :: Install Boltz</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: boltz ligandtable :: Structure Prediction :: Show table of Boltz ligand prediction results</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: boltz server :: Structure Prediction :: Start a server that runs Boltz predictions</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Boltz :: Structure Prediction :: Predict structures using Boltz</ChimeraXClassifier>
   </Classifiers>
 

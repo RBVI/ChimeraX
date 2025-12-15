@@ -26,7 +26,8 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
                   protein = [], dna = [], rna = [],
                   ligand_ccd = [], ligand_smiles = [], for_each_smiles_ligand = [],
                   name = None, results_directory = None,
-                  device = None, kernels = None, precision = None, float16 = False,
+                  device = None, use_server = False, server_host = '', server_port = 30172,
+                  kernels = None, precision = None, float16 = False,
                   samples = 1, recycles = 3, seed = None,
                   affinity = None, steering = False,
                   msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
@@ -76,7 +77,8 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
             
     br = BoltzRun(session, predictions, name = name, run_directory = results_directory,
                   samples = samples, recycles = recycles, seed = seed, use_steering_potentials = steering,
-                  device = device, use_kernels = kernels, precision = precision, cuda_bfloat16 = float16,
+                  device = device, use_server = use_server, server_host = server_host, server_port = server_port,
+                  use_kernels = kernels, precision = precision, cuda_bfloat16 = float16,
                   msa_only = msa_only, use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
                   open = open, wait = wait)
 
@@ -318,19 +320,22 @@ class BoltzPrediction:
             self.name = default_name
         return self.name + '.yaml'
 
-    def yaml_input(self, msa_cache_directory = None):
+    def yaml_input(self, msa_cache_directory = None, msa_directory = None, msa_relative_to_path = None):
         yaml_lines = ['version: 1',
                       'sequences:']
 
         # Create yaml for polymers
-        msa_cache_files = self._msa_cache_files(msa_cache_directory)
+        msa_files = self._msa_cache_files(msa_cache_directory)
+        if msa_directory:
+            msa_files = self._copy_msa_files(msa_files, msa_directory, msa_relative_to_path)
+
         for mc in self._molecular_components:
             if mc.type in ('protein', 'dna', 'rna'):
                 polymer_entry = [f'  - {mc.type}:',
                                  f'      id: [{", ".join(mc.chain_ids)}]',
                                  f'      sequence: {mc.sequence_string}']
-                if msa_cache_files and mc.type == 'protein':
-                    msa_path = msa_cache_files[mc.sequence_string]
+                if msa_files and mc.type == 'protein':
+                    msa_path = msa_files[mc.sequence_string]
                     polymer_entry.append(f'      msa: {msa_path}')
                 yaml_lines.extend(polymer_entry)
 
@@ -366,13 +371,25 @@ class BoltzPrediction:
             protein_seqs = [mc.sequence_string for mc in self._molecular_components if mc.type == 'protein']
             msa_cache_files = _find_msa_cache_files(protein_seqs, msa_cache_directory)
         else:
-            msa_cache_files = []
+            msa_cache_files = {}
 
         from os.path import dirname
         self.cached_msa_dir = dirname(tuple(msa_cache_files.values())[0]) if msa_cache_files else None
 
         return msa_cache_files
 
+    def _copy_msa_files(self, msa_files, msa_directory, msa_relative_to_path):
+        # Copy MSA files to run directory so they are sent to server.
+        from shutil import copy2
+        for path in set(msa_files.values()):
+            copy2(path, msa_directory)
+        from os.path import join, basename, relpath
+        copied_msa_files = {seq:join(msa_directory, basename(msa_path)) for seq, msa_path in msa_files.items()}
+        if msa_relative_to_path:
+            copied_msa_files = {seq:relpath(msa_path, msa_relative_to_path)
+                                for seq, msa_path in copied_msa_files.items()}
+        return copied_msa_files
+    
     @property
     def using_cached_msa(self):
         return self.cached_msa_dir is not None
@@ -483,7 +500,8 @@ class BoltzMolecule:
 class BoltzRun:
     def __init__(self, session, structures, name = None, run_directory = None,
                  samples = 1, recycles = 3, seed = None, use_steering_potentials = False,
-                 device = 'default', use_kernels = None, precision = None, cuda_bfloat16 = False,
+                 device = 'default', use_server = False, server_host = '', server_port = 30172,
+                 use_kernels = None, precision = None, cuda_bfloat16 = False,
                  msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                  open = True, wait = False):
 
@@ -493,6 +511,9 @@ class BoltzRun:
         self._samples = samples		# Number of predicted structures
         self._recycles = recycles	# Number of boltz recycling steps
         self._device = device		# gpu, cpu or default, or None (uses settings value)
+        self._use_server = use_server	# True or False
+        self._server_host = server_host # Host name, e.g. minsky.cgl.ucsf.edu
+        self._server_port = server_port # Port number
         self._use_kernels = use_kernels	# whether to use cuequivariance module for triangle attention
         self._precision = precision	# "32", "bf16-mixed", "16", "bf16-true"
         self._cuda_bfloat16 = cuda_bfloat16	# Save memory using 16-bit instead of 32-bit float
@@ -547,8 +568,9 @@ class BoltzRun:
             self.name = basename(dir)
 
         msa_cache_dir = self._msa_cache_dir if self._use_msa_cache else None
-        yaml = [(p.yaml_filename(self.name), p.yaml_input(msa_cache_dir)) for p in self._predictions]
-
+        msa_directory = msa_relative_to_path = (self._run_directory if self._use_server else None)
+        yaml = [(p.yaml_filename(self.name), p.yaml_input(msa_cache_dir, msa_directory, msa_relative_to_path))
+                for p in self._predictions]
         for i, (filename, yaml_text) in enumerate(yaml):
             if filename is None:
                 name = self.name if len(yaml) == 1 else f'{self.name}_{i+1}'
@@ -627,10 +649,108 @@ class BoltzRun:
 
     def _run_boltz(self):
         self._running = True
-        self._set_stage('starting Boltz')
+        msg = f'sending to server {self._server_host}' if self._use_server else 'starting Boltz'
+        self._set_stage(msg)
 
         self._log_prediction_info()
 
+        command = self._prediction_command()
+        self._write_command_file(command)
+
+        from time import time
+        self._start_time = time()
+
+        if self._use_server:
+            self._run_on_server()
+        else:
+            self._start_subprocess(command)
+
+    def _start_subprocess(self, command):
+        from sys import platform
+        if platform == 'darwin':
+            env = {}
+            # On Mac PyTorch uses MPS (metal performance shaders) but not all functions are implemented
+            # on the GPU (Feb 10, 2025) so PYTORCH_ENABLE_MPS_FALLBACK=1 allows these to run on the CPU.
+            env['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
+            # On Mac the huggingface.co URLs get SSL certificate errors unless we setup
+            # certifi root certificates.
+            import certifi
+            env["SSL_CERT_FILE"] = certifi.where()
+        else:
+            env = None
+
+        from subprocess import Popen, PIPE
+        from .install import _no_subprocess_window
+        # To continue to run even if ChimeraX exits use start_new_session=True
+        p = Popen(command, cwd = self._run_directory,
+                  stdout = PIPE, stderr = PIPE, env=env,
+                  creationflags = _no_subprocess_window())
+        self._process = p
+
+        self._monitor_boltz_output()
+        
+        if self._wait:
+            self._check_process_completion()
+        else:
+            self._session.triggers.add_handler('new frame', self._check_process_completion)
+
+    def _run_on_server(self):
+        '''This blocks until the prediction is finished.'''
+        run_dir = self._run_directory
+        from .server import predict_on_server
+        job_id = predict_on_server(run_dir, self._server_host, self._server_port)
+
+        class WaitForServerPrediction:
+            def __init__(self, prediction, job_id, run_dir, host, port, check_interval = 10):
+                self._prediction = prediction
+                self._job_id = job_id
+                self._run_dir = run_dir
+                self._server_host = host
+                self._server_port = port
+                self._check_interval = check_interval
+                from time import time
+                self._next_check_time = time() + check_interval
+                triggers = prediction._session.triggers
+                triggers.add_handler('new frame', self._check_for_server_results)
+            def _check_for_server_results(self, trigger_name, trigger_data):
+                from time import time
+                if time() < self._next_check_time:
+                    return
+                self._next_check_time = time() + self._check_interval
+                
+                from .server import get_results
+                msg = get_results(self._job_id, self._run_dir, self._server_host, self._server_port)
+                if msg == 'Done':
+                    self._prediction._server_job_finished(self._run_dir)
+                    return 'delete handler'
+                elif msg == 'No such job':
+                    self._prediction._session.logger.error(f'Boltz server could not find job {self._job_id}')
+                    return 'delete handler'
+                else:
+                    status = f'{msg} {self._job_id} on {self._server_host}'
+                    self._prediction._set_stage(status)
+            
+        WaitForServerPrediction(self, job_id, run_dir, self._server_host, self._server_port)
+
+    def _server_job_finished(self, run_dir):
+        from os.path import join
+        with open(join(run_dir, 'stdout'), 'r') as f:
+            stdout = f.read()
+        with open(join(run_dir, 'stderr'), 'r') as f:
+            stderr = f.read()
+
+        pdir = join(self._predictions_directory, self.name)
+        from os.path import exists
+        if exists(pdir):
+            from os import listdir
+            struct_files = [filename for filename in listdir(pdir)
+                            if filename.endswith('.cif')]
+        else:
+            struct_files = []
+        exit_code = 0 if struct_files else 1
+        self._process_completed(exit_code, stdout, stderr)
+        
+    def _prediction_command(self):
         boltz_venv = self._settings.boltz22_install_location
         from .install import find_executable
         boltz_exe = find_executable(boltz_venv, 'boltz')
@@ -667,43 +787,16 @@ class BoltzRun:
         if self._seed is not None:
             command.extend(['--seed', str(self._seed)])
 
-        from sys import platform
-        if platform == 'darwin':
-            env = {}
-            # On Mac PyTorch uses MPS (metal performance shaders) but not all functions are implemented
-            # on the GPU (Feb 10, 2025) so PYTORCH_ENABLE_MPS_FALLBACK=1 allows these to run on the CPU.
-            env['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
-            # On Mac the huggingface.co URLs get SSL certificate errors unless we setup
-            # certifi root certificates.
-            import certifi
-            env["SSL_CERT_FILE"] = certifi.where()
-        else:
-            env = None
+        return command
 
+    def _write_command_file(self, command):
         # Save command to a file
         from os.path import join
         command_file = join(self._run_directory, 'command')
         self._command = cmd = ' '.join(command)
         with open(command_file, 'w') as f:
             f.write(cmd)
-
-        from subprocess import Popen, PIPE
-        from .install import _no_subprocess_window
-        # To continue to run even if ChimeraX exits use start_new_session=True
-        p = Popen(command, cwd = self._run_directory,
-                  stdout = PIPE, stderr = PIPE, env=env,
-                  creationflags = _no_subprocess_window())
-        self._process = p
-        from time import time
-        self._start_time = time()
-
-        self._monitor_boltz_output()
-        
-        if self._wait:
-            self._check_process_completion()
-        else:
-            self._session.triggers.add_handler('new frame', self._check_process_completion)
-
+    
     @property
     def _need_msa_server(self):
         for p in self._predictions:
@@ -747,8 +840,9 @@ class BoltzRun:
 
         stdout = ''.join(self._stdout.all_lines())
         stderr = ''.join(self._stderr.all_lines())
+        self._save_stdout_stderr(stdout, stderr)
 
-        self._process_completed(stdout, stderr)
+        self._process_completed(p.returncode, stdout, stderr)
 
         return 'delete handler'
 
@@ -817,17 +911,18 @@ class BoltzRun:
     @property
     def stage_info(self):
         return self._stage if not self._stage_detail else (self._stage + ' ' + self._stage_detail)
-    
-    def _process_completed(self, stdout, stderr):
-        
+
+    def _save_stdout_stderr(self, stdout, stderr):
         dir = self._run_directory
         from os.path import join
         with open(join(dir, 'stdout'), 'w') as f:
             f.write(stdout)
         with open(join(dir, 'stderr'), 'w') as f:
             f.write(stderr)
+    
+    def _process_completed(self, exit_code, stdout, stderr):
 
-        msg = self._prediction_failed_message(self._process.returncode, stdout, stderr)
+        msg = self._prediction_failed_message(exit_code, stdout, stderr)
         if msg:
             self._session.logger.error(msg)
             success = False
@@ -1222,7 +1317,7 @@ def _torch_has_cuda(session):
 # ------------------------------------------------------------------------------
 #
 def _find_msa_cache_files(protein_seqs, msa_cache_dir):
-    msa_cache_files = []
+    msa_cache_files = {}
     from os.path import exists, join, splitext, expanduser
     msa_cache_dir = expanduser(msa_cache_dir)
     index_path = join(msa_cache_dir, 'index')
@@ -1521,6 +1616,9 @@ def register_boltz_predict_command(logger):
                    ('name', StringArg),
                    ('results_directory', SaveFolderNameArg),
                    ('device', EnumOf(['default', 'cpu', 'gpu'])),
+                   ('use_server', BoolArg),
+                   ('server_host', StringArg),
+                   ('server_port', IntArg),
                    ('kernels', BoolArg),
                    ('precision', EnumOf(['32', 'bf16-mixed', '16', 'bf16-true'])),
                    ('float16', BoolArg),

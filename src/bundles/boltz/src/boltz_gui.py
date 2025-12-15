@@ -532,6 +532,7 @@ class BoltzPredictionGUI(ToolInstance):
         f, buttons = button_row(parent, buttons, spacing = 5, button_list = True)
         self._button_row = f
         self._install_boltz_button = buttons[0] if show_install else None
+        self._stop_button = None
         return f
 
     # ---------------------------------------------------------------------------
@@ -571,6 +572,12 @@ class BoltzPredictionGUI(ToolInstance):
             options.append('useMsaCache false')
         if self._device.value != 'default':
             options.append(f'device {self._device.value}')
+        if self._use_server.value:
+            options.append('useServer true')
+            host, port = self._server_host.value, self._server_port.value
+            if host.strip():
+                options.append(f'serverHost {host}')
+            options.append(f'serverPort {port}')
         lig = self._affinity_ligand_value()
         if lig:
             options.append(f'affinity {lig}')
@@ -652,7 +659,8 @@ class BoltzPredictionGUI(ToolInstance):
         self._max_memory_use = None
         self.session.triggers.add_handler('new frame', self._report_progress)
 
-        self._show_stop_button(True)
+        if not self._boltz_run._use_server:
+            self._show_stop_button(True)
         
     # ---------------------------------------------------------------------------
     #
@@ -799,6 +807,14 @@ class BoltzPredictionGUI(ToolInstance):
         cd = EntriesRow(f, 'Compute device', ('default', 'cpu', 'gpu'))
         self._device = dev = cd.values[0]
         dev.value = settings.device
+
+        # Server configuration
+        sr = EntriesRow(f, False, 'Use server host', '', 'port', 30172)
+        self._use_server, self._server_host, self._server_port = us,sh,sp = sr.values
+        us.value = settings.use_server
+        sh.pixel_width = 200
+        sh.value = settings.server_host
+        sp.value = settings.server_port
         
         # Boltz install location
         id = EntriesRow(f, 'Boltz install location', '',
@@ -877,6 +893,9 @@ class BoltzPredictionGUI(ToolInstance):
                 settings.use_cuda_bfloat16 = self._use_cuda_bfloat16.value
             settings.use_steering_potentials = self._use_steering_potentials.value                
             settings.use_msa_cache = self._use_msa_cache.value
+            settings.use_server = self._use_server.value
+            settings.server_host = self._server_host.value
+            settings.server_port = self._server_port.value
         settings.boltz22_install_location = self._install_directory.value
         settings.save()
         

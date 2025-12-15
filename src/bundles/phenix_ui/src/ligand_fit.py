@@ -34,23 +34,23 @@ class FitJob(Job):
 
     SESSION_SAVE = False
 
-    def __init__(self, session, executable_location, optional_args, search_center, resolution,
+    def __init__(self, session, executable_location, optional_args, search_center, resolution, conformers,
             positional_args, temp_dir, verbose, callback, block):
         super().__init__(session)
         self._running = False
         self._monitor_time = 0
         self._monitor_interval = 10
-        self.start(session, executable_location, optional_args, search_center, resolution, positional_args,
-            temp_dir, verbose, callback, blocking=block)
+        self.start(session, executable_location, optional_args, search_center, resolution, conformers,
+            positional_args, temp_dir, verbose, callback, blocking=block)
 
-    def run(self, session, executable_location, optional_args, search_center, resolution, positional_args,
-            temp_dir, verbose, callback, **kw):
+    def run(self, session, executable_location, optional_args, search_center, resolution, conformers,
+            positional_args, temp_dir, verbose, callback, **kw):
         self._running = True
         self.start_t = time()
         def threaded_run(self=self):
             try:
                 results = _run_fit_subprocess(session, executable_location, optional_args,
-                    search_center, resolution, positional_args, temp_dir, verbose)
+                    search_center, resolution, conformers, positional_args, temp_dir, verbose)
             except Exception as e:
                 from .util import thread_throw
                 thread_throw(session, e)
@@ -131,7 +131,7 @@ command_defaults = {
     'verbose': False
 }
 def phenix_ligand_fit(session, model, ligand=None, center=None, in_map=None, resolution=None, *, block=None,
-        chain_id=None, clashes=False, extent_type=None, extent_value=1.1, hbonds=False,
+        chain_id=None, clashes=False, conformers=None, extent_type=None, extent_value=1.1, hbonds=False,
         phenix_location=None, residue_number=None, verbose=command_defaults['verbose'],
         option_arg=[], position_arg=[]):
 
@@ -208,10 +208,10 @@ def phenix_ligand_fit(session, model, ligand=None, center=None, in_map=None, res
     # keep a reference to 'tdir' in the callback so that the temporary directory isn't removed before
     # the program runs
     callback = lambda placed_ligand, *args, session=session, model=model, chain_id=chain_id, \
-        hbonds=hbonds, clashes=clashes, residue_number=residue_number, d_ref=tdir: _process_results(
-        session, placed_ligand, model, chain_id, residue_number, hbonds, clashes)
-    FitJob(session, exe_path, option_arg, search_center, resolution, position_arg, temp_dir, verbose,
-        callback, block)
+        hbonds=hbonds, clashes=clashes, residue_number=residue_number, d_ref=tdir: \
+        _process_results(session, placed_ligand, model, chain_id, residue_number, hbonds, clashes)
+    FitJob(session, exe_path, option_arg, search_center, resolution, conformers, position_arg, temp_dir,
+        verbose, callback, block)
 
 class ViewBoxError(ValueError):
     pass
@@ -302,8 +302,8 @@ def _process_results(session, placed_ligand, model, chain_id, residue_number, hb
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 
-def _run_fit_subprocess(session, exe_path, optional_args, search_center, resolution, positional_args,
-        temp_dir, verbose):
+def _run_fit_subprocess(session, exe_path, optional_args, search_center, resolution, conformers,
+        positional_args, temp_dir, verbose):
     '''
     Run ligandfit in a subprocess and return the ligand.
     '''
@@ -319,8 +319,7 @@ def _run_fit_subprocess(session, exe_path, optional_args, search_center, resolut
     else:
         procs_arg = ["nproc=%d" % min(5, processors)]
     from chimerax.core.commands import StringArg
-    args = [exe_path] + optional_args + [
-            "--json",
+    args = [exe_path] + optional_args + ["--json"] + ([f"conformers={conformers}"] if conformers else []) + [
             "ligand=ligand.pdb",
             "map_in=map.mrc",
             "model=model.pdb",
@@ -376,7 +375,7 @@ def _run_fit_subprocess(session, exe_path, optional_args, search_center, resolut
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register
     from chimerax.core.commands import (CenterArg, OpenFolderNameArg, BoolArg, RepeatOf, StringArg, IntArg,
-        OpenFileNameArg, EnumOf, Or, PositiveFloatArg)
+        OpenFileNameArg, EnumOf, Or, PositiveFloatArg, PositiveIntArg)
     from chimerax.map import MapArg
     from chimerax.atomic import AtomicStructureArg
     desc = CmdDesc(
@@ -391,6 +390,7 @@ def register_command(logger):
                    ('block', BoolArg),
                    ('clashes', BoolArg),
                    ('chain_id', StringArg),
+                   ('conformers', PositiveIntArg),
                    ('extent_type', EnumOf(["length", "angstroms"])),
                    ('extent_value', PositiveFloatArg),
                    ('hbonds', BoolArg),
