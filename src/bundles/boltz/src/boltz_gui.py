@@ -532,6 +532,7 @@ class BoltzPredictionGUI(ToolInstance):
         f, buttons = button_row(parent, buttons, spacing = 5, button_list = True)
         self._button_row = f
         self._install_boltz_button = buttons[0] if show_install else None
+        self._stop_button = None
         return f
 
     # ---------------------------------------------------------------------------
@@ -658,7 +659,8 @@ class BoltzPredictionGUI(ToolInstance):
         self._max_memory_use = None
         self.session.triggers.add_handler('new frame', self._report_progress)
 
-        self._show_stop_button(True)
+        if not self._boltz_run._use_server:
+            self._show_stop_button(True)
         
     # ---------------------------------------------------------------------------
     #
