@@ -80,27 +80,34 @@ class ResiduesArg(AtomSpecArg):
         orig_text = text
         aspec, text, rest = super().parse(text, session)
         evaled = aspec.evaluate(session)
+        outermost_inversion = aspec.outermost_inversion
         from .molarray import concatenate, Atoms, Residues
         # inter-residue bonds don't select either residue
         atoms1, atoms2 = evaled.bonds.atoms
         bond_atoms = atoms1.filter(atoms1.residues.pointers == atoms2.residues.pointers)
         atoms = concatenate((evaled.atoms, bond_atoms), Atoms)
         residues = atoms.residues.unique()
-        if aspec.outermost_inversion:
+        if outermost_inversion:
             # the outermost operator was '~', so weed out partially-selected residues,
             # but generically weeding them out is very slow, so try a shortcut if possible...
             spec_text = orig_text[:len(orig_text) - len(rest)]
             if spec_text.count('~') == 1 or spec_text.strip().startswith('~'):
                 uninverted_spec = spec_text.replace('~', '', 1)
-                ui_aspec, *args = super().parse(uninverted_spec, session)
-                ui_evaled = ui_aspec.evaluate(session)
+                if cls.use_peglib_parser:
+                    ui_evaled, *args = super().evaluate(session, uninverted_spec)
+                else:
+                    ui_aspec, *args = super().parse(uninverted_spec, session)
+                    ui_evaled = ui_aspec.evaluate(session)
                 ui_atoms1, ui_atoms2 = ui_evaled.bonds.atoms
                 ui_bond_atoms = ui_atoms1.filter(ui_atoms1.residues.pointers == ui_atoms2.residues.pointers)
                 ui_atoms = concatenate((ui_evaled.atoms, ui_bond_atoms), Atoms)
                 ui_residues = ui_atoms.residues.unique()
                 residues -= ui_residues
             else:
-                explicit = aspec.evaluate(session, add_implied=False)
+                if cls.use_peglib_parser:
+                    explicit, *args = super().evaluate(session, text, add_implied=False)
+                else:
+                    explicit = aspec.evaluate(session, add_implied=False)
                 unselected = residues.atoms - explicit.atoms
                 residues = residues - unselected.residues.unique()
                 # trickier to screen out partial bond selection, go residue by residue...
@@ -122,9 +129,13 @@ class UniqueChainsArg(AtomSpecArg):
     def parse(cls, text, session):
         aspec, text, rest = super().parse(text, session)
         chains = aspec.evaluate(session).atoms.residues.unique_chains
-        if aspec.outermost_inversion:
+        outermost_inversion = aspec.outermost_inversion
+        if outermost_inversion:
             # the outermost operator was '~', so weed out partially-selected residues
-            explicit = aspec.evaluate(session, add_implied=False)
+            if cls.use_peglib_parser:
+                explicit, *args = super().evaluate(session, text, add_implied=False)
+            else:
+                explicit = aspec.evaluate(session, add_implied=False)
             remaining = []
             for chain in chains:
                 chain_atoms = chain.existing_residues.atoms
@@ -184,7 +195,7 @@ class SequencesArg(Annotation):
         return seqs, used, rest
 
 def _parse_sequence(seq_text, session):
-    if is_uniprot_id(seq_text):
+    if is_uniprot_id(seq_text, first_token_only = True):
         seq, sused, srest = UniProtSequenceArg.parse(seq_text, session)
         if len(srest) == 0:
             return seq
@@ -212,7 +223,10 @@ class SequenceArg(Annotation):
     
 def is_atom_spec(text, session):
     try:
-        AtomSpecArg.parse(text, session)
+        if AtomSpecArg.use_peglib_parser:
+            AtomSpecArg.evaluate(session, text)
+        else:
+            AtomSpecArg.parse(text, session)
     except AnnotationError:
         return False
     return True
@@ -266,18 +280,19 @@ class UniProtIdArg(Annotation):
             raise AnnotationError('UniProt id "%s" must be 6 or 10 characters' % uid)
         return uid.upper(), used, rest
 
-def is_uniprot_id(text):
+def is_uniprot_id(id, first_token_only = False):
     # Name and accession format described here.
     # https://www.uniprot.org/help/accession_numbers
     # https://www.uniprot.org/help/entry_name
-    if len(text) == 0:
+    if len(id) == 0:
         return False
-    from chimerax.core.commands import next_token
-    id, text, rest = next_token(text)
+    if first_token_only:
+        from chimerax.core.commands import next_token
+        id, text, rest = next_token(id)
     if '_' in id:
         fields = id.split('_')
         f1,f2 = fields
-        if (f1.isalnum() and len(f1) <= 6 or len(f1) == 10 and
+        if (f1.isalnum() and (len(f1) <= 6 or len(f1) == 10) and
             f2.isalnum() and len(f2) <= 5):
             return True
     elif (len(id) >= 6 and id.isalnum() and
@@ -304,8 +319,7 @@ class RawSequenceArg(Annotation):
         return seq, used, rest
 
     
-def fully_selected(session, aspec, mols):
-    explicit = aspec.evaluate(session, add_implied=False)
+def fully_selected(session, explicit, mols):
     return [m for m in mols
         if m.num_atoms == len(explicit.atoms & m.atoms) and m.num_bonds == len(explicit.bonds & m.bonds)]
 
@@ -315,12 +329,22 @@ class StructuresArg(AtomSpecArg):
 
     @classmethod
     def parse(cls, text, session):
-        aspec, text, rest = super().parse(text, session)
-        models = aspec.evaluate(session).models
+        if cls.use_peglib_parser:
+            objs, text, rest = super().evaluate(session, text)
+            models = objs.models
+            outermost_inversion = objs.outermost_inversion
+        else:
+            aspec, text, rest = super().parse(text, session)
+            models = aspec.evaluate(session).models
+            outermost_inversion = aspec.outermost_inversion
         from . import Structure
         mols = [m for m in models if isinstance(m, Structure)]
-        if aspec.outermost_inversion:
-            mols = fully_selected(session, aspec, mols)
+        if outermost_inversion:
+            if cls.use_peglib_parser:
+                explicit, *args = super().evaluate(session, text, add_implied=False)
+            else:
+                explicit = aspec.evaluate(session, add_implied=False)
+            mols = fully_selected(session, explicit, mols)
         return mols, text, rest
 
 
@@ -330,12 +354,22 @@ class AtomicStructuresArg(AtomSpecArg):
 
     @classmethod
     def parse(cls, text, session):
-        aspec, text, rest = super().parse(text, session)
-        models = aspec.evaluate(session).models
+        if cls.use_peglib_parser:
+            objs, text, rest = super().evaluate(session, text)
+            models = objs.models
+            outermost_inversion = objs.outermost_inversion
+        else:
+            aspec, text, rest = super().parse(text, session)
+            models = aspec.evaluate(session).models
+            outermost_inversion = aspec.outermost_inversion
         from . import AtomicStructure, AtomicStructures
         mols = [m for m in models if isinstance(m, AtomicStructure)]
-        if aspec.outermost_inversion:
-            mols = fully_selected(session, aspec, mols)
+        if outermost_inversion:
+            if cls.use_peglib_parser:
+                explicit, *args = super().evaluate(session, text, add_implied=False)
+            else:
+                explicit = aspec.evaluate(session, add_implied=False)
+            mols = fully_selected(session, explicit, mols)
         return AtomicStructures(mols), text, rest
 
 
@@ -345,12 +379,22 @@ class AtomicStructureArg(AtomSpecArg):
 
     @classmethod
     def parse(cls, text, session):
-        aspec, text, rest = super().parse(text, session)
-        models = aspec.evaluate(session).models
+        if cls.use_peglib_parser:
+            objs, text, rest = super().evaluate(session, text)
+            models = objs.models
+            outermost_inversion = objs.outermost_inversion
+        else:
+            aspec, text, rest = super().parse(text, session)
+            models = aspec.evaluate(session).models
+            outermost_inversion = aspec.outermost_inversion
         from . import AtomicStructure
         mols = [m for m in models if isinstance(m, AtomicStructure)]
-        if aspec.outermost_inversion:
-            mols = fully_selected(session, aspec, mols)
+        if outermost_inversion:
+            if cls.use_peglib_parser:
+                explicit, *args = super().evaluate(session, text, add_implied=False)
+            else:
+                explicit = aspec.evaluate(session, add_implied=False)
+            mols = fully_selected(session, explicit, mols)
         if len(mols) != 1:
             raise AnnotationError('must specify 1 atomic structure, got %d for "%s"'
                                   % (len(mols), text))
@@ -363,8 +407,12 @@ class PseudobondGroupsArg(AtomSpecArg):
 
     @classmethod
     def parse(cls, text, session):
-        value, used, rest = super().parse(text, session)
-        models = value.evaluate(session).models
+        if cls.use_peglib_parser:
+            objs, used, rest = super().evaluate(session, text)
+            models = objs.models
+        else:
+            value, used, rest = super().parse(text, session)
+            models = value.evaluate(session).models
         from . import PseudobondGroup
         pbgs = [m for m in models if isinstance(m, PseudobondGroup)]
         return pbgs, used, rest

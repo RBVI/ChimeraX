@@ -19,13 +19,34 @@ TODO
 """
 
 from chimerax.core.core_settings import set_proxies, settings as core_settings
-from .options import SymbolicEnumOption, ColorOption, BooleanOption, IntOption
+from .options import SymbolicEnumOption, ColorOption, BooleanOption, IntOption, Option
 from .options import StringOption, ProtocolHostPortOption
 from chimerax.core.colors import color_name
+from dataclasses import dataclass
 
 class UpdateIntervalOption(SymbolicEnumOption):
     values = ("day", "week", "month", "never")
     labels = ("every day", "every week", "every month", "never")
+
+@dataclass
+class SettingInfo:
+    # The attribute this option references, by name
+    attr_name: str
+    # What this option will be called when it is placed in a settings panel
+    display_name: str
+    # Category under which to place this setting. For example, if the category is
+    # 'Background' and the display name is 'Background color', a category called
+    # 'Background' will be added to the list of option categories if it does not
+    # yet exist. Then, the display name 'Background color' will be the name of this
+    # setting within that category's option panel.
+    category: str
+    option_class: Option
+    # The text that will be shown in a tool-tip to help the user understand this setting,
+    # if they mouse over the display name.
+    help_text: str
+    set_automatically: bool = False
+
+
 
 class CoreSettingsPanel:
 
@@ -103,7 +124,7 @@ class CoreSettingsPanel:
         self.session = session
         from chimerax.core.commands import run
         from .options import CategorizedSettingsPanel
-        self.options_widget = CategorizedSettingsPanel(tabs_as_menu=True, help_cb=lambda *, category=None,
+        self.options_widget = CategorizedSettingsPanel(tabs_as_side_menu=True, help_cb=lambda *, category=None,
             ses=session, run=run: run(ses, "help help:user/preferences.html"
             + ("" if category is None else "#" + category.replace(' ', '').lower())))
         self.options = {}

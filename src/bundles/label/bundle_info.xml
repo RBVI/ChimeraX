@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Label" version="1.1.14"
+<BundleInfo name="ChimeraX-Label" version="1.2"
 	    package="chimerax.label"
   	    minSessionVersion="1" maxSessionVersion="1" customInit="true">
 
@@ -33,6 +33,7 @@
     <ChimeraXClassifier>Command :: label :: General :: add 3d labels to graphics</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~label :: General :: remove 3d labels from graphics</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Scale Bar :: Depiction :: Show a scale bar</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: 2D Labels and Arrows :: Depiction :: Create 2D labels and arrows</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

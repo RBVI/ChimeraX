@@ -867,7 +867,7 @@ t0 = t1;
                                     continue;
                                 if (bondee->idatm_type() == "Cac")
                                     continue;
-                                if (bondee->idatm_type() == "C2") {
+                                if (bondee->idatm_type() == "C2" || bondee->idatm_type() == "C") {
                                     bool grand_sp2 = false;
                                     for (auto gnb: bondee->neighbors()) {
                                         if (gnb->bonds().size() != 1)
@@ -926,9 +926,12 @@ t0 = t1;
 
         
         if (a->idatm_type() == "C") {
-            if ((sqlen <= p3c1c1 && bondee_type == "C1")
-            || (sqlen <= p3n1c1 && bondee->element() == Element::N)) {
+            if (sqlen <= p3c1c1 && bondee_type == "C1")
                 a->set_computed_idatm_type("C1");
+            else if (sqlen <= p3n1c1 && bondee->element() == Element::N && bondee->neighbors().size() < 3) {
+                // Exemplar: NBN in 101m
+                a->set_computed_idatm_type("C1");
+                bondee->set_computed_idatm_type("N1");
             } else if (bondee_type == "N1+") {
                 // N1+ can only be set at this point if valence 2,
                 // so can assume exactly one other neighbor

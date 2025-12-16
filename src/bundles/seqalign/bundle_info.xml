@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Alignments" version="2.20.2" package="chimerax.seqalign"
+<BundleInfo name="ChimeraX-Alignments" version="3.1.1" package="chimerax.seqalign"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
@@ -18,11 +18,11 @@
 
   <!-- Dependencies on other ChimeraX/Python packages -->
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.2"/>
+    <Dependency name="ChimeraX-Core" version=">1.10"/>
     <Dependency name="ChimeraX-AlignmentAlgorithms" version="~=2.0"/>
     <Dependency name="ChimeraX-AlignmentHdrs" version="~=3.0"/>
     <Dependency name="ChimeraX-Atomic" version="~=1.42"/>
-    <Dependency name="ChimeraX-UI" version="~=1.36"/>
+    <Dependency name="ChimeraX-UI" version="~=1.49"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-OpenCommand" version="~=1.0"/>
     <Dependency name="ChimeraX-SaveCommand" version="~=1.0"/>

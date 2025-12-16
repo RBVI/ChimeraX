@@ -1,4 +1,4 @@
-<html>
+<html lang="en">
 
 <!--
 === UCSF ChimeraX Copyright ===
@@ -96,6 +96,7 @@ target="_blank">presentations</a> and
 <a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
 target="_blank">videos</a> show modeling with AlphaFold and related analyses.
 See also:
+<a href="boltz.html"><b>boltz</b></a>,
 <a href="esmfold.html"><b>esmfold</b></a>,
 <a href="blastprotein.html"><b>blastprotein</b></a>,
 <a href="modeller.html"><b>modeller</b></a>,
@@ -1006,6 +1007,9 @@ to determine which pairs are actually predicted to bind
 [&nbsp;<b>models</b>&nbsp;&nbsp;<i>NN-list</i></a>&nbsp;]
 [&nbsp;<b>outputFasta</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
 [&nbsp;<b>outputJson</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
+[&nbsp;<b>outputYaml</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>msaDirectory</b>&nbsp;&nbsp;<i>directory</i>&nbsp;]
+[&nbsp;<b>listSequences</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
 Given a <i>sequence-list</i>, <b>alphafold monomers</b>
 estimates the time it would take ColabFold to run monomer predictions 
@@ -1046,6 +1050,19 @@ Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
 for <i>filename</i> brings up a file browser window for choosing the
 name and location interactively.
 <p>
+The <b>outputYaml</b> option (default <b>false</b>) specifies whether to
+write yaml input files for Boltz. If <b>true</b>, a separate yaml file
+is created for each monomer with name based on the monomer sequence name.
+If <b>msaDirectory</b> is specified, the yaml output will specify a .csv
+multiple sequence alignment (MSA) file for each monomer in that directory.
+The directory and MSA files need not exist and can be created later by MSA
+computation software before the Boltz predictions are run. 
+If <b>msaDirectory</b> is not specified,
+no MSA files are specified in the Boltz yaml input.
+<p>
+The <b>listSequences</b> option (default <b>false</b>) specifies whether to
+log descriptions of all of the monomers.
+<p>
 Alternatively, if the monomer predictions have been run already,
 using the <b>open</b> option to give a <i>results-folder</i>
 (specified by pathname
@@ -1060,6 +1077,7 @@ opens the resulting structures and displays them in a convenient fashion:
 <a href="#batch" class="nounder">&bull;</a>
 <b>alphafold dimers</b> 
 &nbsp;<i>sequence-list</i>&nbsp;
+[&nbsp;<b>maxSpacing</b>&nbsp;&nbsp;<i>K</i>&nbsp;]
 [&nbsp;<b>withSequences</b>&nbsp;&nbsp;<i>sequence-list2</i>&nbsp;]
 [&nbsp;<b>homodimers</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>maxLength</b>&nbsp;&nbsp;<i>L</i>&nbsp;]
@@ -1067,16 +1085,25 @@ opens the resulting structures and displays them in a convenient fashion:
 [&nbsp;<b>models</b>&nbsp;&nbsp;<i>NN-list</i></a>&nbsp;]
 [&nbsp;<b>outputFasta</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
 [&nbsp;<b>outputJson</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
+[&nbsp;<b>outputYaml</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>msaDirectory</b>&nbsp;&nbsp;<i>directory</i>&nbsp;]
+[&nbsp;<b>listSequences</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
 Given a <i>sequence-list</i>, <b>alphafold dimers</b>
 estimates the time it would take ColabFold to run dimer predictions 
 on an Nvidia 3090 GPU for all pairs of the sequences.
-If <b>withSequences</b> is used to give a second list of sequences,
-only pairs with one sequence in the first list and the other in the second 
-list will be considered.  
 The command also reports in the <a href="../tools/log.html"><b>Log</b></a> the
 colabfold_batch command that would be used to run the predictions
 from the Linux shell, but it does not actually run the predictions.
+The <b>maxSpacing</b> option can be used to restrict the pairs 
+to those no more than <i>K</i> sequences apart in the input list 
+(for example, <i>K</i> = 1 indicates that only sequences immediately
+adjacent in the list can be paired). Typically this is used with a list
+that is in genome order, to pair only sequences close together in the genome;
+default is no restriction on spacing.
+If <b>withSequences</b> is used to give a second list of sequences,
+only pairs with one sequence in the first list and the other in the second 
+list will be considered (cannot be used together with <b>maxSpacing</b>).
 <p>
 Each sequence list can be given as either of the following:
 <ul>
@@ -1099,10 +1126,25 @@ as a convenience for running AlphaFold 3
 Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
 for <i>filename</i> brings up a file browser window for choosing the
 name and location interactively.
+<p>
+The <b>outputYaml</b> option (default <b>false</b>) specifies whether to
+write yaml input files for Boltz. If <b>true</b>, a separate yaml file
+is created for each dimer with name based on the dimer sequence names.
+If <b>msaDirectory</b> is specified, the yaml output will specify 
+multiple sequence alignment (MSA) files in that directory with file names 
+of the form {seq1-name}_{seq2-name}_0.csv
+and {seq1-name}_{seq2-name}_1.csv. 
+The directory and MSA files need not exist and can be created later by MSA
+computation software before the Boltz predictions are run.
+If <b>msaDirectory</b> is not specified,
+no MSA files are specified in the Boltz yaml input.
+<p>
 The <b>maxLength</b>, <b>recycles</b>, and <b>models</b> options are the same
 as described for <a href="#monomers"><b>alphafold monomers</b></a>,
 except that <b>maxLength</b> applies to the total combined length of the
 two sequences.
+The <b>listSequences</b> option (default <b>false</b>) specifies whether to
+log descriptions of all of the dimers.
 </blockquote>
 
 <a name="interfaces"></a>
@@ -1152,7 +1194,11 @@ For each predicted dimer:
 chain-chain interface with any atoms &le; <b>distance</b> <i>d</i> apart
 (default <b>4.0</b> &Aring;) are considered
 <li>of these, residue pairs with PAE &le; <b>maxPae</b>
-<i>max-error</i> (default <b>5.0</b> &Aring;) are counted
+<i>max-error</i> (default <b>5.0</b> &Aring;) are counted. 
+Both of the PAE values for a given pair of residues are considered
+(the PAE matrix is not symmetrical, meaning that res1-res2 and res2-res1 
+values are different), and the lower one is compared to the <b>maxPae</b> 
+setting.
 <li>if at least <b>minConfPairs</b> <i>N</i> (default <b>10</b>)
 of the interface residue pairs meet both the distance and PAE criteria,
 the dimer is included in the list of possible binders
@@ -1209,5 +1255,5 @@ the hundreds of files that ColabFold produces.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2025</address>
+September 2025</address>
 </body></html>

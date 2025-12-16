@@ -1,4 +1,4 @@
-<html>
+<html lang="en">
 
 <!--
 === UCSF ChimeraX Copyright ===
@@ -141,8 +141,9 @@ target="_blank">PDBx/mmCIF</a></td>
 <br>(see <a href="sym.html#assembly">assemblies from mmCIF</a>,
 <a href="hbonds.html#related">H-bonds from mmCIF</a>,
 <br><a href="../../devel/bundles/mmcif/src/mmcif_guidelines.html"
-target="_blank">ChimeraX Fast mmCIF Guidelines</a>;
-see also <a href="altlocs.html">alternate locations</a>)</td>
+target="_blank">ChimeraX Fast mmCIF Guidelines</a>,
+and <a href="altlocs.html">alternate locations</a>;
+<br>see also the <a href="#fetchEmdbMap"><b>fetchEmdbMap</b></a> option)</td>
 </tr><tr>
 <td align="center" class="text"><a href="https://mmtf.rcsb.org/"
 target="_blank">MMTF (Macromolecular Transmission Format)</a></td>
@@ -165,7 +166,7 @@ target="_blank">Crystallographic Information File (CIF)</td>
 and/or target receptor in the modified PDB format written by
 <a href="http://www.swissdock.ch/" target="_blank">SwissDock</a>
 <br>
-(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
+(see <a href="../tools/viewdock.html"><b>ViewDock</b></a>
 for analysis of docking results from
 <a href="http://www.swissdock.ch/" target="_blank">SwissDock</a>;
 <br>see also the <a href="#showTool"><b>showTool</b></a> option)
@@ -176,7 +177,7 @@ for analysis of docking results from
 <td align="center">.mol2</td>
 <td align="center" class="text">atomic coordinates
 <br>
-(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
+(see <a href="../tools/viewdock.html"><b>ViewDock</b></a>
 for analysis of docking results from <a href="http://dock.compbio.ucsf.edu/" 
 target="_blank">UCSF&nbsp;DOCK</a>&nbsp;v4-6, 
 <a href="http://dock.compbio.ucsf.edu/DOCK3.7/" 
@@ -192,7 +193,7 @@ target="_blank">PDBQT</a></td>
 <td align="center">.pdbqt</td>
 <td align="center" class="text">atomic coordinates
 <br>
-(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
+(see <a href="../tools/viewdock.html"><b>ViewDock</b></a>
 for analysis of docking results from
 <a href="http://vina.scripps.edu/" target="_blank">AutoDock Vina</a>;
 <br>see also the <a href="#showTool"><b>showTool</b></a> option)
@@ -216,7 +217,7 @@ target="_blank">MDL Molfile/SDF</a></td>
 <td align="center">.mae<br>.maegz</td>
 <td align="center" class="text">atomic coordinates
 <br>
-(see <a href="../tools/viewdockx.html"><b>ViewDockX</b></a>
+(see <a href="../tools/viewdock.html"><b>ViewDock</b></a>
 for analysis of docking results from 
 <a href="https://www.schrodinger.com/glide" target="_blank">Glide</a>;
 <br>see also the <a href="#showTool"><b>showTool</b></a> option)
@@ -356,7 +357,7 @@ target="_blank">MDTools</a>)</td>
 <a name="docking"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Docking Results</b> (associated tool: 
-<a href="../tools/viewdockx.html"><b>ViewDockX</b></a>)</td>
+<a href="../tools/viewdock.html"><b>ViewDock</b></a>)</td>
 </tr><tr>
 <td align="center">Dock 4, 5 or 6 Mol2</td>
 <td align="center"><b>mol2</b></td>
@@ -825,7 +826,8 @@ target="_blank">Stockholm</a></td>
 <a href="#combine"><b>combine</b></a> and
 <a href="#resizeWindow"><b>resizeWindow</b></a>; see also the
 <a href="../preferences.html#window"><b>Window</b> preferences</a> and
-<a href="../preferences.html#log"><b>Log</b> preferences</a></td>
+settings in the <a href="../tools/log.html"><b>Log</b> context menu</a>
+</td>
 </tr><tr>
 <td align="center"><a href="https://github.com/ihmwg/IHM-dictionary"
 target="_blank">IHM (Integrative Hybrid Model)</a>
@@ -1262,6 +1264,14 @@ Whether to fetch ensembles associated with an IHM dataset
 (default <b>false</b>, as these can be quite large).
 </blockquote>
 <blockquote>
+<a name="fetchEmdbMap"></a>
+<b>fetchEmdbMap</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+When opening or <a href="#fetch">fetching</a> an mmCIF file,
+whether to additionally fetch the associated EMDB map, if any
+(default <b>false</b>). See also the <a href="#fits"><b>fits</b></a> option.
+</blockquote>
+<blockquote>
 <a name="fits"></a>
 <b>fits</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
@@ -1270,6 +1280,7 @@ additionally fetch associated atomic structures, if any, from the PDB.
 Alternatively, specifying the <a href="#fetch-table">data source</a>
 as <b>emdb_fits</b> (rather than <b>emdb</b>) will automatically
 fetch both types of data without the use of this option.
+See also the <a href="#fetchEmdbMap"><b>fetchEmdbMap</b></a> option.
 </blockquote>
 <blockquote>
 <a name="forEachFile"></a>
@@ -1448,17 +1459,16 @@ from a specific EMDB mirror site.
 <b>showTool</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 Whether to show the 
-<a href="../tools/viewdockx.html"><b>ViewDockX</b></a> tool
+<a href="../tools/viewdock.html"><b>ViewDock</b></a> tool
 when opening a file of molecular docking results
 (certain files in the <a href="#atomic">formats</a> <b>swissdock</b>,
 <b>pdbqt</b>, <b>mae</b>, and <b>mol2</b>; default <b>showTool true</b>).
 If the file is not found to contain molecular docking results, however,
-<a href="../tools/viewdockx.html"><b>ViewDockX</b></a> will not be shown.
+<a href="../tools/viewdock.html"><b>ViewDock</b></a> will not be shown.
 Alternatively, one or more files of docking results can be opened with
 <b>showTool false</b>, and subsequently (in a separate step) the 
-<a href="../tools/viewdockx.html"><b>ViewDockX</b></a> tool
-started from the <b>Tools</b> menu or by using the 
-<a href="viewdockx.html"><b>viewdockx</b></a> command.
+<a href="../tools/viewdock.html"><b>ViewDock</b></a> tool
+started from the <b>Tools</b> menu.
 </blockquote>
 <blockquote>
 <a name="transparency"></a>
@@ -1637,23 +1647,33 @@ This model can itself be a <a href="../trajectories.html">trajectory</a>.
 If the <b>structureModel</b> option is omitted and only one atomic model
 is present, that model will be used; if more than one is present,
 a dialog will appear for specifying which to use.
-The model coordinates will be replaced with those in the
+If the model is not a trajectory (only has one set of coordinates),
+the coordinates will be replaced with those in the
 incoming coordinate file unless <a href="#replace"><b>replace false</b></a>
 is used to indicate appending the new frames instead.
+If the model is a trajectory (contains multiple frames), the incoming
+frames will be appended at the end of the existing ones unless 
+<a href="#replace"><b>replace true</b></a> is used to indicate replacing
+them instead.
 The <b>structureModel</b> option is also needed to open local MTZ files
 (<a href="#clipper">details...</a>).
 </blockquote>
 <blockquote>
 <a name="replace"></a>
-<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<b>replace</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
 Whether to replace the coordinates 
 of the existing <a href="#structureModel">structure model</a>
 (which could be a <a href="../trajectories.html">trajectory</a> 
 with multiple frames) with those from the incoming
 <a href="#trajectory">trajectory coordinate file</a>.
-If <b>replace false</b> is given, the new frames will be appended to
-the existing frames.
+The default behavior (option not specified) is to replace the coordinate
+set if the existing model is not a trajectory, <i>i.e.</i>, has only one 
+coordinate set, and to append the new frames if the model is a trajectory
+and thus already contains multiple frames.
+Giving the option as <b>true</b> indicates replacing all one or more existing
+frames, and <b>false</b> indicates appending the new frames to the existing
+ones regardless of how many frames the model already has.
 </blockquote>
 <blockquote>
 <a name="coords"></a>
@@ -2305,12 +2325,24 @@ can be <b>https</b> or <b>ftp</b>)
 </td>
 <td align="center"><b>ccp4</b> and <b>mmcif</b></td>
 </tr><tr>
-<td align="center"><a href="https://pdb-dev.wwpdb.org/"
-target="_blank">PDB-Dev</a></td>
+<td align="center">
+<a href="https://pdb-ihm.org/" target="_blank">PDB-IHM</a></td>
+<td align="center"><b>pdbihm</b></td>
+<td align="center" class="text">integrative hybrid model;
+<br>
+to be used with the current 4-character IDs, for example:
+<br><b>open pdbihm:8zzc</b> &nbsp;&ndash;or&ndash;&nbsp;
+<b>open 8zzc from pdbihm</b>
+</td>
+<td align="center"><b>ihm</b></td>
+</tr><tr>
+<td align="center">
+<a href="https://pdb-dev.wwpdb.org/" target="_blank">PDB-Dev</a></td>
 <td align="center"><b>pdbdev</b></td>
 <td align="center" class="text">integrative hybrid model;
 <br>
-leading zeroes can be omitted from the identifier, for example, 
+to be used with the old-style PDB-Dev identifiers, 
+where leading zeroes can be omitted; for example, 
 accession code PDBDEV_00000001 can be opened with command:
 <br><b>open pdbdev:1</b>
 </td>
@@ -2536,5 +2568,5 @@ generated by Clipper. If <b>false</b>, just save the experimental data.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2025</address>
+October 2025</address>
 </body></html>

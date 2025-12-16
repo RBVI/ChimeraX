@@ -1,0 +1,110 @@
+<html lang="en">
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: minimize</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: minimize</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>minimize</b> 
+&nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model-spec</i></a>&nbsp;
+[&nbsp;<b>dockPrep</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;
+[&nbsp;<a href="dockprep.html"><i>dockprep-options</i></a>&nbsp;]]
+[&nbsp;<b>maxSteps</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>liveUpdates</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>logEnergy</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</h3>
+<p>
+<!-- 
+uses amber14-all.xml and amber14/tip3pfb.xml to define what's standard,
+and amber-14-all in turn uses amber14/protein.ff14SB.xml, amber14/DNA.OL15.xml,
+amber14/RNA.OL3.xml, and amber14/lipid17.xml. Links:
+https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14-all.xml
+https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/tip3pfb.xml
+https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/protein.ff14SB.xml
+https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/DNA.OL15.xml
+https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/RNA.OL3.xml
+https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/lipid17.xml
+-->
+The <b>minimize</b> command energy-minimizes atomic structures.
+The corresponding tool is
+<a href="../tools/minimizestructure.html"><b>Minimize Structure</b></a>.
+Only a single atomic model should be specified; to combine multiple models 
+into one beforehand, see <a href="combine.html"><b>combine</b></a>.
+The atoms are assigned types and associated force field parameters
+as described for <a href="addcharge.html"><b>addcharge</b></a>, and
+then the minimization is carried out using the OpenMM
+<a href="http://docs.openmm.org/7.0.0/api-python/generated/simtk.openmm.openmm.LocalEnergyMinimizer.html" 
+target="_blank">LocalEnergyMinimizer</a> with the
+<a href="http://docs.openmm.org/7.1.0/api-python/generated/simtk.openmm.openmm.LangevinIntegrator.html"
+target="_blank">LangevinIntegrator</a>.
+See also: 
+<a href="../tools/buildstructure.html"><b>Build Structure</b></a>,
+<a href="tug.html"><b>tug</b></a>,
+<a href="ui.html#mousemode">mouse modes</a>
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/tug.png"></a>
+<b>tug</b> and
+<a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
+<img class="icon" border=1 src="../tools/mouse-icons/minimize.png"></a>
+<b>minimize</b>
+</p><p>
+By default (<b>dockprep true</b>), the <b>minimize</b> command calls 
+<a href="dockprep.html"><b>dockprep</b></a> to perform
+several tasks to prepare the structure beforehand, including:
+</p>
+<ul>
+<li>deleting water molecules
+<li>repairing truncated sidechains
+<li>adding hydrogens
+<li>assigning partial charges
+</ul>
+<p>
+The <a href="dockprep.html"><b>dockprep</b></a> command options can
+also be used in the <b>minimize</b> command to control these processes.
+</p><p>
+The <b>maxSteps</b> option sets the number of minimization steps
+(default <b>0</b>, meaning that minimization will continue until 
+convergence regardless of how many steps it takes).
+If a maximum number of steps (>0) is specified, minimization
+will still end at convergence, even if fewer than the specified number
+of steps have been taken.
+Convergence is defined as when the root-mean-square of all 
+force components falls to 10 or lower.
+</p><p>
+The <b>liveUpdates</b> option (default <b>true</b>)
+indicates whether to update the structure periodically during the
+minimization; if <b>false</b>, the structure will not be updated 
+until the minimization ends.
+The current update interval is every 100 steps, at the same time
+the energy is reported in the <a href="../window.html">status line</a>. 
+Messages in the <a href="../window.html">status line</a>, however,
+are only transient. The <b>logEnergy</b> option (default <b>false</b>)
+indicates whether to also report the energy in the 
+<a href="../tools/log.html"><b>Log</b></a>.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+October 2025</address>
+</body></html>

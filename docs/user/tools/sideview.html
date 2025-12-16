@@ -1,4 +1,4 @@
-<html>
+<html lang="en">
 
 <!--
 === UCSF ChimeraX Copyright ===
@@ -78,6 +78,24 @@ Capping of clipped surfaces can be controlled
 with a <a href="../preferences.html">preference</a> setting and/or the
 <a href="../commands/surface.html#cap"><b>surface cap</b></a> command.
 </p>
+<!-- 
+Details from Tom Goddard Nov 2025:
+When you have not moved the front and back clipping planes, they are 
+positioned in front and behind all the displayed models. The front and back 
+clip planes are usually not at the very front-most and back-most atom.
+Here is how they are computed. Each model has a rectangular bounding box 
+which just touches the atom rendering at the x,y,z edges. All those 
+displayed model boxes are combined into one box that contains them all.
+The center of that box plus or minus one box radius (= radius of sphere 
+containing the box) is where the front and back clip planes are positioned 
+when the clip planes have not been manually moved. These rules for 
+determining the front and back positions mean that usually there is a 
+good bit of empty space between the front/back clip planes and the 
+actual models since the molecules are not rectangular in shape and even 
+if they were, a sphere bounding the rectangular box is used to position 
+the front/back planes (so that viewing from different directions does 
+not move the clip plane in and out).
+-->
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 

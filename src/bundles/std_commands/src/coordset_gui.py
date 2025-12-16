@@ -14,6 +14,8 @@
 from chimerax.ui.widgets.slider import Slider
 class CoordinateSetSlider(Slider):
 
+    help = "help:user/commands/coordset.html#slider"
+
     def __init__(self, session, structure, pause_frames = 1, movie_framerate = 25,
                  steady_atoms = None, compute_ss = False):
 

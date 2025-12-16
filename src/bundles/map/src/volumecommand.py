@@ -129,6 +129,7 @@ def register_volume_command(logger):
                ('axis', AxisArg),
                ('coordinate_system', CoordSysArg),
         ] + global_options + rendering_options,
+        hidden = ['smooth_lines', 'dim_transparency'],  # Options not implemented
         synopsis = 'set volume model parameters, display style and colors')
     register('volume', volume_desc, volume, logger=logger)
 
@@ -622,7 +623,7 @@ def level_and_color_settings(v, options):
             levels.extend(rms_levels)
         if sd_levels:
             for lvl in sd_levels:
-                lvl[0] *= sd
+                lvl[0] = mean + sd*lvl[0]
             levels.extend(sd_levels)
 
     colors = options.get('color', [])

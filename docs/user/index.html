@@ -1,4 +1,4 @@
-<html>
+<html lang="en">
 
 <!--
 === UCSF ChimeraX Copyright ===
@@ -86,6 +86,7 @@ and <a href="commands/ui.html#selective">selective manipulation</li>
 src="triangled.png" width=10 height=10/>&nbsp;<b>Tools</b></li>
 <div id="tlist" class="expanded">
 <ul>
+<li><a href="tools/2dlabels.html"><b>2D Labels and Arrows</b></a></li>
 <li><a href="tools/addcharges.html"><b>Add Charges</b></a></li>
 <li><a href="tools/addhydrogens.html"><b>Add Hydrogens</b></a></li>
 <li><a href="tools/alphafold.html"><b>AlphaFold</b></a>
@@ -101,6 +102,10 @@ estimated residue-residue distance errors</li>
 <li><a href="tools/axesplanes.html"><b>Axes/Planes/Centroids</b></a></li>
 <li><a href="tools/basicactions.html"><b>Basic Actions</b></a></li>
 <li><a href="tools/blastprotein.html"><b>Blast Protein</b></a></li>
+<li><a href="tools/boltz.html"><b>Boltz</b></a>
+&ndash; structure prediction with
+<a href="https://github.com/jwohlwend/boltz" target="_blank">Boltz</a>
+artificial intelligence</li>
 <li><a href="tools/buildstructure.html"><b>Build Structure</b></a>
 &ndash; build atomic structures, adjust bonds and torsions,
 join models, invert chiral centers</li>
@@ -154,6 +159,7 @@ min, max, mean, standard deviation, root-mean-square deviation from zero</li>
 <li><a href="tools/meeting.html"><b>Meeting</b></a>
 &ndash; connect separate instances of ChimeraX for shared 
 <a href="vr.html">virtual reality</a> or collaborative modeling</li>
+<li><a href="tools/minimizestructure.html"><b>Minimize Structure</b></a></li>
 <li><a href="tools/modelloops.html"><b>Model Loops</b></a>
 &ndash; interface to building missing segments or refining existing parts
 of a protein structure with
@@ -162,6 +168,11 @@ of a protein structure with
 <li><a href="tools/modeller.html"><b>Modeller Comparative</b></a>
 &ndash; interface to comparative modeling with
 <a href="https://www.salilab.org/modeller/" target="_blank">Modeller</a></li>
+<li><a href="tools/orthopick.html"><b>Orthopick</b></a>
+&ndash; settings for the
+<a href="commands/ui.html#mousemode">mouse mode</a> named
+<a href="commands/ui.html#orthopick"><b>orthopick</b></a></li>
+<li><a href="tools/orthoplanes.html"><b>Orthoplanes</b></a></li>
 <li><a href="tools/profilegrid.html"><b>Profile Grid</b></a>
 &ndash; view a multiple sequence alignment as a condensed grid</li>
 <li><a href="tools/registration.html"><b>Registration</b></a></li>
@@ -174,6 +185,7 @@ with colors, atomic radii, or worms, or
 &ndash; view and evaluate amino acid rotamers; 
 &ldquo;mutate&rdquo; residues</li>
 <li><a href="tools/scalebar.html"><b>Scale Bar</b></a></li>
+<li><a href="tools/scenes.html"><b>Scenes</b></a></li>
 <li><a href="tools/segment.html"><b>Segment Map</b></a></li>
 <li><a href="tools/segmentations.html"><b>Segmentations</b></a>
 &ndash; manually segment medical image or other map data plane by plane,
@@ -196,10 +208,14 @@ optionally structure-associated</li>
 <li><a href="tools/surfacezone.html"><b>Surface Zone</b></a>
 <img class="icon" src="tools/shortcut-icons/volzone.png"></li>
 <li><a href="tools/taskmanager.html"><b>Task Manager</b></a></li>
+<li><a href="tools/thermalellipsoids.html"><b>Thermal Ellipsoids</b></a>
+&ndash; depict atomic anisotropic B-factors</li>
 <li><a href="tools/toolbar.html"><b>Toolbar</b></a>
 &ndash; icons for performing actions with a single click:
 &nbsp;<img class="iconbar" src="home-icons.png">&nbsp;[...]</li>
 <li><a href="tools/unitcell.html"><b>Unit Cell</b></a></li>
+<li><a href="tools/viewdock.html"><b>ViewDock</b></a>
+&ndash; display ligand-target docking results</li>
 <li><a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>
 &ndash; view maps (density, microscopy, 3D imaging, <i>etc.</i>)</li>
 </ul>
@@ -239,6 +255,10 @@ artificial intelligence</li>
 &ndash; show anisotropic B-factors</li>
 <li><a href="commands/blastprotein.html"><b>blastprotein</b></a>
 &ndash; search for similar protein sequences</li>
+<li><a href="commands/boltz.html"><b>boltz</b></a>
+&ndash; structure prediction with
+<a href="https://github.com/jwohlwend/boltz" target="_blank">Boltz</a>
+artificial intelligence</li>
 <li><a href="commands/bond.html"><b>bond</b></a>
 &ndash; add or delete covalent bonds</li>
 <li><a href="commands/build.html"><b>build</b></a>
@@ -257,6 +277,8 @@ adjust parameters and
 &ndash; change the working directory</li>
 <li><a href="commands/changechains.html"><b>changechains</b></a>
 &ndash; change chain IDs</li>
+<li><a href="commands/chirality.html"><b>chirality</b></a>
+&ndash; report R/S configuration of chiral centers</li>
 <li><a href="commands/clashes.html"><b>clashes</b>, <b>contacts</b></a>
 &ndash; identify interatomic clashes or contacts</li>
 <li><a href="commands/clip.html"><b>clip</b></a>
@@ -270,7 +292,9 @@ adjust parameters and
 <li><a href="commands/combine.html"><b>combine</b></a>
 &ndash; combine or copy atomic models</li> 
 <li><a href="commands/coordset.html"><b>coordset</b></a>
-&ndash; play through frames of a <a href="trajectories.html">trajectory</a></li>
+&ndash; play through frames of a <a href="trajectories.html">trajectory</a>,
+<a href="commands/coordset.html#slider">plot</a> measurables
+(distances, angles, <i>etc.</i>)</li>
 <li><a href="commands/coulombic.html"><b>coulombic</b></a>
 &ndash; calculate Coulombic electrostatic potential (ESP), color surfaces</li>
 <li><a href="commands/crossfade.html"><b>crossfade</b></a>
@@ -347,12 +371,18 @@ bonds, <a href="pseudobonds.html">pseudobonds</a></li>
 and shadowing</li>
 <li><a href="commands/mcopy.html"><b>mcopy</b></a>
 &ndash; copy settings from one atomic model to another</li>
+<li><a href="commands/mcp.html"><b>mcp</b></a>
+&ndash; enable ChimeraX to listen for commands from 
+<a href="https://www.claude.com/download" target="_blank">Claude Desktop</a>
+AI</li>
 <li><a href="commands/measure.html"><b>measure</b></a>
 &ndash; measure surface area, enclosed volume, center, path length, 
 map statistics, <i>etc.</i></li>
 <li><a href="commands/meeting.html"><b>meeting</b></a>
 &ndash; connect separate instances of ChimeraX for shared 
 <a href="vr.html">virtual reality</a> or collaborative modeling</li>
+<li><a href="commands/minimize.html"><b>minimize</b></a>
+&ndash; energy-minimize atomic structures</li>
 <li><a href="commands/mlp.html"><b>mlp</b></a>
 &ndash; calculate molecular lipophilicity potential (MLP) for proteins,
 color surfaces</li>
@@ -424,6 +454,8 @@ display frame</li>
 or other data to a file</li>
 <li><a href="commands/scalebar.html"><b>scalebar</b></a>
 &ndash; draw a scale bar</li>
+<li><a href="commands/scenes.html"><b>scenes</b></a>
+&ndash; save/restore scenes</li>
 <li><a href="commands/segger.html"><b>segger</b></a>
 &ndash; act on segmentations created with
 <a href="tools/segment.html"><b>Segment Map</b></a></li>

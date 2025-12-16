@@ -331,6 +331,16 @@ class PseudobondGroup(PseudobondGroupData, Model):
         if self._global_group:
             # Make the global manager restore before we do
             data['mgr'] = session.pb_manager
+        from chimerax.core.state import State
+        if flags == State.SCENE:
+            pseudobonds = self.pseudobonds
+            data['scene state'] = {
+                'colors': pseudobonds.colors,
+                'displays': pseudobonds.displays,
+                'halfbonds': pseudobonds.halfbonds,
+                'radii': pseudobonds.radii,
+                'selecteds': pseudobonds.selecteds,
+            }
 
         return data
 
@@ -354,7 +364,43 @@ class PseudobondGroup(PseudobondGroupData, Model):
         """
         Model.restore_scene(self, scene_data['model state'])
         self.dashes = scene_data['dashes']
-        PseudobondGroupData.restore_scene(self, scene_data['pseudobond data'])
+        pseudobonds = self.pseudobonds
+        pb_state = scene_data['scene state']
+        try:
+            pseudobonds.colors = pb_state['colors']
+            pseudobonds.displays = pb_state['displays']
+            pseudobonds.halfbonds = pb_state['halfbonds']
+            pseudobonds.radii = pb_state['radii']
+            pseudobonds.selecteds = pb_state['selecteds']
+        except ValueError:
+            if self.num_pseudobonds < len(pb_state['colors']):
+                self.session.logger.warning(f"Pseudobonds have been deleted"
+                    f" from {self} since scene was saved.  Cannot restore"
+                    f" {self} completely.  Do not delete pseudobonds involved in pre-existing"
+                    f" scenes!")
+                return
+            raise
+
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        """
+        Interpolate pseudobond group state between two scenes.
+        Most pseudobond attributes use threshold behavior since they're not easily interpolable.
+        """
+        # Interpolate model state (display, selection, etc.)
+        Model.interpolate_scene(self, scene1_data['model state'], scene2_data['model state'],
+                               fraction, switchover=switchover)
+
+        # For non-interpolable attributes, use threshold behavior
+        source_data = scene2_data if switchover else scene1_data
+        self.dashes = source_data['dashes']
+
+        pseudobonds = self.pseudobonds
+        pb_state = source_data['scene state']
+        pseudobonds.colors = pb_state['colors']
+        pseudobonds.displays = pb_state['displays']
+        pseudobonds.halfbonds = pb_state['halfbonds']
+        pseudobonds.radii = pb_state['radii']
+        pseudobonds.selecteds = pb_state['selecteds']
 
 # -----------------------------------------------------------------------------
 #

@@ -122,7 +122,8 @@ def run_pip(command):
     pip_cmd = [prog] + ["-m", "pip"]
     # pip_cmd = [sys.executable, "-m", "pip"]
     with chimerax_environment():
-        cp = subprocess.run(pip_cmd + command, capture_output=True)
+        kwargs = {'creationflags': subprocess.CREATE_NO_WINDOW} if sys.platform == 'win32' else {}
+        cp = subprocess.run(pip_cmd + command, capture_output=True, **kwargs)
     return cp
 
 
@@ -131,6 +132,10 @@ def run_logged_pip(command, logger):
     _debug("_run_logged_pip command:", command)
     cp = run_pip(command)
     if cp.returncode != 0:
+        # Windows seems to be returning non-zero exit codes even when pip succeeds(?);
+        # so in the daily build see what that return code actually is...
+        if sys.platform == "win32":
+            logger.info("pip return code was %d" % cp.returncode)
         output = cp.stdout.decode("utf-8", "backslashreplace")
         error = cp.stderr.decode("utf-8", "backslashreplace")
         _debug("_run_logged_pip return code:", cp.returncode, file=sys.__stderr__)

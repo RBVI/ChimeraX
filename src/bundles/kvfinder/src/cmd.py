@@ -25,9 +25,9 @@
 from chimerax.core.errors import LimitationError, UserError
 import pyKVFinder
 
-def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, probe_in=1.4, probe_out=4.0,
-        removal_distance=2.4, show_tool=True, grid_spacing=0.6, surface_type='SES', volume_cutoff=5.0,
-        replace=True):
+def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, grid_spacing=0.6,
+        probe_in=1.4, probe_out=4.0, removal_distance=2.4, show_box=True, show_tool=True, surface_type='SES',
+        replace=True, volume_cutoff=5.0):
     if [box_origin, box_extent].count(None) == 1:
         raise UserError("Must specify both 'boxOrigin' and 'boxExtent' or neither")
     from chimerax.atomic import all_atomic_structures, Structure, Atom, Residues
@@ -48,7 +48,8 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
         if len(insert_codes[insert_codes != '']) > 0:
             session.logger.warning("%s contains residue insertion codes; KVFinder may not work correctly"
                 % s)
-        struct_input, vertices = prep_input(s, box_origin, box_extent, probe_in, probe_out, grid_spacing)
+        struct_input, vertices = prep_input(s, box_origin, box_extent, show_box,
+            probe_in, probe_out, grid_spacing)
         session.logger.status("Find Cavities for %s: getting grid dimensions" % s)
         nx, ny, nz = pyKVFinder.grid._get_dimensions(vertices, grid_spacing)
         sincos = pyKVFinder.grid._get_sincos(vertices)
@@ -204,18 +205,20 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, Float3Arg, FloatArg, EnumOf, BoolArg
+    from chimerax.core.commands import Bounded, PositiveFloatArg
     from chimerax.atomic import AtomicStructuresArg
     kw = {
         'required': [('structures', Or(AtomicStructuresArg, EmptyArg))],
         'keyword': [
             ('box_extent', Or(Float3Arg, FloatArg)),
             ('box_origin', Float3Arg),
-            ('probe_in', FloatArg),
-            ('probe_out', FloatArg),
+            ('probe_in', PositiveFloatArg),
+            ('probe_out', PositiveFloatArg),
             ('removal_distance', FloatArg),
             ('replace', BoolArg),
+            ('show_box', BoolArg),
             ('show_tool', BoolArg),
-            ('grid_spacing', FloatArg),
+            ('grid_spacing', Bounded(FloatArg, min=0, max=5, inclusive=False, name="a number > 0 and < 5")),
             ('surface_type', EnumOf(['SAS', 'SES'])),
             ('volume_cutoff', FloatArg),
         ]

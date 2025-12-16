@@ -159,7 +159,7 @@ def _parse_python_args(argv, usage):
                     if opt == "m" or opt == "c":
                         # special case, eats rest of arguments
                         yield f"-{opt}", argv[cur_index]
-                        yield None, argv[cur_index + 1 :]
+                        yield None, argv[cur_index + 1:]
                         return
                     arg = argv[cur_index]
                     cur_index += 1
@@ -433,6 +433,7 @@ def dedup_sys_path():
     for dup in dups:
         sys.path.remove(dup)
 
+
 def _set_app_dirs(version):
     # Windows:
     #     python: C:\\...\\ChimeraX.app\\bin\\python.exe
@@ -649,23 +650,31 @@ def init(argv, event_loop=True):
 
     from chimerax.core import session
 
-    try:
-        sess = session.Session(
-            app_name,
-            debug=opts.debug,
-            silent=opts.silent,
-            minimal=opts.safe_mode,
-            offscreen_rendering=opts.offscreen,
-        )
-    except ImportError as err:
-        if opts.offscreen and "OpenGL" in err.args[0]:
-            if sys.platform.startswith("linux"):
-                why = "failed"
-            else:
-                why = "not supported on this platform"
-            print("Offscreen rendering is", why, file=sys.stderr)
-            return os.EX_UNAVAILABLE
-        raise
+    sess = session.Session(
+        app_name,
+        debug=opts.debug,
+        silent=opts.silent,
+        minimal=opts.safe_mode,
+    )
+
+    if not opts.gui:
+        from . import nogui
+        sess.ui = nogui.UI(sess)
+        sess.logger.add_log(nogui.NoGuiLog())
+        sess.ui.initialize_color_output(opts.color)  # Colored text
+
+    if opts.offscreen:
+        try:
+            sess.ui.initialize_offscreen_rendering()
+        except ImportError as err:
+            if opts.offscreen and "OpenGL" in err.args[0]:
+                if sys.platform.startswith("linux"):
+                    why = "failed"
+                else:
+                    why = "not supported on this platform"
+                print("Offscreen rendering is", why, file=sys.stderr)
+                return os.EX_UNAVAILABLE
+            raise
 
     from chimerax.core import core_settings
 
@@ -688,6 +697,11 @@ def init(argv, event_loop=True):
             # ChimeraX needs to use XWayland for now
             os.environ["QT_QPA_PLATFORM"] = "xcb"
             os.environ["PYOPENGL_PLATFORM"] = "x11"
+        # When Qt 6.10 comes out, try Wayland on WSLg again
+        # May need to tell Chromium to use software rendering
+        # with QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu", since
+        # all of QtWebEngine's hardware renderers produce a stream
+        # of errors on WSLg 
         from chimerax.ui import initialize_qt
 
         initialize_qt()
@@ -696,18 +710,11 @@ def init(argv, event_loop=True):
     # sets up logging
     if opts.gui:
         from chimerax.ui import gui
-
         sess.ui = gui.UI(sess, color_scheme=opts.color_scheme)
-    else:
-        from chimerax.core.nogui import NoGuiLog
-
-        sess.logger.add_log(NoGuiLog())
-
+ 
     # Set ui options
     sess.ui.stereo = opts.stereo
     sess.ui.autostart_tools = opts.load_tools
-    if not opts.gui:
-        sess.ui.initialize_color_output(opts.color)  # Colored text
 
     # Set current working directory to Desktop when launched from icon.
     if (sys.platform.startswith("darwin") and os.getcwd() == "/") or (
@@ -1199,10 +1206,12 @@ def restart_action(line, inst_dir, msgs):
             command.append(os.path.join(inst_dir, bundle))
         else:
             command.append(bundle)
+    kwargs = {'creationflags': subprocess.CREATE_NO_WINDOW} if sys.platform == 'win32' else {}
     cp = subprocess.run(
         [sys.executable, "-m", "pip"] + command,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        **kwargs
     )
     if cp.returncode == 0:
         msgs.append(("stdout", "Successfully installed %r" % bundle))

@@ -244,54 +244,60 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
             if doing_coordsets:
                 cs_id = cs_ids[i]
                 pbg_pseudobonds = pbg.get_pseudobonds(cs_id)
+                structure = structures[0]
+                adjustment_context = structure.suppress_coordset_change_notifications
             else:
                 pbg_pseudobonds = pbg.pseudobonds
+                from contextlib import nullcontext as adjustment_context
             if two_colors:
                 precise = set(precise_lists[i])
             if retain_current:
                 for pb in pbg_pseudobonds:
                     pre_existing[pb.atoms] = pb
 
-            from chimerax.geometry import distance_squared
-            for don, acc in cs_hbonds:
-                nearest = None
-                heavy_don = don
-                for h in [x for x in don.neighbors if x.element.number == 1]:
-                    sqdist = distance_squared(h.scene_coord, acc.scene_coord)
-                    if nearest is None or sqdist < nsqdist:
-                        nearest = h
-                        nsqdist = sqdist
-                if nearest is not None:
-                    don = nearest
-                if (don,acc) in pre_existing:
-                    pb = pre_existing[(don,acc)]
-                else:
-                    if doing_coordsets:
-                        pb = pbg.new_pseudobond(don, acc, cs_id)
+            with adjustment_context():
+                if doing_coordsets:
+                    structure.active_coordset_id = cs_id
+                from chimerax.geometry import distance_squared
+                for don, acc in cs_hbonds:
+                    nearest = None
+                    heavy_don = don
+                    for h in [x for x in don.neighbors if x.element.number == 1]:
+                        sqdist = distance_squared(h.scene_coord, acc.scene_coord)
+                        if nearest is None or sqdist < nsqdist:
+                            nearest = h
+                            nsqdist = sqdist
+                    if nearest is not None:
+                        don = nearest
+                    if (don,acc) in pre_existing:
+                        pb = pre_existing[(don,acc)]
                     else:
-                        pb = pbg.new_pseudobond(don, acc)
-                if two_colors:
-                    if (heavy_don, acc) in precise:
-                        color = bond_color
-                    else:
-                        color = slop_color
-                else:
-                    color = bond_color
-                rgba = pb.color
-                rgba[:3] = color.uint8x4()[:3] # preserve transparency
-                pb.color = rgba
-                pb.radius = radius
-                if reveal:
-                    for end in [don, acc]:
-                        if end.display:
-                            continue
-                        res_atoms = end.residue.atoms
-                        if end.is_side_chain:
-                            res_atoms.filter(res_atoms.is_side_chains == True).displays = True
-                        elif end.is_backbone():
-                            res_atoms.filter(res_atoms.is_backbones() == True).displays = True
+                        if doing_coordsets:
+                            pb = pbg.new_pseudobond(don, acc, cs_id)
                         else:
-                            res_atoms.displays = True
+                            pb = pbg.new_pseudobond(don, acc)
+                    if two_colors:
+                        if (heavy_don, acc) in precise:
+                            color = bond_color
+                        else:
+                            color = slop_color
+                    else:
+                        color = bond_color
+                    rgba = pb.color
+                    rgba[:3] = color.uint8x4()[:3] # preserve transparency
+                    pb.color = rgba
+                    pb.radius = radius
+                    if reveal:
+                        for end in [don, acc]:
+                            if end.display:
+                                continue
+                            res_atoms = end.residue.atoms
+                            if end.is_side_chain:
+                                res_atoms.filter(res_atoms.is_side_chains == True).displays = True
+                            elif end.is_backbone():
+                                res_atoms.filter(res_atoms.is_backbones() == True).displays = True
+                            else:
+                                res_atoms.displays = True
         if pbg.id is None:
             session.models.add([pbg])
 

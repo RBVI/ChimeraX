@@ -554,3 +554,19 @@ def _qt_pixel_format_name(qt_pixel_format):
     if name is None:
         name = str(qt_pixel_format)
     return name
+
+# -----------------------------------------------------------------------------
+#
+def request_camera_permission(session, permission_granted_callback):
+    from Qt.QtCore import QCameraPermission, Qt
+    status = session.ui.checkPermission(QCameraPermission())
+    if status == Qt.PermissionStatus.Granted:
+        permission_granted_callback(True)
+    elif status == Qt.PermissionStatus.Denied:
+        permission_granted_callback(False)
+    elif status == Qt.PermissionStatus.Undetermined:
+        def f(permission):
+            granted = (permission.status() == Qt.PermissionStatus.Granted)
+            permission_granted_callback(granted)
+        session.ui.requestPermission(QCameraPermission(), f)
+

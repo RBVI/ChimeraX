@@ -32,6 +32,11 @@ except ImportError:
     # nogui
     pass
 else:
+    import sys
+    if sys.platform == 'win32':
+        from chimerax.core.utils import no_garbage_collection as gc_context
+    else:
+        from contextlib import nullcontext as gc_context
     class OpenDialog(QFileDialog):
         def __init__(self, parent=None, caption='Open File', starting_directory=None,
                      widget_alignment=Qt.AlignCenter, filter=''):
@@ -52,7 +57,8 @@ else:
         def get_path(self):
             if not self.exec():
                 return None
-            paths = self.selectedFiles()
+            with gc_context():
+                paths = self.selectedFiles()
             if not paths:
                 return None
             path = paths[0]
@@ -61,7 +67,8 @@ else:
         def get_paths(self):
             if not self.exec():
                 return None
-            paths = self.selectedFiles()
+            with gc_context():
+                paths = self.selectedFiles()
             if not paths:
                 return None
             return paths
@@ -97,8 +104,9 @@ else:
                 from os.path import dirname
                 initial_dir = dirname(hfiles[-1].path)
                 self.setDirectory(initial_dir)
-            if not self.exec():
-                return
+            with gc_context():
+                if not self.exec():
+                    return
             dirs = self.selectedFiles()
             dir = dirs[0] if len(dirs) > 0 else self.directory().path()
             fmt_synopsis = self._format_selector.currentText()
@@ -295,7 +303,7 @@ def show_fetch_by_id_dialog(session, database_name=None, *, debug=False):
     _fetch_by_id_dialog.show()
     _fetch_by_id_dialog.raise_()
 
-def show_open_file_dialog(session, initial_directory=None, format_names=None):
+def show_open_file_dialog(session, initial_directory=None, format_names=None, *, caption=None):
     if initial_directory is None:
         initial_directory = ''
     file_filters, openable_formats, no_filter = make_qt_name_filters(session, format_names=format_names)
@@ -307,10 +315,18 @@ def show_open_file_dialog(session, initial_directory=None, format_names=None):
         filter2fmt = dict(zip(file_filters, openable_formats))
     from Qt.QtWidgets import QFileDialog
     qt_filter = ";;".join(file_filters)
-    if _use_native_open_file_dialog:
+    # native Mac open dialogs (and possibly others) don't show captions...
+    if _use_native_open_file_dialog and caption is None:
         from Qt.QtWidgets import QFileDialog
-        paths, file_filter = QFileDialog.getOpenFileNames(filter=qt_filter,
+        with gc_context():
+            from Qt import using_pyqt6
+            if using_pyqt6:
+                paths, file_filter = QFileDialog.getOpenFileNames(filter=qt_filter,
                                                        directory=initial_directory)
+            else:
+                paths, file_filter = QFileDialog.getOpenFileNames(filter=qt_filter,
+                                                       dir=initial_directory)
+
         from sys import platform
         if platform == 'win32':
             # On Windows 10 the native open dialog puts "fatal errors" into the
@@ -320,7 +336,7 @@ def show_open_file_dialog(session, initial_directory=None, format_names=None):
             crash_report.clear_fault_handler_file(session)
     else:
         dlg = OpenDialog(parent=session.ui.main_window, starting_directory=initial_directory,
-                       filter=qt_filter)
+                       filter=qt_filter, caption=caption)
         dlg.setNameFilters(file_filters)
         paths = dlg.get_paths()
         file_filter = dlg.selectedNameFilter()

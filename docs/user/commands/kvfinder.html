@@ -1,4 +1,4 @@
-<html>
+<html lang="en">
 
 <!--
 === UCSF ChimeraX Copyright ===
@@ -39,6 +39,7 @@ class="clRighticon" title="User Guide Index"/></a>
 [&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>boxOrigin</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
 [&nbsp;<b>boxExtent</b>&nbsp;&nbsp;<i>length</i>&nbsp;|&nbsp;<i>lx,ly,lz</i>&nbsp;]
+[&nbsp;<b>showBox</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <br>
 </blockquote>
 </h3>
@@ -61,7 +62,8 @@ Guerra JVDS, Ribeiro-Filho HV, Jara GE, Bortot LO, Pereira JGC, Lopes-de-Oliveir
 <p>
 The <b>kvfinder</b> command installs and runs
 <a href="https://lbc-lnbio.github.io/pyKVFinder/"
-target="_blank"><i>pyKVFinder</i></a> locally. 
+target="_blank"><i>pyKVFinder</i></a> locally (it is obtained from
+the <a href="https://pypi.org" target="_blank">PyPi server</a>). 
 It is also implemented as the
 <a href="../tools/findcavities.html"><b>Find Cavities</b></a> tool.
 The authors of KVFinder (at the Brazilian Biosciences National Lab) also provide
@@ -106,11 +108,13 @@ cavity, given the parameters above, and reports them in the
 are omitted from the results.
 </p><p>
 The cavities are discretized as points on a grid with
-<b>gridSpacing</b> <i>s</i> (default <b>0.6</b> &Aring;). 
-Using a smaller spacing gives a higher-resolution result,
-but can significantly increase the calculation time.
+<b>gridSpacing</b> <i>s</i> (default <b>0.6</b> &Aring;; must
+be greater than 0.0 and smaller than 5.0).
 These collections of dots are opened as (pseudo)atomic models
 in ChimeraX, each cavity as a separate submodel assigned a unique color.
+Grid spacing no greater than half the <b>probeIn</b> value
+is recommended; decreasing the spacing gives higher resolution,
+but may also increase the calculation time significantly.
 </p><p>
 The <b>showTool</b> option indicates whether to also tabulate the results in an
 interactive <a href="../tools/findcavities.html#cavitylist">cavity list</a>
@@ -135,8 +139,15 @@ However, the calculation can be limited to a rectangular box by specifying
 for a cubic box, or as three numbers separated by commas only 
 for the box dimensions along X, Y, and Z
 </ul>
+<p>
+The <b>showBox</b> option indicates whether to create a box-outline model 
+when the search is limited to a box (default <b>true</b>).
+The model is named <b>cavity search box</b> and can be hidden/shown or 
+closed in the same ways as other models, such as by using the 
+<a href="../tools/modelpanel.html"><b>Model Panel</b></a>.
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2025</address>
+October 2025</address>
 </body></html>

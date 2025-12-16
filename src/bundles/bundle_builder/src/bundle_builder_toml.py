@@ -88,6 +88,24 @@ from setuptools.build_meta import (
 # Always import this because it changes the behavior of setuptools
 from numpy import get_include as get_numpy_include_dirs
 
+cpu_count = os.cpu_count()
+
+try:
+    from pybind11.setup_helpers import Pybind11Extension
+except:
+    pass
+
+try:
+    import openmm
+
+    def get_openmm_lib():
+        return openmm.version.openmm_library_path
+
+    openmm.get_lib = get_openmm_lib
+    openmm.get_include = get_openmm_lib
+except:
+    pass
+
 # TODO Fact check
 # The compile process is initiated by setuptools and handled
 # by numpy.distutils, which eventually calls subprocess.
@@ -157,7 +175,6 @@ def read_toml(file):
 
 
 class Bundle:
-
     def __init__(self, logger, bundle_info):
         self.logger = logger
         self.bundle_info = bundle_info
@@ -195,7 +212,7 @@ class Bundle:
             else:
                 # Binary files are tied to the current version of Python
                 self.python_requirement = SpecifierSet(
-                    f'=={".".join(str(num) for num in sys.version_info[:2])}.*'
+                    f"=={'.'.join(str(num) for num in sys.version_info[:2])}.*"
                 )
         else:
             self.python_requirement = project_data.get("requires-python", None)
@@ -392,15 +409,15 @@ class Bundle:
                 self.initializations.append(Initialization(entry_type, _bundles))
         if "extension" in chimerax_data:
             for name, attrs in chimerax_data["extension"].items():
-                attrs['limited-api'] = self.limited_api
+                attrs["limited-api"] = self.limited_api
                 self.c_modules.append(_CModule(name, attrs))
         if "library" in chimerax_data:
             for name, attrs in chimerax_data["library"].items():
-                attrs['limited-api'] = self.limited_api
+                attrs["limited-api"] = self.limited_api
                 self.c_libraries.append(_CLibrary(name, attrs))
         if "executable" in chimerax_data:
             for name, attrs in chimerax_data["executable"].items():
-                attrs['limited-api'] = self.limited_api
+                attrs["limited-api"] = self.limited_api
                 self.c_executables.append(_CExecutable(name, attrs))
 
         # TODO: Finalize
@@ -520,7 +537,10 @@ class Bundle:
                 # bundles
                 req.specifier.prereleases = True
             if installed_version not in req.specifier:
-                raise ValueError("Incompatible version for build dependency %s (needed: %s, installed: %s)" % (req.name, req.specifier, str(installed_version)))
+                raise ValueError(
+                    "Incompatible version for build dependency %s (needed: %s, installed: %s)"
+                    % (req.name, req.specifier, str(installed_version))
+                )
 
     @staticmethod
     def format_module_name(name: str, override: Optional[str] = None):
@@ -683,7 +703,7 @@ class Bundle:
                 for entry in globbed_items:
                     destination = os.path.join(path, os.path.basename(entry))
                     if os.path.isdir(entry):
-                        shutil.copytree(entry, destination)
+                        shutil.copytree(entry, destination, dirs_exist_ok=True)
                     else:
                         shutil.copy2(entry, destination)
 
@@ -770,13 +790,13 @@ class Bundle:
         except (SystemExit, Exception):
             traceback.print_exc()
             return None, False
+        except SystemExit:
+            return None, False
         finally:
             sys.argv = save
             os.chdir(cwd)
             if MySTARTUPINFO:
-                subprocess.STARTUPINFO = (
-                    MySTARTUPINFO._original
-                )  # noqa we don't care this is protected
+                subprocess.STARTUPINFO = MySTARTUPINFO._original  # noqa we don't care this is protected
 
     def _clear_distutils_dir_and_prep_srcdir(self, build_exts=False):
         # HACK: distutils uses a cache to track created directories
@@ -828,8 +848,22 @@ class Bundle:
         ld_path = ":".join(library_dirs)
         old_ldpath = os.environ.get("LD_LIBRARY_PATH", "")
         os.environ["LD_LIBRARY_PATH"] = f"{ld_path}:$LD_LIBRARY_PATH"
-        output = subprocess.check_output([sys.executable, "-m", "auditwheel", "repair", "--plat", tag, "--only-plat", wheel], stderr=subprocess.STDOUT)
-        wheel_name = output.decode().split('\n')[-2].replace("Fixed up wheel written to ", "")
+        output = subprocess.check_output(
+            [
+                sys.executable,
+                "-m",
+                "auditwheel",
+                "repair",
+                "--plat",
+                tag,
+                "--only-plat",
+                wheel,
+            ],
+            stderr=subprocess.STDOUT,
+        )
+        wheel_name = (
+            output.decode().split("\n")[-2].replace("Fixed up wheel written to ", "")
+        )
         if not os.path.exists(wheel_name):
             pass
         os.environ["LD_LIBRARY_PATH"] = old_ldpath
@@ -838,7 +872,7 @@ class Bundle:
     def build_wheel(self, debug=False, release=False):
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
         self._check_build_requires()
-        setup_args = ["--no-user-cfg", "build"]
+        setup_args = ["--no-user-cfg", "build", f"-j{cpu_count}"]
         setup_args.extend(["bdist_wheel"])
         dist, built = self._run_setup(setup_args)
         if not self.version:
@@ -876,7 +910,7 @@ class Bundle:
         self._remove_libraries()
         self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
         self._check_build_requires()
-        setup_args = ["build_ext", "--inplace", "editable_wheel"]
+        setup_args = ["build_ext", f"-j{cpu_count}", "--inplace", "editable_wheel"]
         if config_settings:
             if "editable_mode" in config_settings:
                 setup_args.extend(["--mode", config_settings["editable_mode"]])
@@ -927,9 +961,10 @@ class _CompiledCode:
         self.frameworks = attrs.get("frameworks", [])
         self.libraries = attrs.get("libraries", [])
         self.compile_arguments = attrs.get("extra-compile-args", [])
+        self.link_arguments = attrs.get("extra-link-args", [])
         if sys.platform == "darwin":
             self.compile_arguments.append("-mmacos-version-min=11")
-        self.link_arguments = attrs.get("extra-link-args", [])
+            self.link_arguments.append("-mmacos-version-min=11")
         self.include_dirs = attrs.get("include-dirs", [])
         self.include_modules = attrs.get("include-modules", [])
         self.include_libraries = attrs.get("library-modules", [])
@@ -960,7 +995,7 @@ class _CompiledCode:
         for def_ in defines:
             edef = def_.split("=")
             if len(edef) > 2:
-                raise TypeError("Too many arguments for macro " "definition: %s" % edef)
+                raise TypeError("Too many arguments for macro definition: %s" % edef)
             elif len(edef) == 1:
                 edef.append(None)
             self.add_macro_define(*edef)
@@ -1019,23 +1054,51 @@ class _CompiledCode:
             # when receiving a -std=c++11 option when compiling
             # a C (not C++) source file, which is why this value
             # is named "cpp_flags" not "compile_flags"
-            cpp_flags = ["-std=c++11", "-stdlib=libc++"]
+            cpp_flags = ["-stdlib=libc++"]
+            if not any([flag.startswith("-std=") for flag in self.compile_arguments]):
+                cpp_flags.append("-std=c++11")
             extra_link_args = ["-F" + d for d in self.framework_dirs]
             for fw in self.frameworks:
                 extra_link_args.extend(["-framework", fw])
         elif sys.platform == "win32":
             libraries = []
+            # Try to find the actual library file in library_dirs
+            # Check for both "Foo.lib" and "libFoo.lib" patterns
             for lib in self.libraries:
+                found = False
                 if lib.lower().endswith(".lib"):
                     # Strip the .lib since suffixes are handled automatically
-                    libraries.append(lib[:-4])
+                    tentative_name = lib[:-4]
                 else:
+                    tentative_name = lib
+                for lib_dir in self.library_dirs:
+                    if os.path.exists(lib_dir):
+                        # First try without "lib" prefix (e.g., OpenMM.lib)
+                        if os.path.exists(
+                            os.path.join(lib_dir, f"{tentative_name}.lib")
+                        ):
+                            libraries.append(lib)
+                            found = True
+                            break
+                        # Then try with "lib" prefix (e.g., libOpenMM.lib)
+                        if os.path.exists(
+                            os.path.join(lib_dir, f"lib{tentative_name}.lib")
+                        ):
+                            libraries.append(f"lib{lib}")
+                            found = True
+                            break
+                if not found:
+                    # Fall back to old behavior: prepend "lib"
                     libraries.append("lib" + lib)
             cpp_flags = []
+            if not any([flag.startswith("/std:") for flag in self.compile_arguments]):
+                cpp_flags.append("/std:c++11")
             extra_link_args = []
         else:
             libraries = self.libraries
-            cpp_flags = ["-std=c++11"]
+            cpp_flags = []
+            if not any([flag.startswith("-std=") for flag in self.compile_arguments]):
+                cpp_flags.append("-std=c++11")
             extra_link_args = []
         for req in self.requires:
             if not os.path.exists(req):
@@ -1105,7 +1168,6 @@ class _CompiledCode:
 
 
 class _CModule(_CompiledCode):
-
     def __init__(self, name, attrs):
         self.name = name
         super().__init__(name, attrs)
@@ -1129,7 +1191,11 @@ class _CModule(_CompiledCode):
         elif sys.platform == "darwin":
             extra_link_args.append("-Wl,-rpath,@loader_path/lib")
         if self.source_files:
-            return Extension(
+            if "pybind11" in self.include_modules:
+                ext_type = Pybind11Extension
+            else:
+                ext_type = Extension
+            return ext_type(
                 package + "." + self.name,
                 define_macros=macros,
                 extra_compile_args=cpp_flags + self.compile_arguments,
@@ -1139,7 +1205,7 @@ class _CModule(_CompiledCode):
                 extra_link_args=extra_link_args,
                 sources=self.source_files,
                 py_limited_api=self.limited_api,
-                optional = self.optional
+                optional=self.optional,
             )
         else:
             return None

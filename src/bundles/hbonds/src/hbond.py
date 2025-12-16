@@ -303,16 +303,16 @@ def find_coordset_hbonds(session, structure, **kw):
     """
     hbonds = []
     cs_ids = structure.coordset_ids
-    structure.active_coordset_change_notify = False
-    cur_cs_id = structure.active_coordset_id
-    try:
-        for cs_id in cs_ids:
+    with structure.suppress_coordset_change_notifications():
+        show_status = kw.get('status', True)
+        for i, cs_id in enumerate(cs_ids):
+            if show_status:
+                session.logger.status("Frame %d/%d" % (i+1, len(cs_ids)), secondary=True, blank_after=0)
             structure.active_coordset_id = cs_id
             kw['cache_da'] = cs_id != cs_ids[-1]
             hbonds.append(find_hbonds(session, [structure], **kw))
-    finally:
-        structure.active_coordset_od = cur_cs_id
-        structure.active_coordset_change_notify = True
+        if show_status:
+            session.logger.status("", secondary=True)
     return hbonds
 
 def find_hbonds(session, structures, *, inter_model=True, intra_model=True, donors=None, acceptors=None,

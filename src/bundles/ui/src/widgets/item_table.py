@@ -278,19 +278,20 @@ class ItemTable(QTableView):
     SORT_DESCENDING = Qt.SortOrder.DescendingOrder
 
     def __init__(self, *, auto_multiline_headers: bool=True, column_control_info=None,
-             allow_user_sorting=True, settings_attr=None, parent=None, session=None, color_column_width=32):
+             allow_user_sorting=True, settings_attr=None, parent=None, session=None, color_column_width=32,
+             allow_user_column_ordering=True):
         """
         Parameters:
             auto_multiline_headers: controls whether header titles can be split into multiple
                                     lines on word boundaries.
-            allow_user_sorting: controls whether mouse clicks on column headers will sort the
-                                columns.
+            allow_user_sorting: controls whether mouse clicks on column headers will sort the columns.
             column_control_info: If provided, used to populate either a menu or widget with check box
                 entries or check boxes (respectively) to control which columns are displayed.
             session: for backwards compatibility, this parameter is optional, but is in fact required if the
                 table adds columns whose 'data_set' attribute is a string (since it will be run as command).
             color_column_width: Columns containing color buttons will be this wide.  Some tables for
                 practical or esthetic reasons may prefer a narrower value (e.g. 16).
+            allow_user_sorting: controls whether the user can rearrange columns by dragging the headers
 
         Notes:
             For a menu the value of column_control_info should be:
@@ -325,6 +326,7 @@ class ItemTable(QTableView):
         self._columns = []
         self._data = []
         self._allow_user_sorting = allow_user_sorting
+        self._allow_user_column_ordering = allow_user_column_ordering
         self._auto_multiline_headers = auto_multiline_headers
         self._column_control_info = column_control_info
         self._settings_attr = self.DEFAULT_SETTINGS_ATTR if settings_attr is None else settings_attr
@@ -352,8 +354,6 @@ class ItemTable(QTableView):
                 if column_control_info[-1]:
                     from Qt.QtWidgets import QDialogButtonBox as qbbox
                     self._col_button_container = QWidget(parent=widget)
-                    toggle_vis = lambda x: x.setVisible(not x.isVisible())
-                    toggle_callback = toggle_vis(self._col_button_container)
                     main_layout.addWidget(self._col_button_container, alignment=Qt.AlignLeft)
                     buttons_layout = QHBoxLayout()
                     buttons_layout.setContentsMargins(0,0,0,0)
@@ -487,10 +487,9 @@ class ItemTable(QTableView):
             header_justification, balloon, icon, self._session, editable, validator, sort_func,
             show_tooltips, data_color, is_html)
 
+        c.display = display
         if self._column_control_info:
             self._add_column_control_entry(c)
-        if display != c.display:
-            self.update_column(c, display=display)
         if not self._table_model:
             # not yet launch()ed
             self._columns.append(c)
@@ -498,14 +497,19 @@ class ItemTable(QTableView):
 
         self._pending_columns.append(c)
         if refresh:
+            selected = self.selected
             num_existing = len(self._columns)
             self._table_model.beginInsertColumns(QModelIndex(),
                 num_existing, num_existing + len(self._pending_columns)-1)
             self._columns.extend(self._pending_columns)
             self._table_model.endInsertColumns()
+            for pc in self._pending_columns:
+                if not pc.display:
+                    self.hideColumn(self._columns.index(pc))
             self._pending_columns = []
             self.resizeColumnsToContents()
             self.resizeRowsToContents()
+            self.selected = selected
         return c
 
     @property
@@ -546,8 +550,11 @@ class ItemTable(QTableView):
         while True:
             for i, datum in enumerate(self._data):
                 if datum not in new_data_set:
-                    self._table_model.beginRemoveRows(QModelIndex(), i, i)
-                    self._data = self._data[:i] + self._data[i+1:]
+                    start = end = i
+                    while end+1 < len(self._data) and self._data[end+1] not in new_data_set:
+                        end += 1
+                    self._table_model.beginRemoveRows(QModelIndex(), start, end)
+                    self._data = self._data[:start] + self._data[end+1:]
                     self._table_model.endRemoveRows()
                     break
             else:
@@ -606,13 +613,15 @@ class ItemTable(QTableView):
             self.setSortingEnabled(True)
         else:
             self.setModel(self._table_model)
+        if self._allow_user_column_ordering:
+            self.horizontalHeader().setSectionsMovable(True)
         self.setSelectionBehavior(self.SelectRows)
         self.setSelectionMode(select_mode)
         if self._column_control_info and not isinstance(self._column_control_info[0], QMenu):
             self._arrange_col_checkboxes()
         scroll_to = None
         if session_info:
-            version, selected, column_display, highlighted, sort_info = session_info
+            version, selected, column_display, highlighted, sort_info, *version_args = session_info
             if self._allow_user_sorting and sort_info is not None:
                 col_num, order = sort_info
                 self.sortByColumn(col_num, qt_enum_from_int(Qt.SortOrder, order))
@@ -626,10 +635,17 @@ class ItemTable(QTableView):
             self.highlight([self._data[i] for i in highlighted])
             for c in self._columns:
                 self.update_column(c, display=column_display.get(c.title, True))
+            if version >= 2:
+                header_info, *version_args = version_args
+                from Qt.QtCore import QByteArray
+                self.horizontalHeader().restoreState(QByteArray(header_info))
+
         self.selectionModel().selectionChanged.connect(self._relay_selection_change)
-        for col in self._columns:
+        for i, col in enumerate(self._columns):
             if not col.display:
-                self.hideColumn(self._columns.index(col))
+                self.hideColumn(i)
+            else:
+                self.showColumn(i)
         self.verticalHeader().setVisible(False)
         if not suppress_resize:
             self.resizeColumnsToContents()
@@ -666,7 +682,7 @@ class ItemTable(QTableView):
             sel_model.select(index, sel_model.Select | sel_model.Rows)
 
     def session_info(self):
-        version = 1
+        version = 2
         if self._allow_user_sorting:
             selected = set([self.model().mapToSource(i).row() for i in self.selectionModel().selectedRows()])
         else:
@@ -677,7 +693,11 @@ class ItemTable(QTableView):
             sort_info = (self.model().sortColumn(), qt_enum_as_int(self.model().sortOrder()))
         else:
             sort_info = None
-        return (version, selected, column_display, highlighted, sort_info)
+        if self._allow_user_column_ordering:
+            header_info = self.horizontalHeader().saveState().data()
+        else:
+            header_info = None
+        return (version, selected, column_display, highlighted, sort_info, header_info)
 
     def sizeHintForColumn(self, col_index):
         if self._columns[col_index].display_format in self.color_formats:
@@ -732,13 +752,17 @@ class ItemTable(QTableView):
         bottom_right = self._table_model.index(len(self._data)-1, self._columns.index(column))
         self._table_model.dataChanged.emit(top_left, bottom_right, changes)
 
-    def write_values(self, file=None, *, separator=None):
+    def write_values(self, file=None, *, separator=None, header_vals=None, row_func=None):
         """ Write the table headers and contents to a comma/tab/other-separated value file.
             With no args, query the user for the file name whether to use commas or tabs as separators.
             If the 'file' arg is supplied, then the 'separator' arg must also be supplied and the
             requested file will be written.  You *can* omit 'file' but still specifiy 'separator', in
             which case the user will be queried for the file ('separator' has to be comma or tab in
             this usage).
+
+            The header and row output can be customized by supplying 'header_vals' and/or 'row_func'.
+            'header_vals' should be a list of strings and 'row_func' should be a function that takes
+            a data item as its only argument and returns a list of strings.
         """
         all_separators = ['\t', ',']
         if separator is None:
@@ -773,7 +797,9 @@ class ItemTable(QTableView):
             separator = filter_to_sep[filter]
         from chimerax.io import open_output
         with open_output(file, encoding="utf-8") as f:
-            print(separator.join(self.column_names), file=f)
+            if header_vals is None:
+                header_vals = self.column_names
+            print(separator.join(header_vals), file=f)
             def printable(col, datum):
                 dval = col.display_value(datum)
                 if isinstance(dval, str):
@@ -783,8 +809,11 @@ class ItemTable(QTableView):
                 except Exception:
                     return ""
             for datum in self.sorted_data:
-                print(separator.join([printable(col, datum) for col in self.columns]),
-                    file=f)
+                if row_func is None:
+                    row_vals = [printable(col, datum) for col in self.columns]
+                else:
+                    row_vals = row_func(datum)
+                print(separator.join(row_vals), file=f)
 
     def _add_column_control_entry(self, col):
         action = QAction(col.title)
@@ -813,12 +842,16 @@ class ItemTable(QTableView):
     def _arrange_col_checkboxes(self):
         while self._col_checkbox_layout.count() > 0:
             self._col_checkbox_layout.takeAt(0)
-        self._col_checkboxes.sort(key=lambda cb: cb.text())
+        self._col_checkboxes.sort(key=lambda cb: cb.text().lower())
         requested_cols = self._column_control_info[-2]
         num_buttons = len(self._col_checkboxes)
         from math import sqrt, ceil
         if requested_cols is None:
-            num_cols = int(sqrt(num_buttons)+0.5)
+            # checkboxes are much wider than tall, so to prevent the checkbox area from forcing
+            # dialogs to be wider in extreme cases (think >64 table columns, longish labels),
+            # scale number of columns based on rough estimated width
+            longest_text = max([len(cb.text()) for cb in self._col_checkboxes])
+            num_cols = int(sqrt(num_buttons/max(1, longest_text/15))+0.5)
         else:
             num_cols = requested_cols
         num_rows = int(ceil(num_buttons/num_cols))

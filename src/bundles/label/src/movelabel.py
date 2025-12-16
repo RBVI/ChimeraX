@@ -31,6 +31,8 @@ class MoveLabelMouseMode(MouseMode):
     def __init__(self, session):
         MouseMode.__init__(self, session)
         self._label = None
+        if not session.triggers.has_trigger('move label'):
+            session.triggers.add_trigger('move label')
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
@@ -74,6 +76,15 @@ class MoveLabelMouseMode(MouseMode):
 
     def mouse_up(self, event):
         self._log_label_move_command()
+
+        if self._label:
+            tdata = self._label
+        else:
+            x,y = event.position()
+            w,h = self.session.main_view.window_size
+            tdata = (x/w, (h-1-y)/h)
+        self.session.triggers.activate_trigger('move label', tdata)
+
         self._label = None
         MouseMode.mouse_up(self, event)
 
@@ -97,7 +108,55 @@ class MoveLabelMouseMode(MouseMode):
         else:
             x, y = self._label.end
         return x,y
-        
+
+class ArrowMouseMode(MoveLabelMouseMode):
+    '''Move labels or create arrows.'''
+    name = 'label or arrow'
+    icon_file = 'movelabel.png'
+
+    def __init__(self, session):
+        self.color = None
+        self.weight = None
+        self.style = None
+        self._arrow_start = None
+        MoveLabelMouseMode.__init__(self, session)
+
+    def mouse_down(self, event):
+        MoveLabelMouseMode.mouse_down(self, event)
+        self._arrow_start = self._unit_coordinates(event) if self._label is None else None
+
+    def mouse_drag(self, event):
+        if self._arrow_start is not None:
+            x1,y1 = self._arrow_start
+            x2,y2 = self._unit_coordinates(event)
+            if abs(x2-x1) + abs(y2-y1) >= 0.02:
+                self._label = self._make_new_arrow(x1, y1, x2, y2)
+                self._arr_part = 'end'
+                self._arrow_start = None
+
+        MoveLabelMouseMode.mouse_drag(self, event)
+
+    def _make_new_arrow(self, x1, y1, x2, y2):
+        # Start an arrow.
+        options = []
+        if self.color is not None:
+            from chimerax.core.colors import color_name
+            options.append(f'color {color_name(self.color)}')
+        if self.weight is not None:
+            options.append(f'weight {self.weight}')
+        if self.style is not None:
+            options.append(f'headStyle {self.style}')
+        command = f'2dlabel arrow start {"%.3f"%x1},{"%.3f"%y1} end {"%.3f"%x2},{"%.3f"%y2} ' + ' '.join(options)
+        from chimerax.core.commands import run
+        arrow = run(self.session, command)
+        return arrow
+
+    def _unit_coordinates(self, event):
+        x,y = event.position()
+        w,h = self.session.main_view.window_size
+        return (x/w, (h-1-y)/h)
+
 def register_mousemode(session):
     mm = session.ui.mouse_modes
     mm.add_mode(MoveLabelMouseMode(session))
+    mm.add_mode(ArrowMouseMode(session))

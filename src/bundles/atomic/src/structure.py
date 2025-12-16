@@ -50,6 +50,15 @@ class Structure(Model, StructureData):
     The data is managed by the :class:`.StructureData` base class
     which provides access to the C++ structures.
     """
+    ATOM_SCENE_ATTRS = ['colors', 'coords', 'displays', 'draw_modes', 'radii', 'selected']
+    BOND_SCENE_ATTRS = ['colors', 'displays', 'halfbonds', 'radii', 'selected']
+    RESIDUE_SCENE_ATTRS = ['ribbon_adjusts', 'ribbon_colors', 'ribbon_displays', 'ribbon_hide_backbones',
+        'ring_colors', 'ring_displays', 'thin_rings', 'worm_radii']
+    STRUCTURE_SCENE_ATTRS = ['active_coordset_id', 'ball_scale', 'res_numbering', 'ribbon_mode_helix',
+        'ribbon_mode_strand', 'ribbon_orientation', 'ribbon_show_spine', 'ribbon_tether_opacity',
+        'ribbon_tether_scale', 'ribbon_tether_sides', 'ribbon_tether_shape', 'worm_ribbon']
+    simply_interpolable_attrs = set(['ball_scale', 'coords', 'radii', 'ribbon_adjusts',
+        'ribbon_tether_opacity', 'ribbon_tether_scale', 'worm_radii'])
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
                  auto_style = True, log_info = True):
@@ -88,7 +97,10 @@ class Structure(Model, StructureData):
                 ("save_teardown", "end save session")]:
             self._ses_handlers.append(t.add_handler(trig_name,
                     lambda *args, qual=ses_func: self._ses_call(qual)))
-        from chimerax.core.models import MODEL_POSITION_CHANGED, MODEL_DISPLAY_CHANGED
+        # since the C++ layer is tracking the *scene* position of the structure,
+        # which includes transformations from higher hierarchy layers, can't just
+        # notify when the structure's own transformation changes
+        from chimerax.core.models import MODEL_POSITION_CHANGED
         self._ses_handlers.append(t.add_handler(MODEL_POSITION_CHANGED, self._update_position))
         self.triggers.add_trigger("changes")
         _register_hover_trigger(session)
@@ -186,8 +198,10 @@ class Structure(Model, StructureData):
                     {'custom attrs': py_obj.custom_attrs})
 
     def added_to_session(self, session):
-        if not self.scene_position.is_identity():
-            self._cpp_notify_position(self.scene_position)
+        # Used to exclude notifying the C++ layer if the scene position was the identity,
+        # but that is only certain to be correct if this is the first time the structure
+        # has been added to the session, so always set it. [#18427]
+        self._cpp_notify_position(self.scene_position)
         if self._auto_style:
             self.apply_auto_styling(set_lighting = self._is_only_model())
         self._start_change_tracking(session.change_tracker)
@@ -195,7 +209,7 @@ class Structure(Model, StructureData):
         # Setup handler to manage C++ data changes that require graphics updates.
         self._graphics_updater.add_structure(self)
         Model.added_to_session(self, session, log_info = self._log_info)
-
+            
     def removed_from_session(self, session):
         self._graphics_updater.remove_structure(self)
 
@@ -217,9 +231,24 @@ class Structure(Model, StructureData):
     def take_snapshot(self, session, flags):
         # Scene interface implementation.
         if flags == State.SCENE:
+            atoms = self.atoms
+            bonds = self.bonds
+            residues = self.residues
             scene_data = {
                 'model state': Model.take_snapshot(self, session, flags),
-                'version': STRUCTURE_STATE_VERSION
+                'ribbon state': self.ribbon_xs_mgr.take_snapshot(session, flags),
+                'atoms': { attr_name: getattr(atoms, attr_name)
+                    for attr_name in self.ATOM_SCENE_ATTRS
+                },
+                'bonds': { attr_name: getattr(bonds, attr_name)
+                    for attr_name in self.BOND_SCENE_ATTRS
+                },
+                'residues': { attr_name: getattr(residues, attr_name)
+                    for attr_name in self.RESIDUE_SCENE_ATTRS
+                },
+                'structure': { attr_name: getattr(self, attr_name)
+                    for attr_name in self.STRUCTURE_SCENE_ATTRS
+                },
             }
             return scene_data
 
@@ -242,9 +271,62 @@ class Structure(Model, StructureData):
         Scene interface implementation.
         """
         Model.restore_scene(self, scene_data['model state'])
-        if scene_data['version'] != STRUCTURE_STATE_VERSION:
-            raise TypeError(f"Can't restore incompatible version "
-                            f"{scene_data['version']}; expected {STRUCTURE_STATE_VERSION}")
+        # Need to restore Structure.active_coordset_id before Atoms.coords
+        for attr_name, val in scene_data.get('structure', {}).items():
+            setattr(self, attr_name, val)
+        for target, attr_names in [
+                ('atoms', self.ATOM_SCENE_ATTRS),
+                ('bonds', self.BOND_SCENE_ATTRS),
+                ('residues', self.RESIDUE_SCENE_ATTRS)]:
+            collection = getattr(self, target)
+            values = scene_data.get(target, {})
+            for attr_name in attr_names:
+                if attr_name in values:
+                    try:
+                        setattr(collection, attr_name, values[attr_name])
+                    except ValueError:
+                        if len(collection) < len(values[attr_name]):
+                            self.session.logger.warning(f"{target.capitalize()} have been deleted"
+                                f" from {self} since scene was saved.  Cannot restore"
+                                f" {self} completely.  Do not delete {target} involved in pre-existing"
+                                f" scenes!")
+                            return
+                        raise
+        ribbon_data = scene_data.get('ribbon state', None)
+        if ribbon_data is not None:
+            self.ribbon_xs_mgr.set_state_from_snapshot(self.session, ribbon_data)
+
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        Model.interpolate_scene(self, scene1_data['model state'], scene2_data['model state'], fraction,
+            switchover=switchover)
+        # for now, we're just interpolating coordinate sets so that trajectories/morphs work;
+        # a more thorough approach will be needed for interpolating other attributes
+        interp_data = {}
+        switch_data = scene2_data if switchover else scene1_data
+        # prevent writing into original scene dictionaries...
+        for attr_level, attr_info in switch_data.items():
+            interp_info = {}
+            for attr_name, attr_vals in attr_info.items():
+                if attr_name in self.simply_interpolable_attrs:
+                    interp_val = (1-fraction) * scene1_data[attr_level][attr_name] \
+                        + fraction * scene2_data[attr_level][attr_name]
+                elif attr_name == "active_coordset_id":
+                    csids = list(self.coordset_ids)
+                    try:
+                        s1_index = csids.index(scene1_data[attr_level][attr_name])
+                    except KeyError:
+                        s1_index = csids.index(self.active_coordset_id)
+                    try:
+                        s2_index = csids.index(scene2_data[attr_level][attr_name])
+                    except KeyError:
+                        s2_index = csids.index(self.active_coordset_id)
+                    interp_index = int(s1_index + fraction * (s2_index - s1_index) + 0.5)
+                    interp_val = csids[interp_index]
+                else:
+                    interp_val = attr_vals
+                interp_info[attr_name] = interp_val
+            interp_data[attr_level] = interp_info
+        Structure.restore_scene(self, interp_data)
 
     def set_state_from_snapshot(self, session, data):
         StructureData.set_state_from_snapshot(self, session, data['structure state'])
@@ -979,7 +1061,6 @@ class Structure(Model, StructureData):
             selected = [(selected[i] and choose(obj)) for i, obj in enumerate(objects)]
         return numpy.array(selected)
 
-
     def _atomspec_filter_residue(self, atoms, num_atoms, parts, attrs):
         # print("Structure._atomspec_filter_residue", num_atoms, parts, attrs)
         import numpy
@@ -1276,34 +1357,66 @@ class AtomicStructure(Structure):
     default_missing_structure_radius = 0.075
     default_missing_structure_dashes = 6
 
+    # kludge to speed up added_to_session
+    _sibling_info = None
+
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
         self._set_chain_descriptions(self.session)
         self._determine_het_res_descriptions(self.session)
 
+    def _make_sibling_report(self, *args):
+        name, models, handler = self.__class__._sibling_info
+        if len(models) > 1:
+            # NMR ensemble
+            models[0]._report_ensemble_chain_descriptions(self.session, models)
+            models[0]._report_res_info(self.session)
+        else:
+            models[0]._report_chain_descriptions(self.session)
+            models[0]._report_res_info(self.session)
+        handler.remove()
+        self.__class__._sibling_info = None
+
     def added_to_session(self, session):
+        if self.__class__._sibling_info and self._log_info:
+            sib_name, sibs, handler = self.__class__._sibling_info
+            if sib_name != self.name or self.id[:-1] != sibs[0].id[:-1]:
+                self._make_sibling_report()
         super().added_to_session(session)
 
         if self._log_info:
             # don't report models in an NMR ensemble individually...
+
             if len(self.id) > 1:
-                sibs = [m for m in session.models
-                        if isinstance(m, AtomicStructure) and m.id[:-1] == self.id[:-1]]
-                if len(set([s.name for s in sibs])) > 1:
-                    # not an NMR ensemble
-                    self._report_chain_descriptions(session)
-                    self._report_res_info(session)
+                # looking through all models for siblings is very slow if there are thousands of them
+                # (e.g. large docking run), so this kludge...
+                if self.__class__._sibling_info is None:
+                    from chimerax.core.models import ADD_MODELS
+                    self.__class__._sibling_info = (self.name, [self],
+                        session.triggers.add_handler(ADD_MODELS, self._make_sibling_report))
                 else:
-                    sibs.sort(key=lambda m: m.id)
-                    if sibs[-1] == self:
-                        self._report_ensemble_chain_descriptions(session, sibs)
-                        self._report_res_info(session)
+                    sib_name, sibs, handler = self.__class__._sibling_info
+                    if self.name == sib_name and self.id[:-1] == sibs[0].id[:-1]:
+                        sibs.append(self)
+                    else:
+                        self._make_sibling_report()
             else:
+                if self.__class__._sibling_info:
+                    self._make_sibling_report()
                 self._report_chain_descriptions(session)
                 self._report_res_info(session)
             self._report_assemblies(session)
             self._report_model_info(session)
             self._report_altloc_info(session)
+            self._report_aniso_info(session)
+
+        emdb_id = getattr(self, 'fetch_emdb_id', None)
+        if emdb_id:
+            from chimerax.core.commands import run
+            try:
+                run(session, f'open {emdb_id} from emdb')
+            except BaseException as e:
+                session.logger.warning(f'Failed fetching {emdb_id}: {str(e)}')
 
     def apply_auto_styling(self, set_lighting = False, style=None):
         explicit_style = style is not None
@@ -1321,17 +1434,23 @@ class AtomicStructure(Structure):
         color = self.initial_color(self.session.main_view.background_color)
         self.set_color(color)
 
+        from .molobject import Atom, Bond, Residue
+        def ligand_like_atoms(atoms):
+            from numpy import logical_or, logical_and
+            # include polysaccharide chains (9dff; #17519)
+            return atoms.filter(logical_or(atoms.structure_categories == "ligand",
+                logical_and(atoms.structure_categories == "main",
+                atoms.residues.polymer_types == Residue.PT_NONE)))
+
         atoms = self.atoms
         if style == "non-polymer":
             lighting = {'preset': 'default'}
-            from .molobject import Atom, Bond
             atoms.draw_modes = Atom.STICK_STYLE
             from .colors import element_colors
             het_atoms = atoms.filter(atoms.element_numbers != 6)
             het_atoms.colors = element_colors(het_atoms.element_numbers)
         elif style == "small polymer":
             lighting = {'preset': 'default'}
-            from .molobject import Atom, Bond, Residue
             atoms.draw_modes = Atom.STICK_STYLE
             from .colors import element_colors
             het_atoms = atoms.filter(atoms.element_numbers != 6)
@@ -1340,7 +1459,7 @@ class AtomicStructure(Structure):
             # 10 residues or less is basically a trivial depiction if ribboned
             if explicit_style or MIN_RIBBON_THRESHOLD < len(ribbonable):
                 atoms.displays = False
-                ligand = atoms.filter(atoms.structure_categories == "ligand").residues
+                ligand = ligand_like_atoms(atoms).residues
                 ribbonable -= ligand
                 metal_atoms = atoms.filter(atoms.elements.is_metal)
                 metal_atoms.draw_modes = Atom.SPHERE_STYLE
@@ -1388,8 +1507,7 @@ class AtomicStructure(Structure):
                 acolors = polymer_colors(atoms.residues)[0]
             residues.ribbon_colors = residues.ring_colors = rcolors
             atoms.colors = acolors
-            from .molobject import Atom
-            ligand_atoms = atoms.filter(atoms.structure_categories == "ligand")
+            ligand_atoms = ligand_like_atoms(atoms)
             ligand_atoms.draw_modes = Atom.STICK_STYLE
             ligand_atoms.colors = element_colors(ligand_atoms.element_numbers)
             solvent_atoms = atoms.filter(atoms.structure_categories == "solvent")
@@ -1440,12 +1558,6 @@ class AtomicStructure(Structure):
             'structure state': Structure.take_snapshot(self, session, flags),
         }
 
-        # Scene interface implementation
-        if flags == State.SCENE:
-            data['atoms'] = self.atoms.take_snapshot(session, flags)
-            data['bonds'] = self.bonds.take_snapshot(session, flags)
-            data['residues'] = self.residues.take_snapshot(session, flags)
-
         return data
 
     @staticmethod
@@ -1459,11 +1571,10 @@ class AtomicStructure(Structure):
         Scene interface implementation.
         """
         Structure.restore_scene(self, scene_data['structure state'])
-        if scene_data['AtomicStructure version'] != 3:
-            raise ValueError("AtomicStructure version mismatch on scene restore")
-        self.atoms.restore_scene(scene_data['atoms'])
-        self.bonds.restore_scene(scene_data['bonds'])
-        self.residues.restore_scene(scene_data['residues'])
+
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        Structure.interpolate_scene(self, scene1_data['structure state'], scene2_data['structure state'],
+            fraction, switchover=switchover)
 
     def set_state_from_snapshot(self, session, data):
         version = data.get('AtomicStructure version', 1)
@@ -1611,23 +1722,39 @@ class AtomicStructure(Structure):
         if local_scores and scoring_metrics:
             from chimerax.core.attributes import string_to_attr
             scoring_metric_cache = {}
-            chain_cache = {}
+            chain_lookup = { chain.chain_id: chain for chain in self.chains }
             res_scoring = []
             metric_names = scoring_metrics.mapping('id', 'name')
+            non_chain_residues = None
             for chain_id, res_name, seq_id, metric_id, value in local_scores.fields(
                     ['label_asym_id', 'label_comp_id', 'label_seq_id', 'metric_id', 'metric_value']):
                 try:
-                    chain = chain_cache[chain_id]
+                    chain = chain_lookup[chain_id]
                 except KeyError:
-                    for chain in self.chains:
-                        if chain.chain_id == chain_id:
-                            chain_cache[chain_id] = chain
-                            break
-                    else:
+                    if non_chain_residues is None:
+                        non_chain_residues = {}
+                        for r in self.residues:
+                            if r.chain is None:
+                                non_chain_residues.setdefault(r.chain_id, {})[r.number] = r
+                    try:
+                        nc_residues = non_chain_residues[chain_id]
+                    except KeyError:
                         session.logger.warning("No chain in structure corresponds to chain ID given"
-                            " in local score info (chain '%s')" % chain_id)
+                            " in local score info (chain '%s') or can't find residue %s in that chain"
+                            % (chain_id, seq_id))
                         break
-                res = chain.residues[int(seq_id)-1]
+                    # non-chain residues may not have a number in the mmCIF [#19132]
+                    if len(nc_residues) == 1:
+                        res = list(nc_residues.values())[0]
+                    else:
+                        try:
+                            res = nc_residues[int(seq_id)]
+                        except KeyError:
+                            session.logger.warning("No non-polymeric residue in chain %s has sequence"
+                                " number %s" % (chain_id, seq_id))
+                        break
+                else:
+                    res = chain.residues[int(seq_id)-1]
                 if not res:
                     continue
                 if res.name != res_name:
@@ -1680,14 +1807,14 @@ class AtomicStructure(Structure):
             pass
         else:
             if len(template_details_headers) != 11:
-                session.warning("Don't know how to parse model template detail information")
+                session.logger.warning("Don't know how to parse model template detail information")
             else:
                 for i in range(0, len(template_details), 10):
                     template_id, template_cid = template_details[i+1], template_details[i+7]
                     try:
                         template_names[template_id] += " /%s" % template_cid
                     except KeyError:
-                        session.warning("Unknown template ID in detail information: %s" % template_id)
+                        session.logger.warning("Unknown template ID in detail information: %s" % template_id)
         """
         if template_segment:
             for template_id, begin, end in template_segment.fields(
@@ -1695,7 +1822,8 @@ class AtomicStructure(Structure):
                 try:
                     template_names[template_id] += ":%s-%s" % (begin, end)
                 except KeyError:
-                    session.warning("Unknown template ID in residue-range information: %s" % template_id)
+                    session.logger.warning("Unknown template ID in residue-range information: %s"
+                        % template_id)
         cur_align = None
         seqs =[]
         from . import Sequence
@@ -1786,6 +1914,13 @@ class AtomicStructure(Structure):
         if num_al_atoms == 0:
             return
         session.logger.info('%d atoms have alternate locations.  Control/examine alternate locations with <b><a href="cxcmd:help help:user/tools/altlocexplorer.html">Altloc Explorer</a></b> [<a href="cxcmd:ui tool show \'Altloc Explorer\'">start&nbsp;tool...</a>] or the <b><a href="cxcmd:help altlocs">altlocs</a></b> command.' % num_al_atoms, is_html=True)
+
+    def _report_aniso_info(self, session):
+        atoms = self.atoms
+        num_aniso_atoms = len(atoms.filter(atoms.has_aniso_u))
+        if num_aniso_atoms == 0:
+            return
+        session.logger.info('%d atoms have anisotropic B-factors.  Depict anisotropic information with <b><a href="cxcmd:help help:user/tools/thermalellipsoids.html">Thermal Ellipsoids</a></b> [<a href="cxcmd:ui tool show \'Thermal Ellipsoids\'">start&nbsp;tool...</a>] or the <b><a href="cxcmd:help aniso">aniso</a></b> command.' % num_aniso_atoms, is_html=True)
 
     def show_info(self):
         from chimerax.core.commands import run, concise_model_spec

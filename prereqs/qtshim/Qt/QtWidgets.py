@@ -4,7 +4,7 @@ if using_pyqt6:
     from PyQt6.QtWidgets import *
 
     # Allow using enum values without enumeration name.
-    from .promote_enums import promote_enums
+    from .promote_enums import promote_enums_pyqt as promote_enums
     from PyQt6 import QtWidgets
     promote_enums(QtWidgets)
     del QtWidgets
@@ -20,4 +20,10 @@ elif using_pyside2:
 
 elif using_pyside6:
     from PySide6.QtWidgets import *
+
+    from .promote_enums import promote_enums_pyside as promote_enums
+    from PySide6 import QtWidgets
+    promote_enums(QtWidgets)
+    del QtWidgets
+
     from PySide6.QtGui import QAction, QShortcut

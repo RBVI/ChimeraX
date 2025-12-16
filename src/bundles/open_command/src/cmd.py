@@ -133,7 +133,8 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
     if return_json:
         from chimerax.core.commands import JSONResult
         from json import JSONEncoder
-        open_data = { 'model specs': [m.string(style="command") for m in models] }
+        open_data = { 'model specs': [m.string(style="command") if hasattr(m, 'string') else '#'+m.id_string
+            for m in models] }
         return JSONResult(JSONEncoder().encode(open_data), models)
     return models
 
@@ -191,7 +192,7 @@ def provider_open(session, names, center=None, format=None, from_database=None, 
                 paths = [_get_path(mgr, fi.file_name, provider_info.check_path)
                     for fi in file_infos]
                 models, status = collated_open(session, None, paths, data_format, _add_models, log_errors,
-                opener_info.open, (session, paths, name), provider_kw)
+                    opener_info.open, (session, paths, name), provider_kw)
                 if status:
                     statuses.append(status)
                 if models:

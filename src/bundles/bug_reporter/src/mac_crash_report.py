@@ -101,4 +101,27 @@ def recent_crash(time, dir, file_prefix):
     log = f.read()
     f.close()
 
+    log = format_crash_report(log)
+    
     return log
+
+# -----------------------------------------------------------------------------
+#
+def format_crash_report(report):
+    '''
+    Put some new lines and tabs in the crash report so the stack trace
+    is easier to read in a Trac database ticket web page.
+    '''
+    substitutions = [
+        ('"threadState":', '\n\n"threadState":'),  # Put some blank lines before each thread.
+        ('"frames":[', '"frames":[\n\n'),          # Put blank lines after thread register values.
+        ('{"imageOffset":', '\n{"imageOffset":'),  # Put each stack function on its own line.
+        ('"symbol":', '"symbol":    '),            # Add some blank space before function names.
+        (',"symbolLocation":', '\t\t\t\t\t,"symbolLocation":'),  # Add blank space after function names.
+        ('\\n', '\n'),                             # Make memory report table separate lines.
+    ]
+
+    for s_from, s_to in substitutions:
+        report = report.replace(s_from, s_to)
+
+    return report

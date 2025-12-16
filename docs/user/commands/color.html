@@ -1,4 +1,4 @@
-<html>
+<html lang="en">
 
 <!--
 === UCSF ChimeraX Copyright ===
@@ -971,7 +971,8 @@ See also:
 <a name="palette"></a><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>
 <br>
 The <i>palette</i> can be specified as one of the following
-(or as <b>^</b><i>palette</i> to reverse the order of the colors):
+(or as <b>^</b><i>palette</i> to reverse the order of the colors)
+to apply across the <a href="#range">range</a> of values:
 <ul>
 <li><i>palette-name</i> &ndash; the name of an existing 
 <a href="palettes.html">palette</a>;
@@ -1242,8 +1243,16 @@ what values should map to the extremes of the palette (default <b>full</b>,
 the minimum and maximum values for the items to be colored). 
 Alternatively, <i>low</i> and <i>high</i> values separated by a comma only
 can be supplied.
+Values beyond the range will be colored to match the nearest end
+of the range. Giving the range in <i>high</i>,<i>low</i> order is the
+same as reversing the <a href="#palette">palette</a>.
 When multiple models are colored in a single command,
 the <b>full</b> range is determined separately for each model.
+Specifying a range overrides the values in a palette defined as value,color 
+pairs (for example, the <a href="#palette">palettes</a>
+named <b>alphafold</b> and <b>esmfold</b>)
+Instead, the the colors in the palette will be spread over the specified range, 
+retaining the same proportional spacing as in the original palette.
 </blockquote>
 
 <hr>
@@ -1317,5 +1326,5 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2025</address>
+October 2025</address>
 </body></html>

@@ -32,6 +32,10 @@ def read_coords(session, file_name, model, format_name, *, replace=True, start=1
         except ValueError as e:
             if "allocate enough memory" in str(e):
                 raise LimitationError(e)
+            if "return code 12" in str(e):
+                raise LimitationError("The Gromacs coordinate-reading library cannot handle"
+                    " file or folder names with unusual characters.  Ensure your file name"
+                    " contains only simple ASCII characters, as well as all containing folder names.")
             raise
     if format_name == "xtc":
         from ._gromacs import read_xtc_file

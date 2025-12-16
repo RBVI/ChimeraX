@@ -1,4 +1,4 @@
-<html>
+<html lang="en">
 
 <!--
 === UCSF ChimeraX Copyright ===
@@ -108,18 +108,30 @@ As in the <a href="sequenceviewer.html"><b>Sequence Viewer</b></a>,
 by any means will be shown as a green outline around the corresponding cell.
 <li><a name="chosen"></a><b>chooses cell</b>
 &ndash; designating <b>Profile Grid</b> cells for subsequent actions,
-shown with an orange diamond on each chosen cell.
+shown with an orange diamond on each chosen cell. 
+Choosing a cell reports in the lower left corner of the window
+the number of sequences matching that cell.
 </ul>
 <p>
 Either way, cell status can be toggled or the cell added to the existing set
 of highlighted/chosen cells with <b>Shift</b>-click.
+</p><p>
+Moving the mouse cursor over a cell reports the column number in the
+status area at lower right corner of the window, along with the number 
+of <a href="sequenceviewer.html#association">associated</a> 
+structure chains (if any) and the residue type(s) in the 
+structure-associated sequences. 
+The residue type(s) in the structures could be different from those 
+in the sequences, but are usually the same
+since <a href="sequenceviewer.html#association">association</a>
+uses the best match.
 </p>
 
 <blockquote><b>
 <a href="#context">Context Menu</a>
 <!--
 <br><a href="#headers">Headers and Residue Attributes</a>
-<br><a href="#association">Sequence-Structure Association</a>
+<br><a href="sequenceviewer.html#association">Sequence-Structure Association</a>
 -->
 <br><a href="#settings">Settings</a>
 </b></blockquote>
@@ -342,7 +354,7 @@ PAM-150, PAM-250, SDM] &ndash; which residue similarity matrix to use
   </ul>
 <br>
 <li><b>RMSD</b> &ndash; per-column root-mean-square displacement among
-<a href="#association">associated</a> structure residues
+<a href="sequenceviewer.html#association">associated</a> structure residues
   <ul>
   <li><b>Show initially</b> (initial default <b>off</b>)
   <li><b>Atoms used for RMSD</b>
@@ -354,7 +366,8 @@ PAM-150, PAM-250, SDM] &ndash; which residue similarity matrix to use
     </ul>
   </ul>
 <p>
-When more than one chain per model is <a href="#association">associated</a>
+When more than one chain per model is 
+<a href="sequenceviewer.html#association">associated</a>
 with the same alignment, the RMSD
 calculation uses only the chain that gives the lowest overall RMSD.
 </p>
@@ -368,5 +381,5 @@ or a &ldquo;consensus&rdquo; sequence, if any, read from MSF)
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2025</address>
+September 2025</address>
 </body></html>

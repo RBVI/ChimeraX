@@ -1,4 +1,4 @@
-<html>
+<html lang="en">
 
 <!--
 === UCSF ChimeraX Copyright ===
@@ -364,8 +364,7 @@ See also: <a href="colortables.html#map">initial colors</a>
   <li>For <b>surface</b> and <b>mesh</b> displays, transparency
   is the fraction of light transmitted from behind the surface or a
   line of mesh (default <b>0.0</b>). By default,
-  these objects are dimmed as they are made more transparent
-  (see <a href="#dim"><b>dimTransparency</b></a>.) See also:
+  these objects are dimmed as they are made more transparent. See also:
   <a href="../tools/densitymaps.html" title="Map Toolbar...">
   <img class="icon" border=1 src="../tools/shortcut-icons/icecube.png"></a>
 <br><br>
@@ -882,7 +881,8 @@ and data value in a pop-up balloon.
 (Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
 <p>
 The <b>surface</b> and <b>mesh</b> <a href="#style">display styles</a>
-both depict isosurfaces.
+both depict isosurfaces. See also: <a href="marker.html#fromMesh"><b>marker
+fromMesh</b>
 </p>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -919,7 +919,8 @@ both depict isosurfaces.
   A triangle is subdivided by connecting the midpoints of its edges.
   Subdivision can help to produce smoother surfaces 
   when combined with the <a href="#smoothing"><b>surfaceSmoothing</b></a> 
-  option.
+  option. An alternative approach is to create a new map with smaller
+  spacing using <a href="#resample"><b>volume resample</b></a>.
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -929,16 +930,6 @@ both depict isosurfaces.
   The number of triangles is increased by a factor of 
   4<sup><i>j</i></sup>, where <i>j</i> is a positive integer
   (default <b>1</b>).
-</blockquote>
-<blockquote>
-  <a href="#top" class="nounder">&bull;</a>
-  <b>smoothLines</b> &nbsp;true | <b>false</b>
-  <br>Turn on anti-aliasing to smooth lines in mesh displays.
-  Mesh lines with <a href="#transparency">transparency</a> &gt; 0.0 can 
-  only be smoothed when <a href="#dim"><b>dimTransparency</b></a> is true.
-  A side effect of OpenGL anti-aliasing is that dense meshes 
- look brighter from some viewpoints and darker from others, depending on the
-  order in which the lines were drawn.  
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -955,14 +946,6 @@ both depict isosurfaces.
  must be a positive integer (default <b>1</b>).
 </blockquote>
 -->
-<blockquote>
-  <a href="#top" class="nounder">&bull;</a>
-  <a name="dim"><b>dimTransparency</b> &nbsp;<b>true</b> | false</a>
-  <br>Decrease the brightness of surface and mesh displays as their
-  <a href="#transparency">transparency</a> is increased.
-  When dimming is on, OpenGL (alpha,1&ndash;alpha)
-  blending is used instead of (1,1&ndash;alpha) blending.
-</blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="meshLighting"><b>meshLighting</b> &nbsp;<b>true</b> | false</a>
@@ -1467,9 +1450,7 @@ detail in their respective sections:
  <li>smoothingFactor
  <li>subdivideSurface
  <li>subdivisionLevels
- <li>smoothLines
  <li>squareMesh
- <li>dimTransparency
  <li>meshLighting
  <li>twoSidedLighting
  <li>flipNormals
@@ -2871,5 +2852,5 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2024</address>
+November 2025</address>
 </body></html>

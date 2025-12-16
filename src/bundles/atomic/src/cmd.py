@@ -24,6 +24,26 @@
 
 from chimerax.core.errors import UserError
 
+def chirality_cmd(session, atoms):
+    from .chirality import chirality
+    if not atoms:
+        raise UserError("No atoms specified")
+    from .idatm import type_info
+    centers = []
+    for atom in atoms:
+        try:
+            info = type_info[atom.idatm_type]
+        except KeyError:
+            continue
+        if info.substituents == 4:
+            centers.append(atom)
+    if not centers:
+        raise UserError("There are no possible stereo centers in the specified atoms")
+    chiralities = [chirality(atom) for atom in centers]
+    for atom, ch in zip(centers, chiralities):
+        session.logger.info("%s is %s" % (atom, "not chiral" if not ch else ch))
+    return chiralities
+
 def log_chains(session, structures=None):
     if structures is None:
         from chimerax.atomic import AtomicStructure
@@ -171,7 +191,12 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None, r
     if model_id is not None:
         combination.id = model_id
     if add_to_session:
-        session.models.add([combination])
+        from chimerax.core.models import BadIDError
+        try:
+            session.models.add([combination])
+        except BadIDError as e:
+            combination.delete()
+            raise UserError(str(e))
     return combination
 
 def label_missing_cmd(session, structures, max_chains):
@@ -335,4 +360,11 @@ def register_command(logger):
         ],
         synopsis = 'Show/hide missing-structure pseudobond labels')
     register('label missing', label_missing_desc, label_missing_cmd, logger=logger)
+
+    chirality_desc = CmdDesc(
+        required=[
+            ('atoms', AtomsArg),
+        ],
+        synopsis = 'Report chirality of atoms')
+    register('chirality', chirality_desc, chirality_cmd, logger=logger)
 

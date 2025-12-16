@@ -1,34 +1,58 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
-# Name of app in build directory
-app=ChimeraX.app
-
+# Set where the app is built
+if [ "$#" -ne 1 ]; then 
+	echo "Usage: $0 build_dir"
+	exit 1
+fi
 build_root="$1"
 if [ ! -d "$build_root" ]; then
 	echo "$build_root: not a directory"
 	exit 1
 fi
 
+# expect sgsigntool.exe and signtool.exe to be on path
+PATH="$PATH:$HOME/bin/x64:/cygdrive/c/Program Files (x86)/Windows Kits/10/bin/x64"
+
+CERT_SHA=31df84bde17860667f5f4bd2326041c029489866
+
+# Name of app in build directory
+app=ChimeraX.app
+
 # Set directory where the script resides so we can find support files
 mydir=$(dirname "$0")
-sig="$2" || unset sig
 
 # Create images needed to create installer
-srcicon="$build_root"/src/apps/ChimeraX/ChimeraX-icon512.png
+srcicon="$build_root/$app"/bin/share/ChimeraX-icon512.png
 magick "$srcicon" -geometry 192x192 chimerax-wizard.bmp
 magick "$srcicon" -geometry 48x48 chimerax-wizard-small.bmp
 
 # Create the innosetup script
-version=$(awk '$1 == "version" { print $3 }' <$build_root/src/bundles/core/src/buildinfo.py | sed 's/"//g')
-root=$(cygpath -m "$(realpath $build_root)")
+version=$(awk '$1 == "version" { print $3 }' < "$build_root/$app/bin/Lib/site-packages/chimerax/core/buildinfo.py" | sed 's/"//g')
+root=$(cygpath -m "$(realpath "$build_root")")
 here=$(cygpath -m "$(pwd)")
 sed -e "s,\$(VERSION),$version,g" \
 	-e "s,\$(BUILD_ROOT),$root,g" \
 	-e "s,\$(HERE),$here,g" \
-	-e "s/CODESIGN/$sig/" \
-	"$mydir"/chimerax.iss.in >chimerax.iss
+	-e "s,CERT_SHA,$CERT_SHA,g" \
+	"$mydir"/chimerax.iss.in > chimerax.iss
+if [[ -e "${mydir}/sig" ]]; then
+    sed -i -e "s/CODESIGN/$(cat "${mydir}/sig")/" chimerax.iss
+else
+    sed -i -e "/CODESIGN/d" chimerax.iss
+fi
+
+# Put additional scripts into app
+inst_scripts="remove_pycache.py"
+for script in $inst_scripts
+do
+	rsync -a "$mydir/$script" "$build_root/$app/bin"
+done
 
 # Create installer
-INNOSETUP_PATH=$(regtool --wow32 get "/machine/software/Microsoft/Windows/CurrentVersion/Uninstall/Inno Setup 6_is1/InstallLocation")
-ISCC_PATH="$(cygpath -u "$INNOSETUP_PATH")ISCC"
-"$ISCC_PATH" -Sbyparam='$p' chimerax.iss
+is_dir=$(regtool --wow32 get "/machine/software/Microsoft/Windows/CurrentVersion/Uninstall/Inno Setup 6_is1/InstallLocation")
+iscc="$(cygpath -u "$is_dir")/ISCC"
+"$iscc" /Sbyparam='$p' chimerax.iss
+#if [[ -e sig ]]; then
+#    echo rm sig CodeSign.pfx chimerax.iss
+#fi

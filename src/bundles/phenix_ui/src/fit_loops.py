@@ -57,6 +57,10 @@ class FitLoopsJob(Job):
                 results = _run_fit_loops_subprocess(session, executable_location, optional_args,
                     map_file_name, model_file_name, sequence_file_name, positional_args, temp_dir,
                     start_res_number, end_res_number, chain_id, processors, verbose)
+            except Exception as e:
+                from .util import thread_throw
+                thread_throw(session, e)
+                return
             finally:
                 self._running = False
             if results:
@@ -195,7 +199,7 @@ def phenix_fit_loops(session, residues, in_map, *, block=None, gap_only=False, p
 
             # Save structure to file.
             from chimerax.pdb import save_pdb
-            save_pdb(session, path.join(temp_dir,'model.pdb'), models=[structure], rel_model=map)
+            save_pdb(session, path.join(temp_dir,'model.pdb'), models=[structure], rel_model=in_map)
 
             seqf_path = path.join(temp_dir, "sequences")
             if sequence_file is None:

@@ -1,0 +1,56 @@
+<html lang="en">
+
+<!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+-->
+
+<head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<title>Command: chirality</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
+class="clRighticon" title="User Guide Index"/></a>
+
+<h3><a href="../index.html#commands">Command</a>: chirality</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>chirality</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+</h3>
+<p>
+The <b>chirality</b> command reports the R/S chirality of each 
+four-substituent atom in <a href="atomspec.html"><i>atom-spec</i></a>,
+typically <i>sp</i><sup>3</sup>-hybridized carbons 
+(<a href="../atomtypes.html">atom type</a> C3)
+although other elements may occasionally qualify.
+Each is reported as R, S, or not chiral
+in the <a href="../tools/log.html"><b>Log</b></a>.
+The current implementation includes only the simpler
+Cahn-Ingold-Prelog rules and will fail in complicated cases
+such as when one center's assignment depends on the chiralities of other
+centers in the molecule. Further, bond orders are guessed from
+<a href="../atomtypes.html">atom types</a>.
+</p><p>
+To invert a chiral center, see 
+<a href="build.html#invert"><b>build invert</b></a>.
+See also: 
+<a href="../tools/buildstructure.html"><b>Build Structure</b></a>,
+<a href="../measurements.html">measurements</a>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+August 2025</address>
+</body></html>
