@@ -837,7 +837,7 @@ class BundleBuilder:
             with suppress_known_deprecation():
                 dist = setuptools.setup(**kw)
             return dist, True
-        except (SystemExit, Exception):
+        except Exception:
             import traceback
 
             traceback.print_exc()

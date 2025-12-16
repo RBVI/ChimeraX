@@ -973,11 +973,6 @@ class BoltzRun:
             self._process.kill()
             self._user_terminated = True
 
-    def terminate(self):
-        if self._running:
-            self._process.kill()
-            self._user_terminated = True
-
     def _prediction_ran_out_of_memory(self, stdout):
         from os.path import join, exists
         pdir = join(self._predictions_directory, self.name)

@@ -808,8 +808,6 @@ class BoltzPredictionGUI(ToolInstance):
 
         EntriesRow(f, ('Save default options', self._save_default_options))
 
-        EntriesRow(f, ('Save default options', self._save_default_options))
-
         return p
 
         

@@ -19,9 +19,6 @@ install: $(FFMPEG_PREBUILT)
 app-install: $(FFMPEG_PREBUILT)
 	chmod +x $(FFMPEG_PREBUILT)
 	$(RSYNC) $(FFMPEG_PREBUILT) $(app_bindir)/ffmpeg$(PROG_EXT)
-ifeq ($(OS),Darwin)
-	chmod +x $(app_bindir)/ffmpeg$(PROG_EXT)
-endif
 
 $(FFMPEG_PREBUILT):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(FFMPEG_PREBUILT)

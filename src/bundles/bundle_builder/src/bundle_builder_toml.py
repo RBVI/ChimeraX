@@ -278,7 +278,6 @@ class Bundle:
             except ValueError:
                 raise ValueError("Bad version specifier (see PEP 440): %r" % req)
 
-
         self.requires_python = project_data.get("requires-python", ">=3.7")
 
         self.min_sess_ver = chimerax_data["min-session-version"]
@@ -787,7 +786,7 @@ class Bundle:
             with suppress_known_deprecation():
                 dist = setuptools.setup(**kw)
             return dist, True
-        except (SystemExit, Exception):
+        except Exception:
             traceback.print_exc()
             return None, False
         except SystemExit:
