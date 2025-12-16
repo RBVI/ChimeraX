@@ -1,0 +1,19 @@
+*** include/xdrfile-prev.h	Tue Dec 16 11:46:20 2025
+--- include/xdrfile.h	Tue Dec 16 11:46:37 2025
+***************
+*** 106,112 ****
+  
+  #define DIM 3
+  	typedef float matrix[DIM][DIM];
+! 	typedef float rvec[DIM];
+  	typedef int   mybool;
+  
+  
+--- 106,112 ----
+  
+  #define DIM 3
+  	typedef float matrix[DIM][DIM];
+! 	typedef double rvec[DIM];
+  	typedef int   mybool;
+  
+  
