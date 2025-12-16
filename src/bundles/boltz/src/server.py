@@ -13,7 +13,8 @@ def start_server(runs_directory, boltz_exe, host = None, port = 30172, device = 
     
     while True:
         client_socket, address = server_socket.accept()  # Accept new connection
-
+        returned_result = False
+        
         try:
             zip_data = read_socket_data(client_socket)
             if is_zip_data(zip_data):
@@ -26,17 +27,19 @@ def start_server(runs_directory, boltz_exe, host = None, port = 30172, device = 
             elif zip_data.startswith(b'status: '):
                 job_id = zip_data[8:].decode('utf-8')
                 log(f'Status check for job {job_id}')
-                msg = check_status(client_socket, runs_directory, job_id)
+                returned_result, msg = check_status(client_socket, runs_directory, job_id)
             else:
                 log(f'Invalid server connection, {len(zip_data)} bytes')
                 msg = b'Invalid server request'
-            client_socket.send(msg)
-            client_socket.close()
         except Exception as e:
             import traceback
-            msg = f'Error: {str(e)}\n\n{traceback.format_exc()}'
-            client_socket.send(msg.encode())
-            client_socket.close()
+            msg = f'Error: {str(e)}\n\n{traceback.format_exc()}'.encode('utf-8')
+
+        client_socket.send(msg)
+        client_socket.close()
+
+        if returned_result:
+            remove_job_files(runs_directory, job_id)
 
     server_socket.close()
 
@@ -187,6 +190,7 @@ def _no_subprocess_window():
     return flags
 
 def check_status(client_socket, runs_directory, job_id):
+    returned_result = False
     from os.path import join, exists
     job_dir = join(runs_directory, f'boltz_job_{job_id}')
     if exists(job_dir):
@@ -194,6 +198,7 @@ def check_status(client_socket, runs_directory, job_id):
         if exists(results_zip):
             with open(results_zip, 'rb') as f:
                 msg = f.read()
+                returned_result = True
         else:
             msg = b'Running'
     else:
@@ -201,7 +206,19 @@ def check_status(client_socket, runs_directory, job_id):
             msg = b'Not yet started'
         else:
             msg = b'No such job'
-    return msg
+    return returned_result, msg
+
+def remove_job_files(runs_directory, job_id):
+    from os.path import join
+    job_zip = join(runs_directory, f'boltz_job_{job_id}.zip')
+    job_dir = job_zip.removesuffix('.zip')
+    results_zip = join(runs_directory, f'boltz_results_{job_id}.zip')
+    from os import remove
+    remove(job_zip)
+    remove(results_zip)
+    from shutil import rmtree
+    rmtree(job_dir)
+    log(f'removed job files {job_id}')
     
 def predict_on_server(run_dir, host = None, port = 30172):
     zip_path = run_dir + '.zip'
