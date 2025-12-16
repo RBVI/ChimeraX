@@ -98,8 +98,15 @@ class BoltzPrediction:
             run_boltz_prediction(self._zip_path, self._boltz_exe, device = self._device)
             log(f'prediction {self._job_id} finished')
         except Exception as e:
-            import traceback
-            log(f'Error running job {self._job_id}: {str(e)}\n\n{traceback.format_exc()}')
+            self._report_error(e)
+    def _report_error(self, e):
+        import traceback
+        msg = f'Error running job {self._job_id}: {str(e)}\n\n{traceback.format_exc()}'
+        log(msg)
+        run_dir = self._zip_path.removesuffix('.zip')
+        from os.path import join
+        with open(join(run_dir, 'error'), 'w') as f:
+            f.write(msg)
 
 def run_boltz_prediction(zip_path, boltz_exe, device = 'gpu'):
     from zipfile import ZipFile
@@ -150,13 +157,13 @@ def run_boltz(directory, boltz_exe, device = 'gpu'):
     else:
         env = None
 
-    from os.path import join, basename
+    from os.path import join
     command_file = join(directory, 'command')
     with open(command_file, 'r') as f:
         cmd_string = f.read()
     command_args = cmd_string.split()
     command_args[0] = boltz_exe  # Use server boltz executable location
-    command_args[2] = basename(command_args[2])  # Don't use absolute path to .yaml file from client machine.
+    command_args[2] = yaml_input(command_args[2], directory)
     if '--accelerator' in command_args:
         i = command_args.index('--accelerator')
         command_args[i+1] = device
@@ -179,6 +186,27 @@ def run_boltz(directory, boltz_exe, device = 'gpu'):
     with open(join(directory, 'time'), 'w') as f:
         f.write('%.2f' % (t_end - t_start))
 
+def yaml_input(path, run_directory):
+    '''
+    Replace absolute path to .yaml file from client machine with local path.
+    If a batch of predictions is run move all the yaml files to a subdirectory
+    and return path to that subdirectory.
+    '''
+    if path.endswith('.yaml'):
+        from os.path import basename
+        yaml_spec = basename(path)
+    else:
+        from os.path import join, basename
+        dir_name = basename(path)
+        yaml_dir = join(run_directory, dir_name)
+        from os import mkdir, listdir, rename
+        mkdir(yaml_dir)
+        for yaml_file in listdir(run_directory):
+            if yaml_file.endswith('.yaml'):
+                rename(join(run_directory, yaml_file), join(yaml_dir, yaml_file))
+        yaml_spec = dir_name
+    return yaml_spec
+
 def _no_subprocess_window():
     '''The Python subprocess module only has the CREATE_NO_WINDOW flag on Windows.'''
     from sys import platform
@@ -200,7 +228,14 @@ def check_status(client_socket, runs_directory, job_id):
                 msg = f.read()
                 returned_result = True
         else:
-            msg = b'Running'
+            from os.path import join, exists
+            error_file = join(job_dir, 'error')
+            if exists(error_file):
+                with open(error_file, 'rb') as f:
+                    msg = f.read()
+                returned_result = True
+            else:
+                msg = b'Running'
     else:
         if exists(job_dir + '.zip'):
             msg = b'Not yet started'
@@ -209,15 +244,18 @@ def check_status(client_socket, runs_directory, job_id):
     return returned_result, msg
 
 def remove_job_files(runs_directory, job_id):
-    from os.path import join
+    from os.path import join, exists
     job_zip = join(runs_directory, f'boltz_job_{job_id}.zip')
     job_dir = job_zip.removesuffix('.zip')
     results_zip = join(runs_directory, f'boltz_results_{job_id}.zip')
     from os import remove
-    remove(job_zip)
-    remove(results_zip)
-    from shutil import rmtree
-    rmtree(job_dir)
+    if exists(job_zip):
+        remove(job_zip)
+    if exists(results_zip):
+        remove(results_zip)
+    if exists(job_dir):
+        from shutil import rmtree
+        rmtree(job_dir)
     log(f'removed job files {job_id}')
     
 def predict_on_server(run_dir, host = None, port = 30172):
