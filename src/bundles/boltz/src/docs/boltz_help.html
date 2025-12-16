@@ -8,7 +8,7 @@
     <h1>Making Boltz Structure Predictions in ChimeraX</h1>
     <p>
       Tom Goddard<br>
-      Updated August 20, 2025 Boltz 2.2, July 21, 2025 Boltz 2.1.1, May 30, 2025 Boltz 1.0.0, initial version April 23, 2025 Boltz 0.4.1
+      Updated December 15, 2025
     </p>
 
     <table>
@@ -20,11 +20,13 @@
       <br><a href="#install">Boltz installation</a>
       <br><a href="#predict">Predicting a structure with Boltz</a>
       <br><a href="#results">Results, coloring and predicted aligned error</a>
+      <br><a href="#runtimes">Run times and size limits</a>
       	<td width=40>
     <td>
-      <a href="#runtimes">Run times and size limits</a>
-      <br><a href="#ligands">Batch predictions with sets of ligands</a>
+      <a href="#ligands">Batch predictions with sets of ligands</a>
       <br><a href="#options">Options</a>
+      <br><a href="boltz_server.html">Server predictions</a>
+      <br><a href="#history">Listing past predictions</a>
       <br><a href="#command">ChimeraX boltz command</a>
       <br><a href="#limitations">Limitations</a>
       <br><a href="#changelog">Change log</a>
@@ -402,7 +404,31 @@
     <p>
       Additional advanced options are available by using the <a href="#command">ChimeraX boltz command</a>.
     </p>
+    
+    <a name="history">
+    <h2>Listing past predictions</h2>
+    </a>
 
+    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0" style="margin: 10px;" align=right>
+      <tr><td>
+	  <img src="images/history_panel.png" alt="ChimeraX Boltz user interface panel" width=400>
+    </table>
+
+    <p>
+      ChimeraX menu entry <b>Tools / Structure Prediction / Boltz History</b> lists a table of past
+      Boltz predictions.  Selecting rows of the table and pressing the <b>Open structures</b> button
+      will open those structures.  The table is filled by scanning the Boltz prediction directories
+      located in the directory where ChimeraX puts new Boltz predictions (by default ~/Deskop).
+      If a prediction computed multiple structures they will all be aligned to the first structure
+      of that prediction (using the ChimeraX matchmaker command).  The directory containing the prediction
+      directories and the choice to align can be specified in the panel shown by pressing the <b>Options</b> button.
+    </p>
+
+    <p>
+      Directories are identified as containing Boltz predictions if they contain a file named "command".
+      When ChimeraX runs a prediction it saves the boltz command including all its arguments in this file.
+    </p>
+    
     <a name="command">
     <h2>ChimeraX boltz command</h2>
     </a>
@@ -580,6 +606,7 @@
     </a>
 
     <ul>
+      <li><b>December 15, 2025</b>. Added prediction server support an prediction history table.
       <li><b>August 20, 2025</b>. Updated to Boltz 2.2 and added batch ligand predictions.
       <li><b>July 22, 2025</b>. Updated to Boltz 2.1.1 and added ligand affinity prediction.
       <li><b>May 28, 2025</b>.  Updated to Boltz-1x (1.0.0) with new trifast CUDA attention and new diffusion steering potentials.  Added steering option (default false).  Using <a href="https://github.com/RBVI/boltz/tree/chimerax">RBVI Boltz 1.0.0 fork</a> with bfloat16 option and trifast fix.

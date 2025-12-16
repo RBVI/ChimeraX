@@ -1,0 +1,190 @@
+<html lang="en">
+  <title>Boltz Prediction Server</title>
+  <body>
+    <h1>ChimeraX Boltz Prediction Server</h1>
+    <p>
+      Tom Goddard<br>
+      December 15, 2025
+    </p>
+
+    <p>
+      ChimeraX can run Boltz predictions on a server that you set up.  For example,
+      ChimeraX prediction jobs can be sent from a Mac or Windows laptop to a Linux computer
+      with Nvidia graphics to make faster predictions of larger molecules.
+    </p>
+
+    <h2>Server setup</h2>
+    <p>
+      To setup a server (can be Linux, Windows, or Mac) you install ChimeraX (December 16, 2025 version or newer)
+      on the server computer, then run the following ChimeraX commands to install boltz and start the server process.
+      The setup commands can be run without a graphical display (for example, if the server has no display)
+      by starting ChimeraX in text only mode.
+    </p>
+
+    <pre>
+      chimerax --nogui
+      &gt; boltz install
+      &gt; boltz server start
+      &gt; exit</pre>
+
+    <p>
+      When you quit ChimeraX the server remains running.
+      The server listens for prediction requests from ChimeraX from other computers,
+      runs the predictions, and returns the results.  By default the server saves jobs files
+      in directory ~/boltz_server_jobs.
+    </p>
+
+    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0" style="margin: 10px;" align=right>
+      <tr><td>
+	  <img src="images/server_options.png" alt="ChimeraX Boltz user interface panel" width=500>
+    </table>
+
+    <h2>How to run a prediction on the server</h2>
+
+    <p>
+      Boltz predictions are run from ChimeraX in the usual way, only the server host name is specified.
+      Use ChimeraX menu Tools / Structure Prediction / Boltz to specify the molecules to prediction.
+      Press the Options button on the Boltz panel, check "User server"
+      and provide the host name of the server.  The press the Boltz Predict button to run the prediction.
+      To always use the server click the "Save default options" button.
+    </p>
+
+    <p>
+      The predicted structure will automatically be opened when the calculation finishes.  You can quit
+      ChimeraX and later restart it and fetch new predictions from the server using ChimeraX menu
+      Tools / Structure Prediction / Boltz History.  If there are active server predictions the Boltz
+      History panel will have a button "Fetch from server" that will get any completed predictions.
+      Note locally run predictions behave differently and are terminated if you quit ChimeraX.
+    </p>
+
+    <h2>Result file location</h2>
+
+    <p>
+      To use the prediction server ChimeraX copies the folder with the Boltz input (.yaml file, msas, command options)
+      to the server machine, Boltz runs on the server, and the results are copied back to the machine that made
+      the request.  All Boltz input and output will be in a folder the same as if the prediction were run on the
+      local machine.  The default location for Boltz job folders is on the user Desktop, but this can be changed
+      using the "Results directory" entry under Options in the ChimeraX Boltz user interface.
+    </p>
+
+    <h2>Server commands</h2>
+
+    <p>
+      The command to start the boltz server has the following options.
+    </p>
+
+    <pre>
+      <b>boltz server start</b> [<b>host</b> <i>hostname</i>] [<b>port</b> <i>port-number</i>] [<b>boltzExe</b> <i>executable-path</i>]
+                         [<b>jobsDirectory</b> <i>directory</i>] [<b>device</b> <b>gpu</b> | cpu]</pre>
+
+    <p>
+      Options descriptions
+    </p>
+
+     <ul>
+       <li><b>host</b> <i>hostname</i> - The host name of the server, for instance minsky.cgl.ucsf.edu or 169.230.21.20. The default uses the python gethostbyname() system call to get the host name or IP address.
+       <li><b>port</b> <i>port-number</i> - The port number to listen for connections.  Default 30172.
+       <li><b>boltzExe</b> <i>executable-path</i> - The path to the boltz executable.  The default uses the Boltz install location which is initially set by the ChimeraX boltz install command and can later be changed using the ChimeraX Boltz Options panel or with the boltz predict command installLocation option.
+       <li><b>jobsDirectory</b> <i>directory</i> - Directory where server job subdirectories will be created.  The default is ~/boltz_server_jobs.  The directory will be created if it does not exist.
+       <li><b>device</b> <b>gpu</b> | cpu - Whether the server should run Boltz using the GPU or the CPU.  Default is to run with the GPU.
+     </ul>
+
+     <p>
+       A server log text file named "boltz_server_log" is created in the jobsDirectory when the server is started and can be used to debug server errors.
+     </p>
+
+     <h2>List and fetch active server jobs</h2>
+
+    <p>
+      If you quit ChimeraX and later restart it it remembers server jobs you were running that were not completed.
+      The <a href="boltz_help.html#history">Boltz History</a> panel (menu <b>Tools / Structure Prediction</b>) will
+      have a button <b>Fetch from server</b> that can download and display completed server jobs.
+    </p>
+
+    <p>
+      Alternatively you can list these "active" jobs with the "boltz server list" command and
+      fetch the resulting predictions with the "boltz server fetch" command.
+      When results are fetched the structures will be opened in ChimeraX.  If pending
+      jobs are not complete the fetch command will report the current state (running, waiting to run).
+    </p>
+
+    <pre>
+      <b>boltz server list</b> - Lists active server job identifier and server host and port.</pre>
+
+    <pre>
+      <b>boltz server fetch</b> [<i>local-directory</i>]
+                                [<b>open</b> <b>true</b> | false]</pre>
+
+    <p>
+      Options descriptions
+    </p>
+
+     <ul>
+       <li><i>local-directory</i> - The boltz job directory on the local computer. If this is not specified then all
+	 "active" boltz server jobs are fetched.  Active jobs are ones that were started in ChimeraX and did not
+	 complete before ChimeraX was exited.  Output to the Log will indicate for each pending job whether it
+	 has finished, running, or waiting to run.
+       <li><b>open</b> <b>true</b> | false - Whether to open the prediction structures in ChimeraX.  Default true.
+	 If you do not open them, they can later be opened using the ChimeraX Boltz History panel from menu
+	 Tools / Structure Prediction / Boltz History.
+     </ul>
+
+     <h2>Stopping the Boltz prediction server</h2>
+
+    <p>
+      There is currently no command to stop the Boltz server process.  On Linux or Mac you can determine the process
+      id and kill the process using shell commands.
+    </p>
+
+    <pre>
+      $ ps -axww | grep boltz
+        34435 ChimeraX.app/bin/python3.11 ChimeraX.app/lib/python3.11/site-packages/chimerax/boltz/server.py ...
+      $ kill 34435
+    </pre>
+
+    <p>
+      On Windows use Task Manager to find the boltz server process and force quit it.
+      On Mac you can also use Activity Monitor to find the boltz server process and force quit it.
+    </p>
+
+    
+    <pre>
+
+
+
+      
+
+
+
+      
+
+
+
+      
+
+
+
+      
+
+
+
+      
+
+
+
+      
+
+
+
+      
+
+
+
+      
+
+
+
+    </pre>
+     
+  </body>
+</html>
