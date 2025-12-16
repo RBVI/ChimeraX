@@ -1251,7 +1251,7 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
     search_button_text = "Start ligand fitting"
 
     def __init__(self, session, initial_center, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
-            resolution, extent_type, extent_value, hbonds, clashes):
+            resolution, conformers, extent_type, extent_value, hbonds, clashes):
         self.session = session
         self.ligand_fmt = ligand_fmt
         self.ligand_value = ligand_value
@@ -1260,6 +1260,7 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         self.chain_id = chain_id
         self.res_num = res_num
         self.resolution = resolution
+        self.conformers = conformers
         self.extent_type = extent_type
         self.extent_value = extent_value
         self.hbonds = hbonds
@@ -1358,8 +1359,8 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
             from chimerax.core.commands import run
             run(self.session, f"ui mousemode right '{self.prev_mouse_mode.name}'")
         _run_ligand_fit_command(self.session, self.search_center, self.ligand_fmt, self.ligand_value,
-            self.receptor, self.map, self.chain_id, self.res_num, self.resolution, None, None, self.hbonds,
-            self.clashes)
+            self.receptor, self.map, self.chain_id, self.res_num, self.resolution, self.conformers,
+            None, None, self.hbonds, self.clashes)
 
     @property
     def search_button_label(self):
@@ -1431,7 +1432,7 @@ class PickBlobDialog(QDialog):
         self.session = session
         self.verify_center = verify_center
         self.non_center_args = non_center_args
-        ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution, extent_type, \
+        ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution, conformers, extent_type, \
             extent_value, hbonds, clashes = non_center_args
 
         from Qt.QtWidgets import QVBoxLayout, QLabel
@@ -1585,8 +1586,7 @@ class PickBlobDialog(QDialog):
                 break
 
 class LaunchLigandFitTool(ToolInstance):
-    #help = "help:user/tools/localemfitting.html"
-    help = None
+    help = "help:user/tools/fitligand.html"
 
     CENTER_BLOB = "picked volume blob"
     CENTER_MODEL = "center of model..."
@@ -1809,6 +1809,21 @@ Choices are:
         self.show_clashes_checkbox.setChecked(True)
         checkbox_layout.addWidget(self.show_clashes_checkbox, alignment=Qt.AlignLeft)
 
+        conformers_layout = QHBoxLayout()
+        conformers_layout.setSpacing(0)
+        conformers_layout.setContentsMargins(0,0,0,0)
+        layout.addLayout(conformers_layout)
+        conformers_layout.addStretch(1)
+        conformers_layout.addWidget(QLabel("Number of conformers to try: "))
+        self.conformers_button = QPushButton("default")
+        menu = QMenu(self.conformers_button)
+        for num_conformers in ["default", "5", "10", "25", "100", "500"]:
+            menu.addAction(num_conformers)
+        menu.triggered.connect(lambda act, but=self.conformers_button: but.setText(act.text()))
+        self.conformers_button.setMenu(menu)
+        conformers_layout.addWidget(self.conformers_button)
+        conformers_layout.addStretch(1)
+
         layout.addSpacing(10)
 
         layout.addWidget(PhenixCitation(session, tool_name, "ligandfit"), alignment=Qt.AlignCenter)
@@ -1866,8 +1881,12 @@ Choices are:
         if extent_value <= 0:
             raise UserError("Search-extent value must be a positive number")
 
+        if self.conformers_button.text() == "default":
+            conformers = None
+        else:
+            conformers = int(self.conformers_button.text())
         non_center_args = (ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
-            resolution, extent_type, extent_value, self.show_hbonds_checkbox.isChecked(),
+            resolution, conformers, extent_type, extent_value, self.show_hbonds_checkbox.isChecked(),
             self.show_clashes_checkbox.isChecked())
 
         self.settings.search_center = method = self.centering_button.text()
@@ -2031,7 +2050,7 @@ def _run_emplace_local_command(session, structure, maps, resolution, prefitted, 
     run(session, cmd)
 
 def _run_ligand_fit_command(session, center, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
-        resolution, extent_type, extent_value, hbonds, clashes):
+        resolution, conformers, extent_type, extent_value, hbonds, clashes):
     from chimerax.core.commands import run, StringArg, BoolArg
     from chimerax.map import Volume
     LLFT = LaunchLigandFitTool
@@ -2042,9 +2061,13 @@ def _run_ligand_fit_command(session, center, ligand_fmt, ligand_value, receptor,
     else:
         extent_arg =  " extentType %s extentValue %g" % (
             ("length" if extent_type == LaunchLigandFitTool.EXTENT_LENGTH else "angstroms"), extent_value)
-    cmd = "phenix ligandFit %s ligand %s center %g,%g,%g inMap %s resolution %g%s " \
-        " hbonds %s clashes %s" % (receptor.atomspec, StringArg.unparse(lig_arg), *center,
-        map.atomspec, resolution, extent_arg, BoolArg.unparse(hbonds), BoolArg.unparse(clashes))
+    if conformers is None:
+        conformers_arg = ""
+    else:
+        conformers_arg =  f" conformers {conformers}"
+    cmd = "phenix ligandFit %s ligand %s center %g,%g,%g inMap %s resolution %g%s%s " \
+        " hbonds %s clashes %s" % (receptor.atomspec, StringArg.unparse(lig_arg), *center, map.atomspec,
+        resolution, extent_arg, conformers_arg, BoolArg.unparse(hbonds), BoolArg.unparse(clashes))
     if chain_id:
         cmd += " chain " + chain_id
     if res_num is not None:
