@@ -446,7 +446,8 @@
          [<b>forEachSmilesLigand</b> <i>name,smiles-string,name,smiles-string...</i>]
          [<b>affinity</b> <i>ligand-ccd-or-smiles-string</i> | each | <b>none</b>]
          [<b>name</b> <i>prediction-name</i>] [<b>resultsDirectory</b> <i>directory</i>]
-         [<b>device</b> default|cpu|gpu] [<b>float16</b> true|<b>false</b>] [<b>steering</b> true|<b>false</b>]
+         [<b>device</b> default|cpu|gpu] [<b>useServer</b> true | <b>false</b>] [<b>serverHost</b> <i>hostname</i>] [<b>serverPort</b> <i>port</i>]
+         [<b>float16</b> true|<b>false</b>] [<b>steering</b> true|<b>false</b>]
          [<b>samples</b> <i>n</i>] [<b>recycles</b> <i>n</i>] [<b>seed</b> <i>n</i>]
          [<b>useMsaCache</b> <b>true</b>|false] [<b>msaOnly</b> true|<b>false</b>]
          [<b>open</b> <b>true</b>|false] [<b>installLocation</b> <i>directory</i>] [<b>wait</b> true|<b>false</b>]</pre>
@@ -468,6 +469,9 @@
        <li><b>affinity</b> <i>ligand-ccd-or-smiles-string</i> | each | <b>none</b> - Whether to predict binding affinity for a specified ligand.  The ligand CCD code or SMILES string is uses to specify the ligand.  Boltz can only predict affinity for a single ligand and their must be only one copy of the ligand.  If the <b>forEachSmilesLigand</b> option is used to predict structures for multiple ligands, the "affinity each" option can be used to predict affinity for each of those ligands.  Default is <b>none</b>, not predicting affinity.  Affinity prediction takes roughly the same amount of time as structure prediction.
        <li><b>resultsDirectory</b> <i>directory</i> - Path to the results directory that will be created.  "[name]" in the path will be replaced by the prediction name.  If the folder already exists an numeric suffix _1, _2, _3... will be appended.
        <li><b>device</b> <b>default</b> | cpu | gpu - Whether to run the computation on GPU or CPU.  The default setting chooses based on GPU availability and torch support for the GPU.
+       <li><b>useServer</b> true | <b>false</b> - Whether to run computations on a prediction server specified by the <b>serverHost</b> and <b>serverPort</b> options.
+       <li><b>serverHost</b> <i>hostname</i> - The host name of the server, for instance minsky.cgl.ucsf.edu or 169.230.21.20. The default uses the python gethostbyname() system call to get the host name or IP address.
+       <li><b>serverPort</b> <i>port-number</i> - The port number to listen for connections.  Default 30172.
        <li><b>kernels</b> true | false - Whether to use Nvidia CUDA optimization kernels.  This was 30% faster on a test with 100 protein monomers with 100-700 residues, with no loss of accuracy.  Default is true on Linux with GPU, otherwise false.
        <li><b>steering</b> true | <b>false</b> - Whether to use Boltz diffusion steering potentials.  This is claimed to produce more physically realistic geometry but takes longer (1.25x on Nvidia, 2.5x on Mac) to run.
        <li><b>samples</b> <i>n</i> - Number of predictions.  Default is 1.  This is what Boltz calls "diffusion samples".  Creating additional structures takes much less time than creating the first structure.
