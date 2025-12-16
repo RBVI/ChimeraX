@@ -11,8 +11,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - branch: release/v1.11
-            release_type: candidate
+          #- branch: release/v1.12
+          #  release_type: candidate
           - branch: develop
             release_type: daily
           - branch: flying_edges
@@ -29,8 +29,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - branch: release/v1.11
-            release_type: candidate
+        #  - branch: release/v1.12
+        #    release_type: candidate
           - branch: develop
             release_type: daily
           - branch: flying_edges
@@ -47,8 +47,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - branch: release/v1.11
-            release_type: candidate
+        #  - branch: release/v1.12
+        #    release_type: candidate
           - branch: develop
             release_type: daily
           - branch: flying_edges
@@ -65,8 +65,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - branch: release/v1.11
-            release_type: candidate
+        #  - branch: release/v1.12
+        #    release_type: candidate
           - branch: develop
             release_type: daily
           - branch: flying_edges
@@ -83,8 +83,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - branch: release/v1.11
-            release_type: candidate
+        #  - branch: release/v1.12
+        #    release_type: candidate
           - branch: develop
             release_type: daily
           - branch: flying_edges
@@ -100,8 +100,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - branch: release/v1.11
-            release_type: candidate
+        #  - branch: release/v1.12
+        #    release_type: candidate
           - branch: develop
             release_type: daily
           - branch: flying_edges
@@ -117,8 +117,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - branch: release/v1.11
-            release_type: candidate
+          #- branch: release/v1.12
+          #  release_type: candidate
           - branch: develop
             release_type: daily
           - branch: flying_edges
@@ -134,8 +134,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - branch: release/v1.11
-            release_type: candidate
+          #- branch: release/v1.12
+          #  release_type: candidate
           - branch: develop
             release_type: daily
           - branch: flying_edges
@@ -152,8 +152,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - branch: release/v1.11
-            release_type: candidate
+          #- branch: release/v1.12
+          #  release_type: candidate
           - branch: develop
             release_type: daily
           - branch: flying_edges
@@ -169,8 +169,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - branch: release/v1.11
-            release_type: candidate
+          #- branch: release/v1.12
+          #  release_type: candidate
           - branch: develop
             release_type: daily
           - branch: flying_edges
