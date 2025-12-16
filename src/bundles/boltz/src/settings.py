@@ -41,6 +41,9 @@ class _BoltzSettings(Settings):
         'server_host': '',
         'server_port': 30172,
     }
+    AUTO_SAVE = {
+        'active_server_jobs': [],  # Directories of boltz runs sent to server
+    }
 
 # -----------------------------------------------------------------------------
 #

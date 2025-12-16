@@ -52,12 +52,13 @@ class BoltzHistoryPanel(ToolInstance):
         layout.addWidget(options)
 
         # Buttons
+        buttons = [('Open structures', self._open_structures),
+                   ('Options', self._show_or_hide_options),
+                   ('Help', self._show_help)]
+        if self._active_server_jobs:
+            buttons.insert(1, ('Fetch from server', self._fetch_from_server))
         from chimerax.ui.widgets import button_row
-        bf = button_row(parent,
-                        [('Open structures', self._open_structures),
-                         ('Options', self._show_or_hide_options),
-                         ('Help', self._show_help)],
-                        spacing = 2)
+        bf = button_row(parent, buttons, spacing = 2)
         bf.setContentsMargins(0,5,0,0)
         layout.addWidget(bf)
 
@@ -109,6 +110,11 @@ class BoltzHistoryPanel(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _directory_changed(self):
+        self._update_table()
+
+    # ---------------------------------------------------------------------------
+    #
+    def _update_table(self):
         self._predictions_table._update(self._predictions_directory.value)
 
     # ---------------------------------------------------------------------------
@@ -160,6 +166,23 @@ class BoltzHistoryPanel(ToolInstance):
     def _selected_rows(self):
         rt = self._results_table
         return rt.selected if rt else []
+
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def _active_server_jobs(self):
+        from .settings import _boltz_settings
+        settings = _boltz_settings(self.session)
+        return settings.active_server_jobs
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _fetch_from_server(self):
+        from chimerax.core.commands import run
+        run_dirs = run(self.session, 'boltz server fetch')
+        if run_dirs:
+            self._update_table()
 
     # ---------------------------------------------------------------------------
     #

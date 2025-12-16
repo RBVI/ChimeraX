@@ -700,6 +700,10 @@ class BoltzRun:
         from .server import predict_on_server
         job_id = predict_on_server(run_dir, self._server_host, self._server_port)
 
+        active_jobs = list(self._settings.active_server_jobs)
+        active_jobs.append(run_dir)
+        self._settings.active_server_jobs = active_jobs
+
         class WaitForServerPrediction:
             def __init__(self, prediction, job_id, run_dir, host, port, check_interval = 10):
                 self._prediction = prediction
@@ -720,11 +724,17 @@ class BoltzRun:
                 
                 from .server import get_results
                 msg = get_results(self._job_id, self._run_dir, self._server_host, self._server_port)
+                logger = self._prediction._session.logger
                 if msg == 'Done':
                     self._prediction._server_job_finished(self._run_dir)
                     return 'delete handler'
                 elif msg == 'No such job':
-                    self._prediction._session.logger.error(f'Boltz server could not find job {self._job_id}')
+                    logger.error(f'Boltz server could not find job {self._job_id}')
+                    self._prediction._prediction_finished(success = False)
+                    return 'delete handler'
+                elif msg.startswith('Error'):
+                    logger.bug(f'Boltz server error for job {self._job_id}: {msg}')
+                    self._prediction._prediction_finished(success = False)
                     return 'delete handler'
                 else:
                     status = f'{msg} {self._job_id} on {self._server_host}'
@@ -739,16 +749,26 @@ class BoltzRun:
         with open(join(run_dir, 'stderr'), 'r') as f:
             stderr = f.read()
 
-        pdir = join(self._predictions_directory, self.name)
-        from os.path import exists
-        if exists(pdir):
-            from os import listdir
-            struct_files = [filename for filename in listdir(pdir)
-                            if filename.endswith('.cif')]
-        else:
-            struct_files = []
+        jobs = self._settings.active_server_jobs
+        if run_dir in jobs:
+            jobs.remove(run_dir)
+            self._settings.active_server_jobs = list(jobs)
+
+        struct_files = self._prediction_cif_files()
         exit_code = 0 if struct_files else 1
         self._process_completed(exit_code, stdout, stderr)
+
+    def _prediction_cif_files(self):
+        struct_files = []
+        from os import listdir
+        from os.path import isdir, join
+        ppdir = self._predictions_directory
+        for pname in listdir(ppdir):
+            pdir = join(ppdir, pname)
+            if isdir(pdir):
+                struct_files.extend(join(pdir,filename) for filename in listdir(pdir)
+                                    if filename.endswith('.cif'))
+        return struct_files
         
     def _prediction_command(self):
         boltz_venv = self._settings.boltz22_install_location
@@ -951,6 +971,9 @@ class BoltzRun:
         for p in self._predictions:
             p._add_to_msa_cache(self._msa_directory, self._msa_cache_dir)
 
+        self._prediction_finished(success)
+
+    def _prediction_finished(self, success):
         self.success = success
         self._running = False
         self._finished = True

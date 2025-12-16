@@ -13,7 +13,8 @@ def start_server(runs_directory, boltz_exe, host = None, port = 30172, device = 
     
     while True:
         client_socket, address = server_socket.accept()  # Accept new connection
-
+        returned_result = False
+        
         try:
             zip_data = read_socket_data(client_socket)
             if is_zip_data(zip_data):
@@ -26,17 +27,19 @@ def start_server(runs_directory, boltz_exe, host = None, port = 30172, device = 
             elif zip_data.startswith(b'status: '):
                 job_id = zip_data[8:].decode('utf-8')
                 log(f'Status check for job {job_id}')
-                msg = check_status(client_socket, runs_directory, job_id)
+                returned_result, msg = check_status(client_socket, runs_directory, job_id)
             else:
                 log(f'Invalid server connection, {len(zip_data)} bytes')
                 msg = b'Invalid server request'
-            client_socket.send(msg)
-            client_socket.close()
         except Exception as e:
             import traceback
-            msg = f'Error: {str(e)}\n\n{traceback.format_exc()}'
-            client_socket.send(msg.encode())
-            client_socket.close()
+            msg = f'Error: {str(e)}\n\n{traceback.format_exc()}'.encode('utf-8')
+
+        client_socket.send(msg)
+        client_socket.close()
+
+        if returned_result:
+            remove_job_files(runs_directory, job_id)
 
     server_socket.close()
 
@@ -95,8 +98,15 @@ class BoltzPrediction:
             run_boltz_prediction(self._zip_path, self._boltz_exe, device = self._device)
             log(f'prediction {self._job_id} finished')
         except Exception as e:
-            import traceback
-            log(f'Error running job {self._job_id}: {str(e)}\n\n{traceback.format_exc()}')
+            self._report_error(e)
+    def _report_error(self, e):
+        import traceback
+        msg = f'Error running job {self._job_id}: {str(e)}\n\n{traceback.format_exc()}'
+        log(msg)
+        run_dir = self._zip_path.removesuffix('.zip')
+        from os.path import join
+        with open(join(run_dir, 'error'), 'w') as f:
+            f.write(msg)
 
 def run_boltz_prediction(zip_path, boltz_exe, device = 'gpu'):
     from zipfile import ZipFile
@@ -147,13 +157,13 @@ def run_boltz(directory, boltz_exe, device = 'gpu'):
     else:
         env = None
 
-    from os.path import join, basename
+    from os.path import join
     command_file = join(directory, 'command')
     with open(command_file, 'r') as f:
         cmd_string = f.read()
     command_args = cmd_string.split()
     command_args[0] = boltz_exe  # Use server boltz executable location
-    command_args[2] = basename(command_args[2])  # Don't use absolute path to .yaml file from client machine.
+    command_args[2] = yaml_input(command_args[2], directory)
     if '--accelerator' in command_args:
         i = command_args.index('--accelerator')
         command_args[i+1] = device
@@ -176,6 +186,27 @@ def run_boltz(directory, boltz_exe, device = 'gpu'):
     with open(join(directory, 'time'), 'w') as f:
         f.write('%.2f' % (t_end - t_start))
 
+def yaml_input(path, run_directory):
+    '''
+    Replace absolute path to .yaml file from client machine with local path.
+    If a batch of predictions is run move all the yaml files to a subdirectory
+    and return path to that subdirectory.
+    '''
+    if path.endswith('.yaml'):
+        from os.path import basename
+        yaml_spec = basename(path)
+    else:
+        from os.path import join, basename
+        dir_name = basename(path)
+        yaml_dir = join(run_directory, dir_name)
+        from os import mkdir, listdir, rename
+        mkdir(yaml_dir)
+        for yaml_file in listdir(run_directory):
+            if yaml_file.endswith('.yaml'):
+                rename(join(run_directory, yaml_file), join(yaml_dir, yaml_file))
+        yaml_spec = dir_name
+    return yaml_spec
+
 def _no_subprocess_window():
     '''The Python subprocess module only has the CREATE_NO_WINDOW flag on Windows.'''
     from sys import platform
@@ -187,6 +218,7 @@ def _no_subprocess_window():
     return flags
 
 def check_status(client_socket, runs_directory, job_id):
+    returned_result = False
     from os.path import join, exists
     job_dir = join(runs_directory, f'boltz_job_{job_id}')
     if exists(job_dir):
@@ -194,14 +226,37 @@ def check_status(client_socket, runs_directory, job_id):
         if exists(results_zip):
             with open(results_zip, 'rb') as f:
                 msg = f.read()
+                returned_result = True
         else:
-            msg = b'Running'
+            from os.path import join, exists
+            error_file = join(job_dir, 'error')
+            if exists(error_file):
+                with open(error_file, 'rb') as f:
+                    msg = f.read()
+                returned_result = True
+            else:
+                msg = b'Running'
     else:
         if exists(job_dir + '.zip'):
             msg = b'Not yet started'
         else:
             msg = b'No such job'
-    return msg
+    return returned_result, msg
+
+def remove_job_files(runs_directory, job_id):
+    from os.path import join, exists
+    job_zip = join(runs_directory, f'boltz_job_{job_id}.zip')
+    job_dir = job_zip.removesuffix('.zip')
+    results_zip = join(runs_directory, f'boltz_results_{job_id}.zip')
+    from os import remove
+    if exists(job_zip):
+        remove(job_zip)
+    if exists(results_zip):
+        remove(results_zip)
+    if exists(job_dir):
+        from shutil import rmtree
+        rmtree(job_dir)
+    log(f'removed job files {job_id}')
     
 def predict_on_server(run_dir, host = None, port = 30172):
     zip_path = run_dir + '.zip'
@@ -223,6 +278,11 @@ def predict_on_server(run_dir, host = None, port = 30172):
         print(f'Server {host}:{port} queued job {job_id}')
     else:
         raise RuntimeError(msg.decode('utf-8'))
+
+    from os.path import join
+    with open(join(run_dir, 'server'), 'w') as f:
+        f.write(f'{host} {port} {job_id}')
+
     return job_id
 
 def get_results(job_id, run_dir, host = None, port = 30172):
@@ -267,12 +327,12 @@ def log(msg):
     time_stamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     stderr.write(f'{time_stamp}: {msg}\n')
 
-def boltz_server(session, operation = None,
-                 host = None, port = 30172,
-                 boltz_exe = None,
-                 jobs_directory = '~/boltz_server_jobs',
-                 device = 'gpu',
-                 server_log = 'boltz_server_log'):
+def boltz_server_start(session,
+                       host = None, port = 30172,
+                       boltz_exe = None,
+                       jobs_directory = '~/boltz_server_jobs',
+                       device = 'gpu',
+                       server_log = 'boltz_server_log'):
     if host is None:
         host = _default_host()
     from os.path import expanduser
@@ -314,11 +374,71 @@ def boltz_server(session, operation = None,
 
     msg = f'Server process exited with code {p.returncode}\n\nstdout: {stdout}\n\nstderr: {stderr}'
     session.logger.error(msg)
-    
+
+def boltz_server_list(session):
+    lines = [f'Job {job_id} on server {host} port {port}'
+             for run_dir, host, port, job_id in _active_server_jobs(session)]
+    if len(lines) == 0:
+        lines.append('No active boltz prediction server jobs')
+    msg = '\n'.join(lines)
+    session.logger.info(msg)
+
+def _active_server_jobs(session):
+    from .settings import _boltz_settings
+    settings = _boltz_settings(session)
+    run_dirs = settings.active_server_jobs
+    jobs = _server_jobs_info(run_dirs)
+    return jobs
+
+def _server_jobs_info(run_directories):
+    jobs = []
+    from os.path import join, exists
+    for run_dir in run_directories:
+        path = join(run_dir, 'server')
+        if exists(path):
+            with open(path, 'r') as f:
+                host, port, job_id = f.read().split()
+                jobs.append((run_dir, host, int(port), job_id))
+    return jobs
+
+def boltz_server_fetch(session, run_directory = None, open = True):
+    lines = []
+    done = set()
+
+    if run_directory:
+        jobs = _server_jobs_info([run_directory])
+    else:
+        jobs = _active_server_jobs(session)
+
+    for run_dir, host, port, job_id in jobs:
+        msg = get_results(job_id, run_dir, host=host, port=port)
+        if msg == 'Done':
+            done.add(run_dir)
+        lines.append(f'{run_dir} jobs {job_id} host {host} port {port}: {msg}')
+
+    if len(lines) == 0:
+        lines.append('No active boltz prediction server jobs')
+        
+    msg = '\n'.join(lines)
+    session.logger.info(msg)
+
+    if done:
+        from .settings import _boltz_settings
+        settings = _boltz_settings(session)
+        active = [run_dir for run_dir in settings.active_server_jobs if run_dir not in done]
+        settings.active_server_jobs = active
+
+    if open:
+        for run_dir in done:
+            from .history import PredictionDirectory
+            p = PredictionDirectory(run_dir)
+            p.open_structures(session)
+
+    return done
+
 def register_boltz_server_command(logger):
-    from chimerax.core.commands import CmdDesc, register, EnumOf, IntArg, StringArg
+    from chimerax.core.commands import CmdDesc, register, EnumOf, IntArg, StringArg, BoolArg, OpenFolderNameArg
     desc = CmdDesc(
-        optional = [('operation', EnumOf(['start']))],
         keyword = [('host', StringArg),
                    ('port', IntArg),
                    ('boltz_exe', StringArg),
@@ -328,7 +448,21 @@ def register_boltz_server_command(logger):
         synopsis = 'Start a Boltz prediction server',
         url = 'help:boltz_help.html'
     )
-    register('boltz server', desc, boltz_server, logger=logger)
+    register('boltz server start', desc, boltz_server_start, logger=logger)
+
+    desc = CmdDesc(
+        synopsis = 'List active Boltz prediction server jobs',
+        url = 'help:boltz_help.html'
+    )
+    register('boltz server list', desc, boltz_server_list, logger=logger)
+
+    desc = CmdDesc(
+        optional = [('run_directory', OpenFolderNameArg)],
+        keyword = [('open', BoolArg)],
+        synopsis = 'Fetch results for active Boltz prediction server jobs',
+        url = 'help:boltz_help.html'
+    )
+    register('boltz server fetch', desc, boltz_server_fetch, logger=logger)
 
     
 if __name__ == '__main__':
