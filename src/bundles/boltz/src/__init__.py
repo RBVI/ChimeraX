@@ -31,6 +31,9 @@ class _BoltzBundle(BundleAPI):
         if tool_name == 'Boltz':
             from . import boltz_gui
             return boltz_gui.show_boltz_panel(session)
+        elif tool_name == 'Boltz History':
+            from . import history
+            return history.show_predictions_panel(session)
 
     @staticmethod
     def register_command(command_name, logger):

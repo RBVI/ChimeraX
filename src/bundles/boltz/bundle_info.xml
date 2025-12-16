@@ -41,6 +41,7 @@
     <ChimeraXClassifier>Command :: boltz server list :: Structure Prediction :: List active Boltz prediction server jobs</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: boltz server fetch :: Structure Prediction :: Fetch active Boltz prediction server jobs</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Boltz :: Structure Prediction :: Predict structures using Boltz</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Boltz History :: Structure Prediction :: Table of previously run Boltz predictions</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
