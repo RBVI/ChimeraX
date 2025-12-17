@@ -225,7 +225,21 @@ jobs:
       - name: Verify that ChimeraX will pass macOS Gatekeeper
         shell: bash
         run: |
-          spctl --assess --type execute --verbose=4 $CHIMERAX_APP_NAME
+          echo "=== Checking main app bundle ==="
+          codesign --verify --deep --strict --verbose=4 "$CHIMERAX_APP_NAME" 2>&1 || true
+          echo ""
+          echo "=== spctl assessment ==="
+          spctl --assess --type execute --verbose=4 "$CHIMERAX_APP_NAME" 2>&1 || {
+            echo ""
+            echo "=== spctl failed, checking individual binaries ==="
+            find "$CHIMERAX_APP_NAME" -type f \( -perm +111 -o -name "*.dylib" -o -name "*.so" \) | while read -r binary; do
+              if ! codesign --verify --strict "$binary" 2>/dev/null; then
+                echo "FAILED: $binary"
+                codesign -dvv "$binary" 2>&1 | head -20
+              fi
+            done
+            exit 1
+          }
 
       - name: Make the DMG
         shell: bash
