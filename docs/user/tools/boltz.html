@@ -221,10 +221,12 @@ as it will be faster than the CPU
 <b>Use server</b> [<i>server-hostname</i>] <b>port</b> [<i>port-number</i>]
 &ndash; whether to run Boltz on a server instead of on the local system,
 and if so, using what hostname (or IP address) and port number.
+Running Boltz on a server (more powerful than the local machine)
+allows for faster predictions and enables predicting larger structures.
 The Boltz server must have been set up already 
 (<a href="../commands/boltz.html#server">details...</a>).
-Running Boltz on a server allows quitting from ChimeraX while the job is
-still running, and then retrieving the results later
+A user can quit from ChimeraX while the server job is
+still running, then retrieve the results later
 (after restarting ChimeraX) using the 
 <a href="#history"><b>Boltz History</b></a>. 
 <li><b>Boltz install location</b> &ndash; the folder containing
@@ -458,8 +460,9 @@ of the <b>Tools</b> menu.
 Results of previous predictions can be opened by choosing row(s) in the table
 and clicking <b>Open structures</b>. 
 If any predictions were run on a <a href="#server">server</a> and not
-yet opened on the local machine, clicking <b>Fetch from server</b>
-will retrieve and open them.
+yet opened on the local machine, there will be a <b>Fetch from server</b>
+button, and clicking it will retrieve and open them.
+</p><p>
 Clicking <b>Options</b> shows/hides the additional options:
 </p>
 <ul>

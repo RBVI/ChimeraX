@@ -356,9 +356,13 @@ The <b>alignTo</b> option indicates that any results opened with the table's
 [&nbsp;<b>open</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </blockquote>
 <p>
-Running Boltz on a server allows a user to quit from ChimeraX while the
-job is still running and retrieve the results later (after resuming
-use of ChimeraX) from the
+Running Boltz on a server (more powerful than the local machine)
+allows for faster predictions and enables predicting larger structures.
+There are options in the <a href="../tools/boltz.html#options"><b>Boltz</b></a>
+tool and the <a href="#predict"><b>boltz predict</b></a> command to use
+the server.
+A user can quit from ChimeraX while the server job is still running,
+then retrieve the results later (after resuming use of ChimeraX) from the
 <a href="../tools/boltz.html#history"><b>Boltz History</b></a> tool
 or with the <b>boltz server fetch</b> command.
 See also:
@@ -367,7 +371,7 @@ target="_blank">Boltz Prediction Server</a>
 </p><p>
 The server can be Linux, Windows, or Mac. <b><i>The Boltz service must be
 set up</i></b> by installing ChimeraX (from December 16, 2025 or later)
-on the server computer and running it in text-only mode, with commands:
+on the server computer and running the following commands.
 </p>
 <pre>
       chimerax --nogui
@@ -376,7 +380,9 @@ on the server computer and running it in text-only mode, with commands:
       &gt; exit
 </pre>
 <p>
-The above exits from ChimeraX but leaves the server running.
+The example above starts ChimeraX in text-only mode, but the
+<b>boltz</b> commands could just as well be entered into the ChimeraX GUI.
+Exiting from ChimeraX leaves the server running.
 The server listens for prediction requests from ChimeraX from other 
 computers, runs the predictions, and returns the results.
 By default, the server saves jobs files in the directory:
@@ -408,20 +414,21 @@ to debug server errors. The directory will be created if it does not exist.
 &ndash; whether the server should run Boltz using the GPU (default) or the CPU
 </ul>
 <p>
-<a name="active"></a>
 The <b>boltz server list</b> command lists in the 
 <a href="../tools/log.html"><b>Log</b></a> any <b><i>active</i></b> jobs,
 defined as those which were still running when the user quit from ChimeraX.
 The job identifiers, server hostname, and port numbers are
 listed, along with job status (finished, running, or waiting to run).
-The results of finished jobs can be retrieved using <b>boltz server fetch</b>,
-with options:
+</p><p>
+The <b>boltz server fetch</b> command retrieves the results of finished jobs.
+Options for <b>boltz server fetch</b>:
 </p>
 <ul>
 <li><i>local-directory</i>
 &ndash; boltz job directory on the local computer. If this is not specified,
-results for all finished <a href="#active">active</a> jobs will be fetched;
-if a job is still running or waiting to run, this status will be reported in
+results for all <b><i>active</i></b> jobs that have finished will be fetched.
+Active jobs are those which were still running when the user quit from ChimeraX.
+If a job is still running or waiting to run, this status will be reported in
 the <a href="../tools/log.html"><b>Log</b></a>.
 <li><b>open</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 &ndash; whether to open the predicted structures for finished jobs
