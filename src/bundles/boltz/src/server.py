@@ -335,38 +335,42 @@ def boltz_server_start(session,
                        server_log = 'boltz_server_log'):
     if host is None:
         host = _default_host()
-    from os.path import expanduser
-    jobs_directory = expanduser(jobs_directory)
-    if boltz_exe is None:
-        from .settings import _boltz_settings
-        settings = _boltz_settings(session)
-        from .install import find_executable
-        boltz_exe = find_executable(settings.boltz22_install_location, 'boltz')
-    boltz_exe = expanduser(boltz_exe)
-    from chimerax.core.python_utils import chimerax_python_executable
-    python_exe = chimerax_python_executable()
-
-    cmd = [python_exe, __file__, 'start', host, str(port),
-           boltz_exe, jobs_directory, device]
 
     from os.path import expanduser, exists, join
     jobs_directory = expanduser(jobs_directory)
     if not exists(jobs_directory):
         from os import mkdir
         mkdir(jobs_directory)
+
+    if boltz_exe is None:
+        from .settings import _boltz_settings
+        settings = _boltz_settings(session)
+        from .install import find_executable
+        boltz_exe = find_executable(settings.boltz22_install_location, 'boltz')
+    boltz_exe = expanduser(boltz_exe)
+
+    from chimerax.core.python_utils import chimerax_python_executable
+    python_exe = chimerax_python_executable()
+
+    cmd = [python_exe, __file__, '--host', host, '--port', str(port),
+           '--boltz_exe', boltz_exe, '--jobs_directory', jobs_directory]
+    if device == 'cpu':
+        cmd.append('--cpu')
+        
     f = open(join(jobs_directory, server_log), 'w')
+
     import subprocess
     # Create a server process that will continue running after ChimeraX exits.
     from sys import platform
     if platform == 'win32':
         p = subprocess.Popen(cmd, creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP,
-#                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                              stdin=subprocess.DEVNULL, stdout=f, stderr=f)
-
     else:
         p = subprocess.Popen(cmd, start_new_session = True, stdin=subprocess.DEVNULL, stdout=f, stderr=f)
+
     msg = f'Started Boltz server process {p.pid}: {" ".join(cmd)}'
     session.logger.info(msg)
+
     try:
         stdout, stderr = p.communicate(timeout = 2)
     except subprocess.TimeoutExpired:
@@ -464,19 +468,26 @@ def register_boltz_server_command(logger):
     )
     register('boltz server fetch', desc, boltz_server_fetch, logger=logger)
 
+def _start_server():
+    description = ('The ChimeraX Boltz structure prediction can run predictions on another machine'
+                   ' for faster predictions of larger structures.  This command starts the server.'
+                   ' First use ChimeraX to install Boltz with the ChimeraX command "boltz install".'
+                   ' To run predictions on the server from another machine use the "User server..."'
+                   ' option in the ChimeraX Boltz prediction user interface or the useServer option'
+                   ' of the ChimeraX "boltz predict" command.')
+                   
+    from argparse import ArgumentParser
+    p = ArgumentParser(prog = 'ChimeraX Boltz Server', description = description)
+    p.add_argument('--host')
+    p.add_argument('--port', type = int, default = 30172)
+    from os.path import expanduser
+    p.add_argument('--boltz_exe', default = expanduser('~/boltz22/bin/boltz'))
+    p.add_argument('--jobs_directory', default = expanduser('~/boltz_server_jobs'))
+    p.add_argument('--cpu', action = 'store_true', default = False)
+    args = p.parse_args()
+    device = 'cpu' if args.cpu else 'gpu'
     
+    start_server(args.jobs_directory, args.boltz_exe, args.host, args.port, device=device)
+
 if __name__ == '__main__':
-    from sys import argv
-    print(f'server called with argv: {argv}')
-    run_dir = argv[1]
-    if run_dir == 'start':
-        host = argv[2]
-        port = int(argv[3])
-        boltz_exe = argv[4]
-        jobs_directory = argv[5]
-        device = argv[6] if len(argv) >= 6 else 'gpu'
-        start_server(jobs_directory, boltz_exe, host, port, device=device)
-    else:
-        host = argv[2]
-        port = int(argv[3])
-        predict_on_server(run_dir, host, port)
+    _start_server()
