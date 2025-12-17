@@ -76,6 +76,7 @@ target="_blank">computational screening for protein-protein interactions</a>
 <a href="#installation"><b>Boltz Installation</b></a>
 <br><a href="#dialog"><b>Defining and Running a Prediction</b></a>
 <br><a href="#pae"><b>Error Plot</b></a>
+<br><a href="#history"><b>Boltz History</b></a>
 <br><a href="#limitations"><b>Limitations</b></a>
 </blockquote>
 
@@ -216,6 +217,18 @@ cannot be used for an assembly of those proteins.
 &ndash; whether to use the CPU always, GPU always (requires an Nvidia or
 Mac M series GPU), or GPU if available (initial <b>default</b>),
 as it will be faster than the CPU
+<li><a name="server"></a>
+<b>Use server</b> [<i>server-hostname</i>] <b>port</b> [<i>port-number</i>]
+&ndash; whether to run Boltz on a server instead of on the local system,
+and if so, using what hostname (or IP address) and port number.
+Running Boltz on a server (more powerful than the local machine)
+allows for faster predictions and enables predicting larger structures.
+The Boltz server must have been set up already 
+(<a href="../commands/boltz.html#server">details...</a>).
+A user can quit from ChimeraX while the server job is
+still running, then retrieve the results later
+(after restarting ChimeraX) using the 
+<a href="#history"><b>Boltz History</b></a>. 
 <li><b>Boltz install location</b> &ndash; the folder containing
 a virtual Python environment in which Boltz is installed
 </ul>
@@ -232,8 +245,15 @@ target="_blank">ChimeraX Boltz details</a> for run times on various systems).
 The Boltz prediction is run in the background so that ChimeraX can be used 
 for other tasks. Clicking <b>Stop</b> halts a calculation in progress.
 When the prediction finishes, the resulting structure(s) are opened 
-automatically.
-</p><p>
+automatically. Other buttons:
+</p>
+<ul>
+<li><b>Error plot</b> &ndash; show the <a href="#pae"><b>Error Plot</b></a>
+<li><b>History</b> &ndash; show the <a href="#history"><b>Boltz History</b></a>
+<li><b>Help</b> &ndash; show documentation
+in the <a href="helpviewer.html"><b>Help Viewer</b></a>
+</ul>
+<p>
 <a name="confidence"></a>
 When first opened, the predicted structures are colored by 
 the pLDDT confidence measure
@@ -427,6 +447,38 @@ Error (&Aring;)</b>&rdquo;) would need to be created separately with
 <a href="../commands/2dlabels.html"><b>2dlabels</b></a>.
 </p>
 
+<a name="history"></a>
+<p class="nav">
+[<a href="#top">back to top: Boltz</a>]
+</p>
+<h3>Boltz History</h3>
+<p>
+The <b>Boltz History</b> can be opened by clicking the <b>History</b> button
+on the <a href="#dialog"><b>Boltz</b> dialog</a>, or by choosing 
+<b>Boltz History</b> from from the <b>Structure Prediction</b> section 
+of the <b>Tools</b> menu. 
+Results of previous predictions can be opened by choosing row(s) in the table
+and clicking <b>Open structures</b>. 
+If any predictions were run on a <a href="#server">server</a> and not
+yet opened on the local machine, there will be a <b>Fetch from server</b>
+button, and clicking it will retrieve and open them.
+</p><p>
+Clicking <b>Options</b> shows/hides the additional options:
+</p>
+<ul>
+<li><b>Predictions directory</b> 
+&ndash; where to look for directories of previous Boltz results 
+(the save location is set in the <a href="#options"><b>Boltz</b> options</a>, 
+initial default <b>~/Desktop</b>).
+Directories are identified as containing Boltz predictions if they
+include a file named <b>command</b>, which is used by ChimeraX to store the
+boltz command with all its arguments used to run the prediction.
+<li><b>Align opened structures</b>
+&ndash; whether to superimpose multiple structures from the same run
+with <a href="../commands/matchmaker.html"><b>matchmaker</b></a>, 
+using the first structure as the reference
+</ul>
+
 <a name="limitations"></a>
 <p class="nav">
 [<a href="#top">back to top: Boltz</a>]
@@ -517,5 +569,5 @@ polymers.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2025</address>
+December 2025</address>
 </body></html>
