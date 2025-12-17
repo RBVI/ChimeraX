@@ -44,6 +44,7 @@ jobs:
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
         with:
           job_name: ${{ format('Build ChimeraX for Intel macOS ({0}, {1}) / Build ChimeraX for Intel Macs', inputs.branch, inputs.release_type) }}
+          per_page: 100
       - name: Note the run and job IDs on Plato
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
         uses: nick-fields/retry@v3

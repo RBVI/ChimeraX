@@ -144,12 +144,57 @@ The names of open sets can be listed in the
 and a set can be closed with
 <a href="#list"><b>mutationscores close</b></a>.
 </p><p>
-The menus below the plot can be used to change which scores are plotted 
-and for which <a href="#mutationSet">mutation set</a>. 
+Menus below the plot can be used to change which scores are plotted 
+on the X- and Y-axes and for which <a href="#mutationSet">mutation set</a>. 
 Placing the cursor over a plotted point (circle)
 reports the specific mutation and its score values at the bottom of the panel.
 </p><p>
-Clicking the plot raises a context menu; entries that refer to
+Clicking <b>Color structures</b> colors any 
+associated structures <b>using</b> a score chosen from the menu.
+There are typically several different <b>mutations</b> at the same 
+residue position, whereas a single value per position is needed for coloring.
+This single value per position can be calculated based on
+<b>all</b> of those mutations or only those enclosed in a <b>drag box</b>
+drawn on the plot, and can be computed as one of:
+</p>
+<ul>
+<li><b>mean</b> &ndash; average of values
+<li><b>count</b> &ndash; how many different mutations are being used
+<li><b>sum absolute</b> &ndash; sum of absolute values
+<li><b>sum</b>
+<li><b>min</b>
+<li><b>max</b>
+<li><b>median</b>
+<li><b>stddev</b> &ndash; standard deviation
+</ul>
+<p>
+Choices of <b>palette</b> for coloring by mutation scores include:
+</p>
+<ul>
+<li><b>blue to red</b> &ndash; for signed values, with
+blue, white, another white, and red thresholds set to values
+0.66*min(score), 0.33*min(score), 0.33*max(score), 0.66*max(score),
+where min and max are taken across all residues being colored
+<li><b>red to blue</b> &ndash; for signed values, with
+red, white, another white, and blue thresholds set to values
+0.66*min(score), 0.33*min(score), 0.33*max(score), 0.66*max(score) 
+<li><b>white to red</b> &ndash; for unsigned values
+(all positive or all negative), with
+white and red thresholds set to values min(score) and 
+[min(score) + 0.66*(max(score) &ndash; min(score))]
+<li><b>white to blue</b> &ndash; for unsigned values, with
+white and blue thresholds set to values min(score) and 
+[min(score) + 0.66*(max(score) &ndash; min(score))]
+</ul>
+<p>
+Clicking <b>Adjust colors</b> shows the 
+<a href="../tools/render.html"><b>Render by Attribute</b></a> tool
+for interactively moving the thresholds and/or changing their colors.
+<b>Previous colorings</b> shows a table of previous colorings of the
+structures by mutation score, from which they can be chosen and reapplied
+with minimal effort.
+</p><p>
+Clicking the scatter plot raises a context menu; entries that refer to
 a specific mutant only appear when the click is on a circle, and some entries 
 only appear if there is an <a href="#associated">associated structure</a>:
 </p>
@@ -541,5 +586,5 @@ with <a href="#list"><b>mutationscores list</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2025</address>
+December 2025</address>
 </body></html>
