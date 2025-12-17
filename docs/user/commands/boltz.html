@@ -64,6 +64,7 @@ target="_blank">computational screening for protein-protein interactions</a>
 <a href="#install"><b>Installing Boltz</b></a>
 <br><a href="#predict"><b>Running a Boltz Prediction</b></a>
 <br><a href="#ligandtable"><b>Reopening Batch Ligand Predictions</b></a>
+<br><a href="#server"><b>Running Boltz on a Server</b></a>
 <br><a href="../tools/boltz.html#limitations"><b>Limitations</b></a>
 </blockquote>
 
@@ -137,6 +138,7 @@ with CUDA 12.6 support is installed before boltz.
 [&nbsp;<b>open</b>&nbsp;&nbsp;<b>true</b>&nbsp;&nbsp;false&nbsp;]
 [&nbsp;<b>installLocation</b>&nbsp;&nbsp;<i>directory</i>&nbsp;]
 [&nbsp;<b>wait</b>&nbsp;&nbsp;<b>true</b>&nbsp;&nbsp;false&nbsp;]
+[&nbsp;<b>useServer</b>&nbsp;&nbsp;true&nbsp;&nbsp;<b>false</b>&nbsp;[&nbsp;<b>serverHost</b>&nbsp;&nbsp;<i>server-hostname</i>&nbsp;][&nbsp;<b>serverPort</b>&nbsp;&nbsp;<i>port-number</i>&nbsp;]]
 </blockquote>
 <p>
 <b>Biopolymer chains</b>.<br>
@@ -299,6 +301,12 @@ If specified, this sets the default location for future ChimeraX sessions.
 <br>
 &ndash; whether the calculation should freeze ChimeraX until it finishes
 or allow ChimeraX use during the computation (default, <b>wait false</b>).
+<li><b>useServer</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;[&nbsp;<b>serverHost</b>&nbsp;&nbsp;<i>server-hostname</i>&nbsp;][&nbsp;<b>serverPort</b>&nbsp;&nbsp;<i>port-number</i>&nbsp;]
+&ndash; whether to run Boltz on a <a href="#server">server</a> instead of on
+the local system (default <b>false</b>); if true, the other options specify
+the server hostname (or IP address) and port number.
+The Boltz server must have been set up already
+(<a href="#server">details...</a>).
 </ul>
 
 <a name="ligandtable"></a>
@@ -327,7 +335,123 @@ The <b>alignTo</b> option indicates that any results opened with the table's
 <b>Open</b> button should be superimposed on the specified atomic model.
 </p>
 
+<a name="server"></a>
+<p class="nav">
+[<a href="#top">back to top: boltz</a>]
+<h3>Running Boltz on a Server</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>boltz server start</b> 
+[&nbsp;<b>host</b>&nbsp;&nbsp;<i>hostname</i>&nbsp;]
+[&nbsp;<b>port</b>&nbsp;&nbsp;<i>port-number</i>&nbsp;]
+[&nbsp;<b>boltzExe</b>&nbsp;&nbsp;<i>executable-path</i>&nbsp;]
+[&nbsp;<b>jobsDirectory</b>&nbsp;&nbsp;<i>directory</i>&nbsp;]
+[&nbsp;<b>device</b>&nbsp;&nbsp;<b>gpu</b>&nbsp;|&nbsp;cpu&nbsp;]
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>boltz server list</b> 
+<br>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>boltz server fetch</b> [&nbsp;<i>local-directory</i>&nbsp;]
+[&nbsp;<b>open</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+</blockquote>
+<p>
+Running Boltz on a server (more powerful than the local machine)
+allows for faster predictions and enables predicting larger structures.
+There are options in the <a href="../tools/boltz.html#options"><b>Boltz</b></a>
+tool and the <a href="#predict"><b>boltz predict</b></a> command to use
+the server.
+A user can quit from ChimeraX while the server job is still running,
+then retrieve the results later (after resuming use of ChimeraX) from the
+<a href="../tools/boltz.html#history"><b>Boltz History</b></a> tool
+or with the <b>boltz server fetch</b> command.
+See also:
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_server.html" 
+target="_blank">Boltz Prediction Server</a>
+</p><p>
+The server can be Linux, Windows, or Mac. <b><i>The Boltz service must be
+set up</i></b> by installing ChimeraX (from December 16, 2025 or later)
+on the server computer and running the following commands.
+</p>
+<pre>
+      chimerax --nogui
+      &gt; boltz install
+      &gt; boltz server start
+      &gt; exit
+</pre>
+<p>
+The example above starts ChimeraX in text-only mode, but the
+<b>boltz</b> commands could just as well be entered into the ChimeraX GUI.
+Exiting from ChimeraX leaves the server running.
+The server listens for prediction requests from ChimeraX from other 
+computers, runs the predictions, and returns the results.
+By default, the server saves jobs files in the directory:
+<b>~/boltz_server_jobs</b>
+</p><p>
+Options for <b>boltz server start</b>:
+</p>
+<ul>
+<li><b>host</b>&nbsp;&nbsp;<i>hostname</i>
+&ndash; server hostname or IP address, for example, 
+<b>minsky.cgl.ucsf.edu</b> or <b>169.230.21.20</b> 
+(default is to use the python gethostbyname() system call to get the 
+host name or IP address)
+<li><b>port</b> <i>port-number</i>
+&ndash; port number on which to listen for connections (default <b>30172</b>)
+<li><b>boltzExe</b>&nbsp;&nbsp;<i>executable-path</i>
+&ndash; path to the boltz executable 
+(default is to use the install location, which is set initially by 
+<a href="#install"><b>boltz install</b></a>, but can be changed later in the
+<a href="../tools/boltz.html#options"><b>Boltz</b> options</a> or with the 
+<a href="#predict"><b>boltz predict</b></a> command
+<b>installLocation</b> option
+<li><b>jobsDirectory</b>&nbsp;&nbsp;<i>directory</i> 
+&ndash; directory in which to create server job subdirectories (default 
+<b>~/boltz_server_jobs</b>). A text file named <b>boltz_server_log</b> 
+is generated within this directory when the server is started and can be used
+to debug server errors. The directory will be created if it does not exist.
+<li><b>device</b>&nbsp;&nbsp;<b>gpu</b>&nbsp;|&nbsp;cpu 
+&ndash; whether the server should run Boltz using the GPU (default) or the CPU
+</ul>
+<p>
+The <b>boltz server list</b> command lists in the 
+<a href="../tools/log.html"><b>Log</b></a> any <b><i>active</i></b> jobs,
+defined as those which were still running when the user quit from ChimeraX.
+The job identifiers, server hostname, and port numbers are
+listed, along with job status (finished, running, or waiting to run).
+</p><p>
+The <b>boltz server fetch</b> command retrieves the results of finished jobs.
+Options for <b>boltz server fetch</b>:
+</p>
+<ul>
+<li><i>local-directory</i>
+&ndash; boltz job directory on the local computer. If this is not specified,
+results for all <b><i>active</i></b> jobs that have finished will be fetched.
+Active jobs are those which were still running when the user quit from ChimeraX.
+If a job is still running or waiting to run, this status will be reported in
+the <a href="../tools/log.html"><b>Log</b></a>.
+<li><b>open</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+&ndash; whether to open the predicted structures for finished jobs
+(default <b>true</b>; if false, they can be opened later using the 
+<a href="../tools/boltz.html#history"><b>Boltz History</b></a>)
+</ul>
+<p>
+There is currently no command to stop the Boltz server.
+On Linux or Mac, the process ID can be determined and the process 
+killed with shell commands:
+</p>
+<pre>      $ ps -axww | grep boltz
+        34435 ChimeraX.app/bin/python3.11 ChimeraX.app/lib/python3.11/site-packages/chimerax/boltz/server.py ...
+      $ kill 34435
+</pre>
+<p>
+On Windows, the Task Manager can be used to find the boltz server process 
+and force quit from it.
+Similarly, on Mac, the Activity Monitor can be used to find the boltz 
+server process and force quit from it.
+</p>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2025</address>
+December 2025</address>
 </body></html>

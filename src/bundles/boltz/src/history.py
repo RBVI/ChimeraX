@@ -52,12 +52,13 @@ class BoltzHistoryPanel(ToolInstance):
         layout.addWidget(options)
 
         # Buttons
+        buttons = [('Open structures', self._open_structures),
+                   ('Options', self._show_or_hide_options),
+                   ('Help', self._show_help)]
+        if self._active_server_jobs:
+            buttons.insert(1, ('Fetch from server', self._fetch_from_server))
         from chimerax.ui.widgets import button_row
-        bf = button_row(parent,
-                        [('Open structures', self._open_structures),
-                         ('Options', self._show_or_hide_options),
-                         ('Help', self._show_help)],
-                        spacing = 2)
+        bf = button_row(parent, buttons, spacing = 2)
         bf.setContentsMargins(0,5,0,0)
         layout.addWidget(bf)
 
@@ -109,6 +110,11 @@ class BoltzHistoryPanel(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _directory_changed(self):
+        self._update_table()
+
+    # ---------------------------------------------------------------------------
+    #
+    def _update_table(self):
         self._predictions_table._update(self._predictions_directory.value)
 
     # ---------------------------------------------------------------------------
@@ -160,6 +166,23 @@ class BoltzHistoryPanel(ToolInstance):
     def _selected_rows(self):
         rt = self._results_table
         return rt.selected if rt else []
+
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def _active_server_jobs(self):
+        from .settings import _boltz_settings
+        settings = _boltz_settings(self.session)
+        return settings.active_server_jobs
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _fetch_from_server(self):
+        from chimerax.core.commands import run
+        run_dirs = run(self.session, 'boltz server fetch')
+        if run_dirs:
+            self._update_table()
 
     # ---------------------------------------------------------------------------
     #
@@ -261,7 +284,7 @@ class PredictionDirectory:
         stdout_path = join(directory, 'stdout')
         have_stdout = exists(stdout_path)
         done_time = getctime(stdout_path) if have_stdout else submit_time
-        self.run_time = done_time - submit_time  # Seconds
+        self.run_time = self._run_time(submit_time, done_time) # Seconds
         self.status = 'done' if struct_files else ('failed' if have_stdout else '')
 
     def _structure_files(self):
@@ -277,7 +300,22 @@ class PredictionDirectory:
                     spaths = [join(sdir, file) for file in listdir(sdir) if file.endswith('.cif')]
                     struct_files.extend(spaths)
         return struct_files
-        
+
+    def _run_time(self, submit_time, done_time):
+        t = None
+        from os.path import join, exists
+        time_path = join(self.directory, 'time')
+        if exists(time_path):
+            with open(time_path, 'r') as f:
+                line = f.readline().strip()
+                try:
+                    t = float(line)
+                except:
+                    pass
+        if t is None:
+            t = done_time - submit_time
+        return t
+    
     def open_structures(self, session, align = True):
         models = []
         paths = self._structure_files()
