@@ -96,7 +96,7 @@ jobs:
         shell: bash
         run: |
           export COMMIT_HASH=$(git rev-parse --short HEAD)
-          export COMMIT_DATE=$(git log -1 --pretty='format:%cD' HEAD)
+          export COMMIT_DATE=$(git show $(git rev-parse HEAD) --no-patch --no-notes --pretty='%cd' | date -u)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
       - name: Build tarball
@@ -180,7 +180,7 @@ jobs:
         shell: bash
         run: |
           export COMMIT_HASH=$(git rev-parse --short HEAD)
-          export COMMIT_DATE=$(git log -1 --pretty='format:%cD' HEAD)
+          export COMMIT_DATE=$(git show $(git rev-parse HEAD) --no-patch --no-notes --pretty='%cd' | date -u)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
       - name: Build tarball
@@ -250,7 +250,7 @@ jobs:
         shell: bash
         run: |
           export COMMIT_HASH=$(git rev-parse --short HEAD)
-          export COMMIT_DATE=$(git log -1 --pretty='format:%cD' HEAD)
+          export COMMIT_DATE=$(git show $(git rev-parse HEAD) --no-patch --no-notes --pretty='%cd' | date -u)
           export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g')
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
@@ -313,7 +313,7 @@ jobs:
         shell: bash
         run: |
           export COMMIT_HASH=$(git rev-parse --short HEAD)
-          export COMMIT_DATE=$(git log -1 --pretty='format:%cD' HEAD)
+          export COMMIT_DATE=$(git show $(git rev-parse HEAD) --no-patch --no-notes --pretty='%cd' | date -u)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
       - name: Build tarball
