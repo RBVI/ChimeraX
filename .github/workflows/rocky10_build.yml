@@ -16,7 +16,7 @@ jobs:
   build-rocky10-docker:
     runs-on: ubuntu-22.04
     container:
-      image: rockylinux:10
+      image: docker.io/rockylinux/rockylinux:10
     env:
       SHELL: /bin/bash
       PATH: /usr/bin:/usr/sbin:/bin:/sbin
