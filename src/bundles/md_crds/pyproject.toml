@@ -194,7 +194,7 @@ include-dirs = ["gromacs/xdrfile-1.1.4/include", "src/include"]
 include-modules = ["chimerax.core", "numpy", "chimerax.arrays"]
 library-modules = ["chimerax.core", "chimerax.arrays"]
 library-dirs = ["src/lib", "gromacs/xdrfile-1.1.4/src/.libs/"]
-libraries = ["xdrfile"]
+libraries = ["xdrfile", "arrays"]
 
 [tool.chimerax.extension._gromacs.darwin]
 extra-link-args = ["-Wl,-rpath,@rpath"]
