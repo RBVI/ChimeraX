@@ -1815,7 +1815,7 @@ Choices are:
         layout.addLayout(conformers_layout)
         conformers_layout.addStretch(1)
         conformers_layout.addWidget(QLabel("Number of conformers to try: "))
-        self.conformers_button = QPushButton("default")
+        self.conformers_button = QPushButton("5")
         menu = QMenu(self.conformers_button)
         for num_conformers in ["default", "5", "10", "25", "100", "500"]:
             menu.addAction(num_conformers)
