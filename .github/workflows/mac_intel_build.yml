@@ -275,4 +275,4 @@ jobs:
           # GitHub Actions couldn't contact Plato.
           max_attempts: 1000
           timeout_minutes: 60
-          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "version=$BUILD_VERSION" -F "commit=$COMMIT_HASH" -F "date=$COMMIT_DATE" -F "platform=macosx" -F "file=@$GITHUB_WORKSPACE/ChimeraX.dmg" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_production_build.py
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "version=$BUILD_VERSION" -F "commit=$COMMIT_HASH" -F "date=$COMMIT_DATE" -F "platform=macosx" -F "build_type=production" -F "file=@$GITHUB_WORKSPACE/ChimeraX.dmg" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
