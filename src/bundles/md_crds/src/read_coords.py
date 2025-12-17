@@ -40,16 +40,16 @@ def read_coords(session, file_name, model, format_name, *, replace=True, start=1
     if format_name == "xtc":
         from ._gromacs import read_xtc_file
         session.logger.status("Reading Gromacs xtc coordinates", blank_after=0)
-        num_atoms, coords_list = read_gromacs_file(read_xtc_file, file_name)
-        coords = array(coords_list, dtype=float64)
+        coords = read_gromacs_file(read_xtc_file, file_name)
         coords *= 10.0
+        num_atoms = coords.shape[1]
         session.logger.status("Finished reading Gromacs xtc coordinates")
     elif format_name == "trr":
         from ._gromacs import read_trr_file
         session.logger.status("Reading Gromacs trr coordinates", blank_after=0)
-        num_atoms, coords_list = read_gromacs_file(read_trr_file, file_name)
-        coords = array(coords_list, dtype=float64)
+        coords = read_gromacs_file(read_trr_file, file_name)
         coords *= 10.0
+        num_atoms = coords.shape[1]
         session.logger.status("Finished reading Gromacs trr coordinates")
     elif format_name == "dcd":
         from .dcd.MDToolsMarch97.md_DCD import DCD
