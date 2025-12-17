@@ -239,7 +239,7 @@ jobs:
       - name: Put the build date and commit in the environment
         run: |
           export COMMIT_HASH=$(git rev-parse --short HEAD)
-          export COMMIT_DATE=$(git show $(git rev-parse HEAD) --no-patch --no-notes --pretty='%cd' | date -u)
+          export COMMIT_DATE=$(git log -1 --pretty='format:%cD' HEAD)
           echo "COMMIT_DATE=$COMMIT_DATE" >> $GITHUB_ENV
           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
 
