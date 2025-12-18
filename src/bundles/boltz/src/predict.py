@@ -768,11 +768,12 @@ class BoltzRun:
         from os import listdir
         from os.path import isdir, join
         ppdir = self._predictions_directory
-        for pname in listdir(ppdir):
-            pdir = join(ppdir, pname)
-            if isdir(pdir):
-                struct_files.extend(join(pdir,filename) for filename in listdir(pdir)
-                                    if filename.endswith('.cif'))
+        if isdir(ppdir):
+            for pname in listdir(ppdir):
+                pdir = join(ppdir, pname)
+                if isdir(pdir):
+                    struct_files.extend(join(pdir,filename) for filename in listdir(pdir)
+                                        if filename.endswith('.cif'))
         return struct_files
         
     def _prediction_command(self):
