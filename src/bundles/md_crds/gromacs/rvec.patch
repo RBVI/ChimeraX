@@ -17,3 +17,34 @@
   	typedef int   mybool;
   
   
+*** src/xdrfile_xtc-prev.c	Wed Dec 17 17:24:08 2025
+--- src/xdrfile_xtc.c	Wed Dec 17 17:25:06 2025
+***************
+*** 73,85 ****
+  		{
+  			if (bRead)
+  				{
+! 					result = xdrfile_decompress_coord_float(x[0],natoms,prec,xd); 
+  					if (result != *natoms)
+  						return exdr3DX;
+  				}
+  			else
+  				{
+! 					result = xdrfile_compress_coord_float(x[0],*natoms,*prec,xd); 
+  					if (result != *natoms)
+  						return exdr3DX;
+  				}
+--- 73,85 ----
+  		{
+  			if (bRead)
+  				{
+! 					result = xdrfile_decompress_coord_double(x[0],natoms,prec,xd); 
+  					if (result != *natoms)
+  						return exdr3DX;
+  				}
+  			else
+  				{
+! 					result = xdrfile_compress_coord_double(x[0],*natoms,*prec,xd); 
+  					if (result != *natoms)
+  						return exdr3DX;
+  				}
