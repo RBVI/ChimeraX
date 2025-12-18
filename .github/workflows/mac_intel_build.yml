@@ -222,21 +222,6 @@ jobs:
           -K $MAC_SIGNING_KEYCHAIN_PW \
           -v -v -v
 
-      - name: Verify that ChimeraX will pass macOS Gatekeeper
-        shell: bash
-        run: |
-          syspolicy_check distribution "$CHIMERAX_APP_NAME" -vvv || {
-            echo ""
-            echo "=== Falling back to manual binary scan ==="
-            find "$CHIMERAX_APP_NAME" -type f \( -perm +111 -o -name "*.dylib" -o -name "*.so" \) | while read -r binary; do
-              if ! codesign --verify --strict "$binary" 2>/dev/null; then
-                echo "FAILED: $binary"
-                codesign -dvv "$binary" 2>&1 | head -10
-              fi
-            done
-            exit 1
-          }
-
       - name: Make the DMG
         shell: bash
         run: |
@@ -248,6 +233,10 @@ jobs:
           max_attempts: 1000
           timeout_minutes: 60
           command: python3.10 utils/build/macos/notarize.py notarize -a $CHIMERAX_APP_NAME -d ChimeraX.dmg -T $MAC_SIGNING_TEAM_ID -s $MAC_SIGNING_TEAM_ID -p $MAC_SIGNING_APP_PW -P $MAC_SIGNING_PROVIDER -i $MAC_SIGNING_EMAIL -k $RUNNER_TEMP/app-signing.keychain-db -K $MAC_SIGNING_KEYCHAIN_PW -v -v -v
+
+      - name: Verify that ChimeraX will pass macOS Gatekeeper
+        shell: bash
+        run: syspolicy_check distribution ChimeraX.dmg -vvv
 
       - name: Put the build date and commit in the environment
         run: |
