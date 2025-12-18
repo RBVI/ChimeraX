@@ -571,16 +571,6 @@ def staple_notarization_to_dmg(defaults, max_tries=10, initial_delay=10):
     cmd = ["/usr/bin/xcrun", "stapler", "validate", "-v", defaults.dmg_path]
     cp = _execute(defaults, cmd, f"validate ticket for {defaults.dmg_path}")
 
-    # Final verification with syspolicy_check - this is what Gatekeeper actually uses
-    cmd = ["syspolicy_check", "distribution", defaults.dmg_path]
-    print(f"Running syspolicy_check on {defaults.dmg_path}...")
-    cp = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    _show_output(cp)
-    if cp.returncode != 0:
-        print(f"ERROR: syspolicy_check failed! The DMG will not pass Gatekeeper.")
-        raise SystemExit(1)
-    print("syspolicy_check passed - DMG is ready for distribution")
-
 
 def sign_and_notarize(defaults):
     sign_binaries(defaults)

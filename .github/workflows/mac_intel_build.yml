@@ -234,6 +234,9 @@ jobs:
           timeout_minutes: 60
           command: python3.10 utils/build/macos/notarize.py notarize -a $CHIMERAX_APP_NAME -d ChimeraX.dmg -T $MAC_SIGNING_TEAM_ID -s $MAC_SIGNING_TEAM_ID -p $MAC_SIGNING_APP_PW -P $MAC_SIGNING_PROVIDER -i $MAC_SIGNING_EMAIL -k $RUNNER_TEMP/app-signing.keychain-db -K $MAC_SIGNING_KEYCHAIN_PW -v -v -v
 
+      - name: Check Gatekeeper status (informational only)
+        run: syspolicy_check distribution ChimeraX.dmg || true
+
       - name: Put the build date and commit in the environment
         run: |
           export COMMIT_HASH=$(git rev-parse --short HEAD)

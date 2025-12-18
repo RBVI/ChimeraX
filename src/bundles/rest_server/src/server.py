@@ -35,6 +35,7 @@ class RESTServer(Task):
 
         self.httpd = None
         self.log = kw.pop("log", False)
+        self.cors = kw.pop("cors", False)
         self.run_count = 0
         self.run_lock = threading.Lock()
         super().__init__(*args, **kw)
