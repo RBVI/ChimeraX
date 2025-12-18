@@ -1,4 +1,4 @@
-def start_server(runs_directory, boltz_exe, host = None, port = 30172, device = 'gpu'):
+def start_server(runs_directory, boltz_exe, host = None, port = 30172, device = 'gpu', extra_options = []):
     # Get the hostname
     if not host:
         host = _default_host()
@@ -21,7 +21,8 @@ def start_server(runs_directory, boltz_exe, host = None, port = 30172, device = 
                 log(f'Read boltz input zip data, {len(zip_data)} bytes')
                 zip_path, job_id = write_zip_file(runs_directory, zip_data)
                 log(f'Wrote zip file for server job {zip_path}, job id {job_id}')
-                p = BoltzPrediction(job_id, zip_path, boltz_exe, client_socket, address, device=device)
+                p = BoltzPrediction(job_id, zip_path, boltz_exe, client_socket, address,
+                                    device=device, extra_options=extra_options)
                 prediction_queue.put(p)
                 msg = f'Job id: {job_id}'.encode('utf-8')
             elif zip_data.startswith(b'status: '):
@@ -85,52 +86,6 @@ def write_zip_file(runs_directory, zip_data):
     job_id = basename(zip_path).removeprefix('boltz_job_').removesuffix('.zip')
     return zip_path, job_id
 
-class BoltzPrediction:
-    def __init__(self, job_id, zip_path, boltz_exe, socket, address, device = 'gpu'):
-        self._job_id = job_id
-        self._zip_path = zip_path
-        self._boltz_exe = boltz_exe
-        self._socket = socket
-        self._address = address
-        self._device = device		# 'gpu' or 'cpu'
-    def run(self):
-        try:
-            run_boltz_prediction(self._zip_path, self._boltz_exe, device = self._device)
-            log(f'prediction {self._job_id} finished')
-        except Exception as e:
-            self._report_error(e)
-    def _report_error(self, e):
-        import traceback
-        msg = f'Error running job {self._job_id}: {str(e)}\n\n{traceback.format_exc()}'
-        log(msg)
-        run_dir = self._zip_path.removesuffix('.zip')
-        from os.path import join
-        with open(join(run_dir, 'error'), 'w') as f:
-            f.write(msg)
-
-def run_boltz_prediction(zip_path, boltz_exe, device = 'gpu'):
-    from zipfile import ZipFile
-    zf = ZipFile(zip_path)
-
-    run_dir = zip_path.removesuffix('.zip')
-    from os import mkdir
-    mkdir(run_dir)
-
-    log(f'extracting prediction input to {run_dir}')
-    zf.extractall(run_dir)
-
-    log('running boltz')
-    run_boltz(run_dir, boltz_exe, device=device)
-
-    from os.path import join, basename, dirname
-    job_id = basename(zip_path).removesuffix('.zip').removeprefix('boltz_job_')
-    results_zip = join(dirname(run_dir), f'boltz_results_{job_id}.zip')
-    log(f'creating boltz results zip file {results_zip}')
-    results_zip_tmp = results_zip + '.tmp'
-    make_zip_file_from_directory(run_dir, results_zip_tmp)
-    from os import rename
-    rename(results_zip_tmp, results_zip)
-
 def make_zip_file_from_directory(folder_path, zip_path):
     # Get the root directory length for relative paths
     root_len = len(folder_path) + 1
@@ -143,7 +98,55 @@ def make_zip_file_from_directory(folder_path, zip_path):
                 # Write file with its path relative to the original folder
                 zipf.write(file_path, file_path[root_len:])
 
-def run_boltz(directory, boltz_exe, device = 'gpu'):
+class BoltzPrediction:
+    def __init__(self, job_id, zip_path, boltz_exe, socket, address, device = 'gpu', extra_options = []):
+        self._job_id = job_id
+        self._zip_path = zip_path
+        self._boltz_exe = boltz_exe
+        self._socket = socket
+        self._address = address
+        self._device = device		# 'gpu' or 'cpu'
+        self._extra_options = extra_options  # e.g. for low mem ['--use_cpu_memory', '--inplace_operations']
+    def run(self):
+        try:
+            run_boltz_prediction(self._zip_path, self._boltz_exe, device = self._device,
+                                 extra_options = self._extra_options)
+            log(f'prediction {self._job_id} finished')
+        except Exception as e:
+            self._report_error(e)
+    def _report_error(self, e):
+        import traceback
+        msg = f'Error running job {self._job_id}: {str(e)}\n\n{traceback.format_exc()}'
+        log(msg)
+        run_dir = self._zip_path.removesuffix('.zip')
+        from os.path import join
+        with open(join(run_dir, 'error'), 'w') as f:
+            f.write(msg)
+
+def run_boltz_prediction(zip_path, boltz_exe, device = 'gpu', extra_options = []):
+    from zipfile import ZipFile
+    zf = ZipFile(zip_path)
+
+    run_dir = zip_path.removesuffix('.zip')
+    from os import mkdir
+    mkdir(run_dir)
+
+    log(f'extracting prediction input to {run_dir}')
+    zf.extractall(run_dir)
+
+    log('running boltz')
+    run_boltz(run_dir, boltz_exe, device=device, extra_options=extra_options)
+
+    from os.path import join, basename, dirname
+    job_id = basename(zip_path).removesuffix('.zip').removeprefix('boltz_job_')
+    results_zip = join(dirname(run_dir), f'boltz_results_{job_id}.zip')
+    log(f'creating boltz results zip file {results_zip}')
+    results_zip_tmp = results_zip + '.tmp'
+    make_zip_file_from_directory(run_dir, results_zip_tmp)
+    from os import rename
+    rename(results_zip_tmp, results_zip)
+
+def run_boltz(directory, boltz_exe, device = 'gpu', extra_options = []):
     from sys import platform
     if platform == 'darwin':
         env = {}
@@ -175,6 +178,8 @@ def run_boltz(directory, boltz_exe, device = 'gpu'):
         command_args.remove('--no_kernels')
     elif not use_kernels and '--no_kernels' not in command_args:
         command_args.append('--no_kernels')
+    command_args.extend(extra_options)
+    log(f'Command: {" ".join(command_args)}')
 
     from time import time
     t_start = time()
@@ -338,6 +343,7 @@ def boltz_server_start(session,
                        boltz_exe = None,
                        jobs_directory = '~/boltz_server_jobs',
                        device = 'gpu',
+                       extra_options = None,
                        server_log = 'boltz_server_log'):
     if host is None:
         host = _default_host()
@@ -362,6 +368,8 @@ def boltz_server_start(session,
            '--boltz_exe', boltz_exe, '--jobs_directory', jobs_directory]
     if device == 'cpu':
         cmd.append('--cpu')
+    if extra_options:
+        cmd.extend(['--extra_options', f'"{extra_options}"'])
         
     f = open(join(jobs_directory, server_log), 'w')
 
@@ -454,6 +462,7 @@ def register_boltz_server_command(logger):
                    ('boltz_exe', StringArg),
                    ('jobs_directory', StringArg),
                    ('device', EnumOf(['gpu', 'cpu'])),
+                   ('extra_options', StringArg),
                    ],
         synopsis = 'Start a Boltz prediction server',
         url = 'help:boltz_help.html'
@@ -481,7 +490,7 @@ def _start_server():
                    ' To run predictions on the server from another machine use the "User server..."'
                    ' option in the ChimeraX Boltz prediction user interface or the useServer option'
                    ' of the ChimeraX "boltz predict" command.')
-                   
+
     from argparse import ArgumentParser
     p = ArgumentParser(prog = 'ChimeraX Boltz Server', description = description)
     p.add_argument('--host')
@@ -490,10 +499,14 @@ def _start_server():
     p.add_argument('--boltz_exe', default = expanduser('~/boltz22/bin/boltz'))
     p.add_argument('--jobs_directory', default = expanduser('~/boltz_server_jobs'))
     p.add_argument('--cpu', action = 'store_true', default = False)
+    p.add_argument('--extra_options')
     args = p.parse_args()
     device = 'cpu' if args.cpu else 'gpu'
-    
-    start_server(args.jobs_directory, args.boltz_exe, args.host, args.port, device=device)
+    extra_options = args.extra_options.removeprefix('"').removesuffix('"').split() if args.extra_options else None
+
+    start_server(args.jobs_directory, args.boltz_exe, args.host, args.port,
+                 device = device, extra_options = extra_options)
 
 if __name__ == '__main__':
     _start_server()
+
