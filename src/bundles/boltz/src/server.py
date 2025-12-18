@@ -169,6 +169,12 @@ def run_boltz(directory, boltz_exe, device = 'gpu'):
         command_args[i+1] = device
     else:
         command_args.extend(['--accelerator', device])
+    from sys import platform
+    use_kernels = (device == 'gpu' and platform == 'linux')
+    if use_kernels and '--no_kernels' in command_args:
+        command_args.remove('--no_kernels')
+    elif not use_kernels and '--no_kernels' not in command_args:
+        command_args.append('--no_kernels')
 
     from time import time
     t_start = time()
