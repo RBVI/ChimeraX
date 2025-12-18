@@ -502,7 +502,7 @@ def _start_server():
     p.add_argument('--extra_options')
     args = p.parse_args()
     device = 'cpu' if args.cpu else 'gpu'
-    extra_options = args.extra_options.removeprefix('"').removesuffix('"').split() if args.extra_options else None
+    extra_options = args.extra_options.removeprefix('"').removesuffix('"').split() if args.extra_options else []
 
     start_server(args.jobs_directory, args.boltz_exe, args.host, args.port,
                  device = device, extra_options = extra_options)
