@@ -126,6 +126,31 @@ class RESTServer(Task):
         return "REST Server, ID %s" % self.id
 
 
+def _is_localhost_origin(origin):
+    """Check if an origin is a localhost origin (http://localhost:* or http://127.0.0.1:*).
+
+    Returns True if the origin is a localhost origin, False otherwise.
+    """
+    if not origin:
+        return False
+    from urllib.parse import urlparse
+    try:
+        parsed = urlparse(origin)
+        # Only allow http and https schemes
+        if parsed.scheme not in ('http', 'https'):
+            return False
+        # Check for localhost or 127.0.0.1
+        host = parsed.hostname
+        if host in ('localhost', '127.0.0.1'):
+            return True
+        # Also allow ::1 (IPv6 localhost)
+        if host == '::1':
+            return True
+        return False
+    except Exception:
+        return False
+
+
 class RESTHandler(BaseHTTPRequestHandler):
     """Process one REST request."""
 
@@ -138,6 +163,25 @@ class RESTHandler(BaseHTTPRequestHandler):
     # Whether to log to the ChimeraX log as well as whatever client is being
     # used
     log = False
+
+    def do_OPTIONS(self):
+        """Handle CORS preflight requests."""
+        if not self.server.chimerax_restserver.cors:
+            self.send_error(405, "Method Not Allowed")
+            return
+
+        origin = self.headers.get("Origin")
+        if not _is_localhost_origin(origin):
+            self.send_error(403, "Forbidden: CORS only allowed for localhost origins")
+            return
+
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", origin)
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Max-Age", "86400")  # Cache preflight for 24 hours
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def do_GET(self):
         if not self.server.chimerax_restserver.run_increment():
@@ -208,6 +252,13 @@ class RESTHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         if length is not None:
             self.send_header("Content-Length", str(length))
+        # Add CORS headers if enabled and origin is localhost
+        if self.server.chimerax_restserver.cors:
+            origin = self.headers.get("Origin")
+            if _is_localhost_origin(origin):
+                self.send_header("Access-Control-Allow-Origin", origin)
+                self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+                self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
     def _run(self, args):
