@@ -47,6 +47,7 @@ Either of the following methods of communication can be used:
 [&nbsp;<b>ssl</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>json</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>log</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>cors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>remotecontrol rest stop</b>
@@ -91,6 +92,17 @@ The <b>log</b> option indicates whether to show messages from the server
 in the ChimeraX <a href="../tools/log.html"><b>Log</b></a>
 in addition to the client log.
 With <b>log false</b> (default), the messages will go to the client log only.
+</p><p>
+The <b>cors</b> option enables
+<a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS" target="_blank">Cross-Origin Resource Sharing</a>
+(CORS) headers for requests from localhost origins.
+With <b>cors true</b>, the server will respond with appropriate
+<code>Access-Control-Allow-Origin</code> headers for requests originating from
+<code>http://localhost:*</code>, <code>http://127.0.0.1:*</code>, or their HTTPS equivalents.
+This is useful for browser-based applications (such as interactive tutorials or web-based tools)
+that need to communicate with ChimeraX via JavaScript <code>fetch()</code> from a different port.
+The default is <b>cors false</b>, which blocks cross-origin requests.
+Note that CORS is only enabled for localhost origins as a security measure.
 </p><p>
 If sending large data, use POST with "multipart/form-data" in the header.
 </p><p>

@@ -26,7 +26,7 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
                   protein = [], dna = [], rna = [],
                   ligand_ccd = [], ligand_smiles = [], for_each_smiles_ligand = [],
                   name = None, results_directory = None,
-                  device = None, use_server = False, server_host = '', server_port = 30172,
+                  device = None, use_server = False, server_host = None, server_port = None,
                   kernels = None, precision = None, float16 = False,
                   samples = 1, recycles = 3, seed = None,
                   affinity = None, steering = False,
@@ -500,7 +500,7 @@ class BoltzMolecule:
 class BoltzRun:
     def __init__(self, session, structures, name = None, run_directory = None,
                  samples = 1, recycles = 3, seed = None, use_steering_potentials = False,
-                 device = 'default', use_server = False, server_host = '', server_port = 30172,
+                 device = 'default', use_server = False, server_host = None, server_port = None,
                  use_kernels = None, precision = None, cuda_bfloat16 = False,
                  msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
                  open = True, wait = False):
@@ -512,6 +512,11 @@ class BoltzRun:
         self._recycles = recycles	# Number of boltz recycling steps
         self._device = device		# gpu, cpu or default, or None (uses settings value)
         self._use_server = use_server	# True or False
+        if use_server:
+            if server_host is None:
+                server_host = self._settings.server_host
+            if server_port is None:
+                server_port = self._settings.server_port
         self._server_host = server_host # Host name, e.g. minsky.cgl.ucsf.edu
         self._server_port = server_port # Port number
         self._use_kernels = use_kernels	# whether to use cuequivariance module for triangle attention
@@ -763,11 +768,12 @@ class BoltzRun:
         from os import listdir
         from os.path import isdir, join
         ppdir = self._predictions_directory
-        for pname in listdir(ppdir):
-            pdir = join(ppdir, pname)
-            if isdir(pdir):
-                struct_files.extend(join(pdir,filename) for filename in listdir(pdir)
-                                    if filename.endswith('.cif'))
+        if isdir(ppdir):
+            for pname in listdir(ppdir):
+                pdir = join(ppdir, pname)
+                if isdir(pdir):
+                    struct_files.extend(join(pdir,filename) for filename in listdir(pdir)
+                                        if filename.endswith('.cif'))
         return struct_files
         
     def _prediction_command(self):
