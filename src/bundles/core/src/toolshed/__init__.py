@@ -770,7 +770,9 @@ class Toolshed:
             "ChimeraX-Scheme-Mgr": "ChimeraX-SchemeMgr",
             "ChimeraX-SEQ-VIEW": "ChimeraX-SeqView",
             "ChimeraX-Std-Commands": "ChimeraX-StdCommands",
-            "ChimeraX-ViewDockX": "ChimeraX-ViewDock"
+            "ChimeraX-ViewDockX": "ChimeraX-ViewDock",
+            "ChimeraX-Dicom": "ChimeraX-MedicalImaging",
+            "ChimeraX-MedicalToolbar": "ChimeraX-MedicalImaging",
         }.get(name, name)
         lc_name = name.casefold().replace("_", "-")
         lc_names = [lc_name]
