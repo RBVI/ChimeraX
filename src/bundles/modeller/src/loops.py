@@ -189,7 +189,7 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         loop_mod_prefix = {"standard": "", "DOPE": "dope_", "DOPE-HR": "dopehr_", None: ""}[protocol]
 
         from .common import write_modeller_scripts, get_license_key
-        _license_key = get_license_key(session, license_key)
+        _license_key = get_license_key(session, license_key) if executable_location is None else None
         script_path, config_path, temp_dir = write_modeller_scripts(_license_key,
                                                                     num_models, True, True, False, fast,
                                                                     (loop_mod_prefix, loop_data), None,
