@@ -377,7 +377,7 @@ def boltz_server_start(session,
     if device == 'cpu':
         cmd.append('--cpu')
     if gpus:
-        cmd.extend[('--gpus', gpus)]
+        cmd.extend(['--gpus', gpus])
     if extra_options:
         cmd.extend(['--extra_options', f'"{extra_options}"'])
         
@@ -521,7 +521,7 @@ def _start_server():
                    help = 'Extra boltz options to add for each prediction.  For example, "--use_cpu_memory" to handle larger predictions with low memory Boltz variants.')
     args = p.parse_args()
     device = 'cpu' if args.cpu else 'gpu'
-    gpus = args.gpus.split() if args.gpus else None
+    gpus = args.gpus.split(',') if args.gpus else None
     extra_options = args.extra_options.removeprefix('"').removesuffix('"').split() if args.extra_options else []
 
     start_server(args.jobs_directory, args.boltz_exe, args.host, args.port,
