@@ -31,7 +31,9 @@
       When you quit ChimeraX the server remains running.
       The server listens for prediction requests from ChimeraX from other computers,
       runs the predictions, and returns the results.  By default the server saves jobs files
-      in directory ~/boltz_server_jobs.
+      in directory ~/boltz_server_jobs.  Multiple predictions can be queued but by default
+      only one runs at a time, unless multiple GPUs are available and the <a href="#gpus">gpus option</a> is used
+      when starting the server.
     </p>
 
     <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0" style="margin: 10px;" align=right>
@@ -75,7 +77,7 @@
 
     <pre>
       <b>boltz server start</b> [<b>host</b> <i>hostname</i>] [<b>port</b> <i>port-number</i>] [<b>boltzExe</b> <i>executable-path</i>]
-                         [<b>jobsDirectory</b> <i>directory</i>] [<b>device</b> <b>gpu</b> | cpu]</pre>
+                         [<b>jobsDirectory</b> <i>directory</i>] [<b>device</b> <b>gpu</b> | cpu] [<b>gpus</b> <i>gpu_ids</i>] [</a>extraOptions</b> <i>boltz-options</i>]</pre>
 
     <p>
       Options descriptions
@@ -87,6 +89,10 @@
        <li><b>boltzExe</b> <i>executable-path</i> - The path to the boltz executable.  The default uses the Boltz install location which is initially set by the ChimeraX boltz install command and can later be changed using the ChimeraX Boltz Options panel or with the boltz predict command installLocation option.
        <li><b>jobsDirectory</b> <i>directory</i> - Directory where server job subdirectories will be created.  The default is ~/boltz_server_jobs.  The directory will be created if it does not exist.
        <li><b>device</b> <b>gpu</b> | cpu - Whether the server should run Boltz using the GPU or the CPU.  Default is to run with the GPU.
+	 <a name="gpus">
+       <li><b>gpus</b> <i>gpu_ids</i> - Comma-separated list of integer GPU ids.  This allows the server to run multiple prediction jobs at the same time, one per GPU.  By default only one GPU is used even if the computer has multiple GPUs.
+	 </a>
+       <li><b>extraOptions</b> <i>options</i> - Additional options to add to the boltz command-line for every prediction.  For instance, low memory Boltz options "--use_cpu_memory --inplace_operations" can allow predicting larger structures.
      </ul>
 
      <p>
