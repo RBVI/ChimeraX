@@ -20,6 +20,7 @@ import chimerax
 module_blacklist = set(
     [
         "chimerax.amber_info",  # needs app_bin_dir
+        "chimerax.animations",  # GUI tool, imports tool.py which gets filtered out
         "chimerax.webservices",  # needs cxservices
         "chimerax.blastprotein",  # needs webservices
         "chimerax.build_structure",  # needs Qt

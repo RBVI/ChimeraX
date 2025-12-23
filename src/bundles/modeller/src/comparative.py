@@ -196,21 +196,17 @@ def model(session, targets, *, block=True, multichain=True, custom_script=None,
             templates_strings[i] = [template_string]
 
     from .common import write_modeller_scripts, get_license_key, save_template
-    _license_key = get_license_key(session, license_key)
+    _license_key = get_license_key(session, license_key) if executable_location is None else None
     script_path, config_path, temp_dir = write_modeller_scripts(_license_key,
                                                                 num_models, het_preserve, water_preserve,
                                                                 hydrogens, fast, None, custom_script, temp_path,
                                                                 thorough_opt, dist_restraints)
     config_as_json = {
-            "key": _license_key
-            , "version": 2
-            , "numModels": num_models
-            , "hetAtom": het_preserve
-            , "water": water_preserve
-            , "allHydrogen": hydrogens
-            , "veryFast": fast
-            , "loopInfo": None
+        "version": 2, "numModels": num_models, "hetAtom": het_preserve, "water": water_preserve,
+        "allHydrogen": hydrogens, "veryFast": fast, "loopInfo": None
     }
+    if executable_location is None:
+        config_as_json["key"] = _license_key
     input_file_map = []
 
     # form the sequences to be written out as a PIR

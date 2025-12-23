@@ -34,7 +34,7 @@ def _get_server():
     return _server
 
 
-def start_server(session, log=None, port=None, ssl=None, json=False):
+def start_server(session, log=None, port=None, ssl=None, json=False, cors=False):
     """If 'json' is True, then the return value from a command will be a JSON object with the following
     name/value pairs:
 
@@ -54,6 +54,10 @@ def start_server(session, log=None, port=None, ssl=None, json=False):
     (value) A JSON object, with names corresponding to log levels as given in chimerax.core.logger.Log.
          LEVEL_DESCRIPTS, and values that are lists of messages logged at that level during command
          execution.
+
+    If 'cors' is True, then CORS (Cross-Origin Resource Sharing) headers will be sent to allow
+    requests from localhost origins (http://localhost:* and http://127.0.0.1:*). This is useful
+    for browser-based applications that need to communicate with ChimeraX from a different port.
     """
 
     global _server
@@ -65,7 +69,7 @@ def start_server(session, log=None, port=None, ssl=None, json=False):
     else:
         from .server import RESTServer
 
-        _server = RESTServer(session, log=log)
+        _server = RESTServer(session, log=log, cors=cors)
         # Run code will report port number
         if log is None:
             _server.start(port, ssl, json)
@@ -81,6 +85,7 @@ start_desc = CmdDesc(
         ("ssl", BoolArg),
         ("json", BoolArg),
         ("log", BoolArg),
+        ("cors", BoolArg),
     ],
     synopsis="Start REST server",
 )
