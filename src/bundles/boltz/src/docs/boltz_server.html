@@ -79,7 +79,7 @@
 
     <pre>
       <b>boltz server start</b> [<b>host</b> <i>hostname</i>] [<b>port</b> <i>port-number</i>] [<b>boltzExe</b> <i>executable-path</i>]
-                         [<b>jobsDirectory</b> <i>directory</i>] [<b>device</b> <b>gpu</b> | cpu] [<b>gpus</b> <i>gpu_ids</i>] [</a>extraOptions</b> <i>boltz-options</i>]</pre>
+                         [<b>jobsDirectory</b> <i>directory</i>] [<b>device</b> <b>gpu</b> | cpu] [<b>gpus</b> <i>gpu-ids</i>] [</a>extraOptions</b> <i>boltz-options</i>]</pre>
 
     <p>
       Options descriptions
@@ -92,7 +92,7 @@
        <li><b>jobsDirectory</b> <i>directory</i> - Directory where server job subdirectories will be created.  The default is ~/boltz_server_jobs.  The directory will be created if it does not exist.
        <li><b>device</b> <b>gpu</b> | cpu - Whether the server should run Boltz using the GPU or the CPU.  Default is to run with the GPU.
 	 <a name="gpus">
-       <li><b>gpus</b> <i>gpu_ids</i> - Comma-separated list of integer GPU ids.  This allows the server to run multiple prediction jobs at the same time, one per GPU.  By default only one GPU is used even if the computer has multiple GPUs.
+       <li><b>gpus</b> <i>gpu-ids</i> - Comma-separated list of integer GPU ids.  This allows the server to run multiple prediction jobs at the same time, one per GPU.  By default only one GPU is used even if the computer has multiple GPUs.
 	 </a>
        <li><b>extraOptions</b> <i>options</i> - Additional options to add to the boltz command-line for every prediction.  For instance, low memory Boltz options "--use_cpu_memory --inplace_operations" can allow predicting larger structures.
      </ul>
