@@ -347,6 +347,8 @@ The <b>alignTo</b> option indicates that any results opened with the table's
 [&nbsp;<b>boltzExe</b>&nbsp;&nbsp;<i>executable-path</i>&nbsp;]
 [&nbsp;<b>jobsDirectory</b>&nbsp;&nbsp;<i>directory</i>&nbsp;]
 [&nbsp;<b>device</b>&nbsp;&nbsp;<b>gpu</b>&nbsp;|&nbsp;cpu&nbsp;]
+[&nbsp;<b>gpus</b>&nbsp;&nbsp;<i>gpu-ids</i>&nbsp;]
+[&nbsp;<b>extraOptions</b>&nbsp;&nbsp;<i>options</i>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>boltz server list</b> 
@@ -412,6 +414,17 @@ is generated within this directory when the server is started and can be used
 to debug server errors. The directory will be created if it does not exist.
 <li><b>device</b>&nbsp;&nbsp;<b>gpu</b>&nbsp;|&nbsp;cpu 
 &ndash; whether the server should run Boltz using the GPU (default) or the CPU
+<li><a name="gpus"></a>
+<b>gpus</b>&nbsp;&nbsp;<i>gpu-ids</i> 
+&ndash; use multiple GPUs, specified as a comma-separated list of integer 
+GPU IDs. This allows the server to run multiple prediction jobs at the same 
+time, one per GPU. The default is to use only one GPU, 
+even if the computer has multiple GPUs.
+<li><b>extraOptions</b>&nbsp;&nbsp;<i>options</i> 
+&ndash; use the specified boltz command-line options for every prediction.
+For instance, the low-memory Boltz options
+&ldquo;--use_cpu_memory --inplace_operations&rdquo;
+can allow predicting larger structures.
 </ul>
 <p>
 The <b>boltz server list</b> command lists in the 
