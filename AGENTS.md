@@ -107,6 +107,12 @@ description = "My custom tool"
 - **mk/**: Build system configuration files
 - **docs/**: Developer and user documentation
 
+## Important: No Build or Test Commands
+
+**Do not run compilation, build, or test commands.** This is a GUI application that is difficult to validate without eyes. The developer will test changes manually. Running build commands or test harnesses wastes context with irrelevant output.
+
+Do not ask "would you like me to build/test this?" - just make the code changes and move on.
+
 ## Development Notes
 
 - Bundle APIs must be implemented in `src/__init__.py`
@@ -114,3 +120,4 @@ description = "My custom tool"
 - Tests use pytest with special ChimeraX session fixtures
 - Modern bundles should prefer `pyproject.toml` over `bundle_info.xml`
 - The `toolshed` command manages bundle installation/removal in built ChimeraX
+- **When modifying code, add tests to cover the changes.** Tests go in `tests/` at the repo root or in bundle-specific `tests/` directories.
