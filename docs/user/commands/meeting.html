@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: meeting</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: meeting</h3>
 
@@ -79,19 +74,19 @@ See also: <a href="device.html#vr"><b>vr</b></a>
 
 <ul>
   <li><a href="#start"><b>meeting start</b> &nbsp;<i>meeting-name</i>&nbsp;</a> &ndash; start a new meeting
-  <li><a href="#join"><b>meeting join</b> &nbsp;<i>meeting-name</i>&nbsp;</a> 
+  </li><li><a href="#join"><b>meeting join</b> &nbsp;<i>meeting-name</i>&nbsp;</a> 
 &ndash; join a meeting
-  <li><a href="#close"><b>meeting close</b></a> &ndash; leave a meeting
-  <li><a href="#info"><b>meeting info</b></a> 
+  </li><li><a href="#close"><b>meeting close</b></a> &ndash; leave a meeting
+  </li><li><a href="#info"><b>meeting info</b></a> 
 &ndash; report information about the current meeting
-  <li><a href="#settings"><b>meeting settings</b></a> 
+  </li><li><a href="#settings"><b>meeting settings</b></a> 
 &ndash; set name, face image, pointer color and other settings
-  <li><a href="#server"><b>meeting server</b></a> 
+  </li><li><a href="#server"><b>meeting server</b></a> 
 &ndash; define a name for a new meeting server
-  <li><a href="#send"><b>meeting send</b></a> 
+  </li><li><a href="#send"><b>meeting send</b></a> 
 &ndash; synchronize all participants
-  <li><a href="#unname"><b>meeting unname</b></a> &ndash; remove a meeting name
-</ul>
+  </li><li><a href="#unname"><b>meeting unname</b></a> &ndash; remove a meeting name
+</li></ul>
 
 <a name="start"></a>
 <p class="nav">
@@ -102,10 +97,10 @@ See also: <a href="device.html#vr"><b>vr</b></a>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>meeting</b> &nbsp;<b>start</b>&nbsp;
 [&nbsp;<i>meeting-name</i>&nbsp;]
-[&nbsp;<b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
-[&nbsp;<b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
-[&nbsp;<b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;]
-[&nbsp;<b>server</b></a>&nbsp;&nbsp;<i>server-name</i>&nbsp;]
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
+[&nbsp;<b>faceImage</b>&nbsp;&nbsp;<i>image-file</i>&nbsp;]
+[&nbsp;<b>server</b>&nbsp;&nbsp;<i>server-name</i>&nbsp;]
 [&nbsp;<b>nameServer</b>&nbsp;&nbsp;<i>hostname</i>&nbsp;]
 [&nbsp;<b>nameServerPort</b> &nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>copyScene</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
@@ -141,9 +136,8 @@ Color for the cones representing a VR participant's hand-controller pointers
 The pointer color is remembered as a
 <a href="../preferences.html#other">preference</a>
 (initial default <b>lime</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=lime width="10px" title="lime"></td></tr></table>).
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="lime" width="10px" title="lime"></td></tr></tbody></table>).
 </blockquote>
 <blockquote>
 <a name="faceImage"></a>
@@ -183,8 +177,7 @@ Specify the hostname or IP address to use as the meeting-name server.
 The name server is remembered as a
 <a href="../preferences.html#other">preference</a>.
 The initial default is <b>chimeraxmeeting.net</b>, provided by the 
-<a href="https://www.cgl.ucsf.edu/Overview/index.html" 
-target="_blank">UCSF RBVI</a>, but a
+<a href="https://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF RBVI</a>, but a
 <a href="#privatenameserver">private name server</a> can be used instead.
 </blockquote>
 <blockquote>
@@ -213,9 +206,9 @@ This copying is done only when a person joins the meeting.
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>meeting join</b> (&nbsp;<i>meeting-name</i>&nbsp;|&nbsp;<i>host</i>&nbsp;)
-[&nbsp;<b>name</b></a>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
-[&nbsp;<b>color</b></a>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
-[&nbsp;<b>faceImage</b></a>&nbsp;&nbsp;<i>image-file</i>&nbsp;]
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>participant-name</i>&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;<i>pointer-color</i>&nbsp;] 
+[&nbsp;<b>faceImage</b>&nbsp;&nbsp;<i>image-file</i>&nbsp;]
 &nbsp;<i>additional-options</i>
 </blockquote>
 <p>
@@ -247,9 +240,8 @@ Color for the cones representing a VR participant's hand-controller pointers
 The pointer color is remembered as a
 <a href="../preferences.html#other">preference</a>
 (initial default <b>lime</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=lime width="10px" title="lime"></td></tr></table>).
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="lime" width="10px" title="lime"></td></tr></tbody></table>).
 </blockquote>
 <blockquote>
 <b>faceImage</b>&nbsp;&nbsp;<i>image-file</i>
@@ -328,8 +320,7 @@ Specify the hostname or IP address to use as the meeting-name server.
 The name server is remembered as a
 <a href="../preferences.html#other">preference</a>.
 The initial default is <b>chimeraxmeeting.net</b>, provided by the 
-<a href="https://www.cgl.ucsf.edu/Overview/index.html" 
-target="_blank">UCSF RBVI</a>, but a
+<a href="https://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF RBVI</a>, but a
 <a href="#privatenameserver">private name server</a> can be used instead.
 </blockquote>
 <blockquote>
@@ -643,8 +634,7 @@ message &ldquo;Waiting for scene data from meeting host.&rdquo;
 If the connection is blocked, after 5 seconds 
 (<a href="#timeout">default</a>) an error message will appear:
 </p>
-<pre style="color:red">
-  Socket error Connection timed out
+<pre style="color:red">  Socket error Connection timed out
 </pre>
 <p>
 Two ways to resolve the problem are to:
@@ -657,9 +647,9 @@ This is enabled with the <a href="#serveropt"><b>server</b></a> option
 of the <b>meeting start</b> command, specifying a server
 such as chimeraxmeeting.net (the default).
 <br>&ndash; OR &ndash;<br>
-<li><a href="#openport">Open a port in the firewall</a> that protects the computer 
+</li><li><a href="#openport">Open a port in the firewall</a> that protects the computer 
 that started the meeting to allow incoming connections.
-</ul>
+</li></ul>
 <p>
 Details on each approach are given below.
 </p>
@@ -698,7 +688,7 @@ Here is how to set up a server using an AWS virtual machine for ChimeraX meeting
 This could be done with any cloud virtual machine service since only ssh is required.
 </p>
 
-<ol>
+</a><ol><a name="setupserver">
   <li>Create an AWS EC2 virtual machine; I used a free tier type t2.micro 
 using an Ubuntu 18.04 LTS Amazon Machine Image.
 The machine will need minimal compute as it is just forwarding data.
@@ -707,17 +697,17 @@ each VR participant sending about 40 Kbits/second of hand and head position
 information.  The only large data being forwarded is the initial 
 ChimeraX meeting session. I chose Ubuntu 18.04 only because I have experience 
 with it. Any Linux distribution will work, since only ssh will be used.
-  <li>Set the virtual machine security group to allow any computer to connect
+  </li><li>Set the virtual machine security group to allow any computer to connect
 on ports 52194 - 52203. By default, the virtual machine will not allow connections 
 except on ssh port 22, so this is a necessary step.
-  <li>Change sshd configuration file on the virtual machine 
+  </li><li>Change sshd configuration file on the virtual machine 
 /etc/ssh/sshd_config enabling &ldquo;GatewayPorts yes&rdquo;
 and restart sshd (on Ubuntu 18, &ldquo;sudo service ssh restart&rdquo;).
 This will allow other computers to connect to ssh tunnels.
 The normal use of ssh remote tunnels allows only the remote computer to use the tunnel,
 so this setting change is necessary.
-  <li>Create an server name for the server using the 
-<a href="#server"><b>meeting server</b></a> command
+  </li></a><li><a name="setupserver">Create an server name for the server using the 
+</a><a href="#server"><b>meeting server</b></a> command
 <blockquote>
   <b>meeting server</b> myserver <b>address</b> 54.215.157.17 <b>account</b> ubuntu <b>key</b> meeting-key-private.pem
 </blockquote>
@@ -731,14 +721,13 @@ To use this to start a meeting
   <b>meeting start</b> antibody309 <b>server</b> myserver
 </blockquote>
 The meeting start command will create the tunnel using ssh by executing a command like
-<pre>
-      ssh -N -i meeting-key-private.pem -R 52201:localhost:52194 ubuntu@54.215.157.17
+<pre>      ssh -N -i meeting-key-private.pem -R 52201:localhost:52194 ubuntu@54.215.157.17
 </pre>
 The server option used to start the meeting will be remembered
 as a preference so those need only be used one time.  Subsequent meetings can
 specify only the meeting name.
 Connections through the tunnel appear to come from the host machine.
-  <li>When participants join the meeting using command <b>meet antibody309</b>
+  </li><li>When participants join the meeting using command <b>meet antibody309</b>
 it will connect to the AWS virtual machine public IP address.
 The participants do not need any authentication or account on the 
 AWS virtual machine. If there are participants within the same firewall 
@@ -746,7 +735,7 @@ as the meeting host, they can connect directly to the host computer
 without using the AWS virtual machine (for example, command:
 <b>meet 169.230.21.34</b>). Connections through the tunnel and from 
 within the firewall can both be made in the same meeting.
-  <li>In the above configuration the AWS administration account 
+  </li><li>In the above configuration the AWS administration account 
 &ldquo;ubuntu&rdquo; was used.
 For better security it is worth making a separate account on the virtual machine
 to create the tunnels.  This is especially important if the private key
@@ -755,8 +744,7 @@ The account can have no login shell to prevent using ssh to execute commands,
 only allowing tunnels to be created. On Ubuntu,
 an account named &ldquo;tunnel&rdquo;
 can be made with the following commands starting from the ubuntu admin account.
-<pre>
-  sudo adduser tunnel --disabled-password
+<pre>  sudo adduser tunnel --disabled-password
   sudo su - tunnel
   ssh-keygen -t rsa -b 2048 -m PEM -C "ChimeraX meeting server" -f tunnel-key.pem
   mkdir .ssh
@@ -774,7 +762,7 @@ The server option used previously will be remembered so this server will be used
 <blockquote>
   <b>meeting start antibody442</b>
 </blockquote>
-</ol>
+</li></ol>
 
 <a name="openport"></a>
 <a name="useserver"></a>
@@ -799,17 +787,17 @@ the home network:
 <li>Assign the host computer a static IP address on the home network
 (<i>e.g.</i>, 192.168.0.2) &ndash; this is
 sometimes called a &ldquo;static lease&rdquo;
-<li>Set a port forwarding rule to forward port 52194 to that address
-<li>Define an server name that has participants connect to the router IP address
+</li><li>Set a port forwarding rule to forward port 52194 to that address
+</li><li>Define an server name that has participants connect to the router IP address
 and use it when starting a meeting, for example,
 <blockquote>
   <b>meeting server</b> natrouter <b>address</b> 188.15.37.68 <b>port</b> 52194<br>
   <b>meeting start</b> rotavirus <b>server</b> natrouter
 </blockquote>
   
-</ol>
+</li></ol>
 
-<li><b>Institution firewall.</b>
+</li><li><b>Institution firewall.</b>
 If the computer is behind an institution firewall, it may be possible 
 to ask the institution to open the port. For example, 
 at the University of California San Francisco, I (Tom Goddard) put in a request
@@ -823,7 +811,7 @@ to start a meeting:
 </blockquote>
 Some institutions
 will not allow these exceptions due to institution security requirements.
-</ul>
+</li></ul>
 
 <p class="nav">
 [<a href="#top">back to top: meeting</a>]
@@ -878,4 +866,5 @@ at the start of each meeting, which can be time-consuming.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 April 2021</address>
+
 </body></html>

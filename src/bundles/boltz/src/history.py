@@ -187,7 +187,7 @@ class BoltzHistoryPanel(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def fill_context_menu(self, menu, x, y):
-        if self._results_table:
+        if self._predictions_table:
             from Qt.QtGui import QAction
             act = QAction("Save CSV or TSV File...", parent=menu)
             act.triggered.connect(lambda *args, tab=self._predictions_table: tab.write_values())

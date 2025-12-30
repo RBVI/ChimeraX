@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: H-Bonds</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: H-Bonds</h3>
 <p>
@@ -39,13 +34,12 @@ See also:
 <a href="../commands/interfaces.html"><b>interfaces</b></a>,
 <a href="moldisplay.html"><b>Molecule Display</b></a> icons:
 <a href="moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="shortcut-icons/hbondsflat.png"></a>
+<img class="icon" border="1" src="shortcut-icons/hbondsflat.png" alt="computer generated image"></a>
 <a href="moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="shortcut-icons/hbondsflathide.png"></a>,
+<img class="icon" border="1" src="shortcut-icons/hbondsflathide.png" alt="computer generated image"></a>,
 <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
 tutorial</a>,
-the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#hbond-histogram"
-target="_blank">ChimeraX H-bond histogram highlight</a>
+the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#hbond-histogram" target="_blank">ChimeraX H-bond histogram highlight</a>
 </p><p>
 <b>H-Bonds</b> can be opened from the <b>Structure Analysis</b> section of the
 <b>Tools</b> menu and manipulated like other panels
@@ -80,26 +74,25 @@ H-bond pseudobonds can be removed with the command
 <a href="../commands/hbonds.html#delete"><b>hbonds delete</b></a> or
 <a href="../commands/hbonds.html#delete"><b>~hbonds</b></a>.
 A <a href="../pseudobonds.html">pseudobond model</a> can also be closed
-with the <a href="modelpanel.html"><b>Model Panel</b></b></a> 
+with the <a href="modelpanel.html"><b>Model Panel</b></a> 
 or the <a href="../commands/close.html"><b>close</b></a> command.
 <br><br>
   <ul>
   <li><b>Color</b> (initial default <b>deep sky blue</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=deepskyblue width="10px"></td> </tr></table>)
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="deepskyblue" width="10px"></td> </tr></tbody></table>)
 &ndash; color of H-bond <a href="../pseudobonds.html">pseudobonds</a>; can be
 changed later with <a href="../commands/color.html#simple"><b>color</b></a>,
 for example:
 <b><a href="../commands/color.html#simple">color</a>&nbsp;<a href="../commands/atomspec.html#builtin">hbonds</a>&nbsp;goldenrod</b>
-  <li><b>Radius</b> (initial default <b>0.075</b> &Aring;)
+  </li><li><b>Radius</b> (initial default <b>0.075</b> &Aring;)
 &ndash; radius for H-bond <a href="../pseudobonds.html">pseudobonds</a>;
 can be changed later with <a href="../commands/size.html"><b>size</b></a>
-  <li><b>Dashes</b> (initial default <b>6</b>) &ndash; 
+  </li><li><b>Dashes</b> (initial default <b>6</b>) &ndash; 
 number of dashes in H-bond <a href="../pseudobonds.html">pseudobonds</a>;
 can be changed later with <a href="../commands/style.html"><b>style</b></a>.
 Currently, odd numbers are rounded down to give an even number of dashes. 
-  <li><b>Distance label</b> (initial default <b>off</b>)
+  </li><li><b>Distance label</b> (initial default <b>off</b>)
 &ndash; whether to show &Aring; distances as bond labels;
 the number of decimal places and whether to show the &Aring; symbol can be 
 changed with <a href="../commands/distance.html#style"><b>distance style</b></a>
@@ -111,10 +104,10 @@ or set beforehand in the
 <a href="../preferences.html#labels"><b>Labels</b> preferences</a>.
 The distances (pseudobond lengths) can also be plotted as a histogram with
 <a href="../commands/crosslinks.html#histogram"><b>crosslinks histogram</b></a>.
-  <li><b>Retain pre-existing H-bonds</b> (initial default <b>off</b>) 
-  </ul>
+  </li><li><b>Retain pre-existing H-bonds</b> (initial default <b>off</b>) 
+  </li></ul>
 <br>
-<li><b>Relax distance and angle criteria</b> (initial default <b>on</b>)
+</li><li><b>Relax distance and angle criteria</b> (initial default <b>on</b>)
 &ndash; whether to add tolerance values to the 
 <a href="../commands/hbonds.html#criteria">precise criteria</a> for identifying
 H-bonds (several different distance and angle cutoffs depending on the 
@@ -125,20 +118,19 @@ structures at a broader range of resolutions.
 <br><br>
   <ul>
   <li><b>Distance tolerance</b> (initial default <b>0.4</b> &Aring;)
-  <li><b>Angle tolerance</b> (initial default <b>20</b>&deg;)
-  <li><b>Color H-bonds not meeting precise criteria differently</b>
+  </li><li><b>Angle tolerance</b> (initial default <b>20</b>&deg;)
+  </li><li><b>Color H-bonds not meeting precise criteria differently</b>
 (initial default <b>off</b>)
 &ndash; whether to use a different color for
 <a href="../pseudobonds.html">pseudobonds</a> 
 representing H-bonds within the tolerance values but not meeting the
 <a href="../commands/hbonds.html#criteria">precise criteria</a>
 (initial default <b>dark orange</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=darkorange width="10px" title="dark orange"></td></tr></table>)
-  </ul>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="darkorange" width="10px" title="dark orange"></td></tr></tbody></table>)
+  </li></ul>
 <br>
-<li><b>Limit results</b>:
+</li><li><b>Limit results</b>:
 Any combination of the settings can be used, except that the first two
 are mutually exclusive (cannot both be <b>on</b>).
 To find H-bonds between sibling 
@@ -158,13 +150,13 @@ use the <a href="../commands/hbonds.html"><b>hbonds</b></a> command with
 choices in the pulldown menu:
     <ul>
     <li><b>with at least one end selected</b>
-    <li><b>with exactly one end selected</b>
-    <li><b>with both ends selected</b>
-    <li><b>between selection and atom spec...</b> 
+    </li><li><b>with exactly one end selected</b>
+    </li><li><b>with both ends selected</b>
+    </li><li><b>between selection and atom spec...</b> 
   [<a href="../commands/atomspec.html"><i>atom-spec</i></a>]
 The two sets of atoms may overlap, but will not overrule other restrictions.
-    </ul>
-  <li><b>Salt bridges only</b> (initial default <b>off</b>) 
+    </li></ul>
+  </li><li><b>Salt bridges only</b> (initial default <b>off</b>) 
 &ndash; whether to limit the results to salt bridges, that is, 
 H-bonds between formally charged functional groups.
 Such groups are identified by their <a href="../atomtypes.html">atom types</a>,
@@ -172,19 +164,19 @@ where possible. In the absence of explicit hydrogens,
 a histidine sidechain is assumed to be formally charged unless one of 
 its nitrogens is coordinating a metal ion or identified unambiguously 
 as an H-bond acceptor. 
-  <li><b>Include intermodel</b> (initial default <b>on</b>)
-  <li><b>Include intramodel</b> (initial default <b>on</b>)
-  <li><b>Include intramolecule</b> (initial default <b>on</b>) 
+  </li><li><b>Include intermodel</b> (initial default <b>on</b>)
+  </li><li><b>Include intramodel</b> (initial default <b>on</b>)
+  </li><li><b>Include intramolecule</b> (initial default <b>on</b>) 
 &ndash; whether to include intramolecular H-bonds, 
 where a molecule is defined as a covalently bonded set of atoms
-  <li><b>Include intraresidue</b> (initial default <b>on</b>) 
-  </ul>
+  </li><li><b>Include intraresidue</b> (initial default <b>on</b>) 
+  </li></ul>
 <br>
-<li><b>Treatment of results</b>:
+</li><li><b>Treatment of results</b>:
   <ul>
   <li><b>Select atoms</b> (initial default <b>off</b>)
 &ndash; whether to <a href="../selection.html">select</a> the H-bonding atoms
-  <li><b>Reveal atoms of H-bonding residues</b>
+  </li><li><b>Reveal atoms of H-bonding residues</b>
 (initial default <b>on</b>) &ndash; 
 since a <a href="../pseudobonds.html">pseudobond</a> 
 is only shown when both of its endpoint atoms are shown,
@@ -197,9 +189,9 @@ moieties separately displayed by this option.
 Displayed backbone atoms may still be invisible where cartoon is shown,
 unless their simultaneous display has been enabled with
 <b><a href="../commands/cartoon.html">cartoon suppress false</a></b>.
-  </ul>
+  </li></ul>
 <br>
-<li><b>Write information to:</b> Where to write H-bond information,
+</li><li><b>Write information to:</b> Where to write H-bond information,
 including donor and acceptor atom specifications 
 (see the <a href="../preferences.html#labels"><b>Labels</b> preferences</a>
 for specifier style), donor-acceptor distances, and when hydrogens are present, 
@@ -208,12 +200,13 @@ hydrogen atom specifications and hydrogen-acceptor distances.
   <ul>
   <li><b>Log</b> (initial default <b>off</b>) 
 &ndash; show the information in the <a href="log.html"><b>Log</b></a>
-  <li><b>File</b> (initial default <b>off</b>) 
+  </li><li><b>File</b> (initial default <b>off</b>) 
 &ndash; save the information to a text file
-  </ul>
-</ul>
+  </li></ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 March 2025</address>
+
 </body></html>

@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: save</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: save</h3>
 
@@ -48,13 +43,11 @@ instead of a filename opens a file browser window for choosing it interactively.
 Files can also be saved with 
 menu <a href="../menu.html#file"><b>File... Save</b></a>
 or <a href="../tools/toolbar.html#home"><b>Toolbar</b></a> icon
-<a href="../tools/toolbar.html#home"><img class="icon"
-border=1 src="../tools/toolbar-icons/content-save.png"></a>.
+<a href="../tools/toolbar.html#home"><img class="icon" border="1" src="../tools/toolbar-icons/content-save.png" alt="computer generated image"></a>.
 See also: <a href="open.html"><b>open</b></a>,
 <a href="log.html"><b>log</b></a>,
 <a href="../formats/positions.html">ChimeraX positions format</a>,
-<a href="../../devel/bundles/mmcif/src/mmcif_writing.html"
-target="_blank">writing mmCIF files in ChimeraX</a>
+<a href="../../devel/bundles/mmcif/src/mmcif_writing.html" target="_blank">writing mmCIF files in ChimeraX</a>
 </p><p>
 The file type is specified with either the 
 <a href="#formats"><i>filename</i> suffix</a> or the <b>format</b> option. 
@@ -80,18 +73,18 @@ depending on the file type:
 <ul class="none">
 <li><a href="#image"><b>Image</b></a>
 <a href="../tools/toolbar.html#home" title="Toolbar Home">
-<img class="icon" border=1 src="../tools/shortcut-icons/camera.png"></a>
-<li><a href="#session"><b>Session</b></a>
-<li><a href="#map"><b>Map</b></a>
-<li><b>Atomic Coordinates</b>: &nbsp;<a href="#pdb"><b>PDB</b></a>&nbsp;
+<img class="icon" border="1" src="../tools/shortcut-icons/camera.png" alt="computer generated image"></a>
+</li><li><a href="#session"><b>Session</b></a>
+</li><li><a href="#map"><b>Map</b></a>
+</li><li><b>Atomic Coordinates</b>: &nbsp;<a href="#pdb"><b>PDB</b></a>&nbsp;
 &nbsp;<a href="#mmcif"><b>mmCIF</b></a>&nbsp;
 &nbsp;<a href="#mol2"><b>Mol2</b></a>&nbsp;
-<li><a href="#attributes"><b>Attribute Values</b></a>
-<li><a href="#sequence"><b>Sequence Data</b></a>
-<li><a href="#gltf"><b>GLTF</b></a>
-<li><a href="#vrml"><b>VRML</b></a>
-<li><a href="open.html#clipper"><b>MTZ (Options from Clipper)</b></a>
-</ul>
+</li><li><a href="#attributes"><b>Attribute Values</b></a>
+</li><li><a href="#sequence"><b>Sequence Data</b></a>
+</li><li><a href="#gltf"><b>GLTF</b></a>
+</li><li><a href="#vrml"><b>VRML</b></a>
+</li><li><a href="open.html#clipper"><b>MTZ (Options from Clipper)</b></a>
+</li></ul>
 
 <a name="formats"></a>
 <p class="nav">
@@ -102,7 +95,7 @@ depending on the file type:
 The command <b>save formats</b> lists the possible output formats in the
 <a href="../tools/log.html"><b>Log</b></a>.
 </p>
-<table border cellpadding="4" cellspacing="0"><tr>
+<table border cellpadding="4" cellspacing="0"><tbody><tr>
 <th class="shaded">category</th>
 <th class="shaded"><i>format-name</i></th>
 <th class="shaded"><a name="suffix"><i>filename</i> suffix</a></th>
@@ -162,8 +155,7 @@ a screen image; currently handles single-channel data only)</td>
 </tr><tr>
 <td align="center"><b>imagic</b></td>
 <td align="center">.hed<br>.img</td>
-<td align="center"><a href="https://www.imagescience.de/formats.html"
-target="_blank">IMAGIC map</a>
+<td align="center"><a href="https://www.imagescience.de/formats.html" target="_blank">IMAGIC map</a>
 <br>(the format consists of two files, <i>filename</i>.hed with 
 header information and <i>filename</i>.img with the map values; 
 both files will be saved if <b>format imagic</b> or either 
@@ -177,16 +169,13 @@ courtesy of Ralf Schmidt and Michael Schatz, Image Science Software)</td>
 <td align="center"><b>mtz</b></td>
 <td align="center">.mtz</td>
 <td align="center" class="text">
-<a href="http://www.sb.fsu.edu/~xray/Manuals/CCP4/mtzformat.html"
-target="_blank">MTZ</a> crystallographic reflection file
+<a href="http://www.sb.fsu.edu/~xray/Manuals/CCP4/mtzformat.html" target="_blank">MTZ</a> crystallographic reflection file
 (reciprocal space map)
 <br><br>*requires installing the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper"
-target="_blank"><b>Clipper</b> bundle</a> from the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/"
-target="_blank">ChimeraX Toolshed</a>; 
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper" target="_blank"><b>Clipper</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">ChimeraX Toolshed</a>; 
 see <a href="open.html#clipper">details...</a>
-</tr><tr>
+</td></tr><tr>
 <td align="center" class="text">map-related</td>
 <td align="center"><b>segger</b></td>
 <td align="center">.seg</td>
@@ -221,7 +210,7 @@ see <a href="#mol2">Mol2 options</a></td>
 <td align="center">.cmm</td>
 <td align="center"><a href="../markers.html">markers and links</a>
 <br>(analogous to atoms and bonds)</td>
-</td>
+
 </tr><tr>
 <td align="center"><b>pseudobonds</b></td>
 <td align="center">.pb</td>
@@ -254,8 +243,7 @@ in the format read by <a href="open.html#defattr"><b>open</b></a>;
 <br>(unclipped, see <a href="#export">details...</a>)</td>
 <td align="center"><b>gltf</b></td>
 <td align="center">.glb</td>
-<td align="center" class="text"><a href="https://www.khronos.org/gltf"
-target="_blank">GL Transmission Format</a>
+<td align="center" class="text"><a href="https://www.khronos.org/gltf" target="_blank">GL Transmission Format</a>
 <br>(see <a href="#gltf">glTF options</a>)</td>
 </tr><tr>
 <td align="center"><b>stl</b></td>
@@ -265,23 +253,19 @@ target="_blank">GL Transmission Format</a>
 <td align="center"><b>obj</b></td>
 <td align="center">.obj</td>
 <td align="center" class="text">
-<a href="https://www.fileformat.info/format/wavefrontobj/egff.htm"
-target="_blank">Wavefront OBJ</a>
+<a href="https://www.fileformat.info/format/wavefrontobj/egff.htm" target="_blank">Wavefront OBJ</a>
 <br>(geometric and texture vertices, vertex normals, faces; no colors;
 <br>colors can be saved separately, see
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/texture-may2021/export_3d.html"
-target="_blank">Exporting atomic models with colors to GLTF or OBJ</a>)
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/texture-may2021/export_3d.html" target="_blank">Exporting atomic models with colors to GLTF or OBJ</a>)
 </td>
 </tr><tr>
 <td align="center"><b>x3d</b></td>
 <td align="center">.x3d</td>
-<td align="center"><a href="https://www.web3d.org/x3d/"
-target="_blank">X3D</a></td>
+<td align="center"><a href="https://www.web3d.org/x3d/" target="_blank">X3D</a></td>
 </tr><tr>
 <td align="center"><b>vrml</b></td>
 <td align="center">.vrml, .wrl</td>
-<td align="center">basic <a href="https://en.wikipedia.org/wiki/VRML"
-target="_blank">VRML</a> for 3D printing
+<td align="center">basic <a href="https://en.wikipedia.org/wiki/VRML" target="_blank">VRML</a> for 3D printing
 <br>(see <a href="#vrml">VRML options</a>)</td>
 </tr><tr>
 <td align="center"><b>vtk</b></td>
@@ -297,7 +281,7 @@ PolyData
 <td align="center">.positions</td>
 <td align="center"><a href="../formats/positions.html">ChimeraX
 model positions</a></td>
-</tr></table>
+</tr></tbody></table>
 
 <a name="image"></a>
 <p class="nav">
@@ -322,8 +306,8 @@ but are rendered offscreen. See also:
 <a href="../images.html">making images</a>,
 <a href="../movies.html">making movies</a>,
 <a href="../tools/toolbar.html#home" title="Toolbar Home">
-<img class="icon" border=1 src="../tools/shortcut-icons/camera.png"></a>
-<blockquote>
+<img class="icon" border="1" src="../tools/shortcut-icons/camera.png" alt="computer generated image"></a>
+</p><blockquote>
 [&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp;|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>
 <br>
 Image pixel dimensions can be specified directly with 
@@ -395,33 +379,33 @@ interpreted correctly by Adobe Photoshop.)
 <p>
 A <b><i>ChimeraX session file</i></b> encodes most aspects of a
 modeling session in ChimeraX:
-<ul>
+</p><ul>
 <li>atomic and other models
-<li><a href="../tools/buildstructure.html#adjust">active torsions</a>
+</li><li><a href="../tools/buildstructure.html#adjust">active torsions</a>
 and <a href="../tools/buildstructure.html#angles">active angles</a>
-<li>sequences and sequence alignments
-<li><a href="../tools/axesplanes.html">axis, plane, and centroid objects</a>
-<li>lighting, display styles, coloring,
+</li><li>sequences and sequence alignments
+</li><li><a href="../tools/axesplanes.html">axis, plane, and centroid objects</a>
+</li><li>lighting, display styles, coloring,
 labels (<a href="2dlabels.html">2D</a> and <a href="label.html">3D</a>)
-<li><a href="../selection.html">selections</a>,
+</li><li><a href="../selection.html">selections</a>,
 selection highlighting <a href="graphics.html#selections">color and width</a>
-<li><a href="name.html">defined targets</a> (<i>e.g.</i>, named selections)
-<li><a href="view.html#name">named views</a>, and a view named 
+</li><li><a href="name.html">defined targets</a> (<i>e.g.</i>, named selections)
+</li><li><a href="view.html#name">named views</a>, and a view named 
 <b>session-start</b> is created immediately upon restoring a session 
-<li><a href="scenes.html">scenes</a>
-<li><a href="alias.html">aliases</a>
-<li><a href="../attributes.html">attributes</a>
-<li><a href="color.html#name">custom colors</a>
-<li><a href="buttonpanel.html">custom button panels</a>
-<li><a href="surface.html#zone">surface zones</a>
-<li><a href="../tools/segment.html">segmentation results</a>
-<li><a href="../vr.html">virtual reality</a> status including
+</li><li><a href="scenes.html">scenes</a>
+</li><li><a href="alias.html">aliases</a>
+</li><li><a href="../attributes.html">attributes</a>
+</li><li><a href="color.html#name">custom colors</a>
+</li><li><a href="buttonpanel.html">custom button panels</a>
+</li><li><a href="surface.html#zone">surface zones</a>
+</li><li><a href="../tools/segment.html">segmentation results</a>
+</li><li><a href="../vr.html">virtual reality</a> status including
 model positions in the room and hand-controller button assignments
-<li><a href="../tools/log.html"><b>Log</b></a> contents
-<li>slider interfaces for playback of
+</li><li><a href="../tools/log.html"><b>Log</b></a> contents
+</li><li>slider interfaces for playback of
 <a href="coordset.html#slider">trajectories</a> and
 <a href="mseries.html#slider">model series</a>
-</ul>
+</li></ul>
 Saving and later opening a session file 
 restores the session and allows resuming work in ChimeraX.
 A common use is to store setups for 
@@ -443,7 +427,7 @@ See also:
 <a href="usageconventions.html#cxc-files">ChimeraX command files</a>,
 <a href="../formats/positions.html">ChimeraX positions files</a>,
 <a href="../preferences.html">ChimeraX preferences</a>
-</p><p>
+<p></p><p>
 Sessions are saved in a ChimeraX-specific <a href="#sesformat">format</a>
 not read by other programs.
 Maps generated on the fly (rather than read from a file) are always 
@@ -532,13 +516,13 @@ For the <a href="#mapformats"><b>imagejtiff</b> format</a>, the
 default is to save the stack as a single file, but Z-planes can be saved
 to multiple individual files by including &ldquo;{z}&rdquo; in the filename,
 for example: 
-<blockquote>
+</p><blockquote>
 <b>save mymap_{z}.tif format imagejtiff</b>
 </blockquote>
 ...to produce files named mymap_000.tif, mymap_001.tif, <i>etc.</i>
-</p><p>
+<p></p><p>
 Further options (all map formats):
-<blockquote>
+</p><blockquote>
 <b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 <br>
 Volume model(s) to save; can be omitted if only one volume model is open.
@@ -620,12 +604,12 @@ The <i>order</i> can be one or more of the following,
 separated by commas but not spaces:
 <ul>
 <li><b>zyx</b> (default)
-<li>zxy
-<li>yxz
-<li>yzx
-<li>xzy
-<li>xyz
-</ul>
+</li><li>zxy
+</li><li>yxz
+</li><li>yzx
+</li><li>xzy
+</li><li>xyz
+</li></ul>
 Data are written in blocks of up to 64 Kb.  The blocks are shaped
 according to the specified <i>order</i>:
 smallest along the first axis and largest along the third.
@@ -655,16 +639,16 @@ as other data sets tend to be noisy and less compressible.
 The <i>method</i> of <a href="#compress">compression</a> can be:
   <ul>
   <li><b>zlib</b>
-  <li><b>lzo</b>
-  <li><b>bzip2</b>
-  <li><b>blosc</b>
-  <li><b>blosc:blosclz</b>
-  <li><b>blosc:lz4</b> (default; fast)
-  <li><b>blosc:lz4hc</b>
-  <li><b>blosc:snappy</b>
-  <li><b>blosc:zlib</b>
-  <li><b>blosc:zstd</b>
-  </ul>
+  </li><li><b>lzo</b>
+  </li><li><b>bzip2</b>
+  </li><li><b>blosc</b>
+  </li><li><b>blosc:blosclz</b>
+  </li><li><b>blosc:lz4</b> (default; fast)
+  </li><li><b>blosc:lz4hc</b>
+  </li><li><b>blosc:snappy</b>
+  </li><li><b>blosc:zlib</b>
+  </li><li><b>blosc:zstd</b>
+  </li></ul>
 </blockquote>
 <blockquote>
 <b>compress_level</b> &nbsp;<i>level</i>
@@ -691,26 +675,26 @@ One way to save the new position is to save a
 <a href="#session">ChimeraX session file</a>, which preserves
 the translations and orientations of all models.
 However, if data files are needed for use in another program:
-<ul>
+</p><ul>
 <li>When a map has been fit to an atomic structure,
 save the atomic structure 
 (usually as <a href="#pdb">PDB</a> or <a href="#mmcif">mmCIF</a>)
 relative to the map rather than <i>vice versa</i>.
-<li>When a map has been fit to another map, a new map can be created
+</li><li>When a map has been fit to another map, a new map can be created
 in the new orientation by <a href="volume.html#resample">resampling</a>
 the map that was fit, on the grid of the map to which it was fit.
 The new, resampled map can be saved as described <a href="#map">above</a>.
 (Even if the map was not fit to another map, however,
 a separate zero-valued map to serve as a grid for resampling
 can be created with <a href="volume.html#new"><b>volume new</b></a>.)
-</ul>
+</li></ul>
 If the goal is to save a map repositioned with translation only
 (not rotation), the map origin can be changed 
 with the <a href="volume.html#dimensions"><b>volume</b></a> command
 <b>origin</b> option before saving.
 However, not all programs will use the origin specified in the map file,
 so it may still be necessary to resample as described above.
-</p>
+<p></p>
 
 <a name="pdb"></a>
 <p class="nav">
@@ -738,9 +722,9 @@ as needed to save multiple atomic models to multiple files with a
 single command. See also: <a href="getcrd.html"><b>getcrd</b></a>,
 <a href="view.html"><b>view</b></a>, <a href="#update-sequence">adding full
 sequence information
-</p>
-<blockquote>
-<b>models</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+</a></p><a href="#update-sequence">
+</a><blockquote><a href="#update-sequence">
+<b>models</b> &nbsp;</a><a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 <br>
 Write only the specified models, otherwise all atomic models.
 The <b>models</b> keyword can be omitted if
@@ -809,12 +793,12 @@ numbering fields in standard PDB format would overflow
 <li><b>amber</b> handles atomic models
 with &gt; 99,999 atoms by &ldquo;stealing&rdquo; a column to the
 left of the atom numbering field in standard PDB format
-<li><b>h36</b> (default) handles atomic models
+</li><li><b>h36</b> (default) handles atomic models
 with &gt; 99,999 atoms (up to 87,440,031)
 and/or &gt; 9999 residues in a chain (up to 2,436,111)
 by incorporating alphabetical characters
 (<a href="https://cci.lbl.gov/hybrid_36/" target="_blank">details...</a>)
-</ul>
+</li></ul>
 </blockquote>
 
 <a name="mmcif"></a>
@@ -839,8 +823,7 @@ by incorporating alphabetical characters
 Atomic coordinates and associated information can be saved in 
 <a href="https://mmcif.wwpdb.org/" target="_blank">mmCIF format</a>.
 A subset of the mmCIF data types are written
-(<a href="../../devel/bundles/mmcif/src/mmcif_writing.html"
-target="_blank">details...</a>). 
+(<a href="../../devel/bundles/mmcif/src/mmcif_writing.html" target="_blank">details...</a>). 
 The options are as described for <a href="#pdb">saving PDB</a>,
 except for the following:
 </p>
@@ -849,9 +832,8 @@ except for the following:
 &ndash; whether to write fixed-width columns, as in mmCIF files from the 
 <a href="https://www.rcsb.org/" target="_blank">RCSB Protein Data Bank</a>;
 fixed-width columns make reading the file
-<a href="../../devel/bundles/mmcif/src/mmcif_guidelines.html"
-target="_blank">faster in ChimeraX</a>
-<li><b>bestGuess</b> (default <b>false</b>) 
+<a href="../../devel/bundles/mmcif/src/mmcif_guidelines.html" target="_blank">faster in ChimeraX</a>
+</li><li><b>bestGuess</b> (default <b>false</b>) 
 &ndash; whether to try to write polymer sequence information when it was
 missing from the input file, or the structure was built or modified by the user.
 <p>
@@ -859,22 +841,22 @@ The <b>bestGuess option</b> will only include residues with atomic coordinates.
 <a name="update-sequence"></a>
 However, a different approach can be used to add the full sequence information
 (including any residues without atomic coordinates) prior to saving a file:
-  <ol>
+  </p><ol>
   <li>open the full sequence in the 
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
 <i>e.g.</i>, by reading it from a <a href="open.html#sequence">sequence file</a>
 or by <a href="open.html#fetch">fetching</a> it from
 <a href="https://www.uniprot.org" target="_blank">UniProt</a>
-  <li>make sure that the sequence is
+  </li><li>make sure that the sequence is
 <a href="../tools/sequenceviewer.html#association">associated</a>
 with the structure chain (should occur automatically in most cases)
-  <li>use <b>Structure... Update Chain Sequence</b> in the 
+  </li><li>use <b>Structure... Update Chain Sequence</b> in the 
 <a href="../tools/sequenceviewer.html#context"><b>Sequence Viewer</b>
 context menu</a> (or use the
 <a href="sequence.html#update"><b>sequence update</b></a> command)
-  </ol>
+  </li></ol>
 <br>
-<li><b>computedSheets</b> (default <b>false</b>) 
+</li><li><b>computedSheets</b> (default <b>false</b>) 
 &ndash; although ChimeraX retains protein helix and strand assignments 
 from input,
 it currently loses track of which strands are in the same sheets as each other. 
@@ -886,7 +868,7 @@ the file may be different from those in the open structure.
 Further, if the existing structure did not already have helix assignments,
 the helix assignments from running <a href="dssp.html"><b>dssp</b></a> 
 will also be saved in the output mmCIF.
-</ul>
+</li></ul>
 
 <a name="mol2"></a>
 <p class="nav">
@@ -1049,7 +1031,7 @@ the current <a href="../selection.html">selection</a>
 [&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#seqformats"><i>format-name</i></a>&nbsp;]
 -->
 [&nbsp;<b>format</b>&nbsp;&nbsp;aln&nbsp;|&nbsp;fasta&nbsp;|&nbsp;pir&nbsp;]
-[&nbsp;<b>alignment</b>&nbsp;&nbsp;<i>alignment-id</i></a>&nbsp;]
+[&nbsp;<b>alignment</b>&nbsp;&nbsp;<i>alignment-id</i>&nbsp;]
 </blockquote>
 <p>
 An individual sequence or multiple sequence alignment open in the
@@ -1090,7 +1072,7 @@ will include the entire models regardless of which parts
 [&nbsp;<b>format</b>&nbsp;&nbsp;gltf&nbsp;]
 [&nbsp;<a href="#models"><b>models</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<a href="#center"><b>center</b></a>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#centerEachNode"><b>centerEachNode</b></a>&nbsp;&nbsp<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<a href="#centerEachNode"><b>centerEachNode</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>size</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>shortVertexIndices</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>floatColors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -1104,13 +1086,10 @@ will include the entire models regardless of which parts
 [&nbsp;<b>roughnessFactor</b>&nbsp;&nbsp;<i>f<sub>r</sub></i>&nbsp;]
 </blockquote>
 <p>
-Several options apply only to saving <a href="https://www.khronos.org/gltf" 
-target="_blank">GL Transmission Format</a> (.glb). 
+Several options apply only to saving <a href="https://www.khronos.org/gltf" target="_blank">GL Transmission Format</a> (.glb). 
 The models are <a href="#export">not clipped</a>. See also:
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/texture-may2021/export_3d.html"
-target="_blank">Exporting atomic models with colors to GLTF or OBJ</a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/gltf-viewer-may2023/"
-target="_blank">Embedding a 3D scene in a web page</a>
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/texture-may2021/export_3d.html" target="_blank">Exporting atomic models with colors to GLTF or OBJ</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/gltf-viewer-may2023/" target="_blank">Embedding a 3D scene in a web page</a>
 </p>
 <blockquote>
 <a name="center"></a>
@@ -1121,9 +1100,9 @@ It allows placing the center of the scene bounding box
 at a specific position in the output file coordinates:
 <ul>
 <li><b>center true</b> (default) &ndash; at 0,0,0 (same as <b>center 0,0,0</b>)
-<li><b>center false</b> &ndash; unchanged from the current scene
-<li><b>center <i>x,y,z</i></b> (allowed for GLTF only) &ndash; at <i>x,y,z</i>
-</blockquote>
+</li><li><b>center false</b> &ndash; unchanged from the current scene
+</li><li><b>center <i>x,y,z</i></b> (allowed for GLTF only) &ndash; at <i>x,y,z</i>
+</li></ul></blockquote>
 <blockquote>
 <a name="centerEachNode"></a>
 <b>centerEachNode</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
@@ -1259,4 +1238,5 @@ that the scene is opaque.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 October 2025</address>
+
 </body></html>

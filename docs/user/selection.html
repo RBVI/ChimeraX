@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,89 +9,86 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="userdocs.css">
 <title>Selection</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="index.html">
-<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3>Selection</h3>
 <p>
 A <b><i>selection</i></b> is a set of items (atoms, bonds, residues, models)
 chosen by the user that:
-<ul>
+</p><ul>
 <li>is highlighted in the graphics window with green outlines (default, 
 see <a href="commands/graphics.html#selection"><b>set selection</b></a>)
-<li>marks the items for subsequent operations:
+</li><li>marks the items for subsequent operations:
   <ul>
   <li>with the <a href="menu.html#actions"><b>Actions</b> menu</a>
-  <li>can be <a href="commands/atomspec.html#builtin">specified</a> 
+  </li><li>can be <a href="commands/atomspec.html#builtin">specified</a> 
   as <b>sel</b> in <a href="index.html#commands">commands</a>, for example:
   <b><a href="commands/style.html">style</a> sel stick</b>
-  <li>can be listed with 
+  </li><li>can be listed with 
   <a href="commands/info.html#selection"><b>info selection</b></a>
-  <li>can be named with menu: <a href="menu.html#named-selections"><b>Select... 
+  </li><li>can be named with menu: <a href="menu.html#named-selections"><b>Select... 
   Define Selector</b></a> or command
   <a href="commands/name.html"><b>name frozen</b></a>
   for later use in <a href="index.html#commands">commands</a>
   and <a href="tools/basicactions.html"><b>Basic Actions</b></a>
-  <li>certain of their <a href="attributes.html">attributes</a> 
+  </li><li>certain of their <a href="attributes.html">attributes</a> 
   can be inspected and potentially modified using the
   <a href="tools/inspector.html"><b>Selection Inspector</b></a>
-  <li>indicates scope of action of 
+  </li><li>indicates scope of action of 
   <a href="tools/toolbar.html"><b>Toolbar</b></a> icons:
      <ul>
      <li><a href="tools/moldisplay.html"><b>Molecule Display</b></a>:&nbsp;
-     <img class="iconbar" src="molecule-icons.png">
-     <li><a href="tools/nucdisplay.html"><b>Nucleotides</b></a>:&nbsp;
-     <img class="iconbar" src="nuc-icons.png">
-     <li><a href="tools/densitymaps.html"><b>Map</b></a>:&nbsp;
-     <img class="iconbar" src="density-icons.png">
-     <li><a href="tools/graphics.html"><b>Graphics</b></a>:&nbsp;
-     <img class="icon" src="tools/shortcut-icons/viewsel.png">
-     </ul>
-  <li>indicates scope of action of certain
+     <img class="iconbar" src="molecule-icons.png" alt="computer generated image">
+     </li><li><a href="tools/nucdisplay.html"><b>Nucleotides</b></a>:&nbsp;
+     <img class="iconbar" src="nuc-icons.png" alt="computer generated image">
+     </li><li><a href="tools/densitymaps.html"><b>Map</b></a>:&nbsp;
+     <img class="iconbar" src="density-icons.png" alt="computer generated image">
+     </li><li><a href="tools/graphics.html"><b>Graphics</b></a>:&nbsp;
+     <img class="icon" src="tools/shortcut-icons/viewsel.png" alt="computer generated image">
+     </li></ul>
+  </li><li>indicates scope of action of certain
   <a href="commands/ui.html#mousemode">mouse modes</a>:&nbsp;
-<img class="icon" src="tools/mouse-icons/move_h2o.png">
-<img class="icon" src="tools/mouse-icons/rotate_h2o.png">
+<img class="icon" src="tools/mouse-icons/move_h2o.png" alt="computer generated image">
+<img class="icon" src="tools/mouse-icons/rotate_h2o.png" alt="computer generated image">
 (<a href="commands/ui.html#movesel">rotate/translate selected</a> modes)
-  </ul>
-<li>can be created:
+  </li></ul>
+</li><li>can be created:
   <ul>
   <li>with the <a href="menu.html#select"><b>Select</b> menu</a>: by chain ID,
   residue name, element, type of structure, sequence, zone, 
   <a href="attributes.html">attribute</a> value, <i>etc.</i> 
-  <li>with the <a href="commands/select.html"><b>select</b></a> command
-  <li>by clicking with the mouse in the graphics window (...and 
+  </li><li>with the <a href="commands/select.html"><b>select</b></a> command
+  </li><li>by clicking with the mouse in the graphics window (...and 
   doubleclicking for a <a href="#context">selection context menu</a>),
   by default:
     <ul>
     <li>Ctrl-click to start selection (replace)
-    <li>Shift-Ctrl-click to add/subtract (toggle)
-    </ul>
+    </li><li>Shift-Ctrl-click to add/subtract (toggle)
+    </li></ul>
   This button assignment can be changed with
   <a href="commands/ui.html#mousemode"><b>mousemode</b></a>
-  <img src="tools/mouse-icons/select.png" class="icon">.
+  <img src="tools/mouse-icons/select.png" class="icon" alt="computer generated image">.
 <br>
-  <li>by clicking links in the <b>Chain information</b> and
+  </li><li>by clicking links in the <b>Chain information</b> and
   <b>Non-standard residues</b> tables
   shown in the <a href="tools/log.html"><b>Log</b></a>
   when a structure is opened
   (for example, see the <a href="tutorials/binding-sites.html">Protein-Ligand
   Binding Sites tutorial</a>)
-  <li>by dragging a box around residues in an
+  </li><li>by dragging a box around residues in an
   <a href="tools/sequenceviewer.html#association">associated sequence</a>
-  <li>with various other commands and tools
-  </ul>
+  </li><li>with various other commands and tools
+  </li></ul>
 <a name="cascade"></a>
-<li>can be broadened with the <a href="#arrows">up arrow key</a>,
+</li><li>can be broadened with the <a href="#arrows">up arrow key</a>,
 the <a href="menu.html#select"><b>Select</b> menu</a>,
 or the command <a href="commands/select.html#modify"><b>select up</b></a>,
 and subsequently narrowed with the <a href="#arrows">down arrow key</a>,
@@ -106,17 +101,17 @@ within the <b><i>selection cascades</i></b>:
   or <a href="pseudobonds.html">pseudobond</a>
 -->
  &harr; bond and its endpoint atoms
-  <li>atom &harr; residue &harr; protein secondary structure element 
+  </li><li>atom &harr; residue &harr; protein secondary structure element 
   (helix, strand, or coil) &harr; 
   connected set of atoms (except not crossing chain ID boundaries)
   &harr; all atoms with same chain ID &harr; 
   whole model &harr; model hierarchy
-  <li><a href="pseudobonds.html">pseudobond</a> &harr; 
+  </li><li><a href="pseudobonds.html">pseudobond</a> &harr; 
   pseudobond model &harr; model hierarchy
-  </ul>
-<li>can be inverted with the <a href="#arrows">right/left arrow keys</a>
+  </li></ul>
+</li><li>can be inverted with the <a href="#arrows">right/left arrow keys</a>
 or the <a href="menu.html#select"><b>Select</b> menu</a>
-</ul>
+</li></ul>
 <p>
 Selecting a standard (atom-associated)
 <a href="commands/surface.html">molecular surface</a>
@@ -144,20 +139,20 @@ selectable object, however, the surface model will be selected.
 <p class="nav">
 [<a href="#top">back to top: Selection</a>]
 </p>
-<h3>Arrow-Key Shortcuts</h3></a>
+<h3>Arrow-Key Shortcuts</h3>
 <p>
 When the mouse focus is in the graphics window,
 arrow-key shortcuts adjust the selection:
-<ul>
+</p><ul>
 <li><b>up arrow</b>
 &ndash; <a href="#cascade">broaden</a> the selection
-<li><b>down arrow</b>
+</li><li><b>down arrow</b>
 &ndash; <a href="#cascade">narrow</a> the selection
-<li><b>right arrow</b> or <b>left arrow</b>
+</li><li><b>right arrow</b> or <b>left arrow</b>
 &ndash; invert the selection within selected models
-<li><b>Shift-right arrow</b> or <b>Shift-left arrow</b>
+</li><li><b>Shift-right arrow</b> or <b>Shift-left arrow</b>
 &ndash; invert the selection within all models
-</ul>
+</li></ul>
 
 <a name="context"></a>
 <p class="nav">
@@ -173,7 +168,7 @@ shows a context menu, typically including options to
 and/or <a href="../pseudobonds.html">pseudobonds</a>.
 (Hidden selected atoms can be reshown using the 
 <a href="tools/moldisplay.html" title="Molecule Display">
-<img class="icon" border=1 src="tools/shortcut-icons/atomshow.png"></a> icon,
+<img class="icon" border="1" src="tools/shortcut-icons/atomshow.png" alt="computer generated image"></a> icon,
 and all types of hidden items shown with the
 <a href="commands/show.html"><b>show</b></a> command.)
 </p>
@@ -181,14 +176,14 @@ and all types of hidden items shown with the
 <li>If exactly two atoms are selected, the selection context menu will include 
 a <b>Distance</b> option to add a
 <a href="tools/distances.html">distance monitor</a> between them.
-<li>If a bond is selected, the selection context menu will include an option to
+</li><li>If a bond is selected, the selection context menu will include an option to
 <b>Adjust Torsion</b> (activate the torsion and show the
 <a href="tools/buildstructure.html#adjust"><b>Adjust Torsions</b></a>
 interface for setting it interactively).
-<li>If the selection contains part of a single amino acid, the context menu
+</li><li>If the selection contains part of a single amino acid, the context menu
 will include a choice to <b>Mutate Residue</b>
 with the <a href="tools/rotamers.html"><b>Rotamers</b></a> tool.
-</ul>
+</li></ul>
 <p>
 See also:
 <a href="window.html#context-menu">context menus</a>,
@@ -214,4 +209,5 @@ such as defining the scope of action when an icon is clicked.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 April 2024</address>
+
 </body></html>

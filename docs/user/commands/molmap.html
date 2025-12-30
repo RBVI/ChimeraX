@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: molmap</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: molmap</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -91,15 +86,15 @@ in X, Y, and Z (default <b>false</b>). If <b>true</b>, an even number of
 points will always be used. If an integer <i>N</i> is given:
 <ul>
 <li><i>N</i> points will be used in each dimension
-<li>if <a href="#edgePadding"><b>edgePadding</b></a>
+</li><li>if <a href="#edgePadding"><b>edgePadding</b></a>
 but not <a href="#gridSpacing"><b>gridSpacing</b></a> is specified,
 the spacing will be adjusted to include the requested padding
-<li>if <a href="#edgePadding"><b>edgePadding</b></a>
+</li><li>if <a href="#edgePadding"><b>edgePadding</b></a>
 and <a href="#gridSpacing"><b>gridSpacing</b></a> are both specified,
 the <a href="#edgePadding"><b>edgePadding</b></a> will be ignored
 and the grid box may not cover the molecule if the spacing
 is too small given the number of points <i>N</i>
-</ul>
+</li></ul>
 The <b>cube</b> option is ignored if 
 <a href="#onGrid"><b>onGrid</b></a> is used.
 </blockquote>
@@ -123,11 +118,11 @@ The <b>cube</b> option is ignored if
   <ul>
   <li> 1/(&pi; * (2/log2)<sup>&frac12;</sup>) &asymp; 0.187 makes the FT 
   fall to half maximum at wavenumber 1/<i>resolution</i>
-  <li> 1/(2 * 2<sup>&frac12;</sup>) &asymp; 0.356 makes the Gaussian 
+  </li><li> 1/(2 * 2<sup>&frac12;</sup>) &asymp; 0.356 makes the Gaussian 
   width at 1/<i>e</i> maximum height equal the <i>resolution</i>
-  <li> 1/(2 * (2log2)<sup>&frac12;</sup>) &asymp; 0.425 makes the Gaussian
+  </li><li> 1/(2 * (2log2)<sup>&frac12;</sup>) &asymp; 0.425 makes the Gaussian
   width at half maximum height equal the <i>resolution</i>
-  </ul> 
+  </li></ul> 
 </blockquote>
 <blockquote>
   <a name="balls"><b>balls</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
@@ -176,79 +171,79 @@ The <b>cube</b> option is ignored if
   &ndash; use &ldquo;biological assembly&rdquo; information from the atomic
   model containing the specified atoms 
   <br>(currently this information is only read from PDB format, not mmCIF)
-  <li>symmetry of model <b>#<i>N</i></b> 
+  </li><li>symmetry of model <b>#<i>N</i></b> 
   &ndash; use the biological assembly information from another atomic model 
   or the symmetry assignment of a volume model
 (such as from <a href="volume.html#symmetry"><b>volume symmetry</b></a>
 or <a href="measure.html#symmetry"><b>measure symmetry</b></a>)
     <ul type="none">
     <li>Example: <b>#4</b>
-    </ul>
+    </li></ul>
 
-   <li>cage model (from <b>Cage Builder</b>) polygon symmetry
+   </li><li>cage model (from <b>Cage Builder</b>) polygon symmetry
   <b>#<i>N</i>,p<i>M</i></b> or <b>#<i>N</i>,pn<i>M</i></b> 
   &ndash; place copies at equivalent positions relative to each M-sided polygon 
   in the cage model with ID number <b>N</b>. The <b>p<i>M</i></b> form places 
   one copy per M-sided polygon, whereas <b>pn<i>M</i></b> places M copies per
-  M-sided polygon using C<font size=-1><i>M</i></font> symmetry about the center
+  M-sided polygon using C<font size="-1"><i>M</i></font> symmetry about the center
   of the M-sided polygon nearest the original copy.
     <ul type="none">
     <li>Examples: <b>#2,p6</b> or <b>#2,pn5</b>
-    </ul>
+    </li></ul>
 
-  <li>cyclic symmetry <b>C<i>n</i></b>
+  </li><li>cyclic symmetry <b>C<i>n</i></b>
    around <a href="#axis">axis</a> and <a href="#center">center</a>
     <ul type="none">
     <li>Example: <b>C3</b>
-    </ul>
+    </li></ul>
 
-  <li>dihedral symmetry <b>D<i>n</i></b>
+  </li><li>dihedral symmetry <b>D<i>n</i></b>
    around <a href="#axis">axis</a> and <a href="#center">center</a>
     <ul type="none">
     <li>Example: <b>d7</b>
-    </ul>
+    </li></ul>
 
-  <li>tetrahedral symmetry <b>T[,<i>orientation</i>]</b>
+  </li><li>tetrahedral symmetry <b>T[,<i>orientation</i>]</b>
    around <a href="#center">center</a>
     <ul type="none">
     <li>Example: <b>t,z3</b>
-    </ul>
+    </li></ul>
    where <i>orientation</i> can be:
    <ul>
    <li><b>222</b> (default)
    &ndash; with two-fold symmetry axes along the X, Y, and Z axes, a three-fold 
     along axis (1,1,1)
-   <li><b>z3</b> &ndash; a three-fold symmetry axis along Z, another three-fold 
+   </li><li><b>z3</b> &ndash; a three-fold symmetry axis along Z, another three-fold 
    axis in the YZ plane such that rotation about the X axis by ~110&deg; is a
    symmetry operation (EMAN convention) 
-   </ul>
+   </li></ul>
 
-  <li>octahedral symmetry <b>O</b> around <a href="#center">center</a> 
+  </li><li>octahedral symmetry <b>O</b> around <a href="#center">center</a> 
 
-  <li>icosahedral symmetry <b>I[,<i>orientation</i>]</b> 
+  </li><li>icosahedral symmetry <b>I[,<i>orientation</i>]</b> 
    around <a href="#center">center</a>
     <ul type="none">
     <li>Example: <b>i,n25</b>
-    </ul>
+    </li></ul>
    where <i>orientation</i> can be:
     <ul>
     <li><b>222</b> (default)
     &ndash; with two-fold symmetry axes along the X, Y, and Z axes
-    <li><b>2n5</b> &ndash; with two-fold symmetry along X and 5-fold along Z
-    <li><b>n25</b> &ndash; with two-fold symmetry along Y and 5-fold along Z
-    <li><b>2n3</b> &ndash; with two-fold symmetry along X and 3-fold along Z
-    <li><b>222r</b> &ndash; same as 222 except rotated 90&deg; about Z
-    <li><b>2n5r</b> &ndash; same as 2n5 except rotated 180&deg; about Y
-    <li><b>n25r</b> &ndash; same as n25 except rotated 180&deg; about X
-    <li><b>2n3r</b> &ndash; same as 2n3 except rotated 180&deg; about Y
-    </ul>
+    </li><li><b>2n5</b> &ndash; with two-fold symmetry along X and 5-fold along Z
+    </li><li><b>n25</b> &ndash; with two-fold symmetry along Y and 5-fold along Z
+    </li><li><b>2n3</b> &ndash; with two-fold symmetry along X and 3-fold along Z
+    </li><li><b>222r</b> &ndash; same as 222 except rotated 90&deg; about Z
+    </li><li><b>2n5r</b> &ndash; same as 2n5 except rotated 180&deg; about Y
+    </li><li><b>n25r</b> &ndash; same as n25 except rotated 180&deg; about X
+    </li><li><b>2n3r</b> &ndash; same as 2n3 except rotated 180&deg; about Y
+    </li></ul>
 
-  <li>helical symmetry 
+  </li><li>helical symmetry 
   <b>H,<i>rise,angle,n</i>[,<i>offset</i>]</b>
   around <a href="#axis">axis</a> and <a href="#center">center</a>
     <ul type="none">
     <li>Example: <b>h,43.5,21,6,-2</b>
-    </ul>
+    </li></ul>
   where <i>rise</i> is the translation along the <a href="#axis">axis</a> per
   subunit, <i>angle</i> is the rotation in degrees per subunit,
   and <i>n</i> is how many copies total (including the original)
@@ -258,12 +253,12 @@ or <a href="measure.html#symmetry"><b>measure symmetry</b></a>)
   with two copies in the negative axis direction, 
   one at the identity position, and three in the positive axis direction.
 
-  <li>translational symmetry 
+  </li><li>translational symmetry 
   <b>shift,<i>n,distance</i></b> along <a href="#axis">axis</a>
   &ndash; or &ndash; <b>shift,<i>n,x,y,z</i></b> 
     <ul type="none">
     <li>Example: <b>shift,3,26.7</b>
-    </ul>
+    </li></ul>
   where <i>n</i> is how many copies total (including the original)
   the result should contain.
   The translation can be expressed as a
@@ -271,14 +266,14 @@ or <a href="measure.html#symmetry"><b>measure symmetry</b></a>)
   or as a vector <i>x,y,z</i> in the
   <a href="#coordinateSystem">reference coordinate system</a>.
 
-  <li>the product of symmetry groups, each specified as described above
+  </li><li>the product of symmetry groups, each specified as described above
   and separated by <b>*</b> to indicate multiplying each symmetry matrix of one
   group with each symmetry matrix of another; can be generalized to
   multiple symmetry groups (not just two)
     <ul type="none">
     <li>Example: <b>c2*h,42,21,9,-4</b>
-    </ul>
-  </ul>
+    </li></ul>
+  </li></ul>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -287,7 +282,7 @@ or <a href="measure.html#symmetry"><b>measure symmetry</b></a>)
   <br>
   Specify axis of symmetry
   <a href="pointspec.html#vector">vector</a> (default <b>z</b>).
-  </ul>
+  
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
@@ -309,4 +304,5 @@ or <a href="measure.html#symmetry"><b>measure symmetry</b></a>)
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 September 2024</address>
+
 </body></html>

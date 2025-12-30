@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Selection Inspector</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Selection Inspector</h3>
 <p>
@@ -30,21 +25,21 @@ The <b>Selection Inspector</b> lists certain
 <a href="../attributes.html">attributes</a>
 of the currently <a href="../selection.html">selected</a> items and allows
 their values to be changed. It can be opened:
-<ul>
+</p><ul>
 <li>by clicking the magnifying-glass icon
-<img class="icon" src="toolbar-icons/magnifying-glass.png">
+<img class="icon" src="toolbar-icons/magnifying-glass.png" alt="computer generated image">
 in the <a href="toolbar.html#home"><b>Home</b></a> tab of the 
 <a href="toolbar.html"><b>Toolbar</b></a>
-<li>by choosing <b>Inspect</b> from the <a href="../menu.html#actions">
+</li><li>by choosing <b>Inspect</b> from the <a href="../menu.html#actions">
 <b>Actions</b> menu</a>
-<li>from the <b>General</b> section of the <b>Tools</b> menu
+</li><li>from the <b>General</b> section of the <b>Tools</b> menu
 <!--
 <li>by choosing <b>Inspect</b> from the context menu obtained by
 double-<a href="selection.html#pickselect">picking</a>
 an atom, bond, or pseudobond (that is, doubleclicking with the button
 assigned to <a href="selection.html#pickselect">picking</a>)
 -->
-</ul>
+</li></ul>
 <p>
 The <b>Selection Inspector</b> dialog can be manipulated like other panels 
 (<a href="../window.html#panels">more...</a>).
@@ -61,12 +56,12 @@ value</a>. Alternative ways to change attribute values are with
 </p>
 <ul>
 <li><a href="#atomic-models"><b>Atomic models</b></a>
-<li><a href="#atoms"><b>Atoms</b></a>
-<li><a href="#bonds"><b>Bonds</b></a>
-<li><a href="#pb-models"><b>Pseudobond models</b></a>
-<li><a href="#pseudobonds"><b>Pseudobonds</b></a>
-<li><a href="#residues"><b>Residues</b></a>
-</ul>
+</li><li><a href="#atoms"><b>Atoms</b></a>
+</li><li><a href="#bonds"><b>Bonds</b></a>
+</li><li><a href="#pb-models"><b>Pseudobond models</b></a>
+</li><li><a href="#pseudobonds"><b>Pseudobonds</b></a>
+</li><li><a href="#residues"><b>Residues</b></a>
+</li></ul>
 
 <a name="atomic-models"></a>
 <p class="nav">
@@ -78,13 +73,13 @@ value</a>. Alternative ways to change attribute values are with
 <a href="../pseudobonds.html">pseudobonds</a>
 should be added between consecutively bonded residues when the covalent bonds
 are hidden (<i>e.g.</i>, when &alpha;-carbons are the only backbone atoms shown)
-<li><b>Ball scale</b> &ndash; fraction of atom radius to use in 
+</li><li><b>Ball scale</b> &ndash; fraction of atom radius to use in 
 <a href="../commands/style.html">ball style</a>
-<li><b>Name</b> &ndash; model name as shown in the
+</li><li><b>Name</b> &ndash; model name as shown in the
 <a href="modelpanel.html"><b>Model Panel</b></a>
-<li><b>Shown</b> &ndash; whether display is enabled at the model level,
+</li><li><b>Shown</b> &ndash; whether display is enabled at the model level,
 see <a href="../hierarchy.html">display hierarchy</a>
-</ul>
+</li></ul>
 
 <a name="atoms"></a>
 <p class="nav">
@@ -94,31 +89,31 @@ see <a href="../hierarchy.html">display hierarchy</a>
 <ul>
 <li><b>B-factor</b> 
 &ndash; atomic B-factor, initially read from the input coordinate file
-<li><b>Color</b> 
+</li><li><b>Color</b> 
 &ndash; atom color
 (the color well can be clicked to adjust the color interactively)
-<li><b>IDATM type</b> 
+</li><li><b>IDATM type</b> 
 &ndash; <a href="../atomtypes.html">atom type</a>
 (shown in gray; cannot be changed in this tool, but see
 <a href="../formats/defattr.html">attribute assignment files</a>,
 <a href="../commands/setattr.html"><b>setattr</b></a>,
 and <a href="buildstructure.html"><b>Build Structure</b></a>)
-<li><b>Occupancy</b> 
+</li><li><b>Occupancy</b> 
 &ndash; atomic occupancy value, initially read from the input coordinate file
-<li><b>Radius</b> &ndash; radius in &Aring; used in
+</li><li><b>Radius</b> &ndash; radius in &Aring; used in
 <a href="../commands/style.html">sphere style</a>
 (and scaled down in <a href="../commands/style.html">ball style</a>),
 initially set to an approximate <a href="../radii.html">VDW radius</a>;
 see also <a href="../commands/size.html"><b>size</b></a>
-<li><b>Shown</b> &ndash; whether display is enabled at the atom level,
+</li><li><b>Shown</b> &ndash; whether display is enabled at the atom level,
 see <a href="../hierarchy.html">display hierarchy</a>
-<li><b>Style</b> &ndash; atom <a href="../commands/style.html">display style</a>
+</li><li><b>Style</b> &ndash; atom <a href="../commands/style.html">display style</a>
  <ul>
  <li><b>ball</b>
- <li><b>sphere</b>
- <li><b>stick</b>
- </ul>
-</ul>
+ </li><li><b>sphere</b>
+ </li><li><b>stick</b>
+ </li></ul>
+</li></ul>
 
 <a name="bonds"></a>
 <p class="nav">
@@ -129,19 +124,19 @@ see <a href="../hierarchy.html">display hierarchy</a>
 <li><b>Color</b> 
 &ndash; color, only visible when the bond is colored 
 independently of atoms (halfbond mode turned off) 
-<li><b>Halfbond mode</b> &ndash; whether bond coloring is in
+</li><li><b>Halfbond mode</b> &ndash; whether bond coloring is in
 <a href="../commands/color.html#halfbond">halfbond mode</a>, meaning that 
 each half of the bond takes on the color of the atom on that end of the bond;
 turning this mode off shows the bond's own color setting, above.
-<li><b>Length</b> &ndash; length in &Aring;
+</li><li><b>Length</b> &ndash; length in &Aring;
 (shown in gray; cannot be changed in this tool, but see
 <a href="buildstructure.html"><b>Build Structure</b></a>)
-<li><b>Radius</b> &ndash; radius in &Aring; used in 
+</li><li><b>Radius</b> &ndash; radius in &Aring; used in 
 <a href="../commands/style.html">stick style</a>;
 see also <a href="../commands/size.html"><b>size</b></a>
-<li><b>Shown</b> &ndash; whether display is enabled at the bond level,
+</li><li><b>Shown</b> &ndash; whether display is enabled at the bond level,
 see <a href="../hierarchy.html">display hierarchy</a>
-</ul>
+</li></ul>
 
 <a name="pb-models"></a>
 <p class="nav">
@@ -155,24 +150,24 @@ see <a href="../hierarchy.html">display hierarchy</a>
 is colored independently of atoms (halfbond mode turned off); 
 adjusting the color sets it for all pseudobonds currently in the model and
 makes it the default for any pseudobonds subsequently added to the model.
-<li><b>Dashes</b> &ndash; number of dashes in a pseudobond,
+</li><li><b>Dashes</b> &ndash; number of dashes in a pseudobond,
 with 0 indicating solid sticks. Odd numbers are rounded down
 to give an even number of dashes. See also:
 <a href="../commands/style.html"><b>style</b></a>
-<li><b>Halfbond mode</b> &ndash; whether pseudobond coloring is in
+</li><li><b>Halfbond mode</b> &ndash; whether pseudobond coloring is in
 <a href="../commands/color.html#halfbond">halfbond mode</a>, meaning that
 each half of the bond takes on the color of the atom on that end of the bond;
 changing the option applies to all pseudobonds currently in the model and
 sets the default for any pseudobonds subsequently added to the model.
-<li><b>Name</b> &ndash; model name as shown in the
+</li><li><b>Name</b> &ndash; model name as shown in the
 <a href="modelpanel.html"><b>Model Panel</b></a>
-<li><b>Radius</b> &ndash; radius in &Aring;;
+</li><li><b>Radius</b> &ndash; radius in &Aring;;
 entering a value uses it for all pseudobonds currently in the model and
 makes it the default for any pseudobonds subsequently added to the model.
 See also: <a href="../commands/size.html"><b>size</b></a>
-<li><b>Shown</b> &ndash; whether display is enabled at the model level,
+</li><li><b>Shown</b> &ndash; whether display is enabled at the model level,
 see <a href="../hierarchy.html">display hierarchy</a>
-</ul>
+</li></ul>
 
 <a name="pseudobonds"></a>
 <p class="nav">
@@ -184,17 +179,17 @@ see <a href="../hierarchy.html">display hierarchy</a>
 &ndash; color, only visible when the 
 <a href="../pseudobonds.html">pseudobond</a> is colored 
 independently of atoms (halfbond mode turned off) 
-<li><b>Halfbond mode</b> &ndash; whether pseudobond coloring is in
+</li><li><b>Halfbond mode</b> &ndash; whether pseudobond coloring is in
 <a href="../commands/color.html#halfbond">halfbond mode</a>, meaning that 
 each half of the bond takes on the color of the atom on that end of the bond;
 turning this mode off shows the bond's own color setting, above.
-<li><b>Length</b> &ndash; length in &Aring;
+</li><li><b>Length</b> &ndash; length in &Aring;
 (shown in gray; cannot be changed)
-<li><b>Radius</b> &ndash; radius in &Aring;;
+</li><li><b>Radius</b> &ndash; radius in &Aring;;
 see also <a href="../commands/size.html"><b>size</b></a>
-<li><b>Shown</b> &ndash; whether display is enabled at the pseudobond level,
+</li><li><b>Shown</b> &ndash; whether display is enabled at the pseudobond level,
 see <a href="../hierarchy.html">display hierarchy</a>
-</ul>
+</li></ul>
 
 <a name="residues"></a>
 <p class="nav">
@@ -204,42 +199,43 @@ see <a href="../hierarchy.html">display hierarchy</a>
 <ul>
 <li><b>Cartoon color</b> 
 &ndash; color of the residue's cartoon segment, if any
-<li><b>Cartoon hides backbone</b>
+</li><li><b>Cartoon hides backbone</b>
 &ndash; whether showing the residue's cartoon segment hides its backbone atoms
 (<a href="../commands/cartoon.html#suppress">details...</a>)
-<li><b>Fill rings</b>
+</li><li><b>Fill rings</b>
 &ndash; whether to fill any rings in the residue;
 see also <a href="../commands/style.html"><b>style</b></a>
-<li><b>Ring fill color</b> 
+</li><li><b>Ring fill color</b> 
 &ndash; color of the residue's ring fill, if any
-<li><b>Ring fill style</b> 
+</li><li><b>Ring fill style</b> 
 &ndash; see also <a href="../commands/style.html"><b>style</b></a>
   <ul>
   <li><b>thick</b>
-  <li><b>thin</b>
-  </ul>
-<li><b>Secondary structure ID</b> 
+  </li><li><b>thin</b>
+  </li></ul>
+</li><li><b>Secondary structure ID</b> 
 &ndash; secondary structure ID number
 (<a href="../attributes.html#ss_id">details...</a>)
-<li><b>Secondary structure type</b>
+</li><li><b>Secondary structure type</b>
 &ndash; secondary structure type of peptide/protein residues
   <ul>
   <li><b>coil</b>
-  <li><b>helix</b>
-  <li><b>strand</b>
-  </ul>
-<li><b>Show cartoon</b>
+  </li><li><b>helix</b>
+  </li><li><b>strand</b>
+  </li></ul>
+</li><li><b>Show cartoon</b>
 &ndash; whether to show the residue's cartoon segment, if any
-<li><b>&phi; angle</b> &ndash; amino acid residue &phi; angle, if applicable
-<li><b>&psi; angle</b> &ndash; amino acid residue &psi; angle, if applicable
-<li><b>&omega; angle</b> &ndash; amino acid residue &omega; angle, if applicable
-<li><b>&chi;1 angle</b> &ndash; amino acid residue &chi;1 angle, if applicable
-<li><b>&chi;2 angle</b> &ndash; amino acid residue &chi;2 angle, if applicable
-<li><b>&chi;3 angle</b> &ndash; amino acid residue &chi;3 angle, if applicable
-<li><b>&chi;4 angle</b> &ndash; amino acid residue &chi;4 angle, if applicable
-</ul>
+</li><li><b>&phi; angle</b> &ndash; amino acid residue &phi; angle, if applicable
+</li><li><b>&psi; angle</b> &ndash; amino acid residue &psi; angle, if applicable
+</li><li><b>&omega; angle</b> &ndash; amino acid residue &omega; angle, if applicable
+</li><li><b>&chi;1 angle</b> &ndash; amino acid residue &chi;1 angle, if applicable
+</li><li><b>&chi;2 angle</b> &ndash; amino acid residue &chi;2 angle, if applicable
+</li><li><b>&chi;3 angle</b> &ndash; amino acid residue &chi;3 angle, if applicable
+</li><li><b>&chi;4 angle</b> &ndash; amino acid residue &chi;4 angle, if applicable
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 June 2021</address>
+
 </body></html>

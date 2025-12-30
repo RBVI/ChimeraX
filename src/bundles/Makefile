@@ -45,7 +45,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  save_command scenes scheme_mgr \
 	  sdf sel_inspector segger segment segmentations seqalign seq_view shape \
 	  shell shortcuts show_sequences sideview sim_matrices similarstructures smiles \
-	  smooth_lines spacenavigator std_commands \
+	  smooth_lines snfg spacenavigator std_commands \
 	  stl storm struct_measure struts surface swapaa swap_res \
 	  tape_measure task_manager test toolbar topography to_quest tug ui umap uniprot \
 	  unit_cell viewdock viperdb vive volume_menu vrml vtk wavefront_obj \

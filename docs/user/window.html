@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,24 +9,20 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
+--><head>
 <title>The ChimeraX Window</title>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<link rel="stylesheet" type="text/css" href="userdocs.css" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="userdocs.css">
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="index.html">
-<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h2>The ChimeraX Window</h2>
 <a href="crispr.png">
-<img class="outlineCR" width="480px" src="crispr.png" 
-alt="ChimeraX window" title="click to enlarge..."></a>
+<img class="outlineCR" width="480px" src="crispr.png" alt="ChimeraX window" title="click to enlarge..."></a>
 <p>
 ChimeraX has an all-in-one window interface in which various
 <b><i>panels</i></b> can be shown, hidden, and repositioned. 
@@ -41,16 +35,16 @@ and a <b><i>status line</i></b> for transient messages across the bottom.
 By default, a <a href="tools/toolbar.html"><b>Toolbar</b></a> with icons
 lies right below the title bar.
 Near the bottom right corner are additional small icons:
-<ul>
-<li><img class="iconbar" src="tools/ui-icons/expand1.png"> 
-or <img class="iconbar" src="tools/ui-icons/contract1.png">
+</p><ul>
+<li><img class="iconbar" src="tools/ui-icons/expand1.png" alt="computer generated image"> 
+or <img class="iconbar" src="tools/ui-icons/contract1.png" alt="computer generated image">
 &ndash; toggle main window to fill overall window
 (see also <a href="commands/ui.html#windowfill"><b>ui windowfill</b></a>)
-<li><img class="iconbar" src="tools/ui-icons/lightning_night.png">
-or <img class="iconbar" src="tools/ui-icons/lightning_day.png"> 
+</li><li><img class="iconbar" src="tools/ui-icons/lightning_night.png" alt="computer generated image">
+or <img class="iconbar" src="tools/ui-icons/lightning_day.png" alt="computer generated image"> 
 &ndash; toggle main window between 3D graphics and <b>Rapid Access</b> 
 <br>(see <a href="tools/filehistory.html"><b>File History</b></a>)
-</ul>
+</li></ul>
 <p>
 See also:
 <a href="commands/camera.html"><b>camera</b></a>,
@@ -78,13 +72,13 @@ A <b><i>panel</i></b> may appear within the <a href="#top">ChimeraX window</a>:
 <li>when a tool is started (for example, from the
 <a href="menu.html#tools"><b>Tools</b> menu</a>
 or with the command <a href="commands/ui.html#tool"><b>tool show</b></a>)
-<li>as the result of a calculation (for example,
+</li><li>as the result of a calculation (for example,
 the <a href="commands/interfaces.html"><b>interfaces</b></a> command
 shows a chain-chain network diagram) 
-<li>as the result of <a href="commands/open.html">opening</a>
+</li><li>as the result of <a href="commands/open.html">opening</a>
 a certain type of data (for example, opening a density map starts 
 <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>)
-</ul>
+</li></ul>
 <p>
 Panels may include clickable icons, interactive 2D representations 
 like network diagrams, and (rendered) HTML with links and images, as in the 
@@ -94,29 +88,29 @@ Users can define custom panels of buttons with the
 A panel can be:
 </p>
 <ul>
-<li>dismissed by clicking the &ldquo;x&rdquo; button <img src="x.png">
+<li>dismissed by clicking the &ldquo;x&rdquo; button <img src="x.png" alt="computer generated image">
 on its title bar (if the panel is docked; a generic close-window button 
 if the panel is undocked) or by unchecking its name in the 
 <a href="#context-menu">context menu</a> of any docked panel's title bar
-<li>shown (if active but hidden) by checking its name in
+</li><li>shown (if active but hidden) by checking its name in
 the bottom section of the <a href="menu.html#tools"><b>Tools</b> menu</a>
 or in the
 <a href="#context-menu">context menu</a> of any docked panel's title bar;
 some panels remain active when dismissed, others do not
-<li>undocked from the main ChimeraX window
-by clicking the &ldquo;rectangles&rdquo; button <img src="undock.png">
+</li><li>undocked from the main ChimeraX window
+by clicking the &ldquo;rectangles&rdquo; button <img src="undock.png" alt="computer generated image">
 on its title bar or by dragging or double-clicking its title bar;
 tools without a title bar
 (the <a href="tools/toolbar.html"><b>Toolbar</b></a>
 and <a href="tools/cli.html"><b>Command Line</b></a>) have a
 <a href="#context-menu">context menu</a> option to <b>Undock</b>
-<li>if <a href="#tool-context">dockable</a>,
+</li><li>if <a href="#tool-context">dockable</a>,
 redocked by dragging or double-clicking its title bar, with the
 dragged location controlling where and how the panel will be inserted
-<li>tabbed with other panels when dropped in the same area; 
+</li><li>tabbed with other panels when dropped in the same area; 
 tabs are shown at the bottom of the tabbed set, and clicking a tab brings the
 corresponding panel to the front
-</ul>
+</li></ul>
 <p>
 The overall window or any undocked panel can be resized by dragging 
 any corner and moved by dragging its title bar.
@@ -126,8 +120,8 @@ while keeping the overall window dimensions the same.
 </p><p>
 The overall window can be toggled to hide/show the current panels 
 by clicking the &ldquo;nested squares&rdquo; button
-<img class="iconbar" src="tools/ui-icons/expand1.png"> 
-<img class="iconbar" src="tools/ui-icons/contract1.png">
+<img class="iconbar" src="tools/ui-icons/expand1.png" alt="computer generated image"> 
+<img class="iconbar" src="tools/ui-icons/contract1.png" alt="computer generated image">
 near its bottom right corner.
 This allows expanding the main window with a single click
 without losing the overall window configuration.
@@ -154,8 +148,7 @@ bringing each in turn to the front.
 See the hotkey assignments listed for a platform as 
 NextChild (cycle windows in a certain order) and 
 PreviousChild (cycle windows in the opposite order) in the
-<a href="https://doc.qt.io/qt-5/qkeysequence.html#standard-shortcuts"
-target="_blank">Qt standard shortcuts table</a>.
+<a href="https://doc.qt.io/qt-5/qkeysequence.html#standard-shortcuts" target="_blank">Qt standard shortcuts table</a>.
 </p>
 
 <a name="context-menu"></a>
@@ -183,32 +176,32 @@ In addition, panels may have their own specific context menus
 </p>
 <ul>
 <li><b>Hide Tool</b>
-<li><b>Help</b>
+</li><li><b>Help</b>
 &ndash; show documentation in the 
 <a href="tools/helpviewer.html"><b>Help Viewer</b></a>
-</ul>
+</li></ul>
 &nbsp;...and certain tool
 <a href="preferences.html#other">preferences</a>, when applicable:
 <ul>
 <li><b>Start at ChimeraX Startup</b>
 &ndash; whether the tool should start automatically upon subsequent 
 ChimeraX startup
-<li><b>In Favorites Menu</b>
+</li><li><b>In Favorites Menu</b>
 &ndash; whether the tool should be listed in the 
 <a href="menu.html#favorites"><b>Favorites</b> menu</a>
-<li><b>Dockable Tool</b>
+</li><li><b>Dockable Tool</b>
 &ndash; whether panels of the tool should be allowed to reinsert automatically
 when dragged over the main window, as opposed to remaining separate;
 initially true for most panels, with exceptions including
 <a href="tools/helpviewer.html"><b>Help Viewer</b></a>
 and <a href="preferences.html"><b>Settings (Preferences)</b></a>
-<li><b>Save Tool Position</b>
+</li><li><b>Save Tool Position</b>
 &ndash; save whether a tool panel is docked, and if so, 
 whether it is on the left, right, top, or bottom side of the main window
 (but not the specific order when multiple panels are docked on the same side);
 save tabbing, if saved for each tool in a tabbed set;
 if undocked, save panel size and screen position
-</ul>
+</li></ul>
 <p>
 Tool <a href="preferences.html#other">preferences</a> can also be set with the
 <a href="commands/ui.html"><b>ui</b></a> command.
@@ -228,19 +221,20 @@ To use ChimeraX graphics fullscreen with controls on a separate screen:
 from the graphics window by choosing <b>Undock</b> from their
 respective <a href="#context-menu">context menus</a>,
 then dragged to the other display
-<li>other <a href="#panels">tool panels</a> can also be
+</li><li>other <a href="#panels">tool panels</a> can also be
 dragged to the other display, or closed, or hidden collectively using the
-<img class="iconbar" src="tools/ui-icons/expand1.png"> icon in the status line
+<img class="iconbar" src="tools/ui-icons/expand1.png" alt="computer generated image"> icon in the status line
 (bottom right)
-<li>command <a href="commands/ui.html#statusbar"><b>ui statusbar false</b></a>
+</li><li>command <a href="commands/ui.html#statusbar"><b>ui statusbar false</b></a>
 hides the status line
-<li>command <a href="commands/ui.html#fullscreen"><b>ui fullscreen true</b></a>
+</li><li>command <a href="commands/ui.html#fullscreen"><b>ui fullscreen true</b></a>
 makes the ChimeraX window fill the screen and hides its title bar
-<li>command <a href="commands/ui.html#menubar"><b>ui menubar false</b></a>
+</li><li>command <a href="commands/ui.html#menubar"><b>ui menubar false</b></a>
 hides the menus (on Windows)
-</ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 June 2023</address>
-</body></html> 
+ 
+</body></html>

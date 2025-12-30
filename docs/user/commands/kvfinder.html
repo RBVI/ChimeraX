@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: kvfinder</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: kvfinder</h3>
 
@@ -43,28 +38,25 @@ class="clRighticon" title="User Guide Index"/></a>
 [&nbsp;<b>showTool</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>replace</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <br>
-</blockquote>
+
 </h3>
 <p>
 The <b>kvfinder</b> command 
 detects cavities or pockets in an atomic structure using
 <b><i>KVFinder</i></b>, a method based on surface shape, as described in:
-<blockquote>
-<a href="https://www.sciencedirect.com/science/article/pii/S2352711020303198"
-target="_blank">parKVFinder: A thread-level parallel approach in biomolecular cavity detection.</a>
+</p><blockquote>
+<a href="https://www.sciencedirect.com/science/article/pii/S2352711020303198" target="_blank">parKVFinder: A thread-level parallel approach in biomolecular cavity detection.</a>
 Guerra JVDS, Ribeiro-Filho HV, Bortot LO, Honorato RV, Pereira JGC, Lopes-de-Oliveira PS.
 <i>SoftwareX.</i> 2020 Jul-Dec;100606.
 <br>
-<a href="https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-021-04519-4"
-target="_blank">
+<a href="https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-021-04519-4" target="_blank">
 pyKVFinder: an efficient and integrable Python package for biomolecular cavity detection and characterization in data science.</a>
 Guerra JVDS, Ribeiro-Filho HV, Jara GE, Bortot LO, Pereira JGC, Lopes-de-Oliveira PS.
 <i>BMC Bioinformatics.</i> 2021 Dec 20;22(1):607.
 </blockquote>
 <p>
 The <b>kvfinder</b> command installs and runs
-<a href="https://lbc-lnbio.github.io/pyKVFinder/"
-target="_blank"><i>pyKVFinder</i></a> locally (it is obtained from
+<a href="https://lbc-lnbio.github.io/pyKVFinder/" target="_blank"><i>pyKVFinder</i></a> locally (it is obtained from
 the <a href="https://pypi.org" target="_blank">PyPi server</a>). 
 It is also implemented as the
 <a href="../tools/findcavities.html"><b>Find Cavities</b></a> tool.
@@ -75,12 +67,9 @@ See also:
 <a href="../measurements.html">measurements</a>,
 <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
 tutorial</a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
-target="_blank">MOLE Channel Coloring tutorial</a>,
-<a href="https://rbvi.github.io/chimerax-recipes/castp/castp.html"
-target="_blank">recipe for reading CASTp pockets</a>,
-the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#kvfinder"
-target="_blank">ChimeraX Find Cavities highlight</a>
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html" target="_blank">MOLE Channel Coloring tutorial</a>,
+<a href="https://rbvi.github.io/chimerax-recipes/castp/castp.html" target="_blank">recipe for reading CASTp pockets</a>,
+the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#kvfinder" target="_blank">ChimeraX Find Cavities highlight</a>
 </p><p>
 Conceptually, the <b><i>KVFinder</i></b> method uses two spherical probes
 to identify cavities:
@@ -94,13 +83,13 @@ probe can go defines the solvent-accessible surface (SAS).
 By default, the <b>SES</b> is used, but the <b>surfaceType</b> option
 can be used to specify SAS instead.
 <br><br>
-<li><b>probeOut</b> with larger radius <i>r2</i> (default <b>4.0</b> &Aring;)
+</li><li><b>probeOut</b> with larger radius <i>r2</i> (default <b>4.0</b> &Aring;)
 is rolled over the VDW spheres of the macromolecule to get an initial estimate
 of the outer limits of the cavities. The cavities are then trimmed further from 
 the exterior by the <b>removalDistance</b> <i>d</i> (default <b>2.4</b> &Aring;)
 to avoid finding too many shallow indentations.
 Using a larger <b>probeOut</b> increases the calculation time.
-</ul>
+</li></ul>
 <p>
 PDB HET residues (solvent, ligands, and ions) are ignored.
 KVFinder calculates the volume and surface area of each identified 
@@ -124,21 +113,21 @@ However,
 <ol>
 <li>the <b>includeAtoms</b> option allows specifying additional atoms
   to include in that surface (for example, a cofactor)
-<li>cavity-finding can be limited to a rectangular box:
+</li><li>cavity-finding can be limited to a rectangular box:
   <ul>
   <li>around specified atoms with <b>boxAtoms</b> option, with padding 
   as per the <b>boxPad</b> option (default <b>2.0</b> &Aring;)
-  <li>alternatively, defined by giving <i>both</i>:
+  </li><li>alternatively, defined by giving <i>both</i>:
     <ul>
     <li><b>boxOrigin</b> <i>x,y,z</i> 
     &ndash; coordinates of the corner of the box separated by commas only
-    <li><b>boxExtent</b> <i>length</i>&nbsp;|&nbsp;<i>lx,ly,lz</i>
+    </li><li><b>boxExtent</b> <i>length</i>&nbsp;|&nbsp;<i>lx,ly,lz</i>
     &ndash; box side length given as a single number in &Aring; 
     for a cubic box, or as three numbers separated by commas only 
     for the box dimensions along X, Y, and Z
-    </ul>
-  </ul>
-</ol>
+    </li></ul>
+  </li></ul>
+</li></ol>
 <p>
 The <b>showBox</b> option indicates whether to create a box-outline model 
 when the search is limited to a box (default <b>true</b>).
@@ -161,4 +150,5 @@ and additional cavity models will be created without closing the existing ones.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 December 2025</address>
+
 </body></html>

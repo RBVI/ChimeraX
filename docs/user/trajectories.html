@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="userdocs.css">
 <title>Trajectories, Model Series, Volume Series</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="index.html">
-<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3>Trajectories, Model Series, Volume Series</h3>
 <p>
@@ -38,7 +33,7 @@ the associated <a href="commands/coordset.html#slider">slider interface</a>,
 or the <b>play coordinates</b> 
 <a href="commands/ui.html#mousemode">mouse mode</a>
 <a href="tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="tools/mouse-icons/coordset.png"></a>,
+<img class="icon" border="1" src="tools/mouse-icons/coordset.png" alt="computer generated image"></a>,
 and saved to a file with <a href="commands/save.html"><b>save</b></a>.
 If <a href="commands/surface.html">molecular surface</a> calculations
 make playback slow, it may be necessary to use the surface option
@@ -53,7 +48,7 @@ from other programs. Details for opening files depend on the file format:
 <li>A multi-model file in mmCIF or PDB format can be opened as a trajectory
 by using the command <a href="commands/open.html#local"><b>open</b></a> with
 <b>coordsets true</b> (default <b>false</b>).
-<li>A trajectory can be read from any of several 
+</li><li>A trajectory can be read from any of several 
 <a href="commands/open.html#trajectory">trajectory coordinate formats</a>
 by <i>first</i> opening a structure (<i>e.g.</i> from a PDB file) 
 containing the same set of atoms as the trajectory, and then opening the
@@ -62,7 +57,7 @@ with the <a href="commands/open.html#structureModel"><b>structureModel</b></a>
 option to specify the already-open atomic structure.
 The structure is needed to supply the topology, or bonding pattern,
 as it is not included in the coordinate file.
-<li>If a PSF
+</li><li>If a PSF
 <a href="commands/open.html#trajtop">trajectory topology file</a> is
 available, however, it can be opened using the menu (<b>File... Open</b>) 
 and the user will be prompted to open the corresponding
@@ -71,9 +66,9 @@ A PSF file can also be opened by using
 <a href="commands/open.html#local"><b>open</b></a> command with the
 the <a href="commands/open.html#coords"><b>coords</b></a> option to specify 
 the <a href="commands/open.html#trajtop">trajectory coordinate file</a>.
-<li>the <a href="commands/open.html#local"><b>open</b></a> command
+</li><li>the <a href="commands/open.html#local"><b>open</b></a> command
 has additional <a href="commands/open.html#traj-options">trajectory options</a>
-</ul>
+</li></ul>
 <p>
 The <a href="commands/coordset.html#slider">slider interface</a>
 for an atomic trajectory allows plotting distances, angles, and other measurables.
@@ -112,7 +107,7 @@ the associated <a href="commands/vseries.html#slider">slider interface</a>,
 or the <b>play map series</b>
 <a href="commands/ui.html#mousemode">mouse mode</a>
 <a href="tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="tools/mouse-icons/vseries.png"></a>.
+<img class="icon" border="1" src="tools/mouse-icons/vseries.png" alt="computer generated image"></a>.
 <a href="markers.html">Markers</a> placed on volume series data are assigned a
 <a href="attributes.html#atom"><b>frame</b> attribute</a> with value
 indicating the associated time step within the series.
@@ -123,4 +118,5 @@ See also: <a href="commands/volume.html"><b>volume</b></a>,
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 May 2025</address>
+
 </body></html>

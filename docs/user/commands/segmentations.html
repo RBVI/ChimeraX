@@ -1,5 +1,4 @@
-<html lang="en">
-  <!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -10,10 +9,8 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-  <head>
-    <link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+    <link rel="stylesheet" type="text/css" href="../userdocs.css">
     <title>Command: segmentations</title>
     <style>
       @media (prefers-color-scheme: dark) {
@@ -26,13 +23,7 @@ or derivations thereof.
   <body>
     <a name="top"></a>
     <a href="../index.html">
-      <img
-        width="60px"
-        src="../ChimeraX-docs-icon.svg"
-        alt="ChimeraX docs icon"
-        class="clRighticon"
-        title="User Guide Index"
-    /></a>
+      <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
     <h3><a href="../index.html#commands">Command</a>: segmentations</h3>
     <p>
@@ -41,38 +32,18 @@ or derivations thereof.
       plane-by-plane interactive segmentation of medical images and other
       <a href="volumeviewer.html">volume data</a>. Users should be aware that
       there is another, different command named
-      <a href="../commands/segmentation.html"><b>segmentation</b></a
-      >, which acts on segmentations read from index maps.
+      <a href="../commands/segmentation.html"><b>segmentation</b></a>, which acts on segmentations read from index maps.
     </p>
     <p>
       See also:
-      <a href="../tools/downloaddicom.html"><b>Download DICOM</b></a
-      >, <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a
-      >, <a href="../tools/maperaser.html"><b>Map Eraser</b></a
-      >, <a href="../commands/volume.html#mask"><b>volume mask</b></a
-      >, <a href="../commands/ui.html#view"><b>ui view</b></a
-      >,
-      <a
-        href="https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
-        >DICOM segmentation tutorial</a
-      >, <a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>,
+      <a href="../tools/downloaddicom.html"><b>Download DICOM</b></a>, <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>, <a href="../tools/maperaser.html"><b>Map Eraser</b></a>, <a href="../commands/volume.html#mask"><b>volume mask</b></a>, <a href="../commands/ui.html#view"><b>ui view</b></a>,
+      <a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html">DICOM segmentation tutorial</a>, <a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>,
       <a href="../tools/medicalimage.html#mousemodes"><b>Medical Image</b></a>
       toolbar icons:
-      <a
-        href="../tools/medicalimage.html#mousemodes"
-        title="Medical Image Toolbar..."
-      >
-        <img class="icon" border="1" src="../tools/mouse-icons/mouse_small.svg"
-      /></a>
-      <a
-        href="../tools/medicalimage.html#mousemodes"
-        title="Medical Image Toolbar..."
-      >
-        <img
-          class="icon"
-          border="1"
-          src="../tools/mouse-icons/right_controller_small.svg"
-      /></a>
+      <a href="../tools/medicalimage.html#mousemodes" title="Medical Image Toolbar...">
+        <img class="icon" border="1" src="../tools/mouse-icons/mouse_small.svg" alt="computer generated image"></a>
+      <a href="../tools/medicalimage.html#mousemodes" title="Medical Image Toolbar...">
+        <img class="icon" border="1" src="../tools/mouse-icons/right_controller_small.svg" alt="computer generated image"></a>
     </p>
 
     <a name="create"></a>
@@ -81,58 +52,44 @@ or derivations thereof.
     <p class="nav">[<a href="#top">back to top: segmentations</a>]</p>
     <h3>Creating and Editing Segmentations</h3>
     <blockquote>
-      <a href="usageconventions.html"><b>Usage</b></a
-      >:
+      <a href="usageconventions.html"><b>Usage</b></a>:
       <b>segmentations &nbsp;create</b>
-      &nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a
-      >&nbsp; &nbsp;<a href="#options"><i>options</i></a>
-      <br />
-      <a href="usageconventions.html"><b>Usage</b></a
-      >:
+      &nbsp;<a href="atomspec.html#othermodels"><i>map-model</i></a>&nbsp; &nbsp;<a href="#options"><i>options</i></a>
+      <br>
+      <a href="usageconventions.html"><b>Usage</b></a>:
       <b>segmentations (&nbsp;add&nbsp;|&nbsp;remove&nbsp;)</b>
-      &nbsp;<a href="atomspec.html#othermodels"><i>seg-model</i></a
-      >&nbsp;
+      &nbsp;<a href="atomspec.html#othermodels"><i>seg-model</i></a>&nbsp;
       [&nbsp;<b>axis</b>&nbsp;&nbsp;<b>axial</b>&nbsp;|&nbsp;coronal&nbsp;|&nbsp;sagittal&nbsp;]
-      &nbsp;<b>center</b>&nbsp;&nbsp;<i>i,j</i> &nbsp;<b>slice</b>&nbsp;&nbsp;<i
-        >k</i
-      >
+      &nbsp;<b>center</b>&nbsp;&nbsp;<i>i,j</i> &nbsp;<b>slice</b>&nbsp;&nbsp;<i>k</i>
       &nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>
       [&nbsp;<b>minIntensity</b>&nbsp;&nbsp;<i>min</i>&nbsp;]
       [&nbsp;<b>maxIntensity</b>&nbsp;&nbsp;<i>max</i>&nbsp;]
-      <br />
-      <a href="usageconventions.html"><b>Usage</b></a
-      >:
+      <br>
+      <a href="usageconventions.html"><b>Usage</b></a>:
       <b>segmentations (&nbsp;add&nbsp;|&nbsp;remove&nbsp;)</b>
-      &nbsp;<a href="atomspec.html#othermodels"><i>seg-model</i></a
-      >&nbsp; &nbsp;<b>center</b>&nbsp;&nbsp;<i>i,j,k</i>
+      &nbsp;<a href="atomspec.html#othermodels"><i>seg-model</i></a>&nbsp; &nbsp;<b>center</b>&nbsp;&nbsp;<i>i,j,k</i>
       &nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>
       [&nbsp;<b>minIntensity</b>&nbsp;&nbsp;<i>min</i>&nbsp;]
       [&nbsp;<b>maxIntensity</b>&nbsp;&nbsp;<i>max</i>&nbsp;]
-      <br />
-      <a href="usageconventions.html"><b>Usage</b></a
-      >:
+      <br>
+      <a href="usageconventions.html"><b>Usage</b></a>:
       <b>segmentations</b>
       <b>mouseModes</b>&nbsp;&nbsp;on&nbsp;|&nbsp;off&nbsp;
-      <br />
-      <a href="usageconventions.html"><b>Usage</b></a
-      >:
+      <br>
+      <a href="usageconventions.html"><b>Usage</b></a>:
       <b>segmentations</b>
       <b>handModes</b>&nbsp;&nbsp;on&nbsp;|&nbsp;off&nbsp;
     </blockquote>
     <p>
       The <b>segmentations create</b> command starts a new segmentation model
       for the specified
-      <a href="atomspec.html#othermodels"><i>map-model</i></a> (<a
-        href="volumeviewer.html"
-        >volume data</a
-      >
+      <a href="atomspec.html#othermodels"><i>map-model</i></a> (<a href="volumeviewer.html">volume data</a>
       model).
     </p>
     <p>
       The <b>segmentations add</b> and <b>segmentations remove</b> add or
       subtract a circular (if 2D) or spherical (if 3D) area from the specified
-      <a href="atomspec.html#othermodels"><i>seg-model</i></a
-      >.
+      <a href="atomspec.html#othermodels"><i>seg-model</i></a>.
     </p>
 
     <ul>
@@ -149,7 +106,7 @@ or derivations thereof.
       </li>
     </ul>
     <p>
-      All grid indices start at zero. The <b>radius</b>&nbsp;&nbsp<i>r</i>
+      All grid indices start at zero. The <b>radius</b>&nbsp;&nbsp;<i>r</i>
       is the radius of the circular or spherical area being added to or
       subtracted from the segmentation.
     </p>
@@ -166,8 +123,7 @@ or derivations thereof.
     </p>
     <p>
       The remaining options set/unset button functions associated with
-      <a href="../tools/segmentations.html"><b>Segmentations</b></a
-      >:
+      <a href="../tools/segmentations.html"><b>Segmentations</b></a>:
     </p>
     <ul>
       <li>
@@ -179,15 +135,8 @@ or derivations thereof.
         (on), or return to previous assignments (off); the
         <a href="../tools/medicalimage.html#mousemodes"><b>Medical Image</b></a>
         toolbar icon
-        <a
-          href="../tools/medicalimage.html#mousemodes"
-          title="Medical Image Toolbar..."
-        >
-          <img
-            class="icon"
-            border="1"
-            src="../tools/mouse-icons/mouse_small.svg"
-        /></a>
+        <a href="../tools/medicalimage.html#mousemodes" title="Medical Image Toolbar...">
+          <img class="icon" border="1" src="../tools/mouse-icons/mouse_small.svg" alt="computer generated image"></a>
         toggles between these states.
       </li>
 
@@ -200,21 +149,15 @@ or derivations thereof.
         (on), or return to previous assignments (off); the
         <a href="../tools/medicalimage.html#mousemodes"><b>Medical Image</b></a>
         toolbar icon
-        <a
-          href="../tools/medicalimage.html#mousemodes"
-          title="Medical Image Toolbar..."
-          ><img
-            class="icon"
-            border="1"
-            src="../tools/mouse-icons/right_controller_small.svg"
-        /></a>
+        <a href="../tools/medicalimage.html#mousemodes" title="Medical Image Toolbar..."><img class="icon" border="1" src="../tools/mouse-icons/right_controller_small.svg" alt="computer generated image"></a>
         toggles between these states.
       </li>
     </ul>
 
-    <hr />
+    <hr>
     <address>
       UCSF Resource for Biocomputing, Visualization, and Informatics / May 2024
     </address>
-  </body>
-</html>
+  
+
+</body></html>

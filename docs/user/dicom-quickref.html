@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="userdocs.css">
 <title>ChimeraX: DICOM Reference</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="index.html">
-<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3>ChimeraX: DICOM Reference</h3>
 
@@ -31,7 +26,7 @@ Overview of ChimeraX features for working with
 <blockquote><b>
 <a href="#opening">Opening Data</a>
 <br><a href="#icons">Toolbar Icons</a>
-&nbsp;&nbsp;<img class="iconbar" src="medical-icons.png">
+&nbsp;&nbsp;<img class="iconbar" src="medical-icons.png" alt="computer generated image">
 <br><a href="#initial">Initial Display</a>
 <br><a href="#manipulation">Manipulation</a>
 <br><a href="#presets">Appearance Presets</a>
@@ -58,8 +53,7 @@ See also:
 <a href="commands/ui.html#view"><b>ui view</b></a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html">DICOM segmentation tutorial</a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
-target="_blank">ChimeraX for Medical Image Analysis</a>
+<a href="https://www.rbvi.ucsf.edu/chimerax/dicom/index.html" target="_blank">ChimeraX for Medical Image Analysis</a>
 </p>
 
 <a name="opening"></a>
@@ -77,7 +71,7 @@ Menu: <b>File... Open DICOM Folder</b>
 browse to location, choose directory, click <b>Choose</b>
 <br>&ndash; or &ndash;
 <br>
-click <img class="icon" border=1 src="tools/toolbar-icons/opendicom.png">
+click <img class="icon" border="1" src="tools/toolbar-icons/opendicom.png" alt="computer generated image">
 in the <a href="tools/medicalimage.html"><b>Medical&nbsp;Image</b></a>
 tab of the <a href="tools/toolbar.html"><b>Toolbar</b></a>
 &ndash; in the resulting dialog,
@@ -91,7 +85,7 @@ Command: <a href="commands/open.html#local"><b>open</b></a>
 ...where <i>directory-pathname</i> may contain * as wildcard to lessen
 typing, and should be enclosed in quotation marks if it includes spaces,
 for example:
-<blockquote>
+</p><blockquote>
 <b>open "~/Desktop/2-CT 5*" format dicom</b>
 </blockquote>
 <p>
@@ -108,67 +102,67 @@ The <a href="tools/medicalimage.html"><b>Medical&nbsp;Image</b></a> tab
 contains an application-specific collection of icons:
 </p>
 <ul class="none">
-<li><img class="icon" border=1 src="tools/toolbar-icons/opendicom.png">
+<li><img class="icon" border="1" src="tools/toolbar-icons/opendicom.png" alt="computer generated image">
 &nbsp;open DICOM, as <a href="#opening">above</a>
-<li><img class="icon" border=1 src="tools/toolbar-icons/recentfiles.png">
+</li><li><img class="icon" border="1" src="tools/toolbar-icons/recentfiles.png" alt="computer generated image">
 &nbsp;show/hide recent files list
-<li><img class="icon" border=1 src="tools/shortcut-icons/camera.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/camera.png" alt="computer generated image">
 &nbsp;save snapshot
-<li><img class="icon" border=1 src="tools/shortcut-icons/plane.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/plane.png" alt="computer generated image">
 &nbsp;single plane
-<li><img class="icon" border=1 src="tools/shortcut-icons/slab.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/slab.png" alt="computer generated image">
 &nbsp;tilted slab (<a href="commands/volume.html#tiltedslab">details...</a>)
-<li><img class="icon" border=1 src="tools/shortcut-icons/orthoplanes.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/orthoplanes.png" alt="computer generated image">
 &nbsp;orthoplanes
-<li><img class="icon" border=1 src="tools/shortcut-icons/fullvolume.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/fullvolume.png" alt="computer generated image">
 &nbsp;full region
-<li><img class="icon" border=1 src="tools/shortcut-icons/outlinebox.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/outlinebox.png" alt="computer generated image">
 &nbsp;toggle outline box
-<li><img class="icon" border=1 src="tools/shortcut-icons/airways.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/airways.png" alt="computer generated image">
 &nbsp;airways <a href="#presets">preset</a> for image display
-<li><img class="icon" border=1 src="tools/shortcut-icons/chest.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/chest.png" alt="computer generated image">
 &nbsp;chest <a href="#presets">preset</a> for image display
-<li><img class="icon" border=1 src="tools/shortcut-icons/brain.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/brain.png" alt="computer generated image">
 &nbsp;brain <a href="#presets">preset</a> for image display
-<li><img class="icon" border=1 src="tools/shortcut-icons/initialcurve.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/initialcurve.png" alt="computer generated image">
 &nbsp;initial thresholds for image display, <i>e.g.</i>, for single planes
-<li><img class="icon" border=1 src="tools/shortcut-icons/orient.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/orient.png" alt="computer generated image">
 &nbsp;view all, standard orientation
-<li><img class="icon" border=1 src="tools/shortcut-icons/step1.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/step1.png" alt="computer generated image">
 &nbsp;step 1, full resolution of data
-<li><img class="icon" border=1 src="tools/shortcut-icons/step2.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/step2.png" alt="computer generated image">
 &nbsp;step 2 subsample
-<li><img class="icon" border=1 src="tools/shortcut-icons/xyzslice.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/xyzslice.png" alt="computer generated image">
 &nbsp;2D xyz projection mode
 (<a href="commands/volume.html#pmode">details...</a>)
-<li><img class="icon" border=1 src="tools/shortcut-icons/perpslice.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/perpslice.png" alt="computer generated image">
 &nbsp;3D projection mode
 (<a href="commands/volume.html#pmode">details...</a>)
-<li><img class="icon" border=1 src="tools/shortcut-icons/raycasting.svg">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/raycasting.svg" alt="computer generated image">
 &nbsp;raycasting projection mode
 (<a href="commands/volume.html#pmode">details...</a>)
-</ul>
+</li></ul>
 <a name="medmouse"></a>
 Those on the far right assign a 
 &ldquo;<a href="commands/ui.html#mousemode">mouse mode</a>&rdquo;
 function to the right mouse button (= trackpad + <b>Alt</b> on Windows,
-trackpad + <img src="icon-clover.png" width="12px"> on Mac)
+trackpad + <img src="icon-clover.png" width="12px" alt="computer generated image"> on Mac)
 or <a href="vr.html#mousemodes">VR hand-controller button</a>:
 <ul class="none">
-<li><img class="icon" border=1 src="tools/mouse-icons/crop.png">
+<li><img class="icon" border="1" src="tools/mouse-icons/crop.png" alt="computer generated image">
 &nbsp;crop volume box
-<li><img class="icon" border=1 src="tools/mouse-icons/moveplanes.png">
+</li><li><img class="icon" border="1" src="tools/mouse-icons/moveplanes.png" alt="computer generated image">
 &nbsp;view different planes of data along an axis
-<li><img class="icon" border=1 src="tools/mouse-icons/rotateslab.png">
+</li><li><img class="icon" border="1" src="tools/mouse-icons/rotateslab.png" alt="computer generated image">
 &nbsp;rotate slab to slice data at any angle
 (<a href="commands/volume.html#tiltedslab">details...</a>)
-<li><img class="icon" border=1 src="tools/mouse-icons/tape.png">
+</li><li><img class="icon" border="1" src="tools/mouse-icons/tape.png" alt="computer generated image">
 &nbsp;tape-measure distance measurement
 (<a href="tools/mousemodes.html#tapemeasure">details...</a>)
-<li><img class="icon" border=1 src="tools/mouse-icons/windowing.png">
+</li><li><img class="icon" border="1" src="tools/mouse-icons/windowing.png" alt="computer generated image">
 &nbsp;adjust image display thresholds collectively
 (<a href="#windowing">details...</a>)
-</ul>
+</li></ul>
 <p>
 Mouse modes are described further in the section on 
 <a href="#manipulation">manipulation</a>.
@@ -184,52 +178,51 @@ with a histogram of the data is automatically shown, with <b>plane</b>
 as the chosen display style.
 </p>
 <table>
-<tr><th align="center" class="shaded">
+<tbody><tr><th align="center" class="shaded">
 <font size="-1">[this dataset provided <a href="#data">below</a>]</font>
 </th></tr>
 <tr><td>
 <a href="dicom/screenshot1.png">
-<img class="outline" src="dicom/screenshot1.png" title="click to enlarge..."
-alt="screenshot 1" width="650px"></a></td></tr>
-</table>
+<img class="outline" src="dicom/screenshot1.png" title="click to enlarge..." alt="screenshot 1" width="650px"></a></td></tr>
+</tbody></table>
 
 <ul>
 <li>To view different planes along the data Z axis, use the slider
 below the histogram. Pausing the cursor over the plane display
 shows the voxel indices and data value in a pop-up balloon.
-<li>Planes along X, Y, <b><i>or</i></b> Z can be shown as follows:
+</li><li>Planes along X, Y, <b><i>or</i></b> Z can be shown as follows:
   <ol>
   <li>click 
-<img class="icon" border=1 src="tools/mouse-icons/moveplanes.png">
+<img class="icon" border="1" src="tools/mouse-icons/moveplanes.png" alt="computer generated image">
 to assign the <b>move planes</b> <a href="#manipulation">mouse mode</a>
 to the right mouse button (= trackpad + <b>Alt</b> on Windows,
-trackpad + <img src="icon-clover.png" width="12px"> on Mac)
-  <li>click-drag with the assigned button to show different planes along the axis
-  <li>to switch axes:
+trackpad + <img src="icon-clover.png" width="12px" alt="computer generated image"> on Mac)
+  </li><li>click-drag with the assigned button to show different planes along the axis
+  </li><li>to switch axes:
      <ul>
 <li>show the full region of the data and its outline box
 by clicking the <a href="#icons">toolbar icons</a>
-<img class="icon" border=1 src="tools/shortcut-icons/fullvolume.png">
-<img class="icon" border=1 src="tools/shortcut-icons/outlinebox.png">
+<img class="icon" border="1" src="tools/shortcut-icons/fullvolume.png" alt="computer generated image">
+<img class="icon" border="1" src="tools/shortcut-icons/outlinebox.png" alt="computer generated image">
 or using the <a href="tools/volumeviewer.html#context">context menu</a>
 in the <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a> window
 (right-click or <b>Ctrl</b>-click depending on platform)
-    <li><a href="#manipulation">reorient</a> the box as needed
-    <li>click the desired face of the box with the button assigned to
+    </li><li><a href="#manipulation">reorient</a> the box as needed
+    </li><li>click the desired face of the box with the button assigned to
     <b>move planes</b>
-  </ul>
- </ol>
-<li>Planes along X, Y, <b><i>and</i></b> Z at the same time can be shown
+  </li></ul>
+ </li></ol>
+</li><li>Planes along X, Y, <b><i>and</i></b> Z at the same time can be shown
 by choosing the <b>orthoplanes</b> display style in
 <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>
 or clicking the <a href="#icons">toolbar icon</a>
-<img class="icon" border=1 src="tools/shortcut-icons/orthoplanes.png">
-<li>To return to Z-planes from orthoplanes or 3D rendering,
+<img class="icon" border="1" src="tools/shortcut-icons/orthoplanes.png" alt="computer generated image">
+</li><li>To return to Z-planes from orthoplanes or 3D rendering,
 choose the <b>plane</b> display style in
 <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>
 or click the <a href="#icons">toolbar icon</a>
-<img class="icon" border=1 src="tools/shortcut-icons/plane.png">
-</ul>
+<img class="icon" border="1" src="tools/shortcut-icons/plane.png" alt="computer generated image">
+</li></ul>
 <p>
 For 3D volume rendering, choose <b>volume</b> display
 in <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>.
@@ -239,7 +232,7 @@ to improve the appearance after switching display styles.
 </p><p>
 For full resolution, set the <b>step</b> value to <b>1</b>
 or click the <a href="#icons">toolbar icon</a>
-<img class="icon" border=1 src="tools/shortcut-icons/step1.png">.
+<img class="icon" border="1" src="tools/shortcut-icons/step1.png" alt="computer generated image">.
 Subsampling (<b>step</b> &gt; 1) decreases computational demands and
 may be needed for responsive rendering of large datasets, particularly in
 <a href="#vr">virtual reality</a>. Step size may be adjusted automatically
@@ -247,11 +240,9 @@ upon initial display or when the amount of data shown is changed.
 </p><p>
 When multiple datasets or other models are open at the same time,
 they can be hidden or shown individually, such as with the
-<img class="iconbar" src="tools/ui-icons/shown.png" 
-title="eye icon" alt="eye icon"> icons above their histograms in
+<img class="iconbar" src="tools/ui-icons/shown.png" title="eye icon" alt="eye icon"> icons above their histograms in
 <a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>, the 
-<img class="iconbar" src="tools/ui-icons/shown.png" 
-title="eye icon" alt="eye icon">
+<img class="iconbar" src="tools/ui-icons/shown.png" title="eye icon" alt="eye icon">
 checkboxes in the <a href="tools/modelpanel.html"><b>Model Panel</b></a>,
 or the <a href="commands/volume.html"><b>volume</b></a> command.
 Many settings can be adjusted with either the
@@ -269,22 +260,21 @@ For orthographic projection:
 To center and scale the display to fit in the graphics window:
 <b><a href="commands/view.html#initial">view</a></b>
 &nbsp; ...or click <a href="tools/graphics.html">graphics icon</a>
-<img class="icon" border=1 src="tools/shortcut-icons/viewall.png">
+<img class="icon" border="1" src="tools/shortcut-icons/viewall.png" alt="computer generated image">
 <br>
 To center and scale as above, plus reset to initial orientation:
 <b><a href="commands/view.html#initial">view</a> orient</b>
 &nbsp; ...or click <a href="tools/graphics.html">graphics icon</a>
-<img class="icon" border=1 src="tools/shortcut-icons/orient.png">
+<img class="icon" border="1" src="tools/shortcut-icons/orient.png" alt="computer generated image">
 </p>
 <table>
-<tr><th align="center" class="shaded">
+<tbody><tr><th align="center" class="shaded">
 <font size="-1">[this dataset provided <a href="#data">below</a>]</font>
 </th></tr>
 <tr><td>
 <a href="dicom/screenshot2.png">
-<img class="outline" src="dicom/screenshot2.png" title="click to enlarge..."
-alt="screenshot 2" width="650px"></a></td></tr>
-</table>
+<img class="outline" src="dicom/screenshot2.png" title="click to enlarge..." alt="screenshot 2" width="650px"></a></td></tr>
+</tbody></table>
 <p>
 Some DICOM files contain <b><i>time series</i></b> that can be played with 
 the time slider shown automatically by ChimeraX or with
@@ -308,9 +298,9 @@ Manipulation</h3>
 <p>
 Default assignments:
 </p>
-<table border cellpadding="4" cellspacing="0"><tr>
+<table border cellpadding="4" cellspacing="0"><tbody><tr>
 <td align="center" rowspan="3"><b>rotate</b>
-<br><img src="tools/mouse-icons/rotate.png" class="icon3"></td>
+<br><img src="tools/mouse-icons/rotate.png" class="icon3" alt="computer generated image"></td>
 <td>left mouse button</td>
 </tr><tr>
 <td class="text">trackpad click-drag
@@ -320,7 +310,7 @@ Default assignments:
 with trigger pressed</td>
 </tr><tr>
 <td align="center" rowspan="3"><b>translate</b>
-<br><img src="tools/mouse-icons/translate.png" class="icon3"></td>
+<br><img src="tools/mouse-icons/translate.png" class="icon3" alt="computer generated image"></td>
 <td>middle mouse button</td>
 </tr><tr>
 <td class="text">
@@ -338,7 +328,7 @@ Windows: trackpad + <b>Ctrl-Alt</b>
 with trigger pressed</td>
 </tr><tr>
 <td align="center" rowspan="3"><b>zoom</b>
-<br><img src="tools/mouse-icons/zoom.png" class="icon3"></td>
+<br><img src="tools/mouse-icons/zoom.png" class="icon3" alt="computer generated image"></td>
 <td>mouse scroll wheel</td>
 </tr><tr>
 <td class="text">
@@ -350,24 +340,24 @@ Windows: trackpad 2-finger drag
 </tr><tr>
 <td class="text">move VR hand controllers
 farther apart or closer together with both trigger buttons pressed</td>
-</tr></table>
+</tr></tbody></table>
 *Use of Mac multitouch gestures can be turned on and off in the ChimeraX
 <a href="preferences.html#trackpad">Trackpad preferences</a>
 <p>
 Initially, the right mouse button (= trackpad + <b>Alt</b> on Windows,
 <!-- and on some Windows systems, trackpad lower-right corner -->
-trackpad + <img src="icon-clover.png" width="12px"> on Mac)
+trackpad + <img src="icon-clover.png" width="12px" alt="computer generated image"> on Mac)
 is also assigned to <b>translate</b> 
-&nbsp;<img class="icon" border=1 src="tools/mouse-icons/translate.png">,
+&nbsp;<img class="icon" border="1" src="tools/mouse-icons/translate.png" alt="computer generated image">,
 but can be reassigned by clicking any icon in the following tabs of the
 <a href="tools/toolbar.html"><b>Toolbar</b></a>:
 </p>
 <ul>
 <li><a href="tools/mousemodes.html"><b>Right Mouse</b></a>:&nbsp;
-&nbsp;<img class="iconbar" src="mouse-icons.png">
-<li><a href="tools/markers.html"><b>Markers</b></a>:&nbsp;
-<img class="iconbar" src="marker-icons.png">
-</ul>
+&nbsp;<img class="iconbar" src="mouse-icons.png" alt="computer generated image">
+</li><li><a href="tools/markers.html"><b>Markers</b></a>:&nbsp;
+<img class="iconbar" src="marker-icons.png" alt="computer generated image">
+</li></ul>
 <p>
 ...or the last few icons in the in the 
 <a href="tools/medicalimage.html"><b>Medical&nbsp;Image</b></a> tab,
@@ -381,10 +371,8 @@ Buttons can also be reassigned with the
 Appearance Presets</h3>
 <p>
 ChimeraX includes rough implementations of the
-<a href="https://github.com/horosproject/horos/tree/horos/Horos/Resources/3DPRESETS"
-target="_blank">Horos 3D presets</a> and some of the 
-<a href="https://www.mccauslandcenter.sc.edu/mricrogl/" 
-target="_blank">MRIcroGL</a> color lookup tables.
+<a href="https://github.com/horosproject/horos/tree/horos/Horos/Resources/3DPRESETS" target="_blank">Horos 3D presets</a> and some of the 
+<a href="https://www.mccauslandcenter.sc.edu/mricrogl/" target="_blank">MRIcroGL</a> color lookup tables.
 They can be applied by name with the
 <a href="commands/volume.html"><b>volume</b></a> command
 <a href="commands/volume.html#appearance"><b>appearance</b></a> option,
@@ -404,35 +392,34 @@ The following presets, also available as <a href="#icons">toolbar icons</a>,
 are defined in ChimeraX only:
 </p>
 <ul class="none">
-<li><img class="icon" border=1 src="tools/shortcut-icons/airways.png">
+<li><img class="icon" border="1" src="tools/shortcut-icons/airways.png" alt="computer generated image">
 <b>appearance airways</b> 
 &ndash; blue airways
-<li><img class="icon" border=1 src="tools/shortcut-icons/chest.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/chest.png" alt="computer generated image">
 <b>appearance chest</b> 
 &ndash; yellow bones, blue airways, some other tissues in pink
-<li><img class="icon" border=1 src="tools/shortcut-icons/brain.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/brain.png" alt="computer generated image">
 <b>appearance brain</b> 
 &ndash; yellow for fat and similar soft tissue, white of increasing intensity
 for brain on up to bone, blue for compact bone
-<li><img class="icon" border=1 src="tools/shortcut-icons/initialcurve.png">
+</li><li><img class="icon" border="1" src="tools/shortcut-icons/initialcurve.png" alt="computer generated image">
 <b>appearance initial</b> 
 &ndash; the same colors and intensities as chosen automatically 
 when a dataset is first shown in the image style;
 may be useful for single-plane display
-</ul>
+</li></ul>
 <p>
 Users can also define their own
 <a href="commands/volume.html#nameAppearance">custom appearance presets</a>.
 </p>
 <table>
-<tr><th align="center" class="shaded">
+<tbody><tr><th align="center" class="shaded">
 <font size="-1">[this dataset provided <a href="#data">below</a>]</font>
 </th></tr>
 <tr><td>
 <a href="dicom/screenshot3.png">
-<img class="outline" src="dicom/screenshot3.png" title="click to enlarge..."
-alt="screenshot 3" width="650px"></a></td></tr>
-</table>
+<img class="outline" src="dicom/screenshot3.png" title="click to enlarge..." alt="screenshot 3" width="650px"></a></td></tr>
+</tbody></table>
 
 <a name="windowing"></a>
 <h3><a href="#top" class="nounder">&larr;</a>
@@ -451,16 +438,16 @@ Applying a <a href="#presets">3D preset</a> sets thresholds and colors,
 among other things.
 Threshold levels and colors can also be set explicitly with the
 <a href="commands/volume.html"><b>volume</b></a> command, for example: 
-<blockquote>
+</p><blockquote>
 <b>volume #1 level -742,0.0 level -683,0.049 level -481,0.25 level -333,0.0 color 0,61,71 color 0,61,71 color 0,61,71 color 0,61,71</b>
 </blockquote>
 <p>
 A <b>windowing</b> mouse mode allows adjusting 
 image display thresholds collectively:
 </p>
-<table border cellpadding="4" cellspacing="0"><tr>
+<table border cellpadding="4" cellspacing="0"><tbody><tr>
 <td align="center"><b>windowing</b>
-<br><img src="tools/mouse-icons/windowing.png" class="icon3"></td>
+<br><img src="tools/mouse-icons/windowing.png" class="icon3" alt="computer generated image"></td>
 <td class="text">
 vertical motion adjusts <b><i>window level</i></b>
 (moves all thresholds in parallel to higher or lower values),
@@ -470,7 +457,7 @@ and the dominant type of motion wins out;
 for adjusting multiple windows within a single histogram,
 see <a href="tools/mousemodes.html#multiwindowing">details</a>
 </td>
-</tr></table>
+</tr></tbody></table>
 <p>
 A mouse mode can be assigned to a button
 as described <a href="#manipulation">above</a>.
@@ -489,32 +476,32 @@ that may be useful:
 render using planes perpendicular to the line of sight
 (default for DICOM, see <a href="commands/volume.html#pmode">details...</a>);
 see also <a href="#icons">toolbar icons</a>
-<img class="icon" border=1 src="tools/shortcut-icons/xyzslice.png">
-<img class="icon" border=1 src="tools/shortcut-icons/perpslice.png">
-<img class="icon" border=1 src="tools/shortcut-icons/raycasting.svg">
-<li><b>planeSpacing</b> &ndash; plane spacing for 3D projection mode
+<img class="icon" border="1" src="tools/shortcut-icons/xyzslice.png" alt="computer generated image">
+<img class="icon" border="1" src="tools/shortcut-icons/perpslice.png" alt="computer generated image">
+<img class="icon" border="1" src="tools/shortcut-icons/raycasting.svg" alt="computer generated image">
+</li><li><b>planeSpacing</b> &ndash; plane spacing for 3D projection mode
 (<a href="commands/volume.html#planeSpacing">details...</a>)
-<li><b>brightness</b> &nbsp;<i>value</i>
+</li><li><b>brightness</b> &nbsp;<i>value</i>
 &ndash; scale the intensity (initial default <b>1</b>)
 (<a href="commands/volume.html#brightness">details...</a>)
-<li><b>transparency</b> &nbsp;<i>value</i>
+</li><li><b>transparency</b> &nbsp;<i>value</i>
 &ndash; scale transparency relative to dataset thickness;
 approximately what fraction of dataset thickness produces 
 the opacity values shown by the threshold heights on the histogram
 (initial default <b>0.5</b>, range 0-1)
 (<a href="commands/volume.html#transparency">details...</a>)
 <!-- transparency opposite effects depending on dimtransparentvoxels T or F -->
-<li><b>dimTransparentVoxels &nbsp;false</b>
-&ndash; whether to scale brightness by (1–transparency), making transparent
+</li><li><b>dimTransparentVoxels &nbsp;false</b>
+&ndash; whether to scale brightness by (1&acirc;&euro;&ldquo;transparency), making transparent
 voxels dimmer; if <b>false</b> (initial default <b>true</b>),
 the appearance is brighter because less light is blocked
 (<a href="commands/volume.html#dimvox">details...</a>)
-<li><b>maximumIntensityProjection &nbsp;true</b>
+</li><li><b>maximumIntensityProjection &nbsp;true</b>
 &ndash; whether to display the the most intense color value underlying each
 pixel along the line of sight (initial default <b>false</b>);
 sometimes useful for enhancing detail
 (<a href="commands/volume.html#maximumintensity">details...</a>)
-<li><b>colormapOnGpu</b>, <b>fullRegionOnGpu</b>, <b>colormapSize</b>
+</li><li><b>colormapOnGpu</b>, <b>fullRegionOnGpu</b>, <b>colormapSize</b>
 &ndash; options for rendering efficiency
 (<a href="commands/volume.html#colormapOnGpu">details...</a>)
 <!--
@@ -524,7 +511,7 @@ sometimes useful for enhancing detail
 *not yet implemented* and different from the problem of brightness changes
 due to different grid spacing along x,y,z
 -->
-</ul>
+</li></ul>
 
 <a name="clipping"></a>
 <h3><a href="#top" class="nounder">&larr;</a>
@@ -537,17 +524,17 @@ reducing the computational demands of rendering. Cropping can be done with:
 </p>
 <ul>
 <li>the <b>crop volume</b> <a href="#manipulation">mouse mode</a>
-<img class="icon" border=1 src="tools/mouse-icons/crop.png">
-<li>the <a href="commands/volume.html"><b>volume</b></a> command,
+<img class="icon" border="1" src="tools/mouse-icons/crop.png" alt="computer generated image">
+</li><li>the <a href="commands/volume.html"><b>volume</b></a> command,
 for example: <b>volume #1 <a href="commands/volume.html#dimensions">region</a>
 200,200,150,300,300,200</b>
 <br>...to go back to the full dimensions:
 <b>volume #1 <a href="commands/volume.html#dimensions">region</a> all</b>
-</ul>
+</li></ul>
 <p>
 A cropped slab display can be moved along an axis using
 the <b>move planes</b> <a href="#manipulation">mouse mode</a>
-<img class="icon" border=1 src="tools/mouse-icons/moveplanes.png">.
+<img class="icon" border="1" src="tools/mouse-icons/moveplanes.png" alt="computer generated image">.
 Single planes can be viewed as described <a href="#initial">above</a>.
 </p><p>
 In contrast, <b><i>clipping</i></b> may not have much effect on rendering speed,
@@ -559,9 +546,9 @@ Both kinds can be controlled with the
 <a href="commands/clip.html"><b>clip</b></a> command
 or with the following mouse modes:
 </p>
-<table border cellpadding="4" cellspacing="0"><tr>
+<table border cellpadding="4" cellspacing="0"><tbody><tr>
 <td align="center"><b>clip</b>
-<br><img src="tools/mouse-icons/clip.png" class="icon3"></td>
+<br><img src="tools/mouse-icons/clip.png" class="icon3" alt="computer generated image"></td>
 <td class="text">
 activate and translate front clipping plane,
 +<b>Alt</b> back plane, +<b>Shift</b> slab (front and back in same direction),
@@ -570,10 +557,10 @@ if only near/far (fixed-orientation) planes already active, move those
 instead of front/back (rotatable) planes</td>
 </tr><tr>
 <td align="center"><b>clip rotate</b>
-<br><img src="tools/mouse-icons/cliprot.png" class="icon3"></td>
+<br><img src="tools/mouse-icons/cliprot.png" class="icon3" alt="computer generated image"></td>
 <td class="text">
 activate and rotate front/back clipping planes</td>
-</tr></table>
+</tr></tbody></table>
 <p>
 A mouse mode can be assigned to a button
 as described <a href="#manipulation">above</a>.
@@ -597,11 +584,11 @@ Important aspects of using VR:
 <li>Rendering speed must be fast enough to avoid nauseating lags
 in the display when the scene or headset position changes.
 With large volume data, techniques to 
-speed up rendering include subsampling (<b>step</b> &gt 1),
+speed up rendering include subsampling (<b>step</b> &gt; 1),
 <a href="#clipping">cropping</a>, and 
 <a href="commands/volume.html#colormapOnGpu">using the GPU</a>.
 <br><br>
-<li>VR hand controllers
+</li><li>VR hand controllers
 are used for <a href="#manipulation">manipulation</a> and clicking icons.
 Clicking the hand-controller <i>menu</i> button (on Vive, analogous 
 on other systems) shows the ChimeraX user interface with icons in the headset.
@@ -615,25 +602,22 @@ zooming) is recommended, but up to four other functions can be assigned,
 to the <i>grip</i> and <i>trackpad</i> buttons on each controller.
 Useful modes for DICOM in VR include
 <b>move planes</b>
-<img class="icon" border=1 src="tools/mouse-icons/moveplanes.png">,
+<img class="icon" border="1" src="tools/mouse-icons/moveplanes.png" alt="computer generated image">,
 <b>crop volume</b>
-<img class="icon" border=1 src="tools/mouse-icons/crop.png">,
+<img class="icon" border="1" src="tools/mouse-icons/crop.png" alt="computer generated image">,
 and <b>windowing</b>
-<img class="icon" border=1 src="tools/mouse-icons/windowing.png">.
+<img class="icon" border="1" src="tools/mouse-icons/windowing.png" alt="computer generated image">.
 </p>
-</ul>
+</li></ul>
 <p>
 See also:
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html">DICOM segmentation tutorial</a>,
 the <a href="https://vr.ucsf.edu/" target="_blank">VR at UCSF</a> website,
 VR setup advice and observations on different systems:
-<a href="https://www.cgl.ucsf.edu/chimera/data/laptop-vr-nov2018/laptopvr.html"
-target="_blank">Windows</a>,
-<a href="https://www.cgl.ucsf.edu/chimera/data/mac-vr-nov2018/mac-vr.html"
-target="_blank">Mac</a>,
-<a href="https://www.cgl.ucsf.edu/chimera/data/linux-vr-oct2018/linuxvr.html"
-target="_blank">Linux</a>
+<a href="https://www.cgl.ucsf.edu/chimera/data/laptop-vr-nov2018/laptopvr.html" target="_blank">Windows</a>,
+<a href="https://www.cgl.ucsf.edu/chimera/data/mac-vr-nov2018/mac-vr.html" target="_blank">Mac</a>,
+<a href="https://www.cgl.ucsf.edu/chimera/data/linux-vr-oct2018/linuxvr.html" target="_blank">Linux</a>
 </p>
 
 <a name="data"></a>
@@ -642,14 +626,12 @@ Sample Data</h3>
 <p>
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom/4-24533.zip">4-24533.zip</a>
 &ndash; a DICOM stack representing one CT scan of many in the
-<a href="https://wiki.cancerimagingarchive.net/display/Public/RIDER+Lung+CT#73dc3a9f2e854316974bb0f766ae69ab" 
-target="_blank">RIDER Lung CT</a> collection 
+<a href="https://wiki.cancerimagingarchive.net/display/Public/RIDER+Lung+CT#73dc3a9f2e854316974bb0f766ae69ab" target="_blank">RIDER Lung CT</a> collection 
 <!--
 (see <a href="https://pubs.rsna.org/doi/full/10.1148/radiol.2522081593"
 target="_blank">publication</a>)
 -->
-from <a href="https://www.cancerimagingarchive.net/" 
-target="_blank">The Cancer Imaging Archive</a> (TCIA):
+from <a href="https://www.cancerimagingarchive.net/" target="_blank">The Cancer Imaging Archive</a> (TCIA):
 </p>
 <blockquote>
 The Cancer Imaging Archive (TCIA):
@@ -660,11 +642,11 @@ Clark K, Vendt B, Smith K, <i>et al.</i>
 Evaluating variability in tumor measurements from same-day repeat CT scans of patients with non-small cell lung cancer.
 Zhao B, James LP, Moskowitz CS, Guo P, Ginsberg MS, Lefkowitz RA, Qin Y, Riely GJ, Kris MG, Schwartz LH.
 <i>Radiology.</i> 2009 Jul;252(1):263-72.
-<p>
+</p><p>
 Zhao B, Schwartz LH, Kris, MG. (2015).
 Data From RIDER Lung CT. The Cancer Imaging Archive.
 doi: 10.7937/K9/TCIA.2015.U1X8A5NR
-</blockquote>
+</p></blockquote>
 <p>
 The data have been <a href="https://wiki.cancerimagingarchive.net/display/Public/De-identification+Knowledge+Base" target="_blank">anonymized</a>
 and are <a href="https://wiki.cancerimagingarchive.net/display/Public/Data+Usage+Policies+and+Restrictions" target="_blank">freely available</a>.
@@ -680,4 +662,5 @@ makes it easy to browse and download TCIA datasets from within ChimeraX.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 October 2025</address>
+
 </body></html>

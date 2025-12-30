@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: preset</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <a name="list"></a>
 <h3><a href="../index.html#commands">Command</a>: preset</h3>
@@ -50,7 +45,7 @@ See also:
 <a href="mcopy.html"><b>mcopy</b></a>,
 <a href="../tools/graphics.html"><b>Graphics Toolbar</b></a>,
 <a href="../images.html">making images</a>
-<p></p>
+</p><p></p>
 The <b>preset</b> command applies one of the following presets,
 here grouped by category:
 <ul>
@@ -59,18 +54,18 @@ here grouped by category:
   <li><b>Ribbons/Slabs</b> &ndash;
 <a href="cartoon.html#style">cartoon style</a> initial defaults +
 <a href="nucleotides.html">nucleotide</a> bases as rectangular boxes
-  <li><b>Cylinders/Stubs</b> &ndash;
+  </li><li><b>Cylinders/Stubs</b> &ndash;
 <a href="cartoon.html#style">cartoon style</a>
 protein &alpha;-helix cylinders +
 <a href="nucleotides.html">nucleotide</a> stubs (half-rungs)
-  <li><b>Licorice/Ovals</b> &ndash;
+  </li><li><b>Licorice/Ovals</b> &ndash;
 <a href="cartoon.html#style">cartoon style</a>
 without 2&deg;-structure detail +
 <a href="nucleotides.html">nucleotide</a> bases as ellipsoids
-  </ul>
-<li><b>Custom</b> 
+  </li></ul>
+</li><li><b>Custom</b> 
 &ndash; <a href="../preferences.html#startup">user-defined presets</a>
-<li><b>Initial Styles</b> &ndash;
+</li><li><b>Initial Styles</b> &ndash;
 based on <a href="../autostyle.html">automatic styling</a>
   <ul>
   <li><b>Original Look</b> - initial appearance from
@@ -79,55 +74,55 @@ which depends on the number of chains in an atomic structure (however,
 settings such as <a href="graphics.html#silhouettes">silhouettes</a>
 and <a href="cartoon.html#style">cartoon style</a> may be different
 if they were changed since the structure was opened)
-  <li><b>Sticks</b>
+  </li><li><b>Sticks</b>
 &ndash; all atoms as <a href="style.html">sticks</a>,
 <a href="lighting.html">simple lighting</a>, <i>etc.</i> (as for
 <a href="../autostyle.html">automatic styling</a> of structures with 0 chains)
-  <li><b>Cartoon</b>
+  </li><li><b>Cartoon</b>
 &ndash; <a href="cartoon.html">cartoon</a> plus atomic detail near
 residues <a href="atomspec.html#surfcats">classified</a>
 as <b>ligand</b> and <b>ions</b>,
 <a href="lighting.html">simple lighting</a>, <i>etc.</i>
 (as for
 <a href="../autostyle.html">automatic styling</a> of structures with 1-4 chains)
-  <li><b>Space-Filling (Chain Colors)</b>
+  </li><li><b>Space-Filling (Chain Colors)</b>
 &ndash; all atoms as <a href="style.html">spheres</a>
 except sticks for <b>ligand</b> and balls for <b>solvent</b>,
 <a href="colortables.html#autocolors">chain colors</a>,
 shadows, <i>etc.</i> (as for
 <a href="../autostyle.html">automatic styling</a> of structures with 5-249 chains)
-  <li><b>Space-Filling (Single Color)</b>
+  </li><li><b>Space-Filling (Single Color)</b>
 &ndash; all atoms as <a href="style.html">spheres</a>,
 ambient-only lighting, <i>etc.</i> (as for <a href="../autostyle.html">automatic
 styling</a> of structures with &ge;250 chains)
-  </ul>
-<li><b>Molecular Surfaces</b> &ndash;
+  </li></ul>
+</li><li><b>Molecular Surfaces</b> &ndash;
 <a href="surface.html">molecular surfaces</a>
 with different coloring options:
   <ul>
   <li><b>Atomic Coloring (Transparent)</b>
 &ndash; same color(s) as the underlying atoms, 70% transparent
-  <li><b>Chain ID Coloring (Opaque)</b>
+  </li><li><b>Chain ID Coloring (Opaque)</b>
 &ndash; <a href="colortables.html#autocolors">chain colors</a>, opaque
-  <li><b>Ghostly White</b> &ndash; white, 80% transparent
-  </ul>
-<li><b>Overall Look</b>
+  </li><li><b>Ghostly White</b> &ndash; white, 80% transparent
+  </li></ul>
+</li><li><b>Overall Look</b>
   <ul>
   <li><b>Publication 1 (silhouettes)</b> &ndash;
 <a href="graphics.html#silhouettes">silhouettes</a> on,
 <a href="lighting.html#depthCue">depth-cueing</a> off,
 <a href="set.html#bgColor">background color</a> white
-  <li><b>Publication 2 (depth-cued)</b> &ndash;
+  </li><li><b>Publication 2 (depth-cued)</b> &ndash;
 <a href="lighting.html#depthCue">depth-cueing</a> on,
 <a href="graphics.html#silhouettes">silhouettes</a> off,
 <a href="set.html#bgColor">background color</a> white
-  <li><b>Interactive</b> &ndash;
+  </li><li><b>Interactive</b> &ndash;
 <a href="lighting.html#depthCue">depth-cueing</a> on,
 <a href="graphics.html#silhouettes">silhouettes</a> off,
 <a href="set.html#bgColor">background color</a> default
 (user <a href="../preferences.html#background">preference</a>)
-  </ul>
-</ul>
+  </li></ul>
+</li></ul>
 <p>
 The <i>preset-name</i> (and optional <i>category</i> before it)
 can be truncated, and capitalization is ignored. 
@@ -172,16 +167,17 @@ Matching is prioritized as follows:
 <ol>
 <li>If a single argument (word or quoted string) is given, it is
 matched to preset name, any category.
-<li>If multiple arguments are given:
+</li><li>If multiple arguments are given:
  <ol>
  <li>If the first argument matches a category, 
 the rest is matched to preset name.
- <li>If a match still has not been found at this point,
+ </li><li>If a match still has not been found at this point,
 the entire set of arguments is matched to preset name, any category.
- </ol>
-</ol>
+ </li></ol>
+</li></ol>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 May 2023</address>
+
 </body></html>

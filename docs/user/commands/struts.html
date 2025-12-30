@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: struts</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: struts</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -46,15 +41,11 @@ See also:
 <a href="nucleotides.html"><b>nucleotides</b></a>, 
 <a href="graphics.html#quality"><b>graphics quality</b></a>,
 <a href="save.html"><b>save</b></a>, 
-the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#struts"
-target="_blank">ChimeraX struts highlight</a>, the
-<a href="https://www.rbvi.ucsf.edu/Outreach/technotes/ModelGallery/index.html"
-target="_blank">Chimera 3D Model Gallery</a>,
+the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#struts" target="_blank">ChimeraX struts highlight</a>, the
+<a href="https://www.rbvi.ucsf.edu/Outreach/technotes/ModelGallery/index.html" target="_blank">Chimera 3D Model Gallery</a>,
 the <a href="https://3d.nih.gov/" target="_blank">NIH 3D</a> website,
-and the <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxnihpresets"
-target="_blank"><b>NIHPresets</b> bundle</a> from the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/"
-target="_blank">ChimeraX Toolshed</a>
+and the <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxnihpresets" target="_blank"><b>NIHPresets</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">ChimeraX Toolshed</a>
 </p><p>
 A non-blank <a href="atomspec.html"><i>atom-spec</i></a> is required to
 create new struts (it is rarely a good idea to use all atoms).
@@ -67,9 +58,9 @@ length (default <b>30.0</b> &Aring;).
 By default, ribbons (cartoons) are also thickened to make them more robust
 (<a href="#fattenRibbon">details...</a>).
 </p>
-</p><p>
+<p></p><p>
 Protein example:
-<blockquote>
+</p><blockquote>
 <b>struts @ca color blue</b>
 </blockquote>
 Nucleic acid example:
@@ -82,9 +73,9 @@ The <b>~struts</b> or <b>struts delete</b> command:
   <ul>
   <li>removes struts connected to the specified atoms,
   or all struts if the <a href="atomspec.html"><i>atom-spec</i></a> is blank
-  <li>if <b>resetRibbon</b> is <b>true</b> (default), reverts ribbon 
+  </li><li>if <b>resetRibbon</b> is <b>true</b> (default), reverts ribbon 
   thickening from <b>struts</b> (<a href="#fattenRibbon">details...</a>)
-  </ul>
+  </li></ul>
 
 <a name="options"></a>
 <p class="nav">
@@ -121,10 +112,10 @@ Path calculations include the currently displayed bonds and
 Whether to change the dimensions of any displayed ribbon (cartoon) to:
   <ul>
   <li>width 3.0 &Aring; for protein helix and strand
-  <li>thickness 1.5 &Aring; for protein
-  <li>width 5.0 &Aring; for nucleic acid
-  <li>thickness 3.0 &Aring; for nucleic acid
-  </ul>
+  </li><li>thickness 1.5 &Aring; for protein
+  </li><li>width 5.0 &Aring; for nucleic acid
+  </li><li>thickness 3.0 &Aring; for nucleic acid
+  </li></ul>
 These settings can also be changed with
 <a href="cartoon.html#style"><b>cartoon style</b></a>
 and related <a href="../menu.html#presets">presets</a>.
@@ -142,9 +133,8 @@ The struts will be shown as sticks of radius <i>strut-radius</i>
   <b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
 <br>
 Color for the struts (default <b>#b2b2b2</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=#b2b2b2 width="10px" title="#b2b2b2"></td></tr></table>).
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="#b2b2b2" width="10px" title="#b2b2b2"></td></tr></tbody></table>).
 </blockquote>
 <blockquote>
   <b>name</b> &nbsp;<i>name</i>
@@ -170,4 +160,5 @@ different set of atoms will not be replaced.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 May 2023</address>
+
 </body></html>

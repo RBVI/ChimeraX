@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Surface Color</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Surface Color</h3>
 <p>
@@ -30,11 +25,11 @@ class="clRighticon" title="User Guide Index"/></a>
 </p>
 <ul>
 <li><a href="volumeviewer.html">volume data</a> (map) value or gradient norm
-<li><a href="../commands/open.html#volume">electrostatic potential</a> (ESP),
+</li><li><a href="../commands/open.html#volume">electrostatic potential</a> (ESP),
 a type of <a href="volumeviewer.html">volume data</a> for which values
 <a href="#options">offset</a> from the surface are used
-<li>distance from a point, axis, or plane
-</ul>
+</li><li>distance from a point, axis, or plane
+</li></ul>
 <p>
 ... corresponding to <a href="../commands/color.html"><b>color</b></a> 
 command <a href="../commands/color.html#map">coloring by map value</a> and
@@ -45,8 +40,7 @@ See also:
 <a href="../commands/coulombic.html"><b>coulombic</b></a>,
 <a href="../commands/mlp.html"><b>mlp</b></a>,
 <a href="../images.html">making images</a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
-target="_blank">ChimeraX videos</a>:
+<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/" target="_blank">ChimeraX videos</a>:
 <a href="https://youtu.be/FEIJ0lmybXo" target="_blank">coloring by
 electrostatic potential</a>,
 <a href="https://youtu.be/2EDZQs7lGNs" target="_blank">coloring a map by local
@@ -64,20 +58,20 @@ Coloring by distance:
 <ul>
 <li><b>radius</b> &ndash; distance from a point (the <b>origin</b>);
 clicking <b>Center</b> sets the origin to the center of the surface model
-<li><b>cylinder</b> radius &ndash; distance from a line
+</li><li><b>cylinder</b> radius &ndash; distance from a line
 defined by the <b>origin</b> coordinates and an <b>axis</b> vector
-<li><b>height</b> &ndash; distance from a plane 
+</li><li><b>height</b> &ndash; distance from a plane 
 defined by the <b>origin</b> coordinates and an <b>axis</b> vector
 perpendicular to the plane
-</ul>
+</li></ul>
 <p>
 Coloring by a specified map:
 </p>
 <ul>
 <li><b>electrostatic potential</b>
-<li><b>volume data value</b>
-<li><b>volume data gradient norm</b>
-</ul>
+</li><li><b>volume data value</b>
+</li><li><b>volume data gradient norm</b>
+</li></ul>
 <p>
 A series of color wells is shown, with fields below them to enter 
 the corresponding values. Choosing to color by <b>electrostatic potential</b>
@@ -109,20 +103,19 @@ Clicking <b>Options</b> shows/hides additional options:
 </p>
 <ul class="none">
 <li><b>Colors</b> &ndash; number of color/value pairs (default <b>3</b>)
-<li><b>Palette</b> &ndash; choices of
+</li><li><b>Palette</b> &ndash; choices of
 <a href="../commands/palettes.html">coloring palette</a>
 (default <b>red-white-blue</b> 
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=red width="10px" title="red"></td>
-<td bgcolor=white width="10px" title="white"></td>
-<td bgcolor=blue width="10px" title="blue"></td>
-</tr></table>)
-<li>Clicking <b>Reverse</b> puts the color/value pairs in the opposite order.
-<li>Clicking <b>Set</b> fills in the values to span the full range 
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="red" width="10px" title="red"></td>
+<td bgcolor="white" width="10px" title="white"></td>
+<td bgcolor="blue" width="10px" title="blue"></td>
+</tr></tbody></table>)
+</li><li>Clicking <b>Reverse</b> puts the color/value pairs in the opposite order.
+</li><li>Clicking <b>Set</b> fills in the values to span the full range 
 and performs the coloring, same as clicking <b>Color</b>.
 <br><br>
-<li><b>Surface offset</b> (electrostatic coloring only)
+</li><li><b>Surface offset</b> (electrostatic coloring only)
 &ndash; how far out from each surface vertex, along its normal, 
 to evaluate the data (default <b>1.4</b> &Aring;).
 The rationale for looking outward is to show the values that any atoms
@@ -139,17 +132,16 @@ of a <a href="../commands/clip.html">clipped</a> surface,
 and a zero or negative offset for coloring the surface of one structure
 by the potential from another.**
 <br><br>
-<li><b>Color outside volume</b> (map coloring only)
+</li><li><b>Color outside volume</b> (map coloring only)
 &ndash; what color to use for surface points outside of the map boundaries
-(default <table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=#808080 width="10px" title="#808080"></td>
-</tr></table>)
+(default <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="#808080" width="10px" title="#808080"></td>
+</tr></tbody></table>)
 <br><br>
-<li><b>Only color clipped surface face</b>
+</li><li><b>Only color clipped surface face</b>
 &ndash; whether to color only the <a href="../commands/surface.html#cap">cap</a>
 of a <a href="../commands/clip.html">clipped</a> surface
-<li><b>Report value at mouse position</b>
+</li><li><b>Report value at mouse position</b>
 &ndash; whether mouseover
 should report the data value for that surface vertex in the
 <a href="../window.html">status line</a>
@@ -157,9 +149,10 @@ should report the data value for that surface vertex in the
 for how to avoid dueling chain info in the status line, see
 https://www.rbvi.ucsf.edu/pipermail/chimerax-users/2021-September/002646.html 
 -->
-</ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 October 2022</address>
+
 </body></html>

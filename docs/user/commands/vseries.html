@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: vseries</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: vseries</h3>
 
@@ -55,21 +50,21 @@ The <i>action</i> can be</a>:
 <ul>
 <li><a href="#align"><b>align</b></a>
 &ndash; align the maps in the series
-<li><a href="#play"><b>play</b></a>
+</li><li><a href="#play"><b>play</b></a>
 &ndash; series playback (see also the <b>play map series</b>
 <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="../tools/mouse-icons/vseries.png"></a>&nbsp;)
-<li><a href="#stop"><b>stop</b></a>
+<img class="icon" border="1" src="../tools/mouse-icons/vseries.png" alt="computer generated image"></a>&nbsp;)
+</li><li><a href="#stop"><b>stop</b></a>
 &ndash; stop looping playback
-<li><a href="#slider"><b>slider</b></a>
+</li><li><a href="#slider"><b>slider</b></a>
 &ndash; show slider interface for the series 
-<li><a href="#measure"><b>measure</b></a>
+</li><li><a href="#measure"><b>measure</b></a>
 &ndash; track surface area, enclosed volume, and centroid position
-<li><a href="#save"><b>save</b></a>
+</li><li><a href="#save"><b>save</b></a>
 &ndash; save to <a href="save.html#chimap">Chimera map</a> format,
 optionally with cropping, normalization, alignment
-</ul>
+</li></ul>
 <p>
 <a name="volume-spec"></a>
 The <i>volume-spec</i> is the model number of any member of the series.
@@ -133,12 +128,12 @@ Specify the playback <i>mode</i>:
 <li><b>forward</b> (default) &ndash; in increasing order, then back to the first
 when <a href="#loop">looping</a> is on
 (01230123...)
-<li><b>backward</b> &ndash; in decreasing order, then back to the last
+</li><li><b>backward</b> &ndash; in decreasing order, then back to the last
 when <a href="#loop">looping</a> is on
 (32103210...)
-<li><b>oscillate</b> &ndash; alternating increasing and decreasing order
+</li><li><b>oscillate</b> &ndash; alternating increasing and decreasing order
 (01232101...)
-</ul>
+</li></ul>
 </blockquote>
 <blockquote>
 <a name="loop"></a>
@@ -183,7 +178,7 @@ can also be displayed for <i>N</i> earlier time points (default <b>0</b>)
 and <i>M</i> later time points (default <b>0</b>) using
 <b>precedingMarkerFrames</b> and <b>followingMarkerFrames</b>, respectively.
 <p>
-</blockquote>
+</p></blockquote>
 <blockquote>
 <b>colorRange</b> &nbsp;<i>cutoff</i>
 <br>
@@ -252,11 +247,10 @@ are not the same sizes.
 <p>
 The slider can be dragged or a <a href="#time">time</a> value entered directly. 
 The interface also includes a play/pause button, a
-&nbsp;<img style="height:16px; margin: 1px -1px; vertical-align:top"
-src="../tools/ui-icons/snail.png">&nbsp; value to increase for slower playback
+&nbsp;<img style="height:16px; margin: 1px -1px; vertical-align:top" src="../tools/ui-icons/snail.png" alt="computer generated image">&nbsp; value to increase for slower playback
 (<a href="#pauseFrames"><b>pauseFrames</b></a> as described above),
 and a button for recording a movie
-(<img class="iconbar" src="../tools/ui-icons/record.png">).
+(<img class="iconbar" src="../tools/ui-icons/record.png" alt="computer generated image">).
 Sequential integers are added to the movie filename (movie1.mp4, movie2.mp4, ...)
 so that repeated recordings will not overwrite the previous ones, and the save
 location can be set with the <a href="snapshot.html"><b>snapshot</b></a> command.
@@ -265,7 +259,7 @@ to include the whole series, place the slider at the far left
 before clicking the record button.
 The button on the far right
 <span class="nowrap">(&nbsp;<img style="height:18px; margin: 1px -1px;
-vertical-align:top" src="../tools/ui-icons/half.png">&nbsp;)</span>
+vertical-align:top" src="../tools/ui-icons/half.png" alt="computer generated image">&nbsp;)</span>
 toggles between the full data
 (<a href="volume.html#step">step</a> 1)
 and every-other-point subsampling
@@ -324,9 +318,8 @@ If <b>centroids</b> is <b>true</b>,
 a <a href="../markers.html">marker</a> will be placed at at each centroid, with
 the specified <b>radius</b> (default is the minimum grid-spacing in
 the maps) and <b>color</b> (default <b>#aaaaaa</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=#aaaaaa width="10px" title="#aaaaaa"></td></tr></table>).
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="#aaaaaa" width="10px" title="#aaaaaa"></td></tr></tbody></table>).
 Successive markers are linked.
 The markers are assigned a 
 <a href="../attributes.html#atom"><b>frame</b> attribute</a>
@@ -373,14 +366,14 @@ sets the value type after any processing.
 The <i>value-type</i> can be:
 <ul>
 <li><b>int8</b> &ndash; 8-bit signed integer
-<li><b>int16</b> &ndash; 16-bit signed integer
-<li><b>int32</b> &ndash; 32-bit signed integer
-<li><b>uint8</b> &ndash; 8-bit unsigned integer
-<li><b>uint16</b> &ndash; 16-bit unsigned integer
-<li><b>uint32</b> &ndash; 32-bit unsigned integer
-<li><b>float32</b> &ndash; 32-bit floating-point
-<li><b>float64</b> &ndash; 64-bit floating-point
-</ul>
+</li><li><b>int16</b> &ndash; 16-bit signed integer
+</li><li><b>int32</b> &ndash; 32-bit signed integer
+</li><li><b>uint8</b> &ndash; 8-bit unsigned integer
+</li><li><b>uint16</b> &ndash; 16-bit unsigned integer
+</li><li><b>uint32</b> &ndash; 32-bit unsigned integer
+</li><li><b>float32</b> &ndash; 32-bit floating-point
+</li><li><b>float64</b> &ndash; 64-bit floating-point
+</li></ul>
 </blockquote>
 <blockquote>
 <a name="threshold"><b>threshold</b> &nbsp;<i>minimum</i></a>
@@ -461,4 +454,5 @@ Compress the output file (<a href="save.html#chimap">Chimera map format</a>).
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 September 2024</address>
+
 </body></html>

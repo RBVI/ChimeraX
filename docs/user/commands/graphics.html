@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: graphics</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: graphics</h3>
 <p>
@@ -32,28 +27,28 @@ with additional options detailed below:
 <ul>
 <li><a href="#bgColor"><b>graphics bgColor</b></a>
 <a href="../tools/graphics.html" title="Graphics icons...">
-<img class="icon" border=1 src="../tools/shortcut-icons/whitebg.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/whitebg.png" alt="computer generated image"></a>
 <a href="../tools/graphics.html" title="Graphics icons...">
-<img class="icon" border=1 src="../tools/shortcut-icons/graybg.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/graybg.png" alt="computer generated image"></a>
 <a href="../tools/graphics.html" title="Graphics icons...">
-<img class="icon" border=1 src="../tools/shortcut-icons/blackbg.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/blackbg.png" alt="computer generated image"></a>
 &ndash; set background color
-<li><a href="#driver"><b>graphics driver</b></a>
+</li><li><a href="#driver"><b>graphics driver</b></a>
 &ndash; report graphics driver
-<li><a href="#quality"><b>graphics quality</b></a>
+</li><li><a href="#quality"><b>graphics quality</b></a>
 &ndash; set/report triangulation fineness
-<li><a href="#rate"><b>graphics rate</b></a>
+</li><li><a href="#rate"><b>graphics rate</b></a>
 &ndash; set/report frame rate
-<li><a href="#restart"><b>graphics restart</b></a>
-<li><a href="#selection"><b>graphics selection</b></a>
+</li><li><a href="#restart"><b>graphics restart</b></a>
+</li><li><a href="#selection"><b>graphics selection</b></a>
 &ndash; set/report <a href="../selection.html">selection</a> outline parameters
-<li><a href="#silhouettes"><b>graphics silhouettes</b></a>
+</li><li><a href="#silhouettes"><b>graphics silhouettes</b></a>
 <a href="../tools/graphics.html" title="Graphics icons...">
-<img class="icon" border=1 src="../tools/shortcut-icons/silhouette.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/silhouette.png" alt="computer generated image"></a>
 &ndash; set/report border outline parameters
-<li><a href="#triangles"><b>graphics triangles</b></a>
+</li><li><a href="#triangles"><b>graphics triangles</b></a>
 &ndash; report total numbers of triangles
-</ul>
+</li></ul>
 <p>
 Given without options, <b>graphics</b> reports the 
 current background color
@@ -77,11 +72,11 @@ with a (completely) transparent background using the
 Background color can also be changed with
 <a href="set.html#bgColor"><b>set bgColor</b></a>.
 <a href="../tools/graphics.html" title="Graphics icons...">
-<img class="icon" border=1 src="../tools/shortcut-icons/whitebg.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/whitebg.png" alt="computer generated image"></a>
 <a href="../tools/graphics.html" title="Graphics icons...">
-<img class="icon" border=1 src="../tools/shortcut-icons/graybg.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/graybg.png" alt="computer generated image"></a>
 <a href="../tools/graphics.html" title="Graphics icons...">
-<img class="icon" border=1 src="../tools/shortcut-icons/blackbg.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/blackbg.png" alt="computer generated image"></a>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -115,7 +110,7 @@ whereas higher numbers of ribbon divisions and sides increase the smoothness
 of <a href="cartoon.html">ribbons</a> (cartoons).
 The tradeoff for smoother displays is potentially 
 slower rendering of very large structures.
-</p><p>
+<p></p><p>
 By default, triangulation fineness is adjusted automatically depending 
 on how many atoms and bonds are displayed,
 within the ranges of 10-2000 triangles per atom and 24-160 per bond,
@@ -143,25 +138,25 @@ Fixed integer values can be specified with the individual options:
 <ul>
 <li><b>atomTriangles</b> <i>N<sub>a</sub></i> &ndash; triangles per atom
 (minimum 4; specifying 0 or <b>default</b> returns to automatic adjustment)
-<li><b>bondTriangles</b> <i>N<sub>b</sub></i> &ndash; triangles per bond
+</li><li><b>bondTriangles</b> <i>N<sub>b</sub></i> &ndash; triangles per bond
 (minimum 12; specifying 0 or <b>default</b> returns to automatic adjustment)
-<li><b>bondSides</b> <i>sides</i>
+</li><li><b>bondSides</b> <i>sides</i>
 &ndash; number of sides used to approximate a smooth cylinder for stick bonds;
 equivalent to specifying <b>bondTriangles</b>,
-except that <i>sides</i> = &#188;<i>N<sub>b</sub></i> 
+except that <i>sides</i> = &frac14;<i>N<sub>b</sub></i> 
 (minimum 3; specifying 0 or <b>default</b> returns to automatic adjustment)
-<li><b>pseudobondSides</b> <i>pbsides</i>
+</li><li><b>pseudobondSides</b> <i>pbsides</i>
 &ndash; number of sides used to approximate a smooth cylinder for
 <a href="../pseudobonds.html">pseudobonds</a>
 (initial default <b>10</b>, minimum 3; not automatically adjusted)
-<li><b>ribbonSides</b> <i>ribsides</i>
+</li><li><b>ribbonSides</b> <i>ribsides</i>
 &ndash; number of sides used to approximate an oval or round 
 cartoon cross-section (initial default <b>12</b>, minimum 4;
 not automatically adjusted)
-<li><b>ribbonDivisions</b> <i>divisions</i> &ndash; divisions per residue
+</li><li><b>ribbonDivisions</b> <i>divisions</i> &ndash; divisions per residue
 lengthwise along the cartoon (initial default <b>20</b>, minimum 2;
 specifying 0 or <b>default</b> returns to automatic adjustment)
-</ul>
+</li></ul>
 <p>
 Specifying a <i>quality</i> value returns to the automatic adjustment 
 of atom triangles, bond triangles, and ribbon divisions.
@@ -235,9 +230,8 @@ Reinitiate graphics drawing after an error.
 <blockquote>
 Set <a href="../selection.html">selection</a> outline <b>color</b>
 (initial default <b>lime</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=lime width="10px" title="lime"></td></tr></table>)
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="lime" width="10px" title="lime"></td></tr></tbody></table>)
 and <b>width</b> in pixels (initial default is the system display scaling factor,
 typically <b>1</b>, but <b>2</b> on high-DPI displays such as Apple Retina).
 Given without options, <b>graphics selection</b> reports the 
@@ -255,24 +249,23 @@ Setting <b>graphics silhouettes</b> true or false
 specifies whether to show <b><i>silhouettes</i></b>,
 outlines that emphasize borders and discontinuities.
 <a href="../tools/graphics.html" title="Graphics icons...">
-<img class="icon" border=1 src="../tools/shortcut-icons/silhouette.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/silhouette.png" alt="computer generated image"></a>
 Additional options:
 <ul>
 <li><b>color</b> (initial default <b>black</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=black width="10px" title="lime"></td></tr></table>)
-<li><b>width</b> in pixels
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="black" width="10px" title="lime"></td></tr></tbody></table>)
+</li><li><b>width</b> in pixels
 (initial default is the system display scaling factor,
 typically <b>1</b>, but <b>2</b> on high-DPI displays such as Apple Retina)
-<li><b>depthJump</b> &ndash; change in depth needed to trigger 
+</li><li><b>depthJump</b> &ndash; change in depth needed to trigger 
 drawing silhouettes, expressed as a fraction of the distance between the
 <a href="clip.html">near and far clipping planes</a>
 (initial default <b>0.03</b>; changed to <b>0.01</b> by the
 <a href="lighting.html#preset"><b>flat</b> lighting preset</a>,
 restored to <b>0.03</b> by the other 
 <a href="lighting.html#preset">lighting presets</a>)
-</ul>
+</li></ul>
 Given without options, <b>graphics silhouettes</b> reports the 
 current settings in the <a href="../tools/log.html"><b>Log</b></a>.
 </blockquote>
@@ -292,4 +285,5 @@ Triangulation fineness can be controlled with
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 September 2023</address>
+
 </body></html>

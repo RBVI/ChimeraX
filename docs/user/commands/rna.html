@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: rna</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: rna</h3>
 
@@ -34,25 +29,25 @@ models of single-stranded RNA, given base-pairing information.
 See also: <a href="build.html"><b>build</b></a>
 </p><p>
 The <i>operation</i> can be:
-<ul>
+</p><ul>
 <li><a href="#model"><b>model</b></a>
 &ndash; create an atomic model of single-stranded RNA 
 from base-pairing information or a previously calculated path
-<li><a href="#path"><b>path</b></a>
+</li><li><a href="#path"><b>path</b></a>
 &ndash; create a path of <a href="../markers.html">markers</a> 
 representing stems and loops from base-pairing information
-</ul>
+</li></ul>
 <p>
 
 <a name="model"></a>
 <a href="#top" class="nounder">&bull;</a>
-<b>rna model</b></a> &nbsp;<i>sequence</i>&nbsp;
+<b>rna model</b> &nbsp;<i>sequence</i>&nbsp;
 <b>path</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>marker-spec</i></a>
 [&nbsp;<b>startSequence</b>&nbsp;&nbsp;<i>i</i>&nbsp;]
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>n</i>&nbsp;]
 <br>&nbsp;&nbsp;&ndash; or &ndash;<br>
 <a href="#top" class="nounder">&bull;</a>
-<b>rna model</b></a> &nbsp;<i>sequence</i>&nbsp;
+<b>rna model</b> &nbsp;<i>sequence</i>&nbsp;
 <b>pairs</b>&nbsp;&nbsp;<i>pair-list</i>
 [&nbsp;<b>startSequence</b>&nbsp;&nbsp;<i>i</i>&nbsp;]
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>n</i>&nbsp;]
@@ -64,9 +59,9 @@ representing stems and loops from base-pairing information
 &nbsp;<a href="#pattern-options"><i>pattern-options</i></a>&nbsp;
 [&nbsp;<b>loopPattern</b>&nbsp;&nbsp;<b>helix</b>&nbsp;&nbsp;|&nbsp;horseshoe&nbsp;]
 &nbsp;<a href="#loop-pattern-options"><i>loop-pattern-options</i></a>&nbsp;
-[&nbsp;<b>branchTilt</b>&nbsp;&nbsp;<i>angle<sub>b</b></i>&nbsp;]
-[&nbsp;<b>loopTwist</b>&nbsp;&nbsp;<i>angle<sub>l</b></i>&nbsp;]
-<blockquote>
+[&nbsp;<b>branchTilt</b>&nbsp;&nbsp;<i>angle<sub>b</sub></i>&nbsp;]
+[&nbsp;<b>loopTwist</b>&nbsp;&nbsp;<i>angle<sub>l</sub></i>&nbsp;]
+</p><blockquote>
 <p>
 Create an atomic model of single-stranded RNA.
 The <i>sequence</i> can be a string of upper-case letters (such as AGCTU)
@@ -85,28 +80,24 @@ Either a <b>path</b> or <b>pairs</b> must be supplied.
 <a href="../markers.html">markers</a> previously generated 
 with <a href="#path"><b>rna path</b></a>,
 which also assigns the nucleotide orientations required to create the model.
-<li>The <b>pairs</b> <i>pair-list</i> specification is the same as
+</li><li>The <b>pairs</b> <i>pair-list</i> specification is the same as
 for <a href="#path"><b>rna path</b></a>.
 Base-paired and non-base-paired nucleotides in the
 resulting structure will be colored according to the
 <b>stemColor</b> and <b>loopColor</b> values
 (defaults <b>yellow</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="yellow" width="10px" title="yellow"></td></tr></table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="yellow" width="10px" title="yellow"></td></tr></tbody></table>
 and <b>cornflower blue</b> 
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="cornflowerblue" width="10px" 
-title="cornflowerblue"></td></tr></table>),
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="cornflowerblue" width="10px" title="cornflowerblue"></td></tr></tbody></table>),
 respectively, and phosphorus atoms according to <b>pColor</b>
 (default <b>orange</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="orange" width="10px" title="orange"></td></tr></table>).
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="orange" width="10px" title="orange"></td></tr></tbody></table>).
 The remaining options
 are the same as described for <a href="#path"><b>rna path</b></a>.
-</ul>
+</li></ul>
 <p>
 <b>Algorithm</b>: The path of the RNA is either precomputed with
 <a href="#path"><b>rna path</b></a>
@@ -134,8 +125,8 @@ within the ChimeraX rna_layout bundle.
 &nbsp;<a href="#pattern-options"><i>pattern-options</i></a>&nbsp;
 [&nbsp;<b>loopPattern</b>&nbsp;&nbsp;<b>helix</b>&nbsp;&nbsp;|&nbsp;horseshoe&nbsp;]
 &nbsp;<a href="#loop-pattern-options"><i>loop-pattern-options</i></a>&nbsp;
-[&nbsp;<b>branchTilt</b>&nbsp;&nbsp;<i>angle<sub>b</b></i>&nbsp;]
-[&nbsp;<b>loopTwist</b>&nbsp;&nbsp;<i>angle<sub>l</b></i>&nbsp;]
+[&nbsp;<b>branchTilt</b>&nbsp;&nbsp;<i>angle<sub>b</sub></i>&nbsp;]
+[&nbsp;<b>loopTwist</b>&nbsp;&nbsp;<i>angle<sub>l</sub></i>&nbsp;]
 <blockquote>
 Create a path of <a href="../markers.html">markers</a>, 
 one marker per nucleotide, to represent an RNA molecule with specified 
@@ -143,7 +134,7 @@ base-pairing interactions.
 The <i>pair-list</i> can be either a comma-separated list of
 numbers or the pathname of a text file containing three columns,
 one line per stem, as in the example <a href="#examples">below</a>.
-</p><p>
+<p></p><p>
 Consecutive markers and base-paired markers are connected by links.
 Stretches of base-paired nucleotides are <b><i>stems</i></b>, whereas
 nucleotides that are not base-paired are said to belong to <b><i>loops</i></b>.
@@ -165,39 +156,36 @@ The <b>markerRadius</b> option specifies marker radius
 Paired and unpaired markers are colored according to the
 <b>stemColor</b> and <b>loopColor</b> values
 (defaults <b>yellow</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="yellow" width="10px" title="yellow"></td></tr></table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="yellow" width="10px" title="yellow"></td></tr></tbody></table>
 and <b>cornflower blue</b> 
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="cornflowerblue" width="10px" 
-title="cornflowerblue"></td></tr></table>), respectively,
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="cornflowerblue" width="10px" title="cornflowerblue"></td></tr></tbody></table>), respectively,
 and the <b>name</b> option gives the name
 of the resulting marker model (default <b>RNA path</b>).
-<p>
+</p><p>
 <a name="pattern-options"></a>
 The <b>pattern</b> option controls the overall RNA layout:
 </p>
 <ul>
 <li><b>circle</b> (default)
-<li><b>helix</b> &ndash; with associated <i>pattern-options</i>:
+</li><li><b>helix</b> &ndash; with associated <i>pattern-options</i>:
   <ul class="none">
   <li>[&nbsp;<b>helixRadius</b>&nbsp;&nbsp;<i>rad<sub>h</sub></i>&nbsp;]
 (default <b>300.0</b> &Aring;) 
-  <li>[&nbsp;<b>helixRise</b>&nbsp;&nbsp;<i>rise</i>&nbsp;]
+  </li><li>[&nbsp;<b>helixRise</b>&nbsp;&nbsp;<i>rise</i>&nbsp;]
 (default <b>50.0</b> &Aring;) &ndash; rise per helical turn
-  </ul>
-<li><b>line</b> &ndash; linear
-<li><b>sphere</b> &ndash; a spiral on a sphere
+  </li></ul>
+</li><li><b>line</b> &ndash; linear
+</li><li><b>sphere</b> &ndash; a spiral on a sphere
 with associated <i>pattern-options</i>:
   <ul class="none">
   <li>[&nbsp;<b>sphereTurnSpacing</b>&nbsp;&nbsp;<i>spacing</i>&nbsp;]
 (default <b>60.0</b> &Aring;) &ndash; distance on the sphere
 between adjacent turns of the spiral
-  <li>[&nbsp;<b>sphereRadius</b>&nbsp;&nbsp;<i>rad<sub>s</sub></i>&nbsp;]
+  </li><li>[&nbsp;<b>sphereRadius</b>&nbsp;&nbsp;<i>rad<sub>s</sub></i>&nbsp;]
 (default calculated from the sequence length and turn spacing)
-  <li>[&nbsp;<b>sphereTurns</b>&nbsp;&nbsp;<i>turns</sub></i>&nbsp;]
+  </li><li>[&nbsp;<b>sphereTurns</b>&nbsp;&nbsp;<i>turns</i>&nbsp;]
 (default calculated from the sequence length and turn spacing)
 &ndash; number of times the RNA wraps around the sphere from pole to pole;
 does not have to be an integer
@@ -206,8 +194,8 @@ Specifying a sphere radius and number of turns that do not accommodate the
 full sequence will give an error, but values that leave extra room on the
 sphere are accepted.
 </p>
-  </ul>
-</ul>
+  </li></ul>
+</li></ul>
 <p>
 Stem and loop orientations are produced by random rotations, where each angle
 of rotation is obtained by multiplying the <b>branchTilt</b> 
@@ -229,24 +217,24 @@ if the loop contains at least that many residues.
 For example, if the parameter is 8, there will be 24 nucleotides per turn
 in loops of 24 or more residues, 16 per turn in loops of 16-23 residues, 
 and 8 per turn in loops of 15 residues or fewer.
-  <li>[&nbsp;<b>helixLoopRise</b>&nbsp;&nbsp;<i>rise<sub>loop</i></i>&nbsp;]
+  </li><li>[&nbsp;<b>helixLoopRise</b>&nbsp;&nbsp;<i>rise<sub>loop</sub></i>&nbsp;]
 (default <b>20.0</b> &Aring;) &ndash; rise per helical turn
-  </ul>
-<li><b>horseshoe</b> &ndash; U-shaped, with associated <i>loop-pattern-options</i>
+  </li></ul>
+</li><li><b>horseshoe</b> &ndash; U-shaped, with associated <i>loop-pattern-options</i>
   <ul class="none">
   <li>[&nbsp;<b>horseshoeSideSize</b>&nbsp;&nbsp;<i>N<sub>side</sub></i>&nbsp;]
 (default <b>10</b>) 
 &ndash; number of nucleotides in each side of the &ldquo;U&rdquo;
-  <li>[&nbsp;<b>horseshoeCurveSize</b>&nbsp;&nbsp;<i>N<sub>curve</sub></i>&nbsp;]
+  </li><li>[&nbsp;<b>horseshoeCurveSize</b>&nbsp;&nbsp;<i>N<sub>curve</sub></i>&nbsp;]
 (default <b>8</b>) 
 &ndash; number of nucleotides in the curve of the &ldquo;U&rdquo;
-  <li>[&nbsp;<b>horseshoeSpacing</b>&nbsp;&nbsp;<i>N<sub>spacing</sub></i>&nbsp;]
+  </li><li>[&nbsp;<b>horseshoeSpacing</b>&nbsp;&nbsp;<i>N<sub>spacing</sub></i>&nbsp;]
 (default <b>1</b>) 
 &ndash; number of nucleotides between horseshoes, <i>i.e.</i>
 when the stretch of unpaired residues is longer than the number of
 nucleotides allocated to a single horseshoe
-  </ul>
-</ul>
+  </li></ul>
+</li></ul>
 <p>
 Orientations of individual nucleotides within a loop are produced by random
 rotations about the P-P line, where each angle of rotation is obtained by 
@@ -292,9 +280,8 @@ Burch CL, Weeks KM.
 </blockquote>
 <p>
 ...using a base-pairing file named pairings.txt containing:
-<p>
-<pre>
-1       57      3
+</p><p>
+</p><pre>1       57      3
 5       54      11
 17      43      5
 25      38      4
@@ -305,8 +292,7 @@ Burch CL, Weeks KM.
 <p>
 ...and a sequence file named hiv-pNL4-3.fasta containing:
 </p>
-<pre>
->gi|296556482|gb|AF324493.2| HIV-1 vector pNL4-3, 1-9709
+<pre>&gt;gi|296556482|gb|AF324493.2| HIV-1 vector pNL4-3, 1-9709
 TGGAAGGGCTAATTTGGTCCCAAAAAAGACAAGAGATCCTTGATCTGTGGATCTACCACACACAAGGCTA
 CTTCCCTGATTGGCAGAACTACACACCAGGGCCAGGGATCAGATATCCACTGACCTTTGGATGGTGCTTC
 AAGTTAGTACCAGTTGAACCAGAGCAAGTAGAAGAGGCCAATGAAGGAGAGAACAACAGCTTGTTACACC
@@ -320,4 +306,5 @@ TCTCTGGCTAACTAGGGAACCCACTGCTTAAGCCTCAATAAAGCTTGCCTTGAGTGCTCAAAGTAGTGTG
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 June 2020</address>
+
 </body></html>

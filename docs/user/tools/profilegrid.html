@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,33 +9,26 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Profile Grid</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <table class="clRight">
-<tr><td>
-<img class="outline" src="7lcj.png" width="180px"
-alt="structure 7LCJ associated with alignment"
-title="structure 7LCJ associated with alignment"></td></tr>
-</table>
+<tbody><tr><td>
+<img class="outline" src="7lcj.png" width="180px" alt="structure 7LCJ associated with alignment" title="structure 7LCJ associated with alignment"></td></tr>
+</tbody></table>
 
 <table align="right">
-<tr><td>
-<img class="outline" src="profilegrid.png"
-title="PFAM family 2 seed alignment"
-alt="PFAM family 2 seed alignment" width="630px"></td></tr>
+<tbody><tr><td>
+<img class="outline" src="profilegrid.png" title="PFAM family 2 seed alignment" alt="PFAM family 2 seed alignment" width="630px"></td></tr>
 <tr><td width="600px" align="center">
-<font size=-1>
+<font size="-1">
 Profile grid of the
 <a href="https://www.ebi.ac.uk/interpro/entry/pfam/PF00002/entry_alignments/?type=seed" target="_blank">PFAM 7 transmembrane receptor (Secretin family)</a>
 seed alignment associated with a structure of the glucagon-like 
@@ -46,8 +37,8 @@ peptide-1 receptor, PDB
 Two residues with 100% type conservation are 
 <a href="../selection.html">selected</a> and labeled.
 </font>
-</td><tr>
-</table>
+</td></tr><tr>
+</tr></tbody></table>
 
 <h3><a href="../index.html#tools">Tool</a>: Profile Grid</h3>
 <p>
@@ -61,8 +52,7 @@ in the cells are the prevalences of that type of residue at that position.
 by Alberto Roca, as described in:
 </p>
 <blockquote>
-<a href="https://bmcproc.biomedcentral.com/articles/10.1186/1753-6561-8-S2-S6"
-target="_blank">
+<a href="https://bmcproc.biomedcentral.com/articles/10.1186/1753-6561-8-S2-S6" target="_blank">
 ProfileGrids: a sequence alignment visualization paradigm that avoids the limitations of Sequence Logos.</a>
 Roca AI.  <i>BMC Proc.</i> 2014 Aug 28;8(Suppl 2 Proceedings of the 
 3rd Annual Symposium on Biologica):S6.
@@ -106,12 +96,12 @@ position, nothing happens.
 As in the <a href="sequenceviewer.html"><b>Sequence Viewer</b></a>,
 <a href="../selection.html">selection</a> of an associated structure residue
 by any means will be shown as a green outline around the corresponding cell.
-<li><a name="chosen"></a><b>chooses cell</b>
+</li><li><a name="chosen"></a><b>chooses cell</b>
 &ndash; designating <b>Profile Grid</b> cells for subsequent actions,
 shown with an orange diamond on each chosen cell. 
 Choosing a cell reports in the lower left corner of the window
 the number of sequences matching that cell.
-</ul>
+</li></ul>
 <p>
 Either way, cell status can be toggled or the cell added to the existing set
 of highlighted/chosen cells with <b>Shift</b>-click.
@@ -169,76 +159,72 @@ how to color columns without chosen cells
 &ndash; the fold-change values (coloring thresholds) can be edited directly,
 and each color changed by clicking its color well and using the 
 system color editor
-      <li><b>Set colors from palette</b> &ndash; change the colors collectively
+      </li><li><b>Set colors from palette</b> &ndash; change the colors collectively
 by choosing a <a href="../commands/palettes.html"><b>palette</b></a>
 from the pulldown menu
 (initial default <b>^rdbu-3</b>:
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td style="background:#67a9cf" width="30px" title="#67a9cf"></td>
 <td style="background:#f7f7f7" width="30px" title="#f7f7f7"></td>
 <td style="background:#ef8a62" width="30px" title="#ef8a62"></td>
-</tr></table>)
-      <li><b>Reverse</b> &ndash; reverse the order of the colors
-      <li><b>But color cells with less than [<i>percent</i>] of sequences
+</tr></tbody></table>)
+      </li><li><b>Reverse</b> &ndash; reverse the order of the colors
+      </li><li><b>But color cells with less than [<i>percent</i>] of sequences
 originally [<i>color</i>]</b> 
 (initial default on, color cells with original full-alignment prevalence 
 &lt;<b>0.5</b>% in
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr><span="nowrap">
-<td style="background:darkgray" width="10px" title="darkgray"></td></span>
-</tr></table>)
-      <li><b>Color transitions</b>:
+<span="nowrap">
+</span="nowrap"><table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr><td style="background:darkgray" width="10px" title="darkgray"></td>
+</tr></tbody></table>)
+      </li><li><b>Color transitions</b>:
          <ul>
          <li><b>smooth</b> (initial default) &ndash; between threshold values,
 interpolate from one color to the next
-         <li><b>sharp</b> &ndash; change color abruptly halfway between the
+         </li><li><b>sharp</b> &ndash; change color abruptly halfway between the
 threshold values
-         </ul>
-      </ul>
-      <li><b>Color chosen cells [<i>color</i>]</b> (initial default on and
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
+         </li></ul>
+      </li></ul>
+      </li><li><b>Color chosen cells [<i>color</i>]</b> (initial default on and
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td style="background:white" width="10px" title="white"></td>
-</tr></table>)
-      <li><b>Color unchosen cells in chosen columns [<i>color</i>]</b>
+</tr></tbody></table>)
+      </li><li><b>Color unchosen cells in chosen columns [<i>color</i>]</b>
 (initial default on and
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td style="background:darkgray" width="10px" title="darkgray"></td>
-</tr></table>)
-      <li><b>Revert</b> dialog to the last-used settings
-      <li><b>Reset</b> dialog to factory-default settings
-      <li><b>Remove</b> prevalence coloring
-      <li><b>Apply</b> the current settings
-      </ul>
- <li><b>List Sequence Names</b> &ndash; list the names of the corresponding 
+</tr></tbody></table>)
+      </li><li><b>Revert</b> dialog to the last-used settings
+      </li><li><b>Reset</b> dialog to factory-default settings
+      </li><li><b>Remove</b> prevalence coloring
+      </li><li><b>Apply</b> the current settings
+      </li></ul>
+ </li><li><b>List Sequence Names</b> &ndash; list the names of the corresponding 
 sequences in a separate dialog for copying or saving to a text file
- <li><b>New Alignment</b> &ndash; open the corresponding sequences in a
+ </li><li><b>New Alignment</b> &ndash; open the corresponding sequences in a
 new window in the specified viewer:
    <ul>
    <li><a href="sequenceviewer.html"><b>Sequence Viewer</b></a>
-   <li><b>Profile Grid</b>
-   </ul>
- </ul>
-<li><b>Headers</b>
+   </li><li><b>Profile Grid</b>
+   </li></ul>
+ </li></ul>
+</li><li><b>Headers</b>
 &ndash; which <a href="sequenceviewer.html#headers">headers</a> are shown:
   <ul>
   <li><b>Consensus</b>
-  <li><b>Conservation</b>
-  <li><b>RMSD</b> &ndash; root-mean-square distance among residues
+  </li><li><b>Conservation</b>
+  </li><li><b>RMSD</b> &ndash; root-mean-square distance among residues
 <a href="sequenceviewer.html#association">associated</a> with a column,
 based on <b>C&alpha;</b> for peptides, <b>C4'</b> for nucleic acids
-  <li><b>Save</b> &nbsp;<font size="-1" color="dimgray">&#9654;</font>
+  </li><li><b>Save</b> &nbsp;<font size="-1" color="dimgray">▶</font>
   [choice of available headers]
   &ndash; save header information to file. 
 Headers are saved to a simple text format that lists the alignment positions
 and values. See also: 
 <a href="../commands/sequence.html#header"><b>sequence header</b></a>
-  </ul>
-  <li><b>Settings...</b> show the <a href="#settings"><b>Profile Grid</b>
+  </li></ul>
+  </li><li><b>Settings...</b> show the <a href="#settings"><b>Profile Grid</b>
 preferences</a> to control cell contents
-</ul>
+</li></ul>
 
 <a name="settings"></a>
 <p class="nav">
@@ -252,8 +238,8 @@ with sections:
 </p>
 <ul>
 <li><a href="#settings-appearance"><b>Appearance</b></a>
-<li><a href="#settings-headers"><b>Headers</b></a>
-</ul>
+</li><li><a href="#settings-headers"><b>Headers</b></a>
+</li></ul>
 <p>
 The settings window can be manipulated like other panels in the
 ChimeraX interface (<a href="../window.html#panels">more...</a>).
@@ -281,14 +267,14 @@ there can be only one set of saved preference values.
 <li><b>Cell text</b>
  <ul>
  <li><b>none</b> &ndash; no text, use color only to indicate prevalence
- <li><b>count</b> &ndash; raw counts
- <li><b>percentage</b> (initial default) 
+ </li><li><b>count</b> &ndash; raw counts
+ </li><li><b>percentage</b> (initial default) 
  &ndash; counts as a percentage of the number of sequences
- </ul>
- <li><b>Decimal places for percentages</b> [<i>N</i>]
+ </li></ul>
+ </li><li><b>Decimal places for percentages</b> [<i>N</i>]
 &ndash; for percentage values, the number of digits following the decimal
 (initial default <b>0</b>)
-</ul>
+</li></ul>
 
 <a name="settings-headers"></a>
 <p><a href="#settings" class="nounder"><b>&larr;</b></a>
@@ -299,7 +285,7 @@ there can be only one set of saved preference values.
 <li><b>Consensus</b>
   <ul>
   <li><b>Show initially</b> (initial default <b>off</b>)
-  <li><a name="low-conservation"></a><b>Hide low-conservation letters</b>
+  </li><li><a name="low-conservation"></a><b>Hide low-conservation letters</b>
 (initial default <b>off</b>)
 &ndash; whether to leave the consensus sequence blank at positions where
 no type meets the
@@ -307,7 +293,7 @@ no type meets the
 otherwise, the most prevalent type at each position will be shown,
 even if it appears in fewer than half of the sequences, and if several
 residue types are equally the most common, one will be chosen at random
-  <li><a name="conservation-threshold"></a>
+  </li><li><a name="conservation-threshold"></a>
 <b>High-conservation threshold</b> (initial default <b>0.8</b>)
 &ndash; fraction conservation for showing the consensus type as a purple or red
 capital letter, with red indicating that all sequences have the same type
@@ -315,16 +301,16 @@ capital letter, with red indicating that all sequences have the same type
 will be shown as lowercase letters or
 (if <a href="#low-conservation"><b>Hide low-conservation letters</b></a>
 is <b>on</b>) as blanks
-  <li><b>Ignore gap characters</b> (initial default <b>off</b>)
+  </li><li><b>Ignore gap characters</b> (initial default <b>off</b>)
 &ndash; whether to exclude gaps from being considered the most prevalent type
 at a position; regardless of this option, however, gap positions are always
 included in the denominator for calculating the conservation fraction
-  </ul>
-</p>
-<li><b>Conservation</b>
+  </li></ul>
+<p></p>
+</li><li><b>Conservation</b>
   <ul>
   <li><b>Show initially</b> (initial default <b>on</b>)
-  <li><b>Style</b>
+  </li><li><b>Style</b>
     <ul>
     <li><b>identity histogram</b> &ndash; what proportion of the sequences
 have the most prevalent nongap character per alignment column.
@@ -335,16 +321,16 @@ alignment. Thus, if every sequence has a different residue at a
 given position, the bar height is zero, not 1/N.
 However, M/N values (not the values used for display purposes) are
 used for the <a href="#headers">seq_conservation attribute</a>.
-    <li><b>Clustal characters</b> &ndash; as in Clustal format,
+    </li><li><b>Clustal characters</b> &ndash; as in Clustal format,
      <ul class="none">
      <li>* (asterisk) for complete identity
-     <li>: (colon) for
+     </li><li>: (colon) for
      <a href="../formats/clustgroups.html">strong group conservation</a>
-     <li>. (period) for
+     </li><li>. (period) for
      <a href="../formats/clustgroups.html">weak group conservation</a>
-     <li> blank otherwise
-     </ul>
-    <li><b>AL2CO</b> (<b>AL</b>ignment <b>2</b> <b>CO</b>nservation,
+     </li><li> blank otherwise
+     </li></ul>
+    </li><li><b>AL2CO</b> (<b>AL</b>ignment <b>2</b> <b>CO</b>nservation,
 initial default for alignments with up to 10,000 sequences; for larger
 alignments, the <b>identity histogram</b> style will be used instead)
 &ndash; more sophisticated options for calculating conservation.
@@ -362,7 +348,7 @@ Users should cite:
   +&infin; (most conserved). For purposes of histogram display only,
   the values are mapped to bar heights 0-1, with conservation values
   of zero giving a histogram bar height of 0.5.
-</p><p>
+<p></p><p>
 <a name="al2co-parameters"></a>
 <b>AL2CO parameters</b>:
 </p>
@@ -375,26 +361,26 @@ when the width is odd, the column left of center when the width is even
 (<i>e.g.</i>, the fourth position in a window of 8),
 with various adjustments at the termini.
 The authors of AL2CO recommend a width of 3 for motif analyses.
-<li><a name="al2comeas"><b>Conservation measure</b></a>
+</li><li><a name="al2comeas"><b>Conservation measure</b></a>
 &ndash; which AL2CO conservation equation to use:
   <ul>
   <li><b>entropy-based</b> (initial default)
-  <li><b>variance-based</b>
-  <li><b>sum of pairs</b>
-  </ul>
-<li><b>Frequency estimation method</b>
+  </li><li><b>variance-based</b>
+  </li><li><b>sum of pairs</b>
+  </li></ul>
+</li><li><b>Frequency estimation method</b>
 &ndash; whether/how to weight the sequences
   <ul>
   <li><b>unweighted</b>
-  <li><b>modified Henikoff & Henikoff</b>
-  <li><b>independent counts</b> (initial default)
-  </ul>
-<li><a name="gapfract"><b>Gap fraction</b></a> (initial default <b>0.5</b>)
+  </li><li><b>modified Henikoff & Henikoff</b>
+  </li><li><b>independent counts</b> (initial default)
+  </li></ul>
+</li><li><a name="gapfract"><b>Gap fraction</b></a> (initial default <b>0.5</b>)
  &ndash; maximum fraction of sequences with gaps in a column
 for conservation to still be calculated; for example, if the
 <b>gap fraction</b> is 0.25, conservation values will only be calculated
 for columns in which at least three-fourths of the sequences have residues
-</ul><br>
+</li></ul><br>
 Additional settings if the AL2CO
 <a href="#al2comeas"><b>Conservation measure</b></a> is <b>sum of pairs</b>:
 <ul>
@@ -403,46 +389,47 @@ BLOSUM-50, BLOSUM-55, BLOSUM-60, <b>BLOSUM-62</b> (initial default),
 BLOSUM-65, BLOSUM-70, BLOSUM-75, BLOSUM-80, BLOSUM-85, BLOSUM-90,
 BLOSUM-100, BLOSUM-N, Grantham, HSDM, identity, Nucleic, PAM-40, PAM-120,
 PAM-150, PAM-250, SDM] &ndash; which residue similarity matrix to use
-<li><b>Matrix transformation</b>
+</li><li><b>Matrix transformation</b>
 &ndash; whether/how to modify the matrix
    <ul>
    <li><b>none</b> (initial default)
-   <li><b>normalization</b>
+   </li><li><b>normalization</b>
    &nbsp;&nbsp;&nbsp; <i>S'<sub>ab</sub></i> = <i>S<sub>ab</sub></i> / (<i>S<sub>aa</sub>S<sub>bb</sub></i>)<sup>&frac12;</sup>
-   <li><b>adjustment</b>
+   </li><li><b>adjustment</b>
    &nbsp;&nbsp;&nbsp; <i>S''<sub>ab</sub></i> = 2<i>S<sub>ab</sub></i> &ndash; &frac12;(<i>S<sub>aa</sub></i> + <i>S<sub>bb</sub></i>)
-   </ul>
-</ul>
-</ul>
-  </ul>
+   </li></ul>
+</li></ul>
+</li></ul>
+  </li></ul>
 <br>
-<li><b>RMSD</b> &ndash; per-column root-mean-square displacement among
+</li><li><b>RMSD</b> &ndash; per-column root-mean-square displacement among
 <a href="sequenceviewer.html#association">associated</a> structure residues
   <ul>
   <li><b>Show initially</b> (initial default <b>off</b>)
-  <li><b>Atoms used for RMSD</b>
+  </li><li><b>Atoms used for RMSD</b>
     <ul>
     <li><b>C&alpha;/C4'</b> (initial default)
      &ndash; C&alpha; for peptides, C4' for nucleic acids
-    <li><b>backbone</b> &ndash; peptide N, CA, C, O
+    </li><li><b>backbone</b> &ndash; peptide N, CA, C, O
     or nucleic acid phosphoribosyl backbone, not including any hydrogens
-    </ul>
-  </ul>
+    </li></ul>
+  </li></ul>
 <p>
 When more than one chain per model is 
 <a href="sequenceviewer.html#association">associated</a>
 with the same alignment, the RMSD
 calculation uses only the chain that gives the lowest overall RMSD.
 </p>
-<li><b>File Markup [<i>Name</i>]</b> 
+</li><li><b>File Markup [<i>Name</i>]</b> 
 (this option will be listed for each GC header read from Stockholm format
 or a &ldquo;consensus&rdquo; sequence, if any, read from MSF)
   <ul>
   <li><b>Show initially</b> (initial default <b>on</b>)
-  </ul>
-</ul>
+  </li></ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 December 2025</address>
+
 </body></html>

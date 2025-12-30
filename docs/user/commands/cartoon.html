@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: cartoon, ribbon, worm</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: cartoon, ribbon, worm</h3>
 
@@ -35,7 +30,7 @@ class="clRighticon" title="User Guide Index"/></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br>(&nbsp;<b>cartoon hide</b>&nbsp;|&nbsp;<b>ribbon hide</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
-<br>&ndash; or &ndash;</br>
+<br>&ndash; or &ndash;<br>
 (&nbsp;<b>~cartoon</b>&nbsp;|&nbsp;<b>~ribbon</b>&nbsp;)
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 </h3>
@@ -72,9 +67,9 @@ See also:
 <a href="../tools/inspector.html"><b>Selection Inspector</b></a>,
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons:
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/ribshow.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/ribshow.png" alt="computer generated image"></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/ribhide.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/ribhide.png" alt="computer generated image"></a>
 </p><p>
 Cartoon settings are only changed when explicitly specified;
 there are no command defaults, only initial default settings of a structure
@@ -82,7 +77,7 @@ when it is first opened. Changes only apply to models that are already present,
 not those opened later.
 </p><p>
 The following settings can be different for different residues:
-<blockquote>
+</p><blockquote>
 <b>smooth</b> &nbsp;<i>factor</i>
 <br>
 The <i>factor</i> controls the balance between smoothing peptide &beta;-strands 
@@ -113,14 +108,14 @@ control per-model settings:
 <ul>
 <li><a href="#style"><b>cartoon style</b></a>
 &ndash; width, thickness, and shape; protein secondary structure representations
-<li><a href="#tether"><b>cartoon tether</b></a>
+</li><li><a href="#tether"><b>cartoon tether</b></a>
 &ndash; appearance of connectors between cartoon and offset backbone atoms
-<li><a href="#byattribute"><b>cartoon byattribute</b></a>
+</li><li><a href="#byattribute"><b>cartoon byattribute</b></a>
 (<a href="#worm"><b>worm</b></a>)
 &ndash; create &ldquo;worms,&rdquo; specialized cartoons with variable
 thickness to show <a href="../attributes.html">attribute</a> values;
 toggle between worms and standard cartoons
-</ul>
+</li></ul>
 <p>
 The cartoon path is guided by CA atoms (&alpha;-carbons) in peptides 
 and C5' in nucleic acids. To use different atoms, try command
@@ -134,27 +129,27 @@ according to the type of secondary structure and/or polymer:
 </p>
 <ul>
 <li>nucleic acid &ndash; at C5' by the C5'&rarr;C1' vector
-<li>peptide helix &ndash; at CA by a vector perpendicular to
+</li><li>peptide helix &ndash; at CA by a vector perpendicular to
 both the CA<sub>i-1</sub>&rarr;CA and CA&rarr;CA<sub>i+1</sub> vectors
 <br>
 (default mode; however, peptide helices can be shown as 
 <a href="#hmode">tubes</a> or as ribbons that <a href="#hmode">wrap</a>
 around the computed tubes instead)
-<li>peptide strand &ndash; at CA by a vector parallel to 
+</li><li>peptide strand &ndash; at CA by a vector parallel to 
 both the preceding and following peptide planes 
 (like their line of intersection)
-</ul>
+</li></ul>
 Peptide residues at the beginning or end of a secondary structure element (SSE)
 are given the same orientation as the adjacent residue in that SSE.
 The depiction of a peptide helix or strand starts at the CA atom of its first 
 (N-terminal) residue and ends at the CA atom of its last (C-terminal) residue.
-</p>
+<p></p>
 
 <a name="subcommands"></a>
 <a name="style"></a>
 <p class="nav">
 [<a href="#top">back to top: cartoon</a>]
-<h3>Cartoon Subcommands: Style, Tether</h3>
+</p><h3>Cartoon Subcommands: Style, Tether</h3>
 <p>
 The subcommands <a href="#style"><b>cartoon style</b></a> and 
 <a href="#tether"><b>cartoon tether</b></a> control per-model settings.
@@ -184,15 +179,11 @@ default cartoon style can be restored with command:
 </p>
 <br>
 <table cellpadding="0px" cellspacing="0px">
-<tr>
-<td><img class="outline" src="style1.png" width="200px"
-alt="6cmn default cartoon" title="6cmn default cartoon"></td>
-<td><img class="outline" src="nucrib.png" width="200px"
-alt="6cmn nucrib" title="6cmn nucrib"></td>
-<td><img class="outline" src="cylinders.png" width="200px"
-alt="6cmn alpha-helix cylinders" title="6cmn alpha-helix cylinders"></td>
-<td><img class="outline" src="licorice.png" width="200px"
-alt="6cmn licorice" title="6cmn licorice"></td>
+<tbody><tr>
+<td><img class="outline" src="style1.png" width="200px" alt="6cmn default cartoon" title="6cmn default cartoon"></td>
+<td><img class="outline" src="nucrib.png" width="200px" alt="6cmn nucrib" title="6cmn nucrib"></td>
+<td><img class="outline" src="cylinders.png" width="200px" alt="6cmn alpha-helix cylinders" title="6cmn alpha-helix cylinders"></td>
+<td><img class="outline" src="licorice.png" width="200px" alt="6cmn licorice" title="6cmn licorice"></td>
 </tr><tr>
 <!-- 6cmn, white background, silhouettes, color bychain, nuc stubs -->
 <td align="center">initial cartoon style
@@ -202,7 +193,7 @@ alt="6cmn licorice" title="6cmn licorice"></td>
 <br>(protein &alpha;-helix tubes)</td>
 <td align="center"><b>nucrib</b> + <b>licorice</b>
 <br>(no 2&deg;-structure representations)</td>
-</table>
+</tr></tbody></table>
 </blockquote>
 
 <!--
@@ -252,7 +243,7 @@ in &Aring;. The <b>width</b> setting does not affect coil,
 however, as only its <b>thickness</b> is used in both dimensions.
 The initial default width and thickness are
 <b>2.0</b> and <b>0.4</b> &Aring;, respectively.
-</p><p>
+<p></p><p>
 <a name="xsection"></a>
 The <b>xsection</b> or cross-sectional shape of the cartoon can be
 <b>oval</b> (synonym <b>round</b>), <b>rectangle</b> (synonym <b>square</b>),
@@ -262,7 +253,7 @@ The <b>barbell</b> cross-section does not apply to coil and does not
 affect arrowheads.
 The initial default cross-section is <b>oval</b> for helix and coil,
 <b>rectangle</b> for strand and nucleic.
-</blockquote>
+</p></blockquote>
 <p>
 <a name="style-model-options"></a>
 The following <b>cartoon style</b> <i>model-options</i>
@@ -295,7 +286,7 @@ Other than <a href="#radius"><b>radius</b></a>
 and <a href="#sides"><b>sides</b></a>,
 most helix settings such as width, height, cross-section, and arrows
 do not apply to helices in the <b>tube</b> mode.
-</blockquote><blockquote>
+</p></blockquote><blockquote>
 <a name="radius"></a>
 <b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;|&nbsp;<b>auto</b>
 <br>
@@ -336,7 +327,7 @@ is multiplied by the width of helix or strand to give the arrowhead width.
 <b>divisions</b>&nbsp;&nbsp;<i>N</i>
 <br>The number of divisions per residue along the path of the ribbon.
 When an atomic structure is opened, the value is set automatically
-within the range 2-20, using 20 for structures with <20,000 residues.
+within the range 2-20, using 20 for structures with &lt;20,000 residues.
 See also: <a href="graphics.html#quality"><b>graphics quality</b></a>
   </blockquote><blockquote>
 <b>barSides</b>&nbsp;&nbsp;<i>N<font size="-1"><sub>b</sub></font></i>
@@ -385,7 +376,7 @@ and ends at the C&alpha; of its last (C-terminal) residue
 </ul>
 -->
   </blockquote>
-</p><p>
+<p></p><p>
 More examples:
 </p>
 <blockquote><b>
@@ -423,13 +414,13 @@ amino acid N, C, and nucleotide P, O3', and O5'
 -->
 </p><p>
 Tether <b>shape</b> can be:
- <ul>
+ </p><ul>
  <li><b>cone</b> (initial default) 
  &ndash; cone with base at the &alpha;-carbon, point at the cartoon
- <li><b>steeple</b>
+ </li><li><b>steeple</b>
  &ndash; cone with base at the cartoon, point at the &alpha;-carbon
- <li><b>cylinder</b>
- </ul>
+ </li><li><b>cylinder</b>
+ </li></ul>
 The <b>sides</b> option controls the number of planar facets used to draw
 a tether (range 3-10, initial default <b>4</b>).
 The <b>scale</b> option sets tether base radius relative to the display radius 
@@ -438,7 +429,7 @@ The tether color tracks the color of the corresponding &alpha;-carbon.
 The tether <b>opacity</b> value (1 &ndash; transparency) can range from 0.0
 (completely transparent) to 1.0 (completely opaque),
 with initial default <b>0.5</b>.
-</p><p>
+<p></p><p>
 Tethers can be hidden using <b>opacity 0</b>.
 </p>
 </blockquote>
@@ -447,14 +438,14 @@ Tethers can be hidden using <b>opacity 0</b>.
 <a name="worm"></a>
 <p class="nav">
 [<a href="#top">back to top: cartoon</a>]
-<h3>Cartoon by Attribute (Worm)</h3>
+</p><h3>Cartoon by Attribute (Worm)</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 (&nbsp;<b>cartoon byattribute</b>&nbsp;|&nbsp;<b>worm</b>&nbsp;)
 &nbsp;<a href="../attributes.html#attrnames"><i>attribute-name</i></a>&nbsp;
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
 [&nbsp;<i>values-and-radii</i>&nbsp;]
-[&nbsp;<b>noValueRadius</b>&nbsp;&nbsp;<i>radius</i></a>&nbsp;]
+[&nbsp;<b>noValueRadius</b>&nbsp;&nbsp;<i>radius</i>&nbsp;]
 [&nbsp;<b>sides</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
@@ -484,7 +475,7 @@ The <i>values and radii</i> specification can be given as two or more
 space-separated pairs of the form:
 </p>
 <blockquote>
-<i>value</i></a>:<i>radius</i>
+<i>value</i>:<i>radius</i>
 </blockquote>
 <p>
 ...where <i>value</i> can be <b>min</b> or <b>max</b> as well as
@@ -543,4 +534,5 @@ The general <a href="show.html"><b>hide</b></a> and
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 May 2024</address>
+
 </body></html>

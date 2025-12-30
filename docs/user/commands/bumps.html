@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: bumps</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: bumps</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -51,7 +46,7 @@ The <b>center</b> is typically a single <a href="../markers.html">marker</a>
 that was added previously <a href="ui.html#mousemode">with the mouse</a>
 using the <b>place marker</b> mode 
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="../tools/mouse-icons/marker.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/marker.png" alt="computer generated image"></a>
 set to mark the center of the surface 
 (see <a href="../tools/markerplacement.html"><b>Marker Placement</b></a>).
 See also: 
@@ -61,12 +56,12 @@ See also:
 <a href="../measurements.html">measurements</a>
 </p><p>
 Examples:
-<blockquote><b>
+</p><blockquote><b>
 bumps #1 center #2 height 1 base 100 range 75
 <br>
 bumps report #3 save ~/Desktop/prot.txt signalMap #4
 </b></blockquote>
-</p><p>
+<p></p><p>
 <a name="algorithm"></a>
 Conceptually, rays are followed out from the center up to the
 <a href="#range">range</a> distance,
@@ -95,9 +90,9 @@ For each identified bump, the information includes:
 <ul>
 <li>marker position in grid indices i,j,k
 of the isosurface volume model
-<li>number of grid points falling within the protrusion
-<li>protrusion height in physical distance units
-</ul>
+</li><li>number of grid points falling within the protrusion
+</li><li>protrusion height in physical distance units
+</li></ul>
 <p>
 If a signal map is specified, the sum of its values over grid points
 within the protrusion is also reported.
@@ -143,10 +138,9 @@ Size of the <a href="../markers.html">markers</a> added to mark protrusions
 Color of the <a href="../markers.html">markers</a> added to mark protrusions
 identified by the <a href="#algorithm">algorithm</a>
 (default
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td bgcolor="#64C864" width="10px"></td>
-</tr></table>).
+</tr></tbody></table>).
 The <a href="#allExtrema"><b>allExtrema</b></a> option
 can be used to mark all maxima, even those not meeting the
 <a href="#algorithm">algorithmic criteria</a>, using additional colors.
@@ -174,35 +168,32 @@ distance maxima, including those otherwise omitted by the
 <a href="#algorithm">algorithm</a> (default <b>false</b>).
 Markers for maxima that would have been excluded are color-coded:
 <ul>
-<li> <table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
+<li> <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td bgcolor="blue" width="15px"></td>
-</tr></table>
+</tr></tbody></table>
 for maxima failing the <a href="#height">height</a> criterion
-<li> <table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
+</li><li> <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td bgcolor="#FF6464" width="15px"></td>
-</tr></table>
+</tr></tbody></table>
 for maxima failing the <a href="#baseArea">base area</a> criterion
 (generally blobs of surface disconnected from the larger surface)
-<li> <table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
+</li><li> <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td bgcolor="yellow" width="15px"></td>
-</tr></table>
+</tr></tbody></table>
 for maxima that would have been eliminated because they share a base 
 with a higher maximum
-</ul>
+</li></ul>
 Markers for maxima meeting the 
 <a href="#algorithm">algorithmic criteria</a> are colored
 according to the <a href="#markerColor"><b>markerColor</b></a> option
 (default
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td bgcolor="#64C864" width="10px"></td>
-</tr></table>).
+</tr></tbody></table>).
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 June 2019</address>
+
 </body></html>

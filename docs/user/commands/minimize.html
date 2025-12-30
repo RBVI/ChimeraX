@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: minimize</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: minimize</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -54,19 +49,17 @@ into one beforehand, see <a href="combine.html"><b>combine</b></a>.
 The atoms are assigned types and associated force field parameters
 as described for <a href="addcharge.html"><b>addcharge</b></a>, and
 then the minimization is carried out using the OpenMM
-<a href="http://docs.openmm.org/7.0.0/api-python/generated/simtk.openmm.openmm.LocalEnergyMinimizer.html" 
-target="_blank">LocalEnergyMinimizer</a> with the
-<a href="http://docs.openmm.org/7.1.0/api-python/generated/simtk.openmm.openmm.LangevinIntegrator.html"
-target="_blank">LangevinIntegrator</a>.
+<a href="http://docs.openmm.org/7.0.0/api-python/generated/simtk.openmm.openmm.LocalEnergyMinimizer.html" target="_blank">LocalEnergyMinimizer</a> with the
+<a href="http://docs.openmm.org/7.1.0/api-python/generated/simtk.openmm.openmm.LangevinIntegrator.html" target="_blank">LangevinIntegrator</a>.
 See also: 
 <a href="../tools/buildstructure.html"><b>Build Structure</b></a>,
 <a href="tug.html"><b>tug</b></a>,
 <a href="ui.html#mousemode">mouse modes</a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
-<img class="icon" border=1 src="../tools/mouse-icons/tug.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/tug.png" alt="computer generated image"></a>
 <b>tug</b> and
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
-<img class="icon" border=1 src="../tools/mouse-icons/minimize.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/minimize.png" alt="computer generated image"></a>
 <b>minimize</b>
 </p><p>
 By default (<b>dockprep true</b>), the <b>minimize</b> command calls 
@@ -75,10 +68,10 @@ several tasks to prepare the structure beforehand, including:
 </p>
 <ul>
 <li>deleting water molecules
-<li>repairing truncated sidechains
-<li>adding hydrogens
-<li>assigning partial charges
-</ul>
+</li><li>repairing truncated sidechains
+</li><li>adding hydrogens
+</li><li>assigning partial charges
+</li></ul>
 <p>
 The <a href="dockprep.html"><b>dockprep</b></a> command options can
 also be used in the <b>minimize</b> command to control these processes.
@@ -86,7 +79,7 @@ also be used in the <b>minimize</b> command to control these processes.
 The <b>maxSteps</b> option sets the number of minimization steps
 (default <b>0</b>, meaning that minimization will continue until 
 convergence regardless of how many steps it takes).
-If a maximum number of steps (>0) is specified, minimization
+If a maximum number of steps (&gt;0) is specified, minimization
 will still end at convergence, even if fewer than the specified number
 of steps have been taken.
 Convergence is defined as when the root-mean-square of all 
@@ -107,4 +100,5 @@ indicates whether to also report the energy in the
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 October 2025</address>
+
 </body></html>
