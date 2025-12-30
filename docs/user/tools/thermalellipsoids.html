@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Thermal Ellipsoids</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Thermal Ellipsoids</h3>
 <p>
@@ -39,8 +34,7 @@ See also:
 <a href="render.html"><b>Render by Attribute</b></a>,
 <a href="../commands/measure.html#inertia"><b>measure inertia</b></a>,
 <a href="../commands/open.html#object">3D object formats</a>,
-the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#aniso"
-target="_blank">ChimeraX thermal ellipsoids highlight</a>
+the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#aniso" target="_blank">ChimeraX thermal ellipsoids highlight</a>
 </p><p>
 The <b>Thermal Ellipsoids</b> tool can be started from the
 <b>Structure Analysis</b> section of the <b>Tools</b> menu and
@@ -76,15 +70,15 @@ balls or spheres, using a thin stick representation is recommended
 <li><b>Scale factor</b> (default <b>1</b>, no scaling)
 &ndash; controls ellipsoid size, where the unscaled ellipsoid radii
 equal the atomic RMSDs along the ellipsoid axes
-<li><b>Smoothing level</b> (default <b>3</b>)
+</li><li><b>Smoothing level</b> (default <b>3</b>)
 &ndash; controls how many planar facets are used to draw ellipsoids and
 ellipses; higher values give smaller facets and a smoother appearance
-<li><b>Set scale factor for probability (%)</b> [<i>P</i>]
+</li><li><b>Set scale factor for probability (%)</b> [<i>P</i>]
 &ndash; automatically fills in the <b>Scale factor</b> field
 for a specified % probability <i>P</i>
 (press return after typing in a value;
 <i>P</i> must be &ge; 0% and &lt; 100%)
-</ul>
+</li></ul>
 The <b>Preset</b> menu in <b>Thermal Ellipsoids</b> provides quick
 access to several <a href="#presets">predefined combinations</a>
 of the following options:
@@ -95,32 +89,32 @@ of the following options:
   <li><b>Color</b> 
 &ndash; whether to <b>use atom color</b> or that in the color well 
 (click to change the color interactively)
-  <li><b>Transparency</b> (a menu including <b>same as color</b>
+  </li><li><b>Transparency</b> (a menu including <b>same as color</b>
   and several percentage transparency options)
-  </ul>
-<li><b>Depict principal axes</b>
+  </li></ul>
+</li><li><b>Depict principal axes</b>
 &ndash; whether to show ellipsoid principal axes
   <ul>
   <li><b>Color</b>
 &ndash; whether to <b>use atom color</b> or that in the color well 
 (click to change the color interactively)
-  <li><b>Length factor</b> (default <b>1.5</b>)
+  </li><li><b>Length factor</b> (default <b>1.5</b>)
   &ndash; length of principal axis depictions relative to ellipsoid size
-  <li><b>Thickness</b> (default <b>0.01</b> &Aring;)
+  </li><li><b>Thickness</b> (default <b>0.01</b> &Aring;)
   &ndash; thickness of principal axis depictions (dimensions perpendicular to length)
-  </ul>
-<li><b>Depict principal ellipses</b>
+  </li></ul>
+</li><li><b>Depict principal ellipses</b>
 &ndash; whether to show ellipsoid principal ellipses
   <ul>
   <li><b>Color</b>
 &ndash; whether to <b>use atom color</b> or that in the color well 
 (click to change the color interactively)
-  <li><b>Size factor</b> (default <b>1.0</b>)
+  </li><li><b>Size factor</b> (default <b>1.0</b>)
   &ndash; size of principal ellipse depictions relative to ellipsoid size
-  <li><b>Thickness</b> (default <b>0.02</b> &Aring;)
+  </li><li><b>Thickness</b> (default <b>0.02</b> &Aring;)
   &ndash; thickness of principal ellipse depictions
-  </ul>
-</ul>
+  </li></ul>
+</li></ul>
 <p>
 Clicking <b>Show</b> after entering a value 
 creates or updates the depictions; clicking <b>Hide</b> removes them.
@@ -158,44 +152,45 @@ See also: <a href="../commands/aniso.html#preset"><b>aniso preset</b></a>
 <!--
 showEllipsoid false, axisFactor 1.0, ellipseFactor none
 -->
-<li><b>ellipses</b>
+</li><li><b>ellipses</b>
 &ndash; ellipses only (size factor 1.0)
 <!--
 showEllipsoid false, axisFactor none, ellipseFactor 1.0, color from atoms
 -->
-<li><b>octant</b>
+</li><li><b>octant</b>
 &ndash; ellipsoids with black ellipses (size factor 1.01)
 <!--
 showEllipsoid true, ellipseFactor 1.01, ellipseColor black
 -->
-<li><b>simple</b>
+</li><li><b>simple</b>
 &ndash; ellipsoids only, color from atoms
 <!--
 showEllipsoid true, axisFactor none, ellipseFactor none
 -->
-<li><b>simple-axes</b>
+</li><li><b>simple-axes</b>
 &ndash; ellipsoids with axes (length factor 1.5)
 <!--
 showEllipsoid true, axisFactor 1.5
 -->
-<li><b>snowglobe-axes</b>
+</li><li><b>snowglobe-axes</b>
 &ndash; white half-transparent ellipsoids with axes (length factor 0.99)
 <!--
 showEllipsoid true, color white, transparency 0.5, axisFactor 0.99
 -->
-<li><b>snowglobe-ellipses</b>
+</li><li><b>snowglobe-ellipses</b>
 &ndash; white half-transparent ellipsoids with ellipses (size factor 0.99)
 <!--
 showEllipsoid true, color white, transparency 0.5, ellipseFactor 0.99
 -->
-<li><b>Preset from current settings...</b>
+</li><li><b>Preset from current settings...</b>
 save a custom preset with the current <a href="#settings2">style settings</a>;
 the settings must have been applied to some atoms before they can be saved
-<li><b>Delete user preset...</b>
+</li><li><b>Delete user preset...</b>
 remove a previously user-defined preset
-</ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 May 2025</address>
+
 </body></html>

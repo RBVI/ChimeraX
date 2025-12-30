@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: clashes, contacts</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: clashes, contacts</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -57,10 +52,10 @@ except for their default interaction criteria, meant to identify:
 <li><b><i>clashes</i></b>
 &ndash; unfavorable interactions where atoms are too close together;
 close contacts
-<li><b><i>contacts</i></b>
+</li><li><b><i>contacts</i></b>
 &ndash; all kinds of direct interactions:
 polar and nonpolar, favorable and unfavorable (including clashes)
-</ul>
+</li></ul>
 <p>
 The corresponding tools are <a href="../tools/clashes.html"><b>Clashes</b></a>
 and <a href="../tools/clashes.html"><b>Contacts</b></a>.
@@ -118,7 +113,7 @@ r<sub>VDW<i>i</i></sub> + r<sub>VDW<i>j</i></sub>
 &ndash; d<sub>ij</sub> &ndash; <i>allowance<sub>ij</sub></i>
 <p>
 <a name="recommended"></a>
-<table border cellpadding="4" cellspacing="0"><tr>
+<table border cellpadding="4" cellspacing="0"><tbody><tr>
 <th class="shaded" rowspan="2">&nbsp;command&nbsp;</th>
 <th class="shaded" colspan="2">
 <a href="#overlapCutoff">overlapCutoff</a> (&Aring;)</th>
@@ -142,8 +137,8 @@ r<sub>VDW<i>i</i></sub> + r<sub>VDW<i>j</i></sub>
 <td align="center"><b>0.0</b></td>
 <td align="center">0.0</td>
 </tr>
-</table>
-</blockquote>
+</tbody></table>
+</p></blockquote>
 <p>
 Normally, a clash or contact is identified based on the <i>overlap</i> cutoff,
 but the <a href="#distanceOnly"><b>distanceOnly</b></a> option allows using
@@ -174,17 +169,17 @@ contacts protein restrict ligand reveal true
 <li><b>cross</b> &ndash; interactions with exactly one atom
 in <a href="atomspec.html"><i>atom-spec1</i></a>
 (the atoms specified in the <a href="#top">main command</a>)
-<li><b>both</b> &ndash; interactions with both atoms
+</li><li><b>both</b> &ndash; interactions with both atoms
 in <a href="atomspec.html"><i>atom-spec1</i></a>
-<li><b>any</b> (default) &ndash; interactions with at least one atom
+</li><li><b>any</b> (default) &ndash; interactions with at least one atom
 in <a href="atomspec.html"><i>atom-spec1</i></a>
-<li>interactions between <a href="atomspec.html"><i>atom-spec1</i></a>
+</li><li>interactions between <a href="atomspec.html"><i>atom-spec1</i></a>
 and a second set of atoms, <a href="atomspec.html"><i>atom-spec2</i></a>;
 the two sets may overlap, but will not overrule other restrictions
 (for example, if the two sets are in different models
 but <a href="#interModel"><b>interModel</b></a> is <b>false</b>,
 no interactions will be found)
-</ul>
+</li></ul>
 &nbsp;&nbsp;&nbsp;See also options:
 <a href="#ignoreHiddenModels"><b>ignoreHiddenModels</b></a>,
 <a href="#interSubmodel"><b>interSubmodel</b></a>,
@@ -289,14 +284,12 @@ Color to use for the
 <a href="../pseudobonds.html">pseudobonds</a>
 when <a href="#makePseudobonds"><b>makePseudobonds</b></a> is <b>true</b>
 (default <b>forest green</b> 
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=forestgreen width="10px" title="forest green"></td></tr></table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="forestgreen" width="10px" title="forest green"></td></tr></tbody></table>
 for <b>contacts</b>, 
 <b>medium orchid</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=mediumorchid width="10px" title="medium orchid"></td></tr></table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="mediumorchid" width="10px" title="medium orchid"></td></tr></tbody></table>
 for <b>clashes</b>);
 can be changed later with <a href="color.html"><b>color</b></a>.
 </blockquote>
@@ -441,15 +434,15 @@ to a <a href="#saveFile">file</a> or the <a href="#log">log</a>:
 <ul>
 <li><b>simple</b> &ndash; chain ID (preceded by slash),
 residue name, residue number, atom name (for example, /B ASN 21 OD1)
-<li><b>command</b>
+</li><li><b>command</b>
 &ndash; <a href="atomspec.html#hierarchy">command-line specifier</a>
 (for example, /B:21@OD1)
-<li><b>serial</b> &ndash; atom serial number
+</li><li><b>serial</b> &ndash; atom serial number
 (for example, 126)
-<li><b>residue</b> &ndash; condense all results to the residue level,
+</li><li><b>residue</b> &ndash; condense all results to the residue level,
 omitting atom names and reporting only the largest (or least negative) 
 overlap per unique pair of residues 
-</ul>
+</li></ul>
 Model number will be included when multiple models are present.
 The <a href="../preferences.html#labels"><b>Labels</b> preference</a>
 <b>Balloon-help specifier style</b> sets which is the default (atom)
@@ -472,4 +465,5 @@ but only the initial and final summaries are reported in the
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 August 2024</address>
+
 </body></html>

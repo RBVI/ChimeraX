@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Foldseek (Similar Structures)</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Foldseek (Similar Structures)</h3>
 <p>
@@ -43,11 +38,11 @@ using extremely fast approaches that were developed for sequence searches.
 It does so by describing the 3D interactions along a chain of amino acids
 as a linear sequence of characters. 
 <br><br>
-<li>
+</li><li>
 Alternatively, <a href="#notes"><b>MMseqs2</b></a> (very fast) or
 <a href="blastprotein.html#notes"><b>BLAST</b></a> can be used to 
 search for protein structures by sequence similarity. 
-</ul>
+</li></ul>
 <p>
 The tool can be started from the
 <b>Structure Analysis</b> section of the <b>Tools</b> menu
@@ -93,16 +88,14 @@ Choices of <b>database</b> to search:
 <ul>
 <li><b>PDB</b> &ndash;
 <a href="https://www.rcsb.org/" target="_blank">Protein Data Bank</a>
-<li><b>Alphafold DB</b> &ndash; <a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold Database</a>
-</ul>
+</li><li><b>Alphafold DB</b> &ndash; <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
+</li></ul>
 <p>
 Choices of search method:
 </p>
 <ul>
 <li><a href="#notes"><b>Foldseek</b></a> &ndash; fast 3D structure search
-using the <a href="https://search.foldseek.com/search" 
-target="_blank">Foldseek Search Service</a> provided by the
+using the <a href="https://search.foldseek.com/search" target="_blank">Foldseek Search Service</a> provided by the
 <a href="https://www.mpinat.mpg.de/soeding" target="_blank">S&ouml;ding</a>
 and <a href="https://steineggerlab.com/en/" target="_blank">Steinegger</a>
 groups, with maximum number of hits 1000.
@@ -118,13 +111,12 @@ database version 4.
 <!--
 UniRef50??  https://www.uniprot.org/help/uniref
 -->
-<li><a href="#notes"><b>MMseqs2</b></a> &ndash; very fast sequence search
+</li><li><a href="#notes"><b>MMseqs2</b></a> &ndash; very fast sequence search
 using the <a href="https://search.rcsb.org" target="_blank">RCSB web service</a>
-<li><a href="blastprotein.html#notes"><b>BLAST</b></a> 
+</li><li><a href="blastprotein.html#notes"><b>BLAST</b></a> 
 &ndash; sequence search using the BLAST web service hosted by the
-<a href="https://www.cgl.ucsf.edu/Overview/index.html" 
-target="_blank">UCSF RBVI</a>
-</ul>
+<a href="https://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF RBVI</a>
+</li></ul>
 <p>
 Clicking <b>Search</b> sends the input parameters and structure to the
 web service. When results are returned, a <a href="#results">table 
@@ -154,24 +146,23 @@ Columns in the <b>Similar Structures</b> table:
 <ul>
 <li><b>PDB</b> &ndash; <i>PDB-identifier</i>_<i>chain-identifier</i>
 <br>&ndash; <i>OR</i> &ndash; (depending on which database was searched)<br>
-<li><b>AFDB</b>
-&ndash; <a href="https://www.uniprot.org/help/accession_numbers" 
-target="_blank">UniProt accession number</a>
-<li><b>Identity</b> &ndash; % sequence identity compared to the query
+</li><li><b>AFDB</b>
+&ndash; <a href="https://www.uniprot.org/help/accession_numbers" target="_blank">UniProt accession number</a>
+</li><li><b>Identity</b> &ndash; % sequence identity compared to the query
 <!-- across aligned positions? -->
-<li><b>E-value</b> &ndash; significance value according to the search method
-<li><b>% Close</b>
+</li><li><b>E-value</b> &ndash; significance value according to the search method
+</li><li><b>% Close</b>
 &ndash; percentage of residues in the <a href="#options">trimmed</a> hit
 that are close to the paired residue of the query (within the 
 <a href="#options"><b>Alignment pruning C-alpha atom distance</b></a>,
 default <b>2.0</b> &Aring;)
-<li><b>% Cover</b>
+</li><li><b>% Cover</b>
 &ndash; percentage of query residues paired with hit residues
-<li><b>Species</b> &ndash; source organism
-<li><b>Description</b>
+</li><li><b>Species</b> &ndash; source organism
+</li><li><b>Description</b>
 &ndash; description of the protein or (if <b>PDB</b>)
 the overall structure containing the protein
-</ul>
+</li></ul>
 <p>
 The <b>% Close</b> and <b>% Cover</b> values are only filled in automatically
 by the <a href="#notes">Foldseek</a> search method, 
@@ -196,35 +187,34 @@ Buttons across the bottom of the dialog:
 &ndash; fetch the <a href="#chosen">chosen</a>
 structures from the respective database
 (<a href="https://www.rcsb.org/" target="_blank">Protein Data Bank</a>
-or <a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold Database</a>) and process them
+or <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>) and process them
 according to the <a href="#options">options</a>. For each structure,
 the hit chain is superimposed onto the query chain by least-squares fitting
 the &alpha;-carbons of the paired residues and iteratively pruning 
 far-apart pairs as described for the
 <a href="../commands/align.html"><b>align</b></a> command.
-<li><b>Sequences</b> 
+</li><li><b>Sequences</b> 
 &ndash; show an interactive heatmap of the sequence alignment of all hits
 (<a href="#sequences">details...</a>)
 <!-- 7/25 green is same residue type as query, red is same residue type
 as query and >N% conserved in column  ... 50? 70? -->
-<li><b>Traces</b> 
+</li><li><b>Traces</b> 
 &ndash; show hit structures as thin tube backbones
 (<a href="#traces">details...</a>)
-<li><b>Clusters</b> 
+</li><li><b>Clusters</b> 
 &ndash; show an interactive 2D scatter plot of the hits based on 
 their backbone conformations
 (<a href="#clusters">details...</a>)
-<li><b>Ligands</b>
+</li><li><b>Ligands</b>
 &ndash; show any solvent, ligands, and ions from the hit structures
 (<a href="#ligands">ligands...</a>)
-<li><b>Options</b> 
+</li><li><b>Options</b> 
 &ndash; show <a href="#options">options</a> for handling structures and 
 for setting whether buttons should apply to all hits or only the 
 <a href="#chosen">chosen</a> hits
-<li><b>Help</b> 
+</li><li><b>Help</b> 
 &ndash; show this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>
-</ul>
+</li></ul>
 <p>
 Choosing <b>Save CSV or TSV File...</b> from the tool's
 <a href="../window.html#context-menu">context menu</a> opens
@@ -271,21 +261,21 @@ the retrieved structure:
   <ul>
   <li><b>extra chains</b> &ndash; for PDB entries, chains other than
 the hit chain
-  <li><b>sequence ends</b> &ndash; N- and C-terminal segments of the hit chain
+  </li><li><b>sequence ends</b> &ndash; N- and C-terminal segments of the hit chain
 that were not included in the sequence alignment returned by the search method
-  <li><b>far ligands</b> &ndash; ligands, solvent, and ions &gt; 3 &Aring;
+  </li><li><b>far ligands</b> &ndash; ligands, solvent, and ions &gt; 3 &Aring;
 from the hit chain
-  </ul>
-<li><b>Alignment pruning C-alpha atom distance</b> (default <b>2.0</b> &Aring;)
+  </li></ul>
+</li><li><b>Alignment pruning C-alpha atom distance</b> (default <b>2.0</b> &Aring;)
 &ndash; iterate the fit over the sequence-aligned pairs of CA atoms
 so that only pairs within the specified distance are used in the final fit,
 as described for the <a href="../commands/align.html"><b>align</b></a> command
-<li><b>Traces, clusters and ligands for selected rows only</b>
+</li><li><b>Traces, clusters and ligands for selected rows only</b>
 &ndash; whether the <b>Traces</b>, <b>Clusters</b>, and <b>Ligands</b>
 <a href="#buttons">buttons</a> should show data for the 
 <a href="#chosen">chosen</a> hits only; otherwise,
 show data for all hits regardless of which are <a href="#chosen">chosen</a>
-</ul>
+</li></ul>
 
 <a name="sequences"></a>
 <p class="nav">
@@ -293,10 +283,8 @@ show data for all hits regardless of which are <a href="#chosen">chosen</a>
 </p>
 <h3>Sequence Plot and Residue Attributes</h3>
 <table class="clRight">
-<tr><td><a href="sequences.png"><img class="outline" src="sequences.png" 
-alt="Foldseek sequence plot" width="400px"
-title="click to enlarge..."></a></td></tr>
-</table>
+<tbody><tr><td><a href="sequences.png"><img class="outline" src="sequences.png" alt="Foldseek sequence plot" width="400px" title="click to enlarge..."></a></td></tr>
+</tbody></table>
 <p>
 Clicking the <b>Sequences</b> button displays a high-level (without
 amino acid codes) plot of the sequence alignment of all of the hits to 
@@ -312,16 +300,16 @@ colored as follows:
 <li><font style="background:white;border:solid black 1px; 
 padding:0px 1px">&nbsp;&nbsp;&nbsp;</font>
 &ndash; no aligned residue
-<li><font style="background:#E1BE6A;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>
+</li><li><font style="background:#E1BE6A;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>
 &ndash; residue of the same amino acid type as the query
 in a column where &ge;0.5 of the residues have that same type
 (and the column contains at least 10 residues)
-<li><font style="background:#40B0A6;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>
+</li><li><font style="background:#40B0A6;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>
 &ndash; residue of the same amino acid type as the query
 but not meeting the column criteria above
-<li><font style="background:black;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>
+</li><li><font style="background:black;padding:0px 2px">&nbsp;&nbsp;&nbsp;</font>
 &ndash; residue of a different amino acid type than the query
-</ul>
+</li></ul>
 <p>
 Different coloring can be applied with the
 <a href="../commands/similarstructures.html#sequences"><b>similarstructures
@@ -336,108 +324,87 @@ in which some entries reflect the row or column position of the click:
 (This differs from other tools, in which
 <a href="../window.html#context-menu">right- or Ctrl-click</a> is used.)
 -->
-<ul>
+</p><ul>
 <li><b>Open structure [<i>hit</i>]</b>
 &ndash; fetch the structure and superimpose it on the query
 as described for the <a href="#buttons"><b>Open</b></a> button
-<li><b>Show [<i>hit</i>] in table</b>
+</li><li><b>Show [<i>hit</i>] in table</b>
 &ndash; scroll the table of results to the corresponding row
-<li><b>Select query residue [<i>query residue</i>]</b>
+</li><li><b>Select query residue [<i>query residue</i>]</b>
 &ndash; <a href="../selection">select</a> the corresponding residue in the query 
-<li><b>Order sequences by:</b>
+</li><li><b>Order sequences by:</b>
   <ul>
   <li><b>e-value</b> &ndash; lowest to highest E-value (default,
 if clustering by coverage only gives one cluster, see below)
-  <li><b>cluster</b> &ndash; grouping the sequences by which part of the 
+  </li><li><b>cluster</b> &ndash; grouping the sequences by which part of the 
 query they cover (default, if clustering by coverage gives &gt;1 cluster)
-  <li><b>identity</b>
+  </li><li><b>identity</b>
 &ndash; percent sequence identity compared to the query
-  <li><a name="lddt"></a><b>mean LDDT</b>
+  </li><li><a name="lddt"></a><b>mean LDDT</b>
 &ndash; average <b><i>local distance difference test</i></b> (LDDT)
 over all residues in a hit structure.
 The LDDT indicates the similarity of a hit residue to the aligned
 query residue in a neighborhood of 15 &Aring; from the query residue 
 &alpha;-carbon
-(see <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3799472/" 
-target="_blank">Mariani <i>et al.</i></a>, 
+(see <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3799472/" target="_blank">Mariani <i>et al.</i></a>, 
 Bioinformatics <b>29</b>:2722 (2013)).
-  </ul>
-<li><b>Color conserved</b> (default)
+  </li></ul>
+</li><li><b>Color conserved</b> (default)
 &ndash; by conservation of the query residue type
 as described <a href="#sequences">above</a>
-<li><b>Color by LDDT</b> 
+</li><li><b>Color by LDDT</b> 
 &ndash; by <a href="#lddt">LDDT</a> of each aligned residue in each structure:
-<table border cellpadding="0" cellspacing="0"
-style="display:inline-block; vertical-align:top"><tr>
-<td bgcolor=red width="30px" title="red"
-align="center"><font size="-1" color="white">0</font></td>
-<td bgcolor=orange width="30px" title="orange"
-align="center"><font size="-1">0.2</font></td>
-<td bgcolor=yellow width="30px" title="yellow"
-align="center"><font size="-1" color="black">0.4</font></td>
-<td bgcolor=cornflowerblue width="30px" title="cornflowerblue"
-align="center"><font size="-1" color="white">0.6</font></td>
-<td bgcolor=blue width="30px" title="blue"
-align="center"><font size="-1" color="white">0.8</font></td>
-</tr></table>
+<table border cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
+<td bgcolor="red" width="30px" title="red" align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="orange" width="30px" title="orange" align="center"><font size="-1">0.2</font></td>
+<td bgcolor="yellow" width="30px" title="yellow" align="center"><font size="-1" color="black">0.4</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue" align="center"><font size="-1" color="white">0.6</font></td>
+<td bgcolor="blue" width="30px" title="blue" align="center"><font size="-1" color="white">0.8</font></td>
+</tr></tbody></table>
 <br>
 (if both of the above <b>Color...</b> options are turned on, only the
 positions that would otherwise be shown in black are colored by
 <a href="#lddt">LDDT</a> instead)
-<li><b>Color query structure by:</b>
+</li><li><b>Color query structure by:</b>
   <ul>
   <li><b>coverage</b>
 &ndash; number of residues (non-gap characters) in the aligned column 
 (query residue <a href="../attributes.html">attribute</a> <b>coverage</b>):
-<table border cellpadding="0" cellspacing="0"
-style="display:inline-block; vertical-align:top"><tr>
-<td bgcolor=red width="30px" title="red"
-align="center"><font size="-1" color="white">0</font></td>
-<td bgcolor=white width="30px" title="white"
-align="center"><font size="-1">N/2</font></td>
-<td bgcolor=blue width="30px" title="blue"
-align="center"><font size="-1" color="white">N</font></td>
-</tr></table>
+<table border cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
+<td bgcolor="red" width="30px" title="red" align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="white" width="30px" title="white" align="center"><font size="-1">N/2</font></td>
+<td bgcolor="blue" width="30px" title="blue" align="center"><font size="-1" color="white">N</font></td>
+</tr></tbody></table>
 where N is the number in the most highly populated column of the alignment
-  <li><b>conservation</b>
+  </li><li><b>conservation</b>
 &ndash; fraction of hits in the aligned column with the most prevalent 
 residue type in that column, not necessarily the same residue type 
 as in the query
 (query residue <a href="../attributes.html">attribute</a> <b>conservation</b>):
-<table border cellpadding="0" cellspacing="0"
-style="display:inline-block; vertical-align:top"><tr>
-<td bgcolor=blue width="30px" title="blue"
-align="center"><font size="-1" color="white">0</font></td>
-<td bgcolor=white width="30px" title="white"
-align="center"><font size="-1">0.25</font></td>
-<td bgcolor=red width="30px" title="red"
-align="center"><font size="-1" color="white">0.5</font></td>
-</tr></table>
-  <li><b>highly conserved</b>
+<table border cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
+<td bgcolor="blue" width="30px" title="blue" align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="white" width="30px" title="white" align="center"><font size="-1">0.25</font></td>
+<td bgcolor="red" width="30px" title="red" align="center"><font size="-1" color="white">0.5</font></td>
+</tr></tbody></table>
+  </li><li><b>highly conserved</b>
 &ndash; red where 
 <!-- query residue <a href="../attributes.html">attribute</a> -->
 <b>conservation</b> &ge; 0.5, otherwise gray
-  <li><b>local alignment</b>
+  </li><li><b>local alignment</b>
 &ndash; average <a href="#lddt">LDDT</a> at that position across all 
 aligned structures
 (query residue <a href="../attributes.html">attribute</a> <b>lddt</b>):
 <!-- 0 red, 0.2 orange, 0.4 yellow, 0.6 cornflowerblue, 0.8,blue -->
-<table border cellpadding="0" cellspacing="0"
-style="display:inline-block; vertical-align:top"><tr>
-<td bgcolor=red width="30px" title="red"
-align="center"><font size="-1" color="white">0</font></td>
-<td bgcolor=orange width="30px" title="orange"
-align="center"><font size="-1">0.2</font></td>
-<td bgcolor=yellow width="30px" title="yellow"
-align="center"><font size="-1" color="black">0.4</font></td>
-<td bgcolor=cornflowerblue width="30px" title="cornflowerblue"
-align="center"><font size="-1" color="white">0.6</font></td>
-<td bgcolor=blue width="30px" title="blue"
-align="center"><font size="-1" color="white">0.8</font></td>
-</tr></table>
-  </ul>
-<li><b>Save image</b> &ndash; save the sequence plot as a PNG image file
-</ul>
+<table border cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
+<td bgcolor="red" width="30px" title="red" align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="orange" width="30px" title="orange" align="center"><font size="-1">0.2</font></td>
+<td bgcolor="yellow" width="30px" title="yellow" align="center"><font size="-1" color="black">0.4</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue" align="center"><font size="-1" color="white">0.6</font></td>
+<td bgcolor="blue" width="30px" title="blue" align="center"><font size="-1" color="white">0.8</font></td>
+</tr></tbody></table>
+  </li></ul>
+</li><li><b>Save image</b> &ndash; save the sequence plot as a PNG image file
+</li></ul>
 <p>
 The query residue <a href="../attributes.html">attributes</a>
 <b>coverage</b>, <b>conservation</b>, and <b>lddt</b>
@@ -482,11 +449,11 @@ The traces are initially displayed as follows:
 <ol>
 <li>the ribbon is broken into segments where 
 two consecutive aligned &alpha;-carbons are &gt;5 &Aring; apart
-<li>ribbons are shown for &ge;5 contiguous &alpha;-carbons within a segment 
+</li><li>ribbons are shown for &ge;5 contiguous &alpha;-carbons within a segment 
 and within 4 &Aring; of the corresponding query &alpha;-carbons
-<li>ribbons are shown for entire segments in which every &alpha;-carbon
+</li><li>ribbons are shown for entire segments in which every &alpha;-carbon
 is within 10 &Aring; of its counterpart
-</ol>
+</li></ol>
 <p>
 Different parameters can be applied with the
 <a href="../commands/similarstructures.html#traces"><b>similarstructures
@@ -500,19 +467,19 @@ for the corresponding hit, with entries including:
 <li><b>Open similar structure [<i>hit</i>]</b>
 &ndash; fetch the structure and superimpose it on the query
 as described for the <a href="#buttons"><b>Open</b></a> button
-<li><b>Show [<i>hit</i>] in similar structures table</b>
+</li><li><b>Show [<i>hit</i>] in similar structures table</b>
 &ndash; scroll the table of results to the corresponding row 
-<li><b>Show all traces</b> &ndash; show trace ribbons for all hits
-<li><b>Show full traces</b> &ndash; show entire traces
+</li><li><b>Show all traces</b> &ndash; show trace ribbons for all hits
+</li><li><b>Show full traces</b> &ndash; show entire traces
 regardless of the distance and length criteria for initial display
-<li><b>Show only close traces</b> &ndash; go back to showing
+</li><li><b>Show only close traces</b> &ndash; go back to showing
 only the parts that meet the distance and length criteria for initial display
-<li><b>Show only trace [<i>hit</i>]</b>
-</ul>
-</p>
+</li><li><b>Show only trace [<i>hit</i>]</b>
+</li></ul>
+<p></p>
 The trace ribbons can be shown/hidden or colored selectively with the 
 menu above and the <a href="#clusters">cluster plot</a> context menu.
-</p>
+<p></p>
 
 <a name="clusters"></a>
 <p class="nav">
@@ -520,9 +487,8 @@ menu above and the <a href="#clusters">cluster plot</a> context menu.
 </p>
 <h3>Cluster Plot</h3>
 <table class="clRight">
-<tr><td><img class="outline" src="clusters-1gvz-af.png" 
-alt="Foldseek clusters plot" width="150px"></td></tr>
-</table>
+<tbody><tr><td><img class="outline" src="clusters-1gvz-af.png" alt="Foldseek clusters plot" width="150px"></td></tr>
+</tbody></table>
 <p>
 Clicking the <b>Clusters</b> button displays a scatter plot of the hits 
 clustered by backbone conformation, for either all hits or just the
@@ -535,16 +501,15 @@ labeled with its name. Clicking the button generates the plot as follows:
 <li>the five residues in the query most conserved in the sequence
 alignment of hits are identified and their &alpha;-carbons used as the
 <b><i>reference atoms</i></b>
-<li>for each hit,
+</li><li>for each hit,
 the &alpha;-carbon (x,y,z) coordinates of the corresponding five residues
 are concatenated to give a vector of length 15; hit structures
 without a residue in any of the five alignment columns are omitted
-<li>the vector is projected to a point in two dimensions with UMAP
-(<a href="https://umap-learn.readthedocs.io/en/latest/" 
-target="_blank">Uniform Manifold Approximation and Projection</a>)
-<li>the points in 2D are clustered by distance,
+</li><li>the vector is projected to a point in two dimensions with UMAP
+(<a href="https://umap-learn.readthedocs.io/en/latest/" target="_blank">Uniform Manifold Approximation and Projection</a>)
+</li><li>the points in 2D are clustered by distance,
 and the clusters are assigned random colors
-</ol>
+</li></ol>
 <p>
 Different parameters such as a different number of reference residues
 can be specified with the
@@ -560,44 +525,44 @@ a specific hit only appear when the click is on a circle:
 <ul>
 <li><b>Show traces for cluster [<i>hit</i>]</b>
 &ndash; show traces for all hits in the same cluster as the clicked one
-<li><b>Show only traces for cluster [<i>hit</i>]</b>
+</li><li><b>Show only traces for cluster [<i>hit</i>]</b>
 &ndash; show traces for all hits in the same cluster as the clicked one,
 hide all other traces
-<li><b>Hide traces for cluster [<i>hit</i>]</b>
+</li><li><b>Hide traces for cluster [<i>hit</i>]</b>
 &ndash; hide traces for all hits in the same cluster as the clicked one
-<li><b>Show all traces</b>
-<li><b>Show one trace per cluster</b>
+</li><li><b>Show all traces</b>
+</li><li><b>Show one trace per cluster</b>
 &ndash; per cluster, show only the trace of structure closest to the
 average for that structure (minimum RMSD to average &alpha;-carbon positions)
-<li><b>Show traces not on plot</b>
+</li><li><b>Show traces not on plot</b>
 &ndash; show traces for the hits that were omitted from the plot
 due to not having a residue at one or more reference positions
-<li><b>Hide traces not on plot</b>
+</li><li><b>Hide traces not on plot</b>
 &ndash; hide traces for the hits that were omitted from the plot
 due to not having a residue at one or more reference positions
-<li><b>Color traces to match plot</b>
-<li><b>Change cluster [<i>hit</i>] color</b></b>
+</li><li><b>Color traces to match plot</b>
+</li><li><b>Change cluster [<i>hit</i>] color</b>
 &ndash; use system color editor to interactively change the color of all
 circles for hits in the same cluster (or if coloring by species, from
 the same species) as the clicked one
-<li><b>Color by cluster</b> (default)
-<li><b>Color by species</b>
+</li><li><b>Color by cluster</b> (default)
+</li><li><b>Color by species</b>
 &ndash; different random colors for different source species
-<li><b>Show table row for [<i>hit</i>]</b>
+</li><li><b>Show table row for [<i>hit</i>]</b>
 &ndash; scroll the table of results to the corresponding row 
-<li><b>Select rows for cluster [<i>hit</i>]</b>
+</li><li><b>Select rows for cluster [<i>hit</i>]</b>
 &ndash; <a href="#chosen">choose</a> table rows for all hits in the same 
 cluster (or if coloring by species, from the same species) as the clicked one,
 and report their structure IDs in the <a href="log.html"><b>Log</b></a>
-<li><b>Log structure names for cluster [<i>hit</i>]</b>
+</li><li><b>Log structure names for cluster [<i>hit</i>]</b>
 &ndash; report structure IDs in the <a href="log.html"><b>Log</b></a>
 for all hits in the same cluster as the clicked one
-<li><b>Show reference atoms</b>
+</li><li><b>Show reference atoms</b>
 &ndash; display the reference &alpha;-carbons as spheres
 and <a href="../selection.html">select</a> them
-<li><b>Select reference atoms</b>
+</li><li><b>Select reference atoms</b>
 &ndash; <a href="../selection.html">select</a> the reference &alpha;-carbons
-</ul>
+</li></ul>
 
 <a name="ligands"></a>
 <p class="nav">
@@ -618,11 +583,11 @@ structure, as follows:
 </p>
 <ol>
 <li>protein residues within 5 &Aring; of the ligand are identified
-<li>if at least half of those nearby protein residues are paired with query
+</li><li>if at least half of those nearby protein residues are paired with query
 residues, the &alpha;-carbons of those pairs are fitted
-<li>if the resulting RMSD is &le;3 &Aring;, the ligand is copied to 
+</li><li>if the resulting RMSD is &le;3 &Aring;, the ligand is copied to 
 corresponding position relative to the query structure
-</ol>
+</li></ol>
 <p>
 Different parameters can be applied with the
 <a href="../commands/similarstructures.html"><b>similarstructures
@@ -658,20 +623,18 @@ See also: <a href="https://alphafill.eu/" target="_blank">AlphaFill</a>
 <h3>References</h3>
 <p>
 <b>Foldseek</b>.
-The <a href="https://github.com/steineggerlab/foldseek" 
-target="_blank">Foldseek</a> method is described in:
+The <a href="https://github.com/steineggerlab/foldseek" target="_blank">Foldseek</a> method is described in:
 </p>
 <blockquote>
 <a href="https://www.nature.com/articles/s41587-023-01773-0" target="_blank">
 Fast and accurate protein structure search with Foldseek.</a>
-van Kempen M, Kim SS, Tumescheit C, Mirdita M, Lee J, Gilchrist CLM, Söding J, Steinegger M.
+van Kempen M, Kim SS, Tumescheit C, Mirdita M, Lee J, Gilchrist CLM, S&Atilde;&para;ding J, Steinegger M.
 <i>Nat Biotechnol.</i> 2024 Feb;42(2):243-246.
 </blockquote>
 <p>
 <b>Many-against-Many sequence searching (MMseqs2)</b>.
-The <a href="https://github.com/soedinglab/MMseqs2" 
-target="_blank">MMseqs2</a> method is described in:
-<blockquote>
+The <a href="https://github.com/soedinglab/MMseqs2" target="_blank">MMseqs2</a> method is described in:
+</p><blockquote>
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/29035372" target="_blank">
 MMseqs2 enables sensitive protein sequence searching for the analysis 
 of massive data sets.</a>
@@ -684,7 +647,7 @@ searches.</a>
 Mirdita M, Steinegger M, S&ouml;ding J.
 <i>Bioinformatics.</i> 2019 Aug 15;35(16):2856-2858.
 </blockquote>
-<b>Local distance difference test</i> (LDDT)</b>:
+<b>Local distance difference test (LDDT)</b>:
 <blockquote>
 <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC3799472/" target="_blank">
 lDDT: a local superposition-free score for comparing protein structures and models using distance difference tests.</a>
@@ -695,4 +658,5 @@ Mariani V, Biasini M, Barbato A, Schwede T.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 November 2025</address>
+
 </body></html>

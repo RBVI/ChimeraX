@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Map Filter</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Map Filter</h3>
 <p>
@@ -43,7 +38,7 @@ The <b>Map</b> to filter should be chosen from the pulldown menu of
 volume models already open in ChimeraX.
 </p><p>
 <b>Filter type</b>:
-<ul>
+</p><ul>
 <li><b>Gaussian</b> &ndash; convolute the data with a Gaussian function
 to attenuate high frequencies and smooth the map. 
 This improves the ratio of signal to noise but reduces resolution.
@@ -60,9 +55,9 @@ Values outside the map boundaries are treated as zero.
   To specify different widths along X, Y, and Z axes, use the
   <a href="../commands/volume.html#gaussian"><b>volume gaussian</b></a>
   command instead.
-  </ul>
+  </li></ul>
 <br>
-<li><b>Sharpen</b> &ndash; perform B-factor sharpening;
+</li><li><b>Sharpen</b> &ndash; perform B-factor sharpening;
   amplify high frequencies by dividing by a Gaussian in frequency space
   <ul>
   <li><b>B-factor</b> &ndash; the B-factor <i>B</i> (&Aring;<sup>2</sup>),
@@ -74,26 +69,26 @@ Values outside the map boundaries are treated as zero.
   To specify different widths along X, Y, and Z axes, use the
   <a href="../commands/volume.html#sharpen"><b>volume sharpen</b></a>
   command instead.
-  </ul>
+  </li></ul>
 <br>
-<li><b>Median 3x3x3</b> &ndash; smooth the data by setting each value to the
+</li><li><b>Median 3x3x3</b> &ndash; smooth the data by setting each value to the
 median of the 27 values in the enclosing 3x3x3 box of grid cells.
 For different box sizes, use the 
 <a href="../commands/volume.html#median"><b>volume median</b></a> command instead.
   <ul>
   <li><b>Iterations</b> &ndash; how many cycles of value reassignment to perform
-  </ul>
+  </li></ul>
 <br>
-<li><b>Bin</b> &ndash; reduce data size by averaging the values in
+</li><li><b>Bin</b> &ndash; reduce data size by averaging the values in
 NxNxN cells of the original data, where N is the <b>Bin size</b>.
 Different bin sizes along the different axes can be specified by
 entering three numbers separated by spaces.
 <br><br>
-<li><b>Scale</b> &ndash; change data values (not grid point locations).
+</li><li><b>Scale</b> &ndash; change data values (not grid point locations).
 When values are both shifted and scaled, the <b>Shift</b> value is applied
 before the <b>Scale</b> factor.
 <br><br>
-<li><b>Fourier Transform</b> &ndash; only
+</li><li><b>Fourier Transform</b> &ndash; only
 the magnitudes of the complex Fourier components are included in the
 new data set; the phases are discarded and the constant component is set to
 zero. The box containing the Fourier transform
@@ -109,7 +104,7 @@ The missing wedge in electron microscope tomograms can also be seen.
 Spikes radiating along the principal axes in the Fourier transform are
 caused by nonperiodicity of the original data.
 <br><br>
-<li><b>Laplacian</b> &ndash; 
+</li><li><b>Laplacian</b> &ndash; 
 the Laplacian operation is a sum of second derivatives.
 Laplacian filtering is useful for edge detection but
 amplifies noise, so it may be necessary to perform smoothing such as
@@ -117,18 +112,18 @@ Gaussian filtering beforehand.
 Finite differences v(i-1)-2*v(i)+v(i+1) along each axis are used,
 and voxels at the edge of the box are set to zero.
 <br><br>
-<li><b>Flatten</b> &ndash; scale data values by factor (1 + a*i + b*j + c*k)
+</li><li><b>Flatten</b> &ndash; scale data values by factor (1 + a*i + b*j + c*k)
 where i,j,k are the grid indices and a,b,c are calculated to
 zero out the first moments of the resulting map
 (make its mass balance at the center of the grid)
-</ul>
+</li></ul>
 Clicking <b>Filter</b> performs the filtering
 and creates a new volume model with the result, except if the
 same type of filtering is applied repeatedly on the same input, the
 output map is simply replaced.
 <b>Close</b> simply dismisses the dialog, and <b>Help</b> shows this page
 in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
-</p><p>
+<p></p><p>
 <a name="options"></a>
 The <b>Options</b> button shows/hides additional options:
 </p>
@@ -137,16 +132,16 @@ The <b>Options</b> button shows/hides additional options:
 &ndash; whether to limit the procedure to the current
 <a href="volumeviewer.html#region">display region</a>
 (which could be a subregion of the map)
-<li><b>Use displayed step size</b>
+</li><li><b>Use displayed step size</b>
 &ndash; whether to use only the displayed subsample
 (when <a href="volumeviewer.html#step">step</a> &gt; 1)
 instead of the full resolution of the current set
-<li><b>Adjust threshold for constant volume</b>
+</li><li><b>Adjust threshold for constant volume</b>
 &ndash; adjust the contour level on
 the result to enclose the same volume as the contour surface of the input map
-<li><b>Immediate update</b> &ndash; update the result as soon as
+</li><li><b>Immediate update</b> &ndash; update the result as soon as
 a slider parameter (Gaussian width or sharpening B-factor) is changed
-<li><b>Value type</b> &ndash; output value type for Gaussian, sharpening,
+</li><li><b>Value type</b> &ndash; output value type for Gaussian, sharpening,
 and scaling operations, with choices: <b>same</b> type as the input map,
 8-, 16-, or 32-bit signed integer
 (<b>int8</b>, <b>int16</b>, or <b>int32</b>),
@@ -155,9 +150,10 @@ and scaling operations, with choices: <b>same</b> type as the input map,
 or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>).
 The median and binning filters always generate the same value type as the
 input map, whereas Fourier and Laplacian operations always generate float32.
-</ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 June 2023</address>
+
 </body></html>

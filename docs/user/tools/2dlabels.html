@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,30 +9,25 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: 2D Labels and Arrows</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: 2D Labels and Arrows</h3>
 
 <table class="clRight">
-<tr><td>
+<tbody><tr><td>
 <a href="../commands/prc.png" title="click to enlarge...">
-<img class="outline" src="../commands/prc.png" alt="2D labels example"
-width="300px"></a></td></tr>
+<img class="outline" src="../commands/prc.png" alt="2D labels example" width="300px"></a></td></tr>
 <tr><td align="center"><font size="-1">
-<a href="https://www.rbvi.ucsf.edu/chimerax/gallery_samples.prc.cxs"
-target="_blank">Get this session...</a></font></td></tr>
-</table>
+<a href="https://www.rbvi.ucsf.edu/chimerax/gallery_samples.prc.cxs" target="_blank">Get this session...</a></font></td></tr>
+</tbody></table>
 
 <p>
 <b>2D Labels and Arrows</b> is a graphical interface for adding text labels
@@ -47,18 +40,18 @@ along with the 3D scene, but can be repositioned by dragging
 </p>
 <ul>
 <li>the <b>Use mouse...</b> setting in the <b>2D Labels and Arrows</b> dialog
-<li>the <b>move label</b>
+</li><li>the <b>move label</b>
 <span class="nowrap"><a href="../commands/ui.html#mousemode">mouse mode</a>
 <a href="mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="mouse-icons/movelabel.png"></a>.</span>
-</ul>
+<img class="icon" border="1" src="mouse-icons/movelabel.png" alt="computer generated image"></a>.</span>
+</li></ul>
 <p>
 For &ldquo;3D&rdquo; labels that move along with the associated atoms,
 see the <a href="../commands/label.html"><b>label</b></a> command.
 The <b>move label</b>
 <span class="nowrap"><a href="../commands/ui.html#mousemode">mouse mode</a>
 <a href="mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="mouse-icons/movelabel.png"></a></span>
+<img class="icon" border="1" src="mouse-icons/movelabel.png" alt="computer generated image"></a></span>
 works for both 2D labels and 3D labels.
 Dragging a 2D label echoes the corresponding command with X and Y positions
 to the <a href="log.html"><b>Log</b></a>, which may be useful
@@ -86,7 +79,7 @@ See also:
 <b>2D Labels and Arrows</b> can be started from the <b>Depiction</b>
 section of the <b>Tools</b> menu and manipulated like other panels 
 (<a href="../window.html#panels">more...</a>).
-</p><p>
+<p></p><p>
 With the tool dialog shown and the <b>Use mouse...</b> option activated:
 </p>
 <ul>
@@ -95,8 +88,8 @@ the specified settings:
   <ul>
 <li><b>Text</b> &ndash; label contents, initially &ldquo;New label,&rdquo; 
 overwritten by entering different text
-<li><b>Size</b> (default <b>24</b>)
-<li><b>Color</b> &ndash; label color, default <b>white</b> or <b>black</b> 
+</li><li><b>Size</b> (default <b>24</b>)
+</li><li><b>Color</b> &ndash; label color, default <b>white</b> or <b>black</b> 
 depending on the color of the <a href="#label-background">label background</a>,
 or if there is no label background, depending on the color of
 the <a href="../commands/set.html#bgColor">window background</a>.
@@ -104,16 +97,16 @@ Further, explicitly setting the color to <b>white</b> when the background
 is dark or <b>black</b> when the background is light actually sets it to 
 the default behavior of adjusting black &harr; white as needed if 
 the background color is subsequently changed.
-<li><b>Font</b> (default <b>Arial</b>)
-<li><b>Style</b> &ndash; whether <b>normal</b> (default),
+</li><li><b>Font</b> (default <b>Arial</b>)
+</li><li><b>Style</b> &ndash; whether <b>normal</b> (default),
 bold, italic, or bold italic
 <a name="label-background"></a>
-<li><b>Background</b> &ndash; whether to draw a rectangular background
+</li><li><b>Background</b> &ndash; whether to draw a rectangular background
 behind the text of the label, and if so, in what color 
 (default <b>off</b> and black)
-  </ul>
+  </li></ul>
 <br>
-<li>clicking and dragging creates a 2D <b>Arrow</b> with
+</li><li>clicking and dragging creates a 2D <b>Arrow</b> with
 the specified settings:
   <ul>
 <li><b>Color</b> &ndash; arrow color, default <b>white</b> or <b>black</b>
@@ -123,15 +116,15 @@ Further, explicitly setting the color to <b>white</b> when the background
 is dark or <b>black</b> when the background is light actually sets it to 
 the default behavior of adjusting black &harr; white as needed if 
 the background color is subsequently changed.
-<li><b>Weight</b> &ndash; a scale factor
+</li><li><b>Weight</b> &ndash; a scale factor
 for the overall thickness of the arrow (default <b>1.0</b>)
-<li><b>Style</b> &ndash; whether arrowhead style should be <b>solid</b>
+</li><li><b>Style</b> &ndash; whether arrowhead style should be <b>solid</b>
 (default), blocky, pointy, or pointer
-  </ul>
+  </li></ul>
 <br>
-<li>click-dragging a pre-existing 2D label or either end of a pre-existing 
+</li><li>click-dragging a pre-existing 2D label or either end of a pre-existing 
 2D arrow repositions it
-</ul>
+</li></ul>
 <p>
 Creating a 2D <b>Label</b> or <b>Arrow</b> adds its model number to the
 pulldown menu of choices. The settings of any existing 2D label or arrow
@@ -141,21 +134,22 @@ the dialog. If <b>all</b> is chosen rather than a specific model number:
 <ul>
 <li>changes in label settings other than <b>Text</b> will apply to all 
 2D labels
-<li>changes in arrow settings will apply to all 2D arrows
-</ul>
+</li><li>changes in arrow settings will apply to all 2D arrows
+</li></ul>
 <p>
 Buttons:
 </p>
 <ul>
 <li><b>Delete label</b> &ndash; delete the currently chosen 2D label model
 (does not apply to <b>all</b>)
-<li><b>Delete arrow</b> &ndash; delete the currently chosen 2D arrow model
+</li><li><b>Delete arrow</b> &ndash; delete the currently chosen 2D arrow model
 (does not apply to <b>all</b>)
-<li><b>Help</b> &ndash; show this page in the 
+</li><li><b>Help</b> &ndash; show this page in the 
 <a href="helpviewer.html"><b>Help Viewer</b></a>
-</ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 October 2025</address>
+
 </body></html>

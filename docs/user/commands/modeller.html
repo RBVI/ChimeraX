@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: modeller</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: modeller</h3>
 
@@ -72,12 +67,12 @@ RBVI</a>, or using a local installation specified with
 <li><b>modeller comparative</b> performs comparative or
 &ldquo;homology&rdquo; (template-based) modeling of proteins
 (<a href="#comparative-details">details...</a>)
-<li><b>modeller loops</b> (or equivalently, <b>modeller refine</b>)
+</li><li><b>modeller loops</b> (or equivalently, <b>modeller refine</b>)
 builds parts of protein sequences without using a template.
 Missing segments can be built <i>de novo</i>, or existing segments 
 refined by generating additional possible conformations
 (<a href="#loops-details">details...</a>).
-</ul>
+</li></ul>
 <p>
 For running the web service,
 a Modeller <a href="../tools/modeller.html#key">license key</a>
@@ -121,15 +116,15 @@ The following are required for each target chain:
 <li>At least one template structure.
 <!-- apparently they do not need to be superimposed -->
 <blockquote>
-<table cellpadding="10px"><tr>
+<table cellpadding="10px"><tbody><tr>
 <td class="shaded">
   Modeling a multimer requires a multimeric template structure
 with the same stoichiometry and expected spatial relationship. 
 Modeller uses this stoichiometry and spatial relationship rather
 than trying to calculate it. 
-</td></tr></table>
+</td></tr></tbody></table>
 </blockquote>
-<li>A sequence alignment that includes the sequence of the target;
+</li><li>A sequence alignment that includes the sequence of the target;
 other sequences may also be included.
 The sequence alignment and template structure(s) should be open in ChimeraX
 and the template(s)
@@ -137,7 +132,7 @@ and the template(s)
 with sequence(s) in the alignment.
 
 <blockquote>
-<table cellpadding="10px"><tr>
+<table cellpadding="10px"><tbody><tr>
 <td class="shaded">
 The target sequence can be <a href="open.html#fetch">fetched</a>
 from <a href="https://www.uniprot.org" target="_blank">UniProt</a> or
@@ -146,17 +141,16 @@ That single sequence suffices as the
 &ldquo;alignment&rdquo; if the template is similar enough in sequence to 
 <a href="../tools/sequenceviewer.html#association">associate</a> with it
 (see an
-<a href="https://www.rbvi.ucsf.edu/chimerax/features.html#multichain-modeller"
-target="_blank">example</a>).
+<a href="https://www.rbvi.ucsf.edu/chimerax/features.html#multichain-modeller" target="_blank">example</a>).
 Alternatively, a multiple sequence alignment of the target and template(s)
 can be opened from a <a href="open.html#sequence">file</a>,
 if available, or obtained by using the
 <a href="blastprotein.html"><b>blastprotein</b></a>
 command to search for templates with the target sequence as a query.
-</td></tr></table>
+</td></tr></tbody></table>
 </blockquote>
 <blockquote>
-<table cellpadding="10px"><tr>
+<table cellpadding="10px"><tbody><tr>
 <td class="shaded">
 Modeling a heteromultimer requires a separate sequence alignment 
 for each unique chain. For example, modeling  an 
@@ -168,9 +162,9 @@ with one alignment containing the target &alpha; sequence,
 and its two &beta; subunits 
 <a href="../tools/sequenceviewer.html#association">associated</a>
 with another alignment containing the target &beta; sequence.
-</td></tr></table>
+</td></tr></tbody></table>
 </blockquote>
-</ol>
+</li></ol>
 <p>
 With the above requirements and <a href="#licenseKey">license key</a>
 in place, the only mandatory command argument
@@ -185,8 +179,7 @@ modeller comp super8.msf:-2 multichain true num 3 het true
 Templates are not specified in the command. All of the structure chains
 associated with any sequence in the same alignment as the target
 will be used as templates. For an example of modeling a heterodimer, see the 
-<a href="https://www.rbvi.ucsf.edu/chimerax/features.html#multichain-modeller"
-target="_blank">ChimeraX Modeller highlight</a>.
+<a href="https://www.rbvi.ucsf.edu/chimerax/features.html#multichain-modeller" target="_blank">ChimeraX Modeller highlight</a>.
 </p>
 
 <a name="loops-details"></a>
@@ -200,16 +193,16 @@ The corresponding graphical tool is
 Missing segments can be built <i>de novo</i>, 
 or existing segments refined by generating additional possible conformations.
 The following are required:
-<ol>
+</p><ol>
 <li>The atomic structure of at least part of the protein, open in ChimeraX.
 <br><br>
-<li>A sequence that includes the segments to be filled in or refined, open 
+</li><li>A sequence that includes the segments to be filled in or refined, open 
 in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
 (as a single sequence or within a multiple sequence alignment) and 
 <a href="../tools/sequenceviewer.html#association">associated</a>
 with the protein structure.
 <blockquote>
-<table cellpadding="10px"><tr>
+<table cellpadding="10px"><tbody><tr>
 <td class="shaded">
 The target sequence can be taken from the structure metadata 
 (and shown for a specific chain using the menu: 
@@ -234,30 +227,29 @@ the residue types shown in the
 will be used to model those segments.
 Accuracy can be quite high for shorter loops, but falls off rapidly with length (&gt;50% poor predictions for segments with 10+ residues including the
 <a href="#adjacentFlexible">flexible positions</a>, see Table 1 in
-<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2144714/"
-target="_blank">Fiser <i>et al.</i></a>, <i>Protein Sci.</i>
+<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2144714/" target="_blank">Fiser <i>et al.</i></a>, <i>Protein Sci.</i>
 <b>9</b>(9):1753 (2000)).
-</td></tr></table>
+</td></tr></tbody></table>
 </blockquote>
-</ol>
+</li></ol>
 With the above requirements and <a href="#licenseKey">license key</a> in place,
 the only mandatory command argument per segment to be modeled is the 
 <a href="seqspec.html"><i>sequence-spec</i></a>:<i>region</i>, where
 <i>region</i> can be any of the following:
-</p>
+<p></p>
 <ul>
 <li>a comma-separated list of indices into the sequence, <i>i.e.</i>,
 positions in the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
 starting with 1 and including gaps 
 (frequently different from the residue numbers in associated structures)
-<li><b>all-missing</b> (or <b>all</b>) 
+</li><li><b>all-missing</b> (or <b>all</b>) 
 &ndash; all missing segments of the structure relative to the
 <a href="../tools/sequenceviewer.html#association">associated</a> sequence
-<li><b>internal-missing</b> (or <b>internal</b>) 
+</li><li><b>internal-missing</b> (or <b>internal</b>) 
 &ndash; all non-terminal missing segments of the structure relative to the
 <a href="../tools/sequenceviewer.html#association">associated</a> sequence
-</ul>
+</li></ul>
 <p>
 Examples:
 </p>
@@ -283,8 +275,7 @@ Scores are shown in a
 <a href="../tools/modeller.html#output"><b>Modeller Results</b></a> panel.
 </p><p>
 Additional scores can be obtained from the
-<a href="https://modbase.compbio.ucsf.edu/evaluation/"
-target="_blank">SaliLab Model Evaluation Server</a> using the
+<a href="https://modbase.compbio.ucsf.edu/evaluation/" target="_blank">SaliLab Model Evaluation Server</a> using the
 <a href="../tools/modeller.html#output"><b>Modeller Results</b></a> dialog
 or the <b>modeller scores</b> command. 
 (Any atomic model can be &ldquo;evaluated&rdquo; with this command, 
@@ -315,11 +306,9 @@ Number of models to create (default <b>5</b>, maximum 1000).
 Use of Modeller requires a license key, 
 but it only has to be specified once in ChimeraX; the key is saved in the 
 <a href="../preferences.html">preferences</a>.
-Academic users can <a href="https://www.salilab.org/modeller/registration.html"
-target="_blank">register</a> free of charge to receive a license key.
+Academic users can <a href="https://www.salilab.org/modeller/registration.html" target="_blank">register</a> free of charge to receive a license key.
 Commercial entities and government research labs, please see
-<a href="https://www.salilab.org/modeller/accelrys.html"
-target="_blank">Modeller licensing</a>.
+<a href="https://www.salilab.org/modeller/accelrys.html" target="_blank">Modeller licensing</a>.
 </blockquote>
 <blockquote>
 <a name="block"></a>
@@ -457,4 +446,5 @@ after making modifications that are expected to improve the scores.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 May 2025</address>
+
 </body></html>

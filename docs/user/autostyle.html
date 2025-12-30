@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="userdocs.css">
 <title>Automatic Styling (Smart Initial Display)</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="index.html">
-<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3>Automatic Styling (Smart Initial Display)</h3>
 <p>
@@ -55,22 +50,22 @@ coloring <a href="commands/colortables.html#autocolors">by model</a> for carbons
 and <a href="commands/colortables.html#element">by element</a> for heteroatoms,
 <a href="commands/lighting.html">simple lighting</a>
 <br><br>
-<li><b>1-4 chains, <200,000 atoms, <5000 biopolymer residues</b>: 
+</li><li><b>1-4 chains, &lt;200,000 atoms, &lt;5000 biopolymer residues</b>: 
 coloring <a href="commands/colortables.html#autocolors">by model</a>,
 <a href="commands/lighting.html">simple lighting</a>
   <ul>
-  <li>if <10 biopolymer residues, all atoms are shown as 
+  <li>if &lt;10 biopolymer residues, all atoms are shown as 
   <a href="commands/style.html">sticks</a>
   with <a href="commands/colortables.html#element">heteroatom</a> coloring
-  <li>otherwise, chains are shown as 
+  </li><li>otherwise, chains are shown as 
   <a href="commands/cartoon.html">cartoons</a> and atoms are hidden, except for:
     <ul>
     <li><a href="commands/atomspec.html#surfcats">ligand</a> residues
-    <li>residues within 3.6 &Aring; of
+    </li><li>residues within 3.6 &Aring; of
     <a href="commands/atomspec.html#surfcats">ions</a> (metals only) or
     <a href="commands/atomspec.html#surfcats">ligand</a>,
     with the ions shown as <a href="commands/style.html">spheres</a>
-    </ul>
+    </li></ul>
   Any hydrogens on carbons, however, are kept hidden.
   <p>
   Nucleotide sidechains are 
@@ -80,8 +75,8 @@ coloring <a href="commands/colortables.html#autocolors">by model</a>,
   <a href="commands/nucleotides.html#ladder">ladder</a>
   in those with 101-2000 nucleic acid residues.
   </p>
-  </ul>
-<li><b>5-249 chains, 5000+ biopolymer residues, 
+  </li></ul>
+</li><li><b>5-249 chains, 5000+ biopolymer residues, 
 and/or 200,001-999,999 atoms</b>: 
 all atoms as <a href="commands/style.html">spheres</a> (space-filling)
 except sticks for <a href="commands/atomspec.html#surfcats">ligand</a> 
@@ -91,14 +86,15 @@ coloring <a href="commands/color.html#bypolymer">by polymer</a> except
 <a href="commands/lighting.html">full lighting</a>
 (except if &ge; 300,000 atoms, ambient shadows from 16 instead of 64 directions)
 <br><br>
-<li><b>250+ chains and/or 1,000,000+ atoms</b>:
+</li><li><b>250+ chains and/or 1,000,000+ atoms</b>:
 all atoms as <a href="commands/style.html">spheres</a> (space-filling),
 coloring <a href="commands/color.html#bypolymer">by polymer</a>,
 <a href="commands/lighting.html">soft lighting</a>
 (except if &ge; 300,000 atoms, ambient shadows from 16 instead of 64 directions)
-</ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 September 2023</address>
+
 </body></html>

@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,19 +9,16 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
+--><head>
 <title>Select Contacts</title>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<link rel="stylesheet" type="text/css" href="userdocs.css" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="userdocs.css">
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="index.html">
-<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h2>Select Contacts</h2>
 <p>
@@ -73,23 +68,23 @@ Options:
 &ndash; whether to select the identified residues
 in only the <b>lefthand set</b> of chosen chains or in <b>both sets</b> 
 of chosen chains (default)
-<li><b>Select residues with</b>:
+</li><li><b>Select residues with</b>:
  <ul>
   <li><b>buried solvent-accessible surface area &ge; [<i>area</i>]</b>
 &Aring;<sup>2</sup> 
 &ndash; residues found to bury at least <i>area</i> 
 of <a href="commands/surface.html#surfdefs">solvent-accessible surface</a>
-(default <b>15.0</b> &Aring<sup>2</sup>)
+(default <b>15.0</b> &Aring;<sup>2</sup>)
 in the interface between a chain chosen on the left and a chain chosen on
 the right, with no restriction on the size of the chain-chain interface 
 (the <a href="commands/interfaces.html"><b>interfaces</b></a>
-<b>areaCutoff</b> criterion is set to 0.0 &Aring<sup>2</sup>)
+<b>areaCutoff</b> criterion is set to 0.0 &Aring;<sup>2</sup>)
 <br>&ndash; <i>OR</i> &ndash;
-  <li><b>atomic distance &le; [<i>dist</i>]</b> &Aring; 
+  </li><li><b>atomic distance &le; [<i>dist</i>]</b> &Aring; 
 &ndash; select residues with at least one atom within <i>dist</i>
 (default <b>3.5</b> &Aring;) of an atom in the other chain
-  </ul>
-</ul>
+  </li></ul>
+</li></ul>
 <p>
 For either type of calculation (buried surface areas or distances),
 only atoms in protein and nucleic acid chains are considered, not ligands, 
@@ -115,4 +110,5 @@ and to show the full <a href="tools/clashes.html"><b>Contacts</b></a> tool.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 May 2022</address>
-</body></html> 
+ 
+</body></html>

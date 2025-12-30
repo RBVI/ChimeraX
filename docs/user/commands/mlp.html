@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: mlp</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: mlp</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -45,8 +40,7 @@ By default, the results are shown with coloring on the
 ranging from <b>dark cyan</b> (most hydrophilic) to <b>white</b> to 
 <b>dark goldenrod</b> (most lipophilic)
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" 
-border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>.
+<img class="icon" border="1" src="../tools/shortcut-icons/hydrophobicity.png" alt="computer generated image"></a>.
 </p><p>
 See also: 
 <a href="key.html"><b>key</b></a>,
@@ -60,10 +54,8 @@ See also:
 <a href="../hydrophobicity.html">amino acid hydrophobicity</a>,
 the <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
 tutorial</a>,
-the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#mlp"
-target="_blank">ChimeraX MLP highlight</a>,
-<a href="https://www.rbvi.ucsf.edu/chimera/data/mlp-sep2016/"
-target="_blank">lipophilicity coloring comparisons</a>
+the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#mlp" target="_blank">ChimeraX MLP highlight</a>,
+<a href="https://www.rbvi.ucsf.edu/chimera/data/mlp-sep2016/" target="_blank">lipophilicity coloring comparisons</a>
 </p><p>
 The calculation is based on 
 <a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</a>:
@@ -86,7 +78,7 @@ Laguerre M, Saux M, Dubost JP, Carpy A.
 </p>
 <blockquote>
 <a href="https://pubs.acs.org/doi/full/10.1021/jp980230o" target="_blank">
-Prediction of Hydrophobic (Lipophilic) Properties of Small Organic Molecules Using Fragmental Methods:  An Analysis of ALOGP and CLOGP Methods.</a>
+Prediction of Hydrophobic (Lipophilic) Properties of Small Organic Molecules Using Fragmental Methods:&acirc;&euro;&permil; An Analysis of ALOGP and CLOGP Methods.</a>
 Ghose AK, Viswanadhan VN, Wendoloski JJ.
 <i>J Phys Chem A.</i> 1998; 102(21):3762-3772.
 </blockquote>
@@ -94,8 +86,7 @@ Ghose AK, Viswanadhan VN, Wendoloski JJ.
 To allow MLP coloring without adding explicit hydrogens, 
 values for any attached hydrogens were &ldquo;collapsed&rdquo; onto those
 for the corresponding heavy atoms (see
-<a href="https://www.rbvi.ucsf.edu/chimera/data/mlp-sep2016/#update"
-target="_blank">details and comparisons</a> to the original values 
+<a href="https://www.rbvi.ucsf.edu/chimera/data/mlp-sep2016/#update" target="_blank">details and comparisons</a> to the original values 
 from <a href="https://github.com/plantigrade/pyMLP" target="_blank">pyMLP</a>).
 The resulting lookup table includes the standard amino acids plus
 MSE (selenomethionine), HYP (hydroxyproline), UNK (backbone-only, typically
@@ -112,22 +103,22 @@ Optimizations for speed, including a distance cutoff, have been added in Chimera
 The <b>method</b> specifies how the atomic values propagate through space,
 with factors based on the distance <i>d</i> from the atom
 (default <b>fauchere</b>):
-<ul>
+</p><ul>
 <font size="+1">
 <li><b>fauchere</b>: <i>e</i><sup>&ndash;<i>d</i></sup>
-<li><b>brasseur</b>: <i>e</i><sup>&ndash;<i>d</i>/3.1</sup>
-<li><b>type5</b>: <i>e</i><sup>&ndash;<i>d</i><sup>&nbsp;&frac12;</sup></sup>
-<li><b>dubost</b>: (1+<i>d</i>)<sup>&ndash;1</sup>
-<li><b>buckingham</b>: <i>d</i><sup>&nbsp;&ndash;<i>n</i></sup>
+</li><li><b>brasseur</b>: <i>e</i><sup>&ndash;<i>d</i>/3.1</sup>
+</li><li><b>type5</b>: <i>e</i><sup>&ndash;<i>d</i><sup>&nbsp;&frac12;</sup></sup>
+</li><li><b>dubost</b>: (1+<i>d</i>)<sup>&ndash;1</sup>
+</li></font><li><font size="+1"><b>buckingham</b>: <i>d</i><sup>&nbsp;&ndash;<i>n</i></sup>
 </font>
 <br>... <i>n</i> given with the <b>nexp</b> option
 (default <b>3.0</b> if this method is used)
-</ul>
+</li></ul>
 The <b>maxDistance</b> <i>D</i> is a distance cutoff
 beyond which an atom's contribution is ignored (default <b>5.0</b> &Aring;).
 Increasing the cutoff increases calculation time; the results
 may change only subtly or more noticeably depending on the <b>method</b>.
-</p><p>
+<p></p><p>
 The <b>spacing</b> <i>s</i> of the map grid can be
 specified in the range 0.1&ndash;10.0 &Aring; (default <b>1.0</b>).
 Decreasing the spacing increases map size and calculation time.
@@ -146,12 +137,11 @@ value ranges reported in the <a href="../tools/log.html"><b>Log</b></a>.
 <a name="palette-options"></a>
 Defaults for the coloring
 <a href="color.html#palette-options"><i>palette-options</i></a> are
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=darkcyan width="10px" title="darkcyan"></td>
-<td bgcolor=white width="10px" title="white"></td>
-<td bgcolor=darkgoldenrod width="10px" title="darkgoldenrod"></td>
-</tr></table>:
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="darkcyan" width="10px" title="darkcyan"></td>
+<td bgcolor="white" width="10px" title="white"></td>
+<td bgcolor="darkgoldenrod" width="10px" title="darkgoldenrod"></td>
+</tr></tbody></table>:
 </p>
 <blockquote>
 <b><a href="color.html#palette">palette</a> lipophilicity 
@@ -159,7 +149,7 @@ style="display:inline-block; vertical-align:middle"><tr>
 </blockquote>
 <p>
 <a name="transparency"></a>
-Transparency (alpha < 1) can be inherent in the colors of the
+Transparency (alpha &lt; 1) can be inherent in the colors of the
 <a href="color.html#palette"><b>palette</b></a>, or the separate
 <b>transparency</b> option can be used to specify it as a <i>percent</i>,
 where 0% is completely opaque and 100% is completely transparent.
@@ -195,4 +185,5 @@ where a surface is clipped.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 January 2023</address>
+
 </body></html>

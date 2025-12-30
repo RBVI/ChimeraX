@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: device, vr</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: device, vr, xr</h3>
 
@@ -37,45 +32,37 @@ where the <i>device-type</i> can be:
 <ul>
 <li><a href="#snav"><b>snav</b></a> 
 &ndash; SpaceNavigator<sup>&reg;</sup> 3D mouse
-<li><a href="#webcam"><b>webcam</b></a>
+</li><li><a href="#webcam"><b>webcam</b></a>
 &ndash; use webcam video as the background for augmented reality
-<li><a href="#vr"><b>vr</b></a> or <a href="#vr"><b>xr</b></a>
+</li><li><a href="#vr"><b>vr</b></a> or <a href="#vr"><b>xr</b></a>
 &ndash; Quest 3, Quest 2, Valve Index and other 
 <a href="../vr.html">virtual reality</a> systems
   <ul>
   <li><a href="#vr-button"><b>vr button</b></a> or <a href="#vr-button"><b>xr button</b></a> 
   &ndash; assign functions to hand-controller buttons
-  <li><a href="#vr-roomCamera"><b>vr roomCamera</b></a> or <a href="#vr-roomCamera"><b>xr roomCamera</b></a>
+  </li><li><a href="#vr-roomCamera"><b>vr roomCamera</b></a> or <a href="#vr-roomCamera"><b>xr roomCamera</b></a>
   &ndash; set up a separate camera view fixed in the VR room coordinates,
   useful for making videos
-  </ul>
-<li><a href="#realsense"><b>realsense</b></a>
+  </li></ul>
+</li><li><a href="#realsense"><b>realsense</b></a>
 &ndash; requires installing the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxrealsense"
-target="_blank"><b>RealSense</b> bundle</a> from the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/"
-target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>);
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxrealsense" target="_blank"><b>RealSense</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>);
 allows blending video from a Intel RealSense depth-sensing camera 
 with ChimeraX graphics for 3D augmented reality with depth from both inputs
-<li><a href="#leapmotion"><b>leapmotion</b></a>
+</li><li><a href="#leapmotion"><b>leapmotion</b></a>
 &ndash; requires installing the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxleapmotion"
-target="_blank"><b>LeapMotion</b> bundle</a> from the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/"
-target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>);
-allows using a <a href="https://en.wikipedia.org/wiki/Leap_Motion"
-target="_blank">Leap Motion</a> hand-tracking device (Windows only)
-<li><a href="#lookingglass"><b>lookingglass</b></a>
-&ndash; use a <a href="https://lookingglassfactory.com/product-overview"
-target="_blank">Looking Glass</a> holographic display
-</ul>
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxleapmotion" target="_blank"><b>LeapMotion</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>);
+allows using a <a href="https://en.wikipedia.org/wiki/Leap_Motion" target="_blank">Leap Motion</a> hand-tracking device (Windows only)
+</li><li><a href="#lookingglass"><b>lookingglass</b></a>
+&ndash; use a <a href="https://lookingglassfactory.com/product-overview" target="_blank">Looking Glass</a> holographic display
+</li></ul>
 <p>
 See also:
 <a href="../movies.html">making movies</a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/sbgrid-july2020/"
-target="_blank">Augmented reality videos with ChimeraX</a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/mixed-reality-nov2019/mrhowto.html" 
-target="_blank">Mixed reality video recording in ChimeraX</a>
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/sbgrid-july2020/" target="_blank">Augmented reality videos with ChimeraX</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/mixed-reality-nov2019/mrhowto.html" target="_blank">Mixed reality video recording in ChimeraX</a>
 </p><p>
 <a name="status"></a>
 The <i>status</i> of a mode can be 
@@ -112,20 +99,19 @@ See also: <a href="ui.html#mousemode"><b>mousemode</b></a>
 <a name="webcam"><b>webcam</b></a>
 [&nbsp;<a href="#status"><i>status</i></a>&nbsp;]
 [&nbsp;<b>foregroundColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
-[&nbsp;<b>saturation</b>&nbsp;&nbsp;<i>N</i></a>&nbsp;]
+[&nbsp;<b>saturation</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>colorPopup</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>flipHorizontal</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>framerate</b>&nbsp;&nbsp;<i>fps</i>&nbsp;]
 [&nbsp;<b>size</b>&nbsp;&nbsp;<i>xpixels,ypixels</i>&nbsp;]
-[&nbsp;<b>name</b>&nbsp;&nbsp;<i>camera-name</i></a>&nbsp;]
+[&nbsp;<b>name</b>&nbsp;&nbsp;<i>camera-name</i>&nbsp;]
 <blockquote>
 The <b>webcam</b> command (same as <b>device webcam</b>)
 shows webcam video as a flat background behind the ChimeraX scene,
 except that items similar to the specified foreground color
 (default <b>lime green</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="limegreen" width="10px" title="lime green"></td></tr></table>)
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="limegreen" width="10px" title="lime green"></td></tr></tbody></table>)
 will appear in front.
 This allows pointing with a real item to features in the ChimeraX scene.
 The <b>saturation</b> option sets the stringency of color-matching
@@ -133,7 +119,7 @@ The <b>saturation</b> option sets the stringency of color-matching
 <b>false</b>) sets whether pausing the cursor over the background shows
 a popup balloon reporting the color of the underlying pixel 
 as R,G,B color components on the 0-100 scale.
-</p><p>
+<p></p><p>
 The <b>flipHorizontal</b> option (default <b>true</b>)
 shows the left-right mirror image of the webcam video so that pointing
 rightward while facing the webcam and screen is shown as 
@@ -176,9 +162,9 @@ shown in the ChimeraX background.
 R,G,B components of the foreground color are important.
 Pixels in the webcam view are considered as matching if the intensity
 order of the R,G,B components matches that of the foreground color
-(for example, G>B>R) and these components are separated by at least the 
+(for example, G&gt;B&gt;R) and these components are separated by at least the 
 <b>saturation</b> value on the 0-100 scale. With the default parameters,
-for example (<b>foregroundColor</b> G>B=R and <b>saturation</b> 5), 
+for example (<b>foregroundColor</b> G&gt;B=R and <b>saturation</b> 5), 
 any pixels with the green component at least 5 greater than both the 
 red and blue components (on the 1-100 scale)
 will be shown in front of the ChimeraX scene.
@@ -220,11 +206,10 @@ See also:
 <a href="camera.html"><b>camera</b></a>,
 <a href="view.html"><b>view</b></a>,
 <a href="../movies.html">making movies</a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
-target="_blank">ChimeraX videos</a> including
+<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/" target="_blank">ChimeraX videos</a> including
 <a href="https://youtu.be/dKNbRRRFhqY" target="_blank">how coronaviruses
 get into cells</a>
-<p>
+</p><p>
 VR status, model positions in the room, and hand-controller
 <a href="#vr-button">button assignments</a> are saved in
 <a href="save.html#session">ChimeraX session files</a>.
@@ -259,7 +244,7 @@ and these require a Meta developer account.
 </p><p>
 The <b>center</b> option (default <b>true</b>)
 centers and scales models in the room.
-<p><p>
+</p><p></p><p>
 <a name="clickRange"></a>
 The <b>clickRange</b> option sets the depth range for
 picking objects with the hand-controller cones, where <i>r</i>
@@ -350,25 +335,20 @@ restored when VR is turned off.
 [&nbsp;<b>hand</b>&nbsp;&nbsp;left&nbsp;|&nbsp;right&nbsp;]
 <blockquote>
 <table class="clRight" cellspacing="0">
-<tr><td>
+<tbody><tr><td>
 <a href="../tutorials/dicom-vr3.png">
-<img class="outline" src="../tutorials/dicom-vr3.png" title="click to enlarge..."
-alt="Vive hand controllers" width="300px"></a>
+<img class="outline" src="../tutorials/dicom-vr3.png" title="click to enlarge..." alt="Vive hand controllers" width="300px"></a>
 </td></tr>
 <tr><td align="center"><font size="-1">
-<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html"
-target="_blank">Vive</a> hand controllers
+<a href="https://www.vive.com/us/support/vive/category_howto/about-the-controllers.html" target="_blank">Vive</a> hand controllers
 </font></td></tr>
 <tr><td>
 <a href="../tutorials/oculus-touch.png">
-<img class="outline" src="../tutorials/oculus-touch.png"
-title="click to enlarge..."
-alt="Oculus hand controllers" width="300px"></a>
+<img class="outline" src="../tutorials/oculus-touch.png" title="click to enlarge..." alt="Oculus hand controllers" width="300px"></a>
 </td></tr>
-<tr><td align="center"><font size="-1"><a href="https://www.oculus.com/"
-target="_blank">Oculus</a> &ldquo;Touch&rdquo; hand controllers
+<tr><td align="center"><font size="-1"><a href="https://www.oculus.com/" target="_blank">Oculus</a> &ldquo;Touch&rdquo; hand controllers
 </font></td></tr>
-</table>
+</tbody></table>
 <p>
 The <b>vr button</b> or <b>xr button</b> command assigns modes (functions) to 
 the hand-controller buttons in <a href="../vr.html">virtual reality</a>,
@@ -382,9 +362,9 @@ plus the following VR-specific modes:
 <ul>
 <li><b>button lock</b> 
 &ndash; toggle (inactivate/activate) all other hand-controller buttons
-<li><b>recenter</b> &ndash; center and scale models in the room
-<li><b>show ui</b> &ndash; collectively show, hide, move ChimeraX tool panels
-</ul>
+</li><li><b>recenter</b> &ndash; center and scale models in the room
+</li><li><b>show ui</b> &ndash; collectively show, hide, move ChimeraX tool panels
+</li></ul>
 <p>
 Alternatively, with the <b>command</b> option,
 <a href="../index.html#commands">command(s)</a> to execute upon button click 
@@ -409,27 +389,27 @@ The <i>button-name</i> can be:
 </p>
 <ul>
 <li><b>trigger</b>
-<li><b>grip</b>
-<li><b>touchpad</b> (synonym <b>thumbstick</b>)
+</li><li><b>grip</b>
+</li><li><b>touchpad</b> (synonym <b>thumbstick</b>)
 &ndash; Vive trackpad or Oculus thumbstick
-<li><b>menu</b> 
+</li><li><b>menu</b> 
 &ndash; Vive menu button
-<li><b>A</b> 
+</li><li><b>A</b> 
 &ndash; a button on the Oculus right hand controller
 (<b>hand</b> option ignored)
-<li><b>B</b>
+</li><li><b>B</b>
 &ndash; a button on the Oculus right hand controller
 (<b>hand</b> option ignored; same as <b>menu</b> with <b>hand right</b>)
-<li><b>X</b>
+</li><li><b>X</b>
 &ndash; a button on the Oculus left hand controller
 (<b>hand</b> option ignored)
-<li><b>Y</b>
+</li><li><b>Y</b>
 &ndash; a button on the Oculus left hand controller
 (<b>hand</b> option ignored; same as <b>menu</b> with <b>hand left</b>)
-<li><b>all</b>
+</li><li><b>all</b>
 &ndash; all hand-controller buttons, primarily for use in the command:
 <b>vr button all default</b>
-</ul>
+</li></ul>
 <p>
 Initial defaults are to <b>translate</b> and <b>rotate</b> with triggers,
 <b>zoom</b> with Vive touchpad or Oculus A button,
@@ -440,18 +420,18 @@ and <b>show ui</b> with the Vive menu or Oculus B/Y button
 The only <a href="ui.html#functions"><i>function</i></a> settings that work
 by tilting the Oculus <b><i>thumbstick</i></b> are <b>rotate</b>
 <a href="ui.html#functions">
-<img class="icon" border=1 src="../tools/mouse-icons/rotate.png"></a>,
+<img class="icon" border="1" src="../tools/mouse-icons/rotate.png" alt="computer generated image"></a>,
 <b>zoom</b> <a href="ui.html#functions">
-<img class="icon" border=1 src="../tools/mouse-icons/zoom.png"></a>,
+<img class="icon" border="1" src="../tools/mouse-icons/zoom.png" alt="computer generated image"></a>,
 <b>contour level</b>
 <a href="ui.html#functions">
-<img class="icon" border=1 src="../tools/mouse-icons/contour.png"></a>,
+<img class="icon" border="1" src="../tools/mouse-icons/contour.png" alt="computer generated image"></a>,
 <b>play map series</b>
 <a href="ui.html#functions">
-<img class="icon" border=1 src="../tools/mouse-icons/vseries.png"></a>,
+<img class="icon" border="1" src="../tools/mouse-icons/vseries.png" alt="computer generated image"></a>,
 and <b>play coordinates</b>
 <a href="ui.html#functions">
-<img class="icon" border=1 src="../tools/mouse-icons/coordset.png"></a>.
+<img class="icon" border="1" src="../tools/mouse-icons/coordset.png" alt="computer generated image"></a>.
 </p>
 </blockquote>
 
@@ -497,9 +477,9 @@ and then moved in VR with the
 <a href="../vr.html#mousemodes">hand-controller mode</a>
 assigned by clicking either icon:
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" src="../tools/mouse-icons/move_h2o.png" border="1"></a>
+<img class="icon" src="../tools/mouse-icons/move_h2o.png" border="1" alt="computer generated image"></a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" src="../tools/mouse-icons/rotate_h2o.png" border="1"></a>
+<img class="icon" src="../tools/mouse-icons/rotate_h2o.png" border="1" alt="computer generated image"></a>
 (or with the <a href="#vr-button"><b>vr button</b></a> command).
 </p><p>
 Specifying <b>savePosition true</b> saves the current position and orientation
@@ -519,10 +499,10 @@ device to control the room camera position:
 <li>Using <b>tracker true</b> synchronizes the room camera to the
 position and orientation of the device, with offsets
 (if any) previously saved with <b>saveTrackerMount true</b>.
-<li>Using <b>saveTrackerMount true</b> saves in the
+</li><li>Using <b>saveTrackerMount true</b> saves in the
 <a href="../preferences.html#other">preferences</a>
 the current room camera translation and rotation relative to the device.
-</ul>
+</li></ul>
 <p>
 Thus, the room camera can be moved by hand as described above,
 and then its offsets from the device (for when <b>tracker true</b> is used) 
@@ -554,11 +534,9 @@ If <a href="#vr">VR</a> is enabled, this command automatically starts a
 which renders the models to be blended with the RealSense camera image.
 It also sets the graphics window size to match the RealSense camera image size.
 This command is only available after installation of the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxrealsense"
-target="_blank"><b>RealSense</b> bundle</a> from the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/"
-target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>).
-</p><p>
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxrealsense" target="_blank"><b>RealSense</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>).
+<p></p><p>
 The <b>size</b> and <b>dsize</b> options set camera image resolution
 for color and depth, respectively. Each takes a pair of comma-separated values
 indicating the pixel dimensions in X and Y (defaults: <b>size 960,540</b> and
@@ -616,7 +594,7 @@ provided that the color of the pixel is close to the color of the background.
 This background depth fill does not help for pixels for which the 
 camera has never reported a depth value. The denoising algorithm 
 is based on the assumption that the camera is not moving.
-</blockquote>
+</p></blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="leapmotion"><b>leapmotion</b></a> 
@@ -634,15 +612,11 @@ is based on the assumption that the camera is not moving.
 [&nbsp;<b>debug</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
 The command <b>leapmotion</b> (same as <b>device leapmotion</b>) 
-enables using a <a href="https://en.wikipedia.org/wiki/Leap_Motion"
-target="_blank">Leap Motion</a> hand-tracking device with ChimeraX
-on Windows (<a href="https://www.rbvi.ucsf.edu/chimerax/data/leap-july2020/"
-target="_blank">details...</a>). 
+enables using a <a href="https://en.wikipedia.org/wiki/Leap_Motion" target="_blank">Leap Motion</a> hand-tracking device with ChimeraX
+on Windows (<a href="https://www.rbvi.ucsf.edu/chimerax/data/leap-july2020/" target="_blank">details...</a>). 
 The command is only available after installation of the Windows
-<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxleapmotion"
-target="_blank"><b>LeapMotion</b> bundle</a>
-from the <a href="https://cxtoolshed.rbvi.ucsf.edu/"
-target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>).
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxleapmotion" target="_blank"><b>LeapMotion</b> bundle</a>
+from the <a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">ChimeraX Toolshed</a> (menu: <b>Tools... More Tools...</b>).
 <p>
 The Leap Motion device contains cameras that track hand and finger positions. 
 It can be placed on the desktop below the hands, or attached to a headset 
@@ -709,27 +683,23 @@ was started, not to the <a href="../tools/log.html"><b>Log</b></a>.
 <blockquote>
 The command <b>lookingglass</b> (same as <b>device lookingglass</b>)
 enables showing the contents of the ChimeraX graphics window in
-a <a href="https://lookingglassfactory.com/product-overview" 
-target="_blank">Looking Glass</a> holographic display
-(<a href="https://www.rbvi.ucsf.edu/chimerax/data/lookingglass-july2020/"
-target="_blank">details...</a>).
+a <a href="https://lookingglassfactory.com/product-overview" target="_blank">Looking Glass</a> holographic display
+(<a href="https://www.rbvi.ucsf.edu/chimerax/data/lookingglass-july2020/" target="_blank">details...</a>).
 This device uses 45 images spanned by the horizontal <b>viewAngle</b>
 (default <b>40</b>&deg;). 
 Each image is rendered with the specified <b>fieldOfView</b> 
 (default <b>22</b>&deg; recommended by the device manufacturer).
 See also: <a href="camera.html"><b>camera</b></a>
-</p>
-<table align=center border=1 cellpadding=5 cellspacing=0
-bgcolor="#f0f0f0" width="80%">
-<tr><td>
+<p></p>
+<table align="center" border="1" cellpadding="5" cellspacing="0" bgcolor="#f0f0f0" width="80%">
+<tbody><tr><td>
 <font color="black">
 ChimeraX Looking Glass support works with Windows, Intel Mac, and Linux 
 machines, but has only been tested on the LookingGlass 8.9" Gen1 display
-(<a href="https://www.rbvi.ucsf.edu/chimerax/data/lookingglass-july2020/"
-target="_blank">details...</a>), which is no longer sold.
+(<a href="https://www.rbvi.ucsf.edu/chimerax/data/lookingglass-july2020/" target="_blank">details...</a>), which is no longer sold.
 </font>
 </td></tr>
-</table>
+</tbody></table>
 <p>
 The <b>depthOffset</b> (default <b>0.0</b> &Aring;)
 is the position of the center of the bounding box of displayed models
@@ -761,4 +731,5 @@ specific Looking Glass device when more than one is connected.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 April 2024</address>
+
 </body></html>
