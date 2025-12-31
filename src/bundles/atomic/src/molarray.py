@@ -424,6 +424,8 @@ class StructureDatas(Collection):
     '''Number of bonds in each structure. Read only.'''
     num_chains = cvec_property('structure_num_chains', size_t, read_only = True)
     '''Number of chains in each structure. Read only.'''
+    num_coordsets = cvec_property('structure_num_coordsets', size_t, read_only = True)
+    '''Number of coordinate sets in each structure. Read only.'''
     num_residues = cvec_property('structure_num_residues', size_t, read_only = True)
     '''Number of residues in each structure. Read only.'''
     residues = cvec_property('structure_residues', cptr, 'num_residues', astype = _residues,
