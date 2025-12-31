@@ -83,12 +83,10 @@
     <p>
       <b>Nvidia GPUs on Windows and Linux</b>.
       Nvidia GPUs on Windows and Linux computers also provide good performance.
-      On Linux with an Nvidia GPU with 24 GB of graphics memory (e.g. Nvidia RTX 3090 or 4090) it can predict about 1000
-      residues in about 4 minutes, larger sizes run out of memory, although using the 16-bit floating point
-      option can extend the range to 1400 residues in about 10 minutes but with possible reduction in accuracy.
-      Testing on Windows with less GPU memory, 12 GB (e.g. Nvidia RTX 4070) predicts up to 700 residues or
-      1000 with 16-bit floating point.  On Windows with 8 GB of GPU memory (e.g Nvidia RTX 3070)
-      predictions of 500 residues or 700 with 16-bit floating point are relatively fast.
+      On Linux with an Nvidia GPU with 24 GB of graphics memory (e.g. Nvidia RTX 3090 or 4090) it can predict about 1300
+      residues in about 4 minutes, larger sizes run out of memory.
+      Testing on Windows with less GPU memory, 12 GB (e.g. Nvidia RTX 4070) predicts up to 1000 residues.
+      On Windows with 8 GB of GPU memory (e.g Nvidia RTX 3070) predictions of about 700 residues.
       Large predictions on Nvidia GPUs on Linux run out of memory and fail.  On Windows the prediction
       will fallback to using CPU memory allowing larger structure predictions but taking immensely longer
       run times (10-30 times longer).
@@ -337,13 +335,15 @@
 
     <p>
       <b>Linux Nvidia GPU out of memory.</b>
-      On Linux Nvidia 4090 with 24 GB of GPU memory the maximum prediction appears to be about 1000 residues plus ligand atoms before an "out of memory" error occurs.  This contrasts with Windows where Torch appears to fallback to using CPU and not run out of GPU memory.
+      On Linux Nvidia 4090 with 24 GB of GPU memory the maximum prediction appears to be about 1300 residues plus ligand atoms before an "out of memory" error occurs.  This contrasts with Windows where Torch appears to fallback to using CPU and not run out of GPU memory.
     </p>
 
     <p>
       <b>Optimizing for larger structures with Nvidia GPU.</b>
       Structure predictions 40% larger are possible by using 16-bit floating point (bfloat16) on Nvidia GPUs instead of float32 for boltz weights and activations.  Prediction speed is about the same.  I tested this on Nvidia 4090 on Linux and it was able to predict 9fz5 (1025 tokens) in 3 minutes and 8sa0 (1371 tokens) in 5 minutes.  I have not seen a reduction in accuracy.  Details in ChimeraX ticket <a href="https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/17555">#17555</a>.
-      This is available as the 16-bit floating point option in the ChimeraX Boltz Options panel or the float16 option of the ChimeraX boltz predict command.
+      Boltz 2 makes use of 16-bit floating point (bf16-mixed) by default when using Nvidia graphics.
+      Mac and Intel hardware give worse speed and little memory savings with 16-bit because the Torch package
+      does not support native 16-bit on those architectures and instead uses 32-bit float.
     </p>
     
     <a name="ligands">
@@ -551,7 +551,7 @@
 	is roughly 1000 residues plus ligand atoms (called "tokens").  Consumer Nvidia GPUs with 8 or 12 GB of
 	memory (e.g. RTX 3070) only handle 300-500 residues before using CPU memory on Windows that slows
 	the prediction speed by 10-20 fold.  On Linux it will not use CPU memory.  Consumer Nvidia GPUs with
-	24 GB (RTX 3090 and RTX 4090) are able to predict 1000 tokens, or about 1400 with 16-bit floating point.
+	24 GB (RTX 3090 and RTX 4090) are able to predict 1300 tokens.
 	Prediction size limits are perhaps the most important
 	shortcoming of Boltz compared to AlphaFold 3 which handles memory more efficiently and is able to
 	predict 5000 tokens with 80GB of GPU memory, about twice the size that Boltz can predict.
