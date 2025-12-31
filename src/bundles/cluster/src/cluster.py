@@ -157,7 +157,7 @@ class NMRClust:
         members = c.members()
         if len(members) == 1:
             return members[0]
-        from distmat import DistanceMatrix
+        from .distmat import DistanceMatrix
         dm = DistanceMatrix(len(members))
         for i in range(len(members)):
             mi = members[i]

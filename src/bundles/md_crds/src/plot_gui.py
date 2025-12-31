@@ -414,7 +414,7 @@ class PlotDialog:
                 ions = sel_atoms.structure_categories == "ions"
                 metals = sel_atoms.elements.is_metal
                 non_metal_ions = logical_and(ions, logical_not(metals))
-                sel_atom = sel_atoms.filter(logical_not(non_metal_ions))
+                sel_atoms = sel_atoms.filter(logical_not(non_metal_ions))
             elif kind == "hydrogens":
                 sel_atoms = sel_atoms.filter(sel_atoms.elements.numbers > 1)
             elif kind == "ligands":
