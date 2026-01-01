@@ -155,10 +155,19 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
         for omm_atom in template.atoms:
             cx_atom = cx_res.find_atom(omm_atom.name)
             if cx_atom.num_bonds == 0:
-                gaff_type = "tip3pfb_standard-" + cx_atom.element.name + (str(cx_atom.charge)
-                    if abs(cx_atom.charge) > 1 else "") + ('+' if cx_atom.charge > 0 else '-')
+                charge = getattr(cx_atom, 'charge', 0.0)
+                gaff_type = "tip3pfb_standard-" + cx_atom.element.name + (str(charge)
+                    if abs(charge) > 1 else "") + ('+' if charge > 0 else '-')
             else:
-                gaff_type = cx_atom.gaff_type
+                # Use gaff_type if available
+                gaff_type = getattr(cx_atom, 'gaff_type', None)
+                if gaff_type is None:
+                    # gaff_type is required for minimization
+                    # It is assigned by the addcharge command
+                    raise UserError(
+                        f"Atom {cx_atom} in residue {cx_res} does not have a gaff_type assigned. "
+                        "Please run 'addcharge' first to assign GAFF atom types."
+                    )
 
             #if adjust_gaff_type:
             #    gaff_type = 'DNA-' + gaff_type
@@ -166,7 +175,9 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
             # The next line is necessary until a fixed version of OpenMM is available,
             # as per: https://github.com/openmm/openmm/issues/5075
             omm_atom.parameters = omm_atom.parameters.copy()
-            omm_atom.parameters['charge'] = cx_atom.charge
+            # Use charge if available, otherwise default to 0.0
+            charge = getattr(cx_atom, 'charge', 0.0)
+            omm_atom.parameters['charge'] = charge
         omm_res.name = template.name
 
         forcefield.registerResidueTemplate(template)
