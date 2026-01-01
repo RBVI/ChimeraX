@@ -356,11 +356,8 @@ def boltz_server_start(session,
     if host is None:
         host = _default_host()
 
-    from os.path import expanduser, exists, join
+    from os.path import expanduser, join
     jobs_directory = expanduser(jobs_directory)
-    if not exists(jobs_directory):
-        from os import mkdir
-        mkdir(jobs_directory)
 
     if boltz_exe is None:
         from .settings import _boltz_settings
@@ -523,6 +520,11 @@ def _start_server():
     device = 'cpu' if args.cpu else 'gpu'
     gpus = args.gpus.split(',') if args.gpus else None
     extra_options = args.extra_options.removeprefix('"').removesuffix('"').split() if args.extra_options else []
+
+    from os.path import exists
+    if not exists(args.jobs_directory):
+        from os import mkdir
+        mkdir(args.jobs_directory)
 
     start_server(args.jobs_directory, args.boltz_exe, args.host, args.port,
                  device = device, gpus = gpus, extra_options = extra_options)

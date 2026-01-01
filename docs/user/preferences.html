@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,19 +9,16 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
+--><head>
 <title>ChimeraX Settings (Preferences)</title>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<link rel="stylesheet" type="text/css" href="userdocs.css" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="userdocs.css">
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="index.html">
-<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h2>ChimeraX Settings (Preferences)</h2>
 <p>
@@ -51,11 +46,11 @@ section or to all sections of the <b>Preferences</b> dialog
 </p>
 <ul>
 <li><b>Save</b> &ndash; save the current settings
-<li><b>Reset</b> &ndash; replace the current settings with the 
+</li><li><b>Reset</b> &ndash; replace the current settings with the 
 initial (&ldquo;factory&rdquo;) defaults
-<li><b>Restore</b> &ndash; restore values that were saved previously
-<li><b>Help</b> &ndash; show documentation
-</ul>
+</li><li><b>Restore</b> &ndash; restore values that were saved previously
+</li><li><b>Help</b> &ndash; show documentation
+</li></ul>
 <p>
 Several <a href="#other">other preferences</a> do not appear in this 
 dialog, but in separate interfaces. 
@@ -66,14 +61,14 @@ in a standard platform-dependent location:
 see <a href="https://pypi.python.org/pypi/appdirs/1.4.3"
 target="_blank">python appdirs</a>
 -->
-<ul class="none">
+</p><ul class="none">
 <li><span class="nowrap"><b>~/Library/Application Support/ChimeraX/</b></span>
 &nbsp;on Mac
-<li><span class="nowrap"><b>~/.local/share/ChimeraX/</b></span>
+</li><li><span class="nowrap"><b>~/.local/share/ChimeraX/</b></span>
 &nbsp;on Linux
-<li><span class="nowrap"><b>C:\Users\</b>&lt;<i>user-name</i>&gt;<b>\AppData\Local\UCSF\ChimeraX\</b></span>
+</li><li><span class="nowrap"><b>C:\Users\</b>&lt;<i>user-name</i>&gt;<b>\AppData\Local\UCSF\ChimeraX\</b></span>
 &nbsp;on Windows
-</ul>
+</li></ul>
 <p>
 The location can be reported with command: 
 </p>
@@ -93,18 +88,17 @@ and are not created until nondefault settings are saved.
 <ul>
 <li><b>Background color</b> &ndash; a color well that can be clicked
 to choose the color interactively (initial default
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td bgcolor="#000000" width="10px"></td>
-</tr></table>).
+</tr></tbody></table>).
 See also: <a href="commands/set.html#bgColor"><b>set bgColor</b></a>
 <a href="tools/graphics.html" title="Graphics icons...">
-<img class="icon" border=1 src="tools/shortcut-icons/whitebg.png"></a>
+<img class="icon" border="1" src="tools/shortcut-icons/whitebg.png" alt="computer generated image"></a>
 <a href="tools/graphics.html" title="Graphics icons...">
-<img class="icon" border=1 src="tools/shortcut-icons/graybg.png"></a>
+<img class="icon" border="1" src="tools/shortcut-icons/graybg.png" alt="computer generated image"></a>
 <a href="tools/graphics.html" title="Graphics icons...">
-<img class="icon" border=1 src="tools/shortcut-icons/blackbg.png"></a>
-</ul>
+<img class="icon" border="1" src="tools/shortcut-icons/blackbg.png" alt="computer generated image"></a>
+</li></ul>
 <a name="clipping"></a>
 <p class="nav">
 [<a href="#top">back to top: ChimeraX Settings</a>]
@@ -118,28 +112,28 @@ See also: <a href="commands/clip.html"><b>clip</b></a>,
 <li><b>Cap clipped surfaces</b>
 &ndash; whether to cap surfaces when they are sliced by
 <a href="commands/clip.html">clipping</a> (initial default <b>true</b>)
-<li><b>Cap mesh surfaces</b>
+</li><li><b>Cap mesh surfaces</b>
 &ndash; if capping is on (the previous setting is <b>true</b>), 
 whether to show caps for mesh surfaces (initial default <b>false</b>)
-<li><b>Cap subdivision factor</b>
+</li><li><b>Cap subdivision factor</b>
 &ndash; fineness of triangulation (initial default <b>1.0</b>), which
 affects appearance when the cap is multicolored, such as 
 <a href="commands/color.html#map">by map value</a> or
 <a href="commands/color.html#zone">by zone</a>. 
 Higher values give finer triangulations, and the minimum value is 0.0.
-<li><b>Mouse clipping enables</b>
+</li><li><b>Mouse clipping enables</b>
 &ndash; which type of <a href="commands/clip.html">clipping planes</a>
 are enabled by the <b>clip</b>
 <a href="commands/ui.html#mousemode">mouse mode</a>
 <a href="tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="tools/mouse-icons/clip.png"></a>
+<img class="icon" border="1" src="tools/mouse-icons/clip.png" alt="computer generated image"></a>
   <ul>
   <li><b>scene planes</b> (initial default)
   &ndash; those which reorient with the scene (front/back)
-  <li><b>screen planes</b>
+  </li><li><b>screen planes</b>
   &ndash; those which remain fixed parallel to the screen (near/far)
-  </ul>
-</ul>
+  </li></ul>
+</li></ul>
 
 <a name="distances"></a>
 <p class="nav">
@@ -158,21 +152,20 @@ See also:
 <a href="tools/hbonds.html"><b>H-Bonds</b></a>,
 <a href="commands/ui.html#mousemode"><b>mousemode</b></a>,
 <a href="selection.html#context">selection context menus</a>
-<ul>
+</p><ul>
 <li><b>Color</b> &ndash; 
 a color well that can be clicked
 to choose the color interactively (initial default
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="gold" width="10px"></td> </tr></table>)
-<li><b>Decimal places</b> 
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="gold" width="10px"></td> </tr></tbody></table>)
+</li><li><b>Decimal places</b> 
 &ndash; distance-label places after the decimal (initial default <b>3</b>)
-<li><b>Number of dashes</b> (initial default <b>9</b>)
-<li><b>Radius</b> (initial default <b>0.1</b> &Aring;)
-<li><b>Show angstrom symbol (&Aring;)</b> 
+</li><li><b>Number of dashes</b> (initial default <b>9</b>)
+</li><li><b>Radius</b> (initial default <b>0.1</b> &Aring;)
+</li><li><b>Show angstrom symbol (&Aring;)</b> 
 &ndash; whether to include the &Aring; symbol in the distance label
 (initial default <b>true</b>)
-</ul>
+</li></ul>
 
 <a name="labels"></a>
 <p class="nav">
@@ -185,8 +178,8 @@ style="display:inline-block; vertical-align:middle"><tr>
 default <a href="commands/label.html#height">height</a> in distance units
 (initial default <b>0.7</b>); can also be set with the command
 <a href="commands/label.html#defaultHeight"><b>label defaultHeight</b></a>
-<li><b>3D model label height (&Aring;)</b>
-<li><b>Balloon-help specifier style</b>
+</li><li><b>3D model label height (&Aring;)</b>
+</li><li><b>Balloon-help specifier style</b>
 &ndash; format/type of identifying information shown by pausing the cursor over 
 an object in the <a href="window.html">main window</a> (see the 
 <a href="commands/ui.html#identify"><b>identify object</b></a> mouse mode)
@@ -194,21 +187,21 @@ an object in the <a href="window.html">main window</a> (see the
   <li><b>command line</b>
   &ndash; <a href="commands/atomspec.html#hierarchy">command-line specifier</a>
   (for example, /B:21@OD1)
-  <li><b>serial number</b> &ndash; atom serial number (for example, 126)
-  <li><b>simple</b> (initial default) &ndash; chain ID (preceded by slash),
+  </li><li><b>serial number</b> &ndash; atom serial number (for example, 126)
+  </li><li><b>simple</b> (initial default) &ndash; chain ID (preceded by slash),
   residue name, residue number, atom name (for example, /B ASN 21 OD1)
-  </ul>
+  </li></ul>
 This setting is also the default style for atom logging by
 the <a href="tools/hbonds.html"><b>H-Bonds</b></a> tool and
 the <a href="commands/hbonds.html"><b>hbonds</b></a> and
 <a href="commands/clashes.html"><b>clashes/contacts</b></a> commands
 (see their <b>namingStyle</b> options).
-<li><b>Balloon-help specifiers always show atomic model number</b>
+</li><li><b>Balloon-help specifiers always show atomic model number</b>
 (initial default <b>off</b>)
 &ndash; whether balloon-help specifiers on atomic models should include the
 model number regardless of how many atomic models are open, instead of only
 when multiple atomic models are present
-<li><b>Label missing-structure segments in models with &le; N chains</b> 
+</li><li><b>Label missing-structure segments in models with &le; N chains</b> 
 (initial default <b>4</b>) &ndash; label missing-structure 
 <a href="pseudobonds.html">pseudobonds</a> with the number of biopolymer
 residues that they represent, according to PDB SEQRES information or 
@@ -217,7 +210,7 @@ the mmCIF equivalent, depending on the number of chains in the atomic model
 labels regardless of model size).  The chain limit can be adjusted temporarily
 (without changing this preference) by using the 
 <a href="commands/label.html#missing"><b>label missing</b></a> command.
-</ul>
+</li></ul>
 
 <a name="sequences"></a>
 <p class="nav">
@@ -230,28 +223,28 @@ labels regardless of model size).  The chain limit can be adjusted temporarily
 (initial default <b>300</b> sequences); can be overridden with the
 <a href="commands/open.html"><b>open</b></a> command
 <a href="commands/open.html#viewer"><b>viewer</b></a> option 
-<li><b>Large alignment viewer</b>
+</li><li><b>Large alignment viewer</b>
   <ul>
   <li><a href="tools/profilegrid.html"><b>Profile Grid</b></a>
 (initial default) &ndash; condensed view in which each row is a residue type
 and the values are prevalences
-  <li><a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+  </li><li><a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
 &ndash; standard view in which each row is an individual sequence
 and the values are residue types
-  </ul>
-<li><b>Single sequence viewer</b>
+  </li></ul>
+</li><li><b>Single sequence viewer</b>
   <ul>
   <li><a href="tools/profilegrid.html"><b>Profile Grid</b></a>
-  <li><a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+  </li><li><a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
 (initial default)
-  </ul>
-<li><b>Small alignment viewer</b>
+  </li></ul>
+</li><li><b>Small alignment viewer</b>
   <ul>
   <li><a href="tools/profilegrid.html"><b>Profile Grid</b></a>
-  <li><a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+  </li><li><a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
 (initial default)
-  </ul>
-</ul>
+  </li></ul>
+</li></ul>
 
 <a name="startup"></a>
 <p class="nav">
@@ -278,31 +271,28 @@ or with the <a href="commands/preset.html"><b>preset</b></a> command.
 See also: <a href="commands/alias.html"><b>alias</b></a>
 <p>
 For example, putting the command file
-<a href="kyte-doolittle_hydrophobicity.cxc" type="text/plain" class="nounder"
-target="_blank"><b>kyte-doolittle_hydrophobicity.cxc</b></a>
+<a href="kyte-doolittle_hydrophobicity.cxc" type="text/plain" class="nounder" target="_blank"><b>kyte-doolittle_hydrophobicity.cxc</b></a>
 into your custom presets folder will create menu item: <b>Presets... Custom...
 Kyte-Doolittle Hydrophobicity</b>, the ChimeraX version of the
 &ldquo;hydrophobicity surface&rdquo; 
-<a href="https://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/menu.html#menupresets"
-target="_blank">Chimera preset</a>.
+<a href="https://www.rbvi.ucsf.edu/chimera/docs/UsersGuide/menu.html#menupresets" target="_blank">Chimera preset</a>.
 See also: 
 <a href="commands/colortables.html#residue">coloring by residue type</a>,
 <a href="commands/setattr.html"><b>setattr</b></a>,
 <a href="commands/color.html#byattribute"><b>color byattribute</b></a>,
 <a href="commands/mlp.html"><b>mlp</b></a>
-<a href="tools/moldisplay.html" title="Molecule Display Toolbar..."><img
-class="icon" border=1 src="tools/shortcut-icons/hydrophobicity.png"></a>,
+<a href="tools/moldisplay.html" title="Molecule Display Toolbar..."><img class="icon" border="1" src="tools/shortcut-icons/hydrophobicity.png" alt="computer generated image"></a>,
 <a href="formats/defattr.html#examples">attribute assignment examples</a>,
 <a href="hydrophobicity.html">amino acid hydrophobicity</a>
 </p>
-<li><b>Execute these commands at startup</b> 
+</li><li><b>Execute these commands at startup</b> 
 &ndash; <a href="index.html#commands">ChimeraX commands</a> to execute
 when the <a href="tools/cli.html"><b>Command Line Interface</b></a> 
 is first started within a session.
 See also: <a href="commands/alias.html"><b>alias</b></a>,
 <a href="commands/name.html"><b>name</b></a>,
 <a href="commands/color.html#name"><b>color name</b></a>
-</ul>
+</li></ul>
 
 <a name="toolshed"></a>
 <p class="nav">
@@ -323,11 +313,11 @@ and to control how the toolshed manages bundle information.
 for a newer version of ChimeraX
   <ul>
   <li><b>every day</b>
-  <li><b>every week</b> (initial default)
-  <li><b>every month</b>
-  <li><b>never</b>
-  </ul>
-<li><b>Toolshed update interval</b> &ndash; how often to check 
+  </li><li><b>every week</b> (initial default)
+  </li><li><b>every month</b>
+  </li><li><b>never</b>
+  </li></ul>
+</li><li><b>Toolshed update interval</b> &ndash; how often to check 
 the Toolshed for updates to installed bundles as well as for
 new features (commands, file formats) available from bundles
 that the user does not have installed.
@@ -336,11 +326,11 @@ but asynchronously, <i>i.e.</i>,
 without slowing down the startup process or subsequent use of ChimeraX.  
   <ul>
   <li><b>every day</b>
-  <li><b>every week</b> (initial default)
-  <li><b>every month</b>
-  <li><b>never</b>
-  </ul>
-</ul>
+  </li><li><b>every week</b> (initial default)
+  </li><li><b>every month</b>
+  </li><li><b>never</b>
+  </li></ul>
+</li></ul>
 
 <a name="trackpad"></a>
 <p class="nav">
@@ -365,21 +355,21 @@ touchpad click-drag alone and with modifier keys
 perform the actions of left, middle and right mouse buttons
 (<a href="commands/ui.html#touchpad">details...</a>).
 </p>
-<li><b>Trackpad sensitivity</b> &ndash; sensitivity to trackpad multitouch gestures;
+</li><li><b>Trackpad sensitivity</b> &ndash; sensitivity to trackpad multitouch gestures;
 with a factor of <b>1.0</b> (initial default):
   <ul>
   <li>a 6-cm two-finger drag rotates 360&deg;
-  <li>a 6-cm three-finger drag translates across the full width of 
+  </li><li>a 6-cm three-finger drag translates across the full width of 
   the graphics window
-  </ul>
+  </li></ul>
 Other actions scale accordingly:
   <ul>
 <li>sensitivity of two-finger twist (rotation around Z axis) is 6 times that 
 of two-finger drag (XY rotation)
-<li>sensitivity of pinch-zoom or four-finger zoom (translation along Z axis)
+</li><li>sensitivity of pinch-zoom or four-finger zoom (translation along Z axis)
 is 3 times that of three-finger drag (XY translation)
-  </ul>
-</ul>
+  </li></ul>
+</li></ul>
 
 <a name="webaccess"></a>
 <p class="nav">
@@ -399,12 +389,12 @@ The <i>protocol-type</i> can be <b>http</b> or <b>https</b>.
 <br>
 (initial default protocol <b>http</b> and port number <b>80</b>)
 <br><br>
-<li><b>HTTPS proxy &nbsp;protocol</b> [&nbsp;<i>protocol-type</i>&nbsp;] 
+</li><li><b>HTTPS proxy &nbsp;protocol</b> [&nbsp;<i>protocol-type</i>&nbsp;] 
 <b>host</b> [&nbsp;<i>hostname</i>&nbsp;] 
 <b>port</b> [&nbsp;<i>number</i>&nbsp;]
 <br>
 (initial default protocol <b>https</b> and port number <b>443</b>)
-</ul>
+</li></ul>
 
 <a name="window"></a>
 <p class="nav">
@@ -419,20 +409,20 @@ The <i>protocol-type</i> can be <b>http</b> or <b>https</b>.
 <a href="window.html#tool-context">previously saved positions</a>):
   <ul>
   <li><b>left</b>
-  <li><b>right</b> (initial default)
-  </ul>
-<li><b>Initial overall window size</b> &ndash; <a href="startup.html">startup</a>
+  </li><li><b>right</b> (initial default)
+  </li></ul>
+</li><li><b>Initial overall window size</b> &ndash; <a href="startup.html">startup</a>
 size of the overall <a href="window.html">ChimeraX window</a>
 (including any tools present at startup, not just the graphics window)
   <ul>
   <li><b>last used</b> (initial default)
-  <li><b>proportional</b> &ndash; as a percentage of screen width and height
-  <li><b>fixed</b> &ndash; width and height in pixels
-  <li><b>maximized</b> &ndash; screen width and height 
+  </li><li><b>proportional</b> &ndash; as a percentage of screen width and height
+  </li><li><b>fixed</b> &ndash; width and height in pixels
+  </li><li><b>maximized</b> &ndash; screen width and height 
 (different from <a href="commands/ui.html#fullscreen">fullscreen</a> in that
 the title bar is retained)
-  </ul>
-<li><b>Resize graphics window on session restore</b>
+  </li></ul>
+</li><li><b>Resize graphics window on session restore</b>
 &ndash; whether to restore the graphics window size of a 
 <a href="commands/save.html#session">session</a> along with its contents;
 if this option is off (initial default), the graphics window will not resize
@@ -440,11 +430,11 @@ when a session is restored. This setting can be overridden with the
 <a href="commands/open.html"><b>open</b></a> command 
 <a href="commands/open.html#resizeWindow"><b>resizeWindow</b></a> option.
 See also: <a href="commands/windowsize.html"><b>windowsize</b></a>
-<li><b>Tool windows start undocked</b>
+</li><li><b>Tool windows start undocked</b>
 &ndash; whether tools (other than those launched at startup)
 should open in the undocked and 
 <a href="commands/ui.html#dockable">undockable</a> state; initial default off
-</ul>
+</li></ul>
 
 <a name="other"></a>
 <p class="nav">
@@ -461,21 +451,21 @@ commands. Examples include:
 <li>Generic <a href="window.html#tool-context">tool-interface preferences</a>:
 autostart, panel dockability, <i>etc.</i>
 (see also <a href="commands/ui.html"><b>ui</b></a>)
-<li>Tool-specific preferences:
+</li><li>Tool-specific preferences:
   <ul>
   <li><a href="tools/findcavities.html"><b>Find Cavities</b></a>
   &ndash; cavity detection settings
-  <li><a href="tools/cli.html#history"><b>Command History</b></a>
+  </li><li><a href="tools/cli.html#history"><b>Command History</b></a>
   &ndash; whether to list typed commands only; number of commands to remember
-  <li><a href="tools/log.html"><b>Log</b></a>
+  </li><li><a href="tools/log.html"><b>Log</b></a>
   &ndash; whether command links should be executable or show help
-  <li><a href="tools/sequenceviewer.html#settings"><b>Sequence Viewer</b></a>
+  </li><li><a href="tools/sequenceviewer.html#settings"><b>Sequence Viewer</b></a>
   &ndash; several aspects of appearance and contents
-  <li><a href="tools/toolbar.html#settings"><b>Toolbar</b></a> 
+  </li><li><a href="tools/toolbar.html#settings"><b>Toolbar</b></a> 
   &ndash; <a href="tools/toolbar.html#home"><b>Home</b></a> tab customization
-  </ul>
-<li><a href="commands/ui.html#functionkey">Function key assignments</a>
-</ul>
+  </li></ul>
+</li><li><a href="commands/ui.html#functionkey">Function key assignments</a>
+</li></ul>
 <p>
 Some tools have settings that are &ldquo;sticky,&rdquo; automatically saved 
 in the preferences and presented to the user upon later uses of that tool.
@@ -483,9 +473,10 @@ Examples include:
 </p>
 <ul>
 <li><a href="tools/hbonds.html"><b>H-Bonds</b></a>
-<li><a href="tools/modeller.html"><b>Modeller Comparative</b></a>
-</ul>
+</li><li><a href="tools/modeller.html"><b>Modeller Comparative</b></a>
+</li></ul>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 October 2025</address>
-</body></html> 
+ 
+</body></html>

@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: measure</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: measure</h3>
 
@@ -36,48 +31,48 @@ Possible values of <i>property</i>:
 <ul>
 <li><a href="#area"><b>area</b></a> 
 &ndash; report the area of an existing surface (sum of surface triangles)
-<li><a href="#blob"><b>blob</b></a> 
+</li><li><a href="#blob"><b>blob</b></a> 
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
-<img class="icon" border=1 src="../tools/mouse-icons/pickblobs.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/pickblobs.png" alt="computer generated image"></a>
 &ndash; measure surface area, enclosed volume, and dimensions of a disconnected
 surface blob
-<li><a href="#buriedarea"><b>buriedarea</b></a> 
+</li><li><a href="#buriedarea"><b>buriedarea</b></a> 
 &ndash; calculate <a href="surface.html#surfdefs">solvent-accessible surface</a>
 area buried between two sets of atoms
-<li><a href="#center"><b>center</b></a>
+</li><li><a href="#center"><b>center</b></a>
 &ndash; calculate center of mass of map, atoms, and/or surface
-<li><a href="#contactarea"><b>contactarea</b></a>
+</li><li><a href="#contactarea"><b>contactarea</b></a>
 &ndash; report the area of one surface within a cutoff distance of another
-<li><a href="#convexity"><b>convexity</b></a>
+</li><li><a href="#convexity"><b>convexity</b></a>
 &ndash; calculate convexity at each surface vertex,
 color the surface accordingly
-<li><a href="#correlation"><b>correlation</b></a>
+</li><li><a href="#correlation"><b>correlation</b></a>
 &ndash; report map-map correlation
-<li><a href="#inertia"><b>inertia</b></a>
+</li><li><a href="#inertia"><b>inertia</b></a>
 &ndash; calculate inertia ellipsoid
-<li><a href="#length"><b>length</b></a>
+</li><li><a href="#length"><b>length</b></a>
 &ndash; sum bond lengths
-<li><a href="#mapstats"><b>mapstats</b></a>
+</li><li><a href="#mapstats"><b>mapstats</b></a>
 &ndash; report <a href="../tools/volumeviewer.html">volume data</a> 
 min, max, mean, SD, and RMSD values
-<li><a href="#mapvalues"><b>mapvalues</b></a>
+</li><li><a href="#mapvalues"><b>mapvalues</b></a>
 &ndash; calculate <a href="../tools/volumeviewer.html">volume data</a>
 values at atom positions and assign them as an atom
 <a href="../attributes.html">attribute</a>
-<li><a href="#motion"><b>motion</b></a>
+</li><li><a href="#motion"><b>motion</b></a>
 &ndash; show changes in surface position by drawing lines
-<li><a href="#rotation"><b>rotation</b></a>
+</li><li><a href="#rotation"><b>rotation</b></a>
 &ndash; report transformation of one model relative to another
-<li><a href="#sasa"><b>sasa</b></a>
+</li><li><a href="#sasa"><b>sasa</b></a>
 &ndash; calculate 
 <a href="surface.html#surfdefs">solvent-accessible surface</a> area
-<li><a href="#symmetry"><b>symmetry</b></a>
+</li><li><a href="#symmetry"><b>symmetry</b></a>
 &ndash; check map for certain symmetries in standard orientations
-<li><a href="#volume"><b>volume</b></a> 
+</li><li><a href="#volume"><b>volume</b></a> 
 &ndash; report the volume enclosed by an existing surface
-<li><a href="#weight"><b>weight</b></a> 
+</li><li><a href="#weight"><b>weight</b></a> 
 &ndash; report the sum of atomic weights in daltons
-</ul>
+</li></ul>
 <p>
 See also: 
 <a href="surface.html"><b>surface</b></a>,
@@ -120,24 +115,23 @@ known in advance, the triangle number is included in the command echoed
 to the <a href="../tools/log.html"><b>Log</b></a> when the 
 <b>pick blob</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
-<img class="icon" border=1 src="../tools/mouse-icons/pickblobs.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/pickblobs.png" alt="computer generated image"></a>
 is used, so that the action could be replicated in a script.
 Measurements include:
 <ul>
 <li><b>volume</b> enclosed in the blob
-<li><b>area</b> of its triangulated surface
-<li>if <b>reportSize</b> is <b>true</b> (default),
+</li><li><b>area</b> of its triangulated surface
+</li><li>if <b>reportSize</b> is <b>true</b> (default),
 the <b>size</b> in dimensions from longest to shortest
 of the bounding box aligned with principal axes
 (<a href="../tools/measureblobs.html#axesbox">details...</a>)
-</ul>
+</li></ul>
 Blob color is left unchanged unless a <b>color</b> is given.
 The <b>outline</b> option shows the bounding box as an outline
 in the specified <b>outlineColor</b> (default <b>lime</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=lime width="10px" title="lime"></td>
-</tr></table>). See also:
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="lime" width="10px" title="lime"></td>
+</tr></tbody></table>). See also:
 <a href="marker.html#connected"><b>marker connected</b></a>,
 <a href="../tools/measureblobs.html"><b>Measure and Color Blobs</b></a>
 </blockquote>
@@ -175,9 +169,9 @@ Residues with at least <b>cutoffArea</b> <i>area</i> buried
 <li>listed along with their buried areas
 in the <a href="../tools/log.html"><b>Log</b></a> 
 using the <b>listResidues</b> option
-<li><a href="../selection.html">selected</a> with the <b>select</b> option
-<li>colored using <b>color</b> <a href="colornames.html"><i>color-spec</i></a>
-</ul>
+</li><li><a href="../selection.html">selected</a> with the <b>select</b> option
+</li><li>colored using <b>color</b> <a href="colornames.html"><i>color-spec</i></a>
+</li></ul>
 <p>
 The buried area of a residue is its SAS area in the individual set minus
 that in the combined set.
@@ -230,9 +224,8 @@ If <b>mark</b> is <b>true</b>, a <a href="../markers.html">marker</a>
 will be placed at at each computed center, with radius <i>marker-radius</i> 
 (default based on the contents of <a href="atomspec.html"><i>spec</i></a>)
 and color (default <b>#b4b4b4</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=#b4b4b4 width="10px" title="#b4b4b4"></td></tr></table>).
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="#b4b4b4" width="10px" title="#b4b4b4"></td></tr></tbody></table>).
 The marker model is opened as number <i>model-number</i>
 (default next unused number) with name <i>model-name</i>
 (default based on the contents of <a href="atomspec.html"><i>spec</i></a>).
@@ -322,13 +315,12 @@ the surface will be colored by the convexity value per vertex,
 with <i>palette-options</i> as
 <a href="color.html#palette-options">described for <b>color</b></a>,
 except with defaults 
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=#0f1bc7adcf5b width="10px"></td>
-<td bgcolor=#b333b333b333 width="10px"></td>
-<td bgcolor=#9eb820005eb8 width="10px"></td>
-</tr></table>:
-<blockquote>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="#0f1bc7adcf5b" width="10px"></td>
+<td bgcolor="#b333b333b333" width="10px"></td>
+<td bgcolor="#9eb820005eb8" width="10px"></td>
+</tr></tbody></table>:
+</p><blockquote>
 <b>palette&nbsp;cyan-gray-maroon&nbsp;&nbsp;range&nbsp;-1,1</b>
 </blockquote>
 Unsmoothed values typically give mottled coloring.
@@ -337,7 +329,7 @@ When <b>measure convexity</b> is run interactively (in gui mode and not via a
 the <b>key true</b> option can be used to
 start <a href="../tools/colorkey.html"><b>Color Key</b></a>
 and draw a color key with the corresponding colors and values.
-</p><p>
+<p></p><p>
 See also:
 <a href="key.html"><b>key</b></a>,
 <a href="coulombic.html"><b>coulombic</b></a>, 
@@ -359,7 +351,7 @@ Calculate the correlation between two
   <blockquote>
 <a name="corrzero"></a>
 <table cellspacing="0" cellpadding="0">
-<tr><td></td><td valign="bottom">
+<tbody><tr><td></td><td valign="bottom">
 &lt;<b>u</b>,<b>v</b>&gt;
 </td></tr>
 <tr><td><i>correlation</i> =&nbsp;&nbsp;</td>
@@ -367,11 +359,11 @@ Calculate the correlation between two
 <tr><td></td><td valign="top">
 &nbsp;|<b>u</b>||<b>v</b>|
 </td></tr>
-</table>
+</tbody></table>
   </blockquote>
   <blockquote>
 <table cellspacing="0" cellpadding="0">
-<tr><td></td><td valign="bottom">
+<tbody><tr><td></td><td valign="bottom">
 &lt;<b>u</b>&ndash;<b>u</b><sub>ave</sub>,<b>v</b>&ndash;<b>v</b><sub>ave</sub>&gt;
 </td></tr>
 <tr><td><i>correlation about mean</i> =&nbsp;&nbsp;</td>
@@ -379,7 +371,7 @@ Calculate the correlation between two
 <tr><td></td><td valign="top">
 &nbsp;|<b>u</b>&ndash;<b>u</b><sub>ave</sub>||<b>v</b>&ndash;<b>v</b><sub>ave</sub>|
 </td></tr>
-</table>
+</tbody></table>
   </blockquote>
 where vector <b>u</b> contains the values of the first map
 (<a href="atomspec.html#hierarchy"><i>volume-spec1</i></a>)
@@ -452,8 +444,7 @@ See also:
 <a href="aniso.html"><b>aniso</b></a>,
 <a href="shape.html#ellipsoid"><b>shape ellipsoid</b></a>,
 <a href="open.html#object">3D object formats</a>,
-<a href="https://rbvi.github.io/chimerax-recipes/convex_hull/convex_hull.html"
-target="_blank">convex hull recipe</a>
+<a href="https://rbvi.github.io/chimerax-recipes/convex_hull/convex_hull.html" target="_blank">convex hull recipe</a>
 </p>
 </blockquote>
 
@@ -490,9 +481,9 @@ A subregion can be specified by:
   <i>j1&ndash;j2</i> along the Y axis, and
   <i>k1&ndash;k2</i> along the Z axis.
   Grid indices must be integers separated by commas but not spaces.
-  <li>the word <b>all</b>, indicating the full extent of the data
+  </li><li>the word <b>all</b>, indicating the full extent of the data
   rather than a subregion
-  </ul>
+  </li></ul>
 The default is to use the current subregion (if cropped) and current step size
 of each specified map. This command is also implemented as
 <a href="../tools/mapstats.html"><b>Map Statistics</b></a> in the
@@ -538,9 +529,8 @@ in increments of map grid units
 until they intersect with the map isosurface or reach
 <b>steps</b> <i>M</i> grid units in length (default <b>10</b>).
 Prickles are shown in the specified <b>color</b> (default <b>lime</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=lime width="10px" title="lime"></td></tr></table>) and
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="lime" width="10px" title="lime"></td></tr></tbody></table>) and
 can be amplified or shrunken in length by a <b>scale</b> factor <i>f</i>.
 If a model number is specified with <b>pricklesModel</b> <i>N</i>,
 the prickles will be added as a submodel of <i>N</i>.
@@ -566,9 +556,9 @@ Report the transformation of <i>model1</i> relative to <i>model2</i> as:
   <ul>
   <li> a matrix in which the first three columns describe a rotation
   and the fourth describes a translation (performed after the rotation)
-  <li> an axis of rotation (a unit vector), point on the axis,
+  </li><li> an axis of rotation (a unit vector), point on the axis,
   rotation angle, and shift parallel to the axis
-  </ul>
+  </li></ul>
 <b><i>This command does not evaluate how to best fit or match
 the two models.</i></b> It reports the current rotation and translation
 between the coordinate systems of the two models, which would be zero
@@ -596,9 +586,8 @@ model showing the axis as a rod
 will be created, with the specified <b>length</b>
 (default the largest dimension of the bounding box of the displayed part
 of <i>model2</i>), <b>radius</b> (default 2.5% of the length), and <b>color</b>
-(default <b>#d2d264</b> <table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="#d2d264" width="10px" title="#d2d264"></td></tr></table>).
+(default <b>#d2d264</b> <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="#d2d264" width="10px" title="#d2d264"></td></tr></tbody></table>).
 The <b>axisType</b> option specifies whether the axis should be created as a
 <a href="../markers.html">marker model</a> (default) or as an
 <a href="../tools/axesplanes.html#define-axes">axis</a> object
@@ -610,14 +599,11 @@ as surface models, with the specified <b>length</b>
 (default described above), <b>width</b>, and <b>thickness</b> 
 (defaults 50% and 2.5% of the length, respectively)
 and colored according to <b>color</b> and <b>color2</b> 
-(defaults <b>#d2d264</b> <table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="#d2d264" width="10px" title="#d2d264"></td></tr></table>
+(defaults <b>#d2d264</b> <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="#d2d264" width="10px" title="#d2d264"></td></tr></tbody></table>
 and <b>cornflower blue</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=cornflowerblue width="10px" 
-title="cornflower blue"></td></tr></table>, respectively).
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="cornflowerblue" width="10px" title="cornflower blue"></td></tr></tbody></table>, respectively).
 </p><p>
 See also:
 <a href="fitmap.html"><b>fitmap</b></a>,
@@ -697,17 +683,17 @@ are compared with the superimposed (interpolated) values in the
 rotated copy of the map.
 </p><p>
 Center of point symmetry is considered only at the following:
-<ul>
+</p><ul>
 <li> the grid point nearest the average indices of grid points
 with values above the displayed contour level.
 The map's lowest contour level in
 <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a> is used.
-<li> one or two grid points based on the overall map dimensions:
+</li><li> one or two grid points based on the overall map dimensions:
 only the midpoint along axes with odd numbers of points, and
 along axes with even numbers of points, those on either side of the midpoint.
 Rather than all possible combinations for axes with even numbers of points,
 only the two points with all indices lower or all higher are evaluated.
-</ul>
+</li></ul>
 For cyclic and dihedral symmetry, rotation is considered only
 about the Z axis, and for dihedral symmetry, flipping symmetry only
 about the X or Y axes. Cyclic (C<i>n</i>) symmetry is
@@ -721,31 +707,30 @@ whichever gave the highest correlation, would be assigned.
 Tetrahedral symmetry is considered in two orientations:
 <ul>
 <li>2-folds along X, Y, and Z, with a 3-fold along axis (1,1,1)
-<li>3-fold along Z, with a second 3-fold in the YZ plane such that
+</li><li>3-fold along Z, with a second 3-fold in the YZ plane such that
 rotation about the X axis by ~110&deg; is a symmetry operation
 (EMAN convention)
-</ul>
+</li></ul>
 <p>
 Icosahedral symmetries are only considered in eight orientations:
 </p>
 <ul>
 <li>222 &ndash; with two-fold symmetry axes along the X, Y, and Z axes
-<li>2n5 &ndash; with two-fold symmetry along X and 5-fold along Z
-<li>n25 &ndash; with two-fold symmetry along Y and 5-fold along Z
-<li>2n3 &ndash; with two-fold symmetry along X and 3-fold along Z
-<li>222r &ndash; same as 222 except rotated 90&deg; about Z
-<li>2n5r &ndash; same as 2n5 except rotated 180&deg; about Y
-<li>n25r &ndash; same as n25 except rotated 180&deg; about X
-<li>2n3r &ndash; same as 2n3 except rotated 180&deg; about Y
-</ul>
+</li><li>2n5 &ndash; with two-fold symmetry along X and 5-fold along Z
+</li><li>n25 &ndash; with two-fold symmetry along Y and 5-fold along Z
+</li><li>2n3 &ndash; with two-fold symmetry along X and 3-fold along Z
+</li><li>222r &ndash; same as 222 except rotated 90&deg; about Z
+</li><li>2n5r &ndash; same as 2n5 except rotated 180&deg; about Y
+</li><li>n25r &ndash; same as n25 except rotated 180&deg; about X
+</li><li>2n3r &ndash; same as 2n3 except rotated 180&deg; about Y
+</li></ul>
 <p>
 The <b>helix</b> option specifies looking for helical symmetry with
 approximate <i>rise</i> (in physical units of distance, typically &Aring;)
 and <i>angle</i> (degrees) per asymmetric unit.  If this option is
 used, the other types of symmetry are not considered except for
 combined helical and cyclic symmetry (for example,
-<a href="https://www.ebi.ac.uk/pdbe-srv/emsearch/atlas/1757_summary.html"
-target="_blank">EMD-1757</a>, approximately
+<a href="https://www.ebi.ac.uk/pdbe-srv/emsearch/atlas/1757_summary.html" target="_blank">EMD-1757</a>, approximately
 42 &Aring; rise and 21&deg; twist per subunit).
 Helical symmetry is infinite, but the number of copies to place
 when considering that symmetry, <i>n</i>, is necessarily finite.
@@ -791,7 +776,7 @@ missing segments) will not be included.
 <br>
 The command <a href="#inertia"><b>measure inertia</b></a>
 computes the moments of inertia of a set of atoms as in classical mechanics:
-<blockquote>
+</p><blockquote>
 I<sub>jk</sub> = &Sigma;<sub>i</sub>
 (m<sub>i</sub> (&delta;<sub>jk</sub>
 |x<sub>i</sub>|<sup>2</sup> &ndash; x<sub>i,j</sub>x<sub>i,k</sub>))
@@ -813,15 +798,16 @@ attached triangles. This treats the surface as a thin shell.
 The &ldquo;inertia ellipsoid&rdquo; shown by ChimeraX is not the same
 as the one defined in physics. Instead, it is the ellipsoid that has
 the same inertia as the measured object:
-</p>
+<p></p>
 <ul>
 <li>For atoms, we show the surface of a uniform-density solid ellipsoid
 that has the same principal axes and moments as the atoms.
-<li>For surfaces, we show an ellipsoidal surface that as a thin shell
+</li><li>For surfaces, we show an ellipsoidal surface that as a thin shell
 has the same axes and moments as the measured surface.
-</ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 April 2025</address>
+
 </body></html>

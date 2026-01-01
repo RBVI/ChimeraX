@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Blast Protein</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Blast Protein</h3>
 <p>
@@ -68,70 +63,67 @@ See also:
 &ndash; amino acid substitution matrix to use for alignment scoring:
   <ul>
   <li><b>BLOSUM45</b>
-  <li><b>BLOSUM50</b>
-  <li><b>BLOSUM62</b> (default)
-  <li><b>BLOSUM80</b>
-  <li><b>BLOSUM90</b>
-  <li><b>PAM30</b>
-  <li><b>PAM70</b>
-  <li><b>PAM250</b>
-  <li><b>IDENTITY</b>
-  </ul>
+  </li><li><b>BLOSUM50</b>
+  </li><li><b>BLOSUM62</b> (default)
+  </li><li><b>BLOSUM80</b>
+  </li><li><b>BLOSUM90</b>
+  </li><li><b>PAM30</b>
+  </li><li><b>PAM70</b>
+  </li><li><b>PAM250</b>
+  </li><li><b>IDENTITY</b>
+  </li></ul>
 <br>
-<li><b>Cutoff</b> (default <b>1e-3</b>) &ndash; significance cutoff;
+</li><li><b>Cutoff</b> (default <b>1e-3</b>) &ndash; significance cutoff;
 only hits with 
 <a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=FAQ#expect" target="_blank">E-value</a>
 no larger than the specified value will be returned
 <br><br>
-<li><b># Sequences</b> (default <b>100</b>)
+</li><li><b># Sequences</b> (default <b>100</b>)
 &ndash; maximum number of unique sequences to return; more hits than this number
 may be obtained because multiple structures or other sequence-database entries
 may have the same sequence
 <br><br>
-<li><b>Query</b> &ndash; amino acid sequence with which to search the database,
+</li><li><b>Query</b> &ndash; amino acid sequence with which to search the database,
 specified as one of the following:
   <ul>
   <li><b>UniProt ID</b> &ndash;
-  a <a href="https://www.uniprot.org/help/entry_name"
-  target="_blank">UniProt name</a> or
-  <a href="https://www.uniprot.org/help/accession_numbers"
-  target="_blank">accession number</a>
-  <li><b>Raw Sequence</b></a> &ndash; amino acid sequence as plain text
+  a <a href="https://www.uniprot.org/help/entry_name" target="_blank">UniProt name</a> or
+  <a href="https://www.uniprot.org/help/accession_numbers" target="_blank">accession number</a>
+  </li><li><b>Raw Sequence</b> &ndash; amino acid sequence as plain text
   pasted into the entry field
-  <li>a single protein chain in an atomic structure currently open in ChimeraX
+  </li><li>a single protein chain in an atomic structure currently open in ChimeraX
   (available chains will be listed individually)
-  </ul>
+  </li></ul>
 <br>
-<li><b>Database</b> &ndash; protein sequence database to search:
+</li><li><b>Database</b> &ndash; protein sequence database to search:
    <ul>
    <li><b>pdb</b> (default) &ndash; experimentally determined structures in the
 <a href="https://www.rcsb.org" target="_blank">Protein Data Bank (PDB)</a>
-   <li><b>nr</b> &ndash; NCBI &ldquo;non-redundant&rdquo; database containing
+   </li><li><b>nr</b> &ndash; NCBI &ldquo;non-redundant&rdquo; database containing
 <a href="https://www.ncbi.nlm.nih.gov/genbank/" target="_blank">GenBank</a>
 CDS translations + <a href="https://www.rcsb.org" target="_blank">PDB</a>
 + <a href="https://www.uniprot.org/" target="_blank">SwissProt</a> +
-<a href="https://proteininformationresource.org/"  target="_blank">PIR</a>
+<a href="https://proteininformationresource.org/" target="_blank">PIR</a>
 + <a href="https://www.prf.or.jp/index-e.html" target="_blank">PRF</a>
 excluding environmental samples from whole-genome sequencing; this database
 is much larger than <b>PDB</b> alone and takes much longer to search
-  <li><b>alphafold</b> 
+  </li><li><b>alphafold</b> 
 &ndash; artificial-intelligence-predicted structures in the
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<a href="alphafold.html">more...</a>)
-   <li><b>uniref100</b> &ndash; 
-<a href="https://www.uniprot.org/help/uniref" 
-target="_blank">UniProt Reference (UniRef)</a> cluster at 100% identity
+   </li><li><b>uniref100</b> &ndash; 
+<a href="https://www.uniprot.org/help/uniref" target="_blank">UniProt Reference (UniRef)</a> cluster at 100% identity
 (identical sequences and subfragments collapsed into a single entry)
-   <li><b>uniref90</b> &ndash; based on <b>uniref100</b>, but omitting
+   </li><li><b>uniref90</b> &ndash; based on <b>uniref100</b>, but omitting
 sequences shorter than 11 residues and clustering at 90% identity
-   <li><b>uniref50</b> &ndash; based on <b>uniref100</b>, but omitting 
+   </li><li><b>uniref50</b> &ndash; based on <b>uniref100</b>, but omitting 
 sequences shorter than 11 residues and clustering at 50% identity
-  <li><b>esmfold</b> 
+  </li><li><b>esmfold</b> 
 &ndash; artificial-intelligence-predicted structures in the
 <a href="https://esmatlas.com/about#about_this_website" target="_blank">ESM
 Metagenomic Atlas</a> (<a href="esmfold.html">more...</a>)
-   </ul>
-</ul>
+   </li></ul>
+</li></ul>
 <p>
 Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
 runs the search, whereas <b>Close</b> dismisses the dialog without 
@@ -158,14 +150,14 @@ information are shown in the table of hits, with buttons:
 </p>
 <ul>
 <li><b>All</b> &ndash; show all columns
-<li><b>Default</b> &ndash; restore the previously saved
+</li><li><b>Default</b> &ndash; restore the previously saved
 <a href="../preferences.html#other">preference</a> for which columns are shown
-<li><b>Standard</b> &ndash; use &ldquo;factory default&rdquo; set of 
+</li><li><b>Standard</b> &ndash; use &ldquo;factory default&rdquo; set of 
 initially displayed columns
-<li><b>Set Default</b> &ndash; save the currently shown set as a 
+</li><li><b>Set Default</b> &ndash; save the currently shown set as a 
 user <a href="../preferences.html#other">preference</a>
-<li><b>Toggle Controls</b> &ndash; show/hide the checkbox section
-</ul>
+</li><li><b>Toggle Controls</b> &ndash; show/hide the checkbox section
+</li></ul>
 <p>
 <b>List only best-matching chain per PDB entry</b> &ndash; 
 searches of the PDB usually give multiple hits per PDB entry 
@@ -205,13 +197,13 @@ can be used to:
 <li><b>Load Structures</b> 
 &ndash; fetch and superimpose all of the corresponding structures, if any,
 for the chosen hits
-<li><b>Show Sequence Alignment</b> 
+</li><li><b>Show Sequence Alignment</b> 
 &ndash; show the <a href="#notes">multiple sequence alignment</a> of the
 chosen hits with the query in the 
 <a href="sequenceviewer.html"><b>Sequence Viewer</b></a>
-<li><b>Open Database Webpage</b> 
+</li><li><b>Open Database Webpage</b> 
 &ndash; show sequence database webpages for the chosen hits
-</ul>
+</li></ul>
 <p>
 Regardless of which hits are chosen and which columns are shown,
 clicking <b>Save Results as TSV</b> brings up a file browser to save
@@ -222,47 +214,43 @@ Some columns of data are available no matter which database is searched:
 <ul>
 <li><b>Hit #</b> &ndash; hit number (sorted by most significant
 <a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=FAQ#expect" target="_blank">E-value</a>)
-<li><b>Name</b>
+</li><li><b>Name</b>
   <ul>
   <li>for PDB sequences, the corresponding PDB identifier, including the chain 
-  <li>for AlphaFold predictions or UniRef entries, the corresponding
-<a href="https://www.uniprot.org/help/entry_name"
-target="_blank">UniProt entry name</a>
-  <li>otherwise, sequence GI number
+  </li><li>for AlphaFold predictions or UniRef entries, the corresponding
+<a href="https://www.uniprot.org/help/entry_name" target="_blank">UniProt entry name</a>
+  </li><li>otherwise, sequence GI number
 <!-- clicking it opens the web page for
 that sequence in the <a href="https://www.ncbi.nlm.nih.gov/protein"
 target="_blank">NCBI Protein</a> database -->
-  </ul>
-<li><b>E-Value</b> &ndash; significance of the hit; BLAST
+  </li></ul>
+</li><li><b>E-Value</b> &ndash; significance of the hit; BLAST
 <a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=FAQ#expect" target="_blank">Expect value</a>
-<li><b>Score</b> &ndash; alignment score
-<li><b>Title</b> &ndash; a brief description of the sequence
-<li><b>Species</b> &ndash; source organism,
+</li><li><b>Score</b> &ndash; alignment score
+</li><li><b>Title</b> &ndash; a brief description of the sequence
+</li><li><b>Species</b> &ndash; source organism,
 or for UniRef entries, the taxonomic range of source organisms in the 
-<a href="https://www.uniprot.org/help/uniref" 
-target="_blank">UniRef cluster</a> (typically broader than a single species)
+<a href="https://www.uniprot.org/help/uniref" target="_blank">UniRef cluster</a> (typically broader than a single species)
 <!--
 <li><b>Description</b> 
 (or for AlphaFold, separate <b>Title</b> and <b>Species</b> columns)
 &ndash; sequence title and source species
 <li><b>URL</b> &ndash; URL used by ChimeraX for the <b>Name</b> click action
 -->
-</ul>
+</li></ul>
 <p>
 Additional columns for AlphaFold entries:
 </p>
 <ul>
 <li><b>Gene</b> &ndash; 
 <a href="https://www.uniprot.org/help/gene%5Fname" target="_blank">gene name</a>
-<li><b>Protein Existence</b> &ndash; 
+</li><li><b>Protein Existence</b> &ndash; 
 type of evidence that the protein exists
-<li><b>Sequence Version</b> &ndash; 
-<a href="https://www.uniprot.org/help/entry%5Fhistory" 
-target="_blank">version number</a>
-<li><b>Taxonomic ID</b> 
-&ndash; <a href="https://www.uniprot.org/help/taxonomic%5Fidentifier" 
-target="_blank">NCBI taxid</a> of the source organism
-</ul>
+</li><li><b>Sequence Version</b> &ndash; 
+<a href="https://www.uniprot.org/help/entry%5Fhistory" target="_blank">version number</a>
+</li><li><b>Taxonomic ID</b> 
+&ndash; <a href="https://www.uniprot.org/help/taxonomic%5Fidentifier" target="_blank">NCBI taxid</a> of the source organism
+</li></ul>
 <p>
 Additional columns for PDB entries (from searching PDB or other databases
 that include it, such as NR):
@@ -270,51 +258,45 @@ that include it, such as NR):
 <ul>
 <li><b># Atoms</b>
 &ndash; total number of atoms in the structure (all chains)
-<li><b># Polymers</b>
+</li><li><b># Polymers</b>
 &ndash; number of different polymer chains in the structure
 (not counting multiple copies of the same sequence)
-<li><b># Residues</b>
+</li><li><b># Residues</b>
 &ndash; total number of residues in the structure (all chains)
-<li><b>Authors</b> &ndash; structure authors
-<li><b>Chain Copies</b>
+</li><li><b>Authors</b> &ndash; structure authors
+</li><li><b>Chain Copies</b>
 &ndash; number of copies of the hit chain in the structure
-<li><b>Chain Names</b>
+</li><li><b>Chain Names</b>
 &ndash; chain identifiers and descriptions of polymer chains in the structure
-<li><b>Chain Residues</b>
+</li><li><b>Chain Residues</b>
 &ndash; number of residues in the hit chain
-<li><b>Chain Weight</b>
+</li><li><b>Chain Weight</b>
 &ndash; molecular weight of the hit chain
-<li><b>Date</b> &ndash; structure deposition date
-<li><b>Ligand Formulas</b> &ndash; chemical formulae of ligand chemical components
-<li><b>Ligand Names</b> &ndash; names of ligand chemical components
-<li><b>Ligand Smiles</b> &ndash;
-<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
-target="_blank"><b>SMILES</b></a> strings of ligand chemical components
-<li><b>Ligand Symbols</b> &ndash; residue names of ligand chemical components
-<li><b>Ligand Weights</b>
+</li><li><b>Date</b> &ndash; structure deposition date
+</li><li><b>Ligand Formulas</b> &ndash; chemical formulae of ligand chemical components
+</li><li><b>Ligand Names</b> &ndash; names of ligand chemical components
+</li><li><b>Ligand Smiles</b> &ndash;
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html" target="_blank"><b>SMILES</b></a> strings of ligand chemical components
+</li><li><b>Ligand Symbols</b> &ndash; residue names of ligand chemical components
+</li><li><b>Ligand Weights</b>
 &ndash; molecular weights of ligand chemical components
-<li><b>Method</b> &ndash; method of structure determination
-<li><b>PubMed ID</b> &ndash; <a href="https://www.ncbi.nlm.nih.gov/pubmed/"
-target="_blank">PubMed</a> identifier of literature reference, if any
-<li><b>Resolution</b> &ndash; crystallographic resolution
-<li><b>UniProt ID</b>
-&ndash; <a href="https://www.uniprot.org/help/accession_numbers" 
-target="_blank">UniProt accession number</a>, if any, for the hit chain
-</ul>
+</li><li><b>Method</b> &ndash; method of structure determination
+</li><li><b>PubMed ID</b> &ndash; <a href="https://www.ncbi.nlm.nih.gov/pubmed/" target="_blank">PubMed</a> identifier of literature reference, if any
+</li><li><b>Resolution</b> &ndash; crystallographic resolution
+</li><li><b>UniProt ID</b>
+&ndash; <a href="https://www.uniprot.org/help/accession_numbers" target="_blank">UniProt accession number</a>, if any, for the hit chain
+</li></ul>
 <p>
 Additional columns for UniRef entries:
 </p>
 <ul>
 <li><b>Cluster ID</b> 
-&ndash; ID number of the <a href="https://www.uniprot.org/help/uniref"
-target="_blank">UniRef cluster</a> represented by the hit 
-<li><b>Cluster Size</b> 
-&ndash; number of sequences in the <a href="https://www.uniprot.org/help/uniref"
-target="_blank">UniRef cluster</a> represented by the hit 
-<li><b>UniProt ID</b>
-&ndash; <a href="https://www.uniprot.org/help/accession_numbers" 
-target="_blank">UniProt accession number</a>, if any, for the hit chain
-</ul>
+&ndash; ID number of the <a href="https://www.uniprot.org/help/uniref" target="_blank">UniRef cluster</a> represented by the hit 
+</li><li><b>Cluster Size</b> 
+&ndash; number of sequences in the <a href="https://www.uniprot.org/help/uniref" target="_blank">UniRef cluster</a> represented by the hit 
+</li><li><b>UniProt ID</b>
+&ndash; <a href="https://www.uniprot.org/help/accession_numbers" target="_blank">UniProt accession number</a>, if any, for the hit chain
+</li></ul>
 
 <a name="notes"></a>
 <p class="nav">
@@ -335,8 +317,7 @@ software is provided by the
 <a href="https://www.ncbi.nlm.nih.gov/" target="_blank">NCBI</a> and described in:
 </p>
 <blockquote>
-<a href="https://nar.oxfordjournals.org/content/25/17/3389.full"
-target="_blank">Gapped BLAST and PSI-BLAST:
+<a href="https://nar.oxfordjournals.org/content/25/17/3389.full" target="_blank">Gapped BLAST and PSI-BLAST:
 a new generation of protein database search programs.</a>
 Altschul SF, Madden TL, Sch&auml;ffer AA, Zhang J, Zhang Z, Miller W, Lipman DJ.
 <i>Nucleic Acids Res.</i> 1997 Sep 1;25(17):3389-402.
@@ -350,4 +331,5 @@ Altschul SF, Gish W, Miller W, Myers EW, Lipman DJ.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 November 2024</address>
+
 </body></html>

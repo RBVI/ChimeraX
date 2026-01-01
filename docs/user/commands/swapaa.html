@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: swapaa</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: swapaa</h3>
 
@@ -87,13 +82,13 @@ The command <b>swapaa mousemode</b> simply matches a single conformation
 of the new residue type onto the backbone atoms of the existing residue.
 The <b>swapaa</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="../tools/mouse-icons/swapaa.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/swapaa.png" alt="computer generated image"></a>
 uses this &ldquo;quick and dirty&rdquo; method.
 </p><p>
 One or more protein residues to change can be
 <a href="atomspec.html">specified</a> in a single command.
 Amino acid residues can be specified with 3-letter codes or with 1-letter codes.
-<ul>
+</p><ul>
 <a name="3letter"></a>
 <li>3-letter: <i>new-type-list</i> can be either of the following:
   <ul>
@@ -105,28 +100,28 @@ Examples:
 <br>
 <b>swapaa /A:3-5,12 lys</b>
 </blockquote>
-  <li>a list of such codes separated by commas only, with exactly as many
+  </li><li>a list of such codes separated by commas only, with exactly as many
 codes as the number of specified residues; the residues will be replaced
 with the types according to the order in which both were specified.
 Example:
 <blockquote>
 <b>swapaa /A:3-5,12 leu,leu,tyr,his</b>
 </blockquote>
-  </ul>
+  </li></ul>
 <p>
 Except for <b>swapaa mousemode</b>, <i>new-type-list</i> may also be given as:
 </p>
   <ul>
   <li>the word <b>same</b> to keep the existing type(s)
-  <li>as detailed below, depending on the <a href="#rotLib">rotamer library</a>,
+  </li><li>as detailed below, depending on the <a href="#rotLib">rotamer library</a>,
 any of certain nonstandard 3-letter names to indicate the oxidation or 
 protonation state for which conformational data were collected.
 However, the resulting rotamers do not include hydrogens and will be given
 the corresponding standard residue name if incorporated into a structure.
-  </ul>
+  </li></ul>
 <br>
 <a name="1letter"></a>
-<li>Alternatively, the keyword <b>seq:</b> indicates a string of 1-letter codes.
+</li><li>Alternatively, the keyword <b>seq:</b> indicates a string of 1-letter codes.
 As above, either a single code or the same number of codes as 
 residues to swap should be given. Examples:
 <blockquote>
@@ -134,7 +129,7 @@ residues to swap should be given. Examples:
 <br>
 <b>swapaa /A:3-5,12 seq:LLYH</b>
 </blockquote>
-</ul>
+</li></ul>
 <p>
 The main <b>swapaa</b> command uses
 several <a href="#criteria">criteria</a> to choose the best rotamer
@@ -167,8 +162,7 @@ prevalence values. Possible values of <i>rotamer-library</i>
 (capitalization optional):
 <ul>
   <li><b>Dunbrack</b> (default)
-&ndash; <a href="http://dunbrack.fccc.edu/bbdep2010/"
-target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>
+&ndash; <a href="http://dunbrack.fccc.edu/bbdep2010/" target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>
 (5% stepdown; for chain-terminal residues,
 the Dunbrack 2002 backbone-independent version is used instead):
    <blockquote>
@@ -181,19 +175,18 @@ Shapovalov MV, Dunbrack RL Jr.
 ...with multiple choices of 3-letter code for cysteine and proline:
 <ul>
 <li>CYH &ndash; cysteine reduced free sulfhydryl
-<li>CYD &ndash; cysteine oxidized disulfide-bonded (half-cystine)
-<li>CYS &ndash; combined statistics (CYH + CYD)
-<li>CPR &ndash; <i>cis</i>-proline
-<li>TPR &ndash; <i>trans</i>-proline
-<li>PRO &ndash; combined statistics (CPR + TPR)
-</ul>
+</li><li>CYD &ndash; cysteine oxidized disulfide-bonded (half-cystine)
+</li><li>CYS &ndash; combined statistics (CYH + CYD)
+</li><li>CPR &ndash; <i>cis</i>-proline
+</li><li>TPR &ndash; <i>trans</i>-proline
+</li><li>PRO &ndash; combined statistics (CPR + TPR)
+</li></ul>
 These indicate the species for which conformational data were collected,
 but the appropriate standard name (CYS or PRO)
 will be used for what is incorporated into the structure.
 <br><br>
-  <li><b>Dynameomics</b> &ndash;
-<a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx"
-target="_blank">Dyameomics rotamer library</a>:
+  </li><li><b>Dynameomics</b> &ndash;
+<a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx" target="_blank">Dyameomics rotamer library</a>:
    <blockquote>
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/21280126" target="_blank">
 The Dynameomics rotamer library: amino acid side chain conformations
@@ -204,17 +197,17 @@ Scouras AD, Daggett V.
 ...with multiple choices of 3-letter code for cysteine and histidine:
 <ul>
 <li>CYH &ndash; cysteine reduced free sulfhydryl
-<li>CYS &ndash; cysteine oxidized disulfide-bonded (half-cystine)
-<li>HID &ndash; histidine neutral &delta;-protonated
-<li>HIE &ndash; histidine neutral &epsilon;-protonated
-<li>HIS &ndash; histidine neutral (HID and HIE combined)
-<li>HIP &ndash; histidine positive protonated on both sidechain nitrogens
-</ul>
+</li><li>CYS &ndash; cysteine oxidized disulfide-bonded (half-cystine)
+</li><li>HID &ndash; histidine neutral &delta;-protonated
+</li><li>HIE &ndash; histidine neutral &epsilon;-protonated
+</li><li>HIS &ndash; histidine neutral (HID and HIE combined)
+</li><li>HIP &ndash; histidine positive protonated on both sidechain nitrogens
+</li></ul>
 These indicate the species for which conformational data were collected,
 but the appropriate standard name (CYS or HIS)
 will be used for what is incorporated into the structure.
 <br><br>
- <li><b>Richardson.common</b> &ndash; common-atom values (author-recommended)
+ </li><li><b>Richardson.common</b> &ndash; common-atom values (author-recommended)
 from the Richardson backbone-independent rotamer library:
    <blockquote>
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/10861930" target="_blank">
@@ -222,9 +215,9 @@ The penultimate rotamer library.</a>
 Lovell SC, Word JM, Richardson JS, Richardson DC.
 <i>Proteins.</i> 2000 Aug 15;40(3):389-408.
    </blockquote>
- <li><b>Richardson.mode</b> &ndash; mode values
+ </li><li><b>Richardson.mode</b> &ndash; mode values
 from the Richardson backbone-independent rotamer library
-</ul>
+</li></ul>
 </blockquote>
 <blockquote>
 <a name="criteria"></a>
@@ -242,18 +235,18 @@ without spaces, of one or more of the following letters (default <b>dchp</b>):
   <li>if no maps are open but <b>d</b> was just being used by default,
   this criterion will be skipped; if <b>d</b> was entered explicitly 
   in the command, however, an error will be raised
-  <li>if one map is open, that map will be used
-  <li>if multiple maps are open, which map to use must be specified with
+  </li><li>if one map is open, that map will be used
+  </li><li>if multiple maps are open, which map to use must be specified with
   the <a href="#density"><b>density</b></a> option
-  </ul>
-<li><b>c</b> &ndash; by lowest <a href="#clash">clash score</a>
-<li><b>h</b> &ndash; by highest number of <a href="#H-bond">H-bonds</a>
-<li><b>p</b> &ndash; by highest prevalence according to the 
+  </li></ul>
+</li><li><b>c</b> &ndash; by lowest <a href="#clash">clash score</a>
+</li><li><b>h</b> &ndash; by highest number of <a href="#H-bond">H-bonds</a>
+</li><li><b>p</b> &ndash; by highest prevalence according to the 
 <a href="#rotLib">rotamer library</a> 
 (prevalence values are simply taken from the library and are <b><i>not</i></b>
 affected by the specific structural environment,
 except by phi and psi backbone angles when the Dunbrack library is used)
-</ul>
+</li></ul>
 <p>
 Each successive method is only used when the previous method(s) have
 produced a tie. For example, with the default criteria but no map open,
@@ -263,7 +256,7 @@ and more than one rotamer ties for the lowest number of clashes,
 H-bonds will be evaluated to break the tie; if the lowest-clashing
 rotamers also have equal numbers of H-bonds, the one with the highest
 prevalence will be used. 
-<p>
+</p><p>
 Only the sidechain atoms of a rotamer are evaluated. For
 <a href="#clash">clash</a> and <a href="#H-bond">H-bond</a> detection,
 interactions with other rotamers in the same set and the current residue at that
@@ -401,4 +394,5 @@ The <i>tolerance</i> is how much to relax the angle criteria if
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 September 2024</address>
+
 </body></html>

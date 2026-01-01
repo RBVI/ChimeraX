@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-SNFG"
+license = { text = "Free for non-commercial use" }
+authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+description = "Symbol Nomenclature for Glycans (SNFG) visualization"
+dependencies = [
+	"ChimeraX-Core ~=1.0"
+	, "ChimeraX-Atomic ~=1.0"
+	, "ChimeraX-Geometry ~=1.0"
+]
+
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.readme]
+content-type = "text"
+text = """Display carbohydrate residues using 3D-SNFG colored geometric shapes
+placed at sugar ring centroids, according to the SNFG standard (Varki et al., 2015)."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Depiction"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.command.snfg]
+category = "Depiction"
+description = "Show/hide SNFG glycan symbols"

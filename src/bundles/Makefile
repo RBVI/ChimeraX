@@ -32,7 +32,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
 	  interfaces items_inspection io label iupac \
-	  kvfinder list_info log looking_glass maestro \
+	  kvfinder lighting_gui list_info log looking_glass maestro \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_maker mcopy mcp_server md_crds \
 	  medical_toolbar meeting minimize mlp model_series \
@@ -45,7 +45,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  save_command scenes scheme_mgr \
 	  sdf sel_inspector segger segment segmentations seqalign seq_view shape \
 	  shell shortcuts show_sequences sideview sim_matrices similarstructures smiles \
-	  smooth_lines spacenavigator std_commands \
+	  smooth_lines snfg spacenavigator std_commands \
 	  stl storm struct_measure struts surface swapaa swap_res \
 	  tape_measure task_manager test toolbar topography to_quest tug ui umap uniprot \
 	  unit_cell viewdock viperdb vive volume_menu vrml vtk wavefront_obj \

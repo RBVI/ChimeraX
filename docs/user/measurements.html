@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,35 +9,32 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="userdocs.css">
 <title>Measurements</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="index.html">
-<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3>Measurements</h3>
 <p>
 Since essentially all calculations can be said to involve measurement,
 this list is not exhaustive. 
 See also: <a href="commands/coordset.html#slider">trajectory plotting</a>
-<p>
+</p><p>
 Distances between atoms or <a href="markers.html">markers</a>:
 </p>
 <ul>
 <li><a href="selection.html#context">selection context menu</a>
 when two atoms are <a href="selection.html">selected</a>
-<li><a href="tools/distances.html"><b>Distances</b></a> tool,
+</li><li><a href="tools/distances.html"><b>Distances</b></a> tool,
 <a href="commands/distance.html"><b>distance</b></a> command,
 <b>distance</b> <a href="commands/ui.html#mousemode">mouse mode</a>
 <a href="tools/mousemodes.html#distance" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="tools/mouse-icons/distance.png"></a>
+<img class="icon" border="1" src="tools/mouse-icons/distance.png" alt="computer generated image"></a>
 &ndash; create a distance monitor (which updates automatically as needed)
 between a specified or <a href="selection.html">selected</a> pair of atoms
   <ul>
@@ -48,36 +43,36 @@ between a specified or <a href="selection.html">selected</a> pair of atoms
   (<a href="tools/axesplanes.html#define-axes">axis</a> or
   <a href="tools/axesplanes.html#define-plane">plane</a>)
   or between two objects, but without adding a distance monitor
-  </ul>
-<li>
+  </li></ul>
+</li><li>
 <a href="tools/clashes.html"><b>Clashes/Contacts</b></a> tools,
 <a href="commands/clashes.html"><b>clashes/contacts</b></a> commands
 &ndash; all-by-all distances within a cutoff for two sets of atoms,
 optionally shown as labels
-<li><a href="tools/hbonds.html"><b>H-Bonds</b></a> tool,
+</li><li><a href="tools/hbonds.html"><b>H-Bonds</b></a> tool,
 <a href="commands/hbonds.html"><b>hbonds</b></a> command
 &ndash; H-bond distances, optionally shown as labels
-<li><a href="commands/pbond.html"><b>pbond</b></a> command
+</li><li><a href="commands/pbond.html"><b>pbond</b></a> command
 &ndash; <a href="pseudobonds.html">pseudobond</a> length, optionally shown 
 as a label
-<li><a href="commands/label.html"><b>label</b></a>
+</li><li><a href="commands/label.html"><b>label</b></a>
 &ndash; label bonds or <a href="pseudobonds.html">pseudobonds</a> by length
-<li><a href="commands/measure.html#length"><b>measure length</b></a>
+</li><li><a href="commands/measure.html#length"><b>measure length</b></a>
 &ndash; sum the lengths of all bonds between specified atoms
-<li><a href="commands/crosslinks.html#histogram"><b>crosslinks histogram</b></a>
+</li><li><a href="commands/crosslinks.html#histogram"><b>crosslinks histogram</b></a>
 &ndash; plot <a href="pseudobonds.html">pseudobond</a> length distribution
-<li><b>tape measure</b> <a href="commands/ui.html#mousemode">mouse mode</a>
+</li><li><b>tape measure</b> <a href="commands/ui.html#mousemode">mouse mode</a>
 <a href="tools/mousemodes.html#tape" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="tools/mouse-icons/tape.png"></a>
+<img class="icon" border="1" src="tools/mouse-icons/tape.png" alt="computer generated image"></a>
 &ndash; drag to measure distance;
 also works with <a href="tools/volumeviewer.html">volume data</a>,
 <a href="commands/cartoon.html">cartoon</a>, 
 and <a href="commands/surface.html">molecular surface</a> displays
 (<a href="tools/mousemodes.html#tapemeasure">details...</a>)
-<li><a href="tools/axesplanes.html#objectlist"><b>Axes/Planes/Centroids</b></a>
+</li><li><a href="tools/axesplanes.html#objectlist"><b>Axes/Planes/Centroids</b></a>
 &ndash; distances between axis, plane, and/or centroid objects; min/max/mean 
 distances between such objects and <a href="selection.html">selected</a> atoms
-</ul>
+</li></ul>
 <p>
 Angles:
 </p>
@@ -86,50 +81,50 @@ Angles:
 &ndash; angle defined by three atoms, four atoms, or two objects
 (<a href="tools/axesplanes.html#define-axes">axes</a> and/or
 <a href="tools/axesplanes.html#define-plane">planes</a>)
-<li><a href="commands/torsion.html"><b>torsion</b></a>
+</li><li><a href="commands/torsion.html"><b>torsion</b></a>
 &ndash; torsion angle defined by four atoms
-<li><a href="tools/angles.html"><b>Angles/Torsions</b></a>
+</li><li><a href="tools/angles.html"><b>Angles/Torsions</b></a>
 &ndash; both kinds of angle measurements
-<li><a href="tools/axesplanes.html#objectlist"><b>Axes/Planes/Centroids</b></a>
+</li><li><a href="tools/axesplanes.html#objectlist"><b>Axes/Planes/Centroids</b></a>
 &ndash; angle defined by two objects
 (<a href="tools/axesplanes.html#define-axes">axes</a> and/or
 <a href="tools/axesplanes.html#define-plane">planes</a>)
-</ul>
+</li></ul>
 <p>
 Chirality:
 </p>
 <ul>
 <li><a href="commands/chirality.html"><b>chirality</b></a>
-</ul>
+</li></ul>
 <p>
 Center coordinates:
 </p>
 <ul>
 <li><a href="commands/measure.html#center"><b>measure center</b></a>
-<li><a href="tools/axesplanes.html"><b>Axes/Planes/Centroids</b></a>,
+</li><li><a href="tools/axesplanes.html"><b>Axes/Planes/Centroids</b></a>,
 command <a href="commands/define.html#centroid"><b>define centroid</b></a>
-</ul>
+</li></ul>
 <p>
 Best-fit axes:
 </p>
 <ul>
 <li><a href="tools/axesplanes.html"><b>Axes/Planes/Centroids</b></a>,
 command <a href="commands/define.html#axis"><b>define axis</b></a>
-</ul>
+</li></ul>
 <p>
 Best-fit planes or inertia ellipsoids, respectively:
 </p>
 <ul>
 <li><a href="tools/axesplanes.html"><b>Axes/Planes/Centroids</b></a>,
 command <a href="commands/define.html#plane"><b>define plane</b></a>
-<li><a href="commands/measure.html#inertia"><b>measure inertia</b></a>
-</ul>
+</li><li><a href="commands/measure.html#inertia"><b>measure inertia</b></a>
+</li></ul>
 <p>
 Sum of atomic weights:
 </p>
 <ul>
 <li><a href="commands/measure.html#weight"><b>measure weight</b></a>
-</ul>
+</li></ul>
 <p>
 Surface areas:
 </p>
@@ -138,20 +133,20 @@ Surface areas:
 &ndash; area of
 <a href="commands/surface.html#surfdefs">solvent-accessible surface</a>
 enclosing a set of atoms
-<li><a href="commands/measure.html#buriedarea"><b>measure buriedarea</b></a>
+</li><li><a href="commands/measure.html#buriedarea"><b>measure buriedarea</b></a>
 &ndash; area of
 <a href="commands/surface.html#surfdefs">solvent-accessible surface</a>
 buried between two sets of atoms
-<li><a href="commands/interfaces.html"><b>interfaces</b></a>
+</li><li><a href="commands/interfaces.html"><b>interfaces</b></a>
 &ndash; all-by-all pairwise buried areas for chains in an atomic model, with
 corresponding <a href="commands/interfaces.html#diagram">network diagram</a>
-<li><a href="commands/measure.html#contactarea"><b>measure contactarea</b></a>
+</li><li><a href="commands/measure.html#contactarea"><b>measure contactarea</b></a>
 &ndash; area of one surface within a cutoff distance of another surface
-<li><a href="tools/findcavities.html"><b>Find Cavities</b></a>,
+</li><li><a href="tools/findcavities.html"><b>Find Cavities</b></a>,
 <a href="commands/kvfinder.html"><b>kvfinder</b></a>
 &ndash; surface areas (as well as volumes)
 for the identified cavities and pockets
-</ul>
+</li></ul>
 <p>
 Fit measures:
 </p>
@@ -159,18 +154,18 @@ Fit measures:
 <li><a href="commands/align.html"><b>align</b></a>
 &ndash; root-mean-square distance (RMSD) between two sets of atoms
 after fitting
-<li><a href="commands/rmsd.html"><b>rmsd</b></a>
+</li><li><a href="commands/rmsd.html"><b>rmsd</b></a>
 &ndash; RMSD between two sets of atoms without fitting
-<li><a href="commands/matchmaker.html"><b>matchmaker</b></a> 
+</li><li><a href="commands/matchmaker.html"><b>matchmaker</b></a> 
 &ndash; pairwise RMSD between biopolymers using one point per residue 
-<li><a href="commands/fitmap.html"><b>fitmap</b></a> 
+</li><li><a href="commands/fitmap.html"><b>fitmap</b></a> 
 &ndash; average map value at atom positions, or map-map overlap or correlation
-<li><a href="commands/measure.html#correlation"><b>measure correlation</b></a> 
+</li><li><a href="commands/measure.html#correlation"><b>measure correlation</b></a> 
 &ndash; map-map correlation in current positions (without fitting)
-<li><a href="commands/measure.html#rotation"><b>measure rotation</b></a> 
+</li><li><a href="commands/measure.html#rotation"><b>measure rotation</b></a> 
 &ndash; not exactly a measure of fit, but of the current transformation of
 one model coordinate system relative to another
-</ul>
+</li></ul>
 <p>
 Other map (<a href="tools/volumeviewer.html">volume data</a>) measurements:
 </p>
@@ -180,32 +175,32 @@ commands <a href="commands/measure.html#volume"><b>measure volume</b></a>
 and <a href="commands/measure.html#area"><b>measure area</b></a>
 &ndash; total enclosed volume and surface area (sum of triangle areas)
 of a surface model
-<li><a href="tools/measureblobs.html"><b>Measure and Color Blobs</b></a>
+</li><li><a href="tools/measureblobs.html"><b>Measure and Color Blobs</b></a>
 <a href="tools/mousemodes.html" title="Right Mouse Toolbar...">
-<img class="icon" border=1 src="tools/mouse-icons/pickblobs.png"></a>,
+<img class="icon" border="1" src="tools/mouse-icons/pickblobs.png" alt="computer generated image"></a>,
 command <a href="commands/measure.html#blob"><b>measure blob</b></a>
 &ndash; surface area, enclosed volume, and dimensions of individual blobs 
 (disconnected surface parts)
-<li><a href="tools/mapcoords.html"><b>Map Coordinates</b></a>
+</li><li><a href="tools/mapcoords.html"><b>Map Coordinates</b></a>
 &ndash; grid position and scaling in x,y,z coordinates (voxel size, <i>etc.</i>)
-<li><a href="tools/mapstats.html"><b>Map Statistics</b></a>, command
+</li><li><a href="tools/mapstats.html"><b>Map Statistics</b></a>, command
 <a href="commands/measure.html#mapstats"><b>measure mapstats</b></a>
 &ndash; min, max, mean, standard deviation, root-mean-square deviation from zero
-<li><a href="commands/measure.html#mapvalues"><b>measure mapvalues</b></a>
+</li><li><a href="commands/measure.html#mapvalues"><b>measure mapvalues</b></a>
 &ndash; assign map values at atom positions as an
 <a href="attributes.html">attribute</a> that can then be used for
 <a href="commands/color.html#byattribute">coloring</a>, command-line
 <a href="commands/atomspec.html#attributes">specification</a>, <i>etc.</i>
-<li><a href="commands/measure.html#symmetry"><b>measure symmetry</b></a>
+</li><li><a href="commands/measure.html#symmetry"><b>measure symmetry</b></a>
 &ndash; check for certain symmetries in standard orientations
-<li><a href="commands/bumps.html"><b>bumps</b></a>
+</li><li><a href="commands/bumps.html"><b>bumps</b></a>
 &ndash; isosurface protrusions
-<li><a href="commands/vseries.html#measure"><b>vseries measure</b></a>
+</li><li><a href="commands/vseries.html#measure"><b>vseries measure</b></a>
 &ndash; for each member of a 
 <a href="trajectories.html#vseries">volume series</a>: isosurface level,
 centroid, distance from previous centroid, cumulative path length along 
 centroids, surface-enclosed volume, surface area, lengths of principal axes
-</ul>
+</li></ul>
 <p>
 Coloring or other display of spatially varying quantities:
 </p>
@@ -213,34 +208,35 @@ Coloring or other display of spatially varying quantities:
 <li><a href="tools/render.html"><b>Render by Attribute</b></a> tool,
 <a href="commands/color.html#byattribute"><b>color byattribute</b></a> command
 <a href="tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="tools/shortcut-icons/bfactor.png"></a>
+<img class="icon" border="1" src="tools/shortcut-icons/bfactor.png" alt="computer generated image"></a>
 &ndash; coloring by atomic B-factor or other numerical attributes
 of atomic structures
-<li><a href="tools/render.html"><b>Render by Attribute</b></a> tool,
+</li><li><a href="tools/render.html"><b>Render by Attribute</b></a> tool,
 <a href="commands/size.html#byattribute"><b>size byattribute</b></a> command
 &ndash; adjusting atomic radii to show numerical attributes
-<li><a href="commands/coulombic.html"><b>coulombic</b></a>
+</li><li><a href="commands/coulombic.html"><b>coulombic</b></a>
 <a href="tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="tools/shortcut-icons/esp.png"></a>
+<img class="icon" border="1" src="tools/shortcut-icons/esp.png" alt="computer generated image"></a>
 &ndash; molecular surface coloring by Coulombic electrostatic potential
-<li><a href="commands/mlp.html"><b>mlp</b></a>
+</li><li><a href="commands/mlp.html"><b>mlp</b></a>
 <a href="tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="tools/shortcut-icons/hydrophobicity.png"></a>
+<img class="icon" border="1" src="tools/shortcut-icons/hydrophobicity.png" alt="computer generated image"></a>
 &ndash; molecular surface coloring by lipophilicity potential
-<li><a href="commands/color.html#map"><b>color sample</b></a>,
+</li><li><a href="commands/color.html#map"><b>color sample</b></a>,
 <a href="commands/color.html#map"><b>color electrostatic</b></a>
 &ndash; surface coloring by map value
-<li><a href="commands/color.html#map"><b>color gradient</b></a>
+</li><li><a href="commands/color.html#map"><b>color gradient</b></a>
 &ndash; surface coloring by map gradient norm
-<li><a href="commands/measure.html#convexity"><b>measure convexity</b></a>
+</li><li><a href="commands/measure.html#convexity"><b>measure convexity</b></a>
 &ndash; surface coloring by convexity at each vertex
-<li><a href="commands/measure.html#motion"><b>measure motion</b></a>
+</li><li><a href="commands/measure.html#motion"><b>measure motion</b></a>
 &ndash; &ldquo;prickles&rdquo; showing the offset between a surface 
 and a map isosurface (to compare time steps in a
 <a href="trajectories.html#vseries">volume series</a>)
-</ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 August 2025</address>
+
 </body></html>

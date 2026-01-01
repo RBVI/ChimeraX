@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: boltz</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: boltz</h3>
 <p>
@@ -48,16 +43,14 @@ and should be interpreted with caution. Boltz residue-residue
 predicted aligned error (PAE) values can be plotted with
 <a href="alphafold.html#pae"><b>alphafold pae</b></a>.
 See the
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html"
-target="_blank">ChimeraX Boltz details</a> and
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html" target="_blank">ChimeraX Boltz details</a> and
 video <a href="https://www.youtube.com/watch?v=377V9A_0ECc" target="_blank">
 Boltz structure prediction in ChimeraX</a>.
 See also:
 <a href="alphafold.html"><b>alphafold</b></a>,
 <a href="esmfold.html"><b>esmfold</b></a>,
 <a href="modeller.html"><b>modeller</b></a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/local-msa-sep2025/pp_screening.html"
-target="_blank">computational screening for protein-protein interactions</a>
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/local-msa-sep2025/pp_screening.html" target="_blank">computational screening for protein-protein interactions</a>
 </p>
 
 <blockquote>
@@ -76,15 +69,14 @@ target="_blank">computational screening for protein-protein interactions</a>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>boltz install</b> [&nbsp;<i>directory</i>&nbsp;]
-<span class="nowrap">[&nbsp;<b>downloadModelWeightsAndCcd</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]</span>
+<span class="nowrap">[&nbsp;<b>downloadModelWeightsAndCcd</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]</span>
 </blockquote>
 <p>
 The <b>boltz install</b> command creates a Python virtual environment 
 to install <a href="https://pypi.org/project/boltz/">Boltz from PyPi</a>.
 If no directory is specified, then ~/boltz2 in the user's home directory
 is used. The directory will be created, or if it already exists must be empty.
-The Boltz network parameters and <a href="https://www.wwpdb.org/data/ccd"
-target="_blank">Chemical Component Dictionary</a> are downloaded
+The Boltz network parameters and <a href="https://www.wwpdb.org/data/ccd" target="_blank">Chemical Component Dictionary</a> are downloaded
 to ~/.boltz. An index is created of the atom counts for each CCD code
 so that the ChimeraX <a href="../tools/boltz.html"><b>Boltz</b></a> interface 
 can report the total number of tokens (residues plus ligand atoms) 
@@ -101,8 +93,7 @@ The following commands are used to make the virtual environment and install
 Boltz. On Windows, if Nvidia graphics is detected, a version of torch 
 with CUDA 12.6 support is installed before boltz.
 </p>
-    <pre>
-      python -m venv <i>directory</i>
+    <pre>      python -m venv <i>directory</i>
       <i>directory</i>/bin/python -m pip install torch --index-url https://download.pytorch.org/whl/cu126  # On Windows with Nvidia GPU only.
       <i>directory</i>/bin/python -m pip install boltz
       <i>directory</i>/bin/python <i>chimerax/site-packages/boltz/</i>download_weights_and_ccd.py
@@ -111,7 +102,7 @@ with CUDA 12.6 support is installed before boltz.
 <a name="predict"></a>
 <p class="nav">
 [<a href="#top">back to top: boltz</a>]
-<h3>Running a Boltz Prediction</h3>
+</p><h3>Running a Boltz Prediction</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>boltz predict</b> [&nbsp;<a href="#sequence-spec"><i>sequences</i></a>&nbsp;]
@@ -149,16 +140,16 @@ comma-separated list of any of the following:
 <ol>
 <li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
 for one or more chains in atomic structure(s) open in ChimeraX
-<li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+</li><li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
 in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
 in the form:
 &nbsp;<span class="nowrap"><i>alignment-ID</i>:<i>sequence-ID</i></span>&nbsp;
 (<a href="seqspec.html">details...</a>)
-<li>a <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
+</li><li>a <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
 name or accession number for a protein chain
-<li>a plain-text string of 1-letter residue codes pasted directly into 
+</li><li>a plain-text string of 1-letter residue codes pasted directly into 
 the command line
-</ol>
+</li></ol>
 <p>
 If given with the <b>protein</b>, <b>dna</b>, or <b>rna</b> keywords,
 the <i>sequences</i> argument can be of the same form as described above,
@@ -179,13 +170,11 @@ For example, if <b>ligands #1</b> was given but not all of
 the small molecules in #1 are wanted, <b>excludeLigands</b> 
 would be used to list which residue types to omit.
 Residues to exclude are specified by a comma-separated list of their
-3- or 5-letter residue names in the <a href="https://www.wwpdb.org/data/ccd"
-target="_blank">PDB Chemical Component Dictionary (CCD)</a>.
+3- or 5-letter residue names in the <a href="https://www.wwpdb.org/data/ccd" target="_blank">PDB Chemical Component Dictionary (CCD)</a>.
 By default, CCD name <b>HOH</b> (water) is excluded.
 Ligands to include can also be specified by a comma-separated list of
 CCD names with the <b>ligandCcd</b> option, or by a comma-separated list of
-<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
-target="_blank">SMILES</a> strings with the <b>ligandSmiles</b> option.
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html" target="_blank">SMILES</a> strings with the <b>ligandSmiles</b> option.
 The <b>ligandCcd</b> and <b>ligandSmiles</b> options can be used more than
 once in the same command.
 </p><p>
@@ -207,27 +196,27 @@ The <i>ligand-name</i> is the same CCD code or SMILES string used to
 specify it as part of the complex to be predicted.
 If a <a href="atomspec.html#hierarchy"><i>residue-spec</i></a> in an
 existing model was used, the residue name is assumed to be a CCD code.
-<li><b>name</b>&nbsp;&nbsp;<i>prediction-name</i>
+</li><li><b>name</b>&nbsp;&nbsp;<i>prediction-name</i>
 <br>
 &ndash; a name for the prediction
 to be used in naming the output folder and files
-<li><b>resultsDirectory</b>&nbsp;&nbsp;<i>directory</i>
+</li><li><b>resultsDirectory</b>&nbsp;&nbsp;<i>directory</i>
 <br>
 &ndash; the pathname (name and location) of a folder or directory
 in which to store prediction results. It may include &ldquo;<b>[name]</b>&rdquo;
 to indicate substitution by the specified <i>prediction-name</i>.
 If the folder already exists, a numeric suffix _1, _2, _3... will be appended.
-<li><b>device</b>&nbsp;&nbsp;<b>default</b>&nbsp;|&nbsp;cpu&nbsp;|&nbsp;gpu 
+</li><li><b>device</b>&nbsp;&nbsp;<b>default</b>&nbsp;|&nbsp;cpu&nbsp;|&nbsp;gpu 
 <br>
 &ndash; whether to run the computation on the GPU or CPU.
 The <b>default</b> setting chooses based on the availability of an Nvidia
 or Mac M series GPU and Torch support for the GPU.
-<li><b>kernels</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+</li><li><b>kernels</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 <br>
 &ndash; whether to use Nvidia CUDA optimization kernels. 
 This was 30% faster on a test with 100 protein monomers with 100-700 residues, 
 with no loss of accuracy; default is true on Linux with GPU, otherwise false. 
-<li><b>precision</b>&nbsp;&nbsp;16&nbsp;|&nbsp;32&nbsp;|&nbsp;bf16-true&nbsp;|&nbsp;bf16-mixed
+</li><li><b>precision</b>&nbsp;&nbsp;16&nbsp;|&nbsp;32&nbsp;|&nbsp;bf16-true&nbsp;|&nbsp;bf16-mixed
 <br>
 &ndash; precision of floating-point operations by PyTorch_Lightning,
 the machine-learning toolkit used by Boltz:
@@ -236,15 +225,15 @@ https://lightning.ai/docs/pytorch/stable/common/trainer.html#precision"
 -->
   <ul>
   <li><b>16</b> &ndash; 16-bit IEEE floating point
-  <li><b>32</b> &ndash; 32-bit IEEE floating point
-  <li><b>bf16-true</b> &ndash; always use <b>bfloat16</b> (<b>bf16</b>),
+  </li><li><b>32</b> &ndash; 32-bit IEEE floating point
+  </li><li><b>bf16-true</b> &ndash; always use <b>bfloat16</b> (<b>bf16</b>),
 a different format of 16-bit floating point that maintains the 
 dynamic range of 32-bit (1e37 max value) and sacrifices digits only, 
 about 3 digits of precision
-  <li><b>bf16-mixed</b> (default on Linux+Nvidia)
+  </li><li><b>bf16-mixed</b> (default on Linux+Nvidia)
 &ndash; use <b>bfloat16</b> for some parts of the calculation,
 <b>32</b> for others that typically require a higher precision
-  </ul>
+  </li></ul>
 <!--
 <li><b>float16</b>&nbsp;&nbsp;true&nbsp;&nbsp;|&nbsp;&nbsp;<b>false</b>
 <br>
@@ -253,27 +242,27 @@ on Nvidia GPUs to allow predicting larger structures
 (approximately 40% more residues). The default is <b>false</b>; 
 using <b>float16 true</b> may reduce prediction accuracy.
 -->
-<li><b>steering</b>&nbsp;&nbsp;true&nbsp;&nbsp;|&nbsp;&nbsp;<b>false</b>
+</li><li><b>steering</b>&nbsp;&nbsp;true&nbsp;&nbsp;|&nbsp;&nbsp;<b>false</b>
 <br>
 &ndash; whether to use Boltz diffusion steering potentials,
 which are claimed to increase accuracy, but have been observed to
 increase run times (1.25x on Nvidia, 2.5x on Mac). 
-<li><b>samples</b>&nbsp;&nbsp;<i>N</i>
+</li><li><b>samples</b>&nbsp;&nbsp;<i>N</i>
 <br>
 &ndash; number of predictions (default <b>1</b>). This is what Boltz calls 
 "diffusion samples." Creating additional structures takes much less time 
 than creating the first structure.
-<li><b>recycles</b>&nbsp;&nbsp;<i>M</i>
+</li><li><b>recycles</b>&nbsp;&nbsp;<i>M</i>
 <br>
 &ndash; number of passes through the neural net that derives spatial 
 information from which structures will be computed (default <b>3</b>).
 Higher numbers (<i>e.g.</i> 10) may give better structures but at the cost
 of increased runtime.
-<li><b>seed</b>&nbsp;&nbsp;<i>K</i>
+</li><li><b>seed</b>&nbsp;&nbsp;<i>K</i>
 <br>
 &ndash; random number seed (an integer) to initialize the calculation.
 Runs with different seeds will give different results.
-<li><b>useMsaCache</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+</li><li><b>useMsaCache</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 &ndash; whether to cache (and potentially reuse) the deep sequence alignments 
 generated by the Colabfold server for protein chains (default <b>true</b>).
@@ -285,7 +274,7 @@ to match ones from the same organisms, the cached alignments can only be reused
 for assemblies with the exact same set of proteins.
 Alignments computed for individual proteins from multiple different runs
 cannot be used for an assembly of those proteins.
-<li><b>open</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+</li><li><b>open</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 &ndash; whether to open the predicted structures when the prediction finishes
 (default <b>true</b>). Initial coloring is by residue confidence values
@@ -293,26 +282,26 @@ cannot be used for an assembly of those proteins.
 The structures will be aligned to an already open model with
 <a href="matchmaker.html"><b>matchmaker</b></a> 
 if that open model was the first used in specifying the assembly.
-<li><b>installLocation</b>&nbsp;&nbsp;<i>directory</i>
+</li><li><b>installLocation</b>&nbsp;&nbsp;<i>directory</i>
 <br>
 &ndash; where Boltz is installed.
 If specified, this sets the default location for future ChimeraX sessions.
-<li><b>wait</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b> 
+</li><li><b>wait</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b> 
 <br>
 &ndash; whether the calculation should freeze ChimeraX until it finishes
 or allow ChimeraX use during the computation (default, <b>wait false</b>).
-<li><b>useServer</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;[&nbsp;<b>serverHost</b>&nbsp;&nbsp;<i>server-hostname</i>&nbsp;][&nbsp;<b>serverPort</b>&nbsp;&nbsp;<i>port-number</i>&nbsp;]
+</li><li><b>useServer</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;[&nbsp;<b>serverHost</b>&nbsp;&nbsp;<i>server-hostname</i>&nbsp;][&nbsp;<b>serverPort</b>&nbsp;&nbsp;<i>port-number</i>&nbsp;]
 &ndash; whether to run Boltz on a <a href="#server">server</a> instead of on
 the local system (default <b>false</b>); if true, the other options specify
 the server hostname (or IP address) and port number.
 The Boltz server must have been set up already
 (<a href="#server">details...</a>).
-</ul>
+</li></ul>
 
 <a name="ligandtable"></a>
 <p class="nav">
 [<a href="#top">back to top: boltz</a>]
-<h3>Reopening Batch Ligand Predictions</h3>
+</p><h3>Reopening Batch Ligand Predictions</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>boltz ligandtable</b> &nbsp;<i>runDirectory</i>&nbsp;
@@ -329,8 +318,7 @@ This directory can be specified as a pathname or the word
 to specify it interactively in a file browser window.
 The <b>includeSmiles</b> option (default <b>true</b>)
 indicates whether to include the ligand
-<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
-target="_blank">SMILES</a> strings in the table.
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html" target="_blank">SMILES</a> strings in the table.
 The <b>alignTo</b> option indicates that any results opened with the table's
 <b>Open</b> button should be superimposed on the specified atomic model.
 </p>
@@ -338,7 +326,7 @@ The <b>alignTo</b> option indicates that any results opened with the table's
 <a name="server"></a>
 <p class="nav">
 [<a href="#top">back to top: boltz</a>]
-<h3>Running Boltz on a Server</h3>
+</p><h3>Running Boltz on a Server</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>boltz server start</b> 
@@ -368,15 +356,13 @@ then retrieve the results later (after resuming use of ChimeraX) from the
 <a href="../tools/boltz.html#history"><b>Boltz History</b></a> tool
 or with the <b>boltz server fetch</b> command.
 See also:
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_server.html" 
-target="_blank">Boltz Prediction Server</a>
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_server.html" target="_blank">Boltz Prediction Server</a>
 </p><p>
 The server can be Linux, Windows, or Mac. <b><i>The Boltz service must be
 set up</i></b> by installing ChimeraX (from December 16, 2025 or later)
 on the server computer and running the following commands.
 </p>
-<pre>
-      chimerax --nogui
+<pre>      chimerax --nogui
       &gt; boltz install
       &gt; boltz server start
       &gt; exit
@@ -398,34 +384,34 @@ Options for <b>boltz server start</b>:
 <b>minsky.cgl.ucsf.edu</b> or <b>169.230.21.20</b> 
 (default is to use the python gethostbyname() system call to get the 
 host name or IP address)
-<li><b>port</b> <i>port-number</i>
+</li><li><b>port</b> <i>port-number</i>
 &ndash; port number on which to listen for connections (default <b>30172</b>)
-<li><b>boltzExe</b>&nbsp;&nbsp;<i>executable-path</i>
+</li><li><b>boltzExe</b>&nbsp;&nbsp;<i>executable-path</i>
 &ndash; path to the boltz executable 
 (default is to use the install location, which is set initially by 
 <a href="#install"><b>boltz install</b></a>, but can be changed later in the
 <a href="../tools/boltz.html#options"><b>Boltz</b> options</a> or with the 
 <a href="#predict"><b>boltz predict</b></a> command
 <b>installLocation</b> option
-<li><b>jobsDirectory</b>&nbsp;&nbsp;<i>directory</i> 
+</li><li><b>jobsDirectory</b>&nbsp;&nbsp;<i>directory</i> 
 &ndash; directory in which to create server job subdirectories (default 
 <b>~/boltz_server_jobs</b>). A text file named <b>boltz_server_log</b> 
 is generated within this directory when the server is started and can be used
 to debug server errors. The directory will be created if it does not exist.
-<li><b>device</b>&nbsp;&nbsp;<b>gpu</b>&nbsp;|&nbsp;cpu 
+</li><li><b>device</b>&nbsp;&nbsp;<b>gpu</b>&nbsp;|&nbsp;cpu 
 &ndash; whether the server should run Boltz using the GPU (default) or the CPU
-<li><a name="gpus"></a>
+</li><li><a name="gpus"></a>
 <b>gpus</b>&nbsp;&nbsp;<i>gpu-ids</i> 
 &ndash; use multiple GPUs, specified as a comma-separated list of integer 
 GPU IDs. This allows the server to run multiple prediction jobs at the same 
 time, one per GPU. The default is to use only one GPU, 
 even if the computer has multiple GPUs.
-<li><b>extraOptions</b>&nbsp;&nbsp;<i>options</i> 
+</li><li><b>extraOptions</b>&nbsp;&nbsp;<i>options</i> 
 &ndash; use the specified boltz command-line options for every prediction.
 For instance, the low-memory Boltz options
 &ldquo;--use_cpu_memory --inplace_operations&rdquo;
 can allow predicting larger structures.
-</ul>
+</li></ul>
 <p>
 The <b>boltz server list</b> command lists in the 
 <a href="../tools/log.html"><b>Log</b></a> any <b><i>active</i></b> jobs,
@@ -443,11 +429,11 @@ results for all <b><i>active</i></b> jobs that have finished will be fetched.
 Active jobs are those which were still running when the user quit from ChimeraX.
 If a job is still running or waiting to run, this status will be reported in
 the <a href="../tools/log.html"><b>Log</b></a>.
-<li><b>open</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+</li><li><b>open</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 &ndash; whether to open the predicted structures for finished jobs
 (default <b>true</b>; if false, they can be opened later using the 
 <a href="../tools/boltz.html#history"><b>Boltz History</b></a>)
-</ul>
+</li></ul>
 <p>
 There is currently no command to stop the Boltz server.
 On Linux or Mac, the process ID can be determined and the process 
@@ -467,4 +453,5 @@ server process and force quit from it.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 December 2025</address>
+
 </body></html>

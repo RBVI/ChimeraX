@@ -9,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<html lang="en"><head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><html lang="en"><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: name</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: name</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -46,13 +43,13 @@ Consider also the functionality in Chimera command rmfalias.
 The <b>name</b> command defines a <i>target-name</i>
 to be used as a synonym for <a href="atomspec.html"><i>spec</i></a>
 in subsequent commands. The <i>target-name</i> will also be listed in:
-<p>
-<ul>
+</p><p>
+</p><ul>
 <li>the menu under <a href="../menu.html#named-selections"><b>Select...
 User-Defined Selectors</b></a>
-<li>the <a href="../tools/basicactions.html"><b>Basic Actions</b></a> tool
+</li><li>the <a href="../tools/basicactions.html"><b>Basic Actions</b></a> tool
 for easy showing/hiding (<i>etc.</i>) without commands
-</ul>
+</li></ul>
 <p>
 Defined targets are saved in <a href="save.html#session">sessions</a>,
 and they can also be created with menu: 
@@ -69,12 +66,12 @@ Occurrences of <i>target-name</i>
 (space- and/or semicolon-delimited) in commands
 will be translated to the corresponding items.
 A valid <i>target-name</i>:
-<ul>
+</p><ul>
 <li>starts with an alphabetic character
-<li>may contain alphanumeric characters, underscores (&nbsp;_&nbsp;), 
+</li><li>may contain alphanumeric characters, underscores (&nbsp;_&nbsp;), 
 and plus (+) and/or minus (-) signs
-</ul>
-</p><p>
+</li></ul>
+<p></p><p>
 A target can be defined as evaluate-now or evaluate-later:
 </p>
 <ul>
@@ -95,7 +92,7 @@ Evaluate-later targets can be defined automatically at ChimeraX
 startup by including <b>name</b> commands in the
 <a href="../preferences.html#startup"><b>Startup</b> preferences</a>.
 </p>
-<li>A evaluate-now target created with <b>name frozen</b> specifies
+</li><li>A evaluate-now target created with <b>name frozen</b> specifies
 only the contents of <a href="atomspec.html"><i>spec</i></a>
 at the time of creation. 
 For example, if all leucines in currently open structures
@@ -111,15 +108,15 @@ To create a named <a href="../selection.html">selection</a>,
 the <a href="atomspec.html"><i>spec</i></a> would be
 <a href="atomspec.html#builtin"><b>sel</b></a>.
 For example:
-<blockquote><b>
-<a href="select.html">select</a> ligand :<5.5
+</p><blockquote><b>
+<a href="select.html">select</a> ligand :&lt;5.5
 <br><a href="select.html">~select</a> solvent
 <br>name frozen pocket sel 
 </b></blockquote>
 ...the target <b>pocket</b> will not be affected by any subsequent changes 
 in what is selected, and will refer solely to what was selected at the
 time it was defined.
-</ul>
+</li></ul>
 <p>
 The command <b>name list</b> reports all user-defined targets 
 in the <a href="../tools/log.html"><b>Log</b></a>, 
@@ -134,4 +131,5 @@ user-defined target or <b>all</b> user-defined targets.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 January 2022</address>
+
 </body></html>

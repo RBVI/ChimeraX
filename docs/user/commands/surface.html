@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: surface</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: surface</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -76,20 +71,18 @@ See also:
 <a href="../menu.html#actions"><b>Actions</b> menu</a>,
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icons:
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/surfshow.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/surfshow.png" alt="computer generated image"></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/surfhide.png"></a>,
-<a href="https://rbvi.github.io/chimerax-recipes/convex_hull/convex_hull.html"
-target="_blank">convex hull recipe</a>
+<img class="icon" border="1" src="../tools/shortcut-icons/surfhide.png" alt="computer generated image"></a>,
+<a href="https://rbvi.github.io/chimerax-recipes/convex_hull/convex_hull.html" target="_blank">convex hull recipe</a>
 </p>
 
 <table class="clRight">
-<tr><td><a href="surface-diagram.png">
-<img src="surface-diagram.png" width="450px" style="border:1px solid gray"
-alt="SES-SAS diagram" title="click to enlarge..."></a></td></tr>
+<tbody><tr><td><a href="surface-diagram.png">
+<img src="surface-diagram.png" width="450px" style="border:1px solid gray" alt="SES-SAS diagram" title="click to enlarge..."></a></td></tr>
 <tr><td align="right">
 <font size="-1">Image courtesy of Sebastian Daberdaku&nbsp;</font>
-</td></tr></table>
+</td></tr></tbody></table>
 
 <a name="surfdefs"></a>
 <ul>
@@ -104,13 +97,13 @@ An SES can also be specified by its own model number to enable/disable display
 as a whole without changing the display of its atomic patches
 (see <a href="../hierarchy.html">hierarchy</a>). 
 <br><br>
-<li>A <b><i>solvent-accessible surface</i></b> (SAS)
+</li><li>A <b><i>solvent-accessible surface</i></b> (SAS)
 is the surface traced out by the center of the probe sphere
 rolled over the atomic <a href="../radii.html">VDW spheres</a>.
 ChimeraX does not show this type of surface, but SAS areas can be 
 calculated with <a href="measure.html"><b>measure</b></a>.
 <br><br>
-<li>A <b><i>Gaussian surface</i></b> (GS) is an isosurface of
+</li><li>A <b><i>Gaussian surface</i></b> (GS) is an isosurface of
 pseudo-density in which atoms are represented by Gaussian distributions.
 This type of surface is indicated with the 
 <a href="#parameters"><b>resolution</b></a> option and will not retain atomic 
@@ -120,7 +113,7 @@ by specifying its own model number or the atoms used in its calculation.
 <!-- can get GS patches by replacing SES with GS since sharp stays true -->
 <!-- confusing that 1gcn GS w/o sharp boundaries can be displayed with surf :tyr,
 show :tyr targ s, but not surf show :tyr, only surf show or surf show protein -->
-</ul>
+</li></ul>
 <p>
 By default, the surfaces are made to <a href="#grouping">enclose</a>
 only the residues in biopolymer chains, grouped by chain ID. 
@@ -149,23 +142,23 @@ Surface display style (solid, mesh, or dot) can be adjusted with
 
 <ul class="none">
 <li><a href="#options"><b>Surface Creation Options</b></a>
-<li><a href="#examples"><b>Creation/Display Examples</b></a>
-<li><a href="#style"><b>Surface Style</b></a>
-<li><a href="#sop"><b>Surface Operations (Editing)</b></a> 
+</li><li><a href="#examples"><b>Creation/Display Examples</b></a>
+</li><li><a href="#style"><b>Surface Style</b></a>
+</li><li><a href="#sop"><b>Surface Operations (Editing)</b></a> 
   <ul>
   <li><a href="#cap"><b>surface cap</b></a>
-  <li><a href="#dust"><b>surface dust</b></a>
+  </li><li><a href="#dust"><b>surface dust</b></a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/dust.png"></a>
-  <li><a href="#hidefarblobs"><b>surface hidefarblobs</b></a>
-  <li><a href="#invertShown"><b>surface invertShown</b></a>
-  <li><a href="#showall"><b>surface showall</b></a>
-  <li><a href="#squaremesh"><b>surface squaremesh</b></a>
-  <li><a href="#transform"><b>surface transform</b></a>
-  <li><a href="#zone"><b>surface zone</b></a>
-  </ul>
-<li><a href="#notes"><b>Technical Notes</b></a>
-</ul>
+<img class="icon" border="1" src="../tools/shortcut-icons/dust.png" alt="computer generated image"></a>
+  </li><li><a href="#hidefarblobs"><b>surface hidefarblobs</b></a>
+  </li><li><a href="#invertShown"><b>surface invertShown</b></a>
+  </li><li><a href="#showall"><b>surface showall</b></a>
+  </li><li><a href="#squaremesh"><b>surface squaremesh</b></a>
+  </li><li><a href="#transform"><b>surface transform</b></a>
+  </li><li><a href="#zone"><b>surface zone</b></a>
+  </li></ul>
+</li><li><a href="#notes"><b>Technical Notes</b></a>
+</li></ul>
 
 <a name="options"></a>
 <p class="nav">
@@ -200,9 +193,9 @@ The remaining options for surface creation can be categorized as:
 </p>
 <ul>
 <li><a href="#grouping">Grouping Atoms into Surfaces</a>
-<li><a href="#parameters">Calculation Parameters</a>
-<li><a href="#appearance">Other Appearance Options</a>
-</ul>
+</li><li><a href="#parameters">Calculation Parameters</a>
+</li><li><a href="#appearance">Other Appearance Options</a>
+</li></ul>
 
 <a name="grouping"></a>
 <h4><a href="#options" class="nounder"><b>&larr;</b></a>
@@ -256,22 +249,22 @@ larger surface, that is, farther out from the atomic centers.
 A Gaussian surface will not retain atomic associations 
 (to allow specifying per-atom patches in hide/show/color operations)
 unless <a href="#sharpBoundaries">sharp boundaries</a> are used.
-<li>If <b>resolution</b> is not given, an SES will be calculated with
+</li><li>If <b>resolution</b> is not given, an SES will be calculated with
 <b>probeRadius</b> <i>rad</i>, the radius of the 
 &ldquo;rolling sphere&rdquo; probe (default <b>1.4</b> &Aring;, 
 the value often used to approximate a water molecule).
 A larger probe radius gives a less detailed and less bumpy surface.
-<li>The <b>gridSpacing</b> <i>s</i> is the spacing of the grid used to 
+</li><li>The <b>gridSpacing</b> <i>s</i> is the spacing of the grid used to 
 calculate either type of surface. The default spacing is <b>0.5</b> &Aring;
 for an SES, <b>0.1<i>r</i></b> (one-tenth the resolution) 
 for a Gaussian surface.
 A smaller spacing gives a smoother, more finely triangulated surface,
 but uses more memory.
-<li>The <b>update</b> option (default <b>true</b>) indicates
+</li><li>The <b>update</b> option (default <b>true</b>) indicates
 whether to update the surface automatically when its shape changes,
 such as from atom movements during
 <a href="../trajectories.html">trajectory</a> playback.
-</ul>
+</li></ul>
 <p>
 The default values apply to the initial creation of a surface,
 but when the <b>surface</b> command acts on an existing surface,
@@ -334,7 +327,7 @@ See also: <a href="#dust"><b>surface dust</b></a>
 <br>
 &ndash; close (delete) the surface with model number 1.2
 <br><br>
-<b>surface ligand @<5 visible 1</b>
+<b>surface ligand @&lt;5 visible 1</b>
 &ndash; display the largest surface patch per biopolymer chain for
 atoms within 5&Aring; of <a href="atomspec.html#builtin"><b>ligand</b></a>
 <br><br>
@@ -407,30 +400,30 @@ See also:
 <ul>
 <li><a href="#cap"><b>surface cap</b></a>
 &ndash; adjust capping of <a href="clip.html">clipped</a> surfaces
-<li><a href="#dust"><b>surface dust</b></a>
+</li><li><a href="#dust"><b>surface dust</b></a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/dust.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/dust.png" alt="computer generated image"></a>
 &ndash; hide small blobs (disconnected parts)
-<li><a href="#hidefarblobs"><b>surface hidefarblobs</b></a>
+</li><li><a href="#hidefarblobs"><b>surface hidefarblobs</b></a>
 &ndash; hide surface blobs far from another surface
-<li><a href="#invertShown"><b>surface invertShown</b></a>
+</li><li><a href="#invertShown"><b>surface invertShown</b></a>
 &ndash; show hidden surface triangles, hide triangles that were shown
-<li><a href="#showall"><b>surface showall</b></a>
+</li><li><a href="#showall"><b>surface showall</b></a>
 &ndash; show all mesh lines and surface triangles
 except as hidden by <a href="clip.html">clipping</a>
-<li><a href="#splitbycolor"><b>surface splitbycolor</b></a>
+</li><li><a href="#splitbycolor"><b>surface splitbycolor</b></a>
 &ndash; split a surface into a separate model for each color of the 
 original surface
-<li><a href="#smooth"><b>surface smooth</b></a>
+</li><li><a href="#smooth"><b>surface smooth</b></a>
 &ndash; smooth a surface by moving each vertex toward the average position
 of its neighbors
-<li><a href="#squaremesh"><b>surface squaremesh</b></a>
+</li><li><a href="#squaremesh"><b>surface squaremesh</b></a>
 &ndash; hide diagonal mesh lines
-<li><a href="#transform"><b>surface transform</b></a>
+</li><li><a href="#transform"><b>surface transform</b></a>
 &ndash; scale, rotate, and/or shift surfaces
-<li><a href="#zone"><b>surface zone</b></a>
+</li><li><a href="#zone"><b>surface zone</b></a>
 &ndash; show only surface parts within a cutoff distance of specified atoms
-</ul>
+</li></ul>
 
 <a name="cap"></a>
 <a href="#top" class="nounder">&bull;</a>
@@ -481,15 +474,15 @@ can be any of the following (enclosed in single or double quotation marks
 if it includes spaces):
   <ul>
   <li><b>area</b> &ndash; surface area
-  <li><b>area rank</b> &ndash; rank by largest <b>area</b> 
+  </li><li><b>area rank</b> &ndash; rank by largest <b>area</b> 
   (a value of <i>N</i> indicates showing the <i>N</i> largest blobs)
-  <li><b>size</b> (default) &ndash; bounding box dimension (largest of X, Y, Z)
-  <li><b>size rank</b> &ndash; rank by largest <b>size</b> 
-  <li><b>volume</b> &ndash; enclosed volume
-  <li><b>volume rank</b> &ndash; rank by largest <b>volume</b> 
-  </ul>
+  </li><li><b>size</b> (default) &ndash; bounding box dimension (largest of X, Y, Z)
+  </li><li><b>size rank</b> &ndash; rank by largest <b>size</b> 
+  </li><li><b>volume</b> &ndash; enclosed volume
+  </li><li><b>volume rank</b> &ndash; rank by largest <b>volume</b> 
+  </li></ul>
 The corresponding <a href="../tools/densitymaps.html"><b>Map</b></a> icon
-<img class="icon" border=1 src="../tools/shortcut-icons/dust.png">
+<img class="icon" border="1" src="../tools/shortcut-icons/dust.png" alt="computer generated image">
 uses a <b>size</b> value ten times the grid spacing of the map.
 The graphical implementation,
 <a href="../tools/hidedust.html"><b>Hide Dust</b></a>, 
@@ -530,8 +523,7 @@ that are not part of connected surface pieces within
 <b>distance</b> <i>d</i> of another surface model
 (<a href="atomspec.html#othermodels"><i>surf-model2</i></a>).
 This is useful for
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/colocalization-jun2024/coloc.html"
-target="_blank">colocalization analysis</a> of 3D light microscopy,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/colocalization-jun2024/coloc.html" target="_blank">colocalization analysis</a> of 3D light microscopy,
 finding spots in one channel near spots in another channel.
 The distance criterion should be larger than the typical vertex spacing because
 only vertex-to-vertex distances between the two surfaces are evaluated.
@@ -636,7 +628,7 @@ See also: <a href="#style"><b>surface style</b></a>
 [&nbsp;<b>move</b>&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
 [&nbsp;<b>center</b>&nbsp;<a href="pointspec.html"><i>point-spec</i></a>&nbsp;]
 [&nbsp;<b>axis</b>&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
-[&nbsp;<b>coordinateSystem</b>&nbsp;<i>N</i></a>&nbsp;]
+[&nbsp;<b>coordinateSystem</b>&nbsp;<i>N</i>&nbsp;]
 <blockquote>
 Scale, rotate, and/or shift surface models.
 Scaling about the center is applied first, then rotation about the center
@@ -733,4 +725,5 @@ atomic center.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 November 2024</address>
+
 </body></html>

@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,32 +9,29 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: define</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: define</h3>
 
 <p>
 The <b>define</b> command calculates and displays geometric objects based on
 atomic coordinates: 
-<ul>
+</p><ul>
 <li><a href="#axis"><b>axis</b></a> 
 &ndash; cylindrical surface models
-<li><a href="#centroid"><b>centroid</b></a> 
+</li><li><a href="#centroid"><b>centroid</b></a> 
 &ndash; spherical <a href="../markers.html">markers</a>
-<li><a href="#plane"><b>plane</b></a> 
+</li><li><a href="#plane"><b>plane</b></a> 
 &ndash; disk-shaped surface models
-</ul>
+</li></ul>
 <p>
 The objects are listed in the
 <a href="../tools/axesplanes.html"><b>Axes/Planes/Centroids</b></a> tool
@@ -87,12 +82,12 @@ Axes can be defined:
 <li>by a set of at least two specified atoms (<b>perHelix</b> false),
 where <a href="../markers.html">markers</a> such as from
 <a href="#centroid"><b>define centroid</b></a> are equivalent to atoms 
-<li>for each protein helix in models containing the specified atoms
+</li><li>for each protein helix in models containing the specified atoms
 (<b>perHelix</b> true)
-<li>by two points given with the <b>fromPoint</b> and <b>toPoint</b> options
-<li>normal to a specified plane
+</li><li>by two points given with the <b>fromPoint</b> and <b>toPoint</b> options
+</li><li>normal to a specified plane
 <!-- however, planes are ignored if both atoms and planes are specified -->
-</ul>
+</li></ul>
 Axes are displayed as cylindrical rods (surface models).
 The default <b>length</b> <i>d</i> is the minimum needed to span the
 projections of the specified atoms or points, or if the axis is defined 
@@ -101,7 +96,7 @@ An extra margin (<b>padding</b>, default <b>0.0</b> &Aring;) can be added to
 both ends when the default length is used, but will be ignored if the length
 is specified. To produce a specified length, the center will stay the same, 
 but the ends will be adjusted symmetrically.
-</p><p>
+<p></p><p>
 Setting <b>perHelix</b> to <b>true</b> indicates defining an axis for each
 peptide/protein helix in the entire atomic model(s) containing the specified 
 atoms, even if only parts were specified. Peptide/protein helix assignments
@@ -179,9 +174,8 @@ but is ignored if a fixed radius is supplied.
 <br>
 Object color (default the most prevalent color among the specified atoms,
 if at least 30% share that color, otherwise <b>#909090</b> 
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="#909090" width="10px" title="#909090"></td></tr></table>).
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="#909090" width="10px" title="#909090"></td></tr></tbody></table>).
 </blockquote>
 <blockquote>
 <b>id</b> &nbsp;<i>model-id</i>
@@ -206,14 +200,14 @@ the average axis-atom/centroid distance;
 for axes defined by two atoms, half of the smaller atom's radius;
 for axes defined by points, <b>1.0</b> &Aring;;
 or for an axis normal to a plane, 5% of the plane radius
-  <li>for centroids, <b>2.0</b> &Aring;
-  <li>for planes, to enclose the projections of the atoms
+  </li><li>for centroids, <b>2.0</b> &Aring;
+  </li><li>for planes, to enclose the projections of the atoms
   (an additional margin can be specified with the
   <a href="#plane"><b>padding</b></a> option)
-  </ul>
+  </li></ul>
 </blockquote>
 <blockquote>
-<b>name</b> &nbsp;<i>name</i></a>
+<b>name</b> &nbsp;<i>name</i>
 <br>
 Object model name (default <b>centroid</b> for a centroid, 
 <b>plane</b> for a plane). A user-specified name for a centroid model
@@ -221,22 +215,22 @@ is also assigned as its atom name. Default axis model names:
 <ul>
 <li><b>axis</b> when the command defines only one axis
 for a set of atoms or points
-<li><b>normal</b> when the axis is defined by a plane model
-<li>when <b>perHelix</b> is true, a grouping model named
+</li><li><b>normal</b> when the axis is defined by a plane model
+</li><li>when <b>perHelix</b> is true, a grouping model named
 <b>helix axes</b> with submodels named <b>helix N</b> (or <b>chain ID 
 helix N</b> if the model has multiple chains), where N is the value of the 
 <a href="../attributes.html#residue">residue attribute</a> <b>ss_id</b>;
 a user-specified name replaces the grouping-model name only
-<li>when axes are generated for more than one eigenvector of a single set 
+</li><li>when axes are generated for more than one eigenvector of a single set 
 of atoms, a grouping model named <b>axes</b> with submodels named
 <b>primary</b>, <b>secondary</b>, <b>tertiary</b> as appropriate;
 a user-specified name replaces the grouping-model name only
-<li>if <b>perHelix</b> is true <i>and</i> axes are generated for more 
+</li><li>if <b>perHelix</b> is true <i>and</i> axes are generated for more 
 than eigenvector per helix, a grouping model named <b>helix axes</b>
 with submodels <b>helix N</b> (or <b>chain ID helix N</b>),
 in turn containing submodels
 <b>primary</b>, <b>secondary</b>, <b>tertiary</b> as appropriate
-</ul>
+</li></ul>
 See also: <a href="rename.html"><b>rename</b></a>
 </blockquote>
 <blockquote>
@@ -252,4 +246,5 @@ deleting, or using them for measurements.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 January 2025</address>
+
 </body></html>
