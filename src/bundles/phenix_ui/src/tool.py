@@ -1617,7 +1617,7 @@ class LaunchLigandFitTool(ToolInstance):
             self.__class__.settings = LaunchLigandFitSettings(session, "launch ligandFit")
 
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QMenu, QLineEdit
-        from Qt.QtWidgets import QCheckBox, QGridLayout, QGroupBox, QStackedWidget
+        from Qt.QtWidgets import QCheckBox, QGridLayout, QGroupBox, QStackedWidget, QFrame
         from Qt.QtGui import QDoubleValidator, QIntValidator
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
@@ -1792,10 +1792,32 @@ Choices are:
         self._extent_values = [None] * len(self.EXTENT_METHODS)
         self._set_extent_method()
 
-        layout.addStretch(1)
+        layout.addSpacing(10)
+
+        layout.addWidget(PhenixCitation(session, tool_name, "ligandfit"), alignment=Qt.AlignCenter)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.launch_ligand_fit)
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_ligand_fit(apply=True))
+        bbox.rejected.connect(self.delete)
+        if self.help:
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
+        opt_b = bbox.addButton("Options", qbbox.ActionRole)
+        opt_b.clicked.connect(self._toggle_options)
+        layout.addWidget(bbox)
+
+        self.options_area = disclosure = QWidget()
+        disclosure.hide()
+        layout.addWidget(disclosure)
+        options_layout = QVBoxLayout()
+        disclosure.setLayout(options_layout)
 
         checkbox_area = QWidget()
-        layout.addWidget(checkbox_area, alignment=Qt.AlignCenter)
+        options_layout.addWidget(checkbox_area, alignment=Qt.AlignCenter)
         checkbox_layout = QVBoxLayout()
         checkbox_layout.setContentsMargins(0,0,0,0)
         checkbox_area.setLayout(checkbox_layout)
@@ -1812,7 +1834,7 @@ Choices are:
         conformers_layout = QHBoxLayout()
         conformers_layout.setSpacing(0)
         conformers_layout.setContentsMargins(0,0,0,0)
-        layout.addLayout(conformers_layout)
+        options_layout.addLayout(conformers_layout)
         conformers_layout.addStretch(1)
         conformers_layout.addWidget(QLabel("Number of conformers to try: "))
         self.conformers_button = QPushButton("5")
@@ -1823,22 +1845,6 @@ Choices are:
         self.conformers_button.setMenu(menu)
         conformers_layout.addWidget(self.conformers_button)
         conformers_layout.addStretch(1)
-
-        layout.addSpacing(10)
-
-        layout.addWidget(PhenixCitation(session, tool_name, "ligandfit"), alignment=Qt.AlignCenter)
-
-        from Qt.QtWidgets import QDialogButtonBox as qbbox
-        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
-        bbox.accepted.connect(self.launch_ligand_fit)
-        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_ligand_fit(apply=True))
-        bbox.rejected.connect(self.delete)
-        if self.help:
-            from chimerax.core.commands import run
-            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
-        else:
-            bbox.button(qbbox.Help).setEnabled(False)
-        layout.addWidget(bbox)
 
         tw.manage(placement=None)
 
@@ -1994,6 +2000,11 @@ Choices are:
                 new_value = prev_extent
         self.extent_button.setText(method)
         self.extent_entry.setText("%g" % new_value)
+
+    def _toggle_options(self, *args):
+        self.options_area.setHidden(not self.options_area.isHidden())
+        if self.options_area.isHidden():
+            self.tool_window.shrink_to_fit()
 
     def _update_fmt_widgets(self, fmt):
         self.ligand_fmt_button.setText(fmt)
