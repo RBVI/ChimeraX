@@ -1671,7 +1671,7 @@ def register_boltz_predict_command(logger):
         keyword = [('include_smiles', BoolArg),
                    ('align_to', AtomicStructureArg),],
         synopsis = 'Show table of Boltz ligand binding prediction results',
-        url = 'https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html#ligands'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html#ligandtablecommand'
     )
     register('boltz ligandtable', desc, boltz_ligand_table, logger=logger)
 
