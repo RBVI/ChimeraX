@@ -1818,6 +1818,7 @@ Choices are:
 
         checkbox_area = QWidget()
         options_layout.addWidget(checkbox_area, alignment=Qt.AlignCenter)
+        options_layout.setContentsMargins(0,5,0,0)
         checkbox_layout = QVBoxLayout()
         checkbox_layout.setContentsMargins(0,0,0,0)
         checkbox_area.setLayout(checkbox_layout)
@@ -1834,7 +1835,8 @@ Choices are:
         conformers_layout = QHBoxLayout()
         conformers_layout.setSpacing(0)
         conformers_layout.setContentsMargins(0,0,0,0)
-        options_layout.addLayout(conformers_layout)
+        # For now, not exposing conformers option until more testing reveals if it's needed
+        #options_layout.addLayout(conformers_layout)
         conformers_layout.addStretch(1)
         conformers_layout.addWidget(QLabel("Number of conformers to try: "))
         self.conformers_button = QPushButton("5")
