@@ -40,10 +40,6 @@ class _StatusBarOpenGL:
         self._last_color = 'CanvasText'
 
     def destroy(self):
-        self.widget.destroy()
-        self.widget = None
-        self._window = None
-
         # Make sure to delete opengl context last since drawings and renderer
         # will try to delete opengl resources.
         for attr in ('_drawing', '_drawing2', '_renderer', '_opengl_context'):
@@ -51,6 +47,16 @@ class _StatusBarOpenGL:
             if v is not None:
                 v.delete()
                 setattr(self, attr, None)
+
+        # Use deleteLater() instead of destroy() to avoid crashes in
+        # QWindowContainer::parentWasChanged during PySide6 dock widget destruction
+        if self._window is not None:
+            self._window.deleteLater()
+            self._window = None
+
+        if self.widget is not None:
+            self.widget.deleteLater()
+            self.widget = None
 
     def set_colors(self):
         if self.session.ui.dark_mode():
