@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: ViewDock</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: ViewDock</h3>
 <p>
@@ -34,8 +29,7 @@ of a binding site. Results can be sorted, rated, and saved.
 See also: 
 an <a href="../formats/dock4.mol2">example file</a> of compounds docked to 
 H-ras (the protein part of PDB entry
-<a href="https://www.rcsb.org/pdb/explore/explore.do?structureId=121p"
-target="_blank">121p</a>),
+<a href="https://www.rcsb.org/pdb/explore/explore.do?structureId=121p" target="_blank">121p</a>),
 <a href="hbonds.html"><b>H-Bonds</b></a>,
 <a href="clashes.html"><b>Clashes/Contacts</b></a>,
 <a href="dockprep.html"><b>Dock Prep</b></a>
@@ -47,31 +41,25 @@ of docking results:
 <ul>
 <li>Mol2 (.mol2) from
   <ul>
-  <li><a href="https://dock.compbio.ucsf.edu/" 
-target="_blank">UCSF&nbsp;DOCK</a>&nbsp;v4-6 
-  <li><a href="https://dock.compbio.ucsf.edu/DOCK3.7/" 
-target="_blank">UCSF&nbsp;DOCK&nbsp;v3.7</a>
+  <li><a href="https://dock.compbio.ucsf.edu/" target="_blank">UCSF&nbsp;DOCK</a>&nbsp;v4-6 
+  </li><li><a href="https://dock.compbio.ucsf.edu/DOCK3.7/" target="_blank">UCSF&nbsp;DOCK&nbsp;v3.7</a>
 (however, the ligand descriptors in condensed tabular form will not be shown)
-  <li><a 
-href="https://www.ccdc.cam.ac.uk/solutions/csd-discovery/components/gold/"
-target="_blank">GOLD</a>
-  <li><a 
-href="https://www.chemcomp.com/MOE-Molecular_Operating_Environment.htm/" 
-target="_blank">MOE</a>
-  </ul>
-<li><a href="https://vina.scripps.edu/" target="_blank">AutoDock Vina</a> PDBQT
+  </li><li><a href="https://www.ccdc.cam.ac.uk/solutions/csd-discovery/components/gold/" target="_blank">GOLD</a>
+  </li><li><a href="https://www.chemcomp.com/MOE-Molecular_Operating_Environment.htm/" target="_blank">MOE</a>
+  </li></ul>
+</li><li><a href="https://vina.scripps.edu/" target="_blank">AutoDock Vina</a> PDBQT
 (.pdbqt) (Protein Data Bank with partial charge Q and atom type T format)
-<li><a href="https://www.schrodinger.com/glide" target="_blank">Glide</a>
+</li><li><a href="https://www.schrodinger.com/glide" target="_blank">Glide</a>
 Maestro (.mae, .maegz) 
 &ndash; to be recognized as docking results, the file must contain the
 <b>r_i_docking_score</b> descriptor; other Maestro files
 (those not produced by Glide) may not contain this descriptor
-<li><a href="https://www.swissdock.ch/" target="_blank">SwissDock</a>
+</li><li><a href="https://www.swissdock.ch/" target="_blank">SwissDock</a>
 modified PDB format (<a href="../commands/open.html#local"><b>open</b></a>
 with <a href="../commands/open.html#file-table"><b>format swissdock</b></a>;
 the ligand and receptor files can be opened in either order, and with 
 two commands or a single command)
-</ul>
+</li></ul>
 <p>
 By default
 (<a href="../commands/open.html#local"><b>open</b></a> command with
@@ -125,15 +113,15 @@ down (up) arrow key chooses the next (previous)
 compound in the list. The list can also be navigated with the 
 <b>next docked</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
 <a href="mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="mouse-icons/nextdocking.png"></a>.
+<img class="icon" border="1" src="mouse-icons/nextdocking.png" alt="computer generated image"></a>.
 </p><p>
 The first two columns in the table are generated automatically:
 </p>
 <ul>
 <li><b>ID</b> &ndash; model number
-<li><b>Rating</b> &ndash; whether unrated or assigned as
+</li><li><b>Rating</b> &ndash; whether unrated or assigned as
 <b>good</b>, <b>maybe</b>, or <b>bad</b> by the user
-</ul>
+</li></ul>
 <p>
 Any additional columns that appear when <b>ViewDock</b> is first started
 reflect information read from the input file(s).
@@ -144,14 +132,14 @@ information to include in the table of hits, with buttons:
 </p>
 <ul>
 <li><b>All</b> &ndash; show all columns
-<li><b>Default</b> &ndash; restore the previously saved
+</li><li><b>Default</b> &ndash; restore the previously saved
 <a href="../preferences.html#other">preference</a> for which columns are shown
-<li><b>Standard</b> &ndash; use &ldquo;factory default&rdquo; set of
+</li><li><b>Standard</b> &ndash; use &ldquo;factory default&rdquo; set of
 initially displayed columns
-<li><b>Set Default</b> &ndash; save the currently shown set as a
+</li><li><b>Set Default</b> &ndash; save the currently shown set as a
 user <a href="../preferences.html#other">preference</a>
-<li><b>Toggle Controls</b> &ndash; show/hide the checkbox section
-</ul>
+</li><li><b>Toggle Controls</b> &ndash; show/hide the checkbox section
+</li></ul>
 <p>
 <a name="buttons"></a>
 Buttons above the table:
@@ -165,7 +153,7 @@ the number of H-bonds between each compound and all other atoms
 <!-- 
 hbonds docked-models restrict all-other-atomic-models & (main | ligand) reveal true
 -->
-<li><b>Clashes</b> 
+</li><li><b>Clashes</b> 
 &ndash; calculate and add a column for
 the number of clashes between each compound and all other atoms
 (excluding the other docked compounds) using the
@@ -174,21 +162,21 @@ the number of clashes between each compound and all other atoms
 clashes docked-models restrict all-other-atomic-models & (main | ligand) reveal true
 -->
 <blockquote>
-<table cellpadding="8px" cellspacing="0px" border=1><tr><td class="shaded">
+<table cellpadding="8px" cellspacing="0px" border="1"><tbody><tr><td class="shaded">
 For the purposes of identifying H-bonds and clashes,
 <a href="../commands/atomspec.html#surfcats">ligand</a> residues in the
 receptor model not meant to be considered should be deleted beforehand.
 In addition, any models other than the receptor and its docked compounds
 should be spatially separated from them or closed.
-</td></tr></table>
+</td></tr></tbody></table>
 </blockquote>
-<li><b>Save...</b> save all compound structures listed in the table
+</li><li><b>Save...</b> save all compound structures listed in the table
 and their descriptors (including ratings) to a Mol2 file; the file can be
 reopened later for further analysis with <b>ViewDock</b>
-<li><b>Close</b> &ndash; close the currently
+</li><li><b>Close</b> &ndash; close the currently
 <a href="#chosen">chosen</a> compounds
 and remove their rows from the table
-</ul>
+</li></ul>
 
 <a name="hotkeys"></a>
 <p class="nav">
@@ -204,15 +192,15 @@ With hotkeys enabled and mouse focus in the
 <ul>
 <li>typing <b>g/m/b/u</b> will rate the currently 
 <a href="#chosen">chosen</a> compounds as good/maybe/bad/(unrated) 
-<li><b>down (up) arrow</b> keys navigate the table by
+</li><li><b>down (up) arrow</b> keys navigate the table by
 <a href="#chosen">choosing</a> the next (previous) compound,
 unless mouse focus is in the 3D graphics window and there is a
 <a href="../selection.html">selection</a>, in which case they
 navigate the <a href="../selection.html#cascade">selection hierarchy</a>
-<li><b>Esc</b> turns off the <b>ViewDock</b> hotkeys;
+</li><li><b>Esc</b> turns off the <b>ViewDock</b> hotkeys;
 they can also be disabled (or re-enabled) using the 
 <b>ViewDock</b> <a href="../window.html#context-menu">context menu</a>
-</ul>
+</li></ul>
 <p>
 <b>ViewDock</b> hotkey status is remembered across ChimeraX sessions in the user
 <a href="../preferences.html#other">preferences</a>.
@@ -221,4 +209,5 @@ they can also be disabled (or re-enabled) using the
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 October 2025</address>
+
 </body></html>

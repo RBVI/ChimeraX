@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Add Hydrogens</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Add Hydrogens</h3>
 <p>
@@ -39,17 +34,17 @@ See also:
 <b>Add Hydrogens</b> can be opened from the 
 <b>Structure Editing</b> section of the <b>Tools</b> menu and 
 manipulated like other panels (<a href="../window.html#panels">more...</a>).
-<p></p>
+</p><p></p>
 <b>Add hydrogens to</b>: The atomic model(s) to protonate
 should be chosen from the list.
-</p>
+<p></p>
 <ul>
 <li><b>Consider each model in isolation from all others</b>
 &ndash; whether hydrogen placement should be affected by atoms within the same
 model only. Otherwise, other models in the vicinity (except submodels of
 the same model) may affect hydrogen placement, regardless of whether they
 were chosen for hydrogen addition.
-</ul>
+</li></ul>
 <p>
 <a name="method"></a>
 The <b>Method</b> for adding hydrogens can be:
@@ -57,7 +52,7 @@ The <b>Method</b> for adding hydrogens can be:
 <ul>
 <li><b>steric only</b> &ndash; based on
 <a href="../atomtypes.html">atom types</a> and clash avoidance
-<li><b>also consider H-bonds (slower)</b> (default) &ndash; based on
+</li><li><b>also consider H-bonds (slower)</b> (default) &ndash; based on
 <a href="../atomtypes.html">atom types</a>, clash avoidance,
 and hydrogen bond formation.
 Considering H-bonds increases the calculation time.
@@ -65,7 +60,7 @@ Although hydrogens are placed to avoid clashes and form hydrogen bonds
 where possible, they are not energy-minimized, and
 a globally optimal network in terms of the number of H-bonds or
 total H-bonding energy is not necessarily found.
-</ul>
+</li></ul>
 <a name="options"></a>
 <p>
 Clicking the <b>Options</b> button shows/hides additional options:
@@ -82,7 +77,7 @@ However, alternative protonation states of certain amino acids
 can be specified by changing their residue names beforehand 
 (with <a href="../commands/setattr.html"><b>setattr</b></a>
 or by text-editing the input structure file):
-<ul>
+</p><ul>
 <li>Choices for <b>histidine</b>:
   <ul>
   <li><b>Residue-name-based</b> (default)
@@ -92,53 +87,53 @@ or by text-editing the input structure file):
   nitrogens in HIP. Residues named HIS will be treated as unspecified,
   and may end up with either or both sidechain nitrogens protonated,
   depending on the <a href="#method">method</a> and the local environment.
-  <li><b>Unspecified (determined by method)</b>
+  </li><li><b>Unspecified (determined by method)</b>
   &ndash; regardless of which of the
   names above are used for histidine residues, all will be treated as
   unspecified, and may end up with either or both sidechain nitrogens
   protonated,
   depending on the <a href="#method">method</a> and the local environment.
-  </ul>
-<li>Choices for <b>aspartic acid</b>:
+  </li></ul>
+</li><li>Choices for <b>aspartic acid</b>:
   <ul>
   <li><b>Residue-name-based</b> (default)
   &ndash; residue names will be used to determine sidechain charge state:
   ASP negatively charged and ASH neutral, OD2-protonated
-  <li><b>Charged</b> &ndash; negatively charged
-  </ul>
-<li>Choices for <b>cysteine</b>:
+  </li><li><b>Charged</b> &ndash; negatively charged
+  </li></ul>
+</li><li>Choices for <b>cysteine</b>:
   <ul>
   <li><b>Residue-name-based</b> (default)
   &ndash; residue names will be used to determine sidechain charge state:
   CYS unspecified and CYM negatively charged
-  <li><b>Unspecified (determined by method)</b> 
+  </li><li><b>Unspecified (determined by method)</b> 
   &ndash; regardless of which of the
   names above are used for cysteine residues, all will be treated as
   unspecified and the sidechain sulfur may be protonated or not
   depending on the <a href="#method">method</a> and the local environment.
-  </ul>
-<li>Choices for <b>glutamic acid</b>:
+  </li></ul>
+</li><li>Choices for <b>glutamic acid</b>:
   <ul>
   <li><b>Residue-name-based</b> (default)
   &ndash; residue names will be used to determine sidechain charge state:
   GLU negatively charged and GLH neutral, OE2-protonated
-  <li><b>Charged</b> &ndash; negatively charged
-  </ul>
-<li>Choices for <b>lysine</b>:
+  </li><li><b>Charged</b> &ndash; negatively charged
+  </li></ul>
+</li><li>Choices for <b>lysine</b>:
   <ul>
   <li><b>Residue-name-based</b> (default)
   &ndash; residue names will be used to determine sidechain charge state:
   LYS positively charged and LYN neutral
-  <li><b>Charged</b> &ndash; positively charged
-  </ul>
-</ul>
+  </li><li><b>Charged</b> &ndash; positively charged
+  </li></ul>
+</li></ul>
 Further options:
 <ul>
 <li><b>Do not protonate electronegative atom X within</b>
 [<b><i>distance</i></b>] <b>&Aring; of metal M 
-if X-H-M angle would be >120&deg;</b> 
+if X-H-M angle would be &gt;120&deg;</b> 
 (default <b>3.95</b> &Aring;)
-<li><b>Use idealized template to guess atom types in nonstandard residues</b>
+</li><li><b>Use idealized template to guess atom types in nonstandard residues</b>
 (default <b>off</b>)
 &ndash; whether to use idealized
 coordinates to discern <a href="../atomtypes.html">atom types</a>
@@ -149,7 +144,7 @@ Chemical Component Dictionary</a>. This option is useful
 for structures with poorly (structurally) determined ligands that could be
 mistyped, potentially causing addition of the wrong number of hydrogens or
 hydrogens in incorrect positions.
-</ul>
+</li></ul>
 <p>
 Clicking <b>OK</b> adds hydrogens and dismisses the dialog, while
 <b>Cancel</b> merely dismisses the dialog. Clicking <b>Help</b>
@@ -190,10 +185,10 @@ can be <a href="#method">guessed by the method</a> or
 <a href="#options">specified by the user</a> (by changing residue
 names beforehand with <a href="../commands/setattr.html"><b>setattr</b></a>
 or by text-editing the input structure file)
-<li>terminal phosphates (the third ionization);
+</li><li>terminal phosphates (the third ionization);
 if one P&ndash;O bond is at least 0.05 &Aring; longer than the others
 around that same phosphorus atom, that oxygen will be protonated
-</ul>
+</li></ul>
 <p>
 Potentially ambiguous or rare (shifted-pKa) protonation states,
 especially in binding sites and nonstandard residues,
@@ -201,14 +196,14 @@ should be verified and corrected as needed:
 </p>
 <ul>
 <li>hydrogens can be <a href="../commands/delete.html">deleted</a>
-<li>unusual protonation states of certain amino acids can be specified
+</li><li>unusual protonation states of certain amino acids can be specified
 by changing their residue names beforehand
 (see <a href="#options">options</a>)
-<li><a href="../atomtypes.html">atom types</a> in nonstandard
+</li><li><a href="../atomtypes.html">atom types</a> in nonstandard
 residues can be edited (also before hydrogen addition)
 with <a href="../commands/setattr.html"><b>setattr</b></a>
 or <a href="buildstructure.html"><b>Build Structure</b></a>
-</ul>
+</li></ul>
 <a name="termini"></a>
 <p>
 Residues at the ends of connected peptide chains are inspected
@@ -235,9 +230,8 @@ to produce a &phi; angle equal to that of the subsequent residue.
 Bond lengths for X-H (X = C/N/O/S) are taken from the
 <a href="https://ambermd.org/" target="_blank"><b>Amber</b></a>
 parm99 parameters:
-<table border style="margin:8px 8px 8px 8px"
-cellspacing="0" cellpadding="4">
-<tr><th>X</th><th><a href="../atomtypes.html">atom types</a></th>
+<table border style="margin:8px 8px 8px 8px" cellspacing="0" cellpadding="4">
+<tbody><tr><th>X</th><th><a href="../atomtypes.html">atom types</a></th>
 <th>X-H bond length (&Aring;)</th></tr>
 <tr><td><i>sp</i><sup>3</sup> carbon</td>
 <td align="center">C3</td><td align="center">1.0900</td></tr>
@@ -255,7 +249,7 @@ cellspacing="0" cellpadding="4">
 <td align="center">0.9572</td></tr>
 <tr><td>sulfur</td><td align="center">S3</td>
 <td align="center">1.3360</td></tr>
-</table>
+</tbody></table>
 Bond lengths to other X are approximate,
 obtained by adding the covalent bond radii of elements X and H.
 </p>
@@ -267,10 +261,8 @@ obtained by adding the covalent bond radii of elements X and H.
 <h3>Recommended Alternative: Reduce</h3>
 <p>
 When a more intensive approach is desired, the program
-<a href="http://molprobity.biochem.duke.edu/help/reduce_guide/reduce_guide.html"
-target="_blank"><b>Reduce</b></a> provided as part of
-<a href="http://molprobity.biochem.duke.edu/" 
-target="_blank"><b>MolProbity</b></a> is a good alternative.
+<a href="http://molprobity.biochem.duke.edu/help/reduce_guide/reduce_guide.html" target="_blank"><b>Reduce</b></a> provided as part of
+<a href="http://molprobity.biochem.duke.edu/" target="_blank"><b>MolProbity</b></a> is a good alternative.
 It places hydrogens to optimize local H-bonding networks
 and avoid steric overlaps, while flipping certain sidechains
 180&deg; as deemed appropriate to fulfill these criteria.
@@ -291,4 +283,5 @@ Word JM, Lovell SC, Richardson JS, Richardson DC.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 November 2022</address>
+
 </body></html>

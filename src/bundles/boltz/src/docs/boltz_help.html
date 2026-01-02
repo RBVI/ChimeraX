@@ -83,12 +83,10 @@
     <p>
       <b>Nvidia GPUs on Windows and Linux</b>.
       Nvidia GPUs on Windows and Linux computers also provide good performance.
-      On Linux with an Nvidia GPU with 24 GB of graphics memory (e.g. Nvidia RTX 3090 or 4090) it can predict about 1000
-      residues in about 4 minutes, larger sizes run out of memory, although using the 16-bit floating point
-      option can extend the range to 1400 residues in about 10 minutes but with possible reduction in accuracy.
-      Testing on Windows with less GPU memory, 12 GB (e.g. Nvidia RTX 4070) predicts up to 700 residues or
-      1000 with 16-bit floating point.  On Windows with 8 GB of GPU memory (e.g Nvidia RTX 3070)
-      predictions of 500 residues or 700 with 16-bit floating point are relatively fast.
+      On Linux with an Nvidia GPU with 24 GB of graphics memory (e.g. Nvidia RTX 3090 or 4090) it can predict about 1300
+      residues in about 4 minutes, larger sizes run out of memory.
+      Testing on Windows with less GPU memory, 12 GB (e.g. Nvidia RTX 4070) predicts up to 1000 residues.
+      On Windows with 8 GB of GPU memory (e.g Nvidia RTX 3070) predictions of about 700 residues.
       Large predictions on Nvidia GPUs on Linux run out of memory and fail.  On Windows the prediction
       will fallback to using CPU memory allowing larger structure predictions but taking immensely longer
       run times (10-30 times longer).
@@ -337,14 +335,208 @@
 
     <p>
       <b>Linux Nvidia GPU out of memory.</b>
-      On Linux Nvidia 4090 with 24 GB of GPU memory the maximum prediction appears to be about 1000 residues plus ligand atoms before an "out of memory" error occurs.  This contrasts with Windows where Torch appears to fallback to using CPU and not run out of GPU memory.
+      On Linux Nvidia 4090 with 24 GB of GPU memory the maximum prediction appears to be about 1300 residues plus ligand atoms before an "out of memory" error occurs.  This contrasts with Windows where Torch appears to fallback to using CPU and not run out of GPU memory.
     </p>
 
     <p>
       <b>Optimizing for larger structures with Nvidia GPU.</b>
       Structure predictions 40% larger are possible by using 16-bit floating point (bfloat16) on Nvidia GPUs instead of float32 for boltz weights and activations.  Prediction speed is about the same.  I tested this on Nvidia 4090 on Linux and it was able to predict 9fz5 (1025 tokens) in 3 minutes and 8sa0 (1371 tokens) in 5 minutes.  I have not seen a reduction in accuracy.  Details in ChimeraX ticket <a href="https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/17555">#17555</a>.
-      This is available as the 16-bit floating point option in the ChimeraX Boltz Options panel or the float16 option of the ChimeraX boltz predict command.
+      Boltz 2 makes use of 16-bit floating point (bf16-mixed) by default when using Nvidia graphics.
+      Mac and Intel hardware give worse speed and little memory savings with 16-bit because the Torch 2.9 package
+      does not support native 16-bit on those architectures and instead uses 32-bit float.
     </p>
+    
+    <a name="lowmem">
+    <h2>Predicting larger structures with Nvidia GPUs</h2>
+    </a>
+
+    <p>
+      Tom Litfin made Boltz optimizations to reduce GPU memory use so that larger predictions can be made.
+      The main optimization moves some Torch tensors from GPU memory to CPU memory as described in
+      <a href="https://www.biorxiv.org/content/10.1101/2025.10.29.684571v2">LMI4Boltz: Optimising VRAM utilisation to predict large macromolecular complexes with consumer grade hardware</a> (November 2025).  Another optimization
+      changes Torch tensors in place instead of making copies.  And a third optimization allows different "chunking"
+      in the neural net attention layers that reduces memory use.
+      These optimizations increase the number
+      of residues that can be predicted on an Nvidia 4090 GPU (24 GB) with 64 GB of CPU memory from 1300 to 2200
+      as shown in the following table.  With chunking optimization up to 2500 residues can be predicted.
+      It also can reduce the prediction times on Windows with Nvidia GPUs with less memory (e.g. 8 GB or 12 GB).
+    </p>
+        
+    <p>Low memory Boltz prediction times in minutes.  Tokens is number of standard polymer residues plus ligand atoms.</p>
+    
+    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
+      <tr>
+	<th>PDB code
+	<th>Tokens
+	<th>Linux<br>Nvidia 4090
+	<th>Linux<br>Nvidia 4090<br>Low Mem
+	<th>Windows<br>Nvidia 3070
+	<th>Windows<br>Nvidia 3070<br>Low Mem
+	<th>Number of residues and atoms and prediction error
+      <tr>
+	<td align=center>8rf4
+	<td align=center>129
+	<td align=center>0.3
+	<td align=center style="background-color:#a0ffa0;">
+	<td align=center>0.8
+	<td align=center style="background-color:#a0ffa0;">
+	<td>118 amino acids, 11 ligand atoms, 0.8A RMSD 108 residues
+      <tr>
+	<td align=center>1hho
+	<td align=center>382
+	<td align=center>0.5
+	<td align=center style="background-color:#a0ffa0;">
+	<td align=center>2.0
+	<td align=center style="background-color:#a0ffa0;">1.5
+	<td>287 amino acids, 95 ligand atoms, 0.4A RMSD 146 residues
+      <tr>
+	<td align=center>9moj
+	<td align=center>660
+	<td align=center>0.6
+	<td align=center style="background-color:#a0ffa0;">
+	<td align=center>2.5
+	<td align=center style="background-color:#a0ffa0;">2.5
+	<td>660 amino acids, heterotetramer, 0.8A RMSD 132 residues
+      <tr>
+	<td align=center>9h1k
+	<td align=center>671
+	<td align=center>0.7
+	<td align=center style="background-color:#a0ffa0;">
+	<td align=center>9.5
+	<td align=center style="background-color:#a0ffa0;">5.5
+	<td>560 amino acids, 59 rna bases, 52 ligand atoms, 0.7A RMSD protein, RNA wrong
+      <tr>
+	<td align=center>9b3h
+	<td align=center>911
+	<td align=center>1.1
+	<td align=center style="background-color:#a0ffa0;">
+	<td align=center>28
+	<td align=center style="background-color:#a0ffa0;">10
+	<td>911 amino acids, heterodimer, 1A RMSD 509 residues
+      <tr>
+	<td align=center>9fz5
+	<td align=center>1025
+	<td align=center>1.3
+	<td align=center style="background-color:#a0ffa0;">
+	<td align=center>40
+	<td align=center style="background-color:#a0ffa0;">19
+	<td>1025 amino acids, heterotrimer, 3.7A RMSD 740 residues
+      <tr>
+	<td align=center>9mcw
+	<td align=center>1154
+	<td align=center>1.4
+	<td align=center style="background-color:#a0ffa0;">
+	<td align=center>54
+	<td align=center style="background-color:#a0ffa0;">
+	<td>1154 rna bases, homodimer, wrong dimer and monomer conformations
+      <tr>
+	<td align=center>8sa0
+	<td align=center>1371
+	<td align=center>failed
+	<td align=center style="background-color:#a0ffa0;">2.6
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">101
+	<td>1274 amino acids, 97 ligand atoms, 2.2A RMSD all residue CA.
+      <tr>
+	<td align=center>9gh4
+	<td align=center>1467
+	<td align=center>2.1
+	<td align=center style="background-color:#a0ffa0;">2.8
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">
+	<td>Protein homotrimer, monomer 489 residues, 1.1A RMSD for 750 residues
+      <tr>
+	<td align=center>8zvq
+	<td align=center>1550
+	<td align=center>failed
+	<td align=center style="background-color:#a0ffa0;">3.3
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">
+	<td>
+      <tr>
+	<td align=center>9d45
+	<td align=center>1651
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">3.8
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">
+	<td>
+      <tr>
+	<td align=center>9enr
+	<td align=center>1794
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">3.9
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">
+	<td>
+      <tr>
+	<td align=center>1dpp
+	<td align=center>2028
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">5.4
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">
+	<td>
+      <tr>
+	<td align=center>1a4e
+	<td align=center>2146
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">6.1
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">
+	<td>
+      <tr>
+	<td align=center>9hma
+	<td align=center>2217
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">7.1
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">
+	<td>
+      <tr>
+	<td align=center>7r76
+	<td align=center>2348
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">9.5
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">
+	<td>Used --aggressive_chunking.  Out of memory without this option.
+      <tr>
+	<td align=center>7lhw
+	<td align=center>2527
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">11
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">
+	<td>Used --aggressive_chunking.
+      <tr>
+	<td align=center>7b52
+	<td align=center>2649
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">failed
+	<td align=center>
+	<td align=center style="background-color:#a0ffa0;">
+	<td>Used --aggressive_chunking.
+    </table>
+
+    <ul>
+      <li>Linux Nvidia 4090 - VRAM 24 GB, cpu i9-13900K (24 cores) 64 GB (DDR5 5200MHz), minsky.cgl.ucsf.edu
+      <li>Windows Nvidia 3070 - Windows 11, VRAM 8 GB, PCIe 4.0, cpu i7-12700K (12 cores) 64 GB DDR5 4000MHz, vizvault.cgl.ucsf.edu
+    </ul>
+
+    <p>
+      This low memory Boltz should give the same predictions as regular Boltz.  It has not yet been incorporated
+      into the main Boltz 2 github repository (Dec 2025), but there is a special ChimeraX version of Boltz that
+      uses the low memory version.  To install and use the low memory Boltz use ChimeraX command
+    </p>
+
+    <pre>
+      boltz install ~/boltz22_lowmem branch chimerax_boltz22_lowmem</pre>
+
+    <p>
+      ChimeraX currently currently does not use the "aggressive chunking" option.
+    </p>
+    
     
     <a name="ligands">
     <h2>Batch predictions with sets of ligands</h2>
@@ -551,7 +743,7 @@
 	is roughly 1000 residues plus ligand atoms (called "tokens").  Consumer Nvidia GPUs with 8 or 12 GB of
 	memory (e.g. RTX 3070) only handle 300-500 residues before using CPU memory on Windows that slows
 	the prediction speed by 10-20 fold.  On Linux it will not use CPU memory.  Consumer Nvidia GPUs with
-	24 GB (RTX 3090 and RTX 4090) are able to predict 1000 tokens, or about 1400 with 16-bit floating point.
+	24 GB (RTX 3090 and RTX 4090) are able to predict 1300 tokens.
 	Prediction size limits are perhaps the most important
 	shortcoming of Boltz compared to AlphaFold 3 which handles memory more efficiently and is able to
 	predict 5000 tokens with 80GB of GPU memory, about twice the size that Boltz can predict.

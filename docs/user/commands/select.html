@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: select</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: select</h3>
 <p>
@@ -33,13 +28,13 @@ The <b>select</b> command can:
 </p>
 <ul>
 <li>make a <a href="#new">new selection</a> of specified items
-<li><a href="#modify">modify</a> an existing selection
-<li>select by <a href="#zone">zone</a> (distance cutoff from specified items)
-</ul>
+</li><li><a href="#modify">modify</a> an existing selection
+</li><li>select by <a href="#zone">zone</a> (distance cutoff from specified items)
+</li></ul>
 <p>
 For click-to-select, see <a href="ui.html#mousemode"><b>mousemode</b></a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
-<img class="icon" border=1 src="../tools/mouse-icons/select.png"></a>.
+<img class="icon" border="1" src="../tools/mouse-icons/select.png" alt="computer generated image"></a>.
 See also:
 <a href="../selection.html#arrows">arrow-key shortcuts</a>,
 <a href="../selection.html#sel-vs-spec">selection vs. specification</a>,
@@ -110,16 +105,16 @@ other keyword options are ignored. See also the <b>identity</b>
 </blockquote>
 <p>
 Subcommands of <b>select</b> can be used to:
-<ul>
+</p><ul>
 <li><b>add</b>, <b>subtract</b>, or <b>intersect</b> the specified items
 (<a href="atomspec.html"><i>spec</i></a>)
 with the current selection; the <b>residues</b> option promotes any specified
 atoms to whole residues before the operation is performed
-<li>navigate <b>up</b> or back <b>down</b> the
+</li><li>navigate <b>up</b> or back <b>down</b> the
 <a href="../selection.html#cascade">selection cascade</a>
 (same as using the <a href="../selection.html#arrows">up/down arrow keys</a>)
-<li><b>clear</b> the selection
-</ul>
+</li><li><b>clear</b> the selection
+</li></ul>
 The <b>~select</b> command can be used to deselect specified items
 (like <b>select subtract</b>) or with a blank specification
 to deselect everything (like <b>select clear</b>). The selection can be
@@ -130,7 +125,7 @@ and the word <a href="atomspec.html#builtin"><b>sel</b></a>
 indicates the current selection; to invert the selection within 
 only the models containing a selection, the command would be
 <b>select ~sel & ##selected</b> instead).
-</p>
+<p></p>
 
 <a name="zone"></a>
 <p class="nav">
@@ -184,11 +179,11 @@ can be used with <a href="atomspec.html#zones">zone specifications</a>
 to give the same results as the examples above:
 </p>
 <blockquote><b>
-select ligand :<4.5 & protein
+select ligand :&lt;4.5 & protein
 <br>
-sel #1.2 @<8 & ~ #1.2
+sel #1.2 @&lt;8 & ~ #1.2
 <br>
-sel sel @<5
+sel sel @&lt;5
 </b></blockquote>
 <p>
 One advantage of <b>select zone</b>, however, is that it works with
@@ -198,4 +193,5 @@ non-atomic model types.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 June 2023</address>
+
 </body></html>

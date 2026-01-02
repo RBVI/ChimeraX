@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Build Structure</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Build Structure</h3>
 <p>
@@ -56,20 +51,20 @@ Sections:
 <ul>
 <li><a href="#start"><b>Start Structure</b></a>
 &ndash; add an atom, fragment, or molecule not bonded to existing atoms
-<li><a href="#modify"><b>Modify Structure</b></a>
+</li><li><a href="#modify"><b>Modify Structure</b></a>
 &ndash; change or delete existing atoms,
 build outward step-by-step from an existing structure
-<li><a href="#bonds"><b>Adjust Bonds</b></a>
+</li><li><a href="#bonds"><b>Adjust Bonds</b></a>
 &ndash; add bonds, delete bonds, change bond lengths
-<li><a href="#adjust"><b>Adjust Torsions</b></a>
+</li><li><a href="#adjust"><b>Adjust Torsions</b></a>
 &ndash; rotate bonds (change dihedral angles)
-<li><a href="#join"><b>Join Models</b></a>
+</li><li><a href="#join"><b>Join Models</b></a>
 &ndash; bond and merge two models, moving one of them to form the bond
-<li><a href="#invert"><b>Invert</b></a>
+</li><li><a href="#invert"><b>Invert</b></a>
 &ndash; swap substituents, potentially changing chirality
-<li><a href="#angles"><b>Adjust Angles</b></a>
+</li><li><a href="#angles"><b>Adjust Angles</b></a>
 &ndash; modify angles defined by three atoms
-</ul>
+</li></ul>
 
 <p class="nav">
 <a name="start"></a>
@@ -84,16 +79,16 @@ See also:
 <a href="../commands/open.html#fetch"><b>open</b></a>
 </p><p>
 Options to <b>Add</b>:
-<ul>
+</p><ul>
 <li> <b>atom</b> &ndash; a single atom of helium (used as the initial type
 since it exists as a singleton), with placement options:
   <ul>
   <li><b>Center of view</b>
-  <li><b>x</b>, <b>y</b> and <b>z</b> coordinates in the
+  </li><li><b>x</b>, <b>y</b> and <b>z</b> coordinates in the
   <a href="#startmodel">model</a> coordinate system (same as
   <a href="../commands/view.html#scenecoords">scene coordinates</a>
   unless the model has been moved separately)
-  </ul>
+  </li></ul>
 <b>Select placed atom</b> &ndash; whether to
 <a href="../selection.html">select</a> the new atom, such as for
 subsequent <a href="#modify">modification</a>
@@ -103,36 +98,33 @@ adds the atom(s) with the specified <b>Residue name</b>, in either
 <a name="startmodel">an existing molecule model</a>
 or a <b>new model</b> with a specified name.
 </p>
-<li><b>CCD ID</b> 
+</li><li><b>CCD ID</b> 
 &ndash; idealized structure of a chemical component 
-from the <a href="https://www.wwpdb.org/data/ccd"
-target="_blank">PDB Chemical Component Dictionary (CCD)</a>,
+from the <a href="https://www.wwpdb.org/data/ccd" target="_blank">PDB Chemical Component Dictionary (CCD)</a>,
 specified by ID (residue name) 
 <br><br>
-<li><b>fragment</b> 
+</li><li><b>fragment</b> 
 &ndash; the specified fragment, placed in the center of view.
 Several planar ring systems are available; a small diagram of the
 chosen fragment is displayed in the dialog.
 <br><br>
-<li><b>IUPAC name</b> 
+</li><li><b>IUPAC name</b> 
 &ndash; compound specified by IUPAC name; first the name is translated to
-a <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
-target="_blank">SMILES</a> string using the
+a <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html" target="_blank">SMILES</a> string using the
 <a href="https://opsin.ch.cam.ac.uk/index.html" target="_blank">OPSIN
-web service</a> provided by the <a href="https://www-cmi.ch.cam.ac.uk/" 
-target="_blank">Centre for Molecular Informatics</a> 
+web service</a> provided by the <a href="https://www-cmi.ch.cam.ac.uk/" target="_blank">Centre for Molecular Informatics</a> 
 at the University of Cambridge, and then the process
 described <a href="#smiles">below</a> for SMILES is used.
 <br><br>
-<li><b>nucleic double helix</b> 
+</li><li><b>nucleic double helix</b> 
 &ndash; a DNA, RNA, or DNA/RNA double helix specified by the sequence 
 of one strand (the DNA strand, in the case of a DNA/RNA hybrid;
 capitalization does not matter).
 A-form or B-form helical parameters can be used.
 <br><br>
-<li><b>peptide</b> &ndash; a peptide specified by
+</li><li><b>peptide</b> &ndash; a peptide specified by
 one-letter amino acid codes (capitalization does not matter).
-</p><p>
+<p></p><p>
 Clicking <b>Apply</b> brings up another dialog for specifying backbone
 &phi; (phi) and &psi; (psi) angles and other parameters.
 One or more rows can be <a href="#chosen">chosen</a>
@@ -140,10 +132,10 @@ with the mouse and <b>Set</b> to values either entered manually
 or supplied for various types of secondary structure:
 </p>
 <table border cellpadding="2" cellspacing="0" style="margin:8px 8px 8px 8px">
-<tr><th align="center">description</th>
+<tbody><tr><th align="center">description</th>
 <th align="center">&phi; (&deg;)</th><th align="center">&psi; (&deg;)</th>
 </tr><tr>
-<tr><td align="center">&alpha; helix</td>
+</tr><tr><td align="center">&alpha; helix</td>
 <td align="center">-57</td><td align="center">-47</td>
 </tr><tr>
 <td align="center">antiparallel &beta; strand</td>
@@ -152,13 +144,13 @@ or supplied for various types of secondary structure:
 <td align="center">parallel &beta; strand </td>
 <td align="center">-119</td><td align="center">113</td>
 </tr><tr>
-<tr><td align="center">3<sub>10</sub> helix</td>
+</tr><tr><td align="center">3<sub>10</sub> helix</td>
 <td align="center">-49</td><td align="center">-26</td>
 </tr><tr>
-<tr><td align="center">&pi; helix</td>
+</tr><tr><td align="center">&pi; helix</td>
 <td align="center">-57</td><td align="center">-70</td>
 </tr>
-</table>
+</tbody></table>
 <p>
 <a name="chosen"></a>
 A block of rows can be chosen by dragging, or by
@@ -168,19 +160,17 @@ and then <b>Shift</b>-clicking on its last (or first) line.
 Sidechain conformations will be taken from the specified <b>Rotamer library</b>
 (see <a href="../commands/swapaa.html#rotLib"><b>swapaa</b></a> for 
 literature citations):
-<ul>
-  <li><b>Dunbrack</b> &ndash; <a href="http://dunbrack.fccc.edu/bbdep2010/"
-target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>
+</p><ul>
+  <li><b>Dunbrack</b> &ndash; <a href="http://dunbrack.fccc.edu/bbdep2010/" target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>
 (5% stepdown; for chain-terminal residues,
 the Dunbrack 2002 backbone-independent version is used instead)
-  <li><b>Dynameomics</b> &ndash;
-<a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx"
-target="_blank">Dyameomics rotamer library</a>
- <li><b>Richardson (common-atom)</b> &ndash; common-atom values (author-recommended)
+  </li><li><b>Dynameomics</b> &ndash;
+<a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx" target="_blank">Dyameomics rotamer library</a>
+ </li><li><b>Richardson (common-atom)</b> &ndash; common-atom values (author-recommended)
 from the Richardson backbone-independent rotamer library
- <li><b>Richardson (mode)</b> &ndash; mode values
+ </li><li><b>Richardson (mode)</b> &ndash; mode values
 from the Richardson backbone-independent rotamer library
-</ul>
+</li></ul>
 <p>
 The rotamer at each position will be chosen as described for the command
 <a href="../commands/swapaa.html"><b>swapaa</b></a> with the
@@ -199,13 +189,11 @@ ff99 parameters. Sidechain bond lengths and angles are taken from the
 <a href="https://ambermd.org" target="_blank"><b>Amber</b></a>
 parameter files <b>all*94.lib</b>.
 </p>
-<li><b>PubChem CID</b> &ndash; a modeled structure from
-<a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
-target="_blank"><b>PubChem3D</b></a>, specified by
+</li><li><b>PubChem CID</b> &ndash; a modeled structure from
+<a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d" target="_blank"><b>PubChem3D</b></a>, specified by
 <a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank">PubChem</a>
 compound identifier (CID).
-<a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
-target="_blank"><b>PubChem3D</b></a>
+<a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d" target="_blank"><b>PubChem3D</b></a>
 includes most but not all PubChem Compound entries.
 Hydrogens are included, although it
 may be necessary to <a href="../commands/addh.html">add</a> or
@@ -213,9 +201,8 @@ may be necessary to <a href="../commands/addh.html">add</a> or
 to generate the desired protonation state.
 <br><br>
 <a name="smiles"></a>
-<li><b>SMILES string</b> &ndash; a 3D structure for the specified
-<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
-target="_blank">SMILES</a> string. The structure is generated using the
+</li><li><b>SMILES string</b> &ndash; a 3D structure for the specified
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html" target="_blank">SMILES</a> string. The structure is generated using the
 <a href="https://cactus.nci.nih.gov/translate/" target="_blank">SMILES
 translator</a> provided by the
 <a href="https://cactus.nci.nih.gov/" target="_blank">National Cancer Institute
@@ -224,7 +211,7 @@ Hydrogens are included, although it
 may be necessary to <a href="../commands/addh.html">add</a> or
 <a href="#deletion">delete</a> hydrogens
 to generate the desired protonation state.
-</ul>
+</li></ul>
 
 <a name="modify"></a>
 <p class="nav">
@@ -253,20 +240,20 @@ an atom when 0 or &gt;3 other atoms are already
 </p><p>
 Clicking <b>Apply</b> changes the 
 <a href="../selection.html">selected</a> atom as specified:
-<ul>
+</p><ul>
 <li><b>Element</b> &ndash; desired element
-<li><b>Bonds</b> &ndash; desired total number of substituents on the atom
+</li><li><b>Bonds</b> &ndash; desired total number of substituents on the atom
 (0-4 allowed); cannot be fewer than the current number of 
 substituents other than hydrogen.
 Atoms can be <a href="#deletion">deleted</a> beforehand.
-<li><b>Geometry</b> &ndash; target arrangement of bonds around the atom
+</li><li><b>Geometry</b> &ndash; target arrangement of bonds around the atom
   <ul>
   <li><b>linear</b> &ndash; allowed for 2 bonds, target bond angle 180&deg;
-  <li><b>trigonal</b> &ndash; allowed for 2-3 bonds,
+  </li><li><b>trigonal</b> &ndash; allowed for 2-3 bonds,
   target bond angle(s) 120&deg; in a plane
-  <li><b>tetrahedral</b> &ndash; allowed for 2-4 bonds,
+  </li><li><b>tetrahedral</b> &ndash; allowed for 2-4 bonds,
   target bond angle(s) 109.5&deg;
-  </ul>
+  </li></ul>
 <p>
 There is no checking as to whether the specified number of bonds 
 and geometry are chemically reasonable.
@@ -286,50 +273,50 @@ Bond lengths for X-H (X = C/N/O/S) are taken from the
 <a href="https://ambermd.org" target="_blank"><b>Amber</b></a>
 parm99 parameters.
 </p><p>
-<li style="list-style-type:none">Choices for atom name:
+</p></li><li style="list-style-type:none">Choices for atom name:
   <ul>
   <li><b>Retain current atom name</b>
-  <li><b>Set atom name to [<i>name</i>]</b>
-  </ul>
+  </li><li><b>Set atom name to [<i>name</i>]</b>
+  </li></ul>
 <p>
 In <a href="https://www.wwpdb.org/documentation/file-format-content/format33/sect9.html#ATOM" target="_blank">PDB format</a>,
 an atom name can be up to four characters long and should be unique
 within a residue. An atom name normally starts with the element symbol.
 </p>
-<li><b>Connect to pre-existing atoms if appropriate</b>
+</li><li><b>Connect to pre-existing atoms if appropriate</b>
 (default <b>on</b>)
 &ndash; if a newly added hydrogen would be very close to
 an existing atom in the same model as the
 <a href="../selection.html">selected</a> atom, discard
 the hydrogen and form a bond to the existing atom instead
-<li><b>Focus view on modified residue</b>
+</li><li><b>Focus view on modified residue</b>
 (default <b>off</b>) &ndash; 
 <a href="../commands/view.html#initial">focus the view</a> on the
 the residue containing the modified atom
-<li><b>Color new atoms by element</b> 
+</li><li><b>Color new atoms by element</b> 
 (default <b>on</b>) &ndash; 
 color-code the modified atom and any newly added hydrogens
 <a href="../commands/colortables.html#element">by element</a>
-</ul><ul>
+</li></ul><ul>
 <li style="list-style-type:none">Choices for <b>Residue Name</b>:
   <ul>
   <li><b>Leave unchanged</b>
-  <li><b>Change modified residue's name to [<i>resname</i>]</b>
+  </li><li><b>Change modified residue's name to [<i>resname</i>]</b>
 &ndash; change the residue name to <i>resname</i>
 for all atoms in the residue, not just the modified atom
 (appropriate when a standard residue is modified; for example,
 a methylated lysine should no longer be named LYS)
-  <li><b>Put just changed atoms in new residue named [<i>resname</i>]</b>
+  </li><li><b>Put just changed atoms in new residue named [<i>resname</i>]</b>
 &ndash; put the modified atom and any new hydrogens
 in a new residue named <i>resname</i>;
 otherwise, they will be included in the atom's current residue
-  </ul>
+  </li></ul>
 <p>
 In <a href="https://www.wwpdb.org/documentation/file-format-content/format33/sect9.html#ATOM" target="_blank">PDB format</a>,
 residue names are normally three characters long and chain identifiers a
 single character.
 </p>
-</ul>
+</li></ul>
 <p>
 <a name="deletion"></a>
 Clicking the <b>Delete</b> button at the bottom of
@@ -357,7 +344,7 @@ See also: <a href="../commands/bond.html"><b>bond</b></a>,
 <li><b>Delete selected bonds</b>
 &ndash; remove bonds that are <a href="../selection.html">selected</a>
 and/or between pairs of <a href="../selection.html">selected</a> atoms
-<li><b>Add</b> [<i>option</i>] <b>bonds between selected atoms</b> 
+</li><li><b>Add</b> [<i>option</i>] <b>bonds between selected atoms</b> 
 &ndash; add bonds between pairs of
 <a href="../selection.html">selected</a> atoms according to
 the <i>option</i> setting:
@@ -365,10 +352,10 @@ the <i>option</i> setting:
  <li><b>reasonable</b> (default) 
 &ndash; only if the atoms are no farther apart than the sum of their
 <a href="#covrad">covalent bond radii</a> + 0.4 &Aring;
- <li><b>all possible</b>
+ </li><li><b>all possible</b>
 &ndash; all pairwise combinations regardless of distance
- </ul>
-</ul>
+ </li></ul>
+</li></ul>
 <ul>
 <li><b>Set length of selected bonds to</b> [<i>length</i>] 
 &ndash; change the lengths of the currently selected bonds 
@@ -376,16 +363,16 @@ the <i>option</i> setting:
 <a href="../selection.html">selected</a>
 and/or between pairs of <a href="../selection.html">selected</a> atoms)
 to the value specified in the entry field or with the slider
-<li><b>Move atoms on</b> 
+</li><li><b>Move atoms on</b> 
 &ndash; which end to move when adjusting the length of a bond
   <ul>
   <li><b>smaller side</b> (default)
-  <li><b>larger side</b>
-  </ul>
-<li><b>Revert lengths</b> 
+  </li><li><b>larger side</b>
+  </li></ul>
+</li><li><b>Revert lengths</b> 
 &ndash; restore the currently selected bonds to their lengths when the bonds 
 were selected (not necessarily their original lengths)
-</ul>
+</li></ul>
 
 <a name="adjust"></a>
 <p class="nav">
@@ -409,12 +396,11 @@ See also:
 <a href="../commands/torsion.html"><b>torsion</b></a>, the
 <b>bond rotation</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
 <a href="mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="mouse-icons/bondrot.png"></a>
+<img class="icon" border="1" src="mouse-icons/bondrot.png" alt="computer generated image"></a>
 </p>
 <table class="clRight">
-<tr><td><img class="outline" src="torsions.png" width="400px"
-alt="Adjust Torsions dialog"></td></tr>
-</table>
+<tbody><tr><td><img class="outline" src="torsions.png" width="400px" alt="Adjust Torsions dialog"></td></tr>
+</tbody></table>
 <p>
 If the four atoms defining a torsion are called 1-2-3-4,
 atom 1 is <b>Fixed</b> and atom 4 is <b>Moving</b>,
@@ -429,8 +415,8 @@ This menu contains choices to:
 </p>
 <ul>
 <li><b>Reset to initial torsion angle</b>
-<li><b>Swap moving/fixed sides</b>
-</ul>
+</li><li><b>Swap moving/fixed sides</b>
+</li></ul>
 <p>
 When atom 2 is bonded to more than two atoms, there is more than one
 possible <b>Fixed</b> atom to define the measurement, and 
@@ -477,16 +463,16 @@ these atoms will be replaced as appropriate by the new peptide bond.
 The peptide bond will be added with the specified parameters:
   <ul>
   <li><b>C-N length</b> (default <b>1.330</b> &Aring;)
-  <li><b>C&alpha;-C-N-C&alpha; dihedral (&omega; angle)</b>
+  </li><li><b>C&alpha;-C-N-C&alpha; dihedral (&omega; angle)</b>
   (default <b>180.0</b>&deg;)
-  <li><b>C-N-C&alpha;-C dihedral (&phi; angle)</b>
+  </li><li><b>C-N-C&alpha;-C dihedral (&phi; angle)</b>
   (default <b>&ndash;120.0</b>&deg;)
-  <li><b>Move atoms in [&nbsp;selected N atom / selected C atom / smaller / 
+  </li><li><b>Move atoms in [&nbsp;selected N atom / selected C atom / smaller / 
    larger&nbsp;] model</b>
    &ndash; which of the two models to reposition when forming the bond
    (default <b>smaller</b>, falling back to <b>selected N atom</b>
    if the two models contain the same numbers of atoms)
-  </ul>
+  </li></ul>
 The values of <b>&omega;</b> (<b>omega</b>), <b>&phi;</b> (<b>phi</b>), and
 other peptide torsion angles are 
 <a href="../attributes.html#residue">attributes</a>
@@ -508,7 +494,7 @@ in a more local fashion with the
   <li><b>Bond length</b> 
 &ndash; length for the new bond in &Aring;, either entered directly
 or estimated from the covalent radii of the elements of the atoms to be bonded
-  <li><b>Set dihedral</b> 
+  </li><li><b>Set dihedral</b> 
 &ndash; allow specifying a <b>Dihedral</b> angle.
 This angle is defined by the newly bonded atoms (atom2, atom3) 
 and their flanking bonds (atom1-atom2, atom3-atom4). 
@@ -518,10 +504,10 @@ which atoms to use as atom1 and atom4. If <b>Set dihedral</b> is not used,
 the two models will simply be aligned along the vectors of the two bonds 
 to be replaced, with no attempt to rotate them to form a chemically 
 reasonable dihedral angle.
-  <li><b>Move atoms in [&nbsp;smaller / larger / <i>#N</i>&nbsp;] model</b>
+  </li><li><b>Move atoms in [&nbsp;smaller / larger / <i>#N</i>&nbsp;] model</b>
    &ndash; which of the two models to reposition when forming the bond
    (default <b>smaller</b>)
-</blockquote>
+</li></ul></blockquote>
 <p>
 Clicking <b>Apply</b> performs the join.
 If the new bond is between
@@ -557,11 +543,11 @@ Implicit hydrogens on the selected atom are considered, but not those
 on its substituents.
 These rules are not meant to reproduce the much more complex
 &ldquo;priority&rdquo; calculations used in chirality determination.
-<li>If two atoms directly bonded to the same central atom are
+</li><li>If two atoms directly bonded to the same central atom are
 <a href="../selection.html">selected</a>,
 clicking <b>Swap</b> will exchange the positions of the substituents
 rooted at those atoms.
-</ul>
+</li></ul>
 <p>
 Any unintended results can be reversed by clicking <b>Swap</b> again
 without changing the <a href="../selection.html">selection</a>.
@@ -599,8 +585,8 @@ identifier of atom 2. This menu contains choices to:
 </p>
 <ul>
 <li><b>Reset to initial angle</b>
-<li><b>Swap moving/fixed sides</b>
-</ul>
+</li><li><b>Swap moving/fixed sides</b>
+</li></ul>
 <p>
 The angle can be deactivated by clicking the &ldquo;x&rdquo; button
 to its left. To preserve the original position, make sure to reset
@@ -618,31 +604,29 @@ of untemplated residues (when not specified in the input structure file)
 and to generate crude bond lengths for building atomic structures.
 </p>
 <table border cellpadding="4" cellspacing="0">
-<tr><th align="center" colspan="2">Selected covalent bond radii
+<tbody><tr><th align="center" colspan="2">Selected covalent bond radii
 (&Aring;)</th></tr>
-<tr><td align=center>H</td> <td align=center>0.23</td></tr>
-<tr><td align=center>B</td> <td align=center>0.83</td></tr>
-<tr><td align=center>C</td> <td align=center>0.68</td></tr>
-<tr><td align=center>N</td> <td align=center>0.68</td></tr>
-<tr><td align=center>O</td> <td align=center>0.68</td></tr>
-<tr><td align=center>F</td> <td align=center>0.64</td></tr>
-<tr><td align=center>Si</td> <td align=center>1.20</td></tr>
-<tr><td align=center>P</td> <td align=center>1.05</td></tr>
-<tr><td align=center>S</td> <td align=center>1.02</td></tr>
-<tr><td align=center>Cl</td> <td align=center>0.99</td></tr>
-<tr><td align=center>Se</td> <td align=center>1.22</td></tr>
-<tr><td align=center>Br</td> <td align=center>1.21</td></tr>
-<tr><td align=center>I</td> <td align=center>1.40</td></tr>
-</table>
+<tr><td align="center">H</td> <td align="center">0.23</td></tr>
+<tr><td align="center">B</td> <td align="center">0.83</td></tr>
+<tr><td align="center">C</td> <td align="center">0.68</td></tr>
+<tr><td align="center">N</td> <td align="center">0.68</td></tr>
+<tr><td align="center">O</td> <td align="center">0.68</td></tr>
+<tr><td align="center">F</td> <td align="center">0.64</td></tr>
+<tr><td align="center">Si</td> <td align="center">1.20</td></tr>
+<tr><td align="center">P</td> <td align="center">1.05</td></tr>
+<tr><td align="center">S</td> <td align="center">1.02</td></tr>
+<tr><td align="center">Cl</td> <td align="center">0.99</td></tr>
+<tr><td align="center">Se</td> <td align="center">1.22</td></tr>
+<tr><td align="center">Br</td> <td align="center">1.21</td></tr>
+<tr><td align="center">I</td> <td align="center">1.40</td></tr>
+</tbody></table>
 
 <p>
 A complete list, obtained many years ago from documentation from the
-<a href="https://www.ccdc.cam.ac.uk"
-target="_blank">Cambridge Crystallographic Data Centre</a>,
+<a href="https://www.ccdc.cam.ac.uk" target="_blank">Cambridge Crystallographic Data Centre</a>,
 can be found in Table III of:
-<blockquote>
-<a href="https://onlinelibrary.wiley.com/doi/abs/10.1002/jcc.540120716"
-target="_blank">Determination of molecular topology and atomic hybridization
+</p><blockquote>
+<a href="https://onlinelibrary.wiley.com/doi/abs/10.1002/jcc.540120716" target="_blank">Determination of molecular topology and atomic hybridization
 states from heavy atom coordinates.</a> Meng EC, Lewis RA.
 <i>J Comput Chem</i> <b>12</b>:891 (1991).
 </blockquote>
@@ -650,4 +634,5 @@ states from heavy atom coordinates.</a> Meng EC, Lewis RA.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 October 2025</address>
+
 </body></html>

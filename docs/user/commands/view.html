@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: view</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: view</h3>
 <p>
@@ -32,16 +27,16 @@ The <b>view</b> command can:
 <li><a href="#initial">focus the view</a> on specified items 
 or &ldquo;all&rdquo;
 <a href="../tools/graphics.html" title="Graphics Toolbar">
-<img class="icon" border=1 src="../tools/shortcut-icons/viewsel.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/viewsel.png" alt="computer generated image"></a>
 <a href="../tools/graphics.html" title="Graphics Toolbar">
-<img class="icon" border=1 src="../tools/shortcut-icons/viewall.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/viewall.png" alt="computer generated image"></a>
 <a href="../tools/graphics.html" title="Graphics Toolbar">
-<img class="icon" border=1 src="../tools/shortcut-icons/orient.png"></a>
-<li>save and restore <a href="#name">named views</a>,
+<img class="icon" border="1" src="../tools/shortcut-icons/orient.png" alt="computer generated image"></a>
+</li><li>save and restore <a href="#name">named views</a>,
 including the positions of any models that have been moved separately
-<li>set model position <a href="#position">same as another</a>
-<li>set camera and model positions <a href="#matrix">using matrices</a>
-</ul>
+</li><li>set model position <a href="#position">same as another</a>
+</li><li>set camera and model positions <a href="#matrix">using matrices</a>
+</li></ul>
 <p>
 See also: 
 <a href="fly.html"><b>fly</b></a>,
@@ -109,10 +104,10 @@ With <b>cofr true</b> (default):
   <li>if <a href="atomspec.html"><i>spec</i></a> is not blank,
 the center of rotation will be set to track the
 <a href="cofr.html#method">center of view</a>
-  <li>if <a href="atomspec.html"><i>spec</i></a> is blank, 
+  </li><li>if <a href="atomspec.html"><i>spec</i></a> is blank, 
 the center of rotation method will be set to
 <a href="cofr.html#method">front center</a>
-  </ul>
+  </li></ul>
 <p>
 With <b>cofr false</b>, the pre-existing center of rotation method
 will not be changed.
@@ -138,28 +133,28 @@ they can be <a href="atomspec.html#builtin">specified</a> collectively
 with the word <b>sel</b>; for example, to Z-align a selection of two atoms
 and center the view on the residue(s) containing them:
 <b>view sel-residues zalign sel</b>
- </ul>
+ </li></ul>
 <b>zalign</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec1</i></a>&nbsp;<b>inFrontOf</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec2</i></a>
  <ul>
  <li>the geometric (non-mass-weighted) centers of two sets of atoms, 
 with the first set's center in front; for example, to Z-align the center of
 <a href="atomspec.html#builtin"><b>ligand</b></a> atoms in front of the 
 center of all other atoms: <b>view zalign ligand infrontof ~ligand</b>
- </ul>
+ </li></ul>
 <b>zalign</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>axis-spec</i></a>
  <ul>
  <li>a previously defined 
 <a href="../tools/axesplanes.html#define-axes">axis</a> object,
 specified by model number or as a 
 <a href="../selection.html">selection</a> with <b>sel</b>
- </ul>
+ </li></ul>
 <b>zalign</b>&nbsp;&nbsp;<a href="atomspec.html#othermodels"><i>plane-spec</i></a>
  <ul>
  <li>the normal axis of
 a previously defined <a href="../tools/axesplanes.html#define-plane">plane</a>
 object, specified by model number or as a 
 <a href="../selection.html">selection</a> with <b>sel</b>
- </ul>
+ </li></ul>
 </blockquote>
 <p>
 The <b>view initial</b> command removes rotations and translations of
@@ -262,9 +257,9 @@ The <b><i>screen coordinate system</i></b> has:
 </p>
 <ul>
 <li>X-axis horizontal increasing rightward
-<li>Y-axis vertical increasing upward
-<li>Z-axis perpendicular to the screen increasing toward the viewer
-</ul>
+</li><li>Y-axis vertical increasing upward
+</li><li>Z-axis perpendicular to the screen increasing toward the viewer
+</li></ul>
 
 <a name="position"></a>
 <p class="nav">
@@ -337,4 +332,5 @@ later applied from such a file. See also:
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 October 2025</address>
+
 </body></html>

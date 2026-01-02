@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,21 +9,18 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
+--><head>
 <title>Introduction to PDB Format</title>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
-<h2>Introduction to PDB Format</h2></a>
+<h2>Introduction to PDB Format</h2>
 
 <p>
 Protein Data Bank (PDB) format is a standard 
@@ -35,8 +30,7 @@ It is used for structures in the
 and is read and written by many programs.
 While this short description will suffice for many users,
 those in need of further details should consult the 
-<a href="https://www.wwpdb.org/documentation/file-format"
-target="_blank">definitive description</a>.
+<a href="https://www.wwpdb.org/documentation/file-format" target="_blank">definitive description</a>.
 The complete PDB file specification provides for a wealth of information,
 including authors, literature references, and the method of structure
 determination.  
@@ -48,7 +42,7 @@ Each line of information in the file is called a <b><i>record</i></b>.
 A PDB file generally contains several different types of records.
 </p>
 <table border align="center" width="90%" cellpadding="5" cellspacing="0">
-<tr>
+<tbody><tr>
 <th colspan="2">Selected Protein Data Bank Record Types</th>
 </tr><tr>
 <th>Record Type</th><th>Data Provided by Record</th>
@@ -85,7 +79,7 @@ of each strand in the model.  One record per strand.</td>
 <td><b>SSBOND</b></td>
 <td>defines disulfide bond linkages between cysteine residues.</td>
 </tr>
-</table>
+</tbody></table>
 <p>
 The formats of these record types are given in the tables below.
 Some differences between older and newer files occur in the fields following
@@ -97,12 +91,12 @@ location indicator when an atom does not have alternate locations.
 <blockquote><b>
 <ul class="none">
 <li><a href="#coords">Atomic Coordinates</a>
-<li><a href="#secondary">Secondary Structure</a>
-<li><a href="#examples">Examples</a>
-<li><a href="#errors">Common Errors</a>
-<li><a href="#hydrogens">Hydrogen Atoms</a>
-<li><a href="#PQR">PQR Format</a>
-</ul>
+</li><li><a href="#secondary">Secondary Structure</a>
+</li><li><a href="#examples">Examples</a>
+</li><li><a href="#errors">Common Errors</a>
+</li><li><a href="#hydrogens">Hydrogen Atoms</a>
+</li><li><a href="#PQR">PQR Format</a>
+</li></ul>
 </b></blockquote>
 
 <a name="coords"></a>
@@ -110,7 +104,7 @@ location indicator when an atom does not have alternate locations.
 [<a href="#top">back to top: Intro to PDB Format</a>]
 </p>
 <table border align="center" cellpadding="5px" cellspacing="0px">
-<tr><th colspan="5">Protein Data Bank Format:
+<tbody><tr><th colspan="5">Protein Data Bank Format:
 <br>Coordinate Section</th></tr>
 <tr><th>Record Type</th><th>Columns</th><th>Data</th>
 <th>Justification</th><th>Data Type</th></tr>
@@ -165,7 +159,7 @@ location indicator when an atom does not have alternate locations.
 </tr><tr>
 <td>27</td><td>Code for insertions of residues</td><td></td><td align="center">character</td>
 </tr>
-</table>
+</tbody></table>
 
 <p>
 <a name="note4"><sup>#</sup></a>
@@ -204,7 +198,7 @@ Chimera assigns it as the atom attribute <b>pdbSegment</b> to allow
 [<a href="#top">back to top: Intro to PDB Format</a>]
 </p>
 <table border align="center" cellpadding="5px" cellspacing="0px">
-<tr><th colspan="5">Protein Data Bank Format:
+<tbody><tr><th colspan="5">Protein Data Bank Format:
 <br>Protein Secondary Structure and Disulfides</th></tr>
 <tr><th>Record Type</th><th>Columns</th><th>Data</th>
 <th>Justification</th><th>Data Type</th></tr>
@@ -322,7 +316,7 @@ The following fields identify two atoms involved in a hydrogen bond,
 </tr><tr>
 <td>74-78</td><td>Length of disulfide bond</td><td align="center">right</td><td align="center">real (5.2)</td>
 </tr>
-</table>
+</tbody></table>
 <p>
 <a name="note2"><sup>&dagger;</sup></a>Helix types:
 <table cellspacing="0" cellpadding="5">
@@ -334,7 +328,7 @@ The following fields identify two atoms involved in a hydrogen bond,
 <col width="15">
 <col span="1">
 </colgroup>
-<tr>
+<tbody><tr>
 <td align="right">1</td><td></td><td>Right-handed alpha (default)</td>
 <td align="right">6</td><td></td><td>Left-handed alpha</td>
 </tr><tr>
@@ -350,7 +344,7 @@ The following fields identify two atoms involved in a hydrogen bond,
 <td align="right">5</td><td></td><td>Right-handed 3/10</td>
 <td align="right">10</td><td></td><td>Polyproline</td>
 </tr>
-</table>
+</tbody></table>
 </p><p>
 <a name="note3"><sup>&Dagger;</sup></a>Sense is 0 for strand 1
 (the first strand in a sheet), 1 for parallel, and &ndash;1 for antiparallel.
@@ -361,7 +355,7 @@ For those who are familiar with the FORTRAN programming language,
 the following format descriptions will be meaningful.
 Those unfamiliar with FORTRAN should ignore this gibberish:
 <table cellspacing="10">
-<tr>
+<tbody><tr>
 <td><b>ATOM</b><br><b>HETATM</b></td>
 <td>Format ( A6,I5,1X,A4,A1,A3,1X,A1,I4,A1,3X,3F8.3,2F6.2,10X,A2,A2 )</td>
 </tr><tr>
@@ -374,21 +368,20 @@ Those unfamiliar with FORTRAN should ignore this gibberish:
 <td><b>SSBOND</b></td>
 <td>Format ( A6,1X,I3,1X,A3,1X,A1,1X,I4,A1,3X,A3,1X,A1,1X,I4,A1,23X,2(2I3,1X),F5.2 )</td>
 </tr>
-</table>
+</tbody></table>
 
 <a name="examples">
-<p class="nav">
-[<a href="#top">back to top: Intro to PDB Format</a>]
+</a></p><p class="nav"><a name="examples">
+[</a><a href="#top">back to top: Intro to PDB Format</a>]
 </p>
-<h3>Examples of PDB Format</h3></a>
+<h3>Examples of PDB Format</h3>
 <p>
 Glucagon is a small protein of 29 amino acids in a single chain.
 The first residue is the amino-terminal amino acid, histidine,
 which is followed by a serine residue and then a glutamine.
 The coordinate information (entry <b>1gcn</b>) starts with:
 </p>
-<pre>
-ATOM      1  N   HIS A   1      49.668  24.248  10.436  1.00 25.00           N
+<pre>ATOM      1  N   HIS A   1      49.668  24.248  10.436  1.00 25.00           N
 ATOM      2  CA  HIS A   1      50.197  25.578  10.784  1.00 16.00           C
 ATOM      3  C   HIS A   1      49.169  26.701  10.917  1.00 16.00           C
 ATOM      4  O   HIS A   1      48.241  26.524  11.749  1.00 16.00           O
@@ -420,9 +413,9 @@ indicates a nitrogen and O indicates oxygen.
 In amino acid residues, 
 the next character is the remoteness indicator code, which is
 transliterated according to:
-<blockquote>
+</p><blockquote>
 <table>
-<tr>
+<tbody><tr>
 <td>&alpha;</td><td>A</td>
 </tr><tr>
 <td>&beta;</td><td>B</td>
@@ -437,10 +430,10 @@ transliterated according to:
 </tr><tr>
 <td>&eta;</td><td>H</td>
 </tr>
-</table>
+</tbody></table>
 </blockquote>
 The next character of the atom name is a branch indicator, if required.
-</p><p>
+<p></p><p>
 The next data field is the residue type.
 Notice that each record contains the residue type.
 In this example, the first residue in the chain is HIS (histidine)
@@ -463,8 +456,7 @@ If a data field does not apply, it should be left blank.
 </p><p>
 The glucagon
 data file continues in this manner until the final residue is reached:
-<pre>
-ATOM    239  N   THR A  29       3.391  19.940  12.762  1.00 21.00           N
+</p><pre>ATOM    239  N   THR A  29       3.391  19.940  12.762  1.00 21.00           N
 ATOM    240  CA  THR A  29       2.014  19.761  13.283  1.00 21.00           C
 ATOM    241  C   THR A  29       0.826  19.943  12.332  1.00 23.00           C
 ATOM    242  O   THR A  29       0.932  19.600  11.133  1.00 30.00           O
@@ -478,18 +470,16 @@ Note that this residue includes the extra oxygen atom OXT
 on the terminal carboxyl group.  Other than OXT and the rarely seen HXT,
 atoms in standard nucleotides and amino acids in version 3.0 PDB
 files are named according to the IUPAC recommendations 
-(<a href="http://publications.iupac.org/pac/70/1/0117/index.html"
-target="_blank">Markley <i>et al.</i></a>,
+(<a href="http://publications.iupac.org/pac/70/1/0117/index.html" target="_blank">Markley <i>et al.</i></a>,
 <i>Pure Appl Chem</i> <b>70</b>:117 (1998)).
 The TER record terminates the amino acid chain.
-</p><p>
+<p></p><p>
 A more complicated protein, hemoglobin, consists of four amino acid 
 chains, each with an associated heme group.  
 There are two alpha chains (identifiers
 A and C) and two beta chains (identifiers B and D).
 The first ten lines of coordinates for this molecule (entry <b>3hhb</b>) are:
-<pre>
-ATOM      1  N   VAL A   1       6.452  16.459   4.843  7.00 47.38           N
+</p><pre>ATOM      1  N   VAL A   1       6.452  16.459   4.843  7.00 47.38           N
 ATOM      2  CA  VAL A   1       7.060  17.792   4.760  6.00 48.47           C
 ATOM      3  C   VAL A   1       8.561  17.703   5.038  6.00 37.13           C
 ATOM      4  O   VAL A   1       8.992  17.182   6.072  8.00 36.25           O
@@ -501,8 +491,7 @@ ATOM      9  CA  LEU A   2      10.785  18.159   4.237  6.00 35.60           C
 ATOM     10  C   LEU A   2      11.247  19.305   5.133  6.00 35.47           C
 </pre>
 At the end of chain A, the heme group records appear:
-<pre>
-ATOM   1058  N   ARG A 141      -6.466  12.036 -10.348  7.00 19.11           N
+<pre>ATOM   1058  N   ARG A 141      -6.466  12.036 -10.348  7.00 19.11           N
 ATOM   1059  CA  ARG A 141      -7.922  12.248 -10.253  6.00 26.80           C
 ATOM   1060  C   ARG A 141      -8.119  13.499  -9.393  6.00 28.93           C
 ATOM   1061  O   ARG A 141      -7.112  13.967  -8.853  8.00 28.68           O
@@ -527,7 +516,7 @@ The TER record indicates the end of the peptide chain.
 It is important to have TER records at the end of peptide
 chains so a bond is not drawn from the
 end of one chain to the start of another.
-</p><p>
+<p></p><p>
 In the example above, the TER record is correct and should
 be present, but the molecule chain would still be terminated at that
 point even without a TER record, because HETATM residues
@@ -535,8 +524,7 @@ are not connected to other residues or to each other.
 The heme group is a single residue made up of HETATM records.
 </p><p>
 After the heme group associated with chain A, chain B begins:
-<pre>
-HETATM 1109  CAD HEM A   1       7.618   5.696 -20.432  6.00 21.38           C
+</p><pre>HETATM 1109  CAD HEM A   1       7.618   5.696 -20.432  6.00 21.38           C
 HETATM 1110  CBD HEM A   1       8.947   5.143 -20.947  6.00 29.03           C
 HETATM 1111  CGD HEM A   1       9.047   5.155 -22.461  6.00 30.08           C
 HETATM 1112  O1D HEM A   1      10.139   5.458 -22.959  8.00 33.72           O
@@ -558,18 +546,18 @@ Protein Data Bank format relies on the concept of <b><i>residues</i></b>:
 <li>Each atom in a residue must be uniquely identifiable.
 Two atoms in the same residue can only have the same name if they
 have different alternate location identifiers.
-<li>Residue names are a maximum of three characters
+</li><li>Residue names are a maximum of three characters
 long<sup><a href="#note5">&sect;</a></sup> 
 and uniquely identify the residue type.
 Thus, all residues of a given name should be the same type of residue
 and have the same structure (contain the same atoms with the same connectivity).
-</ul>
+</li></ul>
 
 <a name="errors">
-<p class="nav">
-[<a href="#top">back to top: Intro to PDB Format</a>]
+</a><p class="nav"><a name="errors">
+[</a><a href="#top">back to top: Intro to PDB Format</a>]
 </p>
-<h3>Common Errors in PDB Format Files</h3></a>
+<h3>Common Errors in PDB Format Files</h3>
 <p>
 If a data file fails to display correctly,
 it is sometimes difficult to determine where in the hundreds of lines of
@@ -582,16 +570,16 @@ This section enumerates some of the most common errors found in PDB files.
 <p>
 A couple of common errors in program-generated PDB files
 result in the display of very long bonds between residues:
-<ul>
+</p><ul>
 <li> Missing TER cards: Either a TER card or a change in the chain ID
 is needed to mark the end of a chain.
-<li> Improper use of ATOM records instead of HETATM records:
+</li><li> Improper use of ATOM records instead of HETATM records:
 HETATM records should be employed for compounds
 that do not form chains, such as water or heme.
 The first <i>six</i> columns of the
 ATOM record should be changed to HETATM so that the
 remaining columns stay aligned correctly.
-</ul>
+</li></ul>
 <p>
 Apart from any format errors,
 ChimeraX draws <a href="../pseudobonds.html">pseudobonds</a>
@@ -614,16 +602,14 @@ The difference can be seen clearly in a short segment of hemoglobin
 (entry <b>3hhb</b>):
 </p>
 <i>Correct:</i>
-<pre>
-HETATM 1071 FE   HEM A   1       8.128   7.371 -15.022 24.00 16.74          FE
+<pre>HETATM 1071 FE   HEM A   1       8.128   7.371 -15.022 24.00 16.74          FE
 HETATM 1072  CHA HEM A   1       8.617   7.879 -18.361  6.00 17.74           C
 HETATM 1073  CHB HEM A   1      10.356  10.005 -14.319  6.00 18.92           C
 HETATM 1074  CHC HEM A   1       8.307   6.456 -11.669  6.00 11.00           C
 HETATM 1075  CHD HEM A   1       6.928   4.145 -15.725  6.00 13.25           C
 </pre>
 <i>Incorrect:</i>
-<pre>
-HETATM 1071 FE   HEM A   1       8.128   7.371 -15.022 24.00 16.74          FE
+<pre>HETATM 1071 FE   HEM A   1       8.128   7.371 -15.022 24.00 16.74          FE
 HETATM 1072 CHA  HEM A   1       8.617   7.879 -18.361  6.00 17.74           C
 HETATM 1073 CHB  HEM A   1      10.356  10.005 -14.319  6.00 18.92           C
 HETATM 1074 CHC  HEM A   1       8.307   6.456 -11.669  6.00 11.00           C
@@ -635,8 +621,7 @@ HETATM 1075 CHD  HEM A   1       6.928   4.145 -15.725  6.00 13.25           C
 <p>
 One possible editing mistake is the failure to uniquely name all atoms within a given residue.
 In the following example, two atoms in the same residue are named CA:
-<pre>
-ATOM    185  N   VAL A  23      13.455  17.883  10.517  1.00  7.00           N
+</p><pre>ATOM    185  N   VAL A  23      13.455  17.883  10.517  1.00  7.00           N
 ATOM    186  CA  VAL A  23      12.574  17.403  11.589  1.00  7.00           C
 ATOM    187  C   VAL A  23      11.283  18.205  11.729  1.00  7.00           C
 ATOM    188  O   VAL A  23      10.233  17.600  12.052  1.00  7.00           O
@@ -650,7 +635,7 @@ ATOM    194  C   GLN A  24       9.158  19.638   9.692  1.00  8.00           C
 Depending on the display program, the residue may be shown with
 incorrect connectivity, or it may become evident only upon labeling
 that the residue is missing a CB atom.
-</p>
+<p></p>
 
 <h4>Residues Out of Sequence</h4>
 <p>
@@ -659,8 +644,7 @@ file is erroneously numbered residue 5.
 Many display programs will show this residue as connected to residues 1 and 3.
 If this residue was meant to be connected to residues 4 and 6 instead,
 it should appear between those residues in the PDB file.
-<pre>
-ATOM      1  N   HIS A   1      49.668  24.248  10.436  1.00 25.00           N
+</p><pre>ATOM      1  N   HIS A   1      49.668  24.248  10.436  1.00 25.00           N
 ATOM      2  CA  HIS A   1      50.197  25.578  10.784  1.00 16.00           C
 ATOM      3  C   HIS A   1      49.169  26.701  10.917  1.00 16.00           C
 ATOM      4  O   HIS A   1      48.241  26.524  11.749  1.00 16.00           O
@@ -679,7 +663,7 @@ ATOM     16  OG  SER A   5      49.145  31.057   9.176  1.00 19.00           O
 ATOM     17  N   GLN A   3      47.620  28.367   8.973  1.00 15.00           N
 ATOM     18  CA  GLN A   3      46.287  28.193   8.308  1.00 14.00           C
 </pre>
-</p>
+<p></p>
 
 <h4>Common Typos</h4>
 <p>
@@ -693,17 +677,17 @@ instances of the lowercase letter l.
 </p>
 
 <a name="hydrogens">
-<p class="nav">
-[<a href="#top">back to top: Intro to PDB Format</a>]
+</a><p class="nav"><a name="hydrogens">
+[</a><a href="#top">back to top: Intro to PDB Format</a>]
 </p>
-<h3>Hydrogen Atoms</h3></a>
+<h3>Hydrogen Atoms</h3>
 <p>
 In brief, conventions for hydrogen atoms in version 3.0 PDB format
 are as follows:
-<ul>
+</p><ul>
 <li>Hydrogen atom records follow the
 records of all other atoms of a particular residue.
-<li>A hydrogen atom name starts with H.  The next part of the name
+</li><li>A hydrogen atom name starts with H.  The next part of the name
 is based on the name of the connected nonhydrogen atom.
 For example, in amino acid residues, H is
 followed by the remoteness indicator (if any) of the connected atom,
@@ -713,23 +697,21 @@ an additional digit is appended so that each hydrogen atom will have
 a unique name.  Hydrogen atoms in standard nucleotides and amino acids 
 (other than the rarely seen HXT)
 are named according to the IUPAC recommendations
-(<a href="http://publications.iupac.org/pac/70/1/0117/index.html"
-target="_blank">Markley <i>et al.</i></a>,
+(<a href="http://publications.iupac.org/pac/70/1/0117/index.html" target="_blank">Markley <i>et al.</i></a>,
 <i>Pure Appl Chem</i> <b>70</b>:117 (1998)).
 Names of hydrogen atoms in HETATM
 residues are determined in a similar fashion.
-<li>If the name of a hydrogen has four characters, it is left-justified 
+</li><li>If the name of a hydrogen has four characters, it is left-justified 
 starting in column 13; if it has fewer than four characters, 
 it is left-justified starting in column 14.
-</ul>
+</li></ul>
 In the following excerpt from entry <b>1vm3</b>,
 atom H is attached to atom N.  Atom HA is attached to atom CA;
 the remoteness indicator A is the same for these atoms.
 Two hydrogen atoms are connected to CB, one is connected to CG,
 three are connected to CD1, and three are connected to CD2.
-</p>
-<pre>
-ATOM     10  N   LEU A   2       4.595   6.365   3.756  1.00  0.00           N
+<p></p>
+<pre>ATOM     10  N   LEU A   2       4.595   6.365   3.756  1.00  0.00           N
 ATOM     11  CA  LEU A   2       4.471   5.443   2.633  1.00  0.00           C
 ATOM     12  C   LEU A   2       5.841   5.176   2.015  1.00  0.00           C
 ATOM     13  O   LEU A   2       6.205   4.029   1.755  1.00  0.00           O
@@ -751,10 +733,10 @@ ATOM     28 HD23 LEU A   2       2.296   3.323   2.188  1.00  0.00           H
 </pre>
 
 <a name="PQR">
-<p class="nav">
-[<a href="#top">back to top: Intro to PDB Format</a>]
+</a><p class="nav"><a name="PQR">
+[</a><a href="#top">back to top: Intro to PDB Format</a>]
 </p>
-<h3>PQR Variant of PDB Format</h3></a>
+<h3>PQR Variant of PDB Format</h3>
 <p>
 Several programs use a modified PDB format called PQR, in which
 atomic partial charge (Q) and radius (R) fields follow the X,Y,Z 
@@ -763,8 +745,7 @@ coordinate fields in ATOM and HETATM records. An excerpt:
 first two residues of 2gbp; apparently chain ID is stripped;
 REMARK records not included here say that BGC was omitted 
 -->
-<pre>
-ATOM      1  N   ALA     1      46.457  12.189  21.556  0.1414 1.8240
+</p><pre>ATOM      1  N   ALA     1      46.457  12.189  21.556  0.1414 1.8240
 ATOM      2  CA  ALA     1      47.614  11.997  22.448  0.0962 1.9080
 ATOM      3  C   ALA     1      47.538  12.947  23.645  0.6163 1.9080
 ATOM      4  O   ALA     1      46.441  13.476  23.962 -0.5722 1.6612
@@ -796,7 +777,7 @@ requires only that all fields be whitespace-delimited.
 <a href="https://www.poissonboltzmann.org" target="_blank">PDB2PQR</a>
 is a program for structure cleanup, charge/radius assignment,
 and PQR file generation. 
-</p><p>
+<p></p><p>
 If an ATOM or HETATM record being read by ChimeraX is not in PDB format,
 ChimeraX next tries to read it as PQR format.  In that case,
 all fields up to and including the coordinates are still expected
@@ -819,4 +800,5 @@ or <a href="../commands/addcharge.html"><b>addcharge</b></a> command.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 December 2023</address>
+
 </body></html>

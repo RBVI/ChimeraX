@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: mutationscores</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: mutationscores</h3>
 <p>
@@ -51,10 +46,8 @@ or with the <a href="../commands/open.html"><b>open</b></a> command.
 Each file gives rise to a <b><i>mutation set</i></b>,
 and multiple mutation sets can be open at the same time.
 A mutation set can also be <a href="../commands/open.html#fetch">fetched</a>
-from the <a href="https://www.science.org/doi/10.1126/science.adg7492" 
-target="_blank">AlphaMissense database</a> (score name <b>amiss</b>) or from
-<a href="https://www.uniprot.org/help/disease_phenotypes_variants_section"
-target="_blank">UniProt Variants</a> (score names <b>PolyPhen</b> and
+from the <a href="https://www.science.org/doi/10.1126/science.adg7492" target="_blank">AlphaMissense database</a> (score name <b>amiss</b>) or from
+<a href="https://www.uniprot.org/help/disease_phenotypes_variants_section" target="_blank">UniProt Variants</a> (score names <b>PolyPhen</b> and
 <b>SIFT</b>).
 </p><p>
 Opening a mutation scores file
@@ -76,33 +69,32 @@ at the time of opening the mutation data, or later (after opening the data)
 with <a href="#structure"><b>mutationscores structure</b></a>.
 </p><p>
 See also: 
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html" 
-target="_blank">ChimeraX visualization of mutation scores</a>
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html" target="_blank">ChimeraX visualization of mutation scores</a>
 </p>
 <ul>
 <li><a href="#scatterplot"><b>mutationscores scatterplot</b></a>
 &ndash; plot mutants by two types of score
-<li><a href="#define"><b>mutationscores define</b></a>
+</li><li><a href="#define"><b>mutationscores define</b></a>
 &ndash; define a new score based on existing scores
-<li><a href="#undefine"><b>mutationscores undefine</b></a>
+</li><li><a href="#undefine"><b>mutationscores undefine</b></a>
 &ndash; remove a previously defined score
-<li><a href="#histogram"><b>mutationscores histogram</b></a>
+</li><li><a href="#histogram"><b>mutationscores histogram</b></a>
 &ndash; show a histogram of score values
-<li><a href="#label"><b>mutationscores label</b></a>
+</li><li><a href="#label"><b>mutationscores label</b></a>
 &ndash; show a color-coded grid of the score values 
 per position on the associated structure(s)
-<li><a href="#statistics"><b>mutationscores statistics</b></a>
+</li><li><a href="#statistics"><b>mutationscores statistics</b></a>
 &ndash; compute mutation score average and standard deviation 
-<li><a href="#umap"><b>mutationscores umap</b></a>
+</li><li><a href="#umap"><b>mutationscores umap</b></a>
 &ndash; project the 20 residue-type scores per sequence position
 into 2D with UMAP
-<li><a href="#structure"><b>mutationscores structure</b></a>
+</li><li><a href="#structure"><b>mutationscores structure</b></a>
 &ndash; associate mutation data with one or more specified structure chains
-<li><a href="#list"><b>mutationscores list</b></a>
+</li><li><a href="#list"><b>mutationscores list</b></a>
 &ndash; list the currently open sets of mutation data
-<li><a href="#close"><b>mutationscores close</b></a>
+</li><li><a href="#close"><b>mutationscores close</b></a>
 &ndash; close a set of mutation data
-</ul>
+</li></ul>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="scatterplot"></a>
@@ -115,10 +107,9 @@ into 2D with UMAP
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
 <table class="clRight">
-<tr><td><img border=1 src="scatterplot.png"
-alt="mutation scores scatter plot" width="300px">
+<tbody><tr><td><img border="1" src="scatterplot.png" alt="mutation scores scatter plot" width="300px">
 </td></tr>
-</table>
+</tbody></table>
 <p>
 Show a scatter plot of mutants for two scores, <i>x-score</i> and 
 <i>y-score</i>. Only mutants with values for both scores will be plotted.
@@ -159,14 +150,14 @@ drawn on the plot, and can be computed as one of:
 </p>
 <ul>
 <li><b>mean</b> &ndash; average of values
-<li><b>count</b> &ndash; how many different mutations are being used
-<li><b>sum absolute</b> &ndash; sum of absolute values
-<li><b>sum</b>
-<li><b>min</b>
-<li><b>max</b>
-<li><b>median</b>
-<li><b>stddev</b> &ndash; standard deviation
-</ul>
+</li><li><b>count</b> &ndash; how many different mutations are being used
+</li><li><b>sum absolute</b> &ndash; sum of absolute values
+</li><li><b>sum</b>
+</li><li><b>min</b>
+</li><li><b>max</b>
+</li><li><b>median</b>
+</li><li><b>stddev</b> &ndash; standard deviation
+</li></ul>
 <p>
 Choices of <b>palette</b> for coloring by mutation scores include:
 </p>
@@ -175,17 +166,17 @@ Choices of <b>palette</b> for coloring by mutation scores include:
 blue, white, another white, and red thresholds set to values
 0.66*min(score), 0.33*min(score), 0.33*max(score), 0.66*max(score),
 where min and max are taken across all residues being colored
-<li><b>red to blue</b> &ndash; for signed values, with
+</li><li><b>red to blue</b> &ndash; for signed values, with
 red, white, another white, and blue thresholds set to values
 0.66*min(score), 0.33*min(score), 0.33*max(score), 0.66*max(score) 
-<li><b>white to red</b> &ndash; for unsigned values
+</li><li><b>white to red</b> &ndash; for unsigned values
 (all positive or all negative), with
 white and red thresholds set to values min(score) and 
 [min(score) + 0.66*(max(score) &ndash; min(score))]
-<li><b>white to blue</b> &ndash; for unsigned values, with
+</li><li><b>white to blue</b> &ndash; for unsigned values, with
 white and blue thresholds set to values min(score) and 
 [min(score) + 0.66*(max(score) &ndash; min(score))]
-</ul>
+</li></ul>
 <p>
 Clicking <b>Adjust colors</b> shows the 
 <a href="../tools/render.html"><b>Render by Attribute</b></a> tool
@@ -201,77 +192,75 @@ only appear if there is an <a href="#associated">associated structure</a>:
 <ul>
 <li><b>Mutation [<i>mutant</i>]</b>
 &ndash; information for the user (no action): which mutant was clicked
-<li><b>Color mutations for [<i>mutant position</i>]</b>
+</li><li><b>Color mutations for [<i>mutant position</i>]</b>
 &ndash; color in green all circles representating mutations at the 
 same position as the clicked mutant
-<li><b>Color mutations near residue [<i>mutant position</i>]</b>
+</li><li><b>Color mutations near residue [<i>mutant position</i>]</b>
 &ndash; circles representating mutations at positions within 3.5 &Aring; of
 the position of the clicked mutant (in the 3D structure of the 
 <a href="#associated">associated structure(s)</a>)
-<li><b>Color mutations for selected residues</b>
+</li><li><b>Color mutations for selected residues</b>
 &ndash; color in cyan all circles representing mutations at positions
 of residues <a href="../selection.html">selected</a> in the 
 <a href="#associated">associated structure(s)</a>
-<li><b>Color synonymous mutations blue</b>
+</li><li><b>Color synonymous mutations blue</b>
 &ndash; color in blue all circles for &ldquo;mutants&rdquo; with
 the same residue type as the wild-type protein
-<li><b>Hide (Show) synonymous bounds</b>
+</li><li><b>Hide (Show) synonymous bounds</b>
 &ndash; dashed lines delimiting mean &plusmn; 2 standard deviations
 of results for mutants with the same residue type as the wild-type protein
-<li><b>Ctrl-drag colors structure</b>
+</li><li><b>Ctrl-drag colors structure</b>
 &ndash; Ctrl-dragging a rectangle in the plot shows the enclosed circles in
-green and <a href=../selection.html">selects</a> the corresponding
+green and <a href='../selection.html"'>selects</a> the corresponding
 structure residues; this option indicates whether to also color
 the corresponding structure residues <b>lime</b> 
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="lime" width="10px" title="lime"></td></tr></table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="lime" width="10px" title="lime"></td></tr></tbody></table>
 and the other structure residues <b>light gray</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="lightgray" width="10px" title="light gray"></td></tr></table>
-<li><b>Clear plot colors</b>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="lightgray" width="10px" title="light gray"></td></tr></tbody></table>
+</li><li><b>Clear plot colors</b>
 &ndash; color all circles gray
-</ul>
+</li></ul>
 The following entries apply to the
 <a href="#associated">associated structure(s)</a>:
 <ul>
 <li><b>Structure residue [<i>mutant position in structure</i>]</b>
 &ndash; information for the user (no action): the corresponding structure residue
-<li><b>Select</b>
+</li><li><b>Select</b>
 &ndash; <a href="../selection.html">select</a> the corresponding residue
-<li><b>Color green</b>
+</li><li><b>Color green</b>
 &ndash; color the ribbon and carbon atoms of the corresponding residue green
-<li><b>Color to match plot</b>
+</li><li><b>Color to match plot</b>
 &ndash; color the ribbon and carbon atoms of the corresponding residue to match
 the circle in the plot
-<li><b>Show side chain</b>
+</li><li><b>Show side chain</b>
 &ndash; show the sidechain atoms of the corresponding residue
-<li><b>Zoom to residue</b>
+</li><li><b>Zoom to residue</b>
 &ndash; zoom and clip to focus the view on the corresponding residue;
-clipping can be turned off with <a href="clip.html"><b>clip off</b><a>,
-or with <a href="view.html"><b>view</b></a> to view all
-<li><b>Label with [<i>x-score</i>] scores</b>
+clipping can be turned off with <a href="clip.html"><b>clip off</b></a><a>,
+or with </a><a href="view.html"><b>view</b></a> to view all
+</li><li><b>Label with [<i>x-score</i>] scores</b>
 &ndash; label the corresponding residue with a 
 <a href="#label">color-coded grid</a> of the <i>x-score</i>
 values for all substitutions at that position; the grid
 can be removed with <a href="label.html#delete"><b>label delete</b></a>
-<li><b>Label with [<i>y-score</i>] scores</b>
+</li><li><b>Label with [<i>y-score</i>] scores</b>
 &ndash; label the corresponding residue with a 
 <a href="#label">color-coded grid</a> of the <i>y-score</i>
 values for all substitutions at that position; the grid
 can be removed with <a href="label.html#delete"><b>label delete</b></a>
-</ul>
+</li></ul>
 The following relate to plots:
 <ul>
 <li><b>New plot</b> 
 &ndash; duplicate the current plot window to allow changing one copy
 while retaining the settings of the other
-<li><b>Show histogram</b> 
+</li><li><b>Show histogram</b> 
 &ndash; show a <a href="#histogram">histogram</a> of the X-axis values
-<li><b>Save Plot As...</b> save the scatter plot as an image file
+</li><li><b>Save Plot As...</b> save the scatter plot as an image file
 (PNG, SVG, or PDF)
-</ul>
+</li></ul>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -314,9 +303,9 @@ within a given range of a single type of score specified with
 This can also be achieved more flexibly, potentially involving more
 than one type of score, with the <b>ranges</b> option, which specifies a 
 boolean expression involving any existing score names along with
-"and", "or", "not", ">", ">=", "<", "<=", "!=", and "==" operators and 
-parentheses, for example, "mtx <= -1.5 and sn38 >= 1.0".
-<p>
+"and", "or", "not", "&gt;", "&gt;=", "&lt;", "&lt;=", "!=", and "==" operators and 
+parentheses, for example, "mtx &lt;= -1.5 and sn38 &gt;= 1.0".
+</p><p>
 A per-residue score has only a single value per position in the sequence.
 Several options create per-residue scores: 
 <b>synonymous true</b>, or <b>combine</b>, or <b>toAa</b>
@@ -331,7 +320,7 @@ An <a href="../attributes.html">attribute</a>
 can be shown with <a href="color.html#byattribute">coloring</a> and
 used in <a href="../selection.html">selection</a> and
 and <a href="atomspec.html#attributes">command-line specification</a>.
-<p>
+</p><p>
 The <b>subtractFit</b> option performs a linear least-squares fit of the 
 <i>from-score</i> to the <i>sub-score</i> and subtracts the linear values 
 from the <i>from-score</i> values. 
@@ -343,7 +332,7 @@ account for the different amounts of protein reaching the membrane.
 A limitation of this simplistic normalization, however, is that the variation
 in response might not be a linear function of the quantity of 
 surface-expressed protein.
-</blockquote>
+</p></blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="histogram"></a>
@@ -359,10 +348,9 @@ surface-expressed protein.
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
 <table class="clRight">
-<tr><td><img border=1 src="histogram.png"
-alt="mutation scores histogram" width="300px">
+<tbody><tr><td><img border="1" src="histogram.png" alt="mutation scores histogram" width="300px">
 </td></tr>
-</table>
+</tbody></table>
 Show a histogram of mutation scores, with bar-height scaling either linear or
 log (default <b>log</b>). The number of <b>bins</b> <i>b</i> in the histogram
 defaults to <b>20</b>. With <b>curve true</b> (default), a smooth curve
@@ -379,36 +367,34 @@ The histogram will replace a pre-existing histogram unless
 <b>replace false</b> is given. The menus below the histogram can be used
 to change which score is plotted and for which
 <a href="#mutationSet">mutation set</a>. 
-</p><p>
+<p></p><p>
 Clicking the histogram raises a context menu, including:
 </p>
 <ul>
 <li><b>Switch log (linear) to linear (log) scale</b> 
 &ndash; type of histogram bar scaling
-<li><b>Hide (Show) synonymous</b>
+</li><li><b>Hide (Show) synonymous</b>
 &ndash; blue histogram bars showing results for &ldquo;mutants&rdquo;
 with the same residue type as the wild-type protein
-<li><b>Hide (Show) synonymous bounds</b>
+</li><li><b>Hide (Show) synonymous bounds</b>
 &ndash; dashed lines delimiting mean &plusmn; 2 standard deviations
 of results for mutants with the same residue type as the wild-type protein
-<li><b>Ctrl-drag colors structure</b>
+</li><li><b>Ctrl-drag colors structure</b>
 &ndash; Ctrl-dragging a rectangle in the plot
-<a href=../selection.html">selects</a> the corresponding
+<a href='../selection.html"'>selects</a> the corresponding
 structure residues; this option indicates whether to also color
 the corresponding structure residues <b>lime</b> 
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="lime" width="10px" title="lime"></td></tr></table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="lime" width="10px" title="lime"></td></tr></tbody></table>
 and the other structure residues <b>light gray</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="lightgray" width="10px" title="light gray"></td></tr></table>
-<li><b>New histogram</b> 
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="lightgray" width="10px" title="light gray"></td></tr></tbody></table>
+</li><li><b>New histogram</b> 
 &ndash; duplicate the current plot window to allow changing one copy
 while retaining the settings of the other
-<li><b>Save Plot As...</b> save the histogram as an image file
+</li><li><b>Save Plot As...</b> save the histogram as an image file
 (PNG, SVG, or PDF)
-</ul>
+</li></ul>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -425,10 +411,9 @@ while retaining the settings of the other
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
 <table class="clRight">
-<tr><td><img src="mutationlabel.png"
-alt="mutation scores residue label" width="80px">
+<tbody><tr><td><img src="mutationlabel.png" alt="mutation scores residue label" width="80px">
 </td></tr>
-</table>
+</tbody></table>
 Label each of the specified residues in the 
 <a href="#associated">associated structure(s)</a>
 with a grid of all possible substitutions (the 20 standard amino acids) 
@@ -438,20 +423,18 @@ The coloring defaults are:
 <b><a href="color.html#palette">palette</a> redblue
 &nbsp;<a href="color.html#range">range</a> full</b>
   </blockquote>
-... meaning <table border=1 cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=red width="10px" title="red"></td>
-<td bgcolor=white width="10px" title="white"></td>
-<td bgcolor=blue width="10px" title="blue"></td>
-</tr></table> 
+... meaning <table border="1" cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="red" width="10px" title="red"></td>
+<td bgcolor="white" width="10px" title="white"></td>
+<td bgcolor="blue" width="10px" title="blue"></td>
+</tr></tbody></table> 
 across the full range of values (including the values of
 residues not being labeled).
 A narrower range can be specified as comma-separated values <i>low,high</i>.
 The <b>noDataColor</b> is used for residues without mutation scores (default 
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=#B4B4B4 width="10px" title="#B4B4B4"></td>
-</tr></table>).
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="#B4B4B4" width="10px" title="#B4B4B4"></td>
+</tr></tbody></table>).
 <p>
 The label <b>height</b>&nbsp;&nbsp;<i>h</i> defaults to <b>1.5</b> &Aring;.
 The <b>offset</b>&nbsp;&nbsp;<i>x,y,z</i> is the position of the
@@ -462,7 +445,7 @@ to draw the labels on top of other objects regardless of their
 relative positions in 3D (default <b>false</b>).
 The labels can be removed with 
 <a href="label.html#delete"><b>label delete</b></a>.
-</blockquote>
+</p></blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="statistics"></a>
@@ -484,8 +467,7 @@ can be used to include the scores of missense mutants as well.
 <blockquote>
 Project the 20-dimensional vector of the scores of the 20 amino acid types
 at each sequence position into 2D using UMAP
-(<a href="https://umap-learn.readthedocs.io/en/latest/"
-target="_blank">Uniform Manifold Approximation and Projection</a>).
+(<a href="https://umap-learn.readthedocs.io/en/latest/" target="_blank">Uniform Manifold Approximation and Projection</a>).
 In the UMAP plot, each sequence position is shown as a circle labeled with
 the residue number and colored by the wild-type residue (20 distinct colors
 for the 20 residue types). Only positions at which all 20 residue types 
@@ -499,7 +481,7 @@ has not revealed any striking patterns.
 &nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
 [&nbsp;<b>allowMismatches</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignSequences</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;|&nbsp;<i>alignment-ID</i>&nbsp;|&nbsp;<i>sequence</i>&nbsp;]
-[&nbsp;<b>minimumPercentIdentity</b></a>&nbsp;&nbsp;<i>percent-ID</i>&nbsp;]
+[&nbsp;<b>minimumPercentIdentity</b>&nbsp;&nbsp;<i>percent-ID</i>&nbsp;]
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
 Designate one or more structure chains to be associated with the mutation 
@@ -521,8 +503,8 @@ data (using X for any missing residues) with the specified structure chain
 using the Needleman-Wunsch algorithm; if multiple structure chains are 
 specified, attempt aligning with each and discard those with less than 
 <b>minimumPercentIdentity</b> <i>percent-ID</i> (default <b>50</b>%)
-<li><b>false</b> &ndash; same as omitting the <b>alignSequences</b> option
-<li>a sequence alignment aleady open in the
+</li><li><b>false</b> &ndash; same as omitting the <b>alignSequences</b> option
+</li><li>a sequence alignment aleady open in the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
 specified by the <i>alignment-ID</i> shown in the title bar of that tool.
 The first sequence in the alignment must be the same as the sequence
@@ -533,7 +515,7 @@ same sequence, the alignment only needs to contain one copy, and the
 alignment may also contain additional sequences not used for association
 purposes.
 <br>&ndash; or &ndash;<br>
-<li>the sequence that goes with the mutation data, 
+</li><li>the sequence that goes with the mutation data, 
 to be aligned to the sequence(s) of the specified structure chain(s)
 using the Needleman-Wunsch algorithm.
 As with <a href="sequence.html#align"><b>sequence align</b></a>,
@@ -541,17 +523,17 @@ a <i>sequence</i> can be given as:
   <ul>
   <li>a <a href="https://www.uniprot.org" target="_blank">UniProt</a>
 name or accession number
-  <li>the <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+  </li><li>the <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
 of a structure chain already open in ChimeraX
-  <li>plain text of the entire amino acid sequence pasted directly
+  </li><li>plain text of the entire amino acid sequence pasted directly
 into the command line
-  <li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+  </li><li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
 in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
 in the form:
 &nbsp;<span class="nowrap"><i>alignment-ID</i>:<i>sequence-ID</i></span>&nbsp;
 (<a href="seqspec.html">details...</a>)
-  </ul>
-</ul>
+  </li></ul>
+</li></ul>
 <p>
 The <b>allowMismatches</b> option defaults to <b>true</b> if
 <b>alignSequences</b> is used, otherwise <b>false</b>.
@@ -560,7 +542,7 @@ Associations can also be specified with the
 <a href="open.html#chains"><b>chains</b></a> option of the 
 <a href="open.html#local"><b>open</b></a> command at the time
 of opening the mutation scores file.
-</blockquote>
+</p></blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="list"></a>
@@ -587,4 +569,5 @@ with <a href="#list"><b>mutationscores list</b></a>.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 December 2025</address>
+
 </body></html>

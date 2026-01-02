@@ -1,4 +1,5 @@
-def start_server(runs_directory, boltz_exe, host = None, port = 30172, device = 'gpu', extra_options = []):
+def start_server(runs_directory, boltz_exe, host = None, port = 30172,
+                 device = 'gpu', gpus = None, extra_options = []):
     # Get the hostname
     if not host:
         host = _default_host()
@@ -9,7 +10,7 @@ def start_server(runs_directory, boltz_exe, host = None, port = 30172, device = 
 
     server_socket.listen()
 
-    prediction_queue = create_prediction_queue()
+    prediction_queue = create_prediction_queue(gpus)
     
     while True:
         client_socket, address = server_socket.accept()  # Accept new connection
@@ -44,22 +45,24 @@ def start_server(runs_directory, boltz_exe, host = None, port = 30172, device = 
 
     server_socket.close()
 
-def create_prediction_queue():
+def create_prediction_queue(gpus = None):
     import queue
     prediction_queue = queue.Queue()
 
-    from threading import Thread
-    t = Thread(target=run_queued_predictions, args=(prediction_queue,))
-    t.daemon = True # Daemon threads don't block the main program from exiting
-    t.start()
+    gpu_ids = gpus if gpus else [None]
+    for gpu_id in gpu_ids:
+        from threading import Thread
+        t = Thread(target=run_queued_predictions, args=(prediction_queue,), kwargs = {'gpu_id': gpu_id})
+        t.daemon = True # Daemon threads don't block the main program from exiting
+        t.start()
 
     return prediction_queue
     
-def run_queued_predictions(prediction_queue):
+def run_queued_predictions(prediction_queue, gpu_id = None):
     while True:
         try:
             p = prediction_queue.get()
-            p.run()
+            p.run(gpu_id = gpu_id)
         except Exception as e:
             log(f'error running prediction queue: {str(e)}')
 
@@ -107,9 +110,9 @@ class BoltzPrediction:
         self._address = address
         self._device = device		# 'gpu' or 'cpu'
         self._extra_options = extra_options  # e.g. for low mem ['--use_cpu_memory', '--inplace_operations']
-    def run(self):
+    def run(self, gpu_id = None):
         try:
-            run_boltz_prediction(self._zip_path, self._boltz_exe, device = self._device,
+            run_boltz_prediction(self._zip_path, self._boltz_exe, device = self._device, gpu_id = gpu_id,
                                  extra_options = self._extra_options)
             log(f'prediction {self._job_id} finished')
         except Exception as e:
@@ -123,7 +126,7 @@ class BoltzPrediction:
         with open(join(run_dir, 'error'), 'w') as f:
             f.write(msg)
 
-def run_boltz_prediction(zip_path, boltz_exe, device = 'gpu', extra_options = []):
+def run_boltz_prediction(zip_path, boltz_exe, device = 'gpu', gpu_id = None, extra_options = []):
     from zipfile import ZipFile
     zf = ZipFile(zip_path)
 
@@ -135,7 +138,7 @@ def run_boltz_prediction(zip_path, boltz_exe, device = 'gpu', extra_options = []
     zf.extractall(run_dir)
 
     log('running boltz')
-    run_boltz(run_dir, boltz_exe, device=device, extra_options=extra_options)
+    run_boltz(run_dir, boltz_exe, device=device, gpu_id=gpu_id, extra_options=extra_options)
 
     from os.path import join, basename, dirname
     job_id = basename(zip_path).removesuffix('.zip').removeprefix('boltz_job_')
@@ -146,10 +149,10 @@ def run_boltz_prediction(zip_path, boltz_exe, device = 'gpu', extra_options = []
     from os import rename
     rename(results_zip_tmp, results_zip)
 
-def run_boltz(directory, boltz_exe, device = 'gpu', extra_options = []):
+def run_boltz(directory, boltz_exe, device = 'gpu', gpu_id = None, extra_options = []):
+    env = {}
     from sys import platform
     if platform == 'darwin':
-        env = {}
         # On Mac PyTorch uses MPS (metal performance shaders) but not all functions are implemented
         # on the GPU (Feb 10, 2025) so PYTORCH_ENABLE_MPS_FALLBACK=1 allows these to run on the CPU.
         env['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
@@ -157,9 +160,13 @@ def run_boltz(directory, boltz_exe, device = 'gpu', extra_options = []):
         # certifi root certificates.
         import certifi
         env["SSL_CERT_FILE"] = certifi.where()
-    else:
-        env = None
 
+    if gpu_id is not None:
+        env['CUDA_VISIBLE_DEVICES'] = gpu_id
+
+    if len(env) == 0:
+        env = None
+        
     from os.path import join
     command_file = join(directory, 'command')
     with open(command_file, 'r') as f:
@@ -343,16 +350,14 @@ def boltz_server_start(session,
                        boltz_exe = None,
                        jobs_directory = '~/boltz_server_jobs',
                        device = 'gpu',
+                       gpus = None,
                        extra_options = None,
                        server_log = 'boltz_server_log'):
     if host is None:
         host = _default_host()
 
-    from os.path import expanduser, exists, join
+    from os.path import expanduser, join
     jobs_directory = expanduser(jobs_directory)
-    if not exists(jobs_directory):
-        from os import mkdir
-        mkdir(jobs_directory)
 
     if boltz_exe is None:
         from .settings import _boltz_settings
@@ -368,6 +373,8 @@ def boltz_server_start(session,
            '--boltz_exe', boltz_exe, '--jobs_directory', jobs_directory]
     if device == 'cpu':
         cmd.append('--cpu')
+    if gpus:
+        cmd.extend(['--gpus', gpus])
     if extra_options:
         cmd.extend(['--extra_options', f'"{extra_options}"'])
         
@@ -462,6 +469,7 @@ def register_boltz_server_command(logger):
                    ('boltz_exe', StringArg),
                    ('jobs_directory', StringArg),
                    ('device', EnumOf(['gpu', 'cpu'])),
+                   ('gpus', StringArg),
                    ('extra_options', StringArg),
                    ],
         synopsis = 'Start a Boltz prediction server',
@@ -493,19 +501,33 @@ def _start_server():
 
     from argparse import ArgumentParser
     p = ArgumentParser(prog = 'ChimeraX Boltz Server', description = description)
-    p.add_argument('--host')
-    p.add_argument('--port', type = int, default = 30172)
+    p.add_argument('--host',
+                   help = 'Host name or IP address for listening.  Default uses Python socket module gethostname() and gethostbyname().')
+    p.add_argument('--port', type = int, default = 30172,
+                   help = 'Port number for connecting to server.  Default 30172.')
     from os.path import expanduser
-    p.add_argument('--boltz_exe', default = expanduser('~/boltz22/bin/boltz'))
-    p.add_argument('--jobs_directory', default = expanduser('~/boltz_server_jobs'))
-    p.add_argument('--cpu', action = 'store_true', default = False)
-    p.add_argument('--extra_options')
+    p.add_argument('--boltz_exe', default = expanduser('~/boltz22/bin/boltz'),
+                   help = 'Path to the boltz executable.  Default is ~/boltz22/bin/boltz')
+    p.add_argument('--jobs_directory', default = expanduser('~/boltz_server_jobs'),
+                   help = 'Directory where to place prediction job zip files and directories.  The directory will be created if it does not exist.  A log file boltz_server_log will also be created in this directory.  Default is ~/boltz_server_jobs')
+    p.add_argument('--cpu', action = 'store_true', default = False,
+                   help = 'Whether to run predictions on CPU instead of GPU.  Default false.')
+    p.add_argument('--gpus',
+                   help = 'Comma separated list of integer CUDA GPU ids.  Can run a separate prediction on each GPU in parallel.  By default uses just one GPU.')
+    p.add_argument('--extra_options',
+                   help = 'Extra boltz options to add for each prediction.  For example, "--use_cpu_memory" to handle larger predictions with low memory Boltz variants.')
     args = p.parse_args()
     device = 'cpu' if args.cpu else 'gpu'
+    gpus = args.gpus.split(',') if args.gpus else None
     extra_options = args.extra_options.removeprefix('"').removesuffix('"').split() if args.extra_options else []
 
+    from os.path import exists
+    if not exists(args.jobs_directory):
+        from os import mkdir
+        mkdir(args.jobs_directory)
+
     start_server(args.jobs_directory, args.boltz_exe, args.host, args.port,
-                 device = device, extra_options = extra_options)
+                 device = device, gpus = gpus, extra_options = extra_options)
 
 if __name__ == '__main__':
     _start_server()

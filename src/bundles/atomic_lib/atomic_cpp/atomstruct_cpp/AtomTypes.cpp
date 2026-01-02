@@ -1422,6 +1422,11 @@ t0 = t1;
                         int n3geom = (*gi).second.geometry;
                         if (n3geom != 3)
                             continue;
+                        if (n3->neighbors().size() == 1) {
+                            all_single = false;
+                            ambiguous = false;
+                            break;
+                        }
                         ambiguous = true;
                         all_single = false;
                     }

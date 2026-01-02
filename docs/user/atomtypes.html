@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="userdocs.css">
 <title>Atom Types in ChimeraX</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="index.html">
-<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3>Atom Types in ChimeraX</h3>
 <p>
@@ -50,10 +45,9 @@ and changed with the command <b>setattr</b>.
 </p><p>
 For determination from coordinates,
 the algorithm and atom types are adapted from the program IDATM:
-<blockquote>
+</p><blockquote>
 <a name="idatm-paper"></a>
-<a href="https://onlinelibrary.wiley.com/doi/abs/10.1002/jcc.540120716"
-target="_blank">Determination of molecular topology and atomic hybridization
+<a href="https://onlinelibrary.wiley.com/doi/abs/10.1002/jcc.540120716" target="_blank">Determination of molecular topology and atomic hybridization
 states from heavy atom coordinates.</a>
 Meng EC, Lewis RA.
 <i>J Comput Chem.</i> 1991 Sep;12(7):891-8.
@@ -66,63 +60,63 @@ a carboxylate carbon is also <i>sp</i><sup>2</sup>-hybridized,
 it is assigned the <b>Cac</b> type.
 Since the categorizations in ChimeraX differ from those in the original
 method, the same type may appear in more than one row in the following table.
-</p>
+<p></p>
 
 <table border cellpadding="4" cellspacing="0" width="95%">
-<TR><th colspan="2" style="color:black; background-color:#cccccc">atom type</th>
+<tbody><tr><th colspan="2" style="color:black; background-color:#cccccc">atom type</th>
 <th rowspan="2" class="shaded">description</th></tr>
-<TR><th class="shaded">ChimeraX</th><th class="shaded">IDATM paper</th></tr>
-<TR> <td align=center>C3</td> <td align=center>C3</td> <td><i>sp</i><sup>3</sup>-hybridized carbon</td></tr>
-<TR> <td align=center>C2</td> <td align=center>C2</td> <td><i>sp</i><sup>2</sup>-hybridized carbon</td></tr>
-<TR> <td align=center>Car</td> <td align=center>C2</td> <td>aromatic carbon</td></tr>
-<TR> <td align=center>Cac</td> <td align=center>Cac</td> <td>carboxylate carbon</td></tr>
-<TR> <td align=center>C1</td> <td align=center>C1</td> <td><i>sp</i>-hybridized carbon</td></tr>
-<TR> <td align=center>C1&ndash;</td> <td align=center>C1</td> <td><i>sp</i>-hybridized carbon with formal negative charge (carbon monoxide)</td></tr>
-<TR> <td align=center>N3+</td> <td align=center>N3+, Nox</td> <td><i>sp</i><sup>3</sup>-hybridized nitrogen with formal positive charge</td></tr>
-<TR> <td align=center>N3</td> <td align=center>N3</td> <td><i>sp</i><sup>3</sup>-hybridized nitrogen, formally neutral</td></tr>
-<TR> <td align=center>N2+</td> <td align=center>Npl</td> 
+<tr><th class="shaded">ChimeraX</th><th class="shaded">IDATM paper</th></tr>
+<tr> <td align="center">C3</td> <td align="center">C3</td> <td><i>sp</i><sup>3</sup>-hybridized carbon</td></tr>
+<tr> <td align="center">C2</td> <td align="center">C2</td> <td><i>sp</i><sup>2</sup>-hybridized carbon</td></tr>
+<tr> <td align="center">Car</td> <td align="center">C2</td> <td>aromatic carbon</td></tr>
+<tr> <td align="center">Cac</td> <td align="center">Cac</td> <td>carboxylate carbon</td></tr>
+<tr> <td align="center">C1</td> <td align="center">C1</td> <td><i>sp</i>-hybridized carbon</td></tr>
+<tr> <td align="center">C1&ndash;</td> <td align="center">C1</td> <td><i>sp</i>-hybridized carbon with formal negative charge (carbon monoxide)</td></tr>
+<tr> <td align="center">N3+</td> <td align="center">N3+, Nox</td> <td><i>sp</i><sup>3</sup>-hybridized nitrogen with formal positive charge</td></tr>
+<tr> <td align="center">N3</td> <td align="center">N3</td> <td><i>sp</i><sup>3</sup>-hybridized nitrogen, formally neutral</td></tr>
+<tr> <td align="center">N2+</td> <td align="center">Npl</td> 
 <td><i>sp</i><sup>2</sup>-hybridized ring nitrogen bonded to three other atoms,
 formally positive</td></tr>
-<TR> <td align=center>N2</td> <td align=center>Npl</td> 
+<tr> <td align="center">N2</td> <td align="center">Npl</td> 
 <td><i>sp</i><sup>2</sup>-hybridized nitrogen bonded to two other atoms,
 formally neutral (pyridine)</td></tr>
-<TR> <td align=center>Npl</td> <td align=center>Npl</td>
+<tr> <td align="center">Npl</td> <td align="center">Npl</td>
 <td><i>sp</i><sup>2</sup>-hybridized nitrogen bonded to three other atoms,
 formally neutral (amide, aniline)</td></tr>
-<TR> <td align=center>Ng+</td> <td align=center>Ng+</td> 
+<tr> <td align="center">Ng+</td> <td align="center">Ng+</td> 
 <td>resonance-equivalent nitrogen sharing formal positive charge 
 (guanidinium, amidinium)</td></tr>
-<TR> <td align=center>Ntr</td> <td align=center>Ntr</td> <td>nitro group nitrogen</td></tr>
-<TR> <td align=center>N1+</td> <td align=center>N1</td> <td><i>sp</i>-hybridized nitrogen bonded to two other atoms</td></tr>
-<TR> <td align=center>N1</td> <td align=center>N1</td> <td><i>sp</i>-hybridized nitrogen</td></tr>
-<TR> <td align=center>O3</td> <td align=center>O3</td> <td><i>sp</i><sup>3</sup>-hybridized oxygen</td></tr>
-<TR> <td align=center>O2</td> <td align=center>O2</td> <td><i>sp</i><sup>2</sup>-hybridized oxygen</td></tr>
-<TR> <td align=center>Oar+</td> <td align=center>(none)</td> <td>aromatic oxygen, formally positive (pyrylium)</td></tr>
-<TR> <td align=center>Oar</td> <td align=center>(none)</td> <td>aromatic oxygen, formally neutral</td></tr>
-<TR> <td align=center>O3&ndash;</td> <td align=center>O&ndash;</td> <td>possibly resonance-equivalent terminal oxygen on tetrahedral center (phosphate, sulfate, N-oxide)</td></tr>
-<TR> <td align=center>O2&ndash;</td> <td align=center>O&ndash;</td> <td>resonance-equivalent terminal oxygen on planar center (carboxylate, nitro, nitrate)</td></tr>
-<TR> <td align=center>O1+</td> <td align=center>(none)</td> <td><i>sp</i>-hybridized oxygen with formal positive charge (carbon monoxide)</td></tr>
-<TR> <td align=center>O1</td> <td align=center>(none)</td> <td><i>sp</i>-hybridized oxygen (nitric oxide)</td></tr>
-<TR> <td align=center>S3+</td> <td align=center>S3+</td> <td><i>sp</i><sup>3</sup>-hybridized sulfur with formal positive charge</td></tr>
-<TR> <td align=center>S3</td> <td align=center>S3</td> <td><i>sp</i><sup>3</sup>-hybridized sulfur</td></tr>
-<TR> <td align=center>S2</td> <td align=center>S2</td> <td><i>sp</i><sup>2</sup>-hybridized sulfur</td></tr>
-<TR> <td align=center>Sar</td> <td align=center>(none)</td> <td>aromatic sulfur</td></tr>
-<TR> <td align=center>S3&ndash;</td> <td align=center>S2</td> <td>terminal sulfur on tetrahedral center (thiophosphate)</td></tr>
-<TR> <td align=center>Sac</td> <td align=center>Sac</td> <td>sulfate, sulfonate, or sulfamate sulfur</td></tr>
-<TR> <td align=center>Son</td> <td align=center>Sox</td> <td>sulfone sulfur (>SO<sub>2</sub>)</td></tr>
-<TR> <td align=center>Sxd</td> <td align=center>Sox</td> <td>sulfoxide sulfur (>SO)</td></tr>
-<TR> <td align=center>S</td> <td align=center>S</td> <td>other sulfur</td></tr>
-<TR> <td align=center>B</td> <td align=center>Bac, Box, B</td> <td>boron</td></tr>
-<TR> <td align=center>P3+</td> <td align=center>P3+</td> <td><i>sp</i><sup>3</sup>-hybridized phosphorus with formal positive charge</td></tr>
-<TR> <td align=center>Pac</td> <td align=center>Pac</td> <td>phosphate, phosphonate, or phosphamate phosphorus</td></tr>
-<TR> <td align=center>Pox</td> <td align=center>Pox</td> <td>P-oxide phosphorus</td></tr>
-<TR> <td align=center>P</td> <td align=center>P</td> <td>other phosphorus</td></tr>
-<TR> <td align=center>HC</td> <td align=center>HC</td> <td>hydrogen bonded to carbon</td></tr>
-<TR> <td align=center>H</td> <td align=center>H</td> <td>other hydrogen</td></tr>
-<TR> <td align=center>DC</td> <td align=center>DC</td> <td>deuterium bonded to carbon</td></tr>
-<TR> <td align=center>D</td> <td align=center>D</td> <td>other deuterium</td></tr>
-<TR> <td align=center>(element symbol)</td> <td align=center>(element symbol)</td> <td>atoms of elements not mentioned above</td></tr>
-</table>
+<tr> <td align="center">Ntr</td> <td align="center">Ntr</td> <td>nitro group nitrogen</td></tr>
+<tr> <td align="center">N1+</td> <td align="center">N1</td> <td><i>sp</i>-hybridized nitrogen bonded to two other atoms</td></tr>
+<tr> <td align="center">N1</td> <td align="center">N1</td> <td><i>sp</i>-hybridized nitrogen</td></tr>
+<tr> <td align="center">O3</td> <td align="center">O3</td> <td><i>sp</i><sup>3</sup>-hybridized oxygen</td></tr>
+<tr> <td align="center">O2</td> <td align="center">O2</td> <td><i>sp</i><sup>2</sup>-hybridized oxygen</td></tr>
+<tr> <td align="center">Oar+</td> <td align="center">(none)</td> <td>aromatic oxygen, formally positive (pyrylium)</td></tr>
+<tr> <td align="center">Oar</td> <td align="center">(none)</td> <td>aromatic oxygen, formally neutral</td></tr>
+<tr> <td align="center">O3&ndash;</td> <td align="center">O&ndash;</td> <td>possibly resonance-equivalent terminal oxygen on tetrahedral center (phosphate, sulfate, N-oxide)</td></tr>
+<tr> <td align="center">O2&ndash;</td> <td align="center">O&ndash;</td> <td>resonance-equivalent terminal oxygen on planar center (carboxylate, nitro, nitrate)</td></tr>
+<tr> <td align="center">O1+</td> <td align="center">(none)</td> <td><i>sp</i>-hybridized oxygen with formal positive charge (carbon monoxide)</td></tr>
+<tr> <td align="center">O1</td> <td align="center">(none)</td> <td><i>sp</i>-hybridized oxygen (nitric oxide)</td></tr>
+<tr> <td align="center">S3+</td> <td align="center">S3+</td> <td><i>sp</i><sup>3</sup>-hybridized sulfur with formal positive charge</td></tr>
+<tr> <td align="center">S3</td> <td align="center">S3</td> <td><i>sp</i><sup>3</sup>-hybridized sulfur</td></tr>
+<tr> <td align="center">S2</td> <td align="center">S2</td> <td><i>sp</i><sup>2</sup>-hybridized sulfur</td></tr>
+<tr> <td align="center">Sar</td> <td align="center">(none)</td> <td>aromatic sulfur</td></tr>
+<tr> <td align="center">S3&ndash;</td> <td align="center">S2</td> <td>terminal sulfur on tetrahedral center (thiophosphate)</td></tr>
+<tr> <td align="center">Sac</td> <td align="center">Sac</td> <td>sulfate, sulfonate, or sulfamate sulfur</td></tr>
+<tr> <td align="center">Son</td> <td align="center">Sox</td> <td>sulfone sulfur (&gt;SO<sub>2</sub>)</td></tr>
+<tr> <td align="center">Sxd</td> <td align="center">Sox</td> <td>sulfoxide sulfur (&gt;SO)</td></tr>
+<tr> <td align="center">S</td> <td align="center">S</td> <td>other sulfur</td></tr>
+<tr> <td align="center">B</td> <td align="center">Bac, Box, B</td> <td>boron</td></tr>
+<tr> <td align="center">P3+</td> <td align="center">P3+</td> <td><i>sp</i><sup>3</sup>-hybridized phosphorus with formal positive charge</td></tr>
+<tr> <td align="center">Pac</td> <td align="center">Pac</td> <td>phosphate, phosphonate, or phosphamate phosphorus</td></tr>
+<tr> <td align="center">Pox</td> <td align="center">Pox</td> <td>P-oxide phosphorus</td></tr>
+<tr> <td align="center">P</td> <td align="center">P</td> <td>other phosphorus</td></tr>
+<tr> <td align="center">HC</td> <td align="center">HC</td> <td>hydrogen bonded to carbon</td></tr>
+<tr> <td align="center">H</td> <td align="center">H</td> <td>other hydrogen</td></tr>
+<tr> <td align="center">DC</td> <td align="center">DC</td> <td>deuterium bonded to carbon</td></tr>
+<tr> <td align="center">D</td> <td align="center">D</td> <td>other deuterium</td></tr>
+<tr> <td align="center">(element symbol)</td> <td align="center">(element symbol)</td> <td>atoms of elements not mentioned above</td></tr>
+</tbody></table>
 
 <a name="algorithm"></a>
 <p class="nav">
@@ -147,7 +141,7 @@ if the distance between them is no greater than the sum of their
 plus a tolerance of 0.4 &Aring;.  Atoms are sorted according to the
 number of nonhydrogen atoms they are bonded to; this will be referred to as
 heavy atom valence.
-<li>
+</li><li>
 <b>Fully Determined Atoms and Atoms With HAV &gt; 1.</b>
 The types of some atoms may already be fully determined at this stage; for
 example, HAV 4 carbons must be <i>sp</i><sup>3</sup>-hybridized.
@@ -159,11 +153,11 @@ reliable indicator of hybridization state.  Only one bond angle is available
 for HAV 2 atoms, and this is a less reliable indicator; HAV 2 carbon and
 nitrogen atoms are assigned types based on the angle but are marked for
 further examination.
-<li>
+</li><li>
 <b>Atoms with HAV = 1.</b>
 The only geometric information available for HAV 1 atoms is bond length.
 Types are assigned based on bond length and the type of the partner atom.
-<li>
+</li><li>
 <b>Resolution of Ambiguities and Identification of Charged Groups.</b>
 Atoms tagged for further examination in the second stage are retyped,
 if necessary, using bond length information.  Next, functional groups
@@ -175,7 +169,7 @@ guanidinium groups are identified; carboxylate and nitro groups are
 identified.  Finally, isolated <i>sp</i><sup>2</sup>-hybridized carbons (bonded
 to only <i>sp</i><sup>3</sup>-hybridized atoms) are retyped as 
 <i>sp</i><sup>3</sup>-hybridized carbons.
-</ol>
+</li></ol>
 <p>
 In ChimeraX, a few additional distinctions are made.  Carbons that are
 <i>sp</i><sup>2</sup>-hybridized and part of planar ring systems 
@@ -189,7 +183,7 @@ as are resonance-equivalent terminal oxygens sharing formal negative charge.
 </p><p>
 Some types depend on protonation states, and more information is used 
 to determine the protonation states of groups with pKa values close to 7:  
-<ul>
+</p><ul>
 <!--
 <li> The types of nitrogens in histidine sidechains may be adjusted when
 <b>addh</b> determines histidine protonation states. 
@@ -200,8 +194,8 @@ least 0.05 &Aring; longer than each of the others, that oxygen will be typed as
 <b>O3</b> instead of <b>O3&ndash;</b>. 
 A terminal <b>O3</b> oxygen will be protonated if/when hydrogens are added, 
 whereas terminal <b>O3&ndash;</b> oxygens will not.
-</ul>
-</p>
+</li></ul>
+<p></p>
 
 <a name="covrad"></a>
 <p class="nav">
@@ -217,31 +211,31 @@ for certain rarely encountered atom types.
 </p>
 
 <table border cellpadding="4" cellspacing="0">
-<tr><th align="center" colspan="2" class="shaded">Selected covalent bond radii
+<tbody><tr><th align="center" colspan="2" class="shaded">Selected covalent bond radii
 (&Aring;)</th></tr>
-<tr><td align=center>H</td> <td align=center>0.23</td></tr>
-<tr><td align=center>B</td> <td align=center>0.83</td></tr>
-<tr><td align=center>C</td> <td align=center>0.68</td></tr>
-<tr><td align=center>N</td> <td align=center>0.68</td></tr>
-<tr><td align=center>O</td> <td align=center>0.68</td></tr>
-<tr><td align=center>F</td> <td align=center>0.64</td></tr>
-<tr><td align=center>Si</td> <td align=center>1.20</td></tr>
-<tr><td align=center>P</td> <td align=center>1.05</td></tr>
-<tr><td align=center>S</td> <td align=center>1.02</td></tr>
-<tr><td align=center>Cl</td> <td align=center>0.99</td></tr>
-<tr><td align=center>Se</td> <td align=center>1.22</td></tr>
-<tr><td align=center>Br</td> <td align=center>1.21</td></tr>
-<tr><td align=center>I</td> <td align=center>1.40</td></tr>
-</table>
+<tr><td align="center">H</td> <td align="center">0.23</td></tr>
+<tr><td align="center">B</td> <td align="center">0.83</td></tr>
+<tr><td align="center">C</td> <td align="center">0.68</td></tr>
+<tr><td align="center">N</td> <td align="center">0.68</td></tr>
+<tr><td align="center">O</td> <td align="center">0.68</td></tr>
+<tr><td align="center">F</td> <td align="center">0.64</td></tr>
+<tr><td align="center">Si</td> <td align="center">1.20</td></tr>
+<tr><td align="center">P</td> <td align="center">1.05</td></tr>
+<tr><td align="center">S</td> <td align="center">1.02</td></tr>
+<tr><td align="center">Cl</td> <td align="center">0.99</td></tr>
+<tr><td align="center">Se</td> <td align="center">1.22</td></tr>
+<tr><td align="center">Br</td> <td align="center">1.21</td></tr>
+<tr><td align="center">I</td> <td align="center">1.40</td></tr>
+</tbody></table>
 
 <p>
 A longer list, obtained many years ago from documentation from the
-<a href="https://www.ccdc.cam.ac.uk"
-target="_blank">Cambridge Crystallographic Data Centre</a>,
+<a href="https://www.ccdc.cam.ac.uk" target="_blank">Cambridge Crystallographic Data Centre</a>,
 can be found in Table III of the paper cited <a href="#idatm-paper">above</a>.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 November 2018</address>
+
 </body></html>

@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head>
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: open</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: open</h3>
 
@@ -37,13 +32,13 @@ class="clRighticon" title="User Guide Index"/></a>
 <p>
 The command <b>open</b> reads data in several
 <a href="#formats">input formats</a> from:
-<p>
-<ul>
+</p><p>
+</p><ul>
 <li><a href="#local">local files</a>
-<li><a href="#url">URLs</a>
-<li><a href="#fetch">online sources</a>;
+</li><li><a href="#url">URLs</a>
+</li><li><a href="#fetch">online sources</a>;
 see also <a href="../fetch.html"><b>Fetch by ID</b></a>
-</ul>
+</li></ul>
 <p>
 Input files may contain data to be displayed or commands or code to be executed.
 </p><p>
@@ -60,12 +55,11 @@ See also:
 <a href="info.html"><b>info</b></a>,
 <a href="../tools/filehistory.html"><b>File History</b></a>,
 <b>Rapid Access</b>
-<img class="iconbar" src="../tools/ui-icons/lightning_night.png">
-<img class="iconbar" src="../tools/ui-icons/lightning_day.png">,
+<img class="iconbar" src="../tools/ui-icons/lightning_night.png" alt="computer generated image">
+<img class="iconbar" src="../tools/ui-icons/lightning_day.png" alt="computer generated image">,
 <a href="colortables.html#autocolors">initial colors</a>,
 <a href="../autostyle.html">automatic styling</a>,
-<a href="../../devel/bundles/mmcif/src/mmcif_guidelines.html"
-target="_blank">ChimeraX Fast mmCIF Guidelines</a>
+<a href="../../devel/bundles/mmcif/src/mmcif_guidelines.html" target="_blank">ChimeraX Fast mmCIF Guidelines</a>
 </p><p>
 Examples:
 </p>
@@ -97,26 +91,26 @@ The command <b>open formats</b> command lists the possible formats and
 </p>
 <ul>
 <li><a href="#atomic">Atomic Structures and Related Data</a>
-<li><a href="#trajectory">Trajectory Coordinates</a>
-<li><a href="#trajtop">Trajectory Topology</a>
-<li><a href="#volume">Volume Data and Related</a>
-<li><a href="#segmentation">Segmentations</a>
-<li><a href="#object">Other 3D Objects</a>
-<li><a href="#sequence">Sequences</a>
-<li><a href="#composite">Composite</a>
-<li><a href="#miscellaneous">Miscellaneous</a>
-</ul>
+</li><li><a href="#trajectory">Trajectory Coordinates</a>
+</li><li><a href="#trajtop">Trajectory Topology</a>
+</li><li><a href="#volume">Volume Data and Related</a>
+</li><li><a href="#segmentation">Segmentations</a>
+</li><li><a href="#object">Other 3D Objects</a>
+</li><li><a href="#sequence">Sequences</a>
+</li><li><a href="#composite">Composite</a>
+</li><li><a href="#miscellaneous">Miscellaneous</a>
+</li></ul>
 <center>
 <a name="file-table"><font size="+1"><b>File Types</b></font></a>
 </center>
 <table border cellpadding="4" cellspacing="0">
-<tr>
+<tbody><tr>
 <td align="center" style="color:black; background-color:#cccccc"><b>format</b></td>
 <td align="center" style="color:black; background-color:#cccccc"><span class="nowrap"><b><i>format-name</i></b></span></td>
 <td align="center" style="color:black; background-color:#cccccc"><b>suffix</b></td>
 <td align="center" style="color:black; background-color:#cccccc"><b>description</b></td>
 </tr><tr>
-<td colspan=4 align="center" class="shaded">
+<td colspan="4" align="center" class="shaded">
 <a name="atomic"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Atomic Structures and Related Data</b></td>
@@ -125,7 +119,7 @@ The command <b>open formats</b> command lists the possible formats and
 (Protein Data Bank)</a></td>
 <td align="center"><b>pdb</b></td>
 <td align="center">.pdb, .pdb1<br>.ent, .pqr
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">atomic coordinates and associated annotations;
 <br>if &gt;99,999 atoms, <b>amber</b> or <b>h36</b>
 <a href="save.html#pdb">serial numbering</a> must be used;
@@ -133,28 +127,24 @@ if <a href="../formats/pdbintro.html#PQR">PQR format</a>,
 atomic <a href="../radii.html">radius</a> is set;
 see also <a href="altlocs.html">alternate locations</a></td>
 </tr><tr>
-<td align="center"><a href="https://mmcif.wwpdb.org/docs/faqs/pdbx-mmcif-faq-general.html"
-target="_blank">PDBx/mmCIF</a></td>
+<td align="center"><a href="https://mmcif.wwpdb.org/docs/faqs/pdbx-mmcif-faq-general.html" target="_blank">PDBx/mmCIF</a></td>
 <td align="center"><b>mmcif</b></td>
 <td align="center">.cif<br>.mmcif</td>
 <td align="center">atomic coordinates and associated annotations
 <br>(see <a href="sym.html#assembly">assemblies from mmCIF</a>,
 <a href="hbonds.html#related">H-bonds from mmCIF</a>,
-<br><a href="../../devel/bundles/mmcif/src/mmcif_guidelines.html"
-target="_blank">ChimeraX Fast mmCIF Guidelines</a>,
+<br><a href="../../devel/bundles/mmcif/src/mmcif_guidelines.html" target="_blank">ChimeraX Fast mmCIF Guidelines</a>,
 and <a href="altlocs.html">alternate locations</a>;
 <br>see also the <a href="#fetchEmdbMap"><b>fetchEmdbMap</b></a> option)</td>
 </tr><tr>
-<td align="center" class="text"><a href="https://mmtf.rcsb.org/"
-target="_blank">MMTF (Macromolecular Transmission Format)</a></td>
+<td align="center" class="text"><a href="https://mmtf.rcsb.org/" target="_blank">MMTF (Macromolecular Transmission Format)</a></td>
 <td align="center"><b>mmtf</b></td>
 <td align="center">.mmtf
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">atomic coordinates and associated annotations</td>
 </tr><tr>
 <td align="center">
-<a href="http://ww1.iucr.org/iucr-top/cif/standard/cifstd1.html" 
-target="_blank">Crystallographic Information File (CIF)</td>
+<a href="http://ww1.iucr.org/iucr-top/cif/standard/cifstd1.html" target="_blank">Crystallographic Information File (CIF)</a></td>
 <td align="center"><b>corecif<br>smallcif</b></td>
 <td align="center">.cif</td>
 <td align="center">atomic coordinates and crystallographic information</td>
@@ -178,17 +168,13 @@ for analysis of docking results from
 <td align="center" class="text">atomic coordinates
 <br>
 (see <a href="../tools/viewdock.html"><b>ViewDock</b></a>
-for analysis of docking results from <a href="http://dock.compbio.ucsf.edu/" 
-target="_blank">UCSF&nbsp;DOCK</a>&nbsp;v4-6, 
-<a href="http://dock.compbio.ucsf.edu/DOCK3.7/" 
-target="_blank">DOCK&nbsp;v3.7</a>, or
-<a href="https://www.ccdc.cam.ac.uk/solutions/csd-discovery/components/gold/"
-target="_blank">GOLD</a>;
+for analysis of docking results from <a href="http://dock.compbio.ucsf.edu/" target="_blank">UCSF&nbsp;DOCK</a>&nbsp;v4-6, 
+<a href="http://dock.compbio.ucsf.edu/DOCK3.7/" target="_blank">DOCK&nbsp;v3.7</a>, or
+<a href="https://www.ccdc.cam.ac.uk/solutions/csd-discovery/components/gold/" target="_blank">GOLD</a>;
 <br>see also the <a href="#showTool"><b>showTool</b></a> option)
 </td>
 </tr><tr>
-<td align="center"><a href="http://autodock.scripps.edu/faqs-help/faq/what-is-the-format-of-a-pdbqt-file"
-target="_blank">PDBQT</a></td>
+<td align="center"><a href="http://autodock.scripps.edu/faqs-help/faq/what-is-the-format-of-a-pdbqt-file" target="_blank">PDBQT</a></td>
 <td align="center"><b>pdbqt</b></td>
 <td align="center">.pdbqt</td>
 <td align="center" class="text">atomic coordinates
@@ -199,15 +185,13 @@ for analysis of docking results from
 <br>see also the <a href="#showTool"><b>showTool</b></a> option)
 </td>
 </tr><tr>
-<td align="center"><a href="https://gromos.net/"
-target="_blank">Gromos87</a></td>
-<td align="center"><b>gro</td>
+<td align="center"><a href="https://gromos.net/" target="_blank">Gromos87</a></td>
+<td align="center"><b>gro</b></td>
 <td align="center">.gro</td>
 <td align="center">atomic coordinates<br>(not read as a trajectory)</td>
 </tr><tr>
 <td align="center">
-<a href="https://en.wikipedia.org/wiki/Chemical_table_file"
-target="_blank">MDL Molfile/SDF</a></td>
+<a href="https://en.wikipedia.org/wiki/Chemical_table_file" target="_blank">MDL Molfile/SDF</a></td>
 <td align="center"><b>sdf</b></td>
 <td align="center">.mol, .sdf</td>
 <td align="center">atomic coordinates</td>
@@ -249,7 +233,7 @@ atomic coordinates
 file</a></td>
 <td align="center" class="text"><b>pseudobonds</b></td>
 <td align="center">.pb
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">
 list of atom pairs
 to connect with <a href="../pseudobonds.html">pseudobonds</a>,
@@ -257,11 +241,10 @@ but see also <a href="pbond.html"><b>pbond</b></a>
 </td>
 </tr><tr>
 <td align="center">
-<a href="https://link.springer.com/article/10.1007/s10858-018-0220-3"
-target="_blank">PDB NMR-STAR</a></td>
+<a href="https://link.springer.com/article/10.1007/s10858-018-0220-3" target="_blank">PDB NMR-STAR</a></td>
 <td align="center"><b>nmrstar</b></td>
 <td align="center">.str
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center" class="text">nuclear magnetic resonance (NMR) 
 distance constraints; will be displayed on atomic model(s) specified
 with the <a href="#nmrstar"><b>structures</b></a> option</td>
@@ -270,7 +253,7 @@ with the <a href="#nmrstar"><b>structures</b></a> option</td>
 <a href="#pae">AlphaFold PAE</a></td>
 <td align="center"><b>pae</b></td>
 <td align="center">.json
-<td align="center" class="text">
+</td><td align="center" class="text">
 <a href="https://alphafold.ebi.ac.uk" target="_blank">AlphaFold</a>
 predicted aligned error (PAE) matrix, to be shown as an 
 <a href="../tools/alphafold.html#pae">interactive plot</a> 
@@ -281,12 +264,12 @@ with the <a href="#pae"><b>structure</b></a> option</td>
 <a href="../formats/sms.html">ChimeraX similar structures file</a></td>
 <td align="center"><b>sms</b></td>
 <td align="center">.sms
-<td align="center" class="text">
+</td><td align="center" class="text">
 ChimeraX-specific format containing the results of searching 
 structure databases for similar proteins
 (<a href="../formats/sms.html">details...</a>)</td>
 </tr><tr>
-<td colspan=4 align="center" class="shaded">
+<td colspan="4" align="center" class="shaded">
 <a name="trajectory"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Trajectory Coordinates</b>
@@ -295,8 +278,7 @@ time as a <a href="#trajtop">PSF</a> file, or from an already-open atomic model
 given with the <a href="#structureModel"><b>structureModel</b></a> option;
 see also <a href="#traj-options">trajectory options</a>)</td>
 </tr><tr>
-<td align="center"><a href="https://ambermd.org/netcdf/nctraj.xhtml" 
-target="_blank">Amber NetCDF</a> (binary)</td>
+<td align="center"><a href="https://ambermd.org/netcdf/nctraj.xhtml" target="_blank">Amber NetCDF</a> (binary)</td>
 <td align="center"><b>amber</b></td>
 <td align="center">.nc</td>
 <td align="center">atomic <a href="../trajectories.html">trajectory</a>
@@ -308,32 +290,28 @@ coordinates</td>
 <td align="center">atomic <a href="../trajectories.html">trajectory</a>
 coordinates
 <br>(DCD support courtesy of
-<a href="https://www.ks.uiuc.edu/~jim/mdtools/index.html"
-target="_blank">MDTools</a>)</td>
+<a href="https://www.ks.uiuc.edu/~jim/mdtools/index.html" target="_blank">MDTools</a>)</td>
 </tr><tr>
-<td align="center"><a href="http://manual.gromacs.org/documentation/5.1/user-guide/file-formats.html#xtc"
-target="_blank">Gromacs compressed coordinates</a></td>
+<td align="center"><a href="http://manual.gromacs.org/documentation/5.1/user-guide/file-formats.html#xtc" target="_blank">Gromacs compressed coordinates</a></td>
 <td align="center"><b>xtc</b></td>
 <td align="center">.xtc</td>
 <td align="center">atomic <a href="../trajectories.html">trajectory</a>
 coordinates</td>
 </tr><tr>
-<td align="center"><a href="http://manual.gromacs.org/documentation/5.1/user-guide/file-formats.html#trr"
-target="_blank">Gromacs full-precision coordinates</a> (binary)</td>
+<td align="center"><a href="http://manual.gromacs.org/documentation/5.1/user-guide/file-formats.html#trr" target="_blank">Gromacs full-precision coordinates</a> (binary)</td>
 <td align="center"><b>trr</b></td>
 <td align="center">.trr</td>
 <td align="center">atomic <a href="../trajectories.html">trajectory</a>
 coordinates</td>
 </tr><tr>
-<td align="center"><a href="https://docs.lammps.org/dump.html"
-target="_blank">LAMMPS dump</a></td>
+<td align="center"><a href="https://docs.lammps.org/dump.html" target="_blank">LAMMPS dump</a></td>
 <td align="center"><b>dump</b></td>
 <td align="center">.dump</td>
 <td align="center">atomic <a href="../trajectories.html">trajectory</a>
 coordinates
 <br>(LAMMPS support courtesy of Mitch Murphy)</td>
 </tr><tr>
-<td colspan=4 align="center" class="shaded">
+<td colspan="4" align="center" class="shaded">
 <a name="trajtop"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Trajectory Topology</b>
@@ -342,15 +320,13 @@ given with the <a href="#coords"><b>coords</b></a> option;
 see also <a href="#traj-options">trajectory options</a>)</td>
 </tr><tr>
 <td align="center">PSF (protein structure file;
-<a href="https://www.ks.uiuc.edu/Training/Tutorials/namd/namd-tutorial-unix-html/node23.html"
-target="_blank">X-PLOR-style topology</a>)</td>
+<a href="https://www.ks.uiuc.edu/Training/Tutorials/namd/namd-tutorial-unix-html/node23.html" target="_blank">X-PLOR-style topology</a>)</td>
 <td align="center"><b>psf</b></td>
 <td align="center">.psf</td>
 <td align="center">atomic <a href="../trajectories.html">trajectory</a>
 topology 
 <br>(PSF support courtesy of
-<a href="https://www.ks.uiuc.edu/~jim/mdtools/index.html"
-target="_blank">MDTools</a>)</td>
+<a href="https://www.ks.uiuc.edu/~jim/mdtools/index.html" target="_blank">MDTools</a>)</td>
 <!--
 </tr><tr>
 <td colspan=4 align="center" class="shaded">
@@ -366,7 +342,7 @@ target="_blank">MDTools</a>)</td>
 <a href="https://dock.compbio.ucsf.edu/">UCSF DOCK</a> versions 4, 5, 6</td>
 -->
 </tr><tr>
-<td colspan=4 align="center" class="shaded">
+<td colspan="4" align="center" class="shaded">
 <a name="volume"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Volume Data and Related</b> (associated tool: 
@@ -374,8 +350,7 @@ target="_blank">MDTools</a>)</td>
 see also the <a href="#difference"><b>difference</b></a> option)</td>
 </tr><tr>
 <td align="center">
-<a href="https://www.fei.com/software/amira-for-life-sciences/"
-target="_blank">Amira</a> mesh</td>
+<a href="https://www.fei.com/software/amira-for-life-sciences/" target="_blank">Amira</a> mesh</td>
 <td align="center"><b>amira</b></td>
 <td align="center">.am</td>
 <td align="center">3D lattice volume data, float, unsigned 16-bit, uncompressed only</td>
@@ -384,15 +359,11 @@ target="_blank">Amira</a> mesh</td>
 <td align="center"><b>apbs</b></td>
 <td align="center">.dx</td>
 <td align="center">
-<a href="https://apbs.readthedocs.io/en/latest/formats/opendx.html"
-target="_blank">electrostatic potential map</a> from 
-<a href="https://www.poissonboltzmann.org/"
-target="_blank">Adaptive Poisson-Boltzmann Solver</a>
+<a href="https://apbs.readthedocs.io/en/latest/formats/opendx.html" target="_blank">electrostatic potential map</a> from 
+<a href="https://www.poissonboltzmann.org/" target="_blank">Adaptive Poisson-Boltzmann Solver</a>
 <br>(see the
-<a href="https://www.rbvi.ucsf.edu/chimera/docs/ContributedSoftware/apbs/apbs.html"
-target="_blank"><b>APBS</b></a> tool in 
-<a href="https://www.rbvi.ucsf.edu/chimera/"
-target="_blank"><b>UCSF Chimera</b></a>)</td>
+<a href="https://www.rbvi.ucsf.edu/chimera/docs/ContributedSoftware/apbs/apbs.html" target="_blank"><b>APBS</b></a> tool in 
+<a href="https://www.rbvi.ucsf.edu/chimera/" target="_blank"><b>UCSF Chimera</b></a>)</td>
 </tr><tr>
 <td align="center">BRIX map</td>
 <td align="center"><b>brix</b></td>
@@ -400,8 +371,7 @@ target="_blank"><b>UCSF Chimera</b></a>)</td>
 <td align="center">electron density map</td>
 </tr><tr>
 <td align="center">
-<a href="https://en.wikipedia.org/wiki/CCP4_(file_format)" 
-target="_blank">CCP4</a> map</td>
+<a href="https://en.wikipedia.org/wiki/CCP4_(file_format)" target="_blank">CCP4</a> map</td>
 <td align="center"><b>ccp4</b></td>
 <td align="center">.ccp4, .map</td>
 <td align="center">electron density map</td>
@@ -427,8 +397,7 @@ target="_blank">CCP4</a> map</td>
 <a href="https://honig.c2b2.columbia.edu/grasp/" target="_blank">GRASP</a></td>
 </tr><tr>
 <td align="center">
-<a href="https://docs.openmicroscopy.org/bio-formats/5.7.1/formats/deltavision.html"
-target="_blank">DeltaVision</a> map</td>
+<a href="https://docs.openmicroscopy.org/bio-formats/5.7.1/formats/deltavision.html" target="_blank">DeltaVision</a> map</td>
 <td align="center"><b>dv</b></td>
 <td align="center">.dv</td>
 <td align="center">light microscopy data</td>
@@ -442,7 +411,7 @@ see the <a href="#verbose"><b>verbose</b></a> option</td>
 <td align="center">Directional FSC (Fourier shell correlation)</td>
 <td align="center"><b>dres</b></td>
 <td align="center">.dres
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">directional resolution to show on a colored globe
 <br>(plain text file with four whitespace-separated columns of numbers,
 an XYZ vector and a resolution or other value
@@ -452,8 +421,7 @@ to colormap onto the globe)</td>
 <td align="center"><b>dock</b></td>
 <td align="center">.bmp<br>.cnt<br>.nrg</td>
 <td align="center">
-<a href="https://dock.compbio.ucsf.edu"
-target="_blank">UCSF DOCK</a> (versions 4, 5, 6)
+<a href="https://dock.compbio.ucsf.edu" target="_blank">UCSF DOCK</a> (versions 4, 5, 6)
 bump, contact, and energy scoring grids<br>
 (suffixes not interchangeable; <i>gridname</i>.bmp required for reading
 <i>gridname</i>.cnt and/or <i>gridname</i>.nrg)</td>
@@ -477,15 +445,13 @@ file reader</a> is tried)</td>
 <td align="center">.cube, .cub</td>
 <td align="center">orbitals, electron densities, other</td>
 </tr><tr>
-<td align="center"><a href="https://research.csc.fi/-/gopenmol_download"
-target="_blank">gOpenMol</a> grid</td>
+<td align="center"><a href="https://research.csc.fi/-/gopenmol_download" target="_blank">gOpenMol</a> grid</td>
 <td align="center"><b>gopenmol</b></td>
 <td align="center">.plt</td>
 <td align="center">orbitals, electron densities, other</td>
 </tr><tr>
 <td align="center">ImageJ or
-<a href="https://www-legacy.openmicroscopy.org/site/products/ome-tiff"
-target="_blank">OME</a> TIFF</td>
+<a href="https://www-legacy.openmicroscopy.org/site/products/ome-tiff" target="_blank">OME</a> TIFF</td>
 <td align="center"><b></b></td>
 <td align="center">.tif, .tiff</td>
 <td align="center">microscopy data
@@ -497,15 +463,13 @@ target="_blank">OME</a> TIFF</td>
 <td align="center"><a name="image-stacks">image stack</a>
 <br>(grayscale or RGB image series in multiple files or a single multipage file,
 in formats supported by
-<a href="https://en.wikipedia.org/wiki/Python_Imaging_Library" 
-target="_blank">PIL</a>);
+<a href="https://en.wikipedia.org/wiki/Python_Imaging_Library" target="_blank">PIL</a>);
 see <a href="#image-wildcards">image stack wildcards</a> and
 <a href="#photo">single image</a>
 </td>
 </tr><tr>
 <td align="center">
-<a href="https://www.imagescience.de/formats.html"
-target="_blank">IMAGIC map</a></td>
+<a href="https://www.imagescience.de/formats.html" target="_blank">IMAGIC map</a></td>
 <td align="center"><b>imagic</b></td>
 <td align="center">.hed<br>.img</td>
 <td align="center">density map
@@ -523,37 +487,30 @@ courtesy of Ralf Schmidt and Michael Schatz, Image Science Software)</td>
 <br>(could be time series and/or multichannel)</td>
 </tr><tr>
 <td align="center">
-<a href="https://bio3d.colorado.edu/imod/doc/mrc_format.txt"
-target="_blank">IMOD</a> map</td>
+<a href="https://bio3d.colorado.edu/imod/doc/mrc_format.txt" target="_blank">IMOD</a> map</td>
 <td align="center"><b>imodmap</b></td>
 <td align="center">.rec</td>
 <td align="center">electron density map
 <br>(MRC map with signed 8-bit mode interpreted as unsigned)</td>
 </tr><tr>
 <td align="center">
-<a href="https://brettbode.github.io/wxmacmolplt/MacMolPlt_Manual.html"
-target="_blank">MacMolPlt</a> grid</td>
+<a href="https://brettbode.github.io/wxmacmolplt/MacMolPlt_Manual.html" target="_blank">MacMolPlt</a> grid</td>
 <td align="center"><b>macmolplt</b></td>
 <td align="center">.mmp</td>
 <td align="center">
-<a href="https://brettbode.github.io/wxmacmolplt/Manual_pages/MacMolPlt_Files.html#SurfExport"
-target="_blank">3D surfaces</a></td>
+<a href="https://brettbode.github.io/wxmacmolplt/Manual_pages/MacMolPlt_Files.html#SurfExport" target="_blank">3D surfaces</a></td>
 </tr><tr>
 <td align="center">
-<a href="https://www2.mrc-lmb.cam.ac.uk/research/locally-developed-software/image-processing-software/#image"
-target="_blank">MRC</a> map</td>
+<a href="https://www2.mrc-lmb.cam.ac.uk/research/locally-developed-software/image-processing-software/#image" target="_blank">MRC</a> map</td>
 <td align="center"><b>mrc</b></td>
 <td align="center">.mrc</td>
 <td align="center">electron density map</td>
 </tr><tr>
 <td align="center">
-<a href="http://www.sb.fsu.edu/~xray/Manuals/CCP4/mtzformat.html"
-target="_blank">MTZ</a> crystallographic reflection file
+<a href="http://www.sb.fsu.edu/~xray/Manuals/CCP4/mtzformat.html" target="_blank">MTZ</a> crystallographic reflection file
 <br><br>*requires installing the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper"
-target="_blank"><b>Clipper</b> bundle</a> from the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/"
-target="_blank">ChimeraX Toolshed</a>
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper" target="_blank"><b>Clipper</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">ChimeraX Toolshed</a>
 and specifying a corresponding atomic model
 (<a href="#clipper">details...</a>)
 </td>
@@ -569,15 +526,13 @@ and specifying a corresponding atomic model
 <br>(use <b>format netcdfmap</b> to disambiguate from 
 <a href="#trajectory">Amber NetCDF trajectories</a>)</td>
 </tr><tr>
-<td align="center"><a href="https://nifti.nimh.nih.gov/"
-target="_blank">Neuroimaging Informatics Technology Initiative (NIfTI)</a></td>
+<td align="center"><a href="https://nifti.nimh.nih.gov/" target="_blank">Neuroimaging Informatics Technology Initiative (NIfTI)</a></td>
 <td align="center"><b>nifti</b></td>
 <td align="center">.nii
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">medical image</td>
 </tr><tr>
-<td align="center"><a href="https://teem.sourceforge.net/nrrd/"
-target="_blank">Nearly Raw Raster Data (NRRD)</a></td>
+<td align="center"><a href="https://teem.sourceforge.net/nrrd/" target="_blank">Nearly Raw Raster Data (NRRD)</a></td>
 <td align="center"><b>nrrd</b></td>
 <td align="center">.nrrd</td>
 <td align="center">medical image</td>
@@ -608,31 +563,27 @@ Signal 3D time series</td>
 <td align="center">3D fluorescence time series</td>
 -->
 </tr><tr>
-<td align="center"><a href="https://situs.biomachina.org/index.html"
-target="_blank">Situs</a> map</td>
+<td align="center"><a href="https://situs.biomachina.org/index.html" target="_blank">Situs</a> map</td>
 <td align="center"><b>situs</b></td>
 <td align="center">.situs, .sit</td>
 <td align="center">electron density map</td>
 </tr><tr>
 <td align="center">
-<a href="https://spider.wadsworth.org/spider_doc/spider/docs/spider.html"
-target="_blank">SPIDER</a> map</td>
+<a href="https://spider.wadsworth.org/spider_doc/spider/docs/spider.html" target="_blank">SPIDER</a> map</td>
 <td align="center"><b>spider</b></td>
 <td align="center">.spi, .vol</td>
 <td align="center">electron density map</td>
 </tr><tr>
 <td align="center">
-<a href="http://huanglab.ucsf.edu/STORM.html"
-target="_blank">STORM (STochastic Optical Reconstruction Microscopy)</a>
+<a href="http://huanglab.ucsf.edu/STORM.html" target="_blank">STORM (STochastic Optical Reconstruction Microscopy)</a>
 </td>
 <td align="center"><b>storm</b></td>
 <td align="center">.storm
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">super-resolution microscopy data
 (<a href="../formats/storm.html">details...</a>)</td>
 </tr><tr>
-<td align="center"><a href="https://www.biochem.mpg.de/6348566/tom_e"
-target="_blank">TOM toolbox</a> map</td>
+<td align="center"><a href="https://www.biochem.mpg.de/6348566/tom_e" target="_blank">TOM toolbox</a> map</td>
 <td align="center"><b>tom_em</b></td>
 <td align="center">.em</td>
 <td align="center">electron density map</td>
@@ -643,7 +594,7 @@ target="_blank">TOM toolbox</a> map</td>
 <td align="center">electrostatic potential map from
 University of Houston Brownian Dynamics</td>
 </tr><tr>
-<td colspan=4 align="center" class="shaded">
+<td colspan="4" align="center" class="shaded">
 <a name="segmentation"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Segmentations</b></td>
@@ -666,7 +617,7 @@ University of Houston Brownian Dynamics</td>
 <td align="center">.seg</td>
 <td align="center">segmentation regions</td>
 </tr><tr>
-<td colspan=4 align="center" class="shaded">
+<td colspan="4" align="center" class="shaded">
 <a name="object"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Other 3D Objects</b></td>
@@ -676,7 +627,7 @@ University of Houston Brownian Dynamics</td>
 </td>
 <td align="center"><b>bild</b></td>
 <td align="center">.bild, .bld
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">graphical objects</td>
 </tr><tr>
 <td align="center">
@@ -687,23 +638,20 @@ University of Houston Brownian Dynamics</td>
 <td align="center"><a href="../markers.html">markers and links</a>
 <br>(analogous to atoms and bonds)</td>
 </tr><tr>
-<td align="center"><a href="https://www.khronos.org/collada/"
-target="_blank">COLLADA</a></td>
+<td align="center"><a href="https://www.khronos.org/collada/" target="_blank">COLLADA</a></td>
 <td align="center"><b>collada</b></td>
 <td align="center">.dae
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">graphical objects
 <br>(TriangleSets only)</td>
 </tr><tr>
-<td align="center"><a href="https://www.khronos.org/gltf"
-target="_blank">GL Transmission Format</a></td>
+<td align="center"><a href="https://www.khronos.org/gltf" target="_blank">GL Transmission Format</a></td>
 <td align="center"><b>gltf</b></td>
 <td align="center">.glb
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">graphical objects</td>
 </tr><tr>
-<td align="center"><a href="https://mole.upol.cz/" 
-target="_blank">MOLEonline</a> channels</td>
+<td align="center"><a href="https://mole.upol.cz/" target="_blank">MOLEonline</a> channels</td>
 <td align="center"><b>mole</b></td>
 <td align="center">.json</td>
 <td align="center" class="text">channels in JSON format from
@@ -715,18 +663,16 @@ for flipping through them</td>
 </tr><tr>
 <td align="center">Neuron trace
 <br>(<a href="http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html" target="_blank">SWC</a>, see also the
-<a href="http://neuromorpho.org/myfaq.jsp#QS3"
-target="_blank">NeuroMorpho FAQ</a>)</td>
+<a href="http://neuromorpho.org/myfaq.jsp#QS3" target="_blank">NeuroMorpho FAQ</a>)</td>
 <td align="center"><b>swc</b></td>
 <td align="center">.swc</td>
 <td align="center">neuron reconstruction, such as from
 <a href="http://neuromorpho.org/" target="_blank">NeuroMorpho.Org</a></td>
 </tr><tr>
-<td align="center"><a href="https://en.wikipedia.org/wiki/STL_%28file_format%29#Binary_STL"
-target="_blank">STereoLithography</a></td>
+<td align="center"><a href="https://en.wikipedia.org/wiki/STL_%28file_format%29#Binary_STL" target="_blank">STereoLithography</a></td>
 <td align="center"><b>stl</b></td>
 <td align="center">.stl
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">triangle-based format
 native to stereolithography CAD software</td>
 </tr><tr>
@@ -735,22 +681,21 @@ native to stereolithography CAD software</td>
 PolyData</td>
 <td align="center"><b>vtk</b></td>
 <td align="center">.vtk
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">lines, polygons
 [documentation
 <a href="https://vtk.org/VTK/img/file-formats.pdf" target="_blank">PDF</a>]
 <br>(<a href="../formats/vtk.html">details</a> on ChimeraX VTK export)</td>
 </tr><tr>
 <td align="center">
-<a href="https://www.fileformat.info/format/wavefrontobj/egff.htm"
-target="_blank">Wavefront OBJ</a></td>
+<a href="https://www.fileformat.info/format/wavefrontobj/egff.htm" target="_blank">Wavefront OBJ</a></td>
 <td align="center"><b>obj</b></td>
 <td align="center">.obj
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">graphical objects
 <br>(triangles only: vertices, vertex normals, faces; texture colors)</td>
 </tr><tr>
-<td colspan=4 align="center" class="shaded">
+<td colspan="4" align="center" class="shaded">
 <a name="sequence"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Sequences</b> (associated tool: 
@@ -762,33 +707,32 @@ see also <a href="#ident"><b>ident</b></a>)</td>
 <td align="center">Clustal ALN</td>
 <td align="center"><b>aln</b></td>
 <td align="center" class="text">.aln, .clustal<br>.clustalw,&nbsp;.clustalx
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">sequence alignment</td>
 </tr><tr>
 <td align="center">FASTA, aligned FASTA</td>
 <td align="center"><b>fasta</b></td>
-<td align="center">.fasta, .fa<br>.afasta, .afa</a>
-<br><a href="#compressed">+&nbsp;compressed</td>
+<td align="center">.fasta, .fa<br>.afasta, .afa
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">individual sequence(s) or sequence alignment</td>
 </tr><tr>
 <td align="center">GCG MSF (Multiple Sequence Format)</td>
 <td align="center"><b>msf</b></td>
 <td align="center">.msf
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">sequence alignment</td>
 </tr><tr>
 <td align="center">GCG RSF (Rich Sequence Format)</td>
 <td align="center"><b>rsf</b></td>
 <td align="center">.rsf
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">sequence alignment</td>
 </tr><tr>
 <td align="center">
-<a href="https://nar.oxfordjournals.org/content/25/1/226.full"
-target="_blank">HSSP</a></td>
+<a href="https://nar.oxfordjournals.org/content/25/1/226.full" target="_blank">HSSP</a></td>
 <td align="center"><b>hssp</b></td>
 <td align="center">.hssp
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">sequence alignment
 <br>(other information not read; see
 <a href="https://swift.cmbi.ru.nl/gv/hssp/" target="_blank">HSSP database</a>)
@@ -797,24 +741,23 @@ target="_blank">HSSP</a></td>
 <td align="center" class="text">PIR (NBRF), aligned PIR</td>
 <td align="center"><b>pir</b></td>
 <td align="center">.pir, .ali
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">individual sequence(s) or sequence alignment</td>
 </tr><tr>
 <td align="center">Selex (Pfam)</td>
 <td align="center"><b>pfam</b></td>
 <td align="center">.selex, .slx<br>.pfam
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">sequence alignment</td>
 </tr><tr>
 <td align="center">
-<a href="https://en.wikipedia.org/wiki/Stockholm_format"
-target="_blank">Stockholm</a></td>
+<a href="https://en.wikipedia.org/wiki/Stockholm_format" target="_blank">Stockholm</a></td>
 <td align="center"><b>stockholm</b></td>
 <td align="center">.sth, .sto
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">sequence alignment</td>
 </tr><tr>
-<td colspan=4 align="center" class="shaded">
+<td colspan="4" align="center" class="shaded">
 <a name="composite"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Composite</b></td>
@@ -829,18 +772,16 @@ target="_blank">Stockholm</a></td>
 settings in the <a href="../tools/log.html"><b>Log</b> context menu</a>
 </td>
 </tr><tr>
-<td align="center"><a href="https://github.com/ihmwg/IHM-dictionary"
-target="_blank">IHM (Integrative Hybrid Model)</a>
+<td align="center"><a href="https://github.com/ihmwg/IHM-dictionary" target="_blank">IHM (Integrative Hybrid Model)</a>
 </td>
 <td align="center"><b>ihm</b></td>
 <td align="center">.ihm<br>.cif</td>
 <td align="center">integrative hybrid model,
-examples available from <a href="https://pdb-ihm.org/"
-target="_blank">PDB-IHM</a> (see <a href="#fetch">database fetch</a>);
+examples available from <a href="https://pdb-ihm.org/" target="_blank">PDB-IHM</a> (see <a href="#fetch">database fetch</a>);
 may create <a href="../attributes.html#residue">residue attributes</a>
 </td>
 </tr><tr>
-<td colspan=4 align="center" class="shaded">
+<td colspan="4" align="center" class="shaded">
 <a name="miscellaneous"></a>
 <a href="#formats" class="nounder"><b>&larr;</b></a>
 <b>Miscellaneous</b></td>
@@ -883,7 +824,7 @@ accepted if specified as <b>format photo</b>;
 <td align="center">Python</td>
 <td align="center"><b>py</b></td>
 <td align="center">.py, .pyc, .pyo
-<br><a href="#compressed">+&nbsp;compressed</td>
+<br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">Python code
 <br>(see also <a href="runscript.html"><b>runscript</b></a>)</td>
 </tr><tr>
@@ -900,7 +841,7 @@ model positions</a></td>
 <td align="center">.positions</td>
 <td align="center">
 ChimeraX model names and positions to restore</td>
-</tr></table>
+</tr></tbody></table>
 
 <a name="local"></a>
 <p class="nav">
@@ -950,11 +891,10 @@ Additional ways to open local files:
 <ul>
 <li>menu <a href="../menu.html#file"><b>File... Open</b></a>, in which case 
 the proper filename <a href="#file-table">suffix</a> is required
-<li><a href="../tools/toolbar.html#home"><b>Toolbar</b></a> icon
-<a href="../tools/toolbar.html#home"><img class="icon"
-border=1 src="../tools/toolbar-icons/open-in-app.png"></a>
-<li>drag-and-drop onto the ChimeraX icon or a running instance of ChimeraX
-</ul>
+</li><li><a href="../tools/toolbar.html#home"><b>Toolbar</b></a> icon
+<a href="../tools/toolbar.html#home"><img class="icon" border="1" src="../tools/toolbar-icons/open-in-app.png" alt="computer generated image"></a>
+</li><li>drag-and-drop onto the ChimeraX icon or a running instance of ChimeraX
+</li></ul>
 <p>
 On a Mac, ChimeraX-associated file types can also be opened by 
 double-clicking them in a Finder window or using &ldquo;open&rdquo; 
@@ -1088,7 +1028,7 @@ The <b>chains</b> option allows explicitly specifying which structure
 chain(s) to use for this purpose, and if a chain does not have exactly 
 the same sequence as the mutation data, <b>allowMismatches true</b>
 is needed to force the association.
-</p><p>
+<p></p><p>
 An association can also be made later with the command
 <a href="mutationscores.html#structure"><b>mutationscores structure</b></a>.
 If the chain residue numbering is different than in the mutation scores file,
@@ -1097,7 +1037,7 @@ it is necessary to use
 with the <a href="mutationscores.html#structure"><b>alignSequences</b></a> 
 option to make the association
 (it cannot be done with the <b>open</b> command).
-</blockquote>
+</p></blockquote>
 <blockquote>
 <a name="channel"></a>
 <b>channel</b>&nbsp;&nbsp;<i>N</i>
@@ -1110,8 +1050,8 @@ if possible: for example, a file will be identified as channel 0
 if its name contains either of the following:
 <ul class="none">
 <li>_ch0_
-<li>_0ch_
-</ul>
+</li><li>_0ch_
+</li></ul>
 (and 0 could be any whole number).
 <!-- OME TIFF header of one file can specify names of all files in the dataset, 
 which ChimeraX will open automatically; maybe rare, currently left undescribed. -->
@@ -1147,50 +1087,42 @@ whether to <a href="color.html#byattribute">color</a> it by the
 confidence measure</a> in the B-factor field (default <b>true</b>):
      <ul>
      <li>90
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=cornflowerblue width="10px" title="cornflower blue"></td></tr>
-</table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="cornflowerblue" width="10px" title="cornflower blue"></td></tr>
+</tbody></table>
 to 100
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=blue width="10px" title="blue"></td></tr>
-</table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="blue" width="10px" title="blue"></td></tr>
+</tbody></table>
 &ndash; high accuracy expected
-     <li>70
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=yellow width="10px" title="yellow"></td></tr>
-</table>
+     </li><li>70
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="yellow" width="10px" title="yellow"></td></tr>
+</tbody></table>
 to 90
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=cornflowerblue width="10px" title="cornflower blue"></td></tr>
-</table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="cornflowerblue" width="10px" title="cornflower blue"></td></tr>
+</tbody></table>
 &ndash; expected to be modeled well (a generally good backbone prediction)
-     <li>50
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=orange width="10px" title="orange"></td></tr>
-</table>
+     </li><li>50
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="orange" width="10px" title="orange"></td></tr>
+</tbody></table>
 to 70
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=yellow width="10px" title="yellow"></td></tr>
-</table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="yellow" width="10px" title="yellow"></td></tr>
+</tbody></table>
 &ndash; low confidence, treat with caution
-     <li>0
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=red width="10px" title="red"></td></tr>
-</table>
+     </li><li>0
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="red" width="10px" title="red"></td></tr>
+</tbody></table>
 to 50
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=orange width="10px" title="orange"></td></tr>
-</table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="orange" width="10px" title="orange"></td></tr>
+</tbody></table>
 &ndash; should not be interpreted, may be disordered
-     </ul>
+     </li></ul>
 ...in other words, using
 <a href="color.html#bfactor"><b>color bfactor</b></a>
 <b><a href="color.html#palette-options">palette</a>
@@ -1200,7 +1132,7 @@ style="display:inline-block; vertical-align:middle">
 The <a href="../tools/colorkey.html"><b>Color Key</b></a> graphical interface
 or <a href="key.html"><b>key</b></a> command
 can be used to draw a corresponding color key, for example:
-</p>
+<p></p>
   <blockquote>
   <b>key</b> <b>red:low orange: yellow: cornflower blue: blue:high</b>
   &nbsp;[<a href="key.html#options"><i>other-key-options</i></a>]
@@ -1498,9 +1430,9 @@ regardless of alignment size, with possible values:
 <ul>
 <li><b>seqview</b> (or <b>view</b> or <b>sv</b>)
 &ndash; <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
-<li><b>profile</b> (or <b>grid</b> or <b>pg</b>)
+</li><li><b>profile</b> (or <b>grid</b> or <b>pg</b>)
 &ndash; <a href="../tools/profilegrid.html"><b>Profile Grid</b></a>
-</ul>
+</li></ul>
 </blockquote>
 <blockquote>
 <a name="vseries"></a>
@@ -1522,8 +1454,8 @@ filenames, if possible: for example, a file will be identified as time point 12
 if its name contains either of the following:
 <ul class="none">
 <li>_stack0012_
-<li>_0012stack_
-</ul>
+</li><li>_0012stack_
+</li></ul>
 (and 0012 could be any integer).
 </blockquote>
 <blockquote>
@@ -1535,7 +1467,7 @@ Whether to show detailed debugging information for
 If <b>format dicom</b> is specified explicitly,
 all of the DICOM files in a directory and its subdirectories 
 can be opened with a single <b>open</b> command, for example:
-</p>
+<p></p>
 <blockquote>
 <b>open "~/Desktop/2-CT 5.0 H30s-55580" format dicom</b>
 </blockquote>
@@ -1572,9 +1504,9 @@ Only multi-model mmCIF or PDB files provide all of the trajectory information
 in a single file. The <a href="#coordsets"><b>coordsets</b></a> option 
 indicates reading the file as a trajectory instead of as multiple models,
 for example:  
-<ul class="none">
+</p><ul class="none">
 <li><b>open 1plx.cif coordsets true</b>
-</ul>
+</li></ul>
 <p>
 Otherwise, the trajectory topology and coordinates come 
 from two different files, either:
@@ -1584,11 +1516,11 @@ from two different files, either:
 with topology provided by an already-open atomic model specified with the
 <a href="#structureModel"><b>structureModel</b></a> option, for example:
 <br><b>open myfile.trr structureModel #1</b>
-<li>a PSF <a href="#trajtop">trajectory topology file</a> 
+</li><li>a PSF <a href="#trajtop">trajectory topology file</a> 
 with the corresponding <a href="#trajectory">trajectory coordinate file</a>
 specified with the <a href="#coords"><b>coords</b></a> option, for example:
 <br><b>open myfile.psf coords myfile.dcd</b>
-</ul>
+</li></ul>
 <p>
 Option details:
 </p>
@@ -1620,11 +1552,11 @@ When gaps in the numbering are detected, options are to:
 <li><b>fill</b>
 &ndash; generate duplicate coordinate sets (additional trajectory frames) 
 to fill in the gaps
-<li><b>ignore</b> 
+</li><li><b>ignore</b> 
 &ndash; use the MODEL numbers without filling gaps
-<li><b>renumber</b> (default)
+</li><li><b>renumber</b> (default)
 &ndash; renumber the coordinate sets consecutively
-</ul>
+</li></ul>
 <p>
 For example, if the first coordinate set MODEL 1 is immediately
 followed in the file by another coordinate set MODEL 6,
@@ -1633,7 +1565,7 @@ coordinate set as frames 2-5,
 <b>ignore</b> would give trajectory frame 1 immediately followed by
 trajectory frame 6, and
 <b>renumber</b> would renumber the MODEL 6 coordinate set as trajectory frame 2.
-</blockquote>
+</p></blockquote>
 <blockquote>
 <a name="structureModel"></a>
 <b>structureModel</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
@@ -1696,11 +1628,11 @@ for specifying the file interactively.
 <a name="start"></a>
 <a name="end"></a>
 <a name="step"></a>
-<b>start</b>&nbsp;&nbsp;<i>start</i></a>
+<b>start</b>&nbsp;&nbsp;<i>start</i>
 <br>
-<b>end</b>&nbsp;&nbsp;<i>end</i></a>
+<b>end</b>&nbsp;&nbsp;<i>end</i>
 <br>
-<b>step</b>&nbsp;&nbsp;<i>step</i></a>
+<b>step</b>&nbsp;&nbsp;<i>step</i>
 <br>
 The <b>start</b>, <b>end</b> and <b>step</b> options allow loading a subset of 
 the coordinate sets from a <a href="#trajectory">trajectory coordinate file</a>,
@@ -1719,10 +1651,9 @@ Whether to show a graphical interface for
 <a href="../trajectories.html">trajectory</a> playback (default <b>true</b>).
 The slider can be dragged or a frame number entered directly.
 The interface also includes a play/pause button, a
-&nbsp;<img style="height:16px; margin: 1px -1px; vertical-align:top"
-src="../tools/ui-icons/snail.png">&nbsp; value to increase for slower playback,
+&nbsp;<img style="height:16px; margin: 1px -1px; vertical-align:top" src="../tools/ui-icons/snail.png" alt="computer generated image">&nbsp; value to increase for slower playback,
 and a button for recording a movie
-(<img class="iconbar" src="../tools/ui-icons/record.png">).
+(<img class="iconbar" src="../tools/ui-icons/record.png" alt="computer generated image">).
 The movie will start at the current slider position, so
 to include the whole trajectory, place the slider at the far left
 before clicking the record button.
@@ -1735,8 +1666,7 @@ See also: <a href="coordset.html#slider"><b>coordset slider</b></a>
 </p>
 <h3>NMR-STAR Options</h3>
 <p>
-<a href="https://link.springer.com/article/10.1007/s10858-018-0220-3"
-target="_blank">NMR-STAR</a> files contain distance constraints
+<a href="https://link.springer.com/article/10.1007/s10858-018-0220-3" target="_blank">NMR-STAR</a> files contain distance constraints
 that will be shown as <a href="../pseudobonds.html">pseudobonds</a>
 between atoms. These files can be <a href="#fetch">fetched</a> from the
 PDB for certain structures determined by nuclear magnetic resonance (NMR),
@@ -1785,7 +1715,7 @@ corresponding <a href="../pseudobonds.html">pseudobonds</a> is
 <b>nmr-satisfied</b>), otherwise it is long 
 (<a href="atomspec.html#builtin">command-line specifier</a> <b>nmr-long</b>).
 Examples of using these in commands:
-<blockquote>
+</p><blockquote>
 <b>hide satisfied</b>
 <br>
 <b>show satisfied</b>
@@ -1846,8 +1776,7 @@ the <a href="../tools/alphafold.html#pae"><b>AlphaFold Error Plot</b></a>
 tool, or <a href="#fetch"><b>alphafold fetch</b></a> or
 <a href="#fetch"><b>alphafold match</b></a> with the option <b>pae true</b>.
 See also the
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/pae-apr2022/pae.html"
-target="_blank">AlphaFold Error Estimates example</a> and
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/pae-apr2022/pae.html" target="_blank">AlphaFold Error Estimates example</a> and
 <a href="https://www.youtube.com/watch?v=oxblwn0_PMM" target="_blank">video</a>.
 </p><p>
 AlphaFold writes the PAE values to a JSON (.json) file, typically named
@@ -1855,10 +1784,8 @@ similarly to the corresponding model file (.cif).
 Giving <a href="usageconventions.html#browse"><b>browse</b></a> as the 
 <i>filename</i> brings up a dialog for browsing the local
 filesystem interactively to find this JSON file. Alternatively,
-for entries in the <a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold Database</a>, the PAE data can be fetched directly
-by <i>uniprot-id</i> (<a href="https://www.uniprot.org" 
-target="_blank">UniProt</a> name or accession number). 
+for entries in the <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>, the PAE data can be fetched directly
+by <i>uniprot-id</i> (<a href="https://www.uniprot.org" target="_blank">UniProt</a> name or accession number). 
 Either way, the following option may be required:
 </p>
 <blockquote>
@@ -1884,14 +1811,14 @@ NetworkX greedy_modularity_communities algorithm with parameters:
 <ul>
 <li><b>minSize</b> (default <b>10</b>)
 &ndash; minimum number of entities allowed in a domain
-<li><b>connectMaxPae</b> (default <b>5.0</b> &Aring;)
+</li><li><b>connectMaxPae</b> (default <b>5.0</b> &Aring;)
 &ndash; the maximum PAE value allowed between entities for them to be
 clustered into the same domain. Larger values give larger domains
 and generally increase the time to compute the clustering,
 which is ~5 seconds for 1000 residues when the default of 5.0 is used.
-<li><b>cluster</b> (default <b>0.5</b>, typical range 0.5&ndash;5.0)
+</li><li><b>cluster</b> (default <b>0.5</b>, typical range 0.5&ndash;5.0)
 &ndash; graph resolution; larger values give smaller domains
-</ul>
+</li></ul>
 <p>
 The <b>dividerLines</b> option (default <b>true</b>) indicates whether,
 for multimer predictions, to draw lines on the plot demarcating the
@@ -1934,12 +1861,12 @@ Width and height values override any pixel size specification.
 If no width, height, or pixel size is given,
 a pixel size of <b>1.0</b> will be used.
 Examples:
-<blockquote>
+</p><blockquote>
 <b>open ~/Desktop/headshot.png format photo width 5</b>
 <br>
 <b>open figure1.jpg height 30</b>
 </blockquote>
-</p>
+<p></p>
 
 <a name="image-wildcards"></a>
 <p class="nav">
@@ -1954,7 +1881,7 @@ These wildcards indicate the parts of the filename with
 time, channel, and Z-indices, respectively. For example,
 to open a stack where each file is a 3D volume
 (each file contains all Z planes for one channel at one timepoint):
-<blockquote>
+</p><blockquote>
 open "/Volumes/data/micro/cell8_3 stars/cell8_{c}ch_{t}stack_*msec.tif"
 </blockquote>
 ...and the file names look like:
@@ -1983,7 +1910,7 @@ r12c09f01p01-ch1sk01fk1fl1.tiff
 </blockquote>
 See also the <a href="#channel"><b>channel</b></a>
 option of the <a href="#top"><b>open</b></a> command.
-</p>
+<p></p>
 
 <a name="compressed"></a>
 <p class="nav">
@@ -2172,15 +2099,14 @@ See also: <a href="alphafold.html"><b>alphafold</b></a>,
 <center>
 <a name="fetch-table"><font size="+1"><b>Fetch Sources</b></font></a>
 </center>
-<table border cellpadding="4" cellspacing="0"><tr>
+<table border cellpadding="4" cellspacing="0"><tbody><tr>
 <td align="center" style="color:black; background-color:#cccccc"><b>database
 or web service</b></td>
 <td align="center" style="color:black; background-color:#cccccc"><b><i>source</i></b></td>
 <td align="center" style="color:black; background-color:#cccccc"><b>description</b></td>
 <td align="center" style="color:black; background-color:#cccccc"><span class="nowrap"><b><i>format-name</i></b></span></td>
 </tr><tr>
-<td align="center" rowspan="2"><a href="https://www.rcsb.org/"
-target="_blank">RCSB Protein Data Bank</a></td>
+<td align="center" rowspan="2"><a href="https://www.rcsb.org/" target="_blank">RCSB Protein Data Bank</a></td>
 <td align="center"><b>pdb</b></td>
 <td align="center">atomic coordinates and associated annotations</td>
 <td align="center"><b>mmcif</b> (default) or <b>pdb</b>
@@ -2192,8 +2118,7 @@ or assemblies, see <a href="#maxAssemblies"><b>maxAssemblies</b></a></td>
 <td align="center">(no choice, <b>mmcif</b> or <b>pdb</b> depending on
 the specific entry)</td>
 </tr><tr>
-<td align="center" rowspan="3"><a href="https://www.ebi.ac.uk/pdbe/"
-target="_blank">Protein Data Bank <br>in Europe (PDBe)</a></td>
+<td align="center" rowspan="3"><a href="https://www.ebi.ac.uk/pdbe/" target="_blank">Protein Data Bank <br>in Europe (PDBe)</a></td>
 <td align="center"><b>pdbe</b></td>
 <td align="center">atomic coordinates and associated annotations</td>
 <td align="center"><b>mmcif</b> (default) or <b>pdb</b></td>
@@ -2207,8 +2132,7 @@ or assemblies, see <a href="#maxAssemblies"><b>maxAssemblies</b></a></td>
 <td align="center" class="text">atomic coordinates and associated annotations,
 &nbsp;updated to include small-molecule connectivity 
 and binding-site information as described in 
-<a href="https://nar.oxfordjournals.org/content/44/D1/D385.long"
-target="_blank">Velankar <i>et al.</i></a>,
+<a href="https://nar.oxfordjournals.org/content/44/D1/D385.long" target="_blank">Velankar <i>et al.</i></a>,
 <i>Nucleic Acids Res</i> <b>44</b>:D385 (2016)</td>
 <td align="center"><b>mmcif</b>
 </td>
@@ -2219,8 +2143,7 @@ Data Bank Japan (PDBj)</a></td>
 <td align="center">atomic coordinates and associated annotations</td>
 <td align="center"><b>mmcif</b></td>
 </tr><tr>
-<td align="center"><a href="https://www.wwpdb.org/data/ccd"
-target="_blank">PDB Chemical Component Dictionary (CCD)</a>
+<td align="center"><a href="https://www.wwpdb.org/data/ccd" target="_blank">PDB Chemical Component Dictionary (CCD)</a>
 </td>
 <td align="center"><b>ccd</b></td>
 <td align="center">idealized structure of PDB chemical component 
@@ -2236,17 +2159,14 @@ atomic coordinates or diffraction data (if MTZ)
 specified by PDB identifier</td>
 <td align="center"><b>mmcif</b> (default) or <b>pdb</b> or <b>mtz</b>*
 <br><br>*<b>mtz</b> requires installing the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper"
-target="_blank"><b>Clipper</b> bundle</a> from the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/"
-target="_blank">ChimeraX Toolshed</a>
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper" target="_blank"><b>Clipper</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">ChimeraX Toolshed</a>
 and specifying the corresponding atomic model
 (<a href="#clipper">details...</a>)
 </td>
 </tr><tr>
 <td align="center">
-<a href="https://link.springer.com/article/10.1007/s10858-018-0220-3"
-target="_blank">PDB NMR-STAR</a>
+<a href="https://link.springer.com/article/10.1007/s10858-018-0220-3" target="_blank">PDB NMR-STAR</a>
 </td>
 <td align="center"><b>pdb_nmr</b></td>
 <td align="center" class="text">nuclear magnetic resonance (NMR) 
@@ -2267,8 +2187,7 @@ Electron Density Server (EDS)
 <td align="center">(Fo-Fc) electron density difference map for a PDB entry;
 <br>not available for all PDB entries</td>
 </tr><tr>
-<td align="center" class="text"><a href="https://www.ebi.ac.uk/emdb/"
-target="_blank">Electron Microscopy Data Bank (EMDB)</a></td>
+<td align="center" class="text"><a href="https://www.ebi.ac.uk/emdb/" target="_blank">Electron Microscopy Data Bank (EMDB)</a></td>
 <td align="center"><b>emdb</b></td>
 <td align="center">electron density map
 <br>
@@ -2283,8 +2202,7 @@ data source <b>emdb_fits</b>, below)
 </td>
 <td align="center" rowspan="5"><b>ccp4</b></td>
 </tr><tr>
-<td align="center" class="text"><a href="https://www.ebi.ac.uk/emdb/"
-target="_blank">EMDB</a> ebi.ac.uk</td>
+<td align="center" class="text"><a href="https://www.ebi.ac.uk/emdb/" target="_blank">EMDB</a> ebi.ac.uk</td>
 <td align="center"><b>emdb_europe</b></td>
 <td align="center">electron density map
 <br>
@@ -2292,16 +2210,14 @@ target="_blank">EMDB</a> ebi.ac.uk</td>
 can be <b>https</b> or <b>ftp</b>)
 </td>
 </tr><tr>
-<td align="center" class="text"><a href="https://www.ebi.ac.uk/emdb/"
-target="_blank">EMDB</a> Chinese mirror site</td>
+<td align="center" class="text"><a href="https://www.ebi.ac.uk/emdb/" target="_blank">EMDB</a> Chinese mirror site</td>
 <td align="center"><b>emdb_china</b></td>
 <td align="center">electron density map
 <br>
 (<a href="#transferMethod"><b>transferMethod</b></a> <b>ftp</b> only)
 </td>
 </tr><tr>
-<td align="center" class="text"><a href="https://www.ebi.ac.uk/emdb/"
-target="_blank">EMDB</a> Japanese mirror site</td>
+<td align="center" class="text"><a href="https://www.ebi.ac.uk/emdb/" target="_blank">EMDB</a> Japanese mirror site</td>
 <td align="center"><b>emdb_japan</b></td>
 <td align="center">electron density map
 <br>
@@ -2309,8 +2225,7 @@ target="_blank">EMDB</a> Japanese mirror site</td>
 can be <b>https</b> or <b>ftp</b>)
 </td>
 </tr><tr>
-<td align="center" class="text"><a href="https://www.ebi.ac.uk/emdb/"
-target="_blank">EMDB</a> wwpdb.org</td>
+<td align="center" class="text"><a href="https://www.ebi.ac.uk/emdb/" target="_blank">EMDB</a> wwpdb.org</td>
 <td align="center"><b>emdb_us</b></td>
 <td align="center">electron density map
 <br>
@@ -2348,20 +2263,17 @@ accession code PDBDEV_00000001 can be opened with command:
 </td>
 <td align="center"><b>ihm</b></td>
 </tr><tr>
-<td align="center"><a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold</a></td>
+<td align="center"><a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a></td>
 <td align="center"><b>alphafold</b></td>
 <td align="center">theoretical protein structure modeled by
-<a href="https://www.nature.com/articles/s41586-021-03819-2"
-target="_blank">AlphaFold</a> and specified by
+<a href="https://www.nature.com/articles/s41586-021-03819-2" target="_blank">AlphaFold</a> and specified by
 <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
 name or accession number (<a href="alphafold.html#fetch">details...</a>);
 any of the <a href="alphafold.html#fetch"><b>alphafold fetch</b></a>
 options can be used</td>
 <td align="center"><b>mmcif</b></td>
 </tr><tr>
-<td align="center"><a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold</a> PAE</td>
+<td align="center"><a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a> PAE</td>
 <td align="center"><b>alphafold_pae</b></td>
 <td align="center"><a href="#pae">AlphaFold predicted aligned error</a> (PAE) 
 specified by <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
@@ -2370,8 +2282,7 @@ and associated with the corresponding AlphaFold model using the
 <a href="#pae"><b>structure</b></a> option</td>
 <td align="center"><b>pae</b></td>
 </tr><tr>
-<td align="center"><a href="https://modelarchive.org/"
-target="_blank">ModelArchive</a></td>
+<td align="center"><a href="https://modelarchive.org/" target="_blank">ModelArchive</a></td>
 <td align="center"><b>modelarchive</b></td>
 <td align="center">theoretical structure specified by 
 <a href="https://modelarchive.org/" target="_blank">ModelArchive</a> identifier;
@@ -2383,8 +2294,7 @@ file-reading support courtesy of Gerardo Tauriello)</td>
 <td align="center"><b>mmcif</b></td>
 </tr><tr>
 <td align="center">
-<a href="https://esmatlas.com/about#about_this_website"
-target="_blank">ESM Metagenomic Atlas</a></td>
+<a href="https://esmatlas.com/about#about_this_website" target="_blank">ESM Metagenomic Atlas</a></td>
 <td align="center"><b>esmfold</b></td>
 <td align="center">theoretical protein structure modeled by
 <a href="https://pubmed.ncbi.nlm.nih.gov/36927031/" target="_blank">ESMFold</a>
@@ -2392,21 +2302,18 @@ target="_blank">ESM Metagenomic Atlas</a></td>
 (<a href="esmfold.html#fetch">details...</a>)</td>
 <td align="center"><b>pdb</b></td>
 </tr><tr>
-<td align="center"><a href="http://www.crystallography.net/cod/"
-target="_blank">Crystallography Open Database</a></td>
+<td align="center"><a href="http://www.crystallography.net/cod/" target="_blank">Crystallography Open Database</a></td>
 <td align="center"><b>cod</b></td>
 <td align="center">crystal structures of small molecules and 
 inorganic compounds</td>
 <td align="center"><b>corecif</b></td>
 </tr><tr>
-<td align="center"><a href="http://www.crystallography.net/pcod/"
-target="_blank">Predicted Crystallography Open Database</a></td>
+<td align="center"><a href="http://www.crystallography.net/pcod/" target="_blank">Predicted Crystallography Open Database</a></td>
 <td align="center"><b>pcod</b></td>
 <td align="center">predicted structures of inorganic compounds</td>
 <td align="center"><b>corecif</b></td>
 </tr><tr>
-<td align="center"><a href="http://www.cellpack.org"
-target="_blank">cellPACK</a></td>
+<td align="center"><a href="http://www.cellpack.org" target="_blank">cellPACK</a></td>
 <td align="center"><b>cellpack</b></td>
 <td align="center">hierarchical model;
 <br>
@@ -2418,8 +2325,7 @@ Chimera instructions</a> for available identifiers
 </td>
 <td align="center"><b>cellpack</b></td>
 </tr><tr>
-<td align="center"><a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
-target="_blank">PubChem3D</a></td>
+<td align="center"><a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d" target="_blank">PubChem3D</a></td>
 <td align="center"><b>pubchem</b></td>
 <td align="center"><a name="pubchem"></a>
 modeled atomic coordinates specified by
@@ -2436,11 +2342,9 @@ compound identifier (CID);
 <td align="center"><a name="iupac"></a>
 modeled atomic coordinates specified by
 IUPAC name, first translated to
-a <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
-target="_blank">SMILES</a> string using the
+a <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html" target="_blank">SMILES</a> string using the
 <a href="https://opsin.ch.cam.ac.uk/index.html" target="_blank">OPSIN
-web service</a> provided by the <a href="https://www-cmi.ch.cam.ac.uk/"
-target="_blank">Centre for Molecular Informatics</a>
+web service</a> provided by the <a href="https://www-cmi.ch.cam.ac.uk/" target="_blank">Centre for Molecular Informatics</a>
 at the University of Cambridge, followed by the process
 described <a href="#smiles">below</a> for SMILES; see also
 <a href="../tools/buildstructure.html"><b>Build Structure</b></a>
@@ -2451,8 +2355,7 @@ described <a href="#smiles">below</a> for SMILES; see also
 <td align="center"><b>smiles</b></td>
 <td align="center"><a name="smiles"></a>
 modeled atomic coordinates specified by
-<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
-target="_blank">SMILES</a> string, generated using the
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html" target="_blank">SMILES</a> string, generated using the
 <a href="https://cactus.nci.nih.gov/translate/" target="_blank">SMILES
 translator</a> provided by the
 <a href="https://cactus.nci.nih.gov/" target="_blank">National Cancer Institute
@@ -2461,8 +2364,7 @@ CADD group</a>; see also
 </td>
 <td align="center"><b>smiles</b></td>
 </tr><tr>
-<td align="center"><a href="https://www.uniprot.org" 
-target="_blank">UniProt</a></td>
+<td align="center"><a href="https://www.uniprot.org" target="_blank">UniProt</a></td>
 <td align="center"><b>uniprot</b></td>
 <td align="center">protein sequence
 <br>
@@ -2475,12 +2377,10 @@ Sequence Features</a>)</td>
 <td align="center"><b>uniprot</b></td>
 </tr><tr>
 <td align="center">
-<a href="https://www.science.org/doi/10.1126/science.adg7492"
-target="_blank">AlphaMissense</a></td>
+<a href="https://www.science.org/doi/10.1126/science.adg7492" target="_blank">AlphaMissense</a></td>
 <td align="center"><b>alpha_missense</b></td>
 <td align="center">
-<a href="https://www.science.org/doi/10.1126/science.adg7492"
-target="_blank">AlphaMissense</a>
+<a href="https://www.science.org/doi/10.1126/science.adg7492" target="_blank">AlphaMissense</a>
 predicted pathogenicity scores for missense mutations,
 ranging from 0 (benign) to 1 (pathogenic) and assigned score name <b>amiss</b>
 for analysis with <a href="mutationscores.html"><b>mutationscores</b></a>
@@ -2489,20 +2389,18 @@ for analysis with <a href="mutationscores.html"><b>mutationscores</b></a>
 <td align="center"><b>amiss</b></td>
 </tr><tr>
 <td align="center">
-<a href="https://www.uniprot.org/help/disease_phenotypes_variants_section"
-target="_blank">UniProt Variants</a></td>
+<a href="https://www.uniprot.org/help/disease_phenotypes_variants_section" target="_blank">UniProt Variants</a></td>
 <td align="center"><b>uniprot_variants</b></td>
 <td align="center">
 <a href="http://genetics.bwh.harvard.edu/pph2/" target="_blank">PolyPhen-2</a>
-and <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC168916/" 
-target="_blank">SIFT</a> predicted pathogenicity values for clinically
+and <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC168916/" target="_blank">SIFT</a> predicted pathogenicity values for clinically
 observed human protein variants, assigned score names
 <b>PolyPhen</b> and <b>SIFT</b>, respectively,
 for analysis with <a href="mutationscores.html"><b>mutationscores</b></a>
 <br>(command option <a href="#chains"><b>chains</b></a>)
 </td>
 <td align="center"><b>variants</b></td>
-</tr></table>
+</tr></tbody></table>
 
 <a name="clipper"></a>
 <p class="nav">
@@ -2510,15 +2408,12 @@ for analysis with <a href="mutationscores.html"><b>mutationscores</b></a>
 </p>
 <h3>Open/Save Options from Clipper</h3>
 <p>
-The <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper"
-target="_blank"><b>Clipper</b> bundle</a> from the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/"
-target="_blank">ChimeraX Toolshed</a> allows
+The <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper" target="_blank"><b>Clipper</b> bundle</a> from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">ChimeraX Toolshed</a> allows
 <a href="#top">opening</a> and <a href="save.html">saving</a>
 crystallographic reflection files in MTZ format.
 See also: 
-<a href="https://tristanic.github.io/chimerax-clipper/commands/clipper.html"
-target="_blank"><b>clipper</b> commands</a>,
+<a href="https://tristanic.github.io/chimerax-clipper/commands/clipper.html" target="_blank"><b>clipper</b> commands</a>,
 <a href="#fetch-table">PDB-REDO fetch</a>
 </p><p>
 <a href="#top">Opening</a>
@@ -2538,7 +2433,7 @@ Structure factors can also be <a href="#fetch">fetched</a> along
 with the corresponding atomic structure from the
 <a href="https://www.rcsb.org/" target="_blank">RCSB Protein Data Bank</a>
 by specifying <b>structureFactors true</b>, for example:
-<blockquote>
+</p><blockquote>
 <b>open 6cmn structureFactors t</b>
 </blockquote>
 Not all PDB entries have structure factors available.
@@ -2547,7 +2442,7 @@ an <b>overSampling</b> <i>value</i> can be given to set the
 fineness of the real-space grid relative to the data resolution;
 values in the 1.5-4.0 range are generally recommended, with higher
 values giving a finer grid.
-</p><p>
+<p></p><p>
 <a href="save.html">Saving</a>:
 Only previously fetched structure factors or those from
 a previously opened MTZ file can be saved as MTZ,
@@ -2569,4 +2464,5 @@ generated by Clipper. If <b>false</b>, just save the experimental data.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 November 2025</address>
+
 </body></html>
