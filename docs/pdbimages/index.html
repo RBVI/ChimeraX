@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,10 +9,8 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<title>PDB Assembly Images</title>
-<body>
+--><head><meta charset="utf-8"><title>PDB Assembly Images</title>
+</head><body>
 <h1>PDB Assembly Images</h1>
 
 <p>
@@ -30,14 +26,13 @@ mmCIF files.  It makes an image for each assembly in each mmCIF file (*.cif suff
 Example
 </h2>
 
-<img src="tiled.jpg" align=right>
+<img src="tiled.jpg" align="right" alt="computer generated image">
 
 <p>
 Start ChimeraX and enter the pdbimages command specifying a directory containing mmCIF files:
 </p>
 
-<pre>
-  pdbimages /tmp/mmcif_files
+<pre>  pdbimages /tmp/mmcif_files
 </pre>
 
 <p>
@@ -45,8 +40,7 @@ This will create images for each assembly in the same directory
 </p>
 
 <blockquote>
-<pre>
-$ ls /tmp/mmcif_files
+<pre>$ ls /tmp/mmcif_files
 1A0M.cif	1EJ6_XAU.png	1M4X_5.png	
 1A0M_1.png	1GOS.cif	1M4X_6.png	
 1A2P.cif	1GOS_1.png	1M4X_PAU.png	
@@ -77,8 +71,7 @@ A tiled single image showing the assemblies can be made with the free
 to make 100 by 100 pixel tile for each assembly image.
 </p>
 
-<pre>
-  montage -label "%t" *.png -geometry "100x100+0+0" tiled.jpg
+<pre>  montage -label "%t" *.png -geometry "100x100+0+0" tiled.jpg
 </pre>
 
 <h2>
@@ -101,8 +94,7 @@ The sphere style, coloring, lighting and view point are currently set in the Pyt
 in the Mac app in
 </p>
 
-<pre>
-  ChimeraX.app/Contents/lib/python3.5/site-packages/chimerax/core/commands/pdbimages.py
+<pre>  ChimeraX.app/Contents/lib/python3.5/site-packages/chimerax/core/commands/pdbimages.py
 </pre>
 
 <p>
@@ -123,8 +115,7 @@ The following example makes 800 by 800 pixel images, with edge smoothing using s
 and logs the files processed in the specified file (useful when errors occur).
 </p>
 
-<pre>
-  pdbimages /tmp/mmcif_files width 800 height 800 supersample 3 logFile /tmp/mmcif_files/log
+<pre>  pdbimages /tmp/mmcif_files width 800 height 800 supersample 3 logFile /tmp/mmcif_files/log
 </pre>
 
 <h2>
@@ -152,5 +143,6 @@ consumes about 1.5 Mbytes of memory per file, so 10,000 files takes 15 Gbytes of
 For both these reasons, it is necessary to run in batches of a few thousand files.
 </p>
 
-</body>
-</html>
+
+
+</body></html>

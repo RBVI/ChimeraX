@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: alias</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: alias</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -71,7 +66,7 @@ indicates the rest of the line, which allows for variable numbers of arguments.
 For example, <b>ribbon</b> is aliased to
 <b><a href="cartoon.html">cartoon</a> $*</b>,
 allowing any of the following to work:
-<blockquote><b>
+</p><blockquote><b>
 ribbon
 <br>
 ribbon #1/A
@@ -91,7 +86,7 @@ is equivalent to
 <blockquote>
 <b><a href="color.html">color</a> /a & helix dodger blue targ c</b>
 </blockquote>
-</p><p>
+<p></p><p>
 An example of multiple commands, in this case without arguments:
 </p>
 <blockquote>
@@ -113,14 +108,13 @@ alias or <b>all</b> aliases.
 <p class="nav">
 [<a href="#top">back to top: alias</a>]
 </p>
-<h3>Optional Sections</h3
-<p>
+<h3>Optional Sections</h3>
 An optional section can be specified with <b>$[</b> and <b>$]</b> in the
 definition of the alias. Optional sections cannot be nested.
 Example:
-</p>
+<p></p>
 <blockquote>
-<b>alias myzone <a href="zone.html">zone</a> clear; <a href="zone.html">zone</a> $1 $[residueDistance $2$] $[label $3$]; view $1:<8 clip false</b>
+<b>alias myzone <a href="zone.html">zone</a> clear; <a href="zone.html">zone</a> $1 $[residueDistance $2$] $[label $3$]; view $1:&lt;8 clip false</b>
 <br>
 <b>myzone /A:12</b>
 <br>
@@ -135,7 +129,7 @@ A single optional section may contain multiple arguments, but
 all of them must be supplied for that part of the command to take effect:
 </p>
 <blockquote>
-<b>alias myzone <a href="zone.html">zone</a> clear; <a href="zone.html">zone</a> $1 $[residueDistance $2 label $3$]; view $1:<8 clip false</b>
+<b>alias myzone <a href="zone.html">zone</a> clear; <a href="zone.html">zone</a> $1 $[residueDistance $2 label $3$]; view $1:&lt;8 clip false</b>
 <br>--<i>the following two will work as expected</i>--<br>
 <b>myzone /A:12</b>
 <br>
@@ -156,9 +150,7 @@ in that the default distance cutoff is &ldquo;sticky&rdquo; within a session
 <p class="nav">
 [<a href="#top">back to top: alias</a>]
 </p>
-<h3>Usage Information for Aliases</h3
-
-<blockquote>
+<h3>Usage Information for Aliases</h3>
 <a href="usageconventions.html">Usage</a>:
 <b>alias usage</b> &nbsp;<i>name</i>
 [&nbsp;<b>synopsis</b>&nbsp;&nbsp;<i>usage-description-string</i>&nbsp;]
@@ -167,8 +159,8 @@ in that the default distance cutoff is &ldquo;sticky&rdquo; within a session
 [&nbsp;<b>$2</b>&nbsp;&nbsp;<i>argument-name[:description]</i>&nbsp;]
 ...
 [&nbsp;<b>$9</b>&nbsp;&nbsp;<i>argument-name[:description]</i>&nbsp;]
-[&nbsp;<b>$*</b>&nbsp;&nbsp;<i>rest-of-line-name</i>[:description]</i>&nbsp;]
-</blockquote>
+[&nbsp;<b>$*</b>&nbsp;&nbsp;<i>rest-of-line-name</i>[:description]&nbsp;]
+
 <p>
 The command <b>alias usage</b> sets what information will be shown by 
 the <a href="usage.html"><b>usage</b></a> command for the specified
@@ -200,9 +192,10 @@ Changing this information and trying <b>usage</b> again:<br>
 <b>turtle</b> <i>pdbId</i><br>
 &nbsp;&nbsp;&mdash; open a PDB structure<br>
 &nbsp;&nbsp;<i>pdbId</i>: a protein databank identifier
-</b></blockquote>
+</blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 August 2025</address>
+
 </body></html>
