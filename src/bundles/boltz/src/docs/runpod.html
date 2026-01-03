@@ -1,6 +1,5 @@
-<html lang="en">
-  <title>Boltz server on RunPod</title>
-  <body>
+<html lang="en"><head><meta charset="utf-8"><title>Boltz server on RunPod</title>
+  </head><body>
     <h1>Setting up a Boltz Structure Prediction Server with RunPod</h1>
     <p>
       Tom Goddard<br>
@@ -46,9 +45,9 @@
       always feasible with Linux when system installed libraries and packages are needed.
     </p>
 
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0" align=right>
-      <tr><td><img src="images/runpod_ssh_key.png" width=500 alt="RunPod web page">
-    </table>
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0" align="right">
+      <tbody><tr><td><img src="images/runpod_ssh_key.png" width="500" alt="RunPod web page">
+    </td></tr></tbody></table>
 
     <h2>Setup RunPod ssh access</h2>
 
@@ -66,15 +65,15 @@
       To start a virtual machine with a GPU proceed as follows.
     </p>
 
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
-      <tr><td><img src="images/runpod.png" width=1000 alt="RunPod web page">
-    </table>
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0">
+      <tbody><tr><td><img src="images/runpod.png" width="1000" alt="RunPod web page">
+    </td></tr></tbody></table>
     
     <ul>
       <li>Click Pods at the left side of the RunPod web page.
-      <li>Click RTX 4090
-      <li>Click additional filters near the top and request at least 16 vCPU and at least 80 GB RAM.
-    </ul>
+      </li><li>Click RTX 4090
+      </li><li>Click additional filters near the top and request at least 16 vCPU and at least 80 GB RAM.
+    </li></ul>
 
     <h3>Virtual machine specifications</h3>
     <p>
@@ -101,22 +100,22 @@
 
     <ul>
       <li>Set the Pod name, for example to "boltz".
-      <li>Click the "Change Template" button and choose Runpod Pytorch 2.8.0.
-      <li>Click the "Edit" button and change Expose TCP Ports from "22" to "22,30172" and click "Set Overrides".
-      <li>Click the checkbutton for SSH terminal access.
-    </ul>
+      </li><li>Click the "Change Template" button and choose Runpod Pytorch 2.8.0.
+      </li><li>Click the "Edit" button and change Expose TCP Ports from "22" to "22,30172" and click "Set Overrides".
+      </li><li>Click the checkbutton for SSH terminal access.
+    </li></ul>
 
     <table>
-      <tr><td>
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
-      <tr><td><img src="images/runpod_config.png" height=500 alt="RunPod web page">
-    </table>
-	<td>
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
-      <tr><td align=center><img src="images/runpod_port.png" width=500 alt="RunPod web page">
+      <tbody><tr><td>
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0">
+      <tbody><tr><td><img src="images/runpod_config.png" height="500" alt="RunPod web page">
+    </td></tr></tbody></table>
+	</td><td>
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0">
+      <tbody><tr><td align="center"><img src="images/runpod_port.png" width="500" alt="RunPod web page">
 	  <br>Dialog shown after pressing Edit button for Pod template
-    </table>
-    </table>
+    </td></tr></tbody></table>
+    </td></tr></tbody></table>
 
     <b>Name</b>
     <p>
@@ -156,15 +155,15 @@
     </p>
 
     <table>
-      <tr><td valign=top>
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
-      <tr><td><img src="images/runpod_deploy.png" width=500 alt="RunPod web page">
-    </table>
-	<td>
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
-      <tr><td><img src="images/runpod_ssh_info.png" width=500 alt="RunPod web page">
-    </table>
-    </table>
+      <tbody><tr><td valign="top">
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0">
+      <tbody><tr><td><img src="images/runpod_deploy.png" width="500" alt="RunPod web page">
+    </td></tr></tbody></table>
+	</td><td>
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0">
+      <tbody><tr><td><img src="images/runpod_ssh_info.png" width="500" alt="RunPod web page">
+    </td></tr></tbody></table>
+    </td></tr></tbody></table>
 
     <h2>Login to the virtual machine</h2>
 
@@ -173,8 +172,7 @@
       local computer to login to the virtual machine.
     </p>
 
-    <pre>
-      ssh root@213.192.2.94 -p 40053</pre>
+    <pre>      ssh root@213.192.2.94 -p 40053</pre>
 
     <p>
       That command includes an option "-i ~/.ssh/id_ed25519".  Remove that option if that is not location
@@ -190,8 +188,7 @@
       and pip install from the ChimeraX Boltz github fork.  The install takes about 5 minutes.
     </p>
 
-    <pre>
-      $ python3 -m venv boltz22
+    <pre>      $ python3 -m venv boltz22
       $ . boltz/bin/activate
       $ pip3 install https://github.com/RBVI/boltz/archive/chimerax_boltz22_lowmem.zip</pre>
 
@@ -201,13 +198,11 @@
       Get the Boltz server Python code from the ChimeraX github repository.
     </p>
 
-    <pre>
-      $ curl -o boltz_server.py https://raw.githubusercontent.com/RBVI/ChimeraX/refs/heads/develop/src/bundles/boltz/src/server.py</pre>
+    <pre>      $ curl -o boltz_server.py https://raw.githubusercontent.com/RBVI/ChimeraX/refs/heads/develop/src/bundles/boltz/src/server.py</pre>
     
     <h2>Start Boltz server on the virtual machine</h2>
 
-    <pre>
-      $ nohup python3 boltz_server.py &gt;& ~/boltz_server_log &</pre>
+    <pre>      $ nohup python3 boltz_server.py &gt;& ~/boltz_server_log &</pre>
 
     <p>
       The server makes a directory for each prediction in ~/boltz_server_jobs so we create that directory.
@@ -216,9 +211,9 @@
       uses ~/boltz22 as the default location for the Boltz installation.
     </p>
 
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0" align=right>
-      <tr><td><img src="images/boltz_server_gui.png" width=500 alt="ChimeraX Boltz user interface">
-    </table>
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0" align="right">
+      <tbody><tr><td><img src="images/boltz_server_gui.png" width="500" alt="ChimeraX Boltz user interface">
+    </td></tr></tbody></table>
     
     <h2>Run a prediction on the server</h2>
 
@@ -241,8 +236,7 @@
       shell commands on the virtual machine
     </p>
 
-    <pre>
-      $ ps -axww | grep boltz_server
+    <pre>      $ ps -axww | grep boltz_server
       348 pts/0    Sl     0:00 python3 /workspace/boltz_server.py
       $ kill 348</pre>
 
@@ -268,15 +262,15 @@
     </p>
 
     <table>
-      <tr><td valign=top>
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
-      <tr><td><img src="images/runpod_data_center.png" width=600 alt="RunPod web page">
-    </table>
-	<td>
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
-      <tr><td><img src="images/runpod_volume.png" width=400 alt="RunPod web page">
-    </table>
-    </table>
+      <tbody><tr><td valign="top">
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0">
+      <tbody><tr><td><img src="images/runpod_data_center.png" width="600" alt="RunPod web page">
+    </td></tr></tbody></table>
+	</td><td>
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0">
+      <tbody><tr><td><img src="images/runpod_volume.png" width="400" alt="RunPod web page">
+    </td></tr></tbody></table>
+    </td></tr></tbody></table>
 
     <h3>Installing Boltz on the persistent volume</h3>
 
@@ -288,8 +282,7 @@
       the Boltz server use
     </p>
 
-    <pre>
-      $ nohup python3 /workspace/boltz_server.py --boltz_exe /workspace/boltz/bin/boltz --extra_options "--cache /workspace/boltz_parameters" &gt;& ~/boltz_server_log &</pre>
+    <pre>      $ nohup python3 /workspace/boltz_server.py --boltz_exe /workspace/boltz/bin/boltz --extra_options "--cache /workspace/boltz_parameters" &gt;& ~/boltz_server_log &</pre>
 
     <p>
       The log file and the temporary job directory (~/boltz_server_jobs) do not need to be on the workspace volume.
@@ -305,8 +298,7 @@
       can use the simpler command.
     </p>
 
-    <pre>
-      $ nohup python3 /workspace/boltz_server.py &</pre>
+    <pre>      $ nohup python3 /workspace/boltz_server.py &</pre>
 
     <p>
       Here I also omitted the log file and nohup will make all the output go to nohup.out.
@@ -320,8 +312,7 @@
       To install the latest PyTorch for use on these GPUs after installing Boltz uninstall and reinstall PyTorch.
     </p>
     
-    <pre>
-      $ python3 -m venv boltz22
+    <pre>      $ python3 -m venv boltz22
       $ . boltz22/bin/activate
       $ pip3 install https://github.com/RBVI/boltz/archive/chimerax_boltz22_lowmem.zip
       $ pip3 uninstall torch
@@ -342,8 +333,7 @@
       security.  You can create such an account with the Ubuntu adduser command.
     </p>
 
-    <pre>
-      adduser boltz</pre>
+    <pre>      adduser boltz</pre>
 
     <p>
       Then you can log out as root and do Boltz setup and start the server under this new account.
@@ -389,8 +379,8 @@
 
 
 
-
     </pre>
     
-  </body>
-</html>
+  
+
+</body></html>

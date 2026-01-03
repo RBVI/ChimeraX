@@ -1,10 +1,9 @@
-<html lang="en">
-  <title>ChimeraX Boltz</title>
+<html lang="en"><head><meta charset="utf-8"><title>ChimeraX Boltz</title>
   <style>
     li { margin: 5px 0; }
   </style>
   
-  <body>
+  </head><body>
     <h1>Making Boltz Structure Predictions in ChimeraX</h1>
     <p>
       Tom Goddard<br>
@@ -12,17 +11,17 @@
     </p>
 
     <table>
-      <tr>
-	<td width=20>
-	<td>
+      <tbody><tr>
+	<td width="20">
+	</td><td>
       <a href="#boltz">Boltz in ChimeraX</a>
       <br><a href="#size">Structure size and prediction speed limitations</a>
       <br><a href="#install">Boltz installation</a>
       <br><a href="#predict">Predicting a structure with Boltz</a>
       <br><a href="#results">Results, coloring and predicted aligned error</a>
       <br><a href="#runtimes">Run times and size limits</a>
-      	<td width=40>
-    <td>
+      	</td><td width="40">
+    </td><td>
       <a href="#ligands">Batch predictions with sets of ligands</a>
       <br><a href="#options">Options</a>
       <br><a href="boltz_server.html">Server predictions</a>
@@ -30,7 +29,7 @@
       <br><a href="#command">ChimeraX boltz command</a>
       <br><a href="#limitations">Limitations</a>
       <br><a href="#changelog">Change log</a>
-    </table>
+    </td></tr></tbody></table>
     
     <a name="boltz">
     <h2>Boltz in ChimeraX</h2>
@@ -50,8 +49,7 @@
       and is fully open source with a very permissive MIT license.
     </p>
 
-    <pre>
-      Boltz-1: Democratizing Biomolecular Interaction Modeling
+    <pre>      Boltz-1: Democratizing Biomolecular Interaction Modeling
       Jeremy Wohlwend, Gabriele Corso, Saro Passaro, Mateo Reveiz, Ken Leidal,
         Wojtek Swiderski, Tally Portnoi, Itamar Chinn, Jacob Silterra, Tommi Jaakkola, Regina Barzilay
       bioRxiv 2024.11.19.624167; doi: https://doi.org/10.1101/2024.11.19.624167</pre>
@@ -102,7 +100,7 @@
     <h2>Boltz installation</h2>
     </a>
 
-    <img src="images/boltz_gui.png" width=400 align=right>
+    <img src="images/boltz_gui.png" width="400" align="right" alt="computer generated image">
 
     <p>
       When you first start the Boltz tool within ChimeraX (menu Tools / Structure Prediction / Boltz) it will
@@ -121,12 +119,12 @@
     <h2>Predicting a structure with Boltz</h2>
     </a>
 
-    <table align=right>
-      <tr><td><img src="images/boltz_assembly.png" width=400>
-	<td width=100 align=center>
+    <table align="right">
+      <tbody><tr><td><img src="images/boltz_assembly.png" width="400" alt="computer generated image">
+	</td><td width="100" align="center">
 	  Menu of molecular components<br>
-	  <img src="images/boltz_menu.png" width=150>
-    </table>
+	  <img src="images/boltz_menu.png" width="150" alt="computer generated image">
+    </td></tr></tbody></table>
 
     <p>
       To predict a structure made up of proteins, nucleic acids and small molecules you first specify
@@ -137,18 +135,18 @@
 
     <ul>
       <li>Protein and nucleic acids can be specified by choosing chains open models.
-      <li>Sequences of one letter codes for proteins (20 amino acids) or DNA or RNA can be pasted in.
-      <li>UniProt database identifiers can be give for proteins.
-      <li>Ligands, ions and solvent can be specified by 3-letter or 5-letter chemical component dictinary codes (e.g. ATP or HEM).
-      <li>Small molecules can be specified by SMILES strings.
-    </ul>
+      </li><li>Sequences of one letter codes for proteins (20 amino acids) or DNA or RNA can be pasted in.
+      </li><li>UniProt database identifiers can be give for proteins.
+      </li><li>Ligands, ions and solvent can be specified by 3-letter or 5-letter chemical component dictinary codes (e.g. ATP or HEM).
+      </li><li>Small molecules can be specified by SMILES strings.
+    </li></ul>
 
-    <table align=right>
-      <tr><td width=250 align=center><img src="images/hemoglobin.png" width=250>
+    <table align="right">
+      <tbody><tr><td width="250" align="center"><img src="images/hemoglobin.png" width="250" alt="computer generated image">
 	  <br>Hemoglobin dimer prediction (blue) aligned to experimental structure PDB 1hho
-	  <tr><td align=center><img src="images/hemoglobin_pae.png" width=200>
+	  </td></tr><tr><td align="center"><img src="images/hemoglobin_pae.png" width="200" alt="computer generated image">
 	      <br>Predicted aligned error
-    </table>
+    </td></tr></tbody></table>
     
     <p>
       Components can be added multiple times to have more instances of that molecule in the assembly.
@@ -198,128 +196,128 @@
 
     <p>Boltz prediction times in minutes.  Tokens is number of standard polymer residues plus ligand atoms.</p>
     
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
-      <tr>
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0">
+      <tbody><tr>
 	<th>PDB code
-	<th>Tokens
-	<th>Mac<br>M1<br>16 GB
-	<th>Mac<br>M1 Max<br>32 GB
-	<th>Mac<br>M2&nbsp;Ultra<br>64 GB
-	<th>Linux<br>i9 CPU 64 GB
-	<th>Linux<br>Nvidia 4090
-	<th>Windows<br>i7 CPU 64 GB
-	<th>Windows<br>Nvidia 3070
-	<th>Number of residues and atoms and prediction error
-      <tr>
-	<td align=center>8rf4
-	<td align=center>129
-	<td align=center>1.2
-	<td align=center>0.8
-	<td align=center>0.8
-	<td align=center>1.1
-	<td align=center>0.3
-	<td align=center>2.0
-	<td align=center>0.8
-	<td>118 amino acids, 11 ligand atoms, 0.8A RMSD 108 residues
-      <tr>
-	<td align=center>1hho
-	<td align=center>382
-	<td align=center>fail
-	<td align=center>1.5
-	<td align=center>1.4
-	<td align=center>8.0
-	<td align=center>0.5
-	<td align=center>11
-	<td align=center>2.0
-	<td>287 amino acids, 95 ligand atoms, 0.4A RMSD 146 residues
-      <tr>
-	<td align=center>9moj
-	<td align=center>660
-	<td align=center>18
-	<td align=center>3.8
-	<td align=center>2.3
-	<td align=center>24
-	<td align=center>0.6
-	<td align=center>29
-	<td align=center>2.5
-	<td>660 amino acids, heterotetramer, 0.8A RMSD 132 residues
-      <tr>
-	<td align=center>9h1k
-	<td align=center>671
-	<td align=center>23
-	<td align=center>4.9
-	<td align=center>2.7
-	<td align=center>29
-	<td align=center>0.7
-	<td align=center>38
-	<td align=center>9.5
-	<td>560 amino acids, 59 rna bases, 52 ligand atoms, 0.7A RMSD protein, RNA wrong
-      <tr>
-	<td align=center>9b3h
-	<td align=center>911
-	<td align=center>fail
-	<td align=center>10
-	<td align=center>5.1
-	<td align=center>60
-	<td align=center>1.1
-	<td align=center>80
-	<td align=center>28
-	<td>911 amino acids, heterodimer, 1A RMSD 509 residues
-      <tr>
-	<td align=center>9fz5
-	<td align=center>1025
-	<td align=center>
-	<td align=center>13
-	<td align=center>7.0
-	<td align=center>82
-	<td align=center>1.3
-	<td align=center>
-	<td align=center>40
-	<td>1025 amino acids, heterotrimer, 3.7A RMSD 740 residues
-      <tr>
-	<td align=center>9mcw
-	<td align=center>1154
-	<td align=center>
-	<td align=center>18
-	<td align=center>7.2
-	<td align=center>96
-	<td align=center>1.4
-	<td align=center>
-	<td align=center>54
-	<td>1154 rna bases, homodimer, wrong dimer and monomer conformations
-      <tr>
-	<td align=center>8sa0
-	<td align=center>1371
-	<td align=center>
-	<td align=center>28
-	<td align=center>38
-	<td align=center>164
-	<td align=center>fail
-	<td align=center>
-	<td align=center>
-	<td>1274 amino acids, 97 ligand atoms, 3.4A RMSD 1151 residues
-      <tr>
-	<td align=center>9gh4
-	<td align=center>1467
-	<td align=center>
-	<td align=center>32
-	<td align=center>41
-	<td align=center>188
-	<td align=center>2.1
-	<td align=center>
-	<td align=center>
-	<td>Protein homotrimer, monomer 489 residues, 1.1A RMSD for 750 residues
-    </table>
+	</th><th>Tokens
+	</th><th>Mac<br>M1<br>16 GB
+	</th><th>Mac<br>M1 Max<br>32 GB
+	</th><th>Mac<br>M2&nbsp;Ultra<br>64 GB
+	</th><th>Linux<br>i9 CPU 64 GB
+	</th><th>Linux<br>Nvidia 4090
+	</th><th>Windows<br>i7 CPU 64 GB
+	</th><th>Windows<br>Nvidia 3070
+	</th><th>Number of residues and atoms and prediction error
+      </th></tr><tr>
+	<td align="center">8rf4
+	</td><td align="center">129
+	</td><td align="center">1.2
+	</td><td align="center">0.8
+	</td><td align="center">0.8
+	</td><td align="center">1.1
+	</td><td align="center">0.3
+	</td><td align="center">2.0
+	</td><td align="center">0.8
+	</td><td>118 amino acids, 11 ligand atoms, 0.8A RMSD 108 residues
+      </td></tr><tr>
+	<td align="center">1hho
+	</td><td align="center">382
+	</td><td align="center">fail
+	</td><td align="center">1.5
+	</td><td align="center">1.4
+	</td><td align="center">8.0
+	</td><td align="center">0.5
+	</td><td align="center">11
+	</td><td align="center">2.0
+	</td><td>287 amino acids, 95 ligand atoms, 0.4A RMSD 146 residues
+      </td></tr><tr>
+	<td align="center">9moj
+	</td><td align="center">660
+	</td><td align="center">18
+	</td><td align="center">3.8
+	</td><td align="center">2.3
+	</td><td align="center">24
+	</td><td align="center">0.6
+	</td><td align="center">29
+	</td><td align="center">2.5
+	</td><td>660 amino acids, heterotetramer, 0.8A RMSD 132 residues
+      </td></tr><tr>
+	<td align="center">9h1k
+	</td><td align="center">671
+	</td><td align="center">23
+	</td><td align="center">4.9
+	</td><td align="center">2.7
+	</td><td align="center">29
+	</td><td align="center">0.7
+	</td><td align="center">38
+	</td><td align="center">9.5
+	</td><td>560 amino acids, 59 rna bases, 52 ligand atoms, 0.7A RMSD protein, RNA wrong
+      </td></tr><tr>
+	<td align="center">9b3h
+	</td><td align="center">911
+	</td><td align="center">fail
+	</td><td align="center">10
+	</td><td align="center">5.1
+	</td><td align="center">60
+	</td><td align="center">1.1
+	</td><td align="center">80
+	</td><td align="center">28
+	</td><td>911 amino acids, heterodimer, 1A RMSD 509 residues
+      </td></tr><tr>
+	<td align="center">9fz5
+	</td><td align="center">1025
+	</td><td align="center">
+	</td><td align="center">13
+	</td><td align="center">7.0
+	</td><td align="center">82
+	</td><td align="center">1.3
+	</td><td align="center">
+	</td><td align="center">40
+	</td><td>1025 amino acids, heterotrimer, 3.7A RMSD 740 residues
+      </td></tr><tr>
+	<td align="center">9mcw
+	</td><td align="center">1154
+	</td><td align="center">
+	</td><td align="center">18
+	</td><td align="center">7.2
+	</td><td align="center">96
+	</td><td align="center">1.4
+	</td><td align="center">
+	</td><td align="center">54
+	</td><td>1154 rna bases, homodimer, wrong dimer and monomer conformations
+      </td></tr><tr>
+	<td align="center">8sa0
+	</td><td align="center">1371
+	</td><td align="center">
+	</td><td align="center">28
+	</td><td align="center">38
+	</td><td align="center">164
+	</td><td align="center">fail
+	</td><td align="center">
+	</td><td align="center">
+	</td><td>1274 amino acids, 97 ligand atoms, 3.4A RMSD 1151 residues
+      </td></tr><tr>
+	<td align="center">9gh4
+	</td><td align="center">1467
+	</td><td align="center">
+	</td><td align="center">32
+	</td><td align="center">41
+	</td><td align="center">188
+	</td><td align="center">2.1
+	</td><td align="center">
+	</td><td align="center">
+	</td><td>Protein homotrimer, monomer 489 residues, 1.1A RMSD for 750 residues
+    </td></tr></tbody></table>
 
     <ul>
       <li>Mac M1 16 GB - Mac Mini, 8 core GPU, euclid.cgl.ucsf.edu
-      <li>Mac M1 Max 32 GB - MacBook Pro 32 core GPU, Tom's laptop
-      <li>Mac M2 Ultra 64 GB - Mac Studio 60 core GPU, descartes.cgl.ucsf.edu
-      <li>Linux i9 CPU - cpu i9-13900K (24 cores) 64 GB (DDR5 5200MHz), minsky.cgl.ucsf.edu
-      <li>Linux Nvidia 4090 - VRAM 24 GB, cpu i9-13900K (24 cores) 64 GB (DDR5 5200MHz), minsky.cgl.ucsf.edu
-      <li>Windows i7 CPU - cpu i7-12700K (12 cores) 64 GB DDR5 4000MHz, vizvault.cgl.ucsf.edu
-      <li>Windows Nvidia 3070 - Windows 11, VRAM 8 GB, PCIe 4.0, cpu i7-12700K (12 cores) 64 GB DDR5 4000MHz, vizvault.cgl.ucsf.edu
-    </ul>
+      </li><li>Mac M1 Max 32 GB - MacBook Pro 32 core GPU, Tom's laptop
+      </li><li>Mac M2 Ultra 64 GB - Mac Studio 60 core GPU, descartes.cgl.ucsf.edu
+      </li><li>Linux i9 CPU - cpu i9-13900K (24 cores) 64 GB (DDR5 5200MHz), minsky.cgl.ucsf.edu
+      </li><li>Linux Nvidia 4090 - VRAM 24 GB, cpu i9-13900K (24 cores) 64 GB (DDR5 5200MHz), minsky.cgl.ucsf.edu
+      </li><li>Windows i7 CPU - cpu i7-12700K (12 cores) 64 GB DDR5 4000MHz, vizvault.cgl.ucsf.edu
+      </li><li>Windows Nvidia 3070 - Windows 11, VRAM 8 GB, PCIe 4.0, cpu i7-12700K (12 cores) 64 GB DDR5 4000MHz, vizvault.cgl.ucsf.edu
+    </li></ul>
 
     <h3>Performance notes</h3>
     <p>
@@ -364,165 +362,165 @@
         
     <p>Low memory Boltz prediction times in minutes.  Tokens is number of standard polymer residues plus ligand atoms.</p>
     
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
-      <tr>
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0">
+      <tbody><tr>
 	<th>PDB code
-	<th>Tokens
-	<th>Linux<br>Nvidia 4090
-	<th>Linux<br>Nvidia 4090<br>Low Mem
-	<th>Windows<br>Nvidia 3070
-	<th>Windows<br>Nvidia 3070<br>Low Mem
-	<th>Number of residues and atoms and prediction error
-      <tr>
-	<td align=center>8rf4
-	<td align=center>129
-	<td align=center>0.3
-	<td align=center style="background-color:#a0ffa0;">
-	<td align=center>0.8
-	<td align=center style="background-color:#a0ffa0;">
-	<td>118 amino acids, 11 ligand atoms, 0.8A RMSD 108 residues
-      <tr>
-	<td align=center>1hho
-	<td align=center>382
-	<td align=center>0.5
-	<td align=center style="background-color:#a0ffa0;">
-	<td align=center>2.0
-	<td align=center style="background-color:#a0ffa0;">1.5
-	<td>287 amino acids, 95 ligand atoms, 0.4A RMSD 146 residues
-      <tr>
-	<td align=center>9moj
-	<td align=center>660
-	<td align=center>0.6
-	<td align=center style="background-color:#a0ffa0;">
-	<td align=center>2.5
-	<td align=center style="background-color:#a0ffa0;">2.5
-	<td>660 amino acids, heterotetramer, 0.8A RMSD 132 residues
-      <tr>
-	<td align=center>9h1k
-	<td align=center>671
-	<td align=center>0.7
-	<td align=center style="background-color:#a0ffa0;">
-	<td align=center>9.5
-	<td align=center style="background-color:#a0ffa0;">5.5
-	<td>560 amino acids, 59 rna bases, 52 ligand atoms, 0.7A RMSD protein, RNA wrong
-      <tr>
-	<td align=center>9b3h
-	<td align=center>911
-	<td align=center>1.1
-	<td align=center style="background-color:#a0ffa0;">
-	<td align=center>28
-	<td align=center style="background-color:#a0ffa0;">10
-	<td>911 amino acids, heterodimer, 1A RMSD 509 residues
-      <tr>
-	<td align=center>9fz5
-	<td align=center>1025
-	<td align=center>1.3
-	<td align=center style="background-color:#a0ffa0;">
-	<td align=center>40
-	<td align=center style="background-color:#a0ffa0;">19
-	<td>1025 amino acids, heterotrimer, 3.7A RMSD 740 residues
-      <tr>
-	<td align=center>9mcw
-	<td align=center>1154
-	<td align=center>1.4
-	<td align=center style="background-color:#a0ffa0;">
-	<td align=center>54
-	<td align=center style="background-color:#a0ffa0;">
-	<td>1154 rna bases, homodimer, wrong dimer and monomer conformations
-      <tr>
-	<td align=center>8sa0
-	<td align=center>1371
-	<td align=center>failed
-	<td align=center style="background-color:#a0ffa0;">2.6
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">101
-	<td>1274 amino acids, 97 ligand atoms, 2.2A RMSD all residue CA.
-      <tr>
-	<td align=center>9gh4
-	<td align=center>1467
-	<td align=center>2.1
-	<td align=center style="background-color:#a0ffa0;">2.8
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">
-	<td>Protein homotrimer, monomer 489 residues, 1.1A RMSD for 750 residues
-      <tr>
-	<td align=center>8zvq
-	<td align=center>1550
-	<td align=center>failed
-	<td align=center style="background-color:#a0ffa0;">3.3
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">
-	<td>
-      <tr>
-	<td align=center>9d45
-	<td align=center>1651
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">3.8
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">
-	<td>
-      <tr>
-	<td align=center>9enr
-	<td align=center>1794
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">3.9
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">
-	<td>
-      <tr>
-	<td align=center>1dpp
-	<td align=center>2028
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">5.4
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">
-	<td>
-      <tr>
-	<td align=center>1a4e
-	<td align=center>2146
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">6.1
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">
-	<td>
-      <tr>
-	<td align=center>9hma
-	<td align=center>2217
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">7.1
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">
-	<td>
-      <tr>
-	<td align=center>7r76
-	<td align=center>2348
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">9.5
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">
-	<td>Used --aggressive_chunking.  Out of memory without this option.
-      <tr>
-	<td align=center>7lhw
-	<td align=center>2527
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">11
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">
-	<td>Used --aggressive_chunking.
-      <tr>
-	<td align=center>7b52
-	<td align=center>2649
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">failed
-	<td align=center>
-	<td align=center style="background-color:#a0ffa0;">
-	<td>Used --aggressive_chunking.
-    </table>
+	</th><th>Tokens
+	</th><th>Linux<br>Nvidia 4090
+	</th><th>Linux<br>Nvidia 4090<br>Low Mem
+	</th><th>Windows<br>Nvidia 3070
+	</th><th>Windows<br>Nvidia 3070<br>Low Mem
+	</th><th>Number of residues and atoms and prediction error
+      </th></tr><tr>
+	<td align="center">8rf4
+	</td><td align="center">129
+	</td><td align="center">0.3
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td align="center">0.8
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td>118 amino acids, 11 ligand atoms, 0.8A RMSD 108 residues
+      </td></tr><tr>
+	<td align="center">1hho
+	</td><td align="center">382
+	</td><td align="center">0.5
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td align="center">2.0
+	</td><td align="center" style="background-color:#a0ffa0;">1.5
+	</td><td>287 amino acids, 95 ligand atoms, 0.4A RMSD 146 residues
+      </td></tr><tr>
+	<td align="center">9moj
+	</td><td align="center">660
+	</td><td align="center">0.6
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td align="center">2.5
+	</td><td align="center" style="background-color:#a0ffa0;">2.5
+	</td><td>660 amino acids, heterotetramer, 0.8A RMSD 132 residues
+      </td></tr><tr>
+	<td align="center">9h1k
+	</td><td align="center">671
+	</td><td align="center">0.7
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td align="center">9.5
+	</td><td align="center" style="background-color:#a0ffa0;">5.5
+	</td><td>560 amino acids, 59 rna bases, 52 ligand atoms, 0.7A RMSD protein, RNA wrong
+      </td></tr><tr>
+	<td align="center">9b3h
+	</td><td align="center">911
+	</td><td align="center">1.1
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td align="center">28
+	</td><td align="center" style="background-color:#a0ffa0;">10
+	</td><td>911 amino acids, heterodimer, 1A RMSD 509 residues
+      </td></tr><tr>
+	<td align="center">9fz5
+	</td><td align="center">1025
+	</td><td align="center">1.3
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td align="center">40
+	</td><td align="center" style="background-color:#a0ffa0;">19
+	</td><td>1025 amino acids, heterotrimer, 3.7A RMSD 740 residues
+      </td></tr><tr>
+	<td align="center">9mcw
+	</td><td align="center">1154
+	</td><td align="center">1.4
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td align="center">54
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td>1154 rna bases, homodimer, wrong dimer and monomer conformations
+      </td></tr><tr>
+	<td align="center">8sa0
+	</td><td align="center">1371
+	</td><td align="center">failed
+	</td><td align="center" style="background-color:#a0ffa0;">2.6
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">101
+	</td><td>1274 amino acids, 97 ligand atoms, 2.2A RMSD all residue CA.
+      </td></tr><tr>
+	<td align="center">9gh4
+	</td><td align="center">1467
+	</td><td align="center">2.1
+	</td><td align="center" style="background-color:#a0ffa0;">2.8
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td>Protein homotrimer, monomer 489 residues, 1.1A RMSD for 750 residues
+      </td></tr><tr>
+	<td align="center">8zvq
+	</td><td align="center">1550
+	</td><td align="center">failed
+	</td><td align="center" style="background-color:#a0ffa0;">3.3
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td>
+      </td></tr><tr>
+	<td align="center">9d45
+	</td><td align="center">1651
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">3.8
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td>
+      </td></tr><tr>
+	<td align="center">9enr
+	</td><td align="center">1794
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">3.9
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td>
+      </td></tr><tr>
+	<td align="center">1dpp
+	</td><td align="center">2028
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">5.4
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td>
+      </td></tr><tr>
+	<td align="center">1a4e
+	</td><td align="center">2146
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">6.1
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td>
+      </td></tr><tr>
+	<td align="center">9hma
+	</td><td align="center">2217
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">7.1
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td>
+      </td></tr><tr>
+	<td align="center">7r76
+	</td><td align="center">2348
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">9.5
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td>Used --aggressive_chunking.  Out of memory without this option.
+      </td></tr><tr>
+	<td align="center">7lhw
+	</td><td align="center">2527
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">11
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td>Used --aggressive_chunking.
+      </td></tr><tr>
+	<td align="center">7b52
+	</td><td align="center">2649
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">failed
+	</td><td align="center">
+	</td><td align="center" style="background-color:#a0ffa0;">
+	</td><td>Used --aggressive_chunking.
+    </td></tr></tbody></table>
 
     <ul>
       <li>Linux Nvidia 4090 - VRAM 24 GB, cpu i9-13900K (24 cores) 64 GB (DDR5 5200MHz), minsky.cgl.ucsf.edu
-      <li>Windows Nvidia 3070 - Windows 11, VRAM 8 GB, PCIe 4.0, cpu i7-12700K (12 cores) 64 GB DDR5 4000MHz, vizvault.cgl.ucsf.edu
-    </ul>
+      </li><li>Windows Nvidia 3070 - Windows 11, VRAM 8 GB, PCIe 4.0, cpu i7-12700K (12 cores) 64 GB DDR5 4000MHz, vizvault.cgl.ucsf.edu
+    </li></ul>
 
     <p>
       This low memory Boltz should give the same predictions as regular Boltz.  It has not yet been incorporated
@@ -530,8 +528,7 @@
       uses the low memory version.  To install and use the low memory Boltz use ChimeraX command
     </p>
 
-    <pre>
-      boltz install ~/boltz22_lowmem branch chimerax_boltz22_lowmem</pre>
+    <pre>      boltz install ~/boltz22_lowmem branch chimerax_boltz22_lowmem</pre>
 
     <p>
       ChimeraX currently currently does not use the "aggressive chunking" option.
@@ -547,13 +544,13 @@
     </p>
 
     <table>
-      <tr><td><img src="images/ligands_gui.png" width=600>
+      <tbody><tr><td><img src="images/ligands_gui.png" width="600" alt="computer generated image">
 	  <br>Example input for <a href="https://www.rbvi.ucsf.edu/chimerax/data/af3-drugs-dec2024/data/virus_drugs_smiles.txt">52 anti-viral ligands</a> run against HIV protease.
 	  <br>Predictions completed in 14 minutes on an Nvidia 4090 GPU.
-	<td><img src="images/hiv_protease_51_highlight.png" width=300>
+	</td><td><img src="images/hiv_protease_51_highlight.png" width="300" alt="computer generated image">
 	  <br>Binding confidence and affinity scores for ligands.
 	  <br>Green highlights shows known HIV protease inhibitors.
-    </table>
+    </td></tr></tbody></table>
 
     <p>
       Progress messages will appear in the Boltz panel as the structures are predicted for each ligand.
@@ -572,7 +569,7 @@
     <h2>Options</h2>
     </a>
 
-    <img src="images/boltz_options.png" width=450 align=right>
+    <img src="images/boltz_options.png" width="450" align="right" alt="computer generated image">
 
     <p>
       Pressing the <b>Options</b> button shows additional settings for boltz predictions.
@@ -581,17 +578,17 @@
     <ul>
       <li><b>Results directory</b>: You can change where the results are placed.
 	The path contains "[name]" which is replaced with the prediction name.
-      <li><b>Number of predictions</b>: The default number of predicted structures is 1, but you can request more to get an ensemble of structures that usually have small variations.
-      <li><b>Predict ligand binding affinity for</b>: Boltz can predict the binding affinity uM for a single ligand.  It was trained using Kd, Ki, and IC50 affinity values treating them as equivalent, so the predicted affinity should be interpreted as a qualitative affinity without precise definition.	Only one affinity prediction is made even if multiple structures are predicted.  Also ligands that occur in more than one copy cannot have affinity predicted.
-      <li><b>Use steering potentials.  May be more accurate, but slower</b>: Use Boltz diffusion steering potentials which are claimed to produce more accurate predictions but runs slower (1.25x on Nvidia, 2.5x on Mac).
-      <li><b>Use multiple sequence alignment cache</b>: Boltz uses deep multiple sequence alignments for proteins
+      </li><li><b>Number of predictions</b>: The default number of predicted structures is 1, but you can request more to get an ensemble of structures that usually have small variations.
+      </li><li><b>Predict ligand binding affinity for</b>: Boltz can predict the binding affinity uM for a single ligand.  It was trained using Kd, Ki, and IC50 affinity values treating them as equivalent, so the predicted affinity should be interpreted as a qualitative affinity without precise definition.	Only one affinity prediction is made even if multiple structures are predicted.  Also ligands that occur in more than one copy cannot have affinity predicted.
+      </li><li><b>Use steering potentials.  May be more accurate, but slower</b>: Use Boltz diffusion steering potentials which are claimed to produce more accurate predictions but runs slower (1.25x on Nvidia, 2.5x on Mac).
+      </li><li><b>Use multiple sequence alignment cache</b>: Boltz uses deep multiple sequence alignments for proteins
 	that are computed using the Colabfold server.  To avoid recomputing the alignments when you run predictions
 	with the same proteins but different ligands ChimeraX caches those alignments in ~/Downloads/ChimeraX/BoltzMSA
 	and the cached alignments will be used if available as long as this option enables using the cache.
-      <li><b>Compute device</b>: The computation can run on Nvidia GPUs or Mac M series GPUs and complete faster than CPU-only calculations.  The default setting tries to uses the GPU if available.
-      <li><b>Boltz install location</b>: Boltz is installed in a virtual Python environment contained in this folder.
-      <li><b>Save default options</b>: Save the currently shown option settings as the defaults for future ChimeraX sessions.
-    </ul>
+      </li><li><b>Compute device</b>: The computation can run on Nvidia GPUs or Mac M series GPUs and complete faster than CPU-only calculations.  The default setting tries to uses the GPU if available.
+      </li><li><b>Boltz install location</b>: Boltz is installed in a virtual Python environment contained in this folder.
+      </li><li><b>Save default options</b>: Save the currently shown option settings as the defaults for future ChimeraX sessions.
+    </li></ul>
 
     <p>
       Additional advanced options are available by using the <a href="#command">ChimeraX boltz command</a>.
@@ -601,10 +598,10 @@
     <h2>Listing past predictions</h2>
     </a>
 
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0" style="margin: 10px;" align=right>
-      <tr><td>
-	  <img src="images/history_panel.png" alt="ChimeraX Boltz user interface panel" width=400>
-    </table>
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0" style="margin: 10px;" align="right">
+      <tbody><tr><td>
+	  <img src="images/history_panel.png" alt="ChimeraX Boltz user interface panel" width="400">
+    </td></tr></tbody></table>
 
     <p>
       ChimeraX menu entry <b>Tools / Structure Prediction / Boltz History</b> lists a table of past
@@ -639,8 +636,7 @@
       the command options.
     </p>
 
-    <pre>
-      <b>boltz predict</b> [<i>sequences</i>] [<b>protein</b> <i>sequences</i>] [<b>dna</b> <i>sequences</i>] [<b>rna</b> <i>sequences</i>]
+    <pre>      <b>boltz predict</b> [<i>sequences</i>] [<b>protein</b> <i>sequences</i>] [<b>dna</b> <i>sequences</i>] [<b>rna</b> <i>sequences</i>]
          [<b>ligands</b> <i>residue-spec</i>] [<b>excludeLigands</b> <i>ccd-codes</i>]
          [<b>ligandCcd</b> <i>ccd-codes</i>] [<b>ligandSmiles</b> <i>smiles-string</i>]
          [<b>forEachSmilesLigand</b> <i>name,smiles-string,name,smiles-string...</i>]
@@ -658,40 +654,39 @@
 
      <ul>
        <li><i>sequences</i> - Sequences can be specified using chain ids, UniProt identifiers, explicit strings of amino acid 1-letter codes, or ChimeraX sequence viewer ids.
-       <li><b>protein</b> <i>sequences</i> - Like the previous sequences option only this explicitly excludes non-protein sequences in specifiers for open models.  For example "protein #1" would not include any DNA/RNA chains of model #1.  This option can be used more than once.
-       <li><b>dna</b> <i>sequences</i> - Uses only DNA sequences from open model specifiers and treats explicit 1-letter code sequences as DNA.  UniProt ids cannot be used.  This option can be used more than once.
-       <li><b>rna</b> <i>sequences</i> - Uses only RNA sequences from open model specifiers and treats explicit 1-letter code sequences as RNA.  UniProt ids cannot be used.  This option can be used more than once.
-       <li><b>ligands</b> <i>residue-spec</i> - Specify ligands using residue specifiers for open models.
-       <li><b>excludeLigands</b> <i>ccd-codes</i> - Exclude these CCD codes when interpreting the ligands option.  By default it excludes ccd code "HOH", ie water.
-       <li><b>ligandCcd</b> <i>ccd-codes</i> - Comma-separated list of 3 or 5-letter CCD codes.  This option can be used more than once.
-       <li><b>ligandSmiles</b> <i>smiles-string</i> - Comma-separated list of SMILES strings.  This option can be used more than once.
-       <li><b>forEachSmilesLigand</b> <i>name,smiles-string,name,smiles-string...</i> - Comma-separated list of ligand names and SMILES strings.  A separate prediction will be made for each ligand by adding each ligand to the molecular assembly.  In order to predict affinity for each ligand use the "affinity each" option.
-       <li><b>affinity</b> <i>ligand-ccd-or-smiles-string</i> | each | <b>none</b> - Whether to predict binding affinity for a specified ligand.  The ligand CCD code or SMILES string is uses to specify the ligand.  Boltz can only predict affinity for a single ligand and their must be only one copy of the ligand.  If the <b>forEachSmilesLigand</b> option is used to predict structures for multiple ligands, the "affinity each" option can be used to predict affinity for each of those ligands.  Default is <b>none</b>, not predicting affinity.  Affinity prediction takes roughly the same amount of time as structure prediction.
-       <li><b>resultsDirectory</b> <i>directory</i> - Path to the results directory that will be created.  "[name]" in the path will be replaced by the prediction name.  If the folder already exists an numeric suffix _1, _2, _3... will be appended.
-       <li><b>device</b> <b>default</b> | cpu | gpu - Whether to run the computation on GPU or CPU.  The default setting chooses based on GPU availability and torch support for the GPU.
-       <li><b>useServer</b> true | <b>false</b> - Whether to run computations on a prediction server specified by the <b>serverHost</b> and <b>serverPort</b> options.
-       <li><b>serverHost</b> <i>hostname</i> - The host name of the server, for instance minsky.cgl.ucsf.edu or 169.230.21.20. The default uses the python gethostbyname() system call to get the host name or IP address.
-       <li><b>serverPort</b> <i>port-number</i> - The port number to listen for connections.  Default 30172.
-       <li><b>kernels</b> true | false - Whether to use Nvidia CUDA optimization kernels.  This was 30% faster on a test with 100 protein monomers with 100-700 residues, with no loss of accuracy.  Default is true on Linux with GPU, otherwise false.
-       <li><b>steering</b> true | <b>false</b> - Whether to use Boltz diffusion steering potentials.  This is claimed to produce more physically realistic geometry but takes longer (1.25x on Nvidia, 2.5x on Mac) to run.
-       <li><b>samples</b> <i>n</i> - Number of predictions.  Default is 1.  This is what Boltz calls "diffusion samples".  Creating additional structures takes much less time than creating the first structure.
-       <li><b>recycles</b> <i>n</i> - Number of passes through the neural net that derives spatial information from which structures will be computed.  Defaults to 3.  Better structures make result from 10 but runtime will be increased.
-       <li><b>seed</b> <i>n</i> - Random numbers seed (integer) to initialize calculation.  Runs with different seeds will give different results.
-       <li><b>useMsaCache</b> <b>true</b> | false - Whether to use protein deep sequences alignments from the ChimeraX Boltz MSA cache in ~/Downloads/ChimeraX/BoltzMSA.  Because the alignments for different proteins in an assembly are paired to match ones from the same organisms, using the cache requires that an assembly have the exact same set of proteins.  It cannot use alignments computed for individual proteins from multiple different runs.
-       <li><b>msaOnly</b> true|<b>false</b> - Whether to just calculate and cache the multiple sequence alignment using the Colabfold server.  This allows computing the MSA separately from the structure.  It can be useful to precompute and cache MSAs when running structure predictions on a cluster which does not have internet access.
-       <li><b>open</b> <b>true</b> | false - Whether to open the predicted structures when the prediction finishes.
+       </li><li><b>protein</b> <i>sequences</i> - Like the previous sequences option only this explicitly excludes non-protein sequences in specifiers for open models.  For example "protein #1" would not include any DNA/RNA chains of model #1.  This option can be used more than once.
+       </li><li><b>dna</b> <i>sequences</i> - Uses only DNA sequences from open model specifiers and treats explicit 1-letter code sequences as DNA.  UniProt ids cannot be used.  This option can be used more than once.
+       </li><li><b>rna</b> <i>sequences</i> - Uses only RNA sequences from open model specifiers and treats explicit 1-letter code sequences as RNA.  UniProt ids cannot be used.  This option can be used more than once.
+       </li><li><b>ligands</b> <i>residue-spec</i> - Specify ligands using residue specifiers for open models.
+       </li><li><b>excludeLigands</b> <i>ccd-codes</i> - Exclude these CCD codes when interpreting the ligands option.  By default it excludes ccd code "HOH", ie water.
+       </li><li><b>ligandCcd</b> <i>ccd-codes</i> - Comma-separated list of 3 or 5-letter CCD codes.  This option can be used more than once.
+       </li><li><b>ligandSmiles</b> <i>smiles-string</i> - Comma-separated list of SMILES strings.  This option can be used more than once.
+       </li><li><b>forEachSmilesLigand</b> <i>name,smiles-string,name,smiles-string...</i> - Comma-separated list of ligand names and SMILES strings.  A separate prediction will be made for each ligand by adding each ligand to the molecular assembly.  In order to predict affinity for each ligand use the "affinity each" option.
+       </li><li><b>affinity</b> <i>ligand-ccd-or-smiles-string</i> | each | <b>none</b> - Whether to predict binding affinity for a specified ligand.  The ligand CCD code or SMILES string is uses to specify the ligand.  Boltz can only predict affinity for a single ligand and their must be only one copy of the ligand.  If the <b>forEachSmilesLigand</b> option is used to predict structures for multiple ligands, the "affinity each" option can be used to predict affinity for each of those ligands.  Default is <b>none</b>, not predicting affinity.  Affinity prediction takes roughly the same amount of time as structure prediction.
+       </li><li><b>resultsDirectory</b> <i>directory</i> - Path to the results directory that will be created.  "[name]" in the path will be replaced by the prediction name.  If the folder already exists an numeric suffix _1, _2, _3... will be appended.
+       </li><li><b>device</b> <b>default</b> | cpu | gpu - Whether to run the computation on GPU or CPU.  The default setting chooses based on GPU availability and torch support for the GPU.
+       </li><li><b>useServer</b> true | <b>false</b> - Whether to run computations on a prediction server specified by the <b>serverHost</b> and <b>serverPort</b> options.
+       </li><li><b>serverHost</b> <i>hostname</i> - The host name of the server, for instance minsky.cgl.ucsf.edu or 169.230.21.20. The default uses the python gethostbyname() system call to get the host name or IP address.
+       </li><li><b>serverPort</b> <i>port-number</i> - The port number to listen for connections.  Default 30172.
+       </li><li><b>kernels</b> true | false - Whether to use Nvidia CUDA optimization kernels.  This was 30% faster on a test with 100 protein monomers with 100-700 residues, with no loss of accuracy.  Default is true on Linux with GPU, otherwise false.
+       </li><li><b>steering</b> true | <b>false</b> - Whether to use Boltz diffusion steering potentials.  This is claimed to produce more physically realistic geometry but takes longer (1.25x on Nvidia, 2.5x on Mac) to run.
+       </li><li><b>samples</b> <i>n</i> - Number of predictions.  Default is 1.  This is what Boltz calls "diffusion samples".  Creating additional structures takes much less time than creating the first structure.
+       </li><li><b>recycles</b> <i>n</i> - Number of passes through the neural net that derives spatial information from which structures will be computed.  Defaults to 3.  Better structures make result from 10 but runtime will be increased.
+       </li><li><b>seed</b> <i>n</i> - Random numbers seed (integer) to initialize calculation.  Runs with different seeds will give different results.
+       </li><li><b>useMsaCache</b> <b>true</b> | false - Whether to use protein deep sequences alignments from the ChimeraX Boltz MSA cache in ~/Downloads/ChimeraX/BoltzMSA.  Because the alignments for different proteins in an assembly are paired to match ones from the same organisms, using the cache requires that an assembly have the exact same set of proteins.  It cannot use alignments computed for individual proteins from multiple different runs.
+       </li><li><b>msaOnly</b> true|<b>false</b> - Whether to just calculate and cache the multiple sequence alignment using the Colabfold server.  This allows computing the MSA separately from the structure.  It can be useful to precompute and cache MSAs when running structure predictions on a cluster which does not have internet access.
+       </li><li><b>open</b> <b>true</b> | false - Whether to open the predicted structures when the prediction finishes.
 	 The structures will be aligned to an already open model if that open model was used (the first used) in
 	 specifying the assembly.
-       <li><b>installLocation</b> <i>directory</i> - Where Boltz is installed.  If specified this sets the default location used in future ChimeraX sessions.
-       <li><b>wait</b> true | <b>false</b> - Whether ChimeraX should wait frozen while the prediction is computed or return immediately and allow ChimeraX use during the computation.
-    </ul>
+       </li><li><b>installLocation</b> <i>directory</i> - Where Boltz is installed.  If specified this sets the default location used in future ChimeraX sessions.
+       </li><li><b>wait</b> true | <b>false</b> - Whether ChimeraX should wait frozen while the prediction is computed or return immediately and allow ChimeraX use during the computation.
+    </li></ul>
 
      <a name="installcommand">
      <h3>Installation command</h3>
      </a>
      
-     <pre>
-       <b>boltz install</b> [<i>directory</i>] [<b>downloadModelWeightsAndCcd</b> <b>true</b> | false] <b>branch</b> <i>name</i></pre>
+     <pre>       <b>boltz install</b> [<i>directory</i>] [<b>downloadModelWeightsAndCcd</b> <b>true</b> | false] <b>branch</b> <i>name</i></pre>
 
      <p>
        The boltz install command creates a Python virtual environment to install
@@ -726,8 +721,7 @@
       boltz if Nvidia graphics is detected.
     </p>
     
-    <pre>
-      python -m venv <i>directory</i>
+    <pre>      python -m venv <i>directory</i>
       <i>directory</i>/bin/python -m pip install torch --index-url https://download.pytorch.org/whl/cu126  # On Windows with Nvidia GPU only.
       <i>directory</i>/bin/python -m pip install boltz
       <i>directory</i>/bin/python <i>chimerax/site-packages/boltz/</i>download_weights_and_ccd.py
@@ -737,8 +731,7 @@
      <h3>Ligand table command</h3>
      </a>
      
-     <pre>
-       <b>boltz ligandtable</b> <i>runDirectory</i> [ <b>includeSmiles</b>  <b>true</b> | false ] [ <b>alignTo</b>  <i>atomic-model</i> ]</pre>
+     <pre>       <b>boltz ligandtable</b> <i>runDirectory</i> [ <b>includeSmiles</b>  <b>true</b> | false ] [ <b>alignTo</b>  <i>atomic-model</i> ]</pre>
 
      <p>
        The boltz ligandtable command displays a table for <a href="#ligands">batch ligand predictions</a>.
@@ -768,7 +761,7 @@
 	licensing restrictions.  We hope in the future Boltz will optimize memory use to predict larger
 	structures.
 
-      <li><b>Ligand affinity accuracy</b>.
+      </li><li><b>Ligand affinity accuracy</b>.
 	Predictions of ligand affinity are qualitative with values given in uM.  The Boltz neural net
 	was trained with a mix of Kd, Ki, and IC50 affinity values without distinguishing the different
 	definitions.  So the uM value should only be viewed as a qualitative measure.  Studies suggest
@@ -777,11 +770,11 @@
 	accuracy will probably be low for novel ligands or pockets.  See
 	<a href="https://www.biorxiv.org/content/10.1101/2025.02.03.636309v3.full">Have protein-ligand co-folding methods moved beyond memorisation?</a>
 	
-      <li><b>Run time</b>.  The computation time increases as the square with the number of tokens.  So
+      </li><li><b>Run time</b>.  The computation time increases as the square with the number of tokens.  So
 	a prediction with 3 times the number of residue and ligand atoms will take approximately
 	9 times longer to run.
 
-      <li><b>Nvidia GPU support on Windows</b>.
+      </li><li><b>Nvidia GPU support on Windows</b>.
 	Installing Boltz will get a CUDA-enabled version of the torch machine learning package
 	if it detects Nvidia graphics.  It decides if you have Nvidia graphics by seeing if the file
 	C:/Windows/System32/nvidia-smi.exe exists.  Otherwise it gets a cpu-only version of torch.
@@ -792,35 +785,33 @@
 	For other CUDA versions refer to the
 	<a href="https://pytorch.org/get-started/locally/">Torch installation page</a>
 	for the correct pip install command.
-	<pre>
-	  > cd C:\Users\username\boltz\Scripts
-	  > pip.exe uninstall torch
-	  > pip.exe install torch --index-url https://download.pytorch.org/whl/cu118</pre>
+	<pre>	  &gt; cd C:\Users\username\boltz\Scripts
+	  &gt; pip.exe uninstall torch
+	  &gt; pip.exe install torch --index-url https://download.pytorch.org/whl/cu118</pre>
 
-      <li><b>Nvidia GPU support on Linux</b>.
+      </li><li><b>Nvidia GPU support on Linux</b>.
 	On Linux the installed Boltz will work with CUDA 12.6 or newer if you have Nvidia graphics.
 	If you have an older system CUDA version it may still work, or you can refer to the
 	<a href="https://pytorch.org/get-started/locally/">Torch installation page</a>
 	for the correct pip install command and replace torch with the following shell commands.
-	<pre>
-	  $ cd ~/boltz2/bin
+	<pre>	  $ cd ~/boltz2/bin
 	  $ ./pip uninstall torch
 	  $ ./pip install torch --index-url https://download.pytorch.org/whl/cu118</pre>
 
-      <li><b>No covalently linked ligands</b>.  Although Boltz can predict covalently linked ligands I have
+      </li><li><b>No covalently linked ligands</b>.  Although Boltz can predict covalently linked ligands I have
 	not yet included that capability in the ChimeraX interface or command.  Similarly post-translational
 	modifications such as phosphorylation are not yet supported.
 
-      <li><b>No assigning chain identifiers</b>.  It can be helpful to assign chain identifiers (A,B,C...) to
+      </li><li><b>No assigning chain identifiers</b>.  It can be helpful to assign chain identifiers (A,B,C...) to
 	the different molecular components to match existing structures.  Boltz is capable of this but the
 	ChimeraX user interface does not currently allow it.
 
-      <li><b>MSA sequence alignments</b>. Boltz uses the Colabfold MSA server (https://api.colabfold.com)
+      </li><li><b>MSA sequence alignments</b>. Boltz uses the Colabfold MSA server (https://api.colabfold.com)
 	for computing deep sequence alignments.  This requires internet connectivity and is subject to
 	outages it that server (located in Korea currently) is down.  The sequence alignments are cached
 	in ~/Downloads/ChimeraX/BoltzMSA so subsequent predictions with the same set of polymers can
 	reuse the sequence alignment.
-    </ul>
+    </li></ul>
 
     <a name="changelog">
     <h2>Change log</h2>
@@ -828,16 +819,15 @@
 
     <ul>
       <li><b>December 15, 2025</b>. Added prediction server support an prediction history table.
-      <li><b>August 20, 2025</b>. Updated to Boltz 2.2 and added batch ligand predictions.
-      <li><b>July 22, 2025</b>. Updated to Boltz 2.1.1 and added ligand affinity prediction.
-      <li><b>May 28, 2025</b>.  Updated to Boltz-1x (1.0.0) with new trifast CUDA attention and new diffusion steering potentials.  Added steering option (default false).  Using <a href="https://github.com/RBVI/boltz/tree/chimerax">RBVI Boltz 1.0.0 fork</a> with bfloat16 option and trifast fix.
-      <li><b>May 12, 2025</b>.  Added 16-bit floating point option to predict larger structures.
+      </li><li><b>August 20, 2025</b>. Updated to Boltz 2.2 and added batch ligand predictions.
+      </li><li><b>July 22, 2025</b>. Updated to Boltz 2.1.1 and added ligand affinity prediction.
+      </li><li><b>May 28, 2025</b>.  Updated to Boltz-1x (1.0.0) with new trifast CUDA attention and new diffusion steering potentials.  Added steering option (default false).  Using <a href="https://github.com/RBVI/boltz/tree/chimerax">RBVI Boltz 1.0.0 fork</a> with bfloat16 option and trifast fix.
+      </li><li><b>May 12, 2025</b>.  Added 16-bit floating point option to predict larger structures.
 	Using <a href="https://github.com/RBVI/boltz/tree/chimerax">RBVI Boltz 0.4.1 fork</a>.
-      <li><b>April 23, 2025</b>.  Initial Boltz prediction tool using Boltz 0.4.1 from PyPi.
-    </ul>
+      </li><li><b>April 23, 2025</b>.  Initial Boltz prediction tool using Boltz 0.4.1 from PyPi.
+    </li></ul>
 
     <pre>
-
 
 
       
@@ -874,6 +864,7 @@
 
     </pre>
 
-  </body>
   
-</html>
+  
+
+</body></html>
