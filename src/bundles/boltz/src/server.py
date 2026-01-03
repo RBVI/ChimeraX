@@ -473,13 +473,13 @@ def register_boltz_server_command(logger):
                    ('extra_options', StringArg),
                    ],
         synopsis = 'Start a Boltz prediction server',
-        url = 'help:boltz_help.html'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_server.html'
     )
     register('boltz server start', desc, boltz_server_start, logger=logger)
 
     desc = CmdDesc(
         synopsis = 'List active Boltz prediction server jobs',
-        url = 'help:boltz_help.html'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_server.html'
     )
     register('boltz server list', desc, boltz_server_list, logger=logger)
 
@@ -487,7 +487,7 @@ def register_boltz_server_command(logger):
         optional = [('run_directory', OpenFolderNameArg)],
         keyword = [('open', BoolArg)],
         synopsis = 'Fetch results for active Boltz prediction server jobs',
-        url = 'help:boltz_help.html'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_server.html'
     )
     register('boltz server fetch', desc, boltz_server_fetch, logger=logger)
 
