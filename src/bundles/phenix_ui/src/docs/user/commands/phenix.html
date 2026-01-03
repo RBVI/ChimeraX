@@ -280,6 +280,7 @@ the structure can be reverted to its previous state with the
 &nbsp;<b>resolution</b>&nbsp;&nbsp;<i>r</i>&nbsp;
 [&nbsp;<b>extentValue</b> &nbsp;<i>extent</i>&nbsp;]
 [&nbsp;<b>extentType</b> &nbsp;<b>length</b>&nbsp;|&nbsp;angstroms&nbsp;]
+[&nbsp;<b>conformers</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>chainId</b> &nbsp;<i>ID</i>&nbsp;]
 [&nbsp;<b>residueNumber</b> &nbsp;<i>resnum</i>&nbsp;]
 [&nbsp;<b>clashes</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
@@ -345,6 +346,13 @@ where each box face is
 from the center (default <b>1.1</b> in units of ligand <b>length</b>).
 <li><b>chainId</b> &ndash; chain ID for the fit ligand
 (default first chain in receptor model)
+<li><b>conformers&nbsp;&nbsp;<i>N</i></b> 
+&ndash; specify a number of conformations to try with the
+<i>conformers</i> option of the Phenix
+<a href="https://phenix-online.org/documentation/reference/ligandfit.html"
+target="_blank"><i>ligandfit</i></a> command
+(no default; omitting this option simply 
+omits it from the Phenix command as well)
 <li><b>residueNumber</b> &ndash; residue number for the fit ligand
 (default the next available number in the chain)
 <li><b>clashes</b> (default <b>false</b>)
@@ -377,5 +385,5 @@ in the <a href="../tools/log.html"><b>Log</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2025</address>
+January 2026</address>
 </body></html>

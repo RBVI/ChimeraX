@@ -115,7 +115,7 @@ to make any regions of density not occupied by the receptor easier to see.
 If the distance value is changed, it is necessary to turn the option off
 and back on apply the new value.
 When the marker position is satisfactory, clicking <b>Adjust search zone</b>
-(if <a href="#adjust"><b>Interactively adjust...</b></a> was checked) 
+(if <a href="#options"><b>Interactively adjust...</b></a> was checked) 
 or <b>Start ligand fitting</b> initiates the next part of the calculation.
   <li><b>center of model...</b> center of the bounding box of the chosen model
   <li><b>center of selection</b> &ndash; center of the current 
@@ -140,7 +140,14 @@ relative to the origin of the map and in the coordinate system of the map
 <li><b>Search region within</b> [<i>extent</i>] [<b>ligand lengths</b>
 &ndash;OR&ndash; <b>angstroms</b>] of center along cell axes 
 (initial default <b>1.1 ligand lengths</b>)
-<a name="adjust"></a>
+</ul>
+<!--
+<a href="#dialog" class="nounder">&larr;</a>
+-->
+<a name="options"></a>
+The <b>Options</b> button shows/hides additional options:
+</p>
+<ul>
 <li><b>Interactively adjust search region before fitting</b>
 (initial default <b>on</b>) &ndash; whether to allow the user to adjust
 the rectangular box defining the search space,
@@ -164,6 +171,11 @@ If neither blob-picking or interactive adjustment is chosen, simply
 clicking <b>Apply</b> on the main dialog (or <b>OK</b>, which also dismisses
 the dialog) starts the calculation.
 </p><p>
+Five conformations of the ligand will be tried, although only the single 
+best will be returned.  Trying a different number of conformations can be 
+specified with the <b>conformers</b> option of the
+<a href="../commands/phenix.html#ligandFit"><b>phenix ligandFit</b></a> command.
+</p><p>
 <b>Close</b> dismisses the dialog without starting the calculation,
 whereas <b>Help</b> shows this page
 in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
@@ -171,5 +183,5 @@ in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2025</address>
+January 2026</address>
 </body></html>
