@@ -732,6 +732,23 @@
       <i>directory</i>/bin/python -m pip install boltz
       <i>directory</i>/bin/python <i>chimerax/site-packages/boltz/</i>download_weights_and_ccd.py
     </pre>
+
+     <a name="ligandtablecommand">
+     <h3>Ligand table command</h3>
+     </a>
+     
+     <pre>
+       <b>boltz ligandtable</b> <i>runDirectory</i> [ <b>includeSmiles</b>  <b>true</b> | false ] [ <b>alignTo</b>  <i>atomic-model</i> ]</pre>
+
+     <p>
+       The boltz ligandtable command displays a table for <a href="#ligands">batch ligand predictions</a>.
+       Normally this command is not needed because ChimeraX batch ligand predictions are tabulated in
+       the directory where the Boltz run is made in a comma-separated value file with suffix ".bzlig"
+       and you can open this file to show the table of results.  But in cases where this file is missing
+       you can recreate the table with this command which searches the prediction results extracting
+       the scores, and searches the ".yaml" files to find the SMILES strings for the ligands.
+     </p>
+
     
     <a name="limitations">
     <h2>Limitations</h2>

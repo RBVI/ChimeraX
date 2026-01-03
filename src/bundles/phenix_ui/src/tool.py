@@ -1617,7 +1617,7 @@ class LaunchLigandFitTool(ToolInstance):
             self.__class__.settings = LaunchLigandFitSettings(session, "launch ligandFit")
 
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QMenu, QLineEdit
-        from Qt.QtWidgets import QCheckBox, QGridLayout, QGroupBox, QStackedWidget
+        from Qt.QtWidgets import QCheckBox, QGridLayout, QGroupBox, QStackedWidget, QFrame
         from Qt.QtGui import QDoubleValidator, QIntValidator
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
@@ -1792,10 +1792,33 @@ Choices are:
         self._extent_values = [None] * len(self.EXTENT_METHODS)
         self._set_extent_method()
 
-        layout.addStretch(1)
+        layout.addSpacing(10)
+
+        layout.addWidget(PhenixCitation(session, tool_name, "ligandfit"), alignment=Qt.AlignCenter)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.launch_ligand_fit)
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_ligand_fit(apply=True))
+        bbox.rejected.connect(self.delete)
+        if self.help:
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
+        opt_b = bbox.addButton("Options", qbbox.ActionRole)
+        opt_b.clicked.connect(self._toggle_options)
+        layout.addWidget(bbox)
+
+        self.options_area = disclosure = QWidget()
+        disclosure.hide()
+        layout.addWidget(disclosure)
+        options_layout = QVBoxLayout()
+        disclosure.setLayout(options_layout)
 
         checkbox_area = QWidget()
-        layout.addWidget(checkbox_area, alignment=Qt.AlignCenter)
+        options_layout.addWidget(checkbox_area, alignment=Qt.AlignCenter)
+        options_layout.setContentsMargins(0,5,0,0)
         checkbox_layout = QVBoxLayout()
         checkbox_layout.setContentsMargins(0,0,0,0)
         checkbox_area.setLayout(checkbox_layout)
@@ -1812,7 +1835,8 @@ Choices are:
         conformers_layout = QHBoxLayout()
         conformers_layout.setSpacing(0)
         conformers_layout.setContentsMargins(0,0,0,0)
-        layout.addLayout(conformers_layout)
+        # For now, not exposing conformers option until more testing reveals if it's needed
+        #options_layout.addLayout(conformers_layout)
         conformers_layout.addStretch(1)
         conformers_layout.addWidget(QLabel("Number of conformers to try: "))
         self.conformers_button = QPushButton("5")
@@ -1824,62 +1848,66 @@ Choices are:
         conformers_layout.addWidget(self.conformers_button)
         conformers_layout.addStretch(1)
 
-        layout.addSpacing(10)
-
-        layout.addWidget(PhenixCitation(session, tool_name, "ligandfit"), alignment=Qt.AlignCenter)
-
-        from Qt.QtWidgets import QDialogButtonBox as qbbox
-        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
-        bbox.accepted.connect(self.launch_ligand_fit)
-        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_ligand_fit(apply=True))
-        bbox.rejected.connect(self.delete)
-        if self.help:
-            from chimerax.core.commands import run
-            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
-        else:
-            bbox.button(qbbox.Help).setEnabled(False)
-        layout.addWidget(bbox)
-
         tw.manage(placement=None)
 
     def launch_ligand_fit(self, apply=False):
+        from chimerax.ui import tool_user_error
         ligand_fmt = self.ligand_fmt_button.text()
         ligand_widget = self.ligand_stack.currentWidget()
         if ligand_fmt == self.LIGAND_FMT_MODEL:
             ligand_value = ligand_widget.value
             if not ligand_value:
-                raise UserError("No ligand model specified")
+                return tool_user_error("No ligand model specified")
         else:
             ligand_value = ligand_widget.text().strip()
             if not ligand_value:
-                raise UserError("No " + ligand_fmt + " text provided")
+                return tool_user_error("No " + ligand_fmt + " text provided")
 
         receptor = self.receptor_menu.value
         if not receptor:
-            raise UserError("Must specify a receptor structure")
+            return tool_user_error("Must specify a receptor structure")
         map = self.map_menu.value
         if map:
             if self.resolution_entry.hasAcceptableInput():
                 resolution = float(self.resolution_entry.text())
             else:
-                raise UserError("Must specify a resolution value for the map")
+                return tool_user_error("Must specify a resolution value for the map")
         else:
-            raise UserError("Must specify map for fitting")
+            return tool_user_error("Must specify map for fitting")
         chain_id = self.chain_id_entry.text().strip()
         if self.res_num_entry.text().strip():
             if self.res_num_entry.hasAcceptableInput():
                 res_num = int(self.res_num_entry.text())
             else:
-                raise UserError("Residue number must be an integer")
+                return tool_user_error("Residue number must be an integer")
+            existing_r = receptor.find_residue(chain_id, res_num)
+            if existing_r is not None:
+                from Qt.QtWidgets import QInputDialog
+                choices = ([] if existing_r.neighbors else ["Replace existing residue (%s)" % existing_r]) \
+                    + ["Use next available number", "Return to input/launcher dialog" ]
+                choice, okayed = QInputDialog.getItem(self.tool_window.ui_area, "Duplicate Residue Number",
+                    "Residue %d in chain %s already exists; choose an action:" % (res_num, chain_id),
+                    choices, 0, False)
+                if not okayed:
+                    if not apply:
+                        self.display(False)
+                    return
+                if choice.startswith("Replace"):
+                    receptor.delete_residue(existing_r)
+                elif choice.startswith("Use"):
+                    while receptor.find_residue(chain_id, res_num):
+                        res_num += 1
+                else:
+                    return
         else:
             res_num = None
         if not self.extent_entry.hasAcceptableInput():
-            raise UserError("Search-extent value not a valid number")
+            return tool_user_error("Search-extent value not a valid number")
         self.settings.extent_value = extent_value = float(self.extent_entry.text())
         self.settings.extent_type = extent_type = self.extent_button.text()
 
         if extent_value <= 0:
-            raise UserError("Search-extent value must be a positive number")
+            return tool_user_error("Search-extent value must be a positive number")
 
         if self.conformers_button.text() == "default":
             conformers = None
@@ -1905,10 +1933,12 @@ Choices are:
         elif method == self.CENTER_MODEL:
             centering_model = self.model_menu.value
             if centering_model is None:
-                raise UserError("No model chosen for specifying search center")
+                self.display(True)
+                return tool_user_error("No model chosen for specifying search center")
             bnds = centering_model.bounds()
             if bnds is None:
-                raise UserError("No part of model for specifying search center is displayed")
+                self.display(True)
+                return tool_user_error("No part of model for specifying search center is displayed")
             center = bnds.center()
         elif method == self.CENTER_VIEW:
             # If pivot point shown or using fixed center of rotation, use that.
@@ -1933,11 +1963,13 @@ Choices are:
                 try:
                     view_center = view_box(self.session, view_map)
                 except ViewBoxError as e:
-                    raise UserError(str(e))
+                    self.display(True)
+                    return tool_user_error(str(e))
             center = view_center
         elif method == self.CENTER_SELECTION:
             if self.session.selection.empty():
-                raise UserError("Nothing selected")
+                self.display(True)
+                return tool_user_error("Nothing selected")
             from chimerax.atomic import selected_atoms
             sel_atoms = selected_atoms(self.session)
             from chimerax.geometry import point_bounds, union_bounds
@@ -1946,7 +1978,8 @@ Choices are:
             bbox = union_bounds([atom_bbox]
                 + [m.bounds() for m in self.session.selection.models() if m not in atom_models])
             if bbox is None:
-                raise UserError("No bounding box for selected items")
+                self.display(True)
+                return tool_user_error("No bounding box for selected items")
             center = bbox.center()
         else:
             raise AssertionError("Unknown centering method")
@@ -1994,6 +2027,11 @@ Choices are:
                 new_value = prev_extent
         self.extent_button.setText(method)
         self.extent_entry.setText("%g" % new_value)
+
+    def _toggle_options(self, *args):
+        self.options_area.setHidden(not self.options_area.isHidden())
+        if self.options_area.isHidden():
+            self.tool_window.shrink_to_fit()
 
     def _update_fmt_widgets(self, fmt):
         self.ligand_fmt_button.setText(fmt)

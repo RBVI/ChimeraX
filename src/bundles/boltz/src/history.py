@@ -27,7 +27,7 @@
 #
 from chimerax.core.tools import ToolInstance
 class BoltzHistoryPanel(ToolInstance):
-    help = 'help:user/tools/boltz.html'
+    help = 'https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html#history'
 
     def __init__(self, session, tool_name = 'Boltz History', predictions_directory = None):
 

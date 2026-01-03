@@ -1,4 +1,5 @@
 <html lang="en">
+  <title>Boltz server on RunPod</title>
   <body>
     <h1>Setting up a Boltz Structure Prediction Server with RunPod</h1>
     <p>
@@ -190,7 +191,7 @@
     </p>
 
     <pre>
-      $ python3 -m venv boltz
+      $ python3 -m venv boltz22
       $ . boltz/bin/activate
       $ pip3 install https://github.com/RBVI/boltz/archive/chimerax_boltz22_lowmem.zip</pre>
 
@@ -206,12 +207,13 @@
     <h2>Start Boltz server on the virtual machine</h2>
 
     <pre>
-      $ nohup python3 boltz_server.py --boltz_exe ~/boltz/bin/boltz &gt;& ~/boltz_server_log &</pre>
+      $ nohup python3 boltz_server.py &gt;& ~/boltz_server_log &</pre>
 
     <p>
       The server makes a directory for each prediction in ~/boltz_server_jobs so we create that directory.
       We use the nohup (no hang up) command so that if we log out of the virtual machine the server
-      continiues to run.  The server log output will be in file ~/boltz_server_log.
+      continiues to run.  The server log output will be in file ~/boltz_server_log.  The server script
+      uses ~/boltz22 as the default location for the Boltz installation.
     </p>
 
     <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0" align=right>
@@ -231,6 +233,18 @@
       The first prediction will download the Boltz neural net weights (7.6 Gbytes) to the ~/.boltz directory
       on the server which will make the prediction take a few minutes longer.
     </p>
+
+    <h2>Stopping the Boltz server process</h2>
+
+    <p>
+      If you want to stop the Boltz server process you can find its process id and kill it using
+      shell commands on the virtual machine
+    </p>
+
+    <pre>
+      $ ps -axww | grep boltz_server
+      348 pts/0    Sl     0:00 python3 /workspace/boltz_server.py
+      $ kill 348</pre>
 
     <h2>Shutdown the virtual machine</h2>
 
@@ -307,8 +321,8 @@
     </p>
     
     <pre>
-      $ python3 -m venv boltz
-      $ . boltz/bin/activate
+      $ python3 -m venv boltz22
+      $ . boltz22/bin/activate
       $ pip3 install https://github.com/RBVI/boltz/archive/chimerax_boltz22_lowmem.zip
       $ pip3 uninstall torch
       $ pip3 install torch</pre>
