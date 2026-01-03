@@ -94,21 +94,25 @@ def find_chimerax_executable():
     return exe_path
 
 def _chimerax_installation_directory():
-    # First, try to find ChimeraX relative to this bridge script
-    bridge_path = os.path.abspath(__file__)
-
+    # Try to find ChimeraX relative to the Python executable first (works even 
+    # when the MCP bridge file is not in the same directory as the ChimeraX 
+    # executable), then fall back to bridge script location
+    import sys
     from sys import platform
-    if platform == 'darwin':
-        cdir = _find_parent_directory(bridge_path, 'Contents')
-    elif platform == 'win32':
-        cdir = _find_parent_directory(bridge_path, 'bin')
-    else:
-        # Linux
-        cdir = _find_parent_directory(bridge_path, 'lib')
+    
+    for base_path in [sys.executable, os.path.abspath(__file__)]:
+        if platform == 'darwin':
+            cdir = _find_parent_directory(base_path, 'Contents')
+        elif platform == 'win32':
+            cdir = _find_parent_directory(base_path, 'bin')
+        else:
+            # Linux
+            cdir = _find_parent_directory(base_path, 'lib')
 
-    install_dir = os.path.dirname(cdir) if cdir else None
+        if cdir:
+            return os.path.dirname(cdir)
 
-    return install_dir
+    return None
     
 def _find_parent_directory(path, dir_name):
     while path:
@@ -986,6 +990,9 @@ async def run_command(command: str, session_id: Optional[int] = None) -> str:
     To see a list of all commands, use the list_commands() tool.
     For command syntax help, use get_command_documentation(command_name).
 
+    Frequently-used commands:
+    - volume #2 step 1 sdLevel 5.0 transparency 0.5 - display map #2 with step size 1, surface level 5.0 standard deviations (sigma), transparency 50%
+
     Args:
         command: ChimeraX command to execute (e.g., 'open 1gcn', 'color #1/A red')
         session_id: ChimeraX session port (defaults to primary session)
@@ -1459,6 +1466,8 @@ async def superpose_residue(
     
     This is useful when the 'align' command won't work because the two residues 
     don't have the same atoms (e.g., different small molecule ligands).
+
+    Use this tool when the user asks to superpose a ligand with another ligand.
     
     The tool works by:
     1. Centering the view on the target residue (sets center of rotation)
@@ -1525,6 +1534,7 @@ async def show_hide_objects(
     - p: pseudobonds: Toggle on (show) or off (hide) the pseudobonds
     - c: cartoons or ribbons: Toggle on (show) or off (hide) the cartoon/ribbon representation of the atomspec
     - s: surfaces: Toggle on (show) or off (hide) the surfaces associated with the atomspec    
+    - m: models: Toggle on (show) or off (hide) the entire model, including all its subparts. You should only use this when the user asks you to hide a map (e.g. cryoEM or Xray map) model.
 
     Examples:
         - Show all atoms and bonds in model 1: action='show', atomspec='#1', target='ab'
@@ -1536,6 +1546,7 @@ async def show_hide_objects(
         - Show polar hydrogens in model 1: action='show', atomspec='#1 & H & ~HC', target='a'
         - Hide non-polar hydrogens in model 1: action='hide', atomspec='#1 & HC', target='a'
         - Show protein side chains near ligand #1/A:LIG: action='show #1 & protein & #1/A:LIG:<5', target='ab'
+        - Hide a map model: action='hide', atomspec='#2', target='m'
     
     Important:
         - Before you attempt for the first time to show a particular object, you MUST first hide all its representations (because you don't know what representations are already active)
