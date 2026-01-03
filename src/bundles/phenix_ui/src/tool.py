@@ -1851,43 +1851,63 @@ Choices are:
         tw.manage(placement=None)
 
     def launch_ligand_fit(self, apply=False):
+        from chimerax.ui import tool_user_error
         ligand_fmt = self.ligand_fmt_button.text()
         ligand_widget = self.ligand_stack.currentWidget()
         if ligand_fmt == self.LIGAND_FMT_MODEL:
             ligand_value = ligand_widget.value
             if not ligand_value:
-                raise UserError("No ligand model specified")
+                return tool_user_error("No ligand model specified")
         else:
             ligand_value = ligand_widget.text().strip()
             if not ligand_value:
-                raise UserError("No " + ligand_fmt + " text provided")
+                return tool_user_error("No " + ligand_fmt + " text provided")
 
         receptor = self.receptor_menu.value
         if not receptor:
-            raise UserError("Must specify a receptor structure")
+            return tool_user_error("Must specify a receptor structure")
         map = self.map_menu.value
         if map:
             if self.resolution_entry.hasAcceptableInput():
                 resolution = float(self.resolution_entry.text())
             else:
-                raise UserError("Must specify a resolution value for the map")
+                return tool_user_error("Must specify a resolution value for the map")
         else:
-            raise UserError("Must specify map for fitting")
+            return tool_user_error("Must specify map for fitting")
         chain_id = self.chain_id_entry.text().strip()
         if self.res_num_entry.text().strip():
             if self.res_num_entry.hasAcceptableInput():
                 res_num = int(self.res_num_entry.text())
             else:
-                raise UserError("Residue number must be an integer")
+                return tool_user_error("Residue number must be an integer")
+            existing_r = receptor.find_residue(chain_id, res_num)
+            if existing_r is not None:
+                from Qt.QtWidgets import QInputDialog
+                choices = ([] if existing_r.neighbors else ["Replace existing residue (%s)" % existing_r]) \
+                    + ["Use next available number", "Return to input/launcher dialog" ]
+                choice, okayed = QInputDialog.getItem(self.tool_window.ui_area, "Duplicate Residue Number",
+                    "Residue %d in chain %s already exists; choose an action:" % (res_num, chain_id),
+                    choices, 0, False)
+                if not okayed:
+                    if not apply:
+                        self.display(False)
+                    return
+                if choice.startswith("Replace"):
+                    receptor.delete_residue(existing_r)
+                elif choice.startswith("Use"):
+                    while receptor.find_residue(chain_id, res_num):
+                        res_num += 1
+                else:
+                    return
         else:
             res_num = None
         if not self.extent_entry.hasAcceptableInput():
-            raise UserError("Search-extent value not a valid number")
+            return tool_user_error("Search-extent value not a valid number")
         self.settings.extent_value = extent_value = float(self.extent_entry.text())
         self.settings.extent_type = extent_type = self.extent_button.text()
 
         if extent_value <= 0:
-            raise UserError("Search-extent value must be a positive number")
+            return tool_user_error("Search-extent value must be a positive number")
 
         if self.conformers_button.text() == "default":
             conformers = None
@@ -1913,10 +1933,12 @@ Choices are:
         elif method == self.CENTER_MODEL:
             centering_model = self.model_menu.value
             if centering_model is None:
-                raise UserError("No model chosen for specifying search center")
+                self.display(True)
+                return tool_user_error("No model chosen for specifying search center")
             bnds = centering_model.bounds()
             if bnds is None:
-                raise UserError("No part of model for specifying search center is displayed")
+                self.display(True)
+                return tool_user_error("No part of model for specifying search center is displayed")
             center = bnds.center()
         elif method == self.CENTER_VIEW:
             # If pivot point shown or using fixed center of rotation, use that.
@@ -1941,11 +1963,13 @@ Choices are:
                 try:
                     view_center = view_box(self.session, view_map)
                 except ViewBoxError as e:
-                    raise UserError(str(e))
+                    self.display(True)
+                    return tool_user_error(str(e))
             center = view_center
         elif method == self.CENTER_SELECTION:
             if self.session.selection.empty():
-                raise UserError("Nothing selected")
+                self.display(True)
+                return tool_user_error("Nothing selected")
             from chimerax.atomic import selected_atoms
             sel_atoms = selected_atoms(self.session)
             from chimerax.geometry import point_bounds, union_bounds
@@ -1954,7 +1978,8 @@ Choices are:
             bbox = union_bounds([atom_bbox]
                 + [m.bounds() for m in self.session.selection.models() if m not in atom_models])
             if bbox is None:
-                raise UserError("No bounding box for selected items")
+                self.display(True)
+                return tool_user_error("No bounding box for selected items")
             center = bbox.center()
         else:
             raise AssertionError("Unknown centering method")
