@@ -26,7 +26,7 @@ from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, Ato
 from chimerax.atomic import AtomsArg, ResiduesArg
 from .util import report_models, report_chains, report_polymers, report_residues
 from .util import report_residues, report_atoms, report_attr, report_distmat, output
-from .util import get_display_state_info
+from .util import get_shown_info
 
 
 def info(session, models=None, *, return_json=False, save_file=None):
@@ -547,7 +547,7 @@ def _info_path_show(logger, save_file, append, which, version, what, *, info_dic
                 info_dict.setdefault(version, {})[attr_name] = attr_value
 
 
-def display_state(session, models=None, *, return_json=True, save_file=None):
+def shown(session, models=None, *, return_json=True, save_file=None):
     '''
     Report what is currently displayed for each model.
     
@@ -596,7 +596,7 @@ def display_state(session, models=None, *, return_json=True, save_file=None):
           "hidden": true
         }
     '''
-    display_info = get_display_state_info(session, models)
+    display_info = get_shown_info(session, models)
     
     if return_json:
         from chimerax.core.commands import JSONResult, ArrayJSONEncoder
@@ -658,6 +658,6 @@ def display_state(session, models=None, *, return_json=True, save_file=None):
     output(session.logger, save_file, msg)
 
 
-display_state_desc = CmdDesc(optional=[('models', ModelsArg)],
-                             keyword=[('save_file', SaveFileNameArg)],
-                             synopsis='Report display state of models')
+shown_desc = CmdDesc(optional=[('models', ModelsArg)],
+                     keyword=[('save_file', SaveFileNameArg)],
+                     synopsis='List what is currently shown')

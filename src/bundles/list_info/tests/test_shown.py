@@ -1,6 +1,6 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
-"""Tests for the display_state command in the list_info bundle."""
+"""Tests for the 'info shown' command in the list_info bundle."""
 
 import pytest
 import json
@@ -12,16 +12,16 @@ setup_structure = [
 ]
 
 
-def test_display_state_basic(test_production_session):
-    """Test that display_state returns valid JSON with expected structure."""
+def test_shown_basic(test_production_session):
+    """Test that 'info shown' returns valid JSON with expected structure."""
     from chimerax.core.commands import run
     
     # Open a structure
     for cmd in setup_structure:
         run(test_production_session, cmd)
     
-    # Run display_state and get JSON result
-    result = run(test_production_session, "info display_state")
+    # Run 'info shown' and get JSON result
+    result = run(test_production_session, "info shown")
     
     # Verify we got a JSONResult
     assert result is not None
@@ -43,7 +43,7 @@ def test_display_state_basic(test_production_session):
     run(test_production_session, "close")
 
 
-def test_display_state_hidden_model(test_production_session):
+def test_shown_hidden_model(test_production_session):
     """Test that hidden models have minimal output with 'hidden' key."""
     from chimerax.core.commands import run
     
@@ -54,7 +54,7 @@ def test_display_state_hidden_model(test_production_session):
     # Hide the model
     run(test_production_session, "hide #1 target m")
     
-    result = run(test_production_session, "info display_state")
+    result = run(test_production_session, "info shown")
     data = json.loads(result.json_result)
     
     model = data[0]
@@ -68,8 +68,8 @@ def test_display_state_hidden_model(test_production_session):
     run(test_production_session, "close")
 
 
-def test_display_state_shown_model_structure(test_production_session):
-    """Test display_state output structure for a visible AtomicStructure."""
+def test_shown_visible_model_structure(test_production_session):
+    """Test 'info shown' output structure for a visible AtomicStructure."""
     from chimerax.core.commands import run
     
     # Open a structure
@@ -82,7 +82,7 @@ def test_display_state_shown_model_structure(test_production_session):
     # Show ribbons for all chains
     run(test_production_session, "show #1 target c")
     
-    result = run(test_production_session, "info display_state")
+    result = run(test_production_session, "info shown")
     data = json.loads(result.json_result)
     
     # Find the AtomicStructure model
@@ -103,7 +103,7 @@ def test_display_state_shown_model_structure(test_production_session):
     run(test_production_session, "close")
 
 
-def test_display_state_atoms_only(test_production_session):
+def test_shown_atoms_only(test_production_session):
     """Test that chains only appear when something is displayed."""
     from chimerax.core.commands import run
     
@@ -114,7 +114,7 @@ def test_display_state_atoms_only(test_production_session):
     # Hide everything
     run(test_production_session, "hide #1 target abcs")
     
-    result = run(test_production_session, "info display_state")
+    result = run(test_production_session, "info shown")
     data = json.loads(result.json_result)
     model = data[0]
     
@@ -125,7 +125,7 @@ def test_display_state_atoms_only(test_production_session):
     # Now show atoms for chain A only
     run(test_production_session, "show #1/A target a")
     
-    result = run(test_production_session, "info display_state")
+    result = run(test_production_session, "info shown")
     data = json.loads(result.json_result)
     model = data[0]
     
@@ -141,7 +141,7 @@ def test_display_state_atoms_only(test_production_session):
     run(test_production_session, "close")
 
 
-def test_display_state_partial_display(test_production_session):
+def test_shown_partial_display(test_production_session):
     """Test that partial displays generate correct specs."""
     from chimerax.core.commands import run
     
@@ -155,7 +155,7 @@ def test_display_state_partial_display(test_production_session):
     # Show atoms only for residues 1-10 in chain A
     run(test_production_session, "show #1/A:1-10 target a")
     
-    result = run(test_production_session, "info display_state")
+    result = run(test_production_session, "info shown")
     data = json.loads(result.json_result)
     model = data[0]
     
@@ -175,14 +175,14 @@ def test_display_state_partial_display(test_production_session):
     run(test_production_session, "close")
 
 
-def test_display_state_no_models(test_production_session):
-    """Test display_state when no models are loaded."""
+def test_shown_no_models(test_production_session):
+    """Test 'info shown' when no models are loaded."""
     from chimerax.core.commands import run
     
     # Ensure no models are loaded
     run(test_production_session, "close")
     
-    result = run(test_production_session, "info display_state")
+    result = run(test_production_session, "info shown")
     data = json.loads(result.json_result)
     
     # Should return empty list
@@ -190,7 +190,7 @@ def test_display_state_no_models(test_production_session):
     assert len(data) == 0
 
 
-def test_display_state_only_displayed_ligands(test_production_session):
+def test_shown_only_displayed_ligands(test_production_session):
     """Test that only displayed ligands appear in output."""
     from chimerax.core.commands import run
     
@@ -201,7 +201,7 @@ def test_display_state_only_displayed_ligands(test_production_session):
     # First hide all atoms (including ligands)
     run(test_production_session, "hide #1 target a")
     
-    result = run(test_production_session, "info display_state")
+    result = run(test_production_session, "info shown")
     data = json.loads(result.json_result)
     model = data[0]
     
@@ -212,7 +212,7 @@ def test_display_state_only_displayed_ligands(test_production_session):
     # Show ligand atoms
     run(test_production_session, "show ligand target a")
     
-    result = run(test_production_session, "info display_state")
+    result = run(test_production_session, "info shown")
     data = json.loads(result.json_result)
     model = data[0]
     
@@ -227,7 +227,7 @@ def test_display_state_only_displayed_ligands(test_production_session):
     run(test_production_session, "close")
 
 
-def test_display_state_only_displayed_ions(test_production_session):
+def test_shown_only_displayed_ions(test_production_session):
     """Test that only displayed ions appear in output."""
     from chimerax.core.commands import run
     
@@ -238,7 +238,7 @@ def test_display_state_only_displayed_ions(test_production_session):
     # Hide all including ions
     run(test_production_session, "hide #1 target a")
     
-    result = run(test_production_session, "info display_state")
+    result = run(test_production_session, "info shown")
     data = json.loads(result.json_result)
     model = data[0]
     
@@ -249,7 +249,7 @@ def test_display_state_only_displayed_ions(test_production_session):
     # Show ions
     run(test_production_session, "show ions target a")
     
-    result = run(test_production_session, "info display_state")
+    result = run(test_production_session, "info shown")
     data = json.loads(result.json_result)
     model = data[0]
     
@@ -265,27 +265,28 @@ def test_display_state_only_displayed_ions(test_production_session):
 
 
 # Test commands list for parametrized testing
-display_state_commands = [
-    ["open 2tpk autostyle false", "info display_state"],
-    ["open 2tpk autostyle false", "hide #1 target m", "info display_state"],
-    ["open 2tpk autostyle false", "show #1 target c", "info display_state"],
-    ["open 2tpk autostyle false", "hide #1 target abc", "show #1/A:1-20 target a", "info display_state"],
+shown_commands = [
+    ["open 2tpk autostyle false", "info shown"],
+    ["open 2tpk autostyle false", "hide #1 target m", "info shown"],
+    ["open 2tpk autostyle false", "show #1 target c", "info shown"],
+    ["open 2tpk autostyle false", "hide #1 target abc", "show #1/A:1-20 target a", "info shown"],
 ]
 
 
-@pytest.mark.parametrize("commands", display_state_commands)
-def test_display_state_command_sequence(test_production_session, commands):
-    """Test that display_state command works correctly in various scenarios."""
+@pytest.mark.parametrize("commands", shown_commands)
+def test_shown_command_sequence(test_production_session, commands):
+    """Test that 'info shown' command works correctly in various scenarios."""
     from chimerax.core.commands import run
     
     for command in commands:
         result = run(test_production_session, command)
         
-        # If this was the display_state command, verify it returns valid JSON
-        if "display_state" in command:
-            assert result is not None, "display_state should return a result"
+        # If this was the 'info shown' command, verify it returns valid JSON
+        if "info shown" in command:
+            assert result is not None, "'info shown' should return a result"
             data = json.loads(result.json_result)
             assert isinstance(data, list), "Result should be a list"
     
     # Clean up
     run(test_production_session, "close")
+

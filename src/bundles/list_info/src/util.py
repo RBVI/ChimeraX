@@ -516,9 +516,9 @@ class Notifier:
 
 
 # ==============================================================================
-# Code for display_state command
+# Code for 'info shown' command
 
-def get_display_state_info(session, models=None):
+def get_shown_info(session, models=None):
     '''
     Gather display state information for all models.
     Returns a list of dictionaries, one per model, describing what is currently displayed.
