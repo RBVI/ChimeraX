@@ -100,7 +100,7 @@ def _chimerax_installation_directory():
     import sys
     from sys import platform
     
-    for base_path in [sys.executable, os.path.abspath(__file__)]:
+    for base_path in [os.path.realpath(sys.executable), os.path.abspath(__file__)]:
         if platform == 'darwin':
             cdir = _find_parent_directory(base_path, 'Contents')
         elif platform == 'win32':
