@@ -523,6 +523,15 @@
     </li></ul>
 
     <p>
+      Here are few low memory boltz tests on GPUs with more memory (without aggressive chunking, tested on RunPod.io).
+    </p>
+
+    <pre>
+      7lhw, 2527 residues, Nvidia 5090 (32 GB), 7 minutes
+      7lhw, 2527 residues, Nvidia L40S (48 GB), 12 minutes
+      8p52, 2971 residues, Nvidia L40S (48 GB), 21 minutes</pre>
+
+    <p>
       This low memory Boltz should give the same predictions as regular Boltz.  It has not yet been incorporated
       into the main Boltz 2 github repository (Dec 2025), but there is a special ChimeraX version of Boltz that
       uses the low memory version.  To install and use the low memory Boltz use ChimeraX command
