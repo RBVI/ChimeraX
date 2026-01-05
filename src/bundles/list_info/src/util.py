@@ -513,3 +513,217 @@ class Notifier:
             from chimerax.core.errors import UserError
             raise UserError("destroying undefined notification client id: %s" %
                             n.client_id)
+
+
+# ==============================================================================
+# Code for display_state command
+
+def get_display_state_info(session, models=None):
+    '''
+    Gather display state information for all models.
+    Returns a list of dictionaries, one per model, describing what is currently displayed.
+    
+    Only includes information about elements that ARE displayed - absence from
+    the output means the element is not displayed.
+    '''
+    from chimerax.atomic import AtomicStructure, Structure
+    from chimerax.map import Volume
+    from chimerax.atomic import PseudobondGroup
+    
+    if models is None:
+        models = session.models.list()
+    
+    result = []
+    
+    for m in sorted(models, key=lambda m: m.id):
+        model_info = {
+            'id': '#' + m.id_string,
+            'name': m.name,
+            'type': type(m).__name__,
+        }
+        
+        # If model is not displayed at all, just note that and skip details
+        if not m.display:
+            model_info['hidden'] = True
+            result.append(model_info)
+            continue
+        
+        if isinstance(m, AtomicStructure) or isinstance(m, Structure):
+            model_info['type'] = 'AtomicStructure' if isinstance(m, AtomicStructure) else 'Structure'
+            _add_structure_display_info(session, m, model_info)
+        elif isinstance(m, Volume):
+            model_info['type'] = 'Volume'
+            _add_volume_display_info(m, model_info)
+        elif isinstance(m, PseudobondGroup):
+            model_info['type'] = 'PseudobondGroup'
+            _add_pseudobond_group_display_info(session, m, model_info)
+        
+        result.append(model_info)
+    
+    return result
+
+
+def _add_structure_display_info(session, structure, info):
+    '''Add display state info for an AtomicStructure or Structure.
+    
+    Only includes elements that are currently displayed.
+    '''
+    from chimerax.atomic import Residue, concise_residue_spec
+    from chimerax.atomic.molsurf import MolecularSurface
+    
+    atoms = structure.atoms
+    
+    # Process each polymer chain - only include chains with something displayed
+    chains_info = []
+    for chain in structure.chains:
+        chain_id = chain.chain_id
+        chain_residues = chain.existing_residues
+        if len(chain_residues) == 0:
+            continue
+        
+        chain_atoms = chain_residues.atoms
+        chain_info = {'id': chain_id}
+        has_display = False
+        
+        # Atom display info - only include if atoms are displayed
+        displayed_atoms = chain_atoms.filter(chain_atoms.displays)
+        if len(displayed_atoms) > 0:
+            has_display = True
+            if len(displayed_atoms) == len(chain_atoms):
+                chain_info['atoms'] = {'spec': f'#{structure.id_string}/{chain_id}'}
+            else:
+                displayed_res = displayed_atoms.unique_residues
+                chain_info['atoms'] = {'spec': concise_residue_spec(session, displayed_res)}
+        
+        # Ribbon display info - only include if ribbons are displayed
+        ribbon_displays = chain_residues.ribbon_displays
+        displayed_ribbon_count = ribbon_displays.sum()
+        if displayed_ribbon_count > 0:
+            has_display = True
+            if displayed_ribbon_count == len(chain_residues):
+                chain_info['ribbons'] = {'spec': f'#{structure.id_string}/{chain_id}'}
+            else:
+                displayed_ribbon_res = chain_residues.filter(ribbon_displays)
+                chain_info['ribbons'] = {'spec': concise_residue_spec(session, displayed_ribbon_res)}
+        
+        # Only add chain if something is displayed
+        if has_display:
+            chain_info['polymer_type'] = ('protein' if chain.polymer_type == Residue.PT_AMINO else 
+                                          ('nucleic' if chain.polymer_type == Residue.PT_NUCLEIC else 'other'))
+            chains_info.append(chain_info)
+    
+    if chains_info:
+        info['chains'] = chains_info
+    
+    # Ligands - only include those with displayed atoms
+    ligand_atoms = atoms.filter(atoms.structure_categories == "ligand")
+    if len(ligand_atoms) > 0:
+        ligands_info = []
+        ligand_residues = ligand_atoms.unique_residues
+        for res in ligand_residues:
+            res_atoms = res.atoms
+            displayed_count = res_atoms.displays.sum()
+            if displayed_count > 0:
+                lig_info = {
+                    'name': res.name,
+                    'chain': res.chain_id,
+                    'number': res.number,
+                    'spec': res.string(style='command', omit_structure=False),
+                }
+                if res.insertion_code:
+                    lig_info['insertion_code'] = res.insertion_code
+                # Only note partial display if not all atoms shown
+                if displayed_count < len(res_atoms):
+                    lig_info['atoms_shown'] = f"{int(displayed_count)}/{len(res_atoms)}"
+                ligands_info.append(lig_info)
+        if ligands_info:
+            info['ligands'] = ligands_info
+    
+    # Ions - only include displayed ones
+    ion_atoms = atoms.filter(atoms.structure_categories == "ions")
+    if len(ion_atoms) > 0:
+        ions_info = []
+        ion_residues = ion_atoms.unique_residues
+        for res in ion_residues:
+            res_atoms = res.atoms
+            if res_atoms.displays.sum() > 0:
+                ion_info = {
+                    'name': res.name,
+                    'chain': res.chain_id,
+                    'number': res.number,
+                    'spec': res.string(style='command', omit_structure=False),
+                }
+                if res.insertion_code:
+                    ion_info['insertion_code'] = res.insertion_code
+                ions_info.append(ion_info)
+        if ions_info:
+            info['ions'] = ions_info
+    
+    # Solvent - only include if any is displayed
+    solvent_atoms = atoms.filter(atoms.structure_categories == "solvent")
+    displayed_solvent = solvent_atoms.filter(solvent_atoms.displays)
+    if len(displayed_solvent) > 0:
+        if len(displayed_solvent) == len(solvent_atoms):
+            info['solvent'] = {'spec': f'#{structure.id_string} & solvent'}
+        else:
+            displayed_solvent_res = displayed_solvent.unique_residues
+            info['solvent'] = {'spec': concise_residue_spec(session, displayed_solvent_res)}
+    
+    # Surfaces - only include displayed surfaces
+    surfaces_info = []
+    for surf in structure.surfaces():
+        if isinstance(surf, MolecularSurface) and surf.display:
+            show_atoms = surf.show_atoms
+            if len(show_atoms) > 0:
+                surf_info = {
+                    'id': '#' + surf.id_string,
+                    'name': surf.name,
+                }
+                enclose_atoms = surf.atoms
+                if len(show_atoms) == len(enclose_atoms):
+                    surf_info['spec'] = f'#{structure.id_string}'
+                else:
+                    show_res = show_atoms.unique_residues
+                    surf_info['spec'] = concise_residue_spec(session, show_res)
+                surfaces_info.append(surf_info)
+    if surfaces_info:
+        info['surfaces'] = surfaces_info
+    
+    # Pseudobonds - only include displayed groups with displayed pseudobonds
+    pbonds_info = []
+    for name, pbg in structure.pbg_map.items():
+        if pbg.display:
+            pbs = pbg.pseudobonds
+            displayed_pbs = pbs.filter(pbs.displays)
+            if len(displayed_pbs) > 0:
+                pb_info = {'name': name}
+                if len(displayed_pbs) < len(pbs):
+                    pb_info['count'] = f"{len(displayed_pbs)}/{len(pbs)}"
+                pbonds_info.append(pb_info)
+    if pbonds_info:
+        info['pseudobonds'] = pbonds_info
+
+
+def _add_volume_display_info(volume, info):
+    '''Add display state info for a Volume.
+    
+    Only includes rendering modes that are currently active.
+    '''
+    if volume.surface_shown:
+        info['surface_levels'] = [s.level for s in volume.surfaces]
+    if volume.image_shown:
+        info['image_levels'] = [list(l) for l in volume.image_levels]
+
+
+def _add_pseudobond_group_display_info(session, pbg, info):
+    '''Add display state info for a standalone PseudobondGroup.
+    
+    Only includes if pseudobonds are displayed.
+    '''
+    pbs = pbg.pseudobonds
+    displayed_pbs = pbs.filter(pbs.displays)
+    if len(displayed_pbs) > 0:
+        if len(displayed_pbs) < len(pbs):
+            info['pseudobonds'] = f"{len(displayed_pbs)}/{len(pbs)}"
+        else:
+            info['pseudobonds'] = len(displayed_pbs)

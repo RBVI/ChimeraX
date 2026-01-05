@@ -1221,6 +1221,79 @@ async def list_models(session_id: Optional[int] = None) -> str:
         return format_chimerax_response(result, context)
 
 @mcp.tool()
+async def get_display_state(session_id: Optional[int] = None) -> str:
+    """Get information about what is currently displayed in ChimeraX.
+    
+    This tool returns a JSON report showing only what IS displayed - absence from
+    the output means that element is not displayed. This provides a concise view
+    of the current visualization state.
+    
+    Use this tool to:
+    - Understand the current visualization state before making changes
+    - Verify that show/hide commands had the expected effect
+    - Get atomspecs for displayed elements to use in subsequent commands
+    
+    Key behavior:
+    - Only displayed elements are included in the output
+    - Hidden models show minimal info: {"id": "#1", "name": "...", "hidden": true}
+    - Spec fields can be directly used in commands like `color`, `hide`, `show`
+    
+    Example response for a structure with ribbons and partial atoms displayed:
+    ```json
+    {
+      "models": [
+        {
+          "id": "#1",
+          "name": "1abc",
+          "type": "AtomicStructure",
+          "chains": [
+            {
+              "id": "A",
+              "polymer_type": "protein",
+              "atoms": {"spec": "#1/A:12,25,40-50"},
+              "ribbons": {"spec": "#1/A"}
+            }
+          ],
+          "ligands": [{"name": "ATP", "chain": "A", "number": 501, "spec": "#1/A:501"}],
+          "ions": [{"name": "MG", "chain": "A", "number": 502, "spec": "#1/A:502"}]
+        }
+      ]
+    }
+    ```
+    
+    Example response for a hidden model:
+    ```json
+    {
+      "models": [
+        {"id": "#1", "name": "1abc", "type": "AtomicStructure", "hidden": true}
+      ]
+    }
+    ```
+    
+    Args:
+        session_id: ChimeraX session port (defaults to primary session)
+    """
+    result = await run_chimerax_command("info display_state", session_id)
+    session_info = f" in session {session_id}" if session_id else ""
+    
+    # The display_state command returns JSON data
+    json_values = result.get("json_values", [])
+    
+    if json_values and len(json_values) > 0:
+        import json
+        display_data = json_values[0] if isinstance(json_values[0], list) else json.loads(json_values[0])
+        
+        # Wrap in models key for consistent response structure
+        response = {"models": display_data}
+        
+        context = f"Display state{session_info}:"
+        formatted_json = json.dumps(response, indent=2, ensure_ascii=False)
+        return f"{context}\n{formatted_json}"
+    else:
+        return f"No display state information available{session_info}"
+
+
+@mcp.tool()
 async def get_model_info(model_id: str, session_id: Optional[int] = None) -> str:
     """Get detailed information about a specific model, including details about
     all its chains. You can call this to get all chain identifications in one go.

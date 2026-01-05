@@ -26,6 +26,7 @@ from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, Ato
 from chimerax.atomic import AtomsArg, ResiduesArg
 from .util import report_models, report_chains, report_polymers, report_residues
 from .util import report_residues, report_atoms, report_attr, report_distmat, output
+from .util import get_display_state_info
 
 
 def info(session, models=None, *, return_json=False, save_file=None):
@@ -544,3 +545,119 @@ def _info_path_show(logger, save_file, append, which, version, what, *, info_dic
                 append=append)
             if info_dict is not None:
                 info_dict.setdefault(version, {})[attr_name] = attr_value
+
+
+def display_state(session, models=None, *, return_json=True, save_file=None):
+    '''
+    Report what is currently displayed for each model.
+    
+    Only elements that ARE displayed are included in the output - absence from
+    the output means that element is not displayed. This provides a concise
+    view of the current visualization state.
+
+    The output includes atomspec strings that can be directly used in commands
+    like ``color``, ``hide``, ``show``, etc.
+
+    :param models: A list of models to report on. If None, reports on all models.
+    :param return_json: Whether to return a JSON result (default True).
+    :param save_file: Optional file to save the output to.
+
+    If :code:`return_json` is :code:`True`, the returned JSON will be a list of objects,
+    one per model.
+
+    Example JSON output for a structure with ribbons and some atoms displayed:
+
+    .. code-block:: json
+
+        {
+          "id": "#1",
+          "name": "1abc",
+          "type": "AtomicStructure",
+          "chains": [
+            {
+              "id": "A",
+              "polymer_type": "protein",
+              "atoms": {"spec": "#1/A:12,25,40-50"},
+              "ribbons": {"spec": "#1/A"}
+            }
+          ],
+          "ligands": [{"name": "ATP", "chain": "A", "number": 501, "spec": "#1/A:501"}],
+          "ions": [{"name": "MG", "chain": "A", "number": 502, "spec": "#1/A:502"}]
+        }
+
+    For a hidden model, output is minimal:
+
+    .. code-block:: json
+
+        {
+          "id": "#1",
+          "name": "1abc",
+          "type": "AtomicStructure",
+          "hidden": true
+        }
+    '''
+    display_info = get_display_state_info(session, models)
+    
+    if return_json:
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(display_info), None)
+    
+    # Text output for non-JSON mode
+    lines = []
+    for model in display_info:
+        if model.get('hidden'):
+            lines.append(f"Model {model['id']} ({model['name']}): hidden")
+            continue
+            
+        lines.append(f"Model {model['id']} ({model['name']}):")
+        mtype = model.get('type', 'Unknown')
+        
+        if mtype in ('AtomicStructure', 'Structure'):
+            for chain in model.get('chains', []):
+                chain_parts = [f"  Chain {chain['id']} ({chain.get('polymer_type', 'unknown')}):"]
+                if 'atoms' in chain:
+                    chain_parts.append(f"atoms {chain['atoms']['spec']}")
+                if 'ribbons' in chain:
+                    chain_parts.append(f"ribbons {chain['ribbons']['spec']}")
+                lines.append(' '.join(chain_parts))
+            
+            for lig in model.get('ligands', []):
+                lig_line = f"  Ligand {lig['name']} ({lig['spec']})"
+                if 'atoms_shown' in lig:
+                    lig_line += f" [{lig['atoms_shown']} atoms]"
+                lines.append(lig_line)
+            
+            for ion in model.get('ions', []):
+                lines.append(f"  Ion {ion['name']} ({ion['spec']})")
+            
+            if 'solvent' in model:
+                lines.append(f"  Solvent: {model['solvent']['spec']}")
+            
+            for surf in model.get('surfaces', []):
+                lines.append(f"  Surface {surf['id']}: {surf['spec']}")
+            
+            for pb in model.get('pseudobonds', []):
+                pb_line = f"  Pseudobonds '{pb['name']}'"
+                if 'count' in pb:
+                    pb_line += f" [{pb['count']}]"
+                lines.append(pb_line)
+        
+        elif mtype == 'Volume':
+            if 'surface_levels' in model:
+                lines.append(f"  Surface levels: {model['surface_levels']}")
+            if 'image_levels' in model:
+                lines.append(f"  Image levels: {model['image_levels']}")
+        
+        elif mtype == 'PseudobondGroup':
+            pbs = model.get('pseudobonds')
+            if pbs is not None:
+                lines.append(f"  Pseudobonds: {pbs}")
+    
+    msg = '\n'.join(lines)
+    output(session.logger, save_file, msg)
+
+
+display_state_desc = CmdDesc(optional=[('models', ModelsArg)],
+                             keyword=[('save_file', SaveFileNameArg)],
+                             synopsis='Report display state of models')
