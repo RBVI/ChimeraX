@@ -360,7 +360,11 @@ def list_available_commands():
     return sorted(commands)
 
 def get_command_doc(command_name: str) -> str:
-    """Get documentation for a specific command"""
+    """Get documentation for a specific command in markdown format.
+    
+    Uses html2text to convert ChimeraX HTML documentation to markdown,
+    preserving tables, code examples, and document structure.
+    """
     docs_path = get_docs_path()
     if not docs_path:
         return f"Documentation not found for command: {command_name}"
@@ -373,42 +377,45 @@ def get_command_doc(command_name: str) -> str:
         with open(doc_file, 'r', encoding='utf-8') as f:
             content = f.read()
 
-        # Extract just the useful content (remove HTML boilerplate)
-        from html.parser import HTMLParser
-        import re
+        # Pre-process HTML: remove <br> tags inside table cells
+        # (they break markdown table formatting when converted to newlines)
+        from bs4 import BeautifulSoup, Tag
+        soup = BeautifulSoup(content, 'html.parser')
+        for td in soup.find_all('td'):
+            if isinstance(td, Tag):
+                for br in td.find_all('br'):
+                    br.replace_with(' ')
+        content = str(soup)
 
-        class DocExtractor(HTMLParser):
-            def __init__(self):
-                super().__init__()
-                self.content = []
-                self.in_body = False
-                self.current_text = ""
-
-            def handle_starttag(self, tag, attrs):
-                if tag == 'body':
-                    self.in_body = True
-                elif tag in ['h3', 'p', 'li'] and self.in_body:
-                    self.current_text += f"\n{tag.upper()}: "
-
-            def handle_data(self, data):
-                if self.in_body:
-                    clean_data = re.sub(r'\s+', ' ', data.strip())
-                    if clean_data:
-                        self.current_text += clean_data + " "
-
-            def handle_endtag(self, tag):
-                if tag == 'body':
-                    self.in_body = False
-
-        parser = DocExtractor()
-        parser.feed(content)
-
-        # Clean up the extracted text
-        doc_text = parser.current_text
-        doc_text = re.sub(r'\n+', '\n', doc_text)
-        doc_text = re.sub(r'\s+', ' ', doc_text)
-
-        return f"ChimeraX Command: {command_name}\n\n{doc_text[:2000]}..."  # Limit length
+        import html2text
+        
+        h = html2text.HTML2Text()
+        h.body_width = 0          # Don't wrap lines (let client handle wrapping)
+        h.unicode_snob = True     # Use unicode instead of ASCII
+        h.ignore_images = True    # Skip toolbar icons and other images
+        h.ignore_links = True     # Remove hyperlinks to reduce token count
+        
+        markdown_text = h.handle(content)
+        
+        # Remove HTML comment at the start (copyright header) if present
+        if markdown_text.lstrip().startswith('<!--'):
+            end_comment = markdown_text.find('-->')
+            if end_comment != -1:
+                markdown_text = markdown_text[end_comment + 3:].lstrip()
+        
+        # Remove footer (everything after the horizontal rule at the end)
+        # The footer typically contains "UCSF Resource for Biocomputing..." address
+        hr_markers = ['* * *\n', '---\n', '___\n']
+        for marker in hr_markers:
+            last_hr = markdown_text.rfind(marker)
+            if last_hr != -1:
+                # Check if this is near the end (footer)
+                remaining = markdown_text[last_hr:]
+                if len(remaining) < 500:  # Footer is typically short
+                    markdown_text = markdown_text[:last_hr].rstrip()
+                    break
+        
+        return f"# ChimeraX Command: {command_name}\n\n{markdown_text}"
 
     except Exception as e:
         return f"Error reading documentation for {command_name}: {e}"
