@@ -749,9 +749,9 @@ class BoltzRun:
 
     def _server_job_finished(self, run_dir):
         from os.path import join
-        with open(join(run_dir, 'stdout'), 'r') as f:
+        with open(join(run_dir, 'stdout'), 'r', encoding = 'utf-8') as f:
             stdout = f.read()
-        with open(join(run_dir, 'stderr'), 'r') as f:
+        with open(join(run_dir, 'stderr'), 'r', encoding = 'utf-8') as f:
             stderr = f.read()
 
         jobs = self._settings.active_server_jobs
@@ -941,9 +941,9 @@ class BoltzRun:
     def _save_stdout_stderr(self, stdout, stderr):
         dir = self._run_directory
         from os.path import join
-        with open(join(dir, 'stdout'), 'w') as f:
+        with open(join(dir, 'stdout'), 'w', encoding = 'utf-8') as f:
             f.write(stdout)
-        with open(join(dir, 'stderr'), 'w') as f:
+        with open(join(dir, 'stderr'), 'w', encoding = 'utf-8') as f:
             f.write(stderr)
     
     def _process_completed(self, exit_code, stdout, stderr):
