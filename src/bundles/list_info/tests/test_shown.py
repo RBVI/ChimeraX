@@ -149,7 +149,11 @@ def test_shown_atoms_only(test_production_session):
 
 
 def test_shown_partial_display(test_production_session):
-    """Test that partial displays generate correct specs."""
+    """Test that partial displays generate correct specs.
+    
+    Note: Specs follow ChimeraX convention - when there's only one model,
+    the model number may be omitted from the spec.
+    """
     from chimerax.core.commands import run
     
     # Open a structure
@@ -176,8 +180,10 @@ def test_shown_partial_display(test_production_session):
     if chain_a and 'atoms' in chain_a:
         spec = chain_a['atoms']['spec']
         assert spec is not None, "Spec should not be None for partial display"
-        # Spec should reference model 1 and not be the full chain
-        assert '#1' in spec, f"Spec '{spec}' should contain model reference"
+        # Spec should reference chain A and residue range (model number optional per ChimeraX convention)
+        assert '/A:' in spec or '/A' in spec, f"Spec '{spec}' should reference chain A"
+        # Should indicate a partial range, not the full chain
+        assert ':' in spec, f"Spec '{spec}' should contain residue range for partial display"
     
     run(test_production_session, "close")
 

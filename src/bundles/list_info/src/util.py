@@ -590,22 +590,16 @@ def _add_structure_display_info(session, structure, info):
         displayed_atoms = chain_atoms.filter(chain_atoms.displays)
         if len(displayed_atoms) > 0:
             has_display = True
-            if len(displayed_atoms) == len(chain_atoms):
-                chain_info['atoms'] = {'spec': f'#{structure.id_string}/{chain_id}'}
-            else:
-                displayed_res = displayed_atoms.unique_residues
-                chain_info['atoms'] = {'spec': concise_residue_spec(session, displayed_res)}
+            displayed_res = displayed_atoms.unique_residues
+            chain_info['atoms'] = {'spec': concise_residue_spec(session, displayed_res)}
         
         # Ribbon display info - only include if ribbons are displayed
         ribbon_displays = chain_residues.ribbon_displays
         displayed_ribbon_count = ribbon_displays.sum()
         if displayed_ribbon_count > 0:
             has_display = True
-            if displayed_ribbon_count == len(chain_residues):
-                chain_info['ribbons'] = {'spec': f'#{structure.id_string}/{chain_id}'}
-            else:
-                displayed_ribbon_res = chain_residues.filter(ribbon_displays)
-                chain_info['ribbons'] = {'spec': concise_residue_spec(session, displayed_ribbon_res)}
+            displayed_ribbon_res = chain_residues.filter(ribbon_displays)
+            chain_info['ribbons'] = {'spec': concise_residue_spec(session, displayed_ribbon_res)}
         
         # Only add chain if something is displayed
         if has_display:
@@ -664,11 +658,8 @@ def _add_structure_display_info(session, structure, info):
     solvent_atoms = atoms.filter(atoms.structure_categories == "solvent")
     displayed_solvent = solvent_atoms.filter(solvent_atoms.displays)
     if len(displayed_solvent) > 0:
-        if len(displayed_solvent) == len(solvent_atoms):
-            info['solvent'] = {'spec': f'#{structure.id_string} & solvent'}
-        else:
-            displayed_solvent_res = displayed_solvent.unique_residues
-            info['solvent'] = {'spec': concise_residue_spec(session, displayed_solvent_res)}
+        displayed_solvent_res = displayed_solvent.unique_residues
+        info['solvent'] = {'spec': concise_residue_spec(session, displayed_solvent_res)}
     
     # Surfaces - only include displayed surfaces
     surfaces_info = []
@@ -680,12 +671,8 @@ def _add_structure_display_info(session, structure, info):
                     'id': '#' + surf.id_string,
                     'name': surf.name,
                 }
-                enclose_atoms = surf.atoms
-                if len(show_atoms) == len(enclose_atoms):
-                    surf_info['spec'] = f'#{structure.id_string}'
-                else:
-                    show_res = show_atoms.unique_residues
-                    surf_info['spec'] = concise_residue_spec(session, show_res)
+                show_res = show_atoms.unique_residues
+                surf_info['spec'] = concise_residue_spec(session, show_res)
                 surfaces_info.append(surf_info)
     if surfaces_info:
         info['surfaces'] = surfaces_info
