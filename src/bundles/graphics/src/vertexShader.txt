@@ -127,6 +127,9 @@ uniform vec4 camera_vertical;
 #endif
 
 #ifdef USE_CLIP_PLANES
+#ifdef USE_OPENGL_ES
+#extension GL_EXT_clip_cull_distance : require
+#endif
 uniform int num_clip_planes;
 uniform vec4 clip_planes[8]; // Normal in scene coordinates and offset
 out float gl_ClipDistance[8];

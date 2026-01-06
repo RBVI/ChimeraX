@@ -53,8 +53,21 @@ class OpenGLContext:
     This implementation uses Qt QOpenGLContext.
     '''
 
-    required_opengl_version = (3, 3)
-    required_opengl_core_profile = True
+    @staticmethod
+    def _use_opengl_es():
+        import sys
+        if sys.platform == "darwin":
+            return False
+        import platform
+        machine = platform.machine().lower()
+        if machine in ('aarch64', 'arm64', 'armv7l', 'armv8l'):
+            return True
+        return False
+
+    use_opengl_es = _use_opengl_es.__func__()
+
+    required_opengl_version = (3, 1) if use_opengl_es else (3, 3)
+    required_opengl_core_profile = not use_opengl_es
 
     def __init__(self, graphics_window, screen, use_stereo = False):
         _initialize_pyopengl() # Set global GL module.
@@ -188,9 +201,12 @@ class OpenGLContext:
             fmt.setGreenBufferSize(cbits)
             fmt.setBlueBufferSize(cbits)
         fmt.setDepthBufferSize(self._depth_bits)
-        if self.required_opengl_core_profile:
-            fmt.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
-        fmt.setRenderableType(QSurfaceFormat.RenderableType.OpenGL)
+        if self.use_opengl_es:
+            fmt.setRenderableType(QSurfaceFormat.RenderableType.OpenGLES)
+        else:
+            if self.required_opengl_core_profile:
+                fmt.setProfile(QSurfaceFormat.OpenGLContextProfile.CoreProfile)
+            fmt.setRenderableType(QSurfaceFormat.RenderableType.OpenGL)
         if not self._wait_for_vsync:
             # Don't wait for vsync.
             # Works on Mac OS 10.13 Nvidia graphics with Qt 5.
@@ -205,8 +221,12 @@ class OpenGLContext:
         rmajor, rminor = self.required_opengl_version
         if major < rmajor or (major == rmajor and minor < rminor):
             from chimerax.graphics import OpenGLVersionError
+            if self.use_opengl_es:
+                gl_version = "OpenGL ES"
+            else:
+                gl_version = "OpenGL"
             raise OpenGLVersionError(
-                'ChimeraX requires OpenGL graphics version %d.%d.\n' % (rmajor, rminor) +
+                'ChimeraX requires %s graphics version %d.%d.\n' % (gl_version, rmajor, rminor) +
                 'Your computer graphics driver provided version %d.%d\n' % (major, minor) +
                 'Try updating your graphics driver.')
         if self.required_opengl_core_profile:
@@ -1113,7 +1133,13 @@ class Render:
 
     def opengl_version_number(self):
         'Return major and minor opengl version numbers (integers).'
-        vs = self.opengl_version().split()[0].split('.')[:2]
+        vs = self.opengl_version()
+        if "OpenGL ES" in vs:
+            # OpenGL ES 3.1 Mesa...
+            vs = vs.split()[2].split('.')[:2]
+        else:
+            # 4.6.X Nvidia...
+            vs = vs.split()[0].split('.')[:2]
         vmajor, vminor = [int(v) for v in vs]
         return vmajor, vminor
 
@@ -1125,13 +1151,18 @@ class Render:
         'String description of the OpenGL renderer for the current context.'
         return GL.glGetString(GL.GL_RENDERER).decode('utf-8')
 
-    def check_opengl_version(self, major = 3, minor = 3):
+    def check_opengl_version(self):
         '''Check if current OpenGL context meets minimum required version.'''
-        vmajor, vminor = self.opengl_version_number()
-        if vmajor < major or (vmajor == major and vminor < minor):
-            raise OpenGLVersionError('ChimeraX requires OpenGL graphics version 3.3.\n'
+        actual_major, actual_minor = self.opengl_version_number()
+        supported_major, supported_minor = self._opengl_context.required_opengl_version
+        if actual_major < supported_major or (actual_major == supported_major and actual_minor < supported_minor):
+            if self._opengl_context.use_opengl_es:
+                gl_version = "OpenGL ES"
+            else:
+                gl_version = "OpenGL"
+            raise OpenGLVersionError('ChimeraX requires %s graphics version %d.%d.\n'
                                      'Your computer graphics driver provided version %d.%d.\n'
-                                     % (vmajor, vminor))
+                                     % (gl_version, supported_major, supported_minor, actual_major, actual_minor))
 
     def opengl_info(self):
         lines = ['vendor: %s' % GL.glGetString(GL.GL_VENDOR).decode('utf-8'),
@@ -2998,10 +3029,21 @@ class Shader:
         deflines = ['#define %s 1' % sopt.replace('SHADER_', 'USE_')
                     for sopt in shader_capability_names(capabilities)]
         deflines.append('#define MAX_SHADOWS %d' % max_shadows)
+
+        if OpenGLContext.use_opengl_es:
+            deflines.append('#define USE_OPENGL_ES 1')
+
         defs = '\n'.join(deflines)
         v = shader.find('#version')
-        eol = shader[v:].find('\n') + 1
-        s = shader[:eol] + defs + '\n' + shader[eol:]
+        if v >= 0:
+            eol = v + shader[v:].find('\n') + 1
+            if OpenGLContext.use_opengl_es:
+                version_line = '#version 300 es\nprecision highp float;\nprecision highp int;\n'
+            else:
+                version_line = '#version 330 core\n'
+            s = shader[:v] + version_line + defs + '\n' + shader[eol:]
+        else:
+            s = defs + '\n' + shader
         return s
 
 
@@ -3027,6 +3069,14 @@ class Texture:
 
         # PyOpenGL 3.1.5 leaks memory if data not contiguous, PyOpenGL github issue #47.
         d = data if data is None or data.flags['C_CONTIGUOUS'] else data.copy()
+
+        self._was_1d = False
+        if dimension == 1 and OpenGLContext.use_opengl_es:
+            dimension = 2
+            self._was_1d = True
+            if d is not None:
+                import numpy
+                d = numpy.expand_dims(d, axis=0)
         self.data = d
         self.id = None
         self.dimension = dimension
@@ -3200,9 +3250,11 @@ class Texture:
         # we end up with truncate it to float32
         from numpy import float64, float32
         if d.dtype == float64:
-            self.data = d.astype(float32)
-        else:
-            self.data = d
+            d = d.astype(float32)
+        if self._was_1d:
+            import numpy
+            d = numpy.expand_dims(d, axis=0)
+        self.data = d
         if now:
             self.fill_opengl_texture()
 
