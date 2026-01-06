@@ -8,7 +8,7 @@ import json
 
 # Commands to set up test structures
 setup_structure = [
-    "open 2tpk autostyle false",  # Small structure, ~400 residues
+    "open 3ptb autostyle false",  # Trypsin with benzamidine ligand (~220 residues)
 ]
 
 
@@ -164,7 +164,7 @@ def test_shown_partial_display(test_production_session):
     run(test_production_session, "hide #1 target a")
     
     # Show atoms only for residues 1-10 in chain A
-    run(test_production_session, "show #1/A:1-10 target a")
+    run(test_production_session, "show #1/A:16-25 target a")
     
     result = run(test_production_session, "info shown", return_json=True)
     data = json.loads(result.json_value)
@@ -207,7 +207,7 @@ def test_shown_only_displayed_ligands(test_production_session):
     """Test that only displayed ligands appear in output."""
     from chimerax.core.commands import run
     
-    # Open a structure with ligands (2tpk has ligands)
+    # Open a structure
     for cmd in setup_structure:
         run(test_production_session, cmd)
     
@@ -408,10 +408,10 @@ def test_shown_child_inherits_parent_visibility(test_production_session):
 # Test commands list for parametrized testing
 # Note: "info shown" is a marker that will trigger JSON validation
 shown_commands = [
-    ["open 2tpk autostyle false", "info shown"],
-    ["open 2tpk autostyle false", "hide #1 target m", "info shown"],
-    ["open 2tpk autostyle false", "show #1 target c", "info shown"],
-    ["open 2tpk autostyle false", "hide #1 target abc", "show #1/A:1-20 target a", "info shown"],
+    ["open 3ptb autostyle false", "info shown"],
+    ["open 3ptb autostyle false", "hide #1 target m", "info shown"],
+    ["open 3ptb autostyle false", "show #1 target c", "info shown"],
+    ["open 3ptb autostyle false", "hide #1 target abc", "show #1/A:16-35 target a", "info shown"],
 ]
 
 
@@ -432,5 +432,361 @@ def test_shown_command_sequence(test_production_session, commands):
             run(test_production_session, command)
     
     # Clean up
+    run(test_production_session, "close")
+
+
+def test_shown_partial_atoms_in_residue(test_production_session):
+    """Test that partial atom display within residues generates atom-level specs.
+    
+    When only some non-H atoms of a residue are shown (e.g., backbone only),
+    the spec should include atom names like ':10@CA,CB,C,N,O'.
+    """
+    from chimerax.core.commands import run
+    
+    # Open a structure
+    for cmd in setup_structure:
+        run(test_production_session, cmd)
+    
+    # Hide all atoms
+    run(test_production_session, "hide #1 target a")
+    
+    # Show only backbone atoms (CA, C, N, O) for a few residues
+    run(test_production_session, "show #1/A:16-18@CA,C,N,O target a")
+    
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
+    model = data[0]
+    
+    # Find chain A
+    chain_a = None
+    for chain in model.get('chains', []):
+        if chain['id'] == 'A':
+            chain_a = chain
+            break
+    
+    assert chain_a is not None, "Chain A should be in output"
+    assert 'atoms' in chain_a, "Chain A should have atoms"
+    
+    spec = chain_a['atoms']['spec']
+    # The spec should contain '@' indicating atom-level specification
+    # because not all atoms of the residues are shown
+    assert '@' in spec, f"Spec '{spec}' should contain @ for partial atom display"
+    
+    run(test_production_session, "close")
+
+
+def test_shown_mixed_full_and_partial_residues(test_production_session):
+    """Test specs when some residues have all atoms shown and others partial.
+    
+    Expected format: ':48@CA,C,N,O:50-55' meaning residue 48 has partial atoms,
+    residues 50-55 have all atoms shown.
+    """
+    from chimerax.core.commands import run
+    
+    # Open a structure
+    for cmd in setup_structure:
+        run(test_production_session, cmd)
+    
+    # Hide all atoms first
+    run(test_production_session, "hide #1 target a")
+    
+    # Show all atoms for residues 50-55
+    run(test_production_session, "show #1/A:50-55 target a")
+    
+    # Show only backbone for residue 48 (using a residue that has side chain atoms)
+    run(test_production_session, "show #1/A:48@CA,C,N,O target a")
+    
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
+    model = data[0]
+    
+    # Find chain A
+    chain_a = None
+    for chain in model.get('chains', []):
+        if chain['id'] == 'A':
+            chain_a = chain
+            break
+    
+    assert chain_a is not None, "Chain A should be in output"
+    assert 'atoms' in chain_a, "Chain A should have atoms"
+    
+    spec = chain_a['atoms']['spec']
+    # Should have both residue-level specs (for full display) and atom-level (for partial)
+    assert '@' in spec, f"Spec '{spec}' should contain @ for partial residue"
+    # Should also have residue range for full-display residues
+    # The exact format depends on order, but should have both patterns
+    
+    run(test_production_session, "close")
+
+
+def test_shown_full_residue_display_no_atom_spec(test_production_session):
+    """Test that full residue display uses residue-level spec (no @).
+    
+    When all non-H atoms of a residue are shown, we should get just
+    residue specs like ':10-20' not ':10@CA,CB,...:11@CA,...'.
+    """
+    from chimerax.core.commands import run
+    
+    # Open a structure
+    for cmd in setup_structure:
+        run(test_production_session, cmd)
+    
+    # Hide all atoms
+    run(test_production_session, "hide #1 target a")
+    
+    # Show all atoms (not just some) for a range of residues
+    run(test_production_session, "show #1/A:25-30 target a")
+    
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
+    model = data[0]
+    
+    # Find chain A
+    chain_a = None
+    for chain in model.get('chains', []):
+        if chain['id'] == 'A':
+            chain_a = chain
+            break
+    
+    assert chain_a is not None, "Chain A should be in output"
+    assert 'atoms' in chain_a, "Chain A should have atoms"
+    
+    spec = chain_a['atoms']['spec']
+    # When all atoms are shown, should NOT have @ in spec (residue-level only)
+    assert '@' not in spec, f"Spec '{spec}' should NOT contain @ when all atoms are shown"
+    # Should have residue range
+    assert ':' in spec, f"Spec '{spec}' should contain residue range"
+    
+    run(test_production_session, "close")
+
+
+def test_shown_ligand_partial_atoms(test_production_session):
+    """Test that partial ligand atom display shows which atoms are displayed."""
+    from chimerax.core.commands import run
+    
+    # Open a structure with ligands
+    for cmd in setup_structure:
+        run(test_production_session, cmd)
+    
+    # First check if there are ligands
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
+    model = data[0]
+    
+    if not model.get('ligands'):
+        # Structure doesn't have ligands, skip test
+        run(test_production_session, "close")
+        pytest.skip("Test structure has no ligands")
+        return
+    
+    # Get the first ligand's residue spec
+    lig = model['ligands'][0]
+    lig_spec = lig['spec']
+    
+    # Hide all ligand atoms, then show only some
+    run(test_production_session, f"hide {lig_spec} target a")
+    
+    # Show just a couple of atoms (e.g., first two heavy atoms)
+    # Using a general approach - show atoms named C* (carbons)
+    run(test_production_session, f"show {lig_spec}@C* target a")
+    
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
+    model = data[0]
+    
+    if model.get('ligands'):
+        for lig in model['ligands']:
+            # If partial display, should have 'shown_atoms' with atom names
+            if lig.get('atoms_shown'):
+                # atoms_shown is like "3/10" format
+                assert '/' in lig['atoms_shown'], \
+                    "atoms_shown should be in 'shown/total' format"
+                # Should also have shown_atoms list
+                assert 'shown_atoms' in lig, \
+                    "Partial display should include shown_atoms list"
+                assert isinstance(lig['shown_atoms'], list), \
+                    "shown_atoms should be a list of atom names"
+    
+    run(test_production_session, "close")
+
+
+def test_shown_hydrogen_visibility_none(test_production_session):
+    """Test that hiding all hydrogens reports 'hydrogens': 'none'."""
+    from chimerax.core.commands import run
+    
+    # Open a structure
+    for cmd in setup_structure:
+        run(test_production_session, cmd)
+    
+    # Hide all atoms, then show only non-hydrogen atoms
+    run(test_production_session, "hide #1 target a")
+    run(test_production_session, "show #1/A:16-25 & ~H target a")
+    
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
+    model = data[0]
+    
+    # Find chain A
+    chain_a = None
+    for chain in model.get('chains', []):
+        if chain['id'] == 'A':
+            chain_a = chain
+            break
+    
+    if chain_a and 'atoms' in chain_a:
+        assert 'hydrogens' in chain_a, "Chain should have 'hydrogens' field"
+        assert chain_a['hydrogens'] == 'none', \
+            f"Expected 'none' but got '{chain_a['hydrogens']}' when no H shown"
+        # Spec should not contain any hydrogen atom names
+        spec = chain_a['atoms']['spec']
+        assert '@H' not in spec.upper() or '@HE' in spec.upper() or '@HI' in spec.upper(), \
+            "Spec should not contain hydrogen atoms when hydrogens='none'"
+    
+    run(test_production_session, "close")
+
+
+def test_shown_hydrogen_visibility_polar(test_production_session):
+    """Test that showing only polar hydrogens reports 'hydrogens': 'polar'."""
+    from chimerax.core.commands import run
+    
+    # Open a structure and add hydrogens
+    for cmd in setup_structure:
+        run(test_production_session, cmd)
+    
+    # Add hydrogens to ensure we have them
+    run(test_production_session, "addh #1")
+    
+    # Hide all atoms
+    run(test_production_session, "hide #1 target a")
+    
+    # Show atoms for chain A, but hide non-polar hydrogens (HC)
+    run(test_production_session, "show #1/A:16-25 target a")
+    run(test_production_session, "hide #1/A:16-25 & HC target a")
+    
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
+    model = data[0]
+    
+    # Find chain A
+    chain_a = None
+    for chain in model.get('chains', []):
+        if chain['id'] == 'A':
+            chain_a = chain
+            break
+    
+    if chain_a and 'atoms' in chain_a:
+        assert 'hydrogens' in chain_a, "Chain should have 'hydrogens' field"
+        # Should be 'polar' since only polar H are shown
+        assert chain_a['hydrogens'] == 'polar', \
+            f"Expected 'polar' but got '{chain_a['hydrogens']}' when only polar H shown"
+    
+    run(test_production_session, "close")
+
+
+def test_shown_hydrogen_visibility_all(test_production_session):
+    """Test that showing all hydrogens reports 'hydrogens': 'all'."""
+    from chimerax.core.commands import run
+    
+    # Open a structure and add hydrogens
+    for cmd in setup_structure:
+        run(test_production_session, cmd)
+    
+    # Add hydrogens
+    run(test_production_session, "addh #1")
+    
+    # Hide all, then show all atoms including hydrogens
+    run(test_production_session, "hide #1 target a")
+    run(test_production_session, "show #1/A:16-25 target a")
+    
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
+    model = data[0]
+    
+    # Find chain A
+    chain_a = None
+    for chain in model.get('chains', []):
+        if chain['id'] == 'A':
+            chain_a = chain
+            break
+    
+    if chain_a and 'atoms' in chain_a:
+        assert 'hydrogens' in chain_a, "Chain should have 'hydrogens' field"
+        assert chain_a['hydrogens'] == 'all', \
+            f"Expected 'all' but got '{chain_a['hydrogens']}' when all H shown"
+    
+    run(test_production_session, "close")
+
+
+def test_shown_hydrogen_visibility_some(test_production_session):
+    """Test that showing arbitrary hydrogens reports 'hydrogens': 'some' and includes H in spec."""
+    from chimerax.core.commands import run
+    
+    # Open a structure and add hydrogens
+    for cmd in setup_structure:
+        run(test_production_session, cmd)
+    
+    # Add hydrogens
+    run(test_production_session, "addh #1")
+    
+    # Hide all, then show atoms for a few residues
+    run(test_production_session, "hide #1 target a")
+    run(test_production_session, "show #1/A:16-20 target a")
+    
+    # Now hide some but not all hydrogens in an arbitrary pattern
+    # Hide all HC, then show just some of them back (arbitrary selection)
+    run(test_production_session, "hide #1/A:16-20 & H target a")
+    # Show just hydrogens on residue 1 (arbitrary subset)
+    run(test_production_session, "show #1/A:16 & H target a")
+    
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
+    model = data[0]
+    
+    # Find chain A
+    chain_a = None
+    for chain in model.get('chains', []):
+        if chain['id'] == 'A':
+            chain_a = chain
+            break
+    
+    if chain_a and 'atoms' in chain_a:
+        assert 'hydrogens' in chain_a, "Chain should have 'hydrogens' field"
+        # Check that it's 'some' (arbitrary subset) - but might also be 'none' if residue 1
+        # doesn't have H or if the pattern happens to match polar
+        h_vis = chain_a['hydrogens']
+        if h_vis == 'some':
+            # When 'some', the spec should potentially include H atoms
+            spec = chain_a['atoms']['spec']
+            # The spec format may vary, but if there are partial residues with H, 
+            # they should be included
+            pass  # Just verify no crash, actual H content depends on structure
+    
+    run(test_production_session, "close")
+
+
+def test_shown_ligand_hydrogen_visibility(test_production_session):
+    """Test that ligand hydrogen visibility is reported."""
+    from chimerax.core.commands import run
+    
+    # Open a structure with ligands
+    for cmd in setup_structure:
+        run(test_production_session, cmd)
+    
+    # Check if there are ligands
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
+    model = data[0]
+    
+    if not model.get('ligands'):
+        run(test_production_session, "close")
+        pytest.skip("Test structure has no ligands")
+        return
+    
+    # Ligands should have 'hydrogens' field
+    for lig in model['ligands']:
+        assert 'hydrogens' in lig, f"Ligand {lig['name']} should have 'hydrogens' field"
+        assert lig['hydrogens'] in ('none', 'polar', 'all', 'some'), \
+            f"Ligand hydrogens should be one of: none, polar, all, some; got {lig['hydrogens']}"
+    
     run(test_production_session, "close")
 

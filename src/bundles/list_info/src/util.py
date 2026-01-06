@@ -569,7 +569,7 @@ def _add_structure_display_info(session, structure, info):
     
     Only includes elements that are currently displayed.
     '''
-    from chimerax.atomic import Residue, concise_residue_spec
+    from chimerax.atomic import Residue, concise_residue_spec, concise_atom_spec, classify_hydrogen_visibility
     from chimerax.atomic.molsurf import MolecularSurface
     
     atoms = structure.atoms
@@ -587,11 +587,20 @@ def _add_structure_display_info(session, structure, info):
         has_display = False
         
         # Atom display info - only include if atoms are displayed
+        # Use concise_atom_spec to get atom-level detail when partial display
         displayed_atoms = chain_atoms.filter(chain_atoms.displays)
         if len(displayed_atoms) > 0:
             has_display = True
-            displayed_res = displayed_atoms.unique_residues
-            chain_info['atoms'] = {'spec': concise_residue_spec(session, displayed_res)}
+            
+            # Classify hydrogen visibility
+            h_visibility = classify_hydrogen_visibility(displayed_atoms, chain_atoms)
+            
+            # Only include hydrogens in spec when visibility is "some" (arbitrary subset)
+            include_h = (h_visibility == 'some')
+            chain_info['atoms'] = {'spec': concise_atom_spec(session, displayed_atoms, include_hydrogens=include_h)}
+            
+            # Add hydrogen visibility field
+            chain_info['hydrogens'] = h_visibility
         
         # Ribbon display info - only include if ribbons are displayed
         ribbon_displays = chain_residues.ribbon_displays
@@ -617,7 +626,8 @@ def _add_structure_display_info(session, structure, info):
         ligand_residues = ligand_atoms.unique_residues
         for res in ligand_residues:
             res_atoms = res.atoms
-            displayed_count = res_atoms.displays.sum()
+            displayed_atoms = res_atoms.filter(res_atoms.displays)
+            displayed_count = len(displayed_atoms)
             if displayed_count > 0:
                 lig_info = {
                     'name': res.name,
@@ -627,9 +637,24 @@ def _add_structure_display_info(session, structure, info):
                 }
                 if res.insertion_code:
                     lig_info['insertion_code'] = res.insertion_code
-                # Only note partial display if not all atoms shown
-                if displayed_count < len(res_atoms):
-                    lig_info['atoms_shown'] = f"{int(displayed_count)}/{len(res_atoms)}"
+                
+                # Classify hydrogen visibility for this ligand
+                h_visibility = classify_hydrogen_visibility(displayed_atoms, res_atoms)
+                lig_info['hydrogens'] = h_visibility
+                
+                # Check for partial display (comparing non-H atoms)
+                non_h_atoms = res_atoms.filter(res_atoms.elements.numbers > 1)
+                displayed_non_h = displayed_atoms.filter(displayed_atoms.elements.numbers > 1)
+                if len(displayed_non_h) < len(non_h_atoms):
+                    # Partial display - provide atom-level spec
+                    atom_names = sorted(set(a.name for a in displayed_non_h))
+                    # If hydrogen visibility is "some", include H atoms in the list
+                    if h_visibility == 'some':
+                        displayed_h = displayed_atoms.filter(displayed_atoms.elements.numbers == 1)
+                        h_names = sorted(set(a.name for a in displayed_h))
+                        atom_names = sorted(set(atom_names + h_names))
+                    lig_info['shown_atoms'] = atom_names
+                    lig_info['atoms_shown'] = f"{len(displayed_non_h)}/{len(non_h_atoms)}"
                 ligands_info.append(lig_info)
         if ligands_info:
             info['ligands'] = ligands_info
