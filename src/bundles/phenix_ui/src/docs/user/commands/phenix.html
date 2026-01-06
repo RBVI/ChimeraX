@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: phenix</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: phenix</h3>
 <p>
@@ -34,21 +29,20 @@ See also: <a href="volume.html"><b>volume</b></a>
 <ul>
 <li><a href="#douse"><b>phenix douse</b></a> 
 &ndash; place waters into EM density
-<li><a href="#emplaceLocal"><b>phenix emplaceLocal</b></a>
+</li><li><a href="#emplaceLocal"><b>phenix emplaceLocal</b></a>
 &ndash; local fitting into EM density
-<li><a href="#fitLoops"><b>phenix fitLoops</b></a>
+</li><li><a href="#fitLoops"><b>phenix fitLoops</b></a>
 &ndash; build short peptide segments into density
-<li><a href="#ligandFit"><b>phenix ligandFit</b></a>
+</li><li><a href="#ligandFit"><b>phenix ligandFit</b></a>
 &ndash; fit small molecule into EM density
-<li><a href="#location"><b>phenix location</b></a>
+</li><li><a href="#location"><b>phenix location</b></a>
 &ndash; specify location of Phenix installation
-</ul>
+</li></ul>
 <p>
 Users should cite:
 </p>
 <blockquote>
-<a href="https://journals.iucr.org/d/issues/2019/10/00/di5033/index.html"
-target="_blank">
+<a href="https://journals.iucr.org/d/issues/2019/10/00/di5033/index.html" target="_blank">
 Macromolecular structure determination using X-rays, neutrons and electrons:
 recent developments in Phenix.</a>
 Liebschner D, Afonine PV, Baker ML, Bunk&oacute;czi G, Chen VB, Croll TI, Hintze B, Hung LW, Jain S, McCoy AJ, Moriarty NW, Oeffner RD, Poon BK, Prisant MG, Read RJ, Richardson JS, Richardson DC, Sammito MD, Sobolev OV, Stockwell DH, Terwilliger TC, Urzhumtsev AG, Videau LL, Williams CJ, Adams PD.
@@ -73,8 +67,7 @@ Liebschner D, Afonine PV, Baker ML, Bunk&oacute;czi G, Chen VB, Croll TI, Hintze
 <blockquote>
 <p>
 Run the <a href="https://phenix-online.org" target="_blank">Phenix</a> program
-<a href="https://phenix-online.org/documentation/reference/douse.html"
-target="_blank"><i>douse</i></a> to place water molecules in cryo-EM density.
+<a href="https://phenix-online.org/documentation/reference/douse.html" target="_blank"><i>douse</i></a> to place water molecules in cryo-EM density.
 The graphical interface to this command is
 <a href="../tools/waterplacement.html"><b>Water Placement</b></a>.
 The density map and corresponding atomic model should be already open
@@ -86,9 +79,9 @@ Other options:
 <ul>
 <li><b>resolution</b>
 &ndash; map resolution (default <b>3.0</b> &Aring;)
-<li><b>keepInputWater</b> (default <b>true</b>)
+</li><li><b>keepInputWater</b> (default <b>true</b>)
 &ndash; whether to keep pre-existing waters instead of deleting them
-<li><b>farWater</b> (default <b>false</b>)
+</li><li><b>farWater</b> (default <b>false</b>)
 &ndash; if <b>keepInputWater</b> is <b>true</b>, whether <i>douse</i>
 should use the pre-existing waters; since <i>douse</i> only places waters 
 near existing atoms, setting this option to <b>true</b> means that 
@@ -96,16 +89,16 @@ near existing atoms, setting this option to <b>true</b> means that
 directly with pre-existing waters but not the rest of the structure.
 Setting this option to <b>false</b> (default) means that only waters 
 that interact directly with the rest of the structure should be added.
-<li><b>mapRange</b>
+</li><li><b>mapRange</b>
 &ndash; show only map within <i>dist<sub>m</sub></i>
 (default <b>8.0</b> &Aring;) of water atoms; specifying the distance as
 0 (zero) turns off hiding by distance
-<li><b>residueRange</b>
+</li><li><b>residueRange</b>
 &ndash; show residues with any atom within <i>dist<sub>r</sub></i>
 (default <b>5.0</b> &Aring;) of water atoms
-<li><b>verbose</b> (default <b>false</b>)
+</li><li><b>verbose</b> (default <b>false</b>)
 &ndash; whether to echo all messages to the <a href="log.html"><b>Log</b></a>
-<li><b>phenixLocation</b> &ndash; where Phenix is installed
+</li><li><b>phenixLocation</b> &ndash; where Phenix is installed
 (for example, <b>/Applications/phenix-1.20.1-4487</b>).
 Giving <i>folder</i> as the word
 <a href="usageconventions.html#browse"><b>browse</b></a> opens
@@ -119,31 +112,29 @@ and on Mac only, if none is found there, then in the system
 <b>/Applications</b> folder. The location (previously saved or inferred)
 can be reported in the <a href="../tools/log.html"><b>Log</b></a>
 with command: <a href="#location"><b>phenix location</b></a>
-<li><b>block</b>
+</li><li><b>block</b>
 &ndash; whether to wait for the calculation to finish before starting to execute
 any subsequent commands, default true when the command is being executed in a
 <a href="usageconventions.html#cxc-files">command script</a> and/or in
 <a href="../options.html#nogui">nogui mode</a>, otherwise false
-</ul>
+</li></ul>
 <a name="advanced"></a>
 <p>
 Advanced options:
 </p>
-</ul>
+
 <li><b>optionArg</b> &nbsp;<i>string</i> 
 &ndash; pass command-line arguments to 
-<a href="https://phenix-online.org/documentation/reference/douse.html"
-target="_blank"><i>douse</i></a> that need to appear before the
+<a href="https://phenix-online.org/documentation/reference/douse.html" target="_blank"><i>douse</i></a> that need to appear before the
 map/structure arguments (such as <b>--help</b>);
 can be used multiple times in the same command
-<li><b>positionArg</b> &nbsp;<i>string</i>
+</li><li><b>positionArg</b> &nbsp;<i>string</i>
 &ndash; pass command-line arguments to
-<a href="https://phenix-online.org/documentation/reference/douse.html"
-target="_blank"><i>douse</i></a> that need to appear after the
+<a href="https://phenix-online.org/documentation/reference/douse.html" target="_blank"><i>douse</i></a> that need to appear after the
 map/structure arguments (such as <b>dist_max=5.0</b>);
 can be used multiple times in the same command
-</ul>
-</blockquote>
+
+</li></blockquote>
 
 <a name="emplaceLocal"></a>
 <a href="#top" class="nounder">&bull;</a>
@@ -160,8 +151,7 @@ can be used multiple times in the same command
 <blockquote>
 <p>
 Run the <a href="https://phenix-online.org" target="_blank">Phenix</a> program
-<a href="https://phenix-online.org/documentation/reference/emplace_local.html"
-target="_blank"><i>voyager.emplace_local</i></a>
+<a href="https://phenix-online.org/documentation/reference/emplace_local.html" target="_blank"><i>voyager.emplace_local</i></a>
 (included in the Phenix nightly build)
 to fit an atomic structure within a local region of cryo-EM density.
 The graphical interface to this command is
@@ -169,8 +159,7 @@ The graphical interface to this command is
 the method is described in:
 </p>
 <blockquote>
-<a href="https://journals.iucr.org/d/issues/2024/08/00/id5013/index.html"
-target="_blank">
+<a href="https://journals.iucr.org/d/issues/2024/08/00/id5013/index.html" target="_blank">
 Likelihood-based interactive local docking into cryo-EM maps in ChimeraX.</a>
 <authors>Read RJ, Pettersen EF, McCoy AJ, Croll TI, Terwilliger TC, Poon BK, Meng EC, Liebschner D, Adams PD.</authors>
 <i>Acta Crystallogr D Struct Biol.</i> 2024 Aug 1;80(Pt 8):588-598.
@@ -194,12 +183,12 @@ an <a href="atomspec.html"><i>atom-spec</i></a>, or any of the other
 standard <a href="pointspec.html#vector">point specifications</a>.
 The size of the search space is based on the size of the structure 
 and cannot be adjusted.
-<li><b>resolution</b> &ndash; approximate resolution of the map within 
+</li><li><b>resolution</b> &ndash; approximate resolution of the map within 
 the search space. If a full map is used, a positive value must be supplied. 
 If half maps are used, the <b>resolution</b>&nbsp;<i>r</i>
 is optional, and if it is omitted, the value will be estimated 
 from the half maps.
-</ul>
+</li></ul>
 <p>
 The <b>prefitted</b> option is for specifying atomic models, if any,
 that are already in place within parts of the map.
@@ -227,8 +216,7 @@ after fitting</a>
 <blockquote>
 <p>
 Run the <a href="https://phenix-online.org" target="_blank">Phenix</a> program
-<a href="https://phenix-online.org/documentation/reference/fit_loops.html"
-target="_blank"><i>fit_loops</i></a>
+<a href="https://phenix-online.org/documentation/reference/fit_loops.html" target="_blank"><i>fit_loops</i></a>
 to build short peptide segments such as missing loops into density.
 The graphical interface to this command is
 <a href="../tools/fitloops.html"><b>Fit Loops</b></a>.
@@ -255,10 +243,10 @@ Other options:
 <li><b>replace</b>
 &ndash; whether to modify the original atomic structure (<b>true</b>, default); 
 if <b>false</b>, open the resulting structure as a new model
-<li><b>processors</b>
+</li><li><b>processors</b>
 &ndash; how many CPUs/cores to devote to the fit_loops process
 (default is the maximum number allowed by the system per process)
-</ul>
+</li></ul>
 <p>
 The remaining options are as described above for
 <a href="#douse"><b>phenix douse</b></a>.
@@ -280,6 +268,7 @@ the structure can be reverted to its previous state with the
 &nbsp;<b>resolution</b>&nbsp;&nbsp;<i>r</i>&nbsp;
 [&nbsp;<b>extentValue</b> &nbsp;<i>extent</i>&nbsp;]
 [&nbsp;<b>extentType</b> &nbsp;<b>length</b>&nbsp;|&nbsp;angstroms&nbsp;]
+[&nbsp;<b>conformers</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>chainId</b> &nbsp;<i>ID</i>&nbsp;]
 [&nbsp;<b>residueNumber</b> &nbsp;<i>resnum</i>&nbsp;]
 [&nbsp;<b>clashes</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
@@ -290,8 +279,7 @@ the structure can be reverted to its previous state with the
 &nbsp;<a href="#advanced"><i>advanced-options</i></a>
 <blockquote>
 Run the <a href="https://phenix-online.org" target="_blank">Phenix</a> program
-<a href="https://phenix-online.org/documentation/reference/ligandfit.html"
-target="_blank"><i>ligandfit</i></a> (included in the Phenix nightly build)
+<a href="https://phenix-online.org/documentation/reference/ligandfit.html" target="_blank"><i>ligandfit</i></a> (included in the Phenix nightly build)
 to fit a small organic molecule such as a ligand within
 a local region of cryo-EM density. The graphical interface to this command is
 <a href="../tools/fitligand.html"><b>Fit Ligand</b></a>.
@@ -301,59 +289,62 @@ should be already open and specified as the
 <a href="atomspec.html#othermodels"><i>map-model</i></a>, respectively.
 <p>
 Additional required arguments (no defaults):
-<ul>
+</p><ul>
 <li><b>ligand</b> &ndash; specification of small molecule to fit, where
 <i>ligand</i> can be given as one of the following and the prefix 
 indicates specifier type:
   <ul>
 <li><b>ccd</b>:<i>identifier</i> &ndash;
 idealized structure specified by identifier (residue name) in the
-<td align="center"><a href="https://www.wwpdb.org/data/ccd"
-target="_blank">PDB Chemical Component Dictionary (CCD)</a>
-<li><b>file</b>:<i>filename</i> &ndash;
+<a href="https://www.wwpdb.org/data/ccd" target="_blank">PDB Chemical Component Dictionary (CCD)</a>
+</li><li><b>file</b>:<i>filename</i> &ndash;
 ligand atomic coordinates in a file (any <a href="open.html#atomic">format</a>
 known by ChimeraX) specified by its pathname or the word
 <a href="usageconventions.html#browse"><b>browse</b></a>
 to specify it interactively in a file browser window
-<li><b>pubchem</b>:<i>identifier</i>
+</li><li><b>pubchem</b>:<i>identifier</i>
 &ndash; modeled atomic coordinates specified by
 <a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank">PubChem</a>
 compound identifier (CID)
-<li><b>smiles</b>:<i>smiles-string</i>
+</li><li><b>smiles</b>:<i>smiles-string</i>
 &ndash; modeled atomic structure specified by
-<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
-target="_blank">SMILES</a> string, with coordinates generated using the
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html" target="_blank">SMILES</a> string, with coordinates generated using the
 <a href="https://cactus.nci.nih.gov/translate/" target="_blank">SMILES
 translator</a> provided by the
-<a href="https://cactus.nci.nih.gov/" 
-target="_blank">National Cancer Institute CADD group</a>
-  </ul>
+<a href="https://cactus.nci.nih.gov/" target="_blank">National Cancer Institute CADD group</a>
+  </li></ul>
 If the prefix is omitted, ChimeraX will try to guess which type of specifier
 is being supplied.
-<li><b>center</b> 
+</li><li><b>center</b> 
 &ndash; center of the search space given as
 <i>x,y,z</i> (three values separated by commas only),
 an <a href="atomspec.html"><i>atom-spec</i></a>, or any of the other
 standard <a href="pointspec.html#vector">point specifications</a>.
-<li><b>resolution</b> &ndash; approximate resolution of the map
-</ul>
+</li><li><b>resolution</b> &ndash; approximate resolution of the map
+</li></ul>
 Optional arguments:
 <ul>
 <li>The search region is a rectangular box aligned along the cell axes,
 where each box face is 
 <b>extentValue</b> <i>value</i> in units of <b>extentType</b> <i>type</i>
 from the center (default <b>1.1</b> in units of ligand <b>length</b>).
-<li><b>chainId</b> &ndash; chain ID for the fit ligand
+</li><li><b>chainId</b> &ndash; chain ID for the fit ligand
 (default first chain in receptor model)
-<li><b>residueNumber</b> &ndash; residue number for the fit ligand
+</li><li><b>conformers&nbsp;&nbsp;<i>N</i></b> 
+&ndash; specify a number of conformations to try with the
+<i>conformers</i> option of the Phenix
+<a href="https://phenix-online.org/documentation/reference/ligandfit.html" target="_blank"><i>ligandfit</i></a> command
+(no default; omitting this option simply 
+omits it from the Phenix command as well)
+</li><li><b>residueNumber</b> &ndash; residue number for the fit ligand
 (default the next available number in the chain)
-<li><b>clashes</b> (default <b>false</b>)
+</li><li><b>clashes</b> (default <b>false</b>)
 &ndash; whether to calculate <a href="clashes.html">clashes</a>
 between the ligand in its fit position and the receptor 
-<li><b>hbonds</b> (default <b>false</b>)
+</li><li><b>hbonds</b> (default <b>false</b>)
 &ndash; whether to calculate <a href="hbonds.html">H-bonds</a>
 between the ligand in its fit position and the receptor 
-</ul>
+</li></ul>
 <p>
 The remaining options are as described above for
 <a href="#douse"><b>phenix douse</b></a>.
@@ -377,5 +368,6 @@ in the <a href="../tools/log.html"><b>Log</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2025</address>
+January 2026</address>
+
 </body></html>

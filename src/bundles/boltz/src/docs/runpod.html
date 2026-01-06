@@ -1,5 +1,5 @@
-<html lang="en">
-  <body>
+<html lang="en"><head><meta charset="utf-8"><title>Boltz server on RunPod</title>
+  </head><body>
     <h1>Setting up a Boltz Structure Prediction Server with RunPod</h1>
     <p>
       Tom Goddard<br>
@@ -44,36 +44,23 @@
       Instead you have to save all your installations and data on persistent network storage, not
       always feasible with Linux when system installed libraries and packages are needed.
     </p>
-
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0" align=right>
-      <tr><td><img src="images/runpod_ssh_key.png" width=500 alt="RunPod web page">
-    </table>
-
-    <h2>Setup RunPod ssh access</h2>
-
-    <p>
-      After you create a RunPod account and prepay some amount for services (e.g. $10)
-      you should enter an ssh public key that will allow you to login to RunPod virual machines.
-      Click "Settings" on the left side of the RunPod web page, then "SSH Public Keys" in the panel that
-      appears.  Then copy the text from your ~/.ssh/id_ed25519.pub or ~/.ssh/id_rsa.pub file into
-      the RunPod SSH key entry and press "Update public key".
-    </p>
     
     <h2>Start a virtual machine</h2>
 
     <p>
-      To start a virtual machine with a GPU proceed as follows.
+      Create a RunPod account and prepay some amount for services (e.g. $10).
+      Then start a virtual machine with a GPU proceed as follows.
     </p>
 
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
-      <tr><td><img src="images/runpod.png" width=1000 alt="RunPod web page">
-    </table>
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0">
+      <tbody><tr><td><img src="images/runpod.png" width="1000" alt="RunPod web page">
+    </td></tr></tbody></table>
     
     <ul>
       <li>Click Pods at the left side of the RunPod web page.
-      <li>Click RTX 4090
-      <li>Click additional filters near the top and request at least 16 vCPU and at least 80 GB RAM.
-    </ul>
+      </li><li>Click RTX 4090
+      </li><li>Click additional filters near the top and request at least 16 vCPU and at least 80 GB RAM.
+    </li></ul>
 
     <h3>Virtual machine specifications</h3>
     <p>
@@ -100,22 +87,21 @@
 
     <ul>
       <li>Set the Pod name, for example to "boltz".
-      <li>Click the "Change Template" button and choose Runpod Pytorch 2.8.0.
-      <li>Click the "Edit" button and change Expose TCP Ports from "22" to "22,30172" and click "Set Overrides".
-      <li>Click the checkbutton for SSH terminal access.
-    </ul>
+      </li><li>Click the "Change Template" button and choose Runpod Pytorch 2.8.0.
+      </li><li>Click the "Edit" button and change Expose TCP Ports from "22" to "22,30172" and click "Set Overrides".
+    </li></ul>
 
     <table>
-      <tr><td>
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
-      <tr><td><img src="images/runpod_config.png" height=500 alt="RunPod web page">
-    </table>
-	<td>
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
-      <tr><td align=center><img src="images/runpod_port.png" width=500 alt="RunPod web page">
+      <tbody><tr><td>
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0">
+      <tbody><tr><td><img src="images/runpod_config.png" height="500" alt="RunPod web page">
+    </td></tr></tbody></table>
+	</td><td>
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0">
+      <tbody><tr><td align="center"><img src="images/runpod_port.png" width="500" alt="RunPod web page">
 	  <br>Dialog shown after pressing Edit button for Pod template
-    </table>
-    </table>
+    </td></tr></tbody></table>
+    </td></tr></tbody></table>
 
     <b>Name</b>
     <p>
@@ -135,51 +121,35 @@
     <b>Expose TCP Ports</b>
     <p>
       ChimeraX sends Boltz prediction jobs to the server on port 30172.  You need to tell RunPod to
-      allow access to this port by adding it to the list of exposed ports.  Keep the port 22 since that
-      is used for ssh connections to the virtual machine.
+      allow access to this port by adding it to the list of exposed ports.  Keep port 22 if it is listed
+      since that is used for ssh connections to the virtual machine.
     </p>
-
-    <b>SSH terminal access</b>
-    <p>
-      Enable ssh access.  This setting is only available if you have added an ssh public key using RunPod Settings.
-    </p>
-
     
     <h3>Start virtual machine</h3>
 
     <p>
       Check that the virtual machine summary shows sufficient memory (at least 64 GB) and vCPUs (at least 16)
       and press the "Deploy On-Demand" button to start the virtual machine.  It takes about 30 seconds to
-      a minute for the virtual machine to start.  Then RunPod web page will show the internet address and
-      port used to login to the virtual machine using ssh.
+      a minute for the virtual machine to start.  
     </p>
 
     <table>
-      <tr><td valign=top>
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
-      <tr><td><img src="images/runpod_deploy.png" width=500 alt="RunPod web page">
-    </table>
-	<td>
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
-      <tr><td><img src="images/runpod_ssh_info.png" width=500 alt="RunPod web page">
-    </table>
-    </table>
+      <tbody><tr><td valign="top">
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0">
+      <tbody><tr><td><img src="images/runpod_deploy.png" width="500" alt="RunPod web page">
+    </td></tr></tbody></table>
+	</td><td>
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0">
+      <tbody><tr><td><img src="images/runpod_ssh_info.png" width="500" alt="RunPod web page">
+    </td></tr></tbody></table>
+    </td></tr></tbody></table>
 
     <h2>Login to the virtual machine</h2>
 
     <p>
-      Copy the ssh command listed in the RunPod web page under "SSH over exposed TCP" to a shell on your
-      local computer to login to the virtual machine.
-    </p>
-
-    <pre>
-      ssh root@213.192.2.94 -p 40053</pre>
-
-    <p>
-      That command includes an option "-i ~/.ssh/id_ed25519".  Remove that option if that is not location
-      of your ssh private key, or change it to the private ssh key corresponding to the public key
-      you added in RunPod Settings under "SSH Public Keys".  (I used an RSA so if I used the option
-      I would add "-i ~/.ssh/id_rsa", but it is simpler to just omit it.)
+      Click the "Enable web terminal" switch in the RunPod "connect" shown when the virtual machine starts.
+      Then click the "Open web terminal" link below that switch.  This will give you a shell on the virtual
+      machine in a web browser window.
     </p>
     
     <h2>Install Boltz on the virtual machine</h2>
@@ -189,9 +159,9 @@
       and pip install from the ChimeraX Boltz github fork.  The install takes about 5 minutes.
     </p>
 
-    <pre>
-      $ python3 -m venv boltz
-      $ . boltz/bin/activate
+    <pre>      $ cd /root
+      $ python3 -m venv boltz22
+      $ . boltz22/bin/activate
       $ pip3 install https://github.com/RBVI/boltz/archive/chimerax_boltz22_lowmem.zip</pre>
 
     <h2>Get Boltz server Python code on the virtual machine</h2>
@@ -200,23 +170,22 @@
       Get the Boltz server Python code from the ChimeraX github repository.
     </p>
 
-    <pre>
-      $ curl -o boltz_server.py https://raw.githubusercontent.com/RBVI/ChimeraX/refs/heads/develop/src/bundles/boltz/src/server.py</pre>
+    <pre>      $ curl -o boltz_server.py https://raw.githubusercontent.com/RBVI/ChimeraX/refs/heads/develop/src/bundles/boltz/src/server.py</pre>
     
     <h2>Start Boltz server on the virtual machine</h2>
 
-    <pre>
-      $ nohup python3 boltz_server.py --boltz_exe ~/boltz/bin/boltz &gt;& ~/boltz_server_log &</pre>
+    <pre>      $ nohup python3 boltz_server.py &gt;& ~/boltz_server_log &</pre>
 
     <p>
       The server makes a directory for each prediction in ~/boltz_server_jobs so we create that directory.
       We use the nohup (no hang up) command so that if we log out of the virtual machine the server
-      continiues to run.  The server log output will be in file ~/boltz_server_log.
+      continiues to run.  The server log output will be in file ~/boltz_server_log.  The server script
+      uses ~/boltz22 as the default location for the Boltz installation.
     </p>
 
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0" align=right>
-      <tr><td><img src="images/boltz_server_gui.png" width=500 alt="ChimeraX Boltz user interface">
-    </table>
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0" align="right">
+      <tbody><tr><td><img src="images/boltz_server_gui.png" width="500" alt="ChimeraX Boltz user interface">
+    </td></tr></tbody></table>
     
     <h2>Run a prediction on the server</h2>
 
@@ -224,13 +193,28 @@
       To run a prediction using ChimeraX on your local computer use ChimeraX menu Tools / Structure Prediction / Boltz,
       setup the molecular assembly you wish to predict, then use the Options button and click the "User server"
       checkbutton and for the server host and port use the information under "Direct TCP Ports" on the RunPod
-      web page.
+      "connect" web page (host 103.196.86.5, port 20695 in the example images).
     </p>
+
+    <pre>      Direct TCP ports
+      
+      103.196.86.5:20695 -&gt; :30172</pre>
 
     <p>
       The first prediction will download the Boltz neural net weights (7.6 Gbytes) to the ~/.boltz directory
       on the server which will make the prediction take a few minutes longer.
     </p>
+
+    <h2>Stopping the Boltz server process</h2>
+
+    <p>
+      If you want to stop the Boltz server process you can find its process id and kill it using
+      shell commands on the virtual machine
+    </p>
+
+    <pre>      $ ps -axww | grep boltz_server
+      348 pts/0    Sl     0:00 python3 /workspace/boltz_server.py
+      $ kill 348</pre>
 
     <h2>Shutdown the virtual machine</h2>
 
@@ -254,15 +238,15 @@
     </p>
 
     <table>
-      <tr><td valign=top>
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
-      <tr><td><img src="images/runpod_data_center.png" width=600 alt="RunPod web page">
-    </table>
-	<td>
-    <table border=1 cellpadding=4 cellspacing=0 bgcolor="#f0f0f0">
-      <tr><td><img src="images/runpod_volume.png" width=400 alt="RunPod web page">
-    </table>
-    </table>
+      <tbody><tr><td valign="top">
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0">
+      <tbody><tr><td><img src="images/runpod_data_center.png" width="600" alt="RunPod web page">
+    </td></tr></tbody></table>
+	</td><td>
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0">
+      <tbody><tr><td><img src="images/runpod_volume.png" width="400" alt="RunPod web page">
+    </td></tr></tbody></table>
+    </td></tr></tbody></table>
 
     <h3>Installing Boltz on the persistent volume</h3>
 
@@ -274,8 +258,7 @@
       the Boltz server use
     </p>
 
-    <pre>
-      $ nohup python3 /workspace/boltz_server.py --boltz_exe /workspace/boltz/bin/boltz --extra_options "--cache /workspace/boltz_parameters" &gt;& ~/boltz_server_log &</pre>
+    <pre>      $ nohup python3 /workspace/boltz_server.py --boltz_exe /workspace/boltz22/bin/boltz --extra_options "--cache /workspace/boltz_parameters" &gt;& ~/boltz_server_log &</pre>
 
     <p>
       The log file and the temporary job directory (~/boltz_server_jobs) do not need to be on the workspace volume.
@@ -291,8 +274,7 @@
       can use the simpler command.
     </p>
 
-    <pre>
-      $ nohup python3 /workspace/boltz_server.py &</pre>
+    <pre>      $ nohup python3 /workspace/boltz_server.py &</pre>
 
     <p>
       Here I also omitted the log file and nohup will make all the output go to nohup.out.
@@ -306,9 +288,8 @@
       To install the latest PyTorch for use on these GPUs after installing Boltz uninstall and reinstall PyTorch.
     </p>
     
-    <pre>
-      $ python3 -m venv boltz
-      $ . boltz/bin/activate
+    <pre>      $ python3 -m venv boltz22
+      $ . boltz22/bin/activate
       $ pip3 install https://github.com/RBVI/boltz/archive/chimerax_boltz22_lowmem.zip
       $ pip3 uninstall torch
       $ pip3 install torch</pre>
@@ -319,6 +300,43 @@
       Loading weights took about 30 seconds on the 5090, but total prediction time was 3 minutes on 5090
       and about 4 minutes on 4090.  Cost of $0.89/hour vs $0.59/hour, so 1.5x higher per hour for 5090.
     </p>
+
+    <table border="1" cellpadding="4" cellspacing="0" bgcolor="#f0f0f0" align="right">
+      <tbody><tr><td><img src="images/runpod_ssh_key.png" width="500" alt="RunPod web page">
+    </td></tr></tbody></table>
+
+    <h2>Setup RunPod ssh access</h2>
+
+    <p>
+      If you prefer to login to the virtual machine from a shell using ssh instead of using
+      the RunPod web terminal you need to add an ssh public key to your RunPod account.
+      Click "Settings" on the left side of the RunPod web page, then "SSH Public Keys" in the panel that
+      appears.  Then copy the text from your ~/.ssh/id_ed25519.pub or ~/.ssh/id_rsa.pub file into
+      the RunPod SSH key entry and press "Update public key".
+    </p>
+
+    <b>Enable ssh when setting up virtual machine</b>
+    <p>
+      When you you configure the virtual machine you need to click the checkbutton to enable SSH terminal access.
+      This will add your public ssh key to the root account .ssh/authorized_keys file so you can login without
+      a password.
+    </p>
+
+    <b>IP address and port for ssh</b>
+    <p>
+      After deploying a virtual machine the RunPod web site "connect" tab will show the ssh command
+      including the internet address and port to connect, for example,
+    </p>
+
+    <pre>      ssh root@103.196.86.5 -p 20694 -i ~/.ssh/id_ed25519</pre>
+
+    <p>
+      Copy this to your terminal.
+      That command includes an option "-i ~/.ssh/id_ed25519".  Remove that option if that is not location
+      of your ssh private key, or change it to the private ssh key corresponding to the public key
+      you added in RunPod Settings under "SSH Public Keys".  (If you use an RSA key you could specify
+      "-i ~/.ssh/id_rsa", but it is simpler to just omit it.)
+    </p>
     
     <h2>Run server as non-privileged user</h2>
 
@@ -328,8 +346,7 @@
       security.  You can create such an account with the Ubuntu adduser command.
     </p>
 
-    <pre>
-      adduser boltz</pre>
+    <pre>      adduser boltz</pre>
 
     <p>
       Then you can log out as root and do Boltz setup and start the server under this new account.
@@ -375,8 +392,8 @@
 
 
 
-
     </pre>
     
-  </body>
-</html>
+  
+
+</body></html>

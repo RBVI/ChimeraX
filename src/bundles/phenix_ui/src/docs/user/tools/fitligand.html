@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,24 +9,20 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Fit Ligand</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Fit Ligand</h3>
 <p>
 The <b>Fit Ligand</b> tool in ChimeraX runs
-<a href="https://phenix-online.org/documentation/reference/ligandfit.html"
-target="_blank"><i>ligandfit</i></a> (included in the 
+<a href="https://phenix-online.org/documentation/reference/ligandfit.html" target="_blank"><i>ligandfit</i></a> (included in the 
 <a href="https://phenix-online.org" target="_blank">Phenix</a> nightly build)
 to fit a small organic molecule such as a ligand within
 a local region of cryo-EM density.
@@ -37,8 +31,7 @@ The command implementation is
 Users should cite:
 </p>
 <blockquote>
-<a href="https://journals.iucr.org/d/issues/2019/10/00/di5033/index.html"
-target="_blank">
+<a href="https://journals.iucr.org/d/issues/2019/10/00/di5033/index.html" target="_blank">
 Macromolecular structure determination using X-rays, neutrons and electrons:
 recent developments in Phenix.</a>
 Liebschner D, Afonine PV, Baker ML, Bunk&oacute;czi G, Chen VB, Croll TI, Hintze B, Hung LW, Jain S, McCoy AJ, Moriarty NW, Oeffner RD, Poon BK, Prisant MG, Read RJ, Richardson JS, Richardson DC, Sammito MD, Sobolev OV, Stockwell DH, Terwilliger TC, Urzhumtsev AG, Videau LL, Williams CJ, Adams PD.
@@ -50,8 +43,7 @@ See also:
 <a href="localemfitting.html"><b>Local EM Fitting</b></a>,
 <a href="waterplacement.html"><b>Water Placement</b></a>,
 <a href="fitloops.html"><b>Fit Loops</b></a>,
-video: <a href="https://www.youtube.com/watch?v=DlVgrQTZ5t8"
-target="_blank">Phenix/ChimeraX setup</a>
+video: <a href="https://www.youtube.com/watch?v=DlVgrQTZ5t8" target="_blank">Phenix/ChimeraX setup</a>
 </p><p>
 <a href="https://phenix-online.org" target="_blank">Phenix</a>
 must be installed locally and the <b>PhenixUI</b> bundle installed in ChimeraX.
@@ -73,23 +65,21 @@ The <b>Ligand</b> to fit can be specified as one of the following:
 <ul>
 <li><b>CCD identifier</b>
 &ndash; idealized structure specified by identifier (residue name) in the 
-<td align="center"><a href="https://www.wwpdb.org/data/ccd"
-target="_blank">PDB Chemical Component Dictionary</a>
-<li><b>existing structure</b>
+<a href="https://www.wwpdb.org/data/ccd" target="_blank">PDB Chemical Component Dictionary</a>
+</li><li><b>existing structure</b>
 &ndash; ligand atomic structure already open as a separate model in ChimeraX
-<li><b>PubChem identifier</b>
+</li><li><b>PubChem identifier</b>
 &ndash; modeled atomic coordinates specified by
 <a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank">PubChem</a>
 compound identifier (CID)
-<li><b>SMILES string</b>
+</li><li><b>SMILES string</b>
 &ndash; modeled atomic structure specified by
-<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
-target="_blank">SMILES</a> string, with coordinates generated using the
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html" target="_blank">SMILES</a> string, with coordinates generated using the
 <a href="https://cactus.nci.nih.gov/translate/" target="_blank">SMILES
 translator</a> provided by the
 <a href="https://cactus.nci.nih.gov/" target="_blank">National Cancer Institute
 CADD group</a>
-</ul>
+</li></ul>
 <p>
 The atomic structure of the <b>Receptor</b> (macromolecular component)
 and the map to use should already be open in ChimeraX and chosen from the 
@@ -106,7 +96,7 @@ Additional settings:
 a <a href="../markers.html">marker</a> (after <b>OK</b> or <b>Apply</b>
 is clicked); this uses the <b>mark maximum</b> 
 <a href="markers.html" title="Markers...">
-<img class="icon" border=1 src="mouse-icons/maximum.png"></a>
+<img class="icon" border="1" src="mouse-icons/maximum.png" alt="computer generated image"></a>
 mouse mode). A dialog will appear for switching the right mouse button
 between translating the scene and placing this marker. 
 There is also an option to <b>Hide density within [<i>d</i>] &Aring; of
@@ -115,32 +105,38 @@ to make any regions of density not occupied by the receptor easier to see.
 If the distance value is changed, it is necessary to turn the option off
 and back on apply the new value.
 When the marker position is satisfactory, clicking <b>Adjust search zone</b>
-(if <a href="#adjust"><b>Interactively adjust...</b></a> was checked) 
+(if <a href="#options"><b>Interactively adjust...</b></a> was checked) 
 or <b>Start ligand fitting</b> initiates the next part of the calculation.
-  <li><b>center of model...</b> center of the bounding box of the chosen model
-  <li><b>center of selection</b> &ndash; center of the current 
+  </li><li><b>center of model...</b> center of the bounding box of the chosen model
+  </li><li><b>center of selection</b> &ndash; center of the current 
 <a href="../selection.html">selection</a>, <i>e.g.</i>,
 one or more previously created <a href="../markers.html">markers</a>
-  <li><b>center of view</b> &ndash; determined as follows:
+  </li><li><b>center of view</b> &ndash; determined as follows:
     <ol>
     <li>if center-of-rotation crosshairs are displayed
 (<b><a href="../commands/cofr.html">cofr</a> showPivot true</b>),
 at the center of the crosshairs;
-   <li>otherwise, if the <a href="../commands/cofr.html">center-of-rotation 
+   </li><li>otherwise, if the <a href="../commands/cofr.html">center-of-rotation 
 method</a> is <b>fixed</b>, at that center of rotation;
-   <li>otherwise, if a single map is displayed, in the center of the graphics
+   </li><li>otherwise, if a single map is displayed, in the center of the graphics
 window in the plane of the window (screen XY coordinates), and at the middle 
 of the map's bounding box in depth (screen Z-coordinate)
-   <li>otherwise, if more than one map is displayed, as immediately above except
+   </li><li>otherwise, if more than one map is displayed, as immediately above except
 using the bounding box of one of the half maps used in the fitting calculation
-   </ol>
-  <li><b>specified xyz position...</b> X, Y, and Z coordinates (&Aring;)
+   </li></ol>
+  </li><li><b>specified xyz position...</b> X, Y, and Z coordinates (&Aring;)
 relative to the origin of the map and in the coordinate system of the map
-  </ul>
-<li><b>Search region within</b> [<i>extent</i>] [<b>ligand lengths</b>
+  </li></ul>
+</li><li><b>Search region within</b> [<i>extent</i>] [<b>ligand lengths</b>
 &ndash;OR&ndash; <b>angstroms</b>] of center along cell axes 
 (initial default <b>1.1 ligand lengths</b>)
-<a name="adjust"></a>
+</li></ul>
+<!--
+<a href="#dialog" class="nounder">&larr;</a>
+-->
+<a name="options"></a>
+The <b>Options</b> button shows/hides additional options:
+<ul>
 <li><b>Interactively adjust search region before fitting</b>
 (initial default <b>on</b>) &ndash; whether to allow the user to adjust
 the rectangular box defining the search space,
@@ -150,19 +146,24 @@ moving the example ligand (when <a href="../selection.html">selected</a>)
 to adjust the search center, translating the scene, and adjusting the box
 size by moving its faces. When the center and box dimensions are 
 satisfactory, clicking <b>Start ligand fitting</b> initiates the calculation.
-<li><b>Show H-bonds formed by fit ligand</b>
+</li><li><b>Show H-bonds formed by fit ligand</b>
 (initial default <b>on</b>)
-&ndash; whether to calculate <a href="hbonds.html">H-bonds</b></a>
+&ndash; whether to calculate <a href="hbonds.html">H-bonds</a>
 between the ligand and the rest of the structure
-<li><b>Show clashes with fit ligand</b>
+</li><li><b>Show clashes with fit ligand</b>
 (initial default <b>on</b>)
-&ndash; whether to calculate <a href="clashes.html">clashes</b></a>
+&ndash; whether to calculate <a href="clashes.html">clashes</a>
 between the ligand and the rest of the structure
-</ul>
+</li></ul>
 <p>
 If neither blob-picking or interactive adjustment is chosen, simply
 clicking <b>Apply</b> on the main dialog (or <b>OK</b>, which also dismisses
 the dialog) starts the calculation.
+</p><p>
+Five conformations of the ligand will be tried, although only the single 
+best will be returned.  Trying a different number of conformations can be 
+specified with the <b>conformers</b> option of the
+<a href="../commands/phenix.html#ligandFit"><b>phenix ligandFit</b></a> command.
 </p><p>
 <b>Close</b> dismisses the dialog without starting the calculation,
 whereas <b>Help</b> shows this page
@@ -171,5 +172,6 @@ in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2025</address>
+January 2026</address>
+
 </body></html>
