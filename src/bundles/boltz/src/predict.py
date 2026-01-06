@@ -822,9 +822,9 @@ class BoltzRun:
         
         dir = self._run_directory
         from os.path import join
-        with open(join(dir, 'stdout'), 'w') as f:
+        with open(join(dir, 'stdout'), 'w', encoding = 'utf-8') as f:
             f.write(stdout)
-        with open(join(dir, 'stderr'), 'w') as f:
+        with open(join(dir, 'stderr'), 'w', encoding = 'utf-8') as f:
             f.write(stderr)
 
         msg = self._prediction_failed_message(self._process.returncode, stdout, stderr)
