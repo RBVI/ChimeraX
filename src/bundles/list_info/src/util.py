@@ -702,19 +702,9 @@ def _add_structure_display_info(session, structure, info):
     if surfaces_info:
         info['surfaces'] = surfaces_info
     
-    # Pseudobonds - only include displayed groups with displayed pseudobonds
-    pbonds_info = []
-    for name, pbg in structure.pbg_map.items():
-        if pbg.display:
-            pbs = pbg.pseudobonds
-            displayed_pbs = pbs.filter(pbs.displays)
-            if len(displayed_pbs) > 0:
-                pb_info = {'name': name}
-                if len(displayed_pbs) < len(pbs):
-                    pb_info['count'] = f"{len(displayed_pbs)}/{len(pbs)}"
-                pbonds_info.append(pb_info)
-    if pbonds_info:
-        info['pseudobonds'] = pbonds_info
+    # Note: Pseudobond groups associated with structures (structure.pbg_map) are
+    # reported as separate PseudobondGroup models with their own IDs (e.g., #1.1, #1.2).
+    # Those entries include the pseudobond count, so we don't duplicate them here.
 
 
 def _add_volume_display_info(volume, info):
