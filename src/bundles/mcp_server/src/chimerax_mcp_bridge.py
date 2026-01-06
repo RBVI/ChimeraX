@@ -1228,7 +1228,7 @@ async def get_shown(session_id: Optional[int] = None) -> str:
     are omitted entirely. Absence from the output means that model is not visible.
     This provides a concise view of the current visualization state.
     
-    A model is considered visible only if its own display is True AND all its
+    A model is visible only if its own display is True AND all its
     parent models are also visible (child models inherit parent visibility).
     
     Use this tool to:
@@ -1238,7 +1238,7 @@ async def get_shown(session_id: Optional[int] = None) -> str:
     
     Key behavior:
     - Only visible models are included in the output
-    - Hidden models do not appear at all (not even with a "hidden" flag)
+    - Hidden models do not appear at all
     - Spec fields can be directly used in commands like `color`, `hide`, `show`
     
     Example response for a structure with ribbons and partial atoms shown:
