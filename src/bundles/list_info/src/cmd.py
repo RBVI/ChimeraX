@@ -649,5 +649,6 @@ def shown(session, models=None, *, return_json=True, save_file=None):
 
 
 shown_desc = CmdDesc(optional=[('models', ModelsArg)],
-                     keyword=[('save_file', SaveFileNameArg)],
+                     keyword=[('return_json', BoolArg),
+                              ('save_file', SaveFileNameArg)],
                      synopsis='List what is currently shown')

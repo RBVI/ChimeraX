@@ -21,13 +21,15 @@ def test_shown_basic(test_production_session):
         run(test_production_session, cmd)
     
     # Run 'info shown' and get JSON result
-    result = run(test_production_session, "info shown")
+    # Note: return_json must be passed to run(), not in command string,
+    # because the command infrastructure overrides command-line return_json
+    result = run(test_production_session, "info shown", return_json=True)
     
     # Verify we got a JSONResult
     assert result is not None
     
     # Parse the JSON
-    data = json.loads(result.json_result)
+    data = json.loads(result.json_value)
     
     # Should be a list of models
     assert isinstance(data, list)
@@ -52,16 +54,16 @@ def test_shown_hidden_model(test_production_session):
         run(test_production_session, cmd)
     
     # Verify model #1 is in output when visible
-    result = run(test_production_session, "info shown")
-    data = json.loads(result.json_result)
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
     model_ids = [m['id'] for m in data]
     assert '#1' in model_ids, "Visible model should be in output"
     
     # Hide the model
     run(test_production_session, "hide #1 target m")
     
-    result = run(test_production_session, "info shown")
-    data = json.loads(result.json_result)
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
     
     # Hidden model should NOT be in output at all
     model_ids = [m['id'] for m in data]
@@ -87,8 +89,8 @@ def test_shown_visible_model_structure(test_production_session):
     # Show ribbons for all chains
     run(test_production_session, "show #1 target c")
     
-    result = run(test_production_session, "info shown")
-    data = json.loads(result.json_result)
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
     
     # Find the AtomicStructure model
     model = data[0]
@@ -119,8 +121,8 @@ def test_shown_atoms_only(test_production_session):
     # Hide everything
     run(test_production_session, "hide #1 target abcs")
     
-    result = run(test_production_session, "info shown")
-    data = json.loads(result.json_result)
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
     model = data[0]
     
     # Should not have chains since nothing is displayed
@@ -130,8 +132,8 @@ def test_shown_atoms_only(test_production_session):
     # Now show atoms for chain A only
     run(test_production_session, "show #1/A target a")
     
-    result = run(test_production_session, "info shown")
-    data = json.loads(result.json_result)
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
     model = data[0]
     
     # Should now have chain A with atoms
@@ -160,8 +162,8 @@ def test_shown_partial_display(test_production_session):
     # Show atoms only for residues 1-10 in chain A
     run(test_production_session, "show #1/A:1-10 target a")
     
-    result = run(test_production_session, "info shown")
-    data = json.loads(result.json_result)
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
     model = data[0]
     
     # Find chain A
@@ -187,8 +189,8 @@ def test_shown_no_models(test_production_session):
     # Ensure no models are loaded
     run(test_production_session, "close")
     
-    result = run(test_production_session, "info shown")
-    data = json.loads(result.json_result)
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
     
     # Should return empty list
     assert isinstance(data, list)
@@ -206,8 +208,8 @@ def test_shown_only_displayed_ligands(test_production_session):
     # First hide all atoms (including ligands)
     run(test_production_session, "hide #1 target a")
     
-    result = run(test_production_session, "info shown")
-    data = json.loads(result.json_result)
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
     model = data[0]
     
     # Ligands key should not be present when ligands are hidden
@@ -217,8 +219,8 @@ def test_shown_only_displayed_ligands(test_production_session):
     # Show ligand atoms
     run(test_production_session, "show ligand target a")
     
-    result = run(test_production_session, "info shown")
-    data = json.loads(result.json_result)
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
     model = data[0]
     
     # Now ligands should appear if they exist
@@ -243,8 +245,8 @@ def test_shown_only_displayed_ions(test_production_session):
     # Hide all including ions
     run(test_production_session, "hide #1 target a")
     
-    result = run(test_production_session, "info shown")
-    data = json.loads(result.json_result)
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
     model = data[0]
     
     # Ions should not appear when hidden
@@ -254,8 +256,8 @@ def test_shown_only_displayed_ions(test_production_session):
     # Show ions
     run(test_production_session, "show ions target a")
     
-    result = run(test_production_session, "info shown")
-    data = json.loads(result.json_result)
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
     model = data[0]
     
     # If ions exist and are shown, they should appear without 'displayed' key
@@ -284,8 +286,8 @@ def test_shown_parent_visibility(test_production_session):
     for cmd in setup_structure:
         run(test_production_session, cmd)
     
-    result = run(test_production_session, "info shown")
-    data = json.loads(result.json_result)
+    result = run(test_production_session, "info shown", return_json=True)
+    data = json.loads(result.json_value)
     
     # Find any model that has child models (id contains a dot like #1.1)
     parent_models = [m for m in data if '.' not in m['id'].replace('#', '')]
@@ -307,8 +309,8 @@ def test_shown_parent_visibility(test_production_session):
             # Now hide the parent model
             run(test_production_session, f"hide {parent_id} target m")
             
-            result = run(test_production_session, "info shown")
-            data = json.loads(result.json_result)
+            result = run(test_production_session, "info shown", return_json=True)
+            data = json.loads(result.json_value)
             
             # Get all model IDs in output
             output_ids = [m['id'] for m in data]
@@ -325,8 +327,8 @@ def test_shown_parent_visibility(test_production_session):
             # Show parent again
             run(test_production_session, f"show {parent_id} target m")
             
-            result = run(test_production_session, "info shown")
-            data = json.loads(result.json_result)
+            result = run(test_production_session, "info shown", return_json=True)
+            data = json.loads(result.json_value)
             
             # Parent should now be in output
             output_ids = [m['id'] for m in data]
@@ -381,8 +383,8 @@ def test_shown_child_inherits_parent_visibility(test_production_session):
                 "Child should NOT be visible when parent is hidden"
             
             # Run info shown and check the output
-            result = run(session, "info shown")
-            data = json.loads(result.json_result)
+            result = run(session, "info shown", return_json=True)
+            data = json.loads(result.json_value)
             
             # Child should NOT be in the output at all
             child_id = '#' + child.id_string
@@ -398,6 +400,7 @@ def test_shown_child_inherits_parent_visibility(test_production_session):
 
 
 # Test commands list for parametrized testing
+# Note: "info shown" is a marker that will trigger JSON validation
 shown_commands = [
     ["open 2tpk autostyle false", "info shown"],
     ["open 2tpk autostyle false", "hide #1 target m", "info shown"],
@@ -412,13 +415,15 @@ def test_shown_command_sequence(test_production_session, commands):
     from chimerax.core.commands import run
     
     for command in commands:
-        result = run(test_production_session, command)
-        
-        # If this was the 'info shown' command, verify it returns valid JSON
-        if "info shown" in command:
+        # For 'info shown' command, pass return_json=True to run()
+        # (command-line returnJson is overridden by the run() parameter)
+        if command == "info shown":
+            result = run(test_production_session, command, return_json=True)
             assert result is not None, "'info shown' should return a result"
-            data = json.loads(result.json_result)
+            data = json.loads(result.json_value)
             assert isinstance(data, list), "Result should be a list"
+        else:
+            run(test_production_session, command)
     
     # Clean up
     run(test_production_session, "close")
