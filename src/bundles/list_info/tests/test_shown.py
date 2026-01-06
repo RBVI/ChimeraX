@@ -44,12 +44,18 @@ def test_shown_basic(test_production_session):
 
 
 def test_shown_hidden_model(test_production_session):
-    """Test that hidden models have minimal output with 'hidden' key."""
+    """Test that hidden models are NOT included in output at all."""
     from chimerax.core.commands import run
     
     # Open a structure
     for cmd in setup_structure:
         run(test_production_session, cmd)
+    
+    # Verify model #1 is in output when visible
+    result = run(test_production_session, "info shown")
+    data = json.loads(result.json_result)
+    model_ids = [m['id'] for m in data]
+    assert '#1' in model_ids, "Visible model should be in output"
     
     # Hide the model
     run(test_production_session, "hide #1 target m")
@@ -57,13 +63,12 @@ def test_shown_hidden_model(test_production_session):
     result = run(test_production_session, "info shown")
     data = json.loads(result.json_result)
     
-    model = data[0]
-    assert model.get('hidden') == True, "Hidden model should have hidden=True"
+    # Hidden model should NOT be in output at all
+    model_ids = [m['id'] for m in data]
+    assert '#1' not in model_ids, "Hidden model should NOT be in output"
     
-    # Hidden model should NOT have detailed keys
-    assert 'chains' not in model, "Hidden model should not have chains key"
-    assert 'ligands' not in model, "Hidden model should not have ligands key"
-    assert 'ions' not in model, "Hidden model should not have ions key"
+    # Output should be empty (only model was hidden)
+    assert len(data) == 0, "Output should be empty when all models are hidden"
     
     run(test_production_session, "close")
 
@@ -260,6 +265,134 @@ def test_shown_only_displayed_ions(test_production_session):
             assert 'spec' in ion
             # Should NOT have a 'displayed' boolean key
             assert 'displayed' not in ion, "Presence in output implies displayed"
+    
+    run(test_production_session, "close")
+
+
+def test_shown_parent_visibility(test_production_session):
+    """Test that child models are excluded from output when parent is hidden.
+    
+    This tests the model.visible property behavior: a model is only visible
+    if its own display is True AND all its parents are also visible.
+    
+    When a parent model is hidden, child models should NOT appear in the output
+    even if their own display property is True.
+    """
+    from chimerax.core.commands import run
+    
+    # Open a structure - this creates model #1 with possible submodels
+    for cmd in setup_structure:
+        run(test_production_session, cmd)
+    
+    result = run(test_production_session, "info shown")
+    data = json.loads(result.json_result)
+    
+    # Find any model that has child models (id contains a dot like #1.1)
+    parent_models = [m for m in data if '.' not in m['id'].replace('#', '')]
+    child_models = [m for m in data if '.' in m['id'].replace('#', '')]
+    
+    if len(parent_models) > 0 and len(child_models) > 0:
+        # Get a parent that has children
+        parent_id = parent_models[0]['id']
+        parent_id_num = parent_id.replace('#', '')
+        
+        # Find children of this parent
+        children_of_parent = [m for m in child_models 
+                             if m['id'].replace('#', '').startswith(parent_id_num + '.')]
+        
+        if len(children_of_parent) > 0:
+            # Record child IDs before hiding parent
+            child_ids_before = [c['id'] for c in children_of_parent]
+            
+            # Now hide the parent model
+            run(test_production_session, f"hide {parent_id} target m")
+            
+            result = run(test_production_session, "info shown")
+            data = json.loads(result.json_result)
+            
+            # Get all model IDs in output
+            output_ids = [m['id'] for m in data]
+            
+            # Parent should NOT be in output
+            assert parent_id not in output_ids, \
+                f"Hidden parent {parent_id} should NOT be in output"
+            
+            # All children should also NOT be in output
+            for child_id in child_ids_before:
+                assert child_id not in output_ids, \
+                    f"Child {child_id} should NOT be in output when parent {parent_id} is hidden"
+            
+            # Show parent again
+            run(test_production_session, f"show {parent_id} target m")
+            
+            result = run(test_production_session, "info shown")
+            data = json.loads(result.json_result)
+            
+            # Parent should now be in output
+            output_ids = [m['id'] for m in data]
+            assert parent_id in output_ids, \
+                f"Parent {parent_id} should be in output after showing"
+    
+    run(test_production_session, "close")
+
+
+def test_shown_child_inherits_parent_visibility(test_production_session):
+    """Test specific case: child model with display=True but parent hidden.
+    
+    A child model should NOT appear in output if its parent is hidden,
+    even if the child's own display property is True. This matches the
+    ChimeraX model.visible property behavior.
+    """
+    from chimerax.core.commands import run
+    from chimerax.core.models import Model
+    
+    # Open structure
+    for cmd in setup_structure:
+        run(test_production_session, cmd)
+    
+    session = test_production_session
+    models = session.models.list()
+    
+    # Find a model with children
+    for m in models:
+        children = m.child_models()
+        if len(children) > 0:
+            # We found a parent with children
+            # Ensure child's own display is True
+            child = children[0]
+            child.display = True
+            
+            # Verify child's display is True
+            assert child.display == True, "Child display should be True"
+            
+            # Verify child is visible (parent is visible too)
+            if m.display:
+                assert child.visible == True, \
+                    "Child should be visible when parent is visible"
+            
+            # Now hide the parent
+            m.display = False
+            
+            # Child's display is still True
+            assert child.display == True, "Child display should still be True"
+            
+            # But child's visible should be False (parent is hidden)
+            assert child.visible == False, \
+                "Child should NOT be visible when parent is hidden"
+            
+            # Run info shown and check the output
+            result = run(session, "info shown")
+            data = json.loads(result.json_result)
+            
+            # Child should NOT be in the output at all
+            child_id = '#' + child.id_string
+            output_ids = [x['id'] for x in data]
+            assert child_id not in output_ids, \
+                f"Child {child_id} should NOT be in output when parent is hidden"
+            
+            # Restore parent visibility for cleanup
+            m.display = True
+            break
     
     run(test_production_session, "close")
 

@@ -551,9 +551,12 @@ def shown(session, models=None, *, return_json=True, save_file=None):
     '''
     Report what is currently displayed for each model.
     
-    Only elements that ARE displayed are included in the output - absence from
-    the output means that element is not displayed. This provides a concise
-    view of the current visualization state.
+    Only models that ARE visible are included in the output - hidden models
+    are omitted entirely. Absence from the output means that model is not visible.
+    This provides a concise view of the current visualization state.
+
+    A model is considered visible only if its own display is True AND all its
+    parent models are also visible (using the model.visible property).
 
     The output includes atomspec strings that can be directly used in commands
     like ``color``, ``hide``, ``show``, etc.
@@ -563,7 +566,7 @@ def shown(session, models=None, *, return_json=True, save_file=None):
     :param save_file: Optional file to save the output to.
 
     If :code:`return_json` is :code:`True`, the returned JSON will be a list of objects,
-    one per model.
+    one per visible model.
 
     Example JSON output for a structure with ribbons and some atoms displayed:
 
@@ -585,16 +588,7 @@ def shown(session, models=None, *, return_json=True, save_file=None):
           "ions": [{"name": "MG", "chain": "A", "number": 502, "spec": "#1/A:502"}]
         }
 
-    For a hidden model, output is minimal:
-
-    .. code-block:: json
-
-        {
-          "id": "#1",
-          "name": "1abc",
-          "type": "AtomicStructure",
-          "hidden": true
-        }
+    Hidden models do not appear in the output at all.
     '''
     display_info = get_shown_info(session, models)
     
@@ -606,10 +600,6 @@ def shown(session, models=None, *, return_json=True, save_file=None):
     # Text output for non-JSON mode
     lines = []
     for model in display_info:
-        if model.get('hidden'):
-            lines.append(f"Model {model['id']} ({model['name']}): hidden")
-            continue
-            
         lines.append(f"Model {model['id']} ({model['name']}):")
         mtype = model.get('type', 'Unknown')
         

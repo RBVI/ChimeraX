@@ -1224,9 +1224,12 @@ async def list_models(session_id: Optional[int] = None) -> str:
 async def get_shown(session_id: Optional[int] = None) -> str:
     """Get information about what is currently shown in ChimeraX.
     
-    This tool returns a JSON report showing only what IS shown - absence from
-    the output means that element is not shown. This provides a concise view
-    of the current visualization state.
+    This tool returns a JSON report showing only what IS visible - hidden models
+    are omitted entirely. Absence from the output means that model is not visible.
+    This provides a concise view of the current visualization state.
+    
+    A model is considered visible only if its own display is True AND all its
+    parent models are also visible (child models inherit parent visibility).
     
     Use this tool to:
     - Understand the current visualization state before making changes
@@ -1234,8 +1237,8 @@ async def get_shown(session_id: Optional[int] = None) -> str:
     - Get atomspecs for shown elements to use in subsequent commands
     
     Key behavior:
-    - Only shown elements are included in the output
-    - Hidden models show minimal info: {"id": "#1", "name": "...", "hidden": true}
+    - Only visible models are included in the output
+    - Hidden models do not appear at all (not even with a "hidden" flag)
     - Spec fields can be directly used in commands like `color`, `hide`, `show`
     
     Example response for a structure with ribbons and partial atoms shown:
@@ -1261,20 +1264,12 @@ async def get_shown(session_id: Optional[int] = None) -> str:
     }
     ```
     
-    Example response for a hidden model:
-    ```json
-    {
-      "models": [
-        {"id": "#1", "name": "1abc", "type": "AtomicStructure", "hidden": true}
-      ]
-    }
-    ```
+    If all models are hidden, returns an empty list: {"models": []}
     
     Args:
         session_id: ChimeraX session port (defaults to primary session)
     """
     result = await run_chimerax_command("info shown", session_id)
-    session_info = f" in session {session_id}" if session_id else ""
     
     # The 'info shown' command returns JSON data
     json_values = result.get("json_values", [])
@@ -1286,11 +1281,9 @@ async def get_shown(session_id: Optional[int] = None) -> str:
         # Wrap in models key for consistent response structure
         response = {"models": display_data}
         
-        context = f"Display state{session_info}:"
-        formatted_json = json.dumps(response, indent=2, ensure_ascii=False)
-        return f"{context}\n{formatted_json}"
+        return json.dumps(response, indent=2, ensure_ascii=False)
     else:
-        return f"No display state information available{session_info}"
+        return '{"models": []}'
 
 
 @mcp.tool()

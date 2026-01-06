@@ -520,11 +520,10 @@ class Notifier:
 
 def get_shown_info(session, models=None):
     '''
-    Gather display state information for all models.
-    Returns a list of dictionaries, one per model, describing what is currently displayed.
+    Returns a list of dictionaries, one per visible model, describing what is displayed.
     
-    Only includes information about elements that ARE displayed - absence from
-    the output means the element is not displayed.
+    Only visible models are included in the output - hidden models are omitted entirely.
+    Absence from the output means the model is not visible.
     '''
     from chimerax.atomic import AtomicStructure, Structure
     from chimerax.map import Volume
@@ -536,17 +535,19 @@ def get_shown_info(session, models=None):
     result = []
     
     for m in sorted(models, key=lambda m: m.id):
+        # Use m.visible (not m.display) to check actual visibility.
+        # A model is visible only if its own display is True AND all its
+        # parents are also visible. This correctly filters out child models
+        # whose parents are hidden.
+        # Skip hidden models entirely - they're not shown, so don't report them.
+        if not m.visible:
+            continue
+        
         model_info = {
             'id': '#' + m.id_string,
             'name': m.name,
             'type': type(m).__name__,
         }
-        
-        # If model is not displayed at all, just note that and skip details
-        if not m.display:
-            model_info['hidden'] = True
-            result.append(model_info)
-            continue
         
         if isinstance(m, AtomicStructure) or isinstance(m, Structure):
             model_info['type'] = 'AtomicStructure' if isinstance(m, AtomicStructure) else 'Structure'
