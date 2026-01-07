@@ -633,7 +633,6 @@ def _add_structure_display_info(session, structure, info):
                     'name': res.name,
                     'chain': res.chain_id,
                     'number': res.number,
-                    'spec': res.string(style='command', omit_structure=False),
                 }
                 if res.insertion_code:
                     lig_info['insertion_code'] = res.insertion_code
@@ -642,19 +641,11 @@ def _add_structure_display_info(session, structure, info):
                 h_visibility = classify_hydrogen_visibility(displayed_atoms, res_atoms)
                 lig_info['hydrogens'] = h_visibility
                 
-                # Check for partial display (comparing non-H atoms)
-                non_h_atoms = res_atoms.filter(res_atoms.elements.numbers > 1)
-                displayed_non_h = displayed_atoms.filter(displayed_atoms.elements.numbers > 1)
-                if len(displayed_non_h) < len(non_h_atoms):
-                    # Partial display - provide atom-level spec
-                    atom_names = sorted(set(a.name for a in displayed_non_h))
-                    # If hydrogen visibility is "some", include H atoms in the list
-                    if h_visibility == 'some':
-                        displayed_h = displayed_atoms.filter(displayed_atoms.elements.numbers == 1)
-                        h_names = sorted(set(a.name for a in displayed_h))
-                        atom_names = sorted(set(atom_names + h_names))
-                    lig_info['shown_atoms'] = atom_names
-                    lig_info['atoms_shown'] = f"{len(displayed_non_h)}/{len(non_h_atoms)}"
+                # Generate atom-level spec using concise_atom_spec
+                # Only include hydrogens in spec when visibility is "some" (arbitrary subset)
+                include_h = (h_visibility == 'some')
+                lig_info['atoms'] = {'spec': concise_atom_spec(session, displayed_atoms, include_hydrogens=include_h)}
+                
                 ligands_info.append(lig_info)
         if ligands_info:
             info['ligands'] = ligands_info

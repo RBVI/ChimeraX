@@ -233,7 +233,8 @@ def test_shown_only_displayed_ligands(test_production_session):
     if model.get('ligands'):
         for lig in model['ligands']:
             assert 'name' in lig
-            assert 'spec' in lig
+            assert 'atoms' in lig
+            assert 'spec' in lig['atoms']
             # Should NOT have a 'displayed' boolean key
             assert 'displayed' not in lig, "Presence in output implies displayed"
     
@@ -579,9 +580,9 @@ def test_shown_ligand_partial_atoms(test_production_session):
         pytest.skip("Test structure has no ligands")
         return
     
-    # Get the first ligand's residue spec
+    # Get the first ligand's atom spec from the consistent atoms field
     lig = model['ligands'][0]
-    lig_spec = lig['spec']
+    lig_spec = lig['atoms']['spec']
     
     # Hide all ligand atoms, then show only some
     run(test_production_session, f"hide {lig_spec} target a")
@@ -596,16 +597,13 @@ def test_shown_ligand_partial_atoms(test_production_session):
     
     if model.get('ligands'):
         for lig in model['ligands']:
-            # If partial display, should have 'shown_atoms' with atom names
-            if lig.get('atoms_shown'):
-                # atoms_shown is like "3/10" format
-                assert '/' in lig['atoms_shown'], \
-                    "atoms_shown should be in 'shown/total' format"
-                # Should also have shown_atoms list
-                assert 'shown_atoms' in lig, \
-                    "Partial display should include shown_atoms list"
-                assert isinstance(lig['shown_atoms'], list), \
-                    "shown_atoms should be a list of atom names"
+            # Ligand should have atoms field with spec
+            assert 'atoms' in lig, "Ligand should have atoms field"
+            assert 'spec' in lig['atoms'], "Ligand atoms should have spec"
+            # For partial display, spec should contain @ for atom-level specification
+            spec = lig['atoms']['spec']
+            assert '@' in spec, \
+                f"Partial display spec '{spec}' should contain @ for atom-level specification"
     
     run(test_production_session, "close")
 
