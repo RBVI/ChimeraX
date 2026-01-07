@@ -527,6 +527,7 @@ def get_shown_info(session, models=None):
     '''
     from chimerax.atomic import AtomicStructure, Structure
     from chimerax.map import Volume
+    from chimerax.map.volume import VolumeSurface
     from chimerax.atomic import PseudobondGroup
     
     if models is None:
@@ -552,6 +553,10 @@ def get_shown_info(session, models=None):
         if isinstance(m, AtomicStructure) or isinstance(m, Structure):
             model_info['type'] = 'AtomicStructure' if isinstance(m, AtomicStructure) else 'Structure'
             _add_structure_display_info(session, m, model_info)
+        elif isinstance(m, VolumeSurface):
+            # Check VolumeSurface before Volume since VolumeSurface is a subclass
+            model_info['type'] = 'VolumeSurface'
+            _add_volume_surface_display_info(m, model_info)
         elif isinstance(m, Volume):
             model_info['type'] = 'Volume'
             _add_volume_display_info(m, model_info)
@@ -702,11 +707,21 @@ def _add_volume_display_info(volume, info):
     '''Add display state info for a Volume.
     
     Only includes rendering modes that are currently active.
+    Note: Surface levels are reported via child VolumeSurface models, not here.
     '''
-    if volume.surface_shown:
-        info['surface_levels'] = [s.level for s in volume.surfaces]
     if volume.image_shown:
         info['image_levels'] = [list(l) for l in volume.image_levels]
+
+
+def _add_volume_surface_display_info(surface, info):
+    '''Add display state info for a VolumeSurface.
+    
+    Includes level and style information for the surface.
+    '''
+    info['level'] = surface.level
+    
+    # Add style (mesh or surface)
+    info['style'] = surface.style
 
 
 def _add_pseudobond_group_display_info(session, pbg, info):
