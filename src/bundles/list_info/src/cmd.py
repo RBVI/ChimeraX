@@ -608,6 +608,8 @@ def shown(session, models=None, *, return_json=True, save_file=None):
                 chain_parts = [f"  Chain {chain['id']} ({chain.get('polymer_type', 'unknown')}):"]
                 if 'atoms' in chain:
                     chain_parts.append(f"atoms {chain['atoms']['spec']}")
+                if 'hydrogens' in chain:
+                    chain_parts.append(f"(H: {chain['hydrogens']})")
                 if 'ribbons' in chain:
                     chain_parts.append(f"ribbons {chain['ribbons']['spec']}")
                 lines.append(' '.join(chain_parts))
@@ -616,6 +618,8 @@ def shown(session, models=None, *, return_json=True, save_file=None):
                 lig_line = f"  Ligand {lig['name']} ({lig['spec']})"
                 if 'atoms_shown' in lig:
                     lig_line += f" [{lig['atoms_shown']} atoms]"
+                if 'hydrogens' in lig:
+                    lig_line += f" (H: {lig['hydrogens']})"
                 lines.append(lig_line)
             
             for ion in model.get('ions', []):
