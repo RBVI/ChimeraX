@@ -104,8 +104,8 @@ def test_shown_visible_model_structure(test_production_session):
         assert 'id' in chain
         assert 'polymer_type' in chain
         # Should have ribbons since we showed them
-        assert 'ribbons' in chain, f"Chain {chain['id']} should have ribbons"
-        assert 'spec' in chain['ribbons'], "Ribbons should have spec"
+        assert 'ribbons_shown' in chain, f"Chain {chain['id']} should have ribbons"
+        assert 'spec' in chain['ribbons_shown'], "Ribbons should have spec"
     
     run(test_production_session, "close")
 
@@ -142,8 +142,8 @@ def test_shown_atoms_only(test_production_session):
     assert 'A' in chain_ids, "Chain A should be in output"
     
     chain_a = [c for c in model['chains'] if c['id'] == 'A'][0]
-    assert 'atoms' in chain_a, "Chain A should have atoms displayed"
-    assert 'spec' in chain_a['atoms'], "Atoms should have spec"
+    assert 'atoms_shown' in chain_a, "Chain A should have atoms displayed"
+    assert 'spec' in chain_a['atoms_shown'], "Atoms should have spec"
     
     run(test_production_session, "close")
 
@@ -177,8 +177,8 @@ def test_shown_partial_display(test_production_session):
             chain_a = chain
             break
     
-    if chain_a and 'atoms' in chain_a:
-        spec = chain_a['atoms']['spec']
+    if chain_a and 'atoms_shown' in chain_a:
+        spec = chain_a['atoms_shown']['spec']
         assert spec is not None, "Spec should not be None for partial display"
         # Spec should reference chain A and residue range (model number optional per ChimeraX convention)
         assert '/A:' in spec or '/A' in spec, f"Spec '{spec}' should reference chain A"
@@ -233,8 +233,8 @@ def test_shown_only_displayed_ligands(test_production_session):
     if model.get('ligands'):
         for lig in model['ligands']:
             assert 'name' in lig
-            assert 'atoms' in lig
-            assert 'spec' in lig['atoms']
+            assert 'atoms_shown' in lig
+            assert 'spec' in lig['atoms_shown']
             # Should NOT have a 'displayed' boolean key
             assert 'displayed' not in lig, "Presence in output implies displayed"
     
@@ -466,9 +466,9 @@ def test_shown_partial_atoms_in_residue(test_production_session):
             break
     
     assert chain_a is not None, "Chain A should be in output"
-    assert 'atoms' in chain_a, "Chain A should have atoms"
+    assert 'atoms_shown' in chain_a, "Chain A should have atoms"
     
-    spec = chain_a['atoms']['spec']
+    spec = chain_a['atoms_shown']['spec']
     # The spec should contain '@' indicating atom-level specification
     # because not all atoms of the residues are shown
     assert '@' in spec, f"Spec '{spec}' should contain @ for partial atom display"
@@ -509,9 +509,9 @@ def test_shown_mixed_full_and_partial_residues(test_production_session):
             break
     
     assert chain_a is not None, "Chain A should be in output"
-    assert 'atoms' in chain_a, "Chain A should have atoms"
+    assert 'atoms_shown' in chain_a, "Chain A should have atoms"
     
-    spec = chain_a['atoms']['spec']
+    spec = chain_a['atoms_shown']['spec']
     # Should have both residue-level specs (for full display) and atom-level (for partial)
     assert '@' in spec, f"Spec '{spec}' should contain @ for partial residue"
     # Should also have residue range for full-display residues
@@ -550,9 +550,9 @@ def test_shown_full_residue_display_no_atom_spec(test_production_session):
             break
     
     assert chain_a is not None, "Chain A should be in output"
-    assert 'atoms' in chain_a, "Chain A should have atoms"
+    assert 'atoms_shown' in chain_a, "Chain A should have atoms"
     
-    spec = chain_a['atoms']['spec']
+    spec = chain_a['atoms_shown']['spec']
     # When all atoms are shown, should NOT have @ in spec (residue-level only)
     assert '@' not in spec, f"Spec '{spec}' should NOT contain @ when all atoms are shown"
     # Should have residue range
@@ -582,7 +582,7 @@ def test_shown_ligand_partial_atoms(test_production_session):
     
     # Get the first ligand's atom spec from the consistent atoms field
     lig = model['ligands'][0]
-    lig_spec = lig['atoms']['spec']
+    lig_spec = lig['atoms_shown']['spec']
     
     # Hide all ligand atoms, then show only some
     run(test_production_session, f"hide {lig_spec} target a")
@@ -598,10 +598,10 @@ def test_shown_ligand_partial_atoms(test_production_session):
     if model.get('ligands'):
         for lig in model['ligands']:
             # Ligand should have atoms field with spec
-            assert 'atoms' in lig, "Ligand should have atoms field"
-            assert 'spec' in lig['atoms'], "Ligand atoms should have spec"
+            assert 'atoms_shown' in lig, "Ligand should have atoms field"
+            assert 'spec' in lig['atoms_shown'], "Ligand atoms should have spec"
             # For partial display, spec should contain @ for atom-level specification
-            spec = lig['atoms']['spec']
+            spec = lig['atoms_shown']['spec']
             assert '@' in spec, \
                 f"Partial display spec '{spec}' should contain @ for atom-level specification"
     
@@ -631,12 +631,12 @@ def test_shown_hydrogen_visibility_none(test_production_session):
             chain_a = chain
             break
     
-    if chain_a and 'atoms' in chain_a:
-        assert 'hydrogens' in chain_a, "Chain should have 'hydrogens' field"
-        assert chain_a['hydrogens'] == 'none', \
-            f"Expected 'none' but got '{chain_a['hydrogens']}' when no H shown"
+    if chain_a and 'atoms_shown' in chain_a:
+        assert 'hydrogens_shown' in chain_a, "Chain should have 'hydrogens_shown' field"
+        assert chain_a['hydrogens_shown'] == 'none', \
+            f"Expected 'none' but got '{chain_a['hydrogens_shown']}' when no H shown"
         # Spec should not contain any hydrogen atom names
-        spec = chain_a['atoms']['spec']
+        spec = chain_a['atoms_shown']['spec']
         assert '@H' not in spec.upper() or '@HE' in spec.upper() or '@HI' in spec.upper(), \
             "Spec should not contain hydrogen atoms when hydrogens='none'"
     
@@ -672,11 +672,11 @@ def test_shown_hydrogen_visibility_polar(test_production_session):
             chain_a = chain
             break
     
-    if chain_a and 'atoms' in chain_a:
-        assert 'hydrogens' in chain_a, "Chain should have 'hydrogens' field"
+    if chain_a and 'atoms_shown' in chain_a:
+        assert 'hydrogens_shown' in chain_a, "Chain should have 'hydrogens_shown' field"
         # Should be 'polar' since only polar H are shown
-        assert chain_a['hydrogens'] == 'polar', \
-            f"Expected 'polar' but got '{chain_a['hydrogens']}' when only polar H shown"
+        assert chain_a['hydrogens_shown'] == 'polar', \
+            f"Expected 'polar' but got '{chain_a['hydrogens_shown']}' when only polar H shown"
     
     run(test_production_session, "close")
 
@@ -707,10 +707,10 @@ def test_shown_hydrogen_visibility_all(test_production_session):
             chain_a = chain
             break
     
-    if chain_a and 'atoms' in chain_a:
-        assert 'hydrogens' in chain_a, "Chain should have 'hydrogens' field"
-        assert chain_a['hydrogens'] == 'all', \
-            f"Expected 'all' but got '{chain_a['hydrogens']}' when all H shown"
+    if chain_a and 'atoms_shown' in chain_a:
+        assert 'hydrogens_shown' in chain_a, "Chain should have 'hydrogens_shown' field"
+        assert chain_a['hydrogens_shown'] == 'all', \
+            f"Expected 'all' but got '{chain_a['hydrogens_shown']}' when all H shown"
     
     run(test_production_session, "close")
 
@@ -747,14 +747,14 @@ def test_shown_hydrogen_visibility_some(test_production_session):
             chain_a = chain
             break
     
-    if chain_a and 'atoms' in chain_a:
-        assert 'hydrogens' in chain_a, "Chain should have 'hydrogens' field"
+    if chain_a and 'atoms_shown' in chain_a:
+        assert 'hydrogens_shown' in chain_a, "Chain should have 'hydrogens_shown' field"
         # Check that it's 'some' (arbitrary subset) - but might also be 'none' if residue 1
         # doesn't have H or if the pattern happens to match polar
-        h_vis = chain_a['hydrogens']
+        h_vis = chain_a['hydrogens_shown']
         if h_vis == 'some':
             # When 'some', the spec should potentially include H atoms
-            spec = chain_a['atoms']['spec']
+            spec = chain_a['atoms_shown']['spec']
             # The spec format may vary, but if there are partial residues with H, 
             # they should be included
             pass  # Just verify no crash, actual H content depends on structure
@@ -780,11 +780,11 @@ def test_shown_ligand_hydrogen_visibility(test_production_session):
         pytest.skip("Test structure has no ligands")
         return
     
-    # Ligands should have 'hydrogens' field
+    # Ligands should have 'hydrogens_shown' field
     for lig in model['ligands']:
-        assert 'hydrogens' in lig, f"Ligand {lig['name']} should have 'hydrogens' field"
-        assert lig['hydrogens'] in ('none', 'polar', 'all', 'some'), \
-            f"Ligand hydrogens should be one of: none, polar, all, some; got {lig['hydrogens']}"
+        assert 'hydrogens_shown' in lig, f"Ligand {lig['name']} should have 'hydrogens_shown' field"
+        assert lig['hydrogens_shown'] in ('none', 'polar', 'all', 'some'), \
+            f"Ligand hydrogens should be one of: none, polar, all, some; got {lig['hydrogens_shown']}"
     
     run(test_production_session, "close")
 

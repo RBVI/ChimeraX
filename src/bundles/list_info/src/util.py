@@ -597,10 +597,10 @@ def _add_structure_display_info(session, structure, info):
             
             # Only include hydrogens in spec when visibility is "some" (arbitrary subset)
             include_h = (h_visibility == 'some')
-            chain_info['atoms'] = {'spec': concise_atom_spec(session, displayed_atoms, include_hydrogens=include_h)}
+            chain_info['atoms_shown'] = {'spec': concise_atom_spec(session, displayed_atoms, include_hydrogens=include_h)}
             
             # Add hydrogen visibility field
-            chain_info['hydrogens'] = h_visibility
+            chain_info['hydrogens_shown'] = h_visibility
         
         # Ribbon display info - only include if ribbons are displayed
         ribbon_displays = chain_residues.ribbon_displays
@@ -608,7 +608,7 @@ def _add_structure_display_info(session, structure, info):
         if displayed_ribbon_count > 0:
             has_display = True
             displayed_ribbon_res = chain_residues.filter(ribbon_displays)
-            chain_info['ribbons'] = {'spec': concise_residue_spec(session, displayed_ribbon_res)}
+            chain_info['ribbons_shown'] = {'spec': concise_residue_spec(session, displayed_ribbon_res)}
         
         # Only add chain if something is displayed
         if has_display:
@@ -639,12 +639,12 @@ def _add_structure_display_info(session, structure, info):
                 
                 # Classify hydrogen visibility for this ligand
                 h_visibility = classify_hydrogen_visibility(displayed_atoms, res_atoms)
-                lig_info['hydrogens'] = h_visibility
+                lig_info['hydrogens_shown'] = h_visibility
                 
                 # Generate atom-level spec using concise_atom_spec
                 # Only include hydrogens in spec when visibility is "some" (arbitrary subset)
                 include_h = (h_visibility == 'some')
-                lig_info['atoms'] = {'spec': concise_atom_spec(session, displayed_atoms, include_hydrogens=include_h)}
+                lig_info['atoms_shown'] = {'spec': concise_atom_spec(session, displayed_atoms, include_hydrogens=include_h)}
                 
                 ligands_info.append(lig_info)
         if ligands_info:

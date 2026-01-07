@@ -606,20 +606,20 @@ def shown(session, models=None, *, return_json=True, save_file=None):
         if mtype in ('AtomicStructure', 'Structure'):
             for chain in model.get('chains', []):
                 chain_parts = [f"  Chain {chain['id']} ({chain.get('polymer_type', 'unknown')}):"]
-                if 'atoms' in chain:
-                    chain_parts.append(f"atoms {chain['atoms']['spec']}")
-                if 'hydrogens' in chain:
-                    chain_parts.append(f"(H: {chain['hydrogens']})")
-                if 'ribbons' in chain:
-                    chain_parts.append(f"ribbons {chain['ribbons']['spec']}")
+                if 'atoms_shown' in chain:
+                    chain_parts.append(f"atoms {chain['atoms_shown']['spec']}")
+                if 'hydrogens_shown' in chain:
+                    chain_parts.append(f"(H: {chain['hydrogens_shown']})")
+                if 'ribbons_shown' in chain:
+                    chain_parts.append(f"ribbons {chain['ribbons_shown']['spec']}")
                 lines.append(' '.join(chain_parts))
             
             for lig in model.get('ligands', []):
                 lig_line = f"  Ligand {lig['name']} ({lig['spec']})"
                 if 'atoms_shown' in lig:
                     lig_line += f" [{lig['atoms_shown']} atoms]"
-                if 'hydrogens' in lig:
-                    lig_line += f" (H: {lig['hydrogens']})"
+                if 'hydrogens_shown' in lig:
+                    lig_line += f" (H: {lig['hydrogens_shown']})"
                 lines.append(lig_line)
             
             for ion in model.get('ions', []):
