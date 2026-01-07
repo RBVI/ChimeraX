@@ -94,21 +94,25 @@ def find_chimerax_executable():
     return exe_path
 
 def _chimerax_installation_directory():
-    # First, try to find ChimeraX relative to this bridge script
-    bridge_path = os.path.abspath(__file__)
-
+    # Try to find ChimeraX relative to the Python executable first (works even 
+    # when the MCP bridge file is not in the same directory as the ChimeraX 
+    # executable), then fall back to bridge script location
+    import sys
     from sys import platform
-    if platform == 'darwin':
-        cdir = _find_parent_directory(bridge_path, 'Contents')
-    elif platform == 'win32':
-        cdir = _find_parent_directory(bridge_path, 'bin')
-    else:
-        # Linux
-        cdir = _find_parent_directory(bridge_path, 'lib')
+    
+    for base_path in [os.path.realpath(sys.executable), os.path.abspath(__file__)]:
+        if platform == 'darwin':
+            cdir = _find_parent_directory(base_path, 'Contents')
+        elif platform == 'win32':
+            cdir = _find_parent_directory(base_path, 'bin')
+        else:
+            # Linux
+            cdir = _find_parent_directory(base_path, 'lib')
 
-    install_dir = os.path.dirname(cdir) if cdir else None
+        if cdir:
+            return os.path.dirname(cdir)
 
-    return install_dir
+    return None
     
 def _find_parent_directory(path, dir_name):
     while path:
