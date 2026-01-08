@@ -105,12 +105,20 @@ prefetch: $(QT_WHEEL) $(WB_WHEEL)
 
 $(QT_WHEEL):
 ifeq ($(PYQT_LICENSE),commercial)
-	rsync -av $(REMOTE_DIR)/$(PYQT_VERSION)/$(QT_WHEEL_REMOTE) $(QT_WHEEL)
+	@if [ -f $(QT_WHEEL_REMOTE) ]; then \
+		cp $(QT_WHEEL_REMOTE) $(QT_WHEEL); \
+	else \
+		rsync -av $(REMOTE_DIR)/$(PYQT_VERSION)/$(QT_WHEEL_REMOTE) $(QT_WHEEL); \
+	fi
 endif
 
 $(WB_WHEEL):
 ifeq ($(PYQT_LICENSE),commercial)
-	rsync -av $(REMOTE_DIR)/$(PYQTWE_VERSION)/$(WB_WHEEL_REMOTE) $(WB_WHEEL)
+	@if [ -f $(WB_WHEEL_REMOTE) ]; then \
+		cp $(WB_WHEEL_REMOTE) $(WB_WHEEL); \
+	else \
+		rsync -av $(REMOTE_DIR)/$(PYQTWE_VERSION)/$(WB_WHEEL_REMOTE) $(WB_WHEEL); \
+	fi
 endif
 
 clean:
