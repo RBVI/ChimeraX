@@ -23,13 +23,20 @@ CXSERVICES_DEPLOYMENT_VER ?= production
 # tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
 # Remove if tcia_utils removes those imports
 PATCHES = tcia_utils.patch tcia_utils_metadata.patch grako.patch
-CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
-
-ifeq ($(OSARCH),DarwinArm64)
-CYTHON_BUILD_ARGS= --no-binary :all:
+ifeq ($(OS),Windows)
+ifneq ($(filter $(MSYSTEM),MSYS MINGW64),)
+PATCHES += openmm_metadata.patch
 else
-CYTHON_BUILD_ARGS=
+PATCHES += openmm_metadata_cygwin.patch
 endif
+endif
+ifeq ($(OS),Linux)
+ifneq ($(OSARCH),LinuxArm64)
+PATCHES += openmm_metadata.patch
+endif
+endif
+
+CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 
 ifeq ($(OS),Windows)
 else
@@ -44,6 +51,7 @@ ifeq ($(OSARCH),DarwinArm64)
 SCIPY_WHEEL = $(subst ==,-,$(shell grep scipy $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_12_0_arm64.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
+SCIPY_WHEEL = $(subst ==,-,$(shell grep scipy $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_10_14_x86_64.whl
 endif
 endif
 endif
@@ -64,19 +72,17 @@ app-list:
 
 upgrade:
 
-ifeq ($(OSARCH),DarwinArm64)
-app-install: app_requirements.txt $(PLATO_WHEELS) $(SCIPY_WHEEL) patched-tinyarray
+ifeq ($(OS),Darwin)
+app-install: app_requirements.txt $(PLATO_WHEELS) $(SCIPY_WHEEL)
 else
-app-install: app_requirements.txt $(PLATO_WHEELS) patched-tinyarray
+app-install: app_requirements.txt $(PLATO_WHEELS)
 endif
-	# Install Cython first so PyOpenGL_accelerate builds
-	$(APP_PIP_INSTALL) $(CYTHON_BUILD_ARGS) $(shell grep Cython $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
+	# Install Cython first so ndindex builds on Linux ARM64
+	$(APP_PIP_INSTALL) $(shell grep Cython $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt | sed -e 's/[\ #",]//g')
 ifeq ($(OSARCH),DarwinArm64)
 	$(APP_PIP_INSTALL) ./$(SCIPY_WHEEL)
 endif
-	# Install tinyarray with the Py_ssize_t patch
-	$(APP_PIP_INSTALL) ./$(subst ==,-,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/[\ #",]//g'))
 	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifdef USE_PYSIDE6
 	$(APP_PIP_INSTALL) $(shell grep PySide6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
@@ -96,8 +102,17 @@ endif
 	# so that pandas is not needed. When those patches are upstreamed
 	# and pandas is optional this line can be removed
 	$(APP_PIP) uninstall -y pandas
+ifneq (,$(filter $(OS),Windows Linux))
+ifneq ($(OSARCH),LinuxArm64)
+	# openmm-cuda-12 brings in ~600MB of CUDA dependencies it does not use
+	$(APP_PIP) uninstall -y nvidia-cuda-runtime-cu12 nvidia-cuda-nvcc-cu12 nvidia-cuda-nvrtc-cu12 nvidia-cuda-cupti-cu12 nvidia-cufft-cu12
+endif
+ifeq ($(OSARCH),Linux)
+	$(APP_PIP) uninstall -y nvidia-nvjitlink-cu12
+endif
+endif
 
-app_requirements.txt:
+app_requirements.txt: ../../pyproject.toml
 	$(APP_PYTHON_BIN) make_requirements.py
 
 uv-install: $(PLATO_WHEELS)
@@ -106,15 +121,11 @@ uv-install: $(PLATO_WHEELS)
 ifeq ($(OSARCH),DarwinArm64)
 	uv pip install ./$(SCIPY_WHEEL)
 endif
-	uvx pip download $(subst #,,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/^[ \t]*//;s/[ \t]*$$//'))
-	tar -xf $(subst ==,-,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/[\ #",]//g')).tar.gz --no-same-owner
-	cd ./$(subst ==,-,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/[\ #",]//g')) && patch -p1 < ../tinyarray-pyssizet-patch.patch
-	uv pip install ./$(subst ==,-,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/[\ #",]//g'))
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(TOP)/.venv/lib/python3.11/site-packages/ -N -p0 < $$p ; \
 	done
 
-app-upgrade:
+app-upgrade: app_requirements.txt
 	$(APP_PIP_INSTALL) -U -r app_requirements.txt
 
 # Example targets for patching a pip package. These targets would
@@ -136,6 +147,7 @@ app-upgrade:
 
 clean:
 	-rm -f pip.log
+	-rm -f app_requirements.txt
 	make -C package_checker clean
 
 outdated:
@@ -162,11 +174,6 @@ src-outdated:
 
 $(SCIPY_WHEEL):
 	$(APP_PIP) download --platform=macosx_12_0_arm64 --no-deps $(shell grep scipy $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
-
-patched-tinyarray:
-	$(APP_PIP) download $(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/[\ #]//g')
-	tar -xf $(subst ==,-,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/[\ #]//g')).tar.gz --no-same-owner
-	cd $(subst ==,-,$(shell grep tinyarray $(TOP)/pyproject.toml | sed 's/[\ #]//g')) && patch -p1 < ../tinyarray-pyssizet-patch.patch
 
 $(CYTHON_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cython/$(CYTHON_WHEEL)

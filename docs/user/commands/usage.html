@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,29 +9,37 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: usage</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: usage</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>usage</b> &nbsp;<i>command</i>
 </h3>
+<a name="aliases"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>usage aliases</b>
+</h3>
 <p>
 The command <b>usage</b> shows a brief description of the specified
-<a href="../index.html#commands">command</a> and its options in the 
-<a href="../tools/log.html"><b>Log</b></a>. See also:
+<i>command</i> and its options in the 
+<a href="../tools/log.html"><b>Log</b></a>.
+The <i>command</i> can be one of the 
+<a href="../index.html#commands">built-in commands</a> 
+or a user-defined <a href="alias.html">alias</a>.
+The command <b>usage aliases</b> shows the descriptions of all
+currently defined <a href="alias.html">aliases</a>.
+See also:
 <a href="help.html"><b>help</b></a>,
 <a href="log.html"><b>log</b></a>,
+<a href="alias.html#usage"><b>alias usage</b></a>,
 <a href="usageconventions.html">command usage conventions</a>
 </p><p>
 Examples: 
@@ -50,20 +56,23 @@ include the following terms for commonly used
 </p>
 <ul>
 <li><i>atoms</i>
-- atomic models and/or their subparts (atoms, residues, chains, <i>etc.</i>)
-<li><i>objects</i> 
-- could include atomic models, parts of atomic models, or other kinds of models
-<li><i>models</i> - models of various types
-<li><i>structures</i> - atomic models
-<li><i>surfaces</i> - surface models
-<li><i>volumes</i> - <a href="../tools/volumeviewer.html">volume</a> models</li>
+&ndash; atomic models and/or their subparts 
+(atoms, residues, chains, <i>etc.</i>)
+</li><li><i>objects</i> 
+&ndash; could include atomic models, parts of atomic models,
+or other kinds of models
+</li><li><i>models</i> &ndash; models of various types
+</li><li><i>structures</i> &ndash; atomic models
+</li><li><i>surfaces</i> &ndash; surface models
+</li><li><i>volumes</i> 
+&ndash; <a href="../tools/volumeviewer.html">volume</a> models</li>
 </ul>
 <p>
 Arguments shown in the descriptions as
 optional non-keyword arguments can be specified with keywords instead,
 which gives more flexibility as to their placement in the command.
 For example, the description from <b>usage turn</b> starts with:
-<blockquote>
+</p><blockquote>
 <a href="turn.html"><b>turn</b></a>
 [<i>axis</i> [<i>angle</i> [<i>frames</i>]]] ...
 </blockquote>
@@ -81,5 +90,6 @@ For example, the following two commands are equivalent:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2017</address>
+August 2025</address>
+
 </body></html>

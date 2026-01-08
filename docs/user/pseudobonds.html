@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="userdocs.css">
 <title>Pseudobonds</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="index.html">
-<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3>Pseudobonds</h3>
 <p>
@@ -89,20 +84,19 @@ that lists pairs of atoms to connect with <a href="#top">pseudobonds</a>.
 Pseudobond files can be opened and saved using the <b>File</b> menu
 or the commands <a href="commands/open.html"><b>open</b></a> and
 <a href="commands/save.html"><b>save</b></a>, respectively. In this format:
-<ul>
+</p><ul>
 <li>The first two columns (required) are
 <a href="commands/atomspec.html#hierarchy">atom specifiers</a>, and the third 
 column (optional) is a <a href="commands/colornames.html">color specifier</a>.
 A pseudobond is created for each line that specifies exactly two atoms,
 and all of the pseudobonds defined in the file will be a single pseudobond model.
 The corresponding atomic structure(s) must already be open.
-<li>The columns are space-separated, so they should not contain embedded spaces.
-<li>Blank lines and comment lines starting with a semicolon (;) may be included.
-<li>Special comment lines allow setting <b>radius</b>, number of <b>dashes</b>,
+</li><li>The columns are space-separated, so they should not contain embedded spaces.
+</li><li>Blank lines and comment lines starting with a semicolon (;) may be included.
+</li><li>Special comment lines allow setting <b>radius</b>, number of <b>dashes</b>,
 <b>halfbond</b> mode, and <b>color</b> for the pseudobonds defined in 
 subsequent rows, until another comment changing the value is encountered:
-</p><pre>
-; halfbond = <i>Boolean</i>
+<p></p><pre>; halfbond = <i>Boolean</i>
 ; color = <a href="commands/colornames.html"><i>color-spec</i></a>
 ; radius =  <i>r</i>
 ; dashes =  <i>N</i>
@@ -116,21 +110,19 @@ or <b>false</b> (synonyms <b>False</b>, <b>0</b>).
 For a pseudobond with halfbond true, only the end-atom colors will be visible,
 not the color specified for the pseudobond itself.
 Defaults: halfbond <b>false</b>, color <b>yellow</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=yellow width="10px" title="yellow"></td></tr></table>,
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="yellow" width="10px" title="yellow"></td></tr></tbody></table>,
 radius <b>0.5</b> &Aring;, dashes <b>8</b>.
 These properties can be changed after pseudobond creation with the commands
 <a href="commands/color.html#simple"><b>color</b></a>,
 <a href="commands/size.html"><b>size</b></a>, and
 <a href="commands/style.html"><b>style</b></a>.
 </p>
-</ul>
+</li></ul>
 <p>
 Example pseudobond file contents:
 </p>
-<pre>
-; open this example pb file after commands: open 1bna; color tan targ f
+<pre>; open this example pb file after commands: open 1bna; color tan targ f
 ; halfbond = true
 ; color = magenta
 ; radius = 0.1
@@ -175,4 +167,5 @@ are needed to define sets of pseudobonds with different numbers of dashes.)
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 February 2025</address>
+
 </body></html>

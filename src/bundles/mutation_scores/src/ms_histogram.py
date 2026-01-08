@@ -41,6 +41,8 @@ def mutation_scores_histogram(session, score_name, mutation_set = None,
 from chimerax.interfaces.graph import Graph
 class MutationHistogram(Graph):
 
+    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html#histograms'
+
     def __init__(self, session):
         self.mutation_set_name = ''
         self._synonymous_histogram = None
@@ -50,7 +52,8 @@ class MutationHistogram(Graph):
         nodes = edges = []
         Graph.__init__(self, session, nodes, edges,
                        tool_name = 'Mutation scores histogram', title = 'Mutation scores histogram',
-                       hide_ticks = False, drag_select_callback = self._rectangle_selected)
+                       hide_ticks = False, drag_select_callback = self._rectangle_selected,
+                       zoom_axes = 'x', translate_axes = 'x')
 
         tw = self.tool_window
         parent = tw.ui_area
@@ -248,7 +251,8 @@ class MutationHistogram(Graph):
             self._bounds_artists = [a.add_artist(line) for line in lines]
         elif not show and self._bounds_artists:
             for ba in self._bounds_artists:
-                ba.remove()
+                if ba.axes is not None:
+                    ba.remove()
             self._bounds_artists.clear()
         self._synonymous_bounds = show
         self.canvas.draw()

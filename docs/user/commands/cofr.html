@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: cofr</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: cofr</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -48,7 +43,7 @@ See also:
 <a href="view.html"><b>view</b></a>,
 <a href="ui.html#mousemode"><b>mousemode</b></a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
-<img class="icon" border=1 src="../tools/mouse-icons/pivot.png"></a>,
+<img class="icon" border="1" src="../tools/mouse-icons/pivot.png" alt="computer generated image"></a>,
 <a href="measure.html#center"><b>measure center</b></a>,
 <a href="move.html#cofr"><b>move cofr</b></a>
 </p><p>
@@ -67,7 +62,7 @@ or if the middle is empty, keeping the depth the same until another item
 passes through that point.
 The center of rotation is only updated for translations, not rotations alone.
 <br><br>
-<li><b>centerOfView</b> &ndash; keep updating the center of rotation to the
+</li><li><b>centerOfView</b> &ndash; keep updating the center of rotation to the
 middle of the graphics window in X and Y 
 (<a href="view.html#screencoords">screen coordinates</a>), with Z (depth)
 halfway between the near and far <a href="clip.html">clipping planes</a>.
@@ -77,10 +72,10 @@ center of rotation depth remains constant starting from the center of the
 bounding box of the first model opened, or if the method was switched, 
 from the previous center of rotation.
 <br><br>
-<li><b>fixed</b> &ndash; use a fixed point relative to the
+</li><li><b>fixed</b> &ndash; use a fixed point relative to the
 <a href="view.html#scenecoords">scene</a>;
 giving this option changes only the method, retaining the current center
-</ul>
+</li></ul>
 <p>
 The remaining options specify a particular <b>fixed</b> center of rotation.
 If a <a href="atomspec.html"><i>spec</i></a> is given,
@@ -102,4 +97,5 @@ The red, green, and blue axes are aligned with X, Y, and Z in the
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 January 2024</address>
+
 </body></html>

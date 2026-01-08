@@ -1,0 +1,189 @@
+<html lang="en"><!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2024 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+https://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
+<title>Command: snfg</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
+
+<h3><a href="../index.html#commands">Command</a>: snfg</h3>
+
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>snfg</b> [&nbsp;<b>show</b>&nbsp;|&nbsp;hide&nbsp;]
+[&nbsp;<b>structures</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>size</b>&nbsp;&nbsp;<i>angstroms</i>&nbsp;]
+[&nbsp;<b>atoms</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</h3>
+
+<p>
+The <b>snfg</b> command displays carbohydrate residues using
+<b>3D-SNFG</b> (Symbol Nomenclature for Glycans) representation,
+where each monosaccharide is shown as a colored geometric shape
+placed at the sugar ring centroid.
+</p>
+
+<p>
+SNFG is a community standard for depicting glycan structures using
+geometric symbols with specific colors:
+</p>
+
+<table border="1" cellpadding="4" cellspacing="0" style="margin: 1em 0;">
+<tbody><tr>
+  <th>Shape</th>
+  <th>Sugar Class</th>
+  <th>Examples</th>
+</tr>
+<tr>
+  <td>Sphere</td>
+  <td>Hexoses</td>
+  <td>Glucose (blue), Mannose (green), Galactose (yellow)</td>
+</tr>
+<tr>
+  <td>Cube</td>
+  <td>N-acetylhexosamines</td>
+  <td>GlcNAc (blue), GalNAc (yellow)</td>
+</tr>
+<tr>
+  <td>Diamond</td>
+  <td>Hexuronic acids, Sialic acids</td>
+  <td>GlcA (blue), Neu5Ac (purple)</td>
+</tr>
+<tr>
+  <td>Cone</td>
+  <td>Deoxyhexoses</td>
+  <td>Fucose (red), Rhamnose (green)</td>
+</tr>
+<tr>
+  <td>Star</td>
+  <td>Pentoses</td>
+  <td>Xylose (orange), Arabinose (green)</td>
+</tr>
+<tr>
+  <td>Rectangle</td>
+  <td>Di-deoxyhexoses</td>
+  <td>Olivose, Tyvelose</td>
+</tr>
+<tr>
+  <td>Hexagon</td>
+  <td>Heptoses</td>
+  <td>Kdo (yellow), MurNAc (purple)</td>
+</tr>
+<tr>
+  <td>Pentagon</td>
+  <td>Ketoses</td>
+  <td>Fructose (green), Apiose (blue)</td>
+</tr>
+</tbody></table>
+
+<p>
+Colors indicate stereochemistry within each shape class:
+blue (Glc-type), green (Man-type), yellow (Gal-type),
+orange (Gul-type), pink (Alt-type), purple (All-type),
+light blue (Tal-type), brown (Ido-type), red (Fuc/Sia).
+</p>
+
+<h4>Arguments and Options</h4>
+
+<a name="show"></a>
+<a href="#top" class="nounder">&bull;</a>
+<b>snfg</b> [&nbsp;<b>show</b>&nbsp;]
+[&nbsp;<b>structures</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+[&nbsp;<b>size</b>&nbsp;&nbsp;<i>angstroms</i>&nbsp;]
+[&nbsp;<b>atoms</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+<blockquote>
+Show SNFG symbols for carbohydrate residues. If no structures are specified,
+all open atomic structures are processed. The <b>size</b> option sets the
+symbol diameter in angstroms (default <b>4.0</b>, matching the approximate
+cross-section of a monosaccharide ring).
+The <b>atoms</b> option controls whether sugar atoms remain visible
+(default <b>true</b>). When true, symbols are shown inside the sugar rings
+alongside the atomic representation. When false, sugar atoms are hidden
+and only the SNFG symbols are shown with connecting lines between them.
+</blockquote>
+
+<a name="hide"></a>
+<a href="#top" class="nounder">&bull;</a>
+<b>snfg hide</b>
+[&nbsp;<b>structures</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+<blockquote>
+Hide (remove) SNFG symbols from the specified structures.
+</blockquote>
+
+<h4>Examples</h4>
+
+<blockquote><b>
+snfg
+</b></blockquote>
+<p>Show SNFG symbols for all carbohydrates in all open structures.</p>
+
+<blockquote><b>
+snfg #1
+</b></blockquote>
+<p>Show SNFG symbols only for carbohydrates in model #1.</p>
+
+<blockquote><b>
+snfg size 6
+</b></blockquote>
+<p>Show larger (6 angstrom) SNFG symbols.</p>
+
+<blockquote><b>
+snfg atoms false
+</b></blockquote>
+<p>Show SNFG symbols only, hiding the sugar atoms.</p>
+
+<blockquote><b>
+snfg hide
+</b></blockquote>
+<p>Remove all SNFG symbols.</p>
+
+<h4>Notes</h4>
+
+<p>
+Sugar residues are identified by their PDB residue names (e.g., NAG, MAN, FUC, GAL).
+The command recognizes common carbohydrate residue codes from the
+<a href="https://www.wwpdb.org/data/ccd" target="_blank">wwPDB Chemical Component Dictionary</a>.
+</p>
+
+<p>
+SNFG symbols are placed at the centroid of the sugar ring (pyranose or furanose).
+If no ring is detected, the symbol is placed at the residue center of mass.
+</p>
+
+<h4>References</h4>
+
+<p>
+Varki A, Cummings RD, Aebi M, <i>et al.</i>
+<a href="https://doi.org/10.1093/glycob/cwv091" target="_blank">Symbol
+Nomenclature for Graphical Representations of Glycans.</a>
+<i>Glycobiology.</i> 2015;25(12):1323-1324.
+</p>
+
+<p>
+Thieker DF, Hadden JA, Schulten K, Woods RJ.
+<a href="https://doi.org/10.1093/glycob/cww076" target="_blank">3D Implementation
+of the Symbol Nomenclature for Graphical Representation of Glycans.</a>
+<i>Glycobiology.</i> 2016;26(8):786-787.
+</p>
+
+<p>
+See also: <a href="https://www.ncbi.nlm.nih.gov/glycans/snfg.html" target="_blank">NCBI SNFG page</a>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+December 2024</address>
+
+</body></html>

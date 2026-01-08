@@ -19,7 +19,7 @@ PYTHON ?= $(APP_PYTHON_EXE)
 SYNC_DIR = $(wildcard $(TOP)/build/sync)
 
 REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
-	  alphafold altloc_explorer amber_info aniso arrays atom_search \
+	  alphafold altloc_explorer amber_info animations aniso arrays atom_search \
 	  atomic atomic_lib axes_planes basic_actions bild \
 	  blastprotein boltz bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
@@ -32,23 +32,23 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  geometry gltf graphics \
 	  hbonds help_viewer hkcage ihm image_formats imod \
 	  interfaces items_inspection io label iupac \
-	  kvfinder list_info log looking_glass maestro \
+	  kvfinder lighting_gui list_info log looking_glass maestro \
 	  map map_data map_eraser map_filter map_fit map_series \
-	  markers mask match_maker mcopy md_crds \
-	  medical_toolbar meeting mlp model_series \
+	  markers mask match_maker mcopy mcp_server md_crds \
+	  medical_toolbar meeting minimize mlp model_series \
 	  mmcif mmtf model_archive model_panel modeller \
 	  mol2 mole morph mouse_modes movie mutation_scores nmrstar \
 	  neuron nifti nrrd nucleotides open_command orthopick pdb pdb_bio pdb_lib pdb_matrices \
 	  pick_blobs positions preset_mgr profile_grids pubchem read_pbonds registration \
 	  remote_control render_by_attr renumber_residues rest_server \
 	  residue_fit rna_layout rotamers rotamer_libs \
-	  save_command scheme_mgr \
+	  save_command scenes scheme_mgr \
 	  sdf sel_inspector segger segment segmentations seqalign seq_view shape \
 	  shell shortcuts show_sequences sideview sim_matrices similarstructures smiles \
-	  smooth_lines spacenavigator std_commands \
+	  smooth_lines snfg spacenavigator std_commands \
 	  stl storm struct_measure struts surface swapaa swap_res \
 	  tape_measure task_manager test toolbar topography to_quest tug ui umap uniprot \
-	  unit_cell viewdockx viperdb vive volume_menu vrml vtk wavefront_obj \
+	  unit_cell viewdock viperdb vive volume_menu vrml vtk wavefront_obj \
 	  webcam webservices zone
 
 ifeq ($(OS),Linux)
@@ -68,7 +68,7 @@ dir:	Makefile.dependencies
 
 $(SUBDIR_BUILD): dir
 
-install: 
+install:
 	$(MAKE) -C bundle_builder build
 	$(MAKE) -C core build
 	$(MAKE) -C toolshed_utils build

@@ -88,7 +88,7 @@ class MatchDialog:
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.match)
-        bbox.button(qbbox.Apply).clicked.connect(lambda f = self.match: f(apply=True))
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args, f=self.match: f(apply=True))
         hide_self = lambda *args, tw=tool_window: setattr(tool_window, 'shown', False)
         bbox.rejected.connect(hide_self)
         from chimerax.core.commands import run
@@ -149,7 +149,7 @@ class MatchDialog:
                 r = a.residue
                 c = r.chain
                 aseq = aln.associations[c]
-                mmap = aseq.match_maps[c]
+                mmap = aln.match_maps[aseq][c]
                 return aseq, aseq.ungapped_to_gapped(mmap[r])
             region_indices = { seq: set() for seq in self.sv.alignment.seqs }
             for match_atoms, ref_atoms, rmsd, full_rmsd, xform in results:

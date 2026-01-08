@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Axes/Planes/Centroids</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Axes/Planes/Centroids</h3>
 <p>
@@ -99,22 +94,21 @@ Although such cases are detected automatically,
    <li><b>atom-based</b> (default)
    &ndash; the most prevalent color among the atoms used to define the axis,
    if at least 30% share that color, otherwise <b>#909090</b>
-   <table border cellpadding="4" cellspacing="0"
-   style="display:inline-block; vertical-align:middle"><tr>
-   <td bgcolor="#909090" width="10px" title="#909090"></td></tr></table>
-   <li>a color well (click to change)
-    </ul>
- <li><b>Name</b> <b>[&nbsp;<i>model-name</i>&nbsp;]</b>
- <li><b>Radius method 
-   <ul>
-   <li>Average atom-axis distance</b> (default)
+   <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+   <td bgcolor="#909090" width="10px" title="#909090"></td></tr></tbody></table>
+   </li><li>a color well (click to change)
+    </li></ul>
+ </li><li><b>Name</b> <b>[&nbsp;<i>model-name</i>&nbsp;]</b>
+ </li><li><b>Radius method 
+   </b><ul><b>
+   </b><li><b>Average atom-axis distance</b> (default)
  &ndash; average distance between the axis and the atoms used to define it
-   <li><b>Fixed value</b>
+   </li><li><b>Fixed value</b>
       <ul>
       <li><b>Radius</b> (default <b>2.0</b> &Aring;)
-      </ul>
-   </ul>
- <li><b>Length method</b>
+      </li></ul>
+   </li></ul>
+ </li><li><b>Length method</b>
    <ul>
    <li><b>Enclose atom/point projections</b> (default)
 &ndash; the minimum needed to span the projections of the atoms 
@@ -122,15 +116,15 @@ used to define the axis
       <ul>
       <li><b>Length padding</b> (default <b>0.0</b> &Aring;) 
       &ndash; additional length on each end
-      </ul>
-   <li><b>Fixed value</b>
+      </li></ul>
+   </li><li><b>Fixed value</b>
       <ul>
       <li><b>Length</b> (default <b>10.0</b> &Aring;)
-      </ul>
-   </ul>
-  </ul>
+      </li></ul>
+   </li></ul>
+  </li></ul>
 <br>
-<li><b>Selected atoms/centroids</b>
+</li><li><b>Selected atoms/centroids</b>
 &ndash; define a single axis using all
 <a href="../selection.html">selected</a> atoms
 (including centroids or other <a href="../markers.html">markers</a>)
@@ -140,24 +134,23 @@ used to define the axis
    <li><b>atom-based</b> (default)
    &ndash; the most prevalent color among the atoms used to define the axis,
    if at least 30% share that color, otherwise <b>#909090</b>
-   <table border cellpadding="4" cellspacing="0"
-   style="display:inline-block; vertical-align:middle"><tr>
-   <td bgcolor="#909090" width="10px" title="#909090"></td></tr></table>
-   <li>a color well (click to change)
-    </ul>
- <li><b>Name</b> <b>[&nbsp;<i>model-name</i>&nbsp;]</b>
- <li><b>Radius method 
-   <ul>
-   <li>Average atom-axis distance</b> (default)
+   <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+   <td bgcolor="#909090" width="10px" title="#909090"></td></tr></tbody></table>
+   </li><li>a color well (click to change)
+    </li></ul>
+ </li><li><b>Name</b> <b>[&nbsp;<i>model-name</i>&nbsp;]</b>
+ </li><li><b>Radius method 
+   </b><ul><b>
+   </b><li><b>Average atom-axis distance</b> (default)
  &ndash; average distance between the axis and the (three or more)
  atoms used to define it; for axes defined by two atoms,
  half of the smaller atom's radius
-   <li><b>Fixed value</b>
+   </li><li><b>Fixed value</b>
       <ul>
       <li><b>Radius</b> (default <b>2.0</b> &Aring;)
-      </ul>
-   </ul>
- <li><b>Length method</b>
+      </li></ul>
+   </li></ul>
+ </li><li><b>Length method</b>
    <ul>
    <li><b>Enclose atom/point projections</b> (default)
 &ndash; the minimum needed to span the projections of the atoms 
@@ -165,75 +158,75 @@ used to define the axis
       <ul>
       <li><b>Length padding</b> (default <b>0.0</b> &Aring;) 
       &ndash; additional length on each end
-      </ul>
-   <li><b>Fixed value</b>
+      </li></ul>
+   </li><li><b>Fixed value</b>
       <ul>
       <li><b>Length</b> (default <b>10.0</b> &Aring;)
-      </ul>
-   </ul>
- <li><a name="mass"><b>Mass weighting</b></a>
+      </li></ul>
+   </li></ul>
+ </li><li><a name="mass"><b>Mass weighting</b></a>
  (default <b>off</b>)
  &ndash; calculate major inertial axis with mass weighting;
  requires the <a href="../selection.html">selection</a> to contain either
  only &ldquo;real&rdquo; atoms or only 
  <a href="../markers.html">markers</a> (which could include centroid objects).
  The radius of a marker (&Aring;) is used as its &ldquo;mass&rdquo; (daltons).
-  </ul>
+  </li></ul>
 <br>
-<li><b>Plane normals</b>
+</li><li><b>Plane normals</b>
 &ndash; define a normal (perpendicular) axis for each plane chosen in the list
 of <b>Planes</b>
  <ul>
  <li><b>Color</b> 
    <ul>
    <li><b>plane color</b> (default)
-   <li>a color well (click to change)
-    </ul>
- <li><b>Name</b> <b>[&nbsp;<i>model-name</i>&nbsp;]</b>
- <li><b>Radius method 
-   <ul>
-   <li>5% of plane radius</b> (default)
-   <li><b>Fixed value</b>
+   </li><li>a color well (click to change)
+    </li></ul>
+ </li><li><b>Name</b> <b>[&nbsp;<i>model-name</i>&nbsp;]</b>
+ </li><li><b>Radius method 
+   </b><ul><b>
+   </b><li><b>5% of plane radius</b> (default)
+   </li><li><b>Fixed value</b>
       <ul>
       <li><b>Radius</b> (default <b>2.0</b> &Aring;)
-      </ul>
-   </ul>
- <li><b>Length method</b>
+      </li></ul>
+   </li></ul>
+ </li><li><b>Length method</b>
    <ul>
    <li><b>Equal to plane radius</b> (default)
       <ul>
       <li><b>Length padding</b> (default <b>0.0</b> &Aring;) 
       &ndash; additional length on each end
-      </ul>
-   <li><b>Fixed value</b>
+      </li></ul>
+   </li><li><b>Fixed value</b>
       <ul>
       <li><b>Length</b> (default <b>10.0</b> &Aring;)
-      </ul>
-   </ul>
-  </ul>
+      </li></ul>
+   </li></ul>
+  </li></ul>
 <br>
-<li><b>Two points</b>
+</li><li><b>Two points</b>
 &ndash; between two points given as X, Y, and Z in
 <a href="../commands/view.html#scenecoords">scene coordinates</a>.
  <ul>
  <li><b>Color</b> &ndash; a color well (click to change)
- <li><b>Name</b> <b>[&nbsp;<i>model-name</i>&nbsp;]</b>
- <li><b>Radius</b> (default <b>2.0</b> &Aring;)
- <li><b>Length method</b>
+ </li><li><b>Name</b> <b>[&nbsp;<i>model-name</i>&nbsp;]</b>
+ </li><li><b>Radius</b> (default <b>2.0</b> &Aring;)
+ </li><li><b>Length method</b>
    <ul>
    <li><b>Enclose atom/point projections</b> (default)
 &ndash; span the two points
       <ul>
       <li><b>Length padding</b> (default <b>0.0</b> &Aring;) 
       &ndash; additional length on each end
-      </ul>
-   <li><b>Fixed value</b>
+      </li></ul>
+   </li><li><b>Fixed value</b>
       <ul>
       <li><b>Length</b> (default <b>10.0</b> &Aring;)
-      </ul>
-   </ul>
-  </ul>
-</ul>
+      </li></ul>
+   </li></ul>
+  </li></ul>
+</li></ul>
 <p>
 Only one color-well color, fixed radius, and fixed length can be given
 at a time,
@@ -261,30 +254,29 @@ eigenvectors (the third-largest eigenvector is normal to the plane).
 </p>
 <ul>
  <li><b>Plane name [&nbsp;<i>name</i>&nbsp;]</b>
- <li><b>Color</b> 
+ </li><li><b>Color</b> 
    <ul>
    <li><b>atom-based</b> (default)
    &ndash; the most prevalent color among the atoms used to define the plane,
    if at least 30% share that color, otherwise <b>#909090</b>
-   <table border cellpadding="4" cellspacing="0"
-   style="display:inline-block; vertical-align:middle"><tr>
-   <td bgcolor="#909090" width="10px" title="#909090"></td></tr></table>
-   <li>a color well (click to change)
-    </ul>
-<li><b>Radius method</b>
+   <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+   <td bgcolor="#909090" width="10px" title="#909090"></td></tr></tbody></table>
+   </li><li>a color well (click to change)
+    </li></ul>
+</li><li><b>Radius method</b>
    <ul>
-   <li>Enclose atom projections</b> (default) 
+   <li>Enclose atom projections (default) 
  &ndash; span the projections of the atoms used to define the plane
       <ul>
       <li><b>Extra radius (padding)</b> (default <b>0.0</b> &Aring;) 
-      </ul>
-   <li><b>Fixed value</b>
+      </li></ul>
+   </li><li><b>Fixed value</b>
       <ul>
       <li><b>Radius</b> (default <b>10.0</b> &Aring;)
-      </ul>
-   </ul>
-<li><b>Disk thickness</b> (default <b>0.10</b> &Aring;)
-</ul>
+      </li></ul>
+   </li></ul>
+</li><li><b>Disk thickness</b> (default <b>0.10</b> &Aring;)
+</li></ul>
 <p>
 Clicking <b>Apply</b> (or <b>OK</b>, which also closes the
 dialog) calculates the plane, adds it to the <a href="#objectlist">table</a>,
@@ -304,28 +296,27 @@ based on the <a href="../selection.html">selected</a> atoms
 <a href="../commands/define.html#centroid"><b>define centroid</b></a>).
 </p>
 <ul>
-<li><b>Centroid name [&nbsp;<i>name</i>&nbsp;]</b></b>
- <li><b>Color</b> 
+<li><b>Centroid name [&nbsp;<i>name</i>&nbsp;]</b>
+ </li><li><b>Color</b> 
    <ul>
    <li><b>atom-based</b> (default)
    &ndash; the most prevalent color among the atoms used to define the centroid,
    if at least 30% share that color, otherwise <b>#909090</b>
-   <table border cellpadding="4" cellspacing="0"
-   style="display:inline-block; vertical-align:middle"><tr>
-   <td bgcolor="#909090" width="10px" title="#909090"></td></tr></table>
-   <li>a color well (click to change)
-    </ul>
-<li><b>Radius</b> (default <b>2.0</b> &Aring;)
-<li><b>Mass weighting</b> (default <b>off</b>)
+   <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+   <td bgcolor="#909090" width="10px" title="#909090"></td></tr></tbody></table>
+   </li><li>a color well (click to change)
+    </li></ul>
+</li><li><b>Radius</b> (default <b>2.0</b> &Aring;)
+</li><li><b>Mass weighting</b> (default <b>off</b>)
 &ndash; whether to use mass weighting, <i>i.e.</i>, to define the centroid
 as the center of mass rather than center of geometry.
 The radius of a marker (&Aring;) is used as its &ldquo;mass&rdquo; (daltons).
-</ul>
+</li></ul>
 Clicking <b>Apply</b> (or <b>OK</b>, which also closes the dialog)
 calculates a centroid, adds it to the <a href="#objectlist">table</a>,
 and generates the corresponding object.
 Centroid coordinates are reported in the <a href="log.html"><b>Log</b></a>.
-</p>
+<p></p>
 
 <a name="objectlist"></a>
 <p class="nav">
@@ -336,24 +327,20 @@ Centroid coordinates are reported in the <a href="log.html"><b>Log</b></a>.
 The table of objects includes the following columns, many the same as in the
 <a href="modelpanel.html"><b>Model Panel</b></a>:
 </p>
-<table border="1" align="right" cellpadding="0" cellspacing="0"
-style="margin:8px 8px 8px 8px">
-<tr><td><a href="objectlist.png"><img src="objectlist.png" width="360px"
-alt="Axes/Planes/Centroids table" title="click for larger..."></a></td></tr>
-</table>
+<table border="1" align="right" cellpadding="0" cellspacing="0" style="margin:8px 8px 8px 8px">
+<tbody><tr><td><a href="objectlist.png"><img src="objectlist.png" width="360px" alt="Axes/Planes/Centroids table" title="click for larger..."></a></td></tr>
+</tbody></table>
 <ul>
 <li><b>Name</b> &ndash; model name; doubleclick to edit
-<li><b>ID</b> &ndash; model number; doubleclick to edit
-<li>a color well; click to change color interactively
-<li><img class="iconbar" src="ui-icons/shown.png"
-title="eye icon" alt="eye icon">
+</li><li><b>ID</b> &ndash; model number; doubleclick to edit
+</li><li>a color well; click to change color interactively
+</li><li><img class="iconbar" src="ui-icons/shown.png" title="eye icon" alt="eye icon">
 &ndash; <a href="../commands/show.html">show/hide</a> checkbox
-<li><img class="iconbar" src="ui-icons/select.png"
-title="hand icon" alt="hand icon">
+</li><li><img class="iconbar" src="ui-icons/select.png" title="hand icon" alt="hand icon">
 &ndash; <a href="../selection.html">selection</a> checkbox
-<li><b>Length</b> 
-<li><b>Radius</b>
-</ul>
+</li><li><b>Length</b> 
+</li><li><b>Radius</b>
+</li></ul>
 <p>
 Clicking a column header sorts the table by that column,
 and the table can be saved as a comma- or tab-separated file by choosing
@@ -384,11 +371,11 @@ reported in the <a href="log.html"><b>Log</b></a>.
 is chosen. It centers and aligns the chosen axis, or centers the chosen plane
 and aligns its normal vector, along the specified direction
 in <a href="../commands/view.html#screencoords">screen coordinates</a>:
-<ul>
+</p><ul>
 <li><b>X</b> &ndash; horizontal in the plane of the screen
-<li><b>Y</b> &ndash; vertical in the plane of the screen
-<li><b>Z</b> &ndash; perpendicular to the screen, along the line of sight
-</ul>
+</li><li><b>Y</b> &ndash; vertical in the plane of the screen
+</li><li><b>Z</b> &ndash; perpendicular to the screen, along the line of sight
+</li></ul>
 There is no control over which end of the axis or normal vector
 goes in the positive direction, but
 the view can be flipped 180&deg; with a command, for example, if the axis is
@@ -409,7 +396,7 @@ Axis endpoint coordinates (<i>x<sub>1</sub>,y<sub>1</sub>,z<sub>1</sub></i>)
 can be generated as follows:
 </p>
 <table align="center" width="80%">
-<tr><td align="left">
+<tbody><tr><td align="left">
 <i>x<sub>1</sub></i>&nbsp;=&nbsp;<i>x<sub>c</sub></i>&nbsp;&ndash;&nbsp;0.5(<i>length</i>)(<i>x<sub>u</sub></i>)
 <br>
 <i>y<sub>1</sub></i>&nbsp;=&nbsp;<i>y<sub>c</sub></i>&nbsp;&ndash;&nbsp;0.5(<i>length</i>)(<i>y<sub>u</sub></i>)
@@ -422,7 +409,7 @@ can be generated as follows:
 <br>
 <i>z<sub>2</sub></i>&nbsp;=&nbsp;<i>z<sub>c</sub></i>&nbsp;+&nbsp;0.5(<i>length</i>)(<i>z<sub>u</sub></i>)
 </td></tr>
-</table>
+</tbody></table>
 <p>
 Plane information also includes radius
 and orientation expressed as a normal unit vector.
@@ -431,4 +418,5 @@ and orientation expressed as a normal unit vector.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 February 2024</address>
+
 </body></html>

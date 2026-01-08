@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: sequence</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: sequence</h3>
 <p>
@@ -33,42 +28,42 @@ and associated structures:
 <ul>
 <li><a href="#align"><b>sequence align</b></a>
 &ndash; calculate a new sequence alignment using a web service
-<li><a href="#associate"><b>sequence associate</b></a> and
+</li><li><a href="#associate"><b>sequence associate</b></a> and
 <a href="#dissociate"><b>sequence dissociate</b></a>
 &ndash; control sequence-structure associations
-<li><a href="#chain"><b>sequence chain</b></a>
+</li><li><a href="#chain"><b>sequence chain</b></a>
 &ndash; show the sequence of a structure chain (start the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>)
-<li><a href="#expandsel"><b>sequence expandsel</b></a>
+</li><li><a href="#expandsel"><b>sequence expandsel</b></a>
 &ndash; expand the current <a href="../selection.html">selection</a>
 to all residues
 <a href="../tools/sequenceviewer.html#association">associated</a>
 with the same column(s) of the sequence alignment
-<li><a href="#header"><b>sequence header</b></a>
+</li><li><a href="#header"><b>sequence header</b></a>
 &ndash; show, hide, save alignment headers
-<li><a href="#identity"><b>sequence identity</b></a>
+</li><li><a href="#identity"><b>sequence identity</b></a>
 &ndash; calculate pairwise percent identities
-<li><a href="#match"><b>sequence match</b></a>
+</li><li><a href="#match"><b>sequence match</b></a>
 &ndash; superimpose structures based on the alignment of their 
 <a href="../tools/sequenceviewer.html#association">associated</a> sequences
-<li><a href="#refreshAttrs"><b>sequence refreshAttrs</b></a>
+</li><li><a href="#refreshAttrs"><b>sequence refreshAttrs</b></a>
 &ndash; for structure chains 
 <a href="../tools/sequenceviewer.html#association">associated</a>
 with more than one sequence alignment,
 assign <a href="../attributes.html">attributes</a> 
 consistent with a specific alignment
-<li><a href="#refseq"><b>sequence refseq</b></a>
+</li><li><a href="#refseq"><b>sequence refseq</b></a>
 &ndash; set which sequence to use as the reference for numbering
-<li><a href="#rename"><b>sequence rename</b></a>
+</li><li><a href="#rename"><b>sequence rename</b></a>
 &ndash; change the name of a sequence
-<li><a href="#search"><b>sequence search</b></a>
+</li><li><a href="#search"><b>sequence search</b></a>
 &ndash; fast MMSeqs2 search for structures similar in sequence 
 to a structure chain
-<li><a href="#update"><b>sequence update</b></a>
+</li><li><a href="#update"><b>sequence update</b></a>
 &ndash; replace the sequence data of a structure chain with its
 associated sequence in the 
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
-</ul>
+</li></ul>
 <p>
 The <a href="../menu.html#tools"><b>Tools</b> menu</a> 
 can also be used to show the sequence of a structure chain in the
@@ -100,7 +95,7 @@ Only one structure chain should be specified per command.
 See also: 
 <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> icon
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="iconbar" src="../tools/shortcut-icons/sequence.png"></a>
+<img class="iconbar" src="../tools/shortcut-icons/sequence.png" alt="computer generated image"></a>
 </p><p>
 Other ways to start the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>:
@@ -183,7 +178,7 @@ associated with one sequence per alignment.
 <b>sequence &nbsp;match</b> [&nbsp;<i>alignment-ID</i>&nbsp;]
 &nbsp;<a href="atomspec.html#hierarchy"><i>matchchain(s)</i></a>&nbsp; <b>to</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>refchain</i></a>&nbsp;
-[&nbsp;<b>cutoffDistance</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;|&nbsp;none</a>&nbsp;]
+[&nbsp;<b>cutoffDistance</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;|&nbsp;none&nbsp;]
 [&nbsp;<b>conservation</b>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 [&nbsp;<b>columns</b>&nbsp;&nbsp;<i>list-of-positions</i>&nbsp;]
 </blockquote>
@@ -325,7 +320,7 @@ plus the sequence's name or index number in the alignment, in the form:
 When the reference sequence has a gap character at a position
 where a number is to be shown (first column, eleventh column, <i>etc.</i>),
 how that position falls relative to the reference is shown in parentheses.
-For example, &ldquo;(<1)&rdquo; would be shown for alignment positions
+For example, &ldquo;(&lt;1)&rdquo; would be shown for alignment positions
 before the reference's first residue, and &ldquo;(43/44)&rdquo;
 for positions that fall between residues 43 and 44 of the reference.
 </p><p>
@@ -385,11 +380,11 @@ as a percentage of the specified <b>denominator</b>:
 <ul>
 <li><b>shorter</b> (default) 
 &ndash; the number of residues in the shorter of the two sequences
-<li><b>longer</b>
+</li><li><b>longer</b>
 &ndash; the number of residues in the longer of the two sequences
-<li><b>nongap</b>
+</li><li><b>nongap</b>
 &ndash; the number of columns where neither sequence has a gap
-</ul> 
+</li></ul> 
 
 <a name="refreshAttrs"></a>
 <p class="nav">
@@ -426,7 +421,7 @@ The <i>alignment-ID</i> is shown in the title bar of the
 [&nbsp;<b>maxHits</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 <span class="nowrap">[&nbsp;<b>trim</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;|&nbsp;chains,sequence,ligands&nbsp;]</span>
 [&nbsp;<b>alignmentCutoffDistance</b>&nbsp;&nbsp;<i>dist</i>&nbsp;]
-[&nbsp;<b>saveDirectory</b></a>&nbsp;&nbsp;<i>results-folder</i>&nbsp;]
+[&nbsp;<b>saveDirectory</b>&nbsp;&nbsp;<i>results-folder</i>&nbsp;]
 </blockquote>
 <p>
 The <b>sequence search</b> command performs a fast MMseqs2 search of the
@@ -441,8 +436,7 @@ to running this command. See also:
 <a href="foldseek.html"><b>foldseek</b></a>,
 <a href="blastprotein.html"><b>blastprotein</b></a>
 </p>
-MMseqs2 (<a href="https://github.com/soedinglab/MMseqs2"
-target="_blank">Many-against-Many sequence searching</a>) is described in:
+MMseqs2 (<a href="https://github.com/soedinglab/MMseqs2" target="_blank">Many-against-Many sequence searching</a>) is described in:
 <blockquote>
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/29035372" target="_blank">
 MMseqs2 enables sensitive protein sequence searching for the analysis
@@ -471,25 +465,24 @@ is reported in the <a href="../tools/log.html"><b>Log</b></a>
 when the search is run.
 </p><p>
 Choices of <b>database</b> to search:
-<ul>
+</p><ul>
 <li><b>pdb</b> (default)
 &ndash; <a href="https://www.rcsb.org" target="_blank">PDB</a>
-<li><b>afdb</b>
-&ndash; <a href="https://alphafold.ebi.ac.uk/" 
-target="_blank">AlphaFold Database</a>
-</ul>
+</li><li><b>afdb</b>
+&ndash; <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
+</li></ul>
 <p>
 The hits can be limited with the following options:
 </p>
 <ul>
 <li><b>evalueCutoff</b>&nbsp;&nbsp;<i>max-evalue</i>
 &ndash; maximum E-value of a hit to be retained (default <b>1e-3</b>)
-<li><b>identityCutoff</b>&nbsp;&nbsp;<i>min-pid</i>
+</li><li><b>identityCutoff</b>&nbsp;&nbsp;<i>min-pid</i>
 &ndash; minimum percent sequence identity with the query
 for a hit to be retained (default <b>0</b>)
-<li><b>maxHits</b>&nbsp;&nbsp;<i>N</i>
+</li><li><b>maxHits</b>&nbsp;&nbsp;<i>N</i>
 &ndash; maximum number of hits retained (default <b>1000</b>)
-</ul>
+</li></ul>
 <p>
 The <b>trim</b> and <b>alignmentCutoffDistance</b> options do not act
 immediately. Instead, they specify how to process the hit structures
@@ -499,23 +492,22 @@ tool or with the command
 <a href="../commands/similarstructures.html#open"><b>similarstructures
 open</b></a>. The structures are fetched from the respective database
 (<a href="https://www.rcsb.org/" target="_blank">Protein Data Bank</a>
-or <a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold Database</a>) and processed as follows:
-<ul>
+or <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>) and processed as follows:
+</p><ul>
 <li>The <b>trim</b> option indicates deleting all of the following
 (if true), or none of them (if false), or a comma-separated list of:
   <ul>
   <li><b>chains</b> &ndash; for PDB entries, chains other than the hit chain
-  <li><b>sequence</b> &ndash; N- and C-terminal segments of the hit chain
+  </li><li><b>sequence</b> &ndash; N- and C-terminal segments of the hit chain
 that were not included in the sequence alignment returned by the search method
-  <li><b>ligands</b> &ndash; ligands, solvent, and ions &gt; 3 &Aring;
+  </li><li><b>ligands</b> &ndash; ligands, solvent, and ions &gt; 3 &Aring;
 from the hit chain
-  </ul>
+  </li></ul>
 The <b>trim</b> default is the current setting in the
 <a href="../tools/foldseek.html#options"><b>Similar Structures</b> options</a>,
 otherwise (if the tool is not open) <b>true</b>.
 <br><br>
-<li>The hit chain is superimposed onto the query chain by
+</li><li>The hit chain is superimposed onto the query chain by
 least-squares fitting the &alpha;-carbons of the paired residues
 and iteratively pruning far-apart pairs as described for the
 <a href="align.html"><b>align</b></a> command.
@@ -524,7 +516,7 @@ so that only &alpha;-carbon pairs within the specified distance
 are used in the final fit (default as per the
 <a href="../tools/foldseek.html#options"><b>Similar Structures</b> options</a>,
 otherwise <b>2.0</b> &Aring;)
-</ul>
+</li></ul>
 <p>
 Search results are saved in a
 <a href="../formats/sms.html">similar structures file</a>
@@ -611,20 +603,20 @@ The sequences to align can be specified collectively by:
 <ul>
 <li>alignment ID, as shown in the title bar of an existing
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window;
-<li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+</li><li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
 (for atomic-structure protein chains already open in ChimeraX)
-</ul>
+</li></ul>
 ...or individually as a comma-separated list (without spaces) 
 of any combination of:
 <ul>
 <li>plain text of the entire amino acid sequence pasted directly 
 into the command line
-<li><a href="https://www.uniprot.org" target="_blank">UniProt</a>
+</li><li><a href="https://www.uniprot.org" target="_blank">UniProt</a>
 name or accession number, for example:
 <blockquote>
 <b>sequence align ldlr_rat,ldlr_mouse,ldlr_human</b>
 </blockquote>
-<li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+</li><li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
 in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
 in the form: 
 &nbsp;<span class="nowrap"><i>alignment-ID</i>:<i>sequence-ID</i></span>&nbsp;
@@ -636,24 +628,22 @@ in the form:
 <br><i>&ndash; OR (if multiple sequence windows are open) &ndash;</i><br>
 <span class="nowrap"><b>sequence align myfile.msf:1,myfile.msf:2,myfile.msf:3,myfile.msf:-1</b></span>
 </blockquote>
-</ul>
+</li></ul>
 <p>
 The <b>program</b> can be either of two choices:
 </p>
 <ul>
 <li><a name="clustal"></a> 
 <b>clustalOmega</b> (default, same as <b>clustal</b> or <b>omega</b>) 
-&ndash; <a href="http://www.clustal.org/omega/" 
-target="_blank">Clustal Omega</a> v1.1.0 with parameters: 
-</p>
+&ndash; <a href="http://www.clustal.org/omega/" target="_blank">Clustal Omega</a> v1.1.0 with parameters: 
+<p></p>
   <ul>
   <li>Number of guide-tree/HMM iterations: <b>1</b>
-  <li>Full distance matrix during initial alignment: <b>true</b>
-  <li>Full distance matrix during alignment iteration: <b>true</b>
-  </ul>
+  </li><li>Full distance matrix during initial alignment: <b>true</b>
+  </li><li>Full distance matrix during alignment iteration: <b>true</b>
+  </li></ul>
 <p>
-See the <a href="http://www.clustal.org/omega/README"
-target="_blank">README file</a> at the Clustal Omega website for details.
+See the <a href="http://www.clustal.org/omega/README" target="_blank">README file</a> at the Clustal Omega website for details.
 Users should cite:
 </p>
 <blockquote>
@@ -664,7 +654,7 @@ Sievers F, Wilm A, Dineen D, Gibson TJ, Karplus K, Li W, Lopez R, McWilliam H,
 Remmert M, S&ouml;ding J, Thompson JD, Higgins DG.
 <i>Mol Syst Biol.</i> 2011 Oct 11;7:539.
 </blockquote>
-<li><a name="muscle"></a> <b>muscle</b> 
+</li><li><a name="muscle"></a> <b>muscle</b> 
 &ndash; the <a href="https://drive5.com/muscle5/" target="_blank">MUSCLE5</a>
 command <a href="https://drive5.com/muscle5/manual/cmd_align.html">align</a> 
 with its default parameters
@@ -676,9 +666,10 @@ Users should cite:
 Muscle5: High-accuracy alignment ensembles enable unbiased assessments of sequence homology and phylogeny.</a> Edgar RC.
 <i>Nat Commun.</i> 2022 Nov 15;13(1):6968.
 </blockquote>
-</ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 March 2025</address>
+
 </body></html>

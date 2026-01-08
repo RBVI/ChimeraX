@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: shape</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: shape</h3>
 
@@ -38,8 +33,8 @@ See also:
 <a href="topography.html"><b>topography</b></a>,
 <a href="volume.html#mask"><b>volume mask</b></a>,
 <a href="marker.html#fromMesh"><b>marker fromMesh</b>,
-<a href="cartoon.html"><b>cartoon</b>,
-<a href="surface.html#sop"><b>surface</b> operations</a>,
+</a><a href="cartoon.html"><b>cartoon</b>,
+</a><a href="surface.html#sop"><b>surface</b> operations</a>,
 <a href="../tools/markerplacement.html"><b>Marker Placement</b></a>,
 <a href="open.html#object">3D object formats</a>
 </p><p>
@@ -47,22 +42,22 @@ The <i>shape</i> can be:
 </p>
 <ul>
 <li><a href="#sphere"><b>sphere</b></a>
-<li><a href="#ellipsoid"><b>ellipsoid</b></a>
-<li><a href="#cylinder"><b>cylinder</b></a>
-<li><a href="#cone"><b>cone</b></a>
-<li><a href="#icosahedron"><b>icosahedron</b></a>
-<li><a href="#triangle"><b>triangle</b></a>
-<li><a href="#rectangle"><b>rectangle</b></a>
-<li><a href="#ribbon"><b>ribbon</b></a>
+</li><li><a href="#ellipsoid"><b>ellipsoid</b></a>
+</li><li><a href="#cylinder"><b>cylinder</b></a>
+</li><li><a href="#cone"><b>cone</b></a>
+</li><li><a href="#icosahedron"><b>icosahedron</b></a>
+</li><li><a href="#triangle"><b>triangle</b></a>
+</li><li><a href="#rectangle"><b>rectangle</b></a>
+</li><li><a href="#ribbon"><b>ribbon</b></a>
 &ndash; a ribbon of rectangular cross-section
 connecting a series of atoms or <a href="../markers.html">markers</a>
-<li><a href="#tube"><b>tube</b></a>
+</li><li><a href="#tube"><b>tube</b></a>
 &ndash; a tube
 connecting a series of atoms or <a href="../markers.html">markers</a>
-<li><a href="#boxPath"><b>boxPath</b></a>
+</li><li><a href="#boxPath"><b>boxPath</b></a>
 &ndash; zigzag &ldquo;beams&rdquo; connecting a series of atoms or
 <a href="../markers.html">markers</a>
-</ul>
+</li></ul>
 
 <a href="#top" class="nounder">&bull;</a>
   <a name="sphere"><b>shape sphere</b></a>
@@ -85,7 +80,7 @@ If a single value is specified, the result is a sphere.
 Specifying three values (<i>rx,ry,rz</i>) sets ellipsoid radii
 along the X, Y, and Z axes, respectively.
 See also: <a href="measure.html#inertia"><b>measure inertia</b></a>
-</p>
+<p></p>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -106,10 +101,10 @@ leave it open-ended. Some options are mutually exclusive:
 <ul>
 <li>the orientation can be given with the <b>axis</b> option
 instead of rotation values (in <a href="#options">general options</a>)
-<li>the endpoints can be specified directly with
+</li><li>the endpoints can be specified directly with
 <b>fromPoint</b> and <b>toPoint</b> instead of with 
 height, center, and rotation values
-</ul>
+</li></ul>
 See also: <a href="define.html#axis"><b>define axis</b></a>
 </blockquote>
 
@@ -135,11 +130,10 @@ leave them open. Some options are mutually exclusive:
 <ul>
 <li>the orientation can be given with the <b>axis</b> option
 instead of rotation values (in <a href="#options">general options</a>)
-<li>the endpoints can be specified directly with
+</li><li>the endpoints can be specified directly with
 <b>fromPoint</b> (base) and <b>toPoint</b> (tip) instead of with 
 height, center, and rotation values
-<ul>
-</blockquote>
+</li></ul></blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
   <a name="icosahedron"><b>shape icosahedron</b></a>
@@ -155,14 +149,14 @@ The <b>orientation</b> <i>type</i> can be:
   <ul>
   <li><b>222</b> (default)
    &ndash; with two-fold symmetry axes along the X, Y, and Z axes
-  <li>2n5 &ndash; with two-fold symmetry along X and 5-fold along Z
-  <li>n25 &ndash; with two-fold symmetry along Y and 5-fold along Z
-  <li>2n3 &ndash; with two-fold symmetry along X and 3-fold along Z
-  <li>222r &ndash; same as 222 except rotated 90&deg; about Z
-  <li>2n5r &ndash; same as 2n5 except rotated 180&deg; about Y
-  <li>n25r &ndash; same as n25 except rotated 180&deg; about X
-  <li>2n3r &ndash; same as 2n3 except rotated 180&deg; about Y
-  </ul>
+  </li><li>2n5 &ndash; with two-fold symmetry along X and 5-fold along Z
+  </li><li>n25 &ndash; with two-fold symmetry along Y and 5-fold along Z
+  </li><li>2n3 &ndash; with two-fold symmetry along X and 3-fold along Z
+  </li><li>222r &ndash; same as 222 except rotated 90&deg; about Z
+  </li><li>2n5r &ndash; same as 2n5 except rotated 180&deg; about Y
+  </li><li>n25r &ndash; same as n25 except rotated 180&deg; about X
+  </li><li>2n3r &ndash; same as 2n3 except rotated 180&deg; about Y
+  </li></ul>
 The <b>sphereFactor</b> option allows generating a shape that is an
 interpolation between an icosahedron and a sphere of equal radius.
 The factor <i>f</i> is the weight of the sphere component in the
@@ -185,7 +179,7 @@ Surface generation can be slow if large values are used.
 See also:
 <a href="hkcage.html"><b>hkcage</b></a>,
 <a href="../tools/cagebuilder.html"><b>Cage Builder</b></a>
-</p>
+<p></p>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -230,7 +224,7 @@ and these settings override the <b>divisions</b>
   &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>
   [&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;]
   [&nbsp;<b>height</b>&nbsp;&nbsp;&nbsp;<i>h</i>&nbsp;]
-  [&nbsp;<b>yaxis</b>&nbsp;&nbsp;<i>x,y,z</i></a>&nbsp;]
+  [&nbsp;<b>yaxis</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
 <!--
 [&nbsp;<b>yaxis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
 -->
@@ -255,7 +249,7 @@ If the vector is specified, the ribbon normal is aligned with it
 as closely as possible within the constraints of the path. 
 A constant <b>twist</b> angle <i>t</i> (default <b>0</b>&deg;) is
 applied at each point along the path.
-</p><p>
+<p></p><p>
 The <b>segmentSubdivisions</b> setting controls how many straight segments
 are used to form the curve between a consecutive pair of atoms;
 higher values give smoother curves.
@@ -266,7 +260,7 @@ centered on an atom should be colored to match that atom (default <b>0.0</b>).
 The <b>followBonds</b> option indicates whether the ribbon should
 follow the directions of the bonds connecting the atoms;
 the option should be set to false for atoms that are not bonded.
-<p>
+</p><p>
 <sup>*</sup>The <a href="#options">general options</a>
 <b>center</b>, <b>rotation</b>, <b>qrotation</b>, <b>coordinateSystem</b>,
 and <b>slab</b> do not apply to <b>ribbon</b> shapes.
@@ -319,8 +313,7 @@ The beam has a square cross-section of
 and the <b>twist</b> <i>t</i> (default <b>0.0</b>&deg;)
 sets the rotational orientation of the segments about their long axes.
 To make a physical replica of the boxpath
-(see the <a href="https://www.depauw.edu/news-media/latest-news/details/27825/"
-target="_blank">sculpture at DePauw</a>),
+(see the <a href="https://www.depauw.edu/news-media/latest-news/details/27825/" target="_blank">sculpture at DePauw</a>),
 the segments could be generated by angled cuts along a single straight beam.
 Setting <b>reportCuts</b> to <b>true</b> gives the locations
 of such cuts along the four edges of a hypothetical beam;
@@ -354,7 +347,7 @@ The <b>center</b> location of the shape (default <b>0,0,0</b>).
   The default is no rotation.
 </blockquote>
 <blockquote>
-  <a name="coordinateSystem"><b>coordinateSystem</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-number</i></a>
+  <a name="coordinateSystem"><b>coordinateSystem</b>&nbsp;&nbsp;</a><a href="atomspec.html#hierarchy"><i>model-number</i></a>
   <br>
 Specify a coordinate system for the shape surface model (default is its
 own coordinate system, but a different reference model can be specified).
@@ -366,9 +359,8 @@ has been moved separately.
 <blockquote>
   <b>color</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>
   <br>Specify the color of the surface (default <b>#bebebe</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor="#bebebe" width="10px" title="#bebebe"></td></tr></table>).
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="#bebebe" width="10px" title="#bebebe"></td></tr></tbody></table>).
 </blockquote>
 <blockquote>
   <b>name</b>&nbsp;&nbsp;<i>model-name</i>
@@ -377,7 +369,7 @@ Specify a name for the surface model. If no name is specified,
 a generic shape name will be used (for example, &ldquo;sphere&rdquo;).
 </blockquote>
 <blockquote>
-  <a name="modelId"><b>modelId</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-number</i></a>
+  <a name="modelId"><b>modelId</b>&nbsp;&nbsp;</a><a href="atomspec.html#hierarchy"><i>model-number</i></a>
   <br>
 Specify an ID number for the surface model. The default is the lowest 
 unused number. If the number is already in use for a surface model 
@@ -417,4 +409,5 @@ Offsets can be positive (outward) or negative (inward).
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 November 2023</address>
+
 </body></html>

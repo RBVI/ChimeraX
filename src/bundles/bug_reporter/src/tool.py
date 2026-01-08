@@ -16,14 +16,13 @@ from chimerax.core.tools import ToolInstance
 
 BUG_HOST = "www.rbvi.ucsf.edu"
 BUG_SELECTOR = "/chimerax/cgi-bin/chimerax_bug_report.py"
-BUG_URL = "https://" + BUG_HOST + BUG_SELECTOR
 
 
 # ------------------------------------------------------------------------------
 #
 class BugReporter(ToolInstance):
 
-    def __init__(self, session, tool_name, is_known_crash = False):
+    def __init__(self, session, tool_name, is_known_crash=False):
         import locale
 
         self._ses = session
@@ -52,7 +51,12 @@ class BugReporter(ToolInstance):
 
         row = 1
 
-        intro = '''
+        warn = ''
+        no_email = (self.settings.email_address.strip() == '')
+        if no_email and ignoring_newer_versions():
+            warn = 'Bugs in older ChimeraX versions will not be evaluted unless an email address is provided.'
+
+        intro = f'''
         <center><h1>Report a Bug</h1></center>
         <p>Thank you for using our feedback system.
       Feedback is greatly appreciated and plays a crucial role
@@ -60,7 +64,7 @@ class BugReporter(ToolInstance):
       <p><b>Note</b>:
           We do not automatically collect any personal information or the data
           you were working with when the problem occurred.  Providing your e-mail address is optional,
-          but will allow us to inform you of a fix or to ask questions, if needed.
+          but will allow us to inform you of a fix or to ask questions, if needed. {warn}
           Attaching data may also be helpful.  However, any information or data
           you wish to keep confidential should be sent separately (not using this form).</p>
         '''
@@ -204,7 +208,7 @@ class BugReporter(ToolInstance):
     def hide(self):
         self.tool_window.shown = False
 
-    def set_description(self, text, minimum_height = None):
+    def set_description(self, text, minimum_height=None):
         self.description.setText(text)
         if minimum_height is not None:
             self.description.setMinimumHeight(minimum_height)
@@ -215,6 +219,13 @@ class BugReporter(ToolInstance):
         if self.is_known_crash and not entry_values.get('email'):
             self.report_email_required_for_known_crashes()
             return
+
+        is_crash_report = ('Last time you used ChimeraX it crashed' in entry_values['description'])
+        if is_crash_report:
+            from sys import platform
+            if platform == 'linux' and not entry_values.get('email'):
+                self.report_email_required_for_linux_crashes()
+                return
 
         # Include log contents in description
         if self.include_log.isChecked():
@@ -250,7 +261,7 @@ class BugReporter(ToolInstance):
         from chimerax.webservices.post_form import post_multipart_formdata
         import socket
         try:
-            errcode, errmsg, headers, body = post_multipart_formdata(BUG_HOST, BUG_SELECTOR, fields, timeout=10)
+            errcode, errmsg, headers, body = post_multipart_formdata(BUG_HOST, BUG_SELECTOR, fields, timeout=10, ssl=True)
         except socket.gaierror:
             # Not connected to internet or hostname unknown.
             msg = 'Possibly no internet connection.'
@@ -271,15 +282,19 @@ class BugReporter(ToolInstance):
             return
 
         # Report success or error.
-        if int(errcode) == 200:
-            self.report_success()
+        from http import HTTPStatus
+        if errcode in (HTTPStatus.OK, HTTPStatus.CONFLICT):
+            if errcode == HTTPStatus.OK:
+                self.report_success()
+            else:
+                self.report_conflict(body)
             self.cancel_button.setText("Close")
             self.submit_button.deleteLater()  # Prevent second submission
             s = self.settings
             s.contact_name = self.contact_name.text()
             s.email_address = self.email_address.text()
         else:
-            self.report_failure()
+            self.report_failure(f"HTTP error {errcode} occurred")
 
     def read_attachment(self, file_path):
         if file_path:
@@ -320,6 +335,21 @@ class BugReporter(ToolInstance):
             " then you will be contacted with a report status.")
         self.result.setText(thanks)
 
+    def report_conflict(self, html: bytes):
+        from chimerax.core.colors import scheme_color
+        color = scheme_color('warning')
+        begin_h3 = html.find(b'<h3>')
+        end_h3 = html.find(b'</h3>')
+        if begin_h3 != end_h3 != -1:
+            html = b''.join([
+                html[0: begin_h3 + 4],
+                bytes(f"<font color='{color}'>", encoding='utf-8'),
+                html[begin_h3 + 4: end_h3],
+                b"</font>",
+                html[end_h3:]
+            ])
+        self.result.setText(html.decode('utf-8', errors='replace'))
+
     def report_failure(self, reason=None):
         from chimerax.core.colors import scheme_color
         color = scheme_color("error")
@@ -349,7 +379,19 @@ class BugReporter(ToolInstance):
             "<p>What we know about this crash is described in the Description panel in red."
             " If you wish to discuss this crash with us you have to provide an email address.")
         self.result.setText(thanks)
-        
+
+    def report_email_required_for_linux_crashes(self):
+        from chimerax.core.colors import scheme_color
+        color = scheme_color('status')
+        thanks = (
+            f"<h3><font color='{color}'<h3>Not submitted: Email address required</font></h3>"
+            "<p><font color='red'>Linux crash reports include little diagnostic information so we are rarely able to identify "
+            "the cause without discussing with the reporter.  Therefore we require an email address "
+            "to report ChimeraX crashes on Linux.  The most common cause of ChimeraX crashes on Linux "
+            "is failed remote display.  Remote display techologies with 3D OpenGL graphics often don't work, "
+            "and we are not able to advise on how to fix remote display.</font>")
+        self.result.setText(thanks)
+
     def cancel(self):
         self.delete()
 
@@ -376,10 +418,33 @@ class BugReporter(ToolInstance):
         return values
 
 
-def show_bug_reporter(session, is_known_crash = False):
+def ignoring_newer_versions():
+    from chimerax.core.core_settings import settings
+    ignore_versions = settings.ignore_update
+    if not ignore_versions:
+        return False
+    from chimerax.core import version
+    cur_version = version_tuple(version)
+    for iversion in ignore_versions:
+        if version_tuple(iversion) > cur_version:
+            return True
+    return False
+
+
+def version_tuple(version):
+    vtuple = []
+    for part in version.split('.'):
+        try:
+            vtuple.append(int(part))
+        except:
+            vtuple.append(part)
+    return vtuple
+
+
+def show_bug_reporter(session, is_known_crash=False):
     from Qt.QtCore import QTimer
     tool_name = 'Bug Reporter'
-    tool = BugReporter(session, tool_name, is_known_crash = is_known_crash)
+    tool = BugReporter(session, tool_name, is_known_crash=is_known_crash)
     # make sure bug report is active and description has focus
     QTimer.singleShot(
         0, lambda *args, tool=tool:

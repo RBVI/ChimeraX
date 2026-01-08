@@ -74,7 +74,7 @@ def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
                 " of the 'alignment' keyword in the 'open' command." % differing_seq.name)
         alignments = [session.alignments.new_alignment(seqs,
             ident if ident is not None else fname, attrs=file_attrs,
-            markups=file_markups, auto_associate=auto_associate, copy_seqs=False, **kw)]
+            markups=file_markups, auto_associate=auto_associate, **kw)]
     else:
         if ident is None:
             ident = fname
@@ -87,7 +87,7 @@ def open_file(session, stream, fname, format_name="FASTA", return_vals=None,
             for i, seq in enumerate(seqs):
                 final_ident = ident if len(seqs) == 1 else "%s-%d" % (ident, i+1)
                 alignments.append(session.alignments.new_alignment([seq], final_ident,
-                    auto_associate=auto_associate, copy_seqs=False, **kw))
+                    auto_associate=auto_associate, **kw))
     if return_vals == "alignments":
         return alignments
     from chimerax.core.commands import plural_form

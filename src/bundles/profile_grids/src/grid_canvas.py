@@ -18,6 +18,7 @@ class GridCanvas:
     """
 
     TEXT_MARGIN = 2
+    HOVER_MOVE_THRESHOLD = 10000
 
     def __init__(self, parent, pg, alignment, grid_data, weights):
         from Qt.QtWidgets import QGraphicsView, QGraphicsScene, QGridLayout, QShortcut, QHBoxLayout, QLabel
@@ -28,6 +29,7 @@ class GridCanvas:
         self.alignment = alignment
         self.grid_data = grid_data
         self.weights = weights
+        self._destroyed = False
 
         import string
         self.row_labels = list(string.ascii_uppercase) + ['?', 'gap', 'misc']
@@ -81,6 +83,8 @@ class GridCanvas:
         self.main_scene.setBackgroundBrush(Qt.white)
         self.main_scene.mouseReleaseEvent = self.mouse_click
         self.main_scene.helpEvent = self.mouse_hover
+        self.main_scene.mouseMoveEvent = self.mouse_move
+        self.main_scene.eventFilter = self.main_event_filter
         from Qt.QtWidgets import QToolTip
         """if gray background desired...
         ms_brush = self.main_scene.backgroundBrush()
@@ -91,10 +95,12 @@ class GridCanvas:
         """
         self.main_view = QGraphicsView(self.main_scene)
         self.main_view.setAttribute(Qt.WA_AlwaysShowToolTips)
+        self.main_view.viewport().installEventFilter(self.main_scene)
         #self.main_view.setViewportMargins(0, 0, 0, -20)
         #from Qt.QtWidgets import QFrame
         #self.main_view.setFrameStyle(QFrame.NoFrame)
-        #self.main_view.setMouseTracking(True)
+        # To show column number in status area as mouse is moved...
+        self.main_view.setMouseTracking(True)
         main_vsb = self.main_view.verticalScrollBar()
         label_vsb = self.main_label_view.verticalScrollBar()
         main_vsb.valueChanged.connect(label_vsb.setValue)
@@ -148,7 +154,7 @@ class GridCanvas:
         self.handlers = [ self.pg.session.triggers.add_handler(SELECTION_CHANGED, self.update_selection) ]
 
     def alignment_from_cells(self, viewer):
-        seqs = self._check_cells()
+        seqs = self.seqs_from_cells()
         if len(seqs) == 1:
             seq_viewers = self.pg.session.alignments.registered_viewers("sequence")
             if viewer not in seq_viewers:
@@ -197,6 +203,7 @@ class GridCanvas:
                 self._update_scene_rects()
 
     def destroy(self):
+        self._destroyed = True
         for handler in self.handlers:
             handler.remove()
 
@@ -229,29 +236,35 @@ class GridCanvas:
         y = 0
         # adjust for rectangle outline width / inter-line spacing
         y_adjust = 2
-        self._cell_text_infos = []
+        self.cell_text_infos = {}
+        self.cell_rects = {}
+        displayed_row = 0
         for i in range(rows):
             if i in self.empty_rows:
                 continue
+            rects = []
+            self.cell_rects[displayed_row] = (i, rects)
             for j in range(columns):
                 x = j * width
                 val = self.grid_data[i,j]
                 fraction = val / divisor
                 # The "cell chosen" contrast color has to change if this color changes
+                # Also, the prevalence dialog's "Revert to default coloring"
                 non_blue = int(255 * (1.0 - fraction) + 0.5)
                 fill_color = QColor(non_blue, non_blue, 255)
-                self.main_scene.addRect(x, y, width, height, brush=QBrush(fill_color))
+                rects.append(self.main_scene.addRect(x, y, width, height, brush=QBrush(fill_color)))
                 if val > 0.0:
                     text_rgb = contrast_with((non_blue/255.0, non_blue/255.0, 1.0))
                     text_val = self._cell_text(val, fraction)
                     cell_text = self.main_scene.addSimpleText(text_val, self.font)
                     self._center_cell_text(cell_text, x, y, y_adjust)
                     cell_text.setBrush(QBrush(QColor(*[int(255 * channel + 0.5) for channel in text_rgb])))
-                    self._cell_text_infos.append((cell_text, x, y, y_adjust, val, fraction))
+                    self.cell_text_infos[(displayed_row,j)] = (cell_text, x, y, y_adjust, val, fraction)
             label_text = self.main_label_scene.addSimpleText(self.row_labels[i], self.font)
             label_width = self.font_metrics.horizontalAdvance(self.row_labels[i] + ' ')
             label_text.moveBy((self.max_label_width - label_width) / 2, y + y_adjust)
             y += height
+            displayed_row += 1
         self.header_groups = {}
         self.header_label_items = {}
         self.displayed_headers = []
@@ -282,8 +295,13 @@ class GridCanvas:
         self._update_scene_rects()
 
     def list_from_cells(self):
-        seqs = self._check_cells()
+        seqs = self.seqs_from_cells()
         _SeqList(self.pg.session, seqs).show()
+
+    def main_event_filter(self, watcher, event):
+        if event.type() == event.Leave:
+            self.pg.status("", secondary=True)
+        return False
 
     def mouse_click(self, event):
         from Qt.QtCore import Qt
@@ -320,18 +338,20 @@ class GridCanvas:
                 else:
                     item.hide()
                     self.main_scene.removeItem(item)
-                    del self.chosen_cells[(row, col)]
+                    self._unchoose_cell(row, col)
                     return
             else:
                 for item in self.chosen_cells.values():
                     item.hide()
                     self.main_scene.removeItem(item)
-                self.chosen_cells.clear()
+                self._clear_chosen_cells()
             self._choose_cell(row, col)
 
     def mouse_hover(self, event):
         if event.type() != event.GraphicsSceneHelp:
             return
+        if len(self.alignment.seqs) > self.HOVER_MOVE_THRESHOLD:
+            self.mouse_move(event, hover=True)
         from Qt.QtWidgets import QToolTip
         residues, row, col = self._residues_for_event(event)
         if not residues:
@@ -340,6 +360,43 @@ class GridCanvas:
         from chimerax.atomic import concise_residue_spec
         self.main_view.setToolTip(concise_residue_spec(self.pg.session, residues))
         QToolTip.showText(event.screenPos(), self.main_view.toolTip())
+
+    def mouse_move(self, event, *, hover=False):
+        if len(self.alignment.seqs) > self.HOVER_MOVE_THRESHOLD and not hover:
+            self.pg.status("", secondary=True)
+            return
+        residues, event_row, event_col = self._residues_for_event(event)
+        if event_col is None:
+            text = ""
+        else:
+            text = "Column " + str(event_col+1)
+            associations = {}
+            for row, label in enumerate(self.existing_row_labels):
+                row_residues = self._residues_at(row, event_col)
+                if row_residues:
+                    associations[label] = len(row_residues)
+            if associations:
+                text += '; '
+                labels = list(associations.keys())
+                labels.sort(key=lambda l: -associations[l])
+                label = labels.pop(0)
+                text += "%d chain%s associated with %s" % (associations[label],
+                    ("s" if associations[label] > 1 else ""), label)
+                for label in labels[:-1]:
+                    text += ", %d with %s" % (associations[label], label)
+                if labels:
+                    label = labels[-1]
+                    text += " and %d with %s" % (associations[label], label)
+        self.pg.status(text, secondary=True)
+
+    def prevalence_from_cells(self):
+        seqs = self.seqs_from_cells()
+        if not hasattr(self, 'prevalence_tool'):
+            from .prevalence_tool import PrevalenceTool
+            self.prevalence_tool = PrevalenceTool(self,
+                self.pg.tool_window.create_child_window("Prevalence Changes", close_destroys=False))
+            self.prevalence_tool.tool_window.manage(None)
+        self.prevalence_tool.tool_window.shown = True
 
     def refresh(self, seq, left=0, right=None):
         if seq not in self.alignment.headers:
@@ -360,6 +417,19 @@ class GridCanvas:
             self._choose_cell(row, col)
         check_box = self.mouse_selects if state['mouse selects'] else self.mouse_chooses
         check_box.setChecked(True)
+
+    def seqs_from_cells(self):
+        from chimerax.core.errors import UserError
+        if not self.chosen_cells:
+            raise UserError("No grid cells are chosen.\n"
+                "Choose cells by changing mouse-click mode at bottom of window to '%s'\n"
+                " and then clicking on desired cell(s)" % self._choose_cell_text)
+
+        # since cells in the same column 'union' together, but columns intersect, organize by column...
+        aln_seqs = self._get_chosen_seqs()
+        if not aln_seqs:
+            raise UserError("No sequences match the chosen cells")
+        return aln_seqs
 
     def show_header(self, header):
         self.displayed_headers.append(header)
@@ -393,7 +463,7 @@ class GridCanvas:
         for chain, aseq in self.alignment.associations.items():
             if chain not in sel_chains:
                 continue
-            match_map = aseq.match_maps[chain]
+            match_map = self.alignment.match_maps[aseq][chain]
             for r in chain.existing_residues:
                 if r not in sel_residues:
                     continue
@@ -434,29 +504,6 @@ class GridCanvas:
         bbox = cell_text.boundingRect()
         cell_text.moveBy((width - bbox.width())/2, y_adjust + (height - bbox.height())/2)
 
-    def _check_cells(self):
-        from chimerax.core.errors import UserError
-        if not self.chosen_cells:
-            raise UserError("No grid cells are chosen.\n"
-                "Choose cells by changing mouse-click mode at bottom of window to '%s'\n"
-                " and then clicking on desired cell(s)" % self._choose_cell_text)
-
-        # since cells in the same column 'union' together, but columns intersect, organize by column...
-        by_col = {}
-        for row, col in self.chosen_cells.keys():
-            by_col.setdefault(col, []).append(row)
-        seqs = set(self.alignment.seqs)
-        for col, rows in by_col.items():
-            col_seqs = set()
-            for row in rows:
-                col_seqs.update(self._sequences_at(row, col))
-            seqs &= col_seqs
-        # in same order though
-        aln_seqs = [seq for seq in self.alignment.seqs if seq in seqs]
-        if not aln_seqs:
-            raise UserError("No sequences match the chosen cells")
-        return aln_seqs
-
     def _choose_cell(self, row, col):
         from Qt.QtGui import QPen, QColor, QPolygonF
         from Qt.QtCore import QPointF
@@ -471,6 +518,11 @@ class GridCanvas:
         bottom_y = top_y + height
         self.chosen_cells[(row, col)] = self.main_scene.addPolygon(QPolygonF([QPointF(x, y) for x,y in
             [(left_x, mid_y), (mid_x, top_y), (right_x, mid_y), (mid_x, bottom_y), (left_x, mid_y)]]), pen)
+        self._report_chosen_seqs()
+
+    def _clear_chosen_cells(self):
+        self.chosen_cells.clear()
+        self._report_chosen_seqs()
 
     def _clear_header_contents(self, header):
         header_group = self.header_groups[header]
@@ -513,23 +565,35 @@ class GridCanvas:
         self.header_groups[header] = group = self.header_scene.createItemGroup(items);
         return group
 
+    def _get_chosen_seqs(self):
+        by_col = {}
+        for row, col in self.chosen_cells.keys():
+            by_col.setdefault(col, []).append(row)
+        seqs = set(self.alignment.seqs)
+        for col, rows in by_col.items():
+            col_seqs = set()
+            for row in rows:
+                col_seqs.update(self._sequences_at(row, col))
+            seqs &= col_seqs
+        # in same order though
+        return [seq for seq in self.alignment.seqs if seq in seqs]
+
     def _residues_at(self, grid_row, grid_col):
         residues = []
         for seq in self._sequences_at(grid_row, grid_col):
-            for match_map in seq.match_maps.values():
+            for match_map in self.alignment.match_maps[seq].values():
                 try:
                     residues.append(match_map[seq.gapped_to_ungapped(grid_col)])
                 except KeyError:
                     continue
         return residues
 
-    def _sequences_at(self, grid_row, grid_col):
-        seqs = []
-        row_label = self.existing_row_labels[grid_row]
-        for seq in self.alignment.seqs:
-            if seq.characters[grid_col].upper() == row_label:
-                seqs.append(seq)
-        return seqs
+    def _report_chosen_seqs(self):
+        if not self.chosen_cells:
+            self.pg.status("")
+            return
+        seqs = self._get_chosen_seqs()
+        self.pg.status("%d sequences match chosen cells" % len(seqs))
 
     def _residues_for_event(self, event):
         width, height = self.font_pixels
@@ -544,8 +608,24 @@ class GridCanvas:
             return None, None, None
         return self._residues_at(row, col), row, col
 
+    def _sequences_at(self, grid_row, grid_col):
+        seqs = []
+        row_label = self.existing_row_labels[grid_row]
+        for seq in self.alignment.seqs:
+            char = seq.characters[grid_col]
+            if row_label == "gap":
+                if seq.is_gap_character(char):
+                    seqs.append(seq)
+            elif char.upper() == row_label:
+                seqs.append(seq)
+        return seqs
+
+    def _unchoose_cell(self, row, col):
+        del self.chosen_cells[(row, col)]
+        self._report_chosen_seqs()
+
     def _update_cell_texts(self):
-        for cell_text, *pos_args, val, fraction in self._cell_text_infos:
+        for cell_text, *pos_args, val, fraction in self.cell_text_infos.values():
             cell_text.setText(self._cell_text(val, fraction))
             self._center_cell_text(cell_text, *pos_args)
 
@@ -577,12 +657,31 @@ class GridCanvas:
 
         # Apparently the height of the horizontal scrollbar gets added to main view at some point,
         # need to compensate
-        def adjust_scrollbars(sb1=self.main_label_view.verticalScrollBar(), sb2=self.main_view.verticalScrollBar()):
+        from Qt.QtCore import QTimer, Qt
+        def adjust_scrollbars(self=self, mlv=self.main_label_view, mv=self.main_view):
+            if self._destroyed:
+                return
+            mlv = self.main_label_view
+            mv = self.main_view
+            sb1 = mlv.verticalScrollBar()
+            sb2 = mv.verticalScrollBar()
             min_val = min(sb1.minimum(), sb2.minimum())
             max_val = max(sb1.maximum(), sb2.maximum())
             sb1.setRange(min_val, max_val)
             sb2.setRange(min_val, max_val)
-        from Qt.QtCore import QTimer
+            # on Mac, if the user has their scrollbar policy as "always on", there might be a horizontal
+            # scrollbar on the main canvas and not on the label canvas, which makes the viewports heights
+            # different, so they don't scroll in sync; compensate by adding horizontal scroller to labels
+            lvr = mlv.viewport().rect()
+            mvr = mv.viewport().rect()
+            if lvr.height() > mvr.height():
+                mlv.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+                def right_scroll(self=self, mlv=mlv):
+                    if self._destroyed:
+                        return
+                    hsb = mlv.horizontalScrollBar()
+                    hsb.setValue(hsb.maximum())
+                QTimer.singleShot(100, right_scroll)
         QTimer.singleShot(100, adjust_scrollbars)
 
 _seq_lists = [] # hold references so the lists aren't immediately destroyed

@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: crosslinks</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: crosslinks</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -55,11 +50,11 @@ The following subcommands perform plotting and other analyses:
 <ul>
 <li><a href="#histogram"><b>crosslinks histogram</b></a>
 &ndash; plot as histogram by length
-<li><a href="#network"><b>crosslinks network</b></a>
+</li><li><a href="#network"><b>crosslinks network</b></a>
 &ndash; plot as chain network diagram
-<li><a href="#minimize"><b>crosslinks minimize</b></a>
+</li><li><a href="#minimize"><b>crosslinks minimize</b></a>
 &ndash; move models rigidly to minimize lengths
-</ul>
+</li></ul>
 <p>
 Any <a href="atomspec.html"><i>pseudobond-spec</i></a> can be used: 
 model numbers of pseudobond models or the atomic models containing them, 
@@ -123,7 +118,7 @@ using parameters of the matplotlib
 <a href="https://matplotlib.org/stable/api/figure_api.html#matplotlib.figure.Figure.savefig" target="_blank">Figure.save_fig() method</a>:
 resolution 300 dpi (if PNG or PDF) and border padding 0.1 inch. Currently,
 there is no command for saving the plot and no way to change these parameters.
-</ul>
+</li></ul>
 
 <a name="network"></a>
 <p class="nav">
@@ -156,7 +151,7 @@ The <b>background</b> context menu includes:
 <li><b>Lay Out to Match Structure</b>
 &ndash; redraw diagram with orientation similar to the current 3D structure
 (including repulsion to prevent node overlaps in the diagram)
-</ul>
+</li></ul>
 <p>
 The <b>node</b> context menu also includes:
 </p>
@@ -164,15 +159,15 @@ The <b>node</b> context menu also includes:
 <li><b>Select [<i>chain</i>]</b>
 &ndash; <a href="../selection.html">select</a> the corresponding chain
 (same as simply clicking the node)
-</ul>
+</li></ul>
 <p>
 ...whereas the <b>edge</b> context menu includes:
-<p>
-<ul>
+</p><p>
+</p><ul>
 <li><b>Select [<i>N</i>] Pseudobonds</b>
 &ndash; <a href="../selection.html">select</a> the corresponding pseudobonds
 and their endpoint atoms (same as simply clicking the edge)
-</ul>
+</li></ul>
 
 <a name="minimize"></a>
 <p class="nav">
@@ -204,4 +199,5 @@ Intra-model crosslinks are not affected.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 November 2023</address>
+
 </body></html>

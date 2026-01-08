@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: alphafold</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: alphafold</h3>
 <p>
@@ -33,7 +28,7 @@ of biomolecules and their complexes. The method is described in:
 <blockquote>
 <!-- AlphaFold 3 not yet available via ChimeraX
 <a href="https://pubmed.ncbi.nlm.nih.gov/38718835/" target="_blank">Accurate
-structure prediction of biomolecular interactions with AlphaFold 3.</a>
+structure prediction of biomolecular interactions with AlphaFoldâ€‰3.</a>
 Abramson J, Adler J, Dunger J, <i>et al.</i>
 Nature. 2024 May 8. doi: 10.1038/s41586-024-07487-w. Online ahead of print.
 PMID: 38718835
@@ -45,8 +40,7 @@ Jumper J, Evans R, Pritzel A, <i>et al.</i>
 <i>Nature.</i> 2021 Aug;596(7873):583-589.
 <br>
 <a name="alphafold-multimer"></a>
-<a href="https://www.biorxiv.org/content/10.1101/2021.10.04.463034"
-target="_blank">Protein complex prediction with AlphaFold-Multimer.</a>
+<a href="https://www.biorxiv.org/content/10.1101/2021.10.04.463034" target="_blank">Protein complex prediction with AlphaFold-Multimer.</a>
 Evans R, O'Neill M, Pritzel A, <i>et al.</i> bioRxiv 2021.
 </blockquote>
 <p>
@@ -54,9 +48,8 @@ The <b>alphafold</b> command:
 </p>
 <ul>
 <li><a href="#fetch">finds and retrieves existing models</a>
-from the <a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold Database</a>:
-</p>
+from the <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>:
+<p></p>
 <blockquote>
 <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8728224/" target="_blank">
 AlphaFold Protein Structure Database: massively expanding the structural coverage of protein-sequence space with high-accuracy models.</a>
@@ -69,20 +62,18 @@ in <a href="https://www.uniprot.org" target="_blank">UniProt</a>
 (single chains only, not complexes); 
 see the <a href="#version"><b>version</b></a> option.
 </p>
-<li><a href="#predict">runs new AlphaFold predictions</a>
+</li><li><a href="#predict">runs new AlphaFold predictions</a>
 on <a href="https://colab.research.google.com/signup" target="_blank">Google
 Colab</a> using <b>ColabFold</b>, an open-source, optimized version of
-<a href="https://en.wikipedia.org/wiki/AlphaFold#AlphaFold_2,_2020"
-target="_blank">AlphaFold 2</a>:
+<a href="https://en.wikipedia.org/wiki/AlphaFold#AlphaFold_2,_2020" target="_blank">AlphaFold 2</a>:
 <blockquote>
-<a href="https://www.nature.com/articles/s41592-022-01488-1"
-target="_blank">ColabFold: making protein folding accessible to all.</a>
+<a href="https://www.nature.com/articles/s41592-022-01488-1" target="_blank">ColabFold: making protein folding accessible to all.</a>
 Mirdita M, Sch&uuml;tze K, Moriwaki Y, Heo L, Ovchinnikov S, Steinegger M.
 <i>Nat Methods.</i> 2022 Jun;19(6):679-682.
 </blockquote>
-<li><a href="#pae">plots PAE values</a> for AlphaFold structures and 
+</li><li><a href="#pae">plots PAE values</a> for AlphaFold structures and 
 <a href="#contacts">shows them with colored pseudobonds</a>
-</ul>
+</li></ul>
 <p>
 AlphaFold-predicted structures vary in confidence levels
 (see <a href="#colorConfidence">coloring</a>) 
@@ -91,10 +82,8 @@ The <b>alphafold</b> command is also implemented as the tools
 <a href="../tools/alphafold.html"><b>AlphaFold</b></a>
 and <a href="../tools/alphafold.html#pae"><b>AlphaFold Error Plot</b></a>.
 Several ChimeraX
-<a href="https://www.rbvi.ucsf.edu/chimerax/docs/presentations.html"
-target="_blank">presentations</a> and
-<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
-target="_blank">videos</a> show modeling with AlphaFold and related analyses.
+<a href="https://www.rbvi.ucsf.edu/chimerax/docs/presentations.html" target="_blank">presentations</a> and
+<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/" target="_blank">videos</a> show modeling with AlphaFold and related analyses.
 See also:
 <a href="boltz.html"><b>boltz</b></a>,
 <a href="esmfold.html"><b>esmfold</b></a>,
@@ -145,7 +134,7 @@ for a specific UniProt name or accession number. It is equivalent to using the
 <br>&ndash; OR &ndash; (equivalent)<br>
 <b><a href="open.html#fetch">open</a> p29474 from alphafold</b>
 </blockquote>
-<li>The <b>alphafold match</b> command retrieves models for sequences
+</li><li>The <b>alphafold match</b> command retrieves models for sequences
 the same as or similar to those of experimentally determined protein structures
 already open in ChimeraX, or other sequences independent of structure.
 Giving the model number of an atomic structure already open in ChimeraX 
@@ -164,14 +153,13 @@ Alternatively, the <i>sequence</i> can be given as any of the following:
 in the form:
 &nbsp;<span class="nowrap"><i>alignment-ID</i>:<i>sequence-ID</i></span>&nbsp;
 (<a href="seqspec.html">details...</a>)
-  <li>a UniProt name or accession number
-  <li>plain text pasted directly into the command line
-  </ul>
+  </li><li>a UniProt name or accession number
+  </li><li>plain text pasted directly into the command line
+  </li></ul>
 <p>
 For a specified structure chain, a model is obtained for its exact 
 UniProt entry if available, otherwise the single top hit identified by
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html"
-target="_blank">K-mer search</a> of the
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html" target="_blank">K-mer search</a> of the
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<a href="#search-option">details...</a>).
 For each model with a corresponding structure chain
@@ -182,51 +170,47 @@ from the <b>alphafold match</b> command or the
 <ol>
 <li>the chain ID of the predicted structure is made the same as the
 corresponding chain of the existing model
-<li>the predicted structure is superimposed onto the existing chain using
+</li><li>the predicted structure is superimposed onto the existing chain using
 <a href="matchmaker.html"><b>matchmaker</b></a>,
 and the following are reported in a table
 in the <a href="../tools/log.html"><b>Log</b></a>:
   <ul>
   <li><b>Chain</b> &ndash; chain ID
-  <li><a href="https://www.uniprot.org/help/entry_name" 
-  target="_blank"><b>UniProt Name</b></a>
-  and <a href="https://www.uniprot.org/help/accession_numbers"
-  target="_blank"><b>UniProt Id</b></a> (accession number)
-  <li><b>RMSD</b> &ndash; C&alpha; root-mean-square deviation between
+  </li><li><a href="https://www.uniprot.org/help/entry_name" target="_blank"><b>UniProt Name</b></a>
+  and <a href="https://www.uniprot.org/help/accession_numbers" target="_blank"><b>UniProt Id</b></a> (accession number)
+  </li><li><b>RMSD</b> &ndash; C&alpha; root-mean-square deviation between
   the predicted and experimental structures, over all residues of the latter
-  <li><b>Length</b> &ndash; number of residues in the predicted structure
-  <li><b>Seen</b> &ndash; number of residues with atomic coordinates 
+  </li><li><b>Length</b> &ndash; number of residues in the predicted structure
+  </li><li><b>Seen</b> &ndash; number of residues with atomic coordinates 
   in the experimental structure
-  <li><b>% Id</b> &ndash; percent identity in the sequence alignment generated 
+  </li><li><b>% Id</b> &ndash; percent identity in the sequence alignment generated 
   by <a href="matchmaker.html"><b>matchmaker</b></a> for superposition;
   the number of positions with identical residues
   divided by the length of the shorter sequence
-  </ul>
-<li>the following <a href="../attributes.html">attributes</a>
+  </li></ul>
+</li><li>the following <a href="../attributes.html">attributes</a>
  are assigned to the residues of the predicted structure:
   <ul>
   <li><b>c_alpha_distance</b>
 &ndash; C&alpha; distance between corresponding positions of the predicted
 and existing chains after their superposition (step 2 above)
-  <li><b>missing_structure</b>
+  </li><li><b>missing_structure</b>
 &ndash; positions missing from the coordinates of the existing chain
-  <li><b>same_sequence</b>
+  </li><li><b>same_sequence</b>
 &ndash; positions with the same residue type as the existing chain
-  </ul>
+  </li></ul>
 These <a href="../attributes.html">attributes</a>
 can be used for <a href="../tools/alphafold.html#coloring">coloring</a> 
 and other purposes.
-</ol>
+</li></ol>
 <br>
-<li>The <b>alphafold search</b> command uses 
+</li><li>The <b>alphafold search</b> command uses 
 a <a href="../tools/blastprotein.html#notes">BLAST</a> web service
-hosted by the <a href="https://www.cgl.ucsf.edu/Overview/index.html" 
-target="_blank">UCSF RBVI</a> to search the 
+hosted by the <a href="https://www.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF RBVI</a> to search the 
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>.
 It differs from <b>alphafold match</b> in that it uses BLAST instead
 of fast (but low-sensitivity)
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html"
-target="_blank">K-mer searching</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html" target="_blank">K-mer searching</a>,
 accepts only a single chain or sequence as input,
 and returns a list of hits for the user to inspect, 
 rather than fetching the single top hit per chain automatically.
@@ -234,14 +218,12 @@ The query <i>sequence</i> can be given as any of the following:
   <ul>
   <li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
   corresponding to a single chain in an atomic structure open in ChimeraX
-  <li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+  </li><li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
   in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
-  <li>a <a href="https://www.uniprot.org/help/entry_name"
-  target="_blank">UniProt name</a> or
-  <a href="https://www.uniprot.org/help/accession_numbers"
-  target="_blank">accession number</a>
-  <li>plain text pasted directly into the command line
-  </ul>
+  </li><li>a <a href="https://www.uniprot.org/help/entry_name" target="_blank">UniProt name</a> or
+  <a href="https://www.uniprot.org/help/accession_numbers" target="_blank">accession number</a>
+  </li><li>plain text pasted directly into the command line
+  </li></ul>
 <p>
 The <b>matrix</b> option indicates which amino acid <i>similarity-matrix</i>
 to use for scoring the hits (uppercase or lowercase can be used): BLOSUM45,
@@ -261,7 +243,7 @@ or multiple chosen hits can be retrieved at once by using the results panel
 or <b>Load Structures</b> button
 (<a href="../tools/blastprotein.html#results">details...</a>).
 </p>
-</ul>
+</li></ul>
 
 <a name="options"></a>
 <p class="nav">
@@ -288,50 +270,42 @@ the predicted structures by the
 confidence measure</a> in the B-factor field (default <b>true</b>):
    <ul>
      <li>100
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=blue width="10px" title="blue"></td></tr>
-</table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="blue" width="10px" title="blue"></td></tr>
+</tbody></table>
 to 90
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=cornflowerblue width="10px" title="cornflower blue"></td></tr>
-</table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="cornflowerblue" width="10px" title="cornflower blue"></td></tr>
+</tbody></table>
 &ndash; high accuracy expected
-     <li>90
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=cornflowerblue width="10px" title="cornflower blue"></td></tr>
-</table>
+     </li><li>90
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="cornflowerblue" width="10px" title="cornflower blue"></td></tr>
+</tbody></table>
 to 70
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=yellow width="10px" title="yellow"></td></tr>
-</table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="yellow" width="10px" title="yellow"></td></tr>
+</tbody></table>
 &ndash; backbone expected to be modeled well
-     <li>70
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=yellow width="10px" title="yellow"></td></tr>
-</table>
+     </li><li>70
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="yellow" width="10px" title="yellow"></td></tr>
+</tbody></table>
 to 50
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=orange width="10px" title="orange"></td></tr>
-</table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="orange" width="10px" title="orange"></td></tr>
+</tbody></table>
 &ndash; low confidence, caution
-     <li>50
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=orange width="10px" title="orange"></td></tr>
-</table>
+     </li><li>50
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="orange" width="10px" title="orange"></td></tr>
+</tbody></table>
 to 0
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle">
-<tr><td bgcolor=red width="10px" title="red"></td></tr>
-</table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="red" width="10px" title="red"></td></tr>
+</tbody></table>
 &ndash; should not be interpreted, may be disordered
-     </ul>
+     </li></ul>
 <p>
 ...in other words, using
 </p>
@@ -389,14 +363,12 @@ If a file specified for opening is not found in this local cache or
 <br>
 When fetching models with <a href="#match"><b>alphafold match</b></a>,
 whether to search the database for the most similar sequence
-if the <a href="uniprot.org/help/accession_numbers"
-target="_blank">UniProt accession number</a>
+if the <a href="uniprot.org/help/accession_numbers" target="_blank">UniProt accession number</a>
 for a chain is not provided in the experimental structure's input file,
 or is provided but not found in the 
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<b>true</b>, default). A fast but low-sensitivity (requiring high % identity)
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html"
-target="_blank">K-mer search</a> of the the database is performed.
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html" target="_blank">K-mer search</a> of the the database is performed.
 The closest sequence match for which a model is available will be retrieved.
 With <b>search false</b>, only the experimental structure's input file will
 be used as a potential source of UniProt accession numbers.
@@ -446,14 +418,13 @@ in PDB format and in
 <a href="https://mmcif.wwpdb.org/dictionaries/mmcif_std.dic/Categories/struct_ref.html" target="_blank">struct_ref</a> and
 <a href="https://mmcif.wwpdb.org/dictionaries/mmcif_std.dic/Categories/struct_ref_seq.html" target="_blank">struct_ref_seq</a>
 tables in mmCIF.
-<li>Predictions retrieved with <a href="#fetch"><b>alphafold fetch</b></a> or
+</li><li>Predictions retrieved with <a href="#fetch"><b>alphafold fetch</b></a> or
 found by <a href="#match"><b>alphafold match</b></a> searching for similar 
-sequences in the <a href="https://alphafold.ebi.ac.uk/" 
-target="_blank">AlphaFold Database</a> will be trimmed to start and end 
+sequences in the <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a> will be trimmed to start and end 
 with the first and last aligned positions in the sequence alignment 
 calculated by <a href="matchmaker.html"><b>matchmaker</b></a>
 as part of the superposition step.
-</ul>
+</li></ul>
 <p>
 Using <b>trim false</b> indicates retaining the full-length models
 for the <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
@@ -464,8 +435,7 @@ sequences, which could be longer.
 <a name="version"></a>
 <b>version</b>&nbsp;&nbsp;1&nbsp;|&nbsp;2&nbsp;|&nbsp;3&nbsp;|&nbsp;<b>4</b>
 <br>
-The <a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold Database</a> 
+The <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a> 
 contains single-chain models for protein sequences
 in <a href="https://www.uniprot.org" target="_blank">UniProt</a>.
 This option specifies which version of the database to use with
@@ -478,14 +448,14 @@ This option specifies which version of the database to use with
   <li><b>version 1</b> (Jul 2021): ~360,000 sequences,
 reference proteomes of 21 species including <i>Homo sapiens</i>;
 used by Chimera 1.3, which does not have a <b>version</b> option
-  <li><b>version 2</b> (Dec 2021 and Jan 2022 releases combined):
+  </li><li><b>version 2</b> (Dec 2021 and Jan 2022 releases combined):
 ~1 million sequences, v1 + most of the manually curated entries (SwissProt) +
 sequences relevant to neglected tropical disease or antimicrobial resistance;
 default in ChimeraX 1.4
-  <li><b>version 3</b> (Jul 2022): &gt;200 million sequences
-  <li><b>version 4</b> (Nov 2022): bugfix of version 3, updating the 
+  </li><li><b>version 3</b> (Jul 2022): &gt;200 million sequences
+  </li><li><b>version 4</b> (Nov 2022): bugfix of version 3, updating the 
 coordinates of ~4% of the entries; default in ChimeraX 1.5 and later
-</ul>
+</li></ul>
 <p>
 The <a href="#match"><b>alphafold match</b></a> command always uses version 4
 and does not have this option.
@@ -499,14 +469,11 @@ and does not have this option.
 <h3>Running an AlphaFold Prediction</h3>
 <p>
 The <b>alphafold predict</b> command runs a calculation on
-<a href="https://colab.research.google.com/signup"
-target="_blank">Google Colab</a> using <b>ColabFold</b>,
+<a href="https://colab.research.google.com/signup" target="_blank">Google Colab</a> using <b>ColabFold</b>,
 an open-source, optimized version of
-<a href="https://en.wikipedia.org/wiki/AlphaFold#AlphaFold_2,_2020"
-target="_blank">AlphaFold 2</a>. Users should cite:
-<blockquote>
-<a href="https://www.nature.com/articles/s41592-022-01488-1"
-target="_blank">ColabFold: making protein folding accessible to all.</a>
+<a href="https://en.wikipedia.org/wiki/AlphaFold#AlphaFold_2,_2020" target="_blank">AlphaFold 2</a>. Users should cite:
+</p><blockquote>
+<a href="https://www.nature.com/articles/s41592-022-01488-1" target="_blank">ColabFold: making protein folding accessible to all.</a>
 Mirdita M, Sch&uuml;tze K, Moriwaki Y, Heo L, Ovchinnikov S, Steinegger M.
 <i>Nat Methods.</i> 2022 Jun;19(6):679-682.
 </blockquote>
@@ -527,14 +494,14 @@ The protein <i>sequence</i> to predict can be given as any of the following:
 <ol>
 <li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
 corresponding to a single chain in an atomic structure open in ChimeraX
-<li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+</li><li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
 in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
 in the form:
 &nbsp;<span class="nowrap"><i>alignment-ID</i>:<i>sequence-ID</i></span>&nbsp;
 (<a href="seqspec.html">details...</a>)
-<li>a UniProt name or accession number
-<li>plain text pasted directly into the command line
-</ol>
+</li><li>a UniProt name or accession number
+</li><li>plain text pasted directly into the command line
+</li></ol>
 <p>
 These methods specify the entire sequence only, although a truncated version
 could be pasted.
@@ -548,7 +515,7 @@ For <b>multimer</b> (protein complex) prediction:
 [&nbsp;<a href="#minimize"><b>minimize</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#templates"><b>templates</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#directory"><b>directory</b></a>&nbsp;&nbsp;<i>results-folder</i>&nbsp;]
-<br>&ndash; or &ndash;</br>
+<br>&ndash; or &ndash;<br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>alphafold predict</b> &nbsp;<i>sequence1</i>,<i>sequence2</i>[,<i>sequence3</i>...,<i>sequenceN</i>]
 [&nbsp;<a href="#minimize"><b>minimize</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -574,8 +541,7 @@ Users will need to have a Google account and to sign into it via
 a browser. Once that is done, the sign-in may be remembered depending
 on the user's browser settings; it is not kept in the
 <a href="../preferences.html">ChimeraX preferences</a>.
-See the <a href="https://www.youtube.com/watch?v=gIbCAcMDM7E"
-target="_blank">example video</a> for an explanation of the images/plots
+See the <a href="https://www.youtube.com/watch?v=gIbCAcMDM7E" target="_blank">example video</a> for an explanation of the images/plots
 from ColabFold that appear in the Colab log
 and where to find downloaded files.
 </p><p>
@@ -598,7 +564,7 @@ sleep. It is recommended to turn off the option to enter sleep mode
 (meant to conserve power after some amount of idle time)
 before running a prediction.
 <br><br>
-<li>The process includes
+</li><li>The process includes
 installing various software packages on a virtual machine, 
 searching sequence databases, generating a multiple sequence alignment,
 predicting atomic coordinates, and <a href="#options">optionally</a>,
@@ -607,29 +573,26 @@ predicting a multimer (complex) structure may take longer than predicting
 the structure of a monomer with the same total number of residues.
 <b>The free version of Colab limits jobs</b> to 12 hours 
 and may terminate them at shorter times at Google's
-discretion (see the <a href="https://colab.research.google.com/signup"
-target="_blank">FAQ</a>).
+discretion (see the <a href="https://colab.research.google.com/signup" target="_blank">FAQ</a>).
 Those who want to run longer and/or more frequent calculations
 may need to sign up for one of the paid
-<a href="https://colab.research.google.com/signup"
-target="_blank">Colab plans</a>.
+<a href="https://colab.research.google.com/signup" target="_blank">Colab plans</a>.
 <br><br>
-<li><b>Each chain must contain at least 16 residues.</b>
+</li><li><b>Each chain must contain at least 16 residues.</b>
 Shorter sequences are not accepted because they cannot be used to generate
 a reliable multiple sequence alignment.
 <br><br>
-<li><b>Total sequence length cannot be very large</b>.
+</li><li><b>Total sequence length cannot be very large</b>.
 AlphaFold runs out of graphics memory for long sequences (~1200 amino acids
 on old Google Colab GPUs with 16 GB memory).
 Multimer predictions face the same limit on the total number of residues,
 so <b>only smaller complexes can be predicted</b>.
-As mentioned above, paid <a href="https://colab.research.google.com/signup"
-target="_blank">Colab plans</a> provide more computational resources
+As mentioned above, paid <a href="https://colab.research.google.com/signup" target="_blank">Colab plans</a> provide more computational resources
 than the free plan. Structures with up to 3000 amino acids can be predicted
 using an Nvidia A100 GPU on Google Colab, costing about $1.50 for a
 2000-residue prediction (May 2023); this 
 <a href="https://youtu.be/H-pDs9rZtkw" target="_blank">video</a> explains how.
-</ul>
+</li></ul>
 
 <a name="pae"></a>
 <p class="nav">
@@ -657,15 +620,14 @@ PAE and other pairwise metrics associated with
 <a href="https://modelarchive.org/" target="_blank">ModelArchive</a> entries
 can also be plotted (see <a href="modelcif.html#pae"><b>modelcif pae</b></a>).
 See also the
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/pae-apr2022/pae.html"
-target="_blank">AlphaFold Error Estimates example</a> and
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/pae-apr2022/pae.html" target="_blank">AlphaFold Error Estimates example</a> and
 <a href="https://www.youtube.com/watch?v=oxblwn0_PMM" target="_blank">video</a>.
 </p>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>alphafold pae</b>
 [&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
-[&nbsp;<b>uniprotId</b></a>&nbsp;&nbsp;<i>uniprot</i>&nbsp;|&nbsp;<b>file</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
+[&nbsp;<b>uniprotId</b>&nbsp;&nbsp;<i>uniprot</i>&nbsp;|&nbsp;<b>file</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="color.html#palette-options"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
 [&nbsp;<a href="color.html#palette-options"><b>range</b></a>&nbsp;&nbsp;<i>low,high</i>&nbsp;|&nbsp;full&nbsp;]
@@ -681,13 +643,11 @@ target="_blank">AlphaFold Error Estimates example</a> and
 With <b>alphafold pae</b>, the matrix of PAE values can be:
 </p>
 <ul>
-<li>fetched from the <a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold Database</a> with the <b>uniprotId</b> option,
+<li>fetched from the <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a> with the <b>uniprotId</b> option,
 where <i>uniprot</i> is the the UniProt name or accession number of an entry 
 in the database
-<li>read from a json, pkl, npy (from 
-<a href="https://www.chaidiscovery.com/blog/introducing-chai-1" 
-target="_blank">Chai-1</a>), or npz (from 
+</li><li>read from a json, pkl, npy (from 
+<a href="https://www.chaidiscovery.com/blog/introducing-chai-1" target="_blank">Chai-1</a>), or npz (from 
 <a href="https://jclinic.mit.edu/boltz-1/" target="_blank">Boltz-1</a>)
 file specified with the <b>file</b> option, where
 <i>filename</i> is generally a pathname to a local file, 
@@ -696,7 +656,7 @@ either absolute or relative to the current working directory as reported by
 <a href="usageconventions.html#browse"><b>browse</b></a>
 for <i>filename</i> brings up a file browser window for choosing the
 name and location interactively.
-</ul>
+</li></ul>
 <p>
 Alternatively, if the model structure was opened using 
 <a href="#fetch"><b>alphafold fetch</b></a> or 
@@ -729,14 +689,14 @@ NetworkX greedy_modularity_communities algorithm with parameters:
 <ul>
 <li><b>minSize</b> (default <b>10</b>)
 &ndash; minimum number of entities allowed in a domain
-<li><b>connectMaxPae</b> (default <b>5.0</b> &Aring;)
+</li><li><b>connectMaxPae</b> (default <b>5.0</b> &Aring;)
 &ndash; the maximum PAE value allowed between entities for them to be 
 clustered into the same domain. Larger values give larger domains
 and generally increase the time to compute the clustering, 
 which is ~5 seconds for 1000 residues when the default of 5.0 is used.
-<li><b>cluster</b> (default <b>0.5</b>, typical range 0.5&ndash;5.0) 
+</li><li><b>cluster</b> (default <b>0.5</b>, typical range 0.5&ndash;5.0) 
 &ndash; graph resolution; larger values give smaller domains
-</ul>
+</li></ul>
 <p>
 The <b>dividerLines</b> option (default <b>true</b>) indicates whether,
 for multimer predictions, to draw lines on the plot demarcating the
@@ -751,44 +711,28 @@ The default <a href="color.html#palette-options"><b>palette</b></a>
 for coloring the PAE plot is <b>pae</b>, with colors assigned to values
 as follows:
 </p>
-<table border cellpadding="0" cellspacing="0"
-style="display:inline-block; vertical-align:top"><tr>
-<td bgcolor="blue" width="30px" title="blue"
-align="center"><font size="-1" color="white">0</font></td>
-<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue"
-align="center"><font size="-1" color="white">5</font></td>
-<td bgcolor="yellow" width="30px" title="yellow"
-align="center"><font size="-1" color="black">10</font></td>
-<td bgcolor="orange" width="30px" title="orange"
-align="center"><font size="-1">15</font></td>
-<td bgcolor="gray" width="30px" title="gray"
-align="center"><font size="-1" color="white">20</font></td>
-<td bgcolor="lightgray" width="30px" title="lightgray"
-align="center"><font size="-1" color="black">25</font></td>
-<td bgcolor="white" width="30px" title="white"
-align="center"><font size="-1" color="black">30</font></td>
-</tr></table>
+<table border cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
+<td bgcolor="blue" width="30px" title="blue" align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue" align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="yellow" width="30px" title="yellow" align="center"><font size="-1" color="black">10</font></td>
+<td bgcolor="orange" width="30px" title="orange" align="center"><font size="-1">15</font></td>
+<td bgcolor="gray" width="30px" title="gray" align="center"><font size="-1" color="white">20</font></td>
+<td bgcolor="lightgray" width="30px" title="lightgray" align="center"><font size="-1" color="black">25</font></td>
+<td bgcolor="white" width="30px" title="white" align="center"><font size="-1" color="black">30</font></td>
+</tr></tbody></table>
 <p>
 Another <a href="color.html#palette-options"><b>palette</b></a> 
 with value range suitable for PAE plots is <b>paegreen</b>:
 </p>
-<table border cellpadding="0" cellspacing="0"
-style="display:inline-block; vertical-align:top"><tr>
-<td bgcolor="#1e3546661e35" width="30px" title="#1e3546661e35"
-align="center"><font size="-1" color="white">0</font></td>
-<td bgcolor="#245a922c245a" width="30px" title="#245a922c245a"
-align="center"><font size="-1" color="white">5</font></td>
-<td bgcolor="#374cb168374c" width="30px" title="#374cb168374c"
-align="center"><font size="-1" color="white">10</font></td>
-<td bgcolor="#5687c9ba5687" width="30px" title="#5687c9ba5687"
-align="center"><font size="-1">15</font></td>
-<td bgcolor="#828fddf3828f" width="30px" title="#828fddf3828f"
-align="center"><font size="-1" color="black">20</font></td>
-<td bgcolor="#bae1efdebae1" width="30px" title="#bae1efdebae1"
-align="center"><font size="-1" color="black">25</font></td>
-<td bgcolor=white width="30px" title="white"
-align="center"><font size="-1" color="black">30</font></td>
-</tr></table>
+<table border cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
+<td bgcolor="#1e3546661e35" width="30px" title="#1e3546661e35" align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="#245a922c245a" width="30px" title="#245a922c245a" align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="#374cb168374c" width="30px" title="#374cb168374c" align="center"><font size="-1" color="white">10</font></td>
+<td bgcolor="#5687c9ba5687" width="30px" title="#5687c9ba5687" align="center"><font size="-1">15</font></td>
+<td bgcolor="#828fddf3828f" width="30px" title="#828fddf3828f" align="center"><font size="-1" color="black">20</font></td>
+<td bgcolor="#bae1efdebae1" width="30px" title="#bae1efdebae1" align="center"><font size="-1" color="black">25</font></td>
+<td bgcolor="white" width="30px" title="white" align="center"><font size="-1" color="black">30</font></td>
+</tr></tbody></table>
 <p>
 Although these palettes include value-color pairs, it may be helpful
 to give a value <a href="color.html#range"><b>range</b></a>
@@ -806,9 +750,9 @@ as well as buttons for recoloring the structure:
 <ul>
 <li><b>Color PAE Domains</b> applies coloring by PAE cluster as
 described <a href="#colorDomains">above</a>.
-<li><b>Color pLDDT</b> returns the structure to
+</li><li><b>Color pLDDT</b> returns the structure to
 the default <a href="#colorConfidence">confidence coloring</a>.
-</ul>
+</li></ul>
 <p>
 The <a href="../tools/colorkey.html"><b>Color Key</b></a> graphical interface
 or a command can be used to draw (in the main graphics window)
@@ -864,8 +808,7 @@ PAE values can be shown with colored
 <p>
 See the
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/alphafold-contacts-jun2022/afcontacts.html" target="_blank">AlphaFold Contacts example</a>
-and <a href="https://www.youtube.com/watch?v=TMcjEecFHaI" 
-target="_blank">video</a>.
+and <a href="https://www.youtube.com/watch?v=TMcjEecFHaI" target="_blank">video</a>.
 See also:
 <a href="size.html"><b>size</b></a>,
 <a href="style.html"><b>style</b></a>,
@@ -887,7 +830,7 @@ If one set of entities is higher-confidence (higher in
 lower in PAE)
 than the other, it is usually best to specify them as the aligned set
 so that the coloring will show the error values of the lower-confidence set.
-</p><p>
+<p></p><p>
 Omitting the <b>toAtoms</b> option defines 
 <a href="atomspec.html"><i>atom-spec2</i></a>
 as everything covered by the PAE plot except for what is included in
@@ -912,19 +855,13 @@ The default <a href="color.html#palette-options"><b>palette</b></a> for
 coloring the pseudobonds by <a href="#pae">PAE value</a> is <b>paecontacts</b>,
 with colors assigned to values as follows:
 </p>
-<table border cellpadding="0" cellspacing="0"
-style="display:inline-block; vertical-align:top"><tr>
-<td bgcolor="blue" width="30px" title="blue"
-align="center"><font size="-1" color="white">0</font></td>
-<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue"
-align="center"><font size="-1" color="white">5</font></td>
-<td bgcolor="yellow" width="30px" title="yellow"
-align="center"><font size="-1" color="black">10</font></td>
-<td bgcolor="orange" width="30px" title="orange"
-align="center"><font size="-1">15</font></td>
-<td bgcolor="red" width="30px" title="red"
-align="center"><font size="-1">20</font></td>
-</tr></table>
+<table border cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
+<td bgcolor="blue" width="30px" title="blue" align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue" align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="yellow" width="30px" title="yellow" align="center"><font size="-1" color="black">10</font></td>
+<td bgcolor="orange" width="30px" title="orange" align="center"><font size="-1">15</font></td>
+<td bgcolor="red" width="30px" title="red" align="center"><font size="-1">20</font></td>
+</tr></tbody></table>
 <p>
 Although this palette includes value-color pairs, it may be helpful
 to give a value <a href="color.html#range"><b>range</b></a>
@@ -950,14 +887,14 @@ or the word <a href="usageconventions.html#browse"><b>browse</b></a>
 to specify it interactively in a file browser window.
 </p><p>
 <a name="examples">Examples</a>:
-<blockquote><b>
+</p><blockquote><b>
 alphafold contacts #1 
 <br>
 alphafold contacts /A to /B distance 8
 <br>
 alphafold contacts sel palette blue:red range 1,5
 </b></blockquote>
-</p>
+<p></p>
 The following would select all pseudobonds and label them with the residue
 names and numbers of the entities that they connect:
 <blockquote><b>
@@ -975,28 +912,26 @@ names and numbers of the entities that they connect:
 The following commands facilitate batch predictions by advanced users
 who have access to running <b>ColabFold</b>
 directly (outside of ChimeraX) from the Linux shell.
-ColabFold [<a href="https://github.com/sokrypton/ColabFold" 
-target="_blank">github</a>] 
+ColabFold [<a href="https://github.com/sokrypton/ColabFold" target="_blank">github</a>] 
 [<a href="https://www.nature.com/articles/s41592-022-01488-1
-target="_blank">citation</a>] 
+target=" _blank">citation</a>] 
 runs on Linux computers with Nvidia graphics.
 See also:
 <a href="#predict"><b>alphafold predict</b></a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/afbatch-jan2024/rim_dimers.html"
-target="_blank">predicting dimers with AlphaFold</a>
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/afbatch-jan2024/rim_dimers.html" target="_blank">predicting dimers with AlphaFold</a>
 </p>
 <ul>
 <li><a href="#monomers"><b>alphafold monomers</b></a> &ndash; 
 estimate ColabFold runtime for monomer predictions
 given a set of sequences (<b>does not run the predictions</b>) 
 or display the results of previous predictions
-<li><a href="#dimers"><b>alphafold dimers</b></a> &ndash; 
+</li><li><a href="#dimers"><b>alphafold dimers</b></a> &ndash; 
 estimate ColabFold runtime for dimer predictions
 given a set of sequences (<b>does not run the predictions</b>) 
-<li><a href="#interfaces"><b>alphafold interfaces</b></a> &ndash;
+</li><li><a href="#interfaces"><b>alphafold interfaces</b></a> &ndash;
 examine the <a href="#pae">PAE</a> scores of previous dimer predictions
 to determine which pairs are actually predicted to bind
-</ul>
+</li></ul>
 
 <a name="monomers"></a>
 <a href="#batch" class="nounder">&bull;</a>
@@ -1004,9 +939,12 @@ to determine which pairs are actually predicted to bind
 (&nbsp;<i>sequence-list</i>&nbsp;|&nbsp;<b>open</b>&nbsp;&nbsp;<i>results-folder</i>&nbsp;)
 [&nbsp;<b>maxLength</b>&nbsp;&nbsp;<i>L</i>&nbsp;]
 [&nbsp;<b>recycles</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>models</b>&nbsp;&nbsp;<i>NN-list</i></a>&nbsp;]
+[&nbsp;<b>models</b>&nbsp;&nbsp;<i>NN-list</i>&nbsp;]
 [&nbsp;<b>outputFasta</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
 [&nbsp;<b>outputJson</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
+[&nbsp;<b>outputYaml</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>msaDirectory</b>&nbsp;&nbsp;<i>directory</i>&nbsp;]
+[&nbsp;<b>listSequences</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
 Given a <i>sequence-list</i>, <b>alphafold monomers</b>
 estimates the time it would take ColabFold to run monomer predictions 
@@ -1019,13 +957,13 @@ Alternatively, if the monomer predictions have been run already,
 to display the results in ChimeraX.
 <p>
 The <i>sequence-list</i> can be given as either of the following:
-<ul>
+</p><ul>
 <li>a file in FASTA format, specified by pathname
 or the word <a href="usageconventions.html#browse"><b>browse</b></a>
 to specify it interactively in a file browser window
-<li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+</li><li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
 for one or more chains in atomic structures open in ChimeraX
-</ul>
+</li></ul>
 Only protein sequences are considered, and duplicates are eliminated.
 The <b>maxLength</b> option excludes sequences with more than <i>L</i> 
 residues (no default, <i>i.e.</i> unlimited length).
@@ -1047,6 +985,19 @@ Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
 for <i>filename</i> brings up a file browser window for choosing the
 name and location interactively.
 <p>
+The <b>outputYaml</b> option (default <b>false</b>) specifies whether to
+write yaml input files for Boltz. If <b>true</b>, a separate yaml file
+is created for each monomer with name based on the monomer sequence name.
+If <b>msaDirectory</b> is specified, the yaml output will specify a .csv
+multiple sequence alignment (MSA) file for each monomer in that directory.
+The directory and MSA files need not exist and can be created later by MSA
+computation software before the Boltz predictions are run. 
+If <b>msaDirectory</b> is not specified,
+no MSA files are specified in the Boltz yaml input.
+</p><p>
+The <b>listSequences</b> option (default <b>false</b>) specifies whether to
+log descriptions of all of the monomers.
+</p><p>
 Alternatively, if the monomer predictions have been run already,
 using the <b>open</b> option to give a <i>results-folder</i>
 (specified by pathname
@@ -1055,38 +1006,48 @@ to specify it interactively in a file browser window)
 opens the resulting structures and displays them in a convenient fashion:
 <a href="tile.html">tiled</a>, <a href="label.html">labeled</a>, and 
 <a href="#colorConfidence">colored by pLDDT</a>.
-</blockquote>
+</p></blockquote>
 
 <a name="dimers"></a>
 <a href="#batch" class="nounder">&bull;</a>
 <b>alphafold dimers</b> 
 &nbsp;<i>sequence-list</i>&nbsp;
+[&nbsp;<b>maxSpacing</b>&nbsp;&nbsp;<i>K</i>&nbsp;]
 [&nbsp;<b>withSequences</b>&nbsp;&nbsp;<i>sequence-list2</i>&nbsp;]
 [&nbsp;<b>homodimers</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>maxLength</b>&nbsp;&nbsp;<i>L</i>&nbsp;]
 [&nbsp;<b>recycles</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>models</b>&nbsp;&nbsp;<i>NN-list</i></a>&nbsp;]
+[&nbsp;<b>models</b>&nbsp;&nbsp;<i>NN-list</i>&nbsp;]
 [&nbsp;<b>outputFasta</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
 [&nbsp;<b>outputJson</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
+[&nbsp;<b>outputYaml</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>msaDirectory</b>&nbsp;&nbsp;<i>directory</i>&nbsp;]
+[&nbsp;<b>listSequences</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <blockquote>
 Given a <i>sequence-list</i>, <b>alphafold dimers</b>
 estimates the time it would take ColabFold to run dimer predictions 
 on an Nvidia 3090 GPU for all pairs of the sequences.
-If <b>withSequences</b> is used to give a second list of sequences,
-only pairs with one sequence in the first list and the other in the second 
-list will be considered.  
 The command also reports in the <a href="../tools/log.html"><b>Log</b></a> the
 colabfold_batch command that would be used to run the predictions
 from the Linux shell, but it does not actually run the predictions.
+The <b>maxSpacing</b> option can be used to restrict the pairs 
+to those no more than <i>K</i> sequences apart in the input list 
+(for example, <i>K</i> = 1 indicates that only sequences immediately
+adjacent in the list can be paired). Typically this is used with a list
+that is in genome order, to pair only sequences close together in the genome;
+default is no restriction on spacing.
+If <b>withSequences</b> is used to give a second list of sequences,
+only pairs with one sequence in the first list and the other in the second 
+list will be considered (cannot be used together with <b>maxSpacing</b>).
 <p>
 Each sequence list can be given as either of the following:
-<ul>
+</p><ul>
 <li>a file in FASTA format, specified by pathname
 or the word <a href="usageconventions.html#browse"><b>browse</b></a>
 to specify it interactively in a file browser window
-<li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+</li><li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
 for one or more chains in atomic structures open in ChimeraX
-</ul>
+</li></ul>
 Only protein sequences are considered, and duplicates are eliminated,
 except that the <b>homodimers</b> option indicates whether to predict
 structures for pairs of chains with identical sequences (default <b>true</b>).
@@ -1100,11 +1061,26 @@ as a convenience for running AlphaFold 3
 Substituting the word <a href="usageconventions.html#browse"><b>browse</b></a>
 for <i>filename</i> brings up a file browser window for choosing the
 name and location interactively.
+<p>
+The <b>outputYaml</b> option (default <b>false</b>) specifies whether to
+write yaml input files for Boltz. If <b>true</b>, a separate yaml file
+is created for each dimer with name based on the dimer sequence names.
+If <b>msaDirectory</b> is specified, the yaml output will specify 
+multiple sequence alignment (MSA) files in that directory with file names 
+of the form {seq1-name}_{seq2-name}_0.csv
+and {seq1-name}_{seq2-name}_1.csv. 
+The directory and MSA files need not exist and can be created later by MSA
+computation software before the Boltz predictions are run.
+If <b>msaDirectory</b> is not specified,
+no MSA files are specified in the Boltz yaml input.
+</p><p>
 The <b>maxLength</b>, <b>recycles</b>, and <b>models</b> options are the same
 as described for <a href="#monomers"><b>alphafold monomers</b></a>,
 except that <b>maxLength</b> applies to the total combined length of the
 two sequences.
-</blockquote>
+The <b>listSequences</b> option (default <b>false</b>) specifies whether to
+log descriptions of all of the dimers.
+</p></blockquote>
 
 <a name="interfaces"></a>
 <a href="#batch" class="nounder">&bull;</a>
@@ -1117,9 +1093,8 @@ two sequences.
 [&nbsp;<b>resultsFile</b>&nbsp;&nbsp;<i>csv-output-file</i>&nbsp;]
 [&nbsp;<b>shortNames</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <blockquote>
-<table align=center border=1 cellpadding=5 cellspacing=0
-bgcolor="#f0f0f0" width="90%">
-<tr><td>
+<table align="center" border="1" cellpadding="5" cellspacing="0" bgcolor="#f0f0f0" width="90%">
+<tbody><tr><td>
 <!--  ticket #15227 -->
 <font color="black">
 <b>alphafold interfaces</b> 
@@ -1130,7 +1105,7 @@ per-atom PAE values. We may fix this limitation in the future if Google
 allows AlphaFold 3 to be used for large numbers of predictions.
 </font>
 </td></tr>
-</table>
+</tbody></table>
 <p>
 When AlphaFold (ColabFold) is given two sequences to predict as a complex, 
 it will always place the two chains near each other even if there are no 
@@ -1138,7 +1113,7 @@ favorable binding interactions.
 The AlphaFold <a href="#pae">predicted aligned error (PAE) score</a>
 indicates confidence in the predicted residue-residue interactions, and
 thus whether or not the two chains are really predicted to bind one another.
-<p>
+</p><p>
 The <b>alphafold interfaces</b> command considers all PDB files (.pdb suffix) 
 in the <i>dimer-results-folder</i> directory, which can be specified by its 
 pathname or the word <a href="usageconventions.html#browse"><b>browse</b></a>
@@ -1148,17 +1123,21 @@ and should be named according to the ColabFold convention, which includes
 the sequence names and the rank and network used for the prediction.
 The directory will also include a PAE file (suffix .json) for each PDB file.
 For each predicted dimer:
-<ol>
+</p><ol>
 <li>the PDB file is opened and pairs of residues across the
 chain-chain interface with any atoms &le; <b>distance</b> <i>d</i> apart
 (default <b>4.0</b> &Aring;) are considered
-<li>of these, residue pairs with PAE &le; <b>maxPae</b>
-<i>max-error</i> (default <b>5.0</b> &Aring;) are counted
-<li>if at least <b>minConfPairs</b> <i>N</i> (default <b>10</b>)
+</li><li>of these, residue pairs with PAE &le; <b>maxPae</b>
+<i>max-error</i> (default <b>5.0</b> &Aring;) are counted. 
+Both of the PAE values for a given pair of residues are considered
+(the PAE matrix is not symmetrical, meaning that res1-res2 and res2-res1 
+values are different), and the lower one is compared to the <b>maxPae</b> 
+setting.
+</li><li>if at least <b>minConfPairs</b> <i>N</i> (default <b>10</b>)
 of the interface residue pairs meet both the distance and PAE criteria,
 the dimer is included in the list of possible binders
-<li>the structure is closed
-</ol>
+</li><li>the structure is closed
+</li></ol>
 Processing all of the dimer predictions can take a few minutes,
 and progress is reported in the ChimeraX status line.
 After the calculation completes, a table listing the possible binders is
@@ -1168,7 +1147,7 @@ how many residues in each chain are part of a high-confidence pair.
 <a name="alphafold-interfaces-open"></a>
 The <b>open</b> option allows opening the highest-ranked model structure for
 each possible-binder prediction (default <b>false</b>).
-</p><p>
+<p></p><p>
 Results are also automatically written to a CSV file (filename specified 
 with the <b>resultsFile</b> option, default <b>interfaces.csv</b>).
 Contents include the numbers of high-confidence residue pairs found for
@@ -1210,5 +1189,6 @@ the hundreds of files that ColabFold produces.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-May 2025</address>
+September 2025</address>
+
 </body></html>

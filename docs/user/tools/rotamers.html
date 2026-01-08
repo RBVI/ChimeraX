@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Rotamers</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Rotamers</h3>
 <p>
@@ -30,11 +25,11 @@ The <b>Rotamers</b> tool allows:
 </p>
 <ul>
 <li>interactively viewing sets of amino acid sidechain rotamers
-<li><a href="#evaluation">evaluating</a> them for H-bonds, clashes, and/or
+</li><li><a href="#evaluation">evaluating</a> them for H-bonds, clashes, and/or
 agreement with a density map
-<li><a href="#incorporation">incorporating</a> chosen rotamers
+</li><li><a href="#incorporation">incorporating</a> chosen rotamers
 into the structure
-</ul>
+</li></ul>
 <p>
 An amino acid can be changed into a different rotamer of the same 
 residue type or &ldquo;mutated&rdquo; into a different type.
@@ -78,8 +73,7 @@ will be placed at each.
 <li><a name="library"><b>Rotamer library</b></a>
 &ndash; source of rotamer torsion and prevalence values
   <ul>
-  <li><b>Dunbrack</b> &ndash; <a href="http://dunbrack.fccc.edu/bbdep2010/"
-target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>
+  <li><b>Dunbrack</b> &ndash; <a href="http://dunbrack.fccc.edu/bbdep2010/" target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>
 (5% stepdown; for chain-terminal residues,
 the Dunbrack 2002 backbone-independent version is used instead):
    <blockquote>
@@ -89,9 +83,8 @@ adaptive kernel density estimates and regressions.</a>
 Shapovalov MV, Dunbrack RL Jr.
 <i>Structure.</i> 2011 Jun 8;19(6):844-58.
    </blockquote>
-  <li><b>Dynameomics</b>
-&ndash; <a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx"
-target="_blank">Dynameomics rotamer library</a>:
+  </li><li><b>Dynameomics</b>
+&ndash; <a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx" target="_blank">Dynameomics rotamer library</a>:
    <blockquote>
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/21280126" target="_blank">
 The Dynameomics rotamer library: amino acid side chain conformations
@@ -99,7 +92,7 @@ and dynamics from comprehensive molecular dynamics simulations in water.</a>
 Scouras AD, Daggett V.
 <i>Protein Sci.</i> 2011 Feb;20(2):341-52.
    </blockquote>
- <li><b>Richardson (common-atom)</b> &ndash; common-atom values (author-recommended)
+ </li><li><b>Richardson (common-atom)</b> &ndash; common-atom values (author-recommended)
 from the Richardson backbone-independent rotamer library:
    <blockquote>
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/10861930" target="_blank">
@@ -107,42 +100,42 @@ The penultimate rotamer library.</a>
 Lovell SC, Word JM, Richardson JS, Richardson DC.
 <i>Proteins.</i> 2000 Aug 15;40(3):389-408.
    </blockquote>
- <li><b>Richardson (mode)</b> &ndash; mode values
+ </li><li><b>Richardson (mode)</b> &ndash; mode values
 from the Richardson backbone-independent rotamer library
- </ul>
+ </li></ul>
 <br>
-<li><b>Rotamer type</b>
+</li><li><b>Rotamer type</b>
 &ndash; of the 20 standard amino acids, which type of rotamers to show
 at each <a href="../selection.html">selected</a> position. Additional
 (nonstandard) names may also be available depending on the specific library.
 These names refer to the species for which conformational data were collected,
 but the rotamers do not include hydrogens and will be given the appropriate
 standard residue names (PRO, CYS, or HIS) if incorporated into a structure.
-</p><p>
+<p></p><p>
 In the <b>Dunbrack</b> <a href="#library">rotamer library</a>,
 the following are available:
 </p>
 <ul>
 <li>CYH &ndash; cysteine reduced free sulfhydryl
-<li>CYD &ndash; cysteine oxidized disulfide-bonded (half-cystine)
-<li>CYS &ndash; combined statistics (CYH + CYD)
-<li>CPR &ndash; <i>cis</i>-proline
-<li>TPR &ndash; <i>trans</i>-proline
-<li>PRO &ndash; combined statistics (CPR + TPR)
-</ul>
+</li><li>CYD &ndash; cysteine oxidized disulfide-bonded (half-cystine)
+</li><li>CYS &ndash; combined statistics (CYH + CYD)
+</li><li>CPR &ndash; <i>cis</i>-proline
+</li><li>TPR &ndash; <i>trans</i>-proline
+</li><li>PRO &ndash; combined statistics (CPR + TPR)
+</li></ul>
 <p>
 In the <b>Dynameomics</b> <a href="#library">rotamer library</a>,
 the following are available:
 </p>
 <ul>
 <li>CYH &ndash; cysteine reduced free sulfhydryl
-<li>CYS &ndash; cysteine oxidized disulfide-bonded (half-cystine)
-<li>HID &ndash; histidine neutral &delta;-protonated
-<li>HIE &ndash; histidine neutral &epsilon;-protonated
-<li>HIS &ndash; histidine neutral (HID and HIE combined)
-<li>HIP &ndash; histidine positive protonated on both sidechain nitrogens
-</ul>
-</ul>
+</li><li>CYS &ndash; cysteine oxidized disulfide-bonded (half-cystine)
+</li><li>HID &ndash; histidine neutral &delta;-protonated
+</li><li>HIE &ndash; histidine neutral &epsilon;-protonated
+</li><li>HIS &ndash; histidine neutral (HID and HIE combined)
+</li><li>HIP &ndash; histidine positive protonated on both sidechain nitrogens
+</li></ul>
+</li></ul>
 <p>
 <b>Close</b> dismisses the <b>Rotamers</b> dialog, while <b>Help</b>
 opens this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
@@ -170,11 +163,10 @@ template with those of the existing residue.
 </p>
 <h3>Rotamer List</h3>
 <table class="clRight">
-<tr><td>
-<a href="rotamer-list.png"><img class="outline" src="rotamer-list.png"
-title="click to enlarge..." alt="rotamer list dialog" width="300px"></a>
+<tbody><tr><td>
+<a href="rotamer-list.png"><img class="outline" src="rotamer-list.png" title="click to enlarge..." alt="rotamer list dialog" width="300px"></a>
 </td></tr>
-</table>
+</tbody></table>
 <p>
 Each rotamer list includes columns with the sidechain torsion 
 (<b>Chi <i>N</i></b>) and <b>Prevalence</b> values. 
@@ -240,15 +232,15 @@ calculation, which will add or update the corresponding column:
 <ul>
 <li><b>H-bonds</b> &ndash; a subset of the options 
 in the main <a href="hbonds.html"><b>H-Bonds</b></a> tool
-<li><b>Clashes</b> &ndash; a subset of the options 
+</li><li><b>Clashes</b> &ndash; a subset of the options 
 in the main <a href="clashes.html"><b>Clashes</b></a> tool
-<li><b>Density</b> &ndash; calculate agreement with a density map 
+</li><li><b>Density</b> &ndash; calculate agreement with a density map 
 already open in ChimeraX; if more than one
 <a href="volumeviewer.html">volume model</a> is open,
 a dialog for specifying which one to use will appear. 
 The value shown in the column is the sum of map values at 
 the rotamer sidechain atom positions.
-</ul>
+</li></ul>
 <p>
 For <b>H-Bonds</b> and <b>Clashes</b>, another option is shown:
 </p>
@@ -257,7 +249,7 @@ For <b>H-Bonds</b> and <b>Clashes</b>, another option is shown:
 &ndash; whether to disregard 
 <a href="../commands/atomspec.html#surfcats">solvent</a>
 when counting interactions between the rotamers and the rest of the structure
-</ul>
+</li></ul>
 <p>
 Several of the calculation dialog settings are remembered as
 <a href="../preferences.html#other">preferences</a> when the calculation is run.
@@ -266,4 +258,5 @@ Clicking <b>Reset</b> restores the dialog to factory default settings.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 February 2024</address>
+
 </body></html>

@@ -867,7 +867,7 @@ t0 = t1;
                                     continue;
                                 if (bondee->idatm_type() == "Cac")
                                     continue;
-                                if (bondee->idatm_type() == "C2") {
+                                if (bondee->idatm_type() == "C2" || bondee->idatm_type() == "C") {
                                     bool grand_sp2 = false;
                                     for (auto gnb: bondee->neighbors()) {
                                         if (gnb->bonds().size() != 1)
@@ -926,9 +926,12 @@ t0 = t1;
 
         
         if (a->idatm_type() == "C") {
-            if ((sqlen <= p3c1c1 && bondee_type == "C1")
-            || (sqlen <= p3n1c1 && bondee->element() == Element::N)) {
+            if (sqlen <= p3c1c1 && bondee_type == "C1")
                 a->set_computed_idatm_type("C1");
+            else if (sqlen <= p3n1c1 && bondee->element() == Element::N && bondee->neighbors().size() < 3) {
+                // Exemplar: NBN in 101m
+                a->set_computed_idatm_type("C1");
+                bondee->set_computed_idatm_type("N1");
             } else if (bondee_type == "N1+") {
                 // N1+ can only be set at this point if valence 2,
                 // so can assume exactly one other neighbor
@@ -1419,6 +1422,11 @@ t0 = t1;
                         int n3geom = (*gi).second.geometry;
                         if (n3geom != 3)
                             continue;
+                        if (n3->neighbors().size() == 1) {
+                            all_single = false;
+                            ambiguous = false;
+                            break;
+                        }
                         ambiguous = true;
                         all_single = false;
                     }
@@ -1843,14 +1851,18 @@ t0 = t1;
 
     // "pass 4.75":  this pass is a followup to Car determination and
     //    therefore also not in the IDATM paper:  reexamine nitrogens
-    //    that are now adjacent to Car atoms and ensure that their N2
-    //    vs. Npl assignments still make sense
+    //    that are now adjacent to Car atoms (but not in the ring itself)
+    //    and ensure that their N2 vs. Npl assignments still make sense
+    //    (e.g. N8 in LLX of 3max)
     for (auto a: untyped_atoms) {
 
-        if (redo[a] != 4)
+        if (redo.find(a) == redo.end() || redo[a] != 4)
             continue;
 
         if (a->idatm_type() != "N2")
+            continue;
+
+        if (a->rings(false, ring_limit, &mapped_residues).size() > 0)
             continue;
 
         bool all_single = true;

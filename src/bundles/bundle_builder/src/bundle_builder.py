@@ -2,6 +2,8 @@
 
 # Force import in a particular order since both Cython and
 # setuptools patch distutils, and we want Cython to win
+import os
+import re
 import setuptools
 import sys
 import sysconfig
@@ -44,12 +46,14 @@ else:
             self.dwFlags |= _winapi.STARTF_USESHOWWINDOW
 
 
+cpu_count = os.cpu_count()
+
+
 # Python version was 3.7 in ChimeraX 1.0
 CHIMERAX1_0_PYTHON_VERSION = Version("3.7")
 
 
 class BundleBuilder:
-
     def __init__(self, logger, bundle_path=None, bundle_xml=None):
         import os
 
@@ -95,7 +99,7 @@ class BundleBuilder:
             lib.compile(self.logger, self.dependencies, debug=debug)
         for executable in self.c_executables:
             executable.compile(self.logger, self.dependencies, debug=debug)
-        setup_args = ["--no-user-cfg", "build"]
+        setup_args = ["--no-user-cfg", "build", f"-j{cpu_count}"]
         if debug:
             setup_args.append("--debug")
         setup_args.extend(["bdist_wheel"])
@@ -110,7 +114,9 @@ class BundleBuilder:
         wheel = os.path.basename(self.wheel_path)
         wheel_lower = wheel.lower()
         wheel_lower_path = os.path.join(wheel_dir, wheel_lower)
-        if not built or (not os.path.exists(self.wheel_path) and not os.path.exists(wheel_lower_path)):
+        if not built or (
+            not os.path.exists(self.wheel_path) and not os.path.exists(wheel_lower_path)
+        ):
             raise RuntimeError(f"Building wheel failed: {wheel}")
         else:
             if os.path.exists(self.wheel_path):
@@ -141,7 +147,7 @@ class BundleBuilder:
             lib.compile(self.logger, self.dependencies, debug=debug)
         for executable in self.c_executables:
             executable.compile(self.logger, self.dependencies, debug=debug)
-        setup_args = ["build_ext", "--inplace", "editable_wheel"]
+        setup_args = ["build_ext", f"-j{cpu_count}", "--inplace", "editable_wheel"]
         dist, built = self._run_setup(setup_args)
         import glob
 
@@ -427,16 +433,32 @@ class BundleBuilder:
             # ChimeraXCore *should* always be present
             return
         from packaging.requirements import Requirement
+        from packaging.version import parse
+        from importlib.metadata import version
 
         for e in self._get_elements(deps, "Dependency"):
             pkg = e.get("name", "")
             ver = e.get("version", "")
-            req = "%s %s" % (pkg, ver)
+            req_str = "%s %s" % (pkg, ver)
+
             try:
-                Requirement(req)
+                req = Requirement(req_str)
             except ValueError:
-                raise ValueError("Bad version specifier (see PEP 440): %r" % req)
-            self.dependencies.append(req)
+                raise ValueError("Bad version specifier (see PEP 440): %r" % req_str)
+
+            if e.get("build", False):
+                installed_version = parse(version(req.name))
+                if re.match(r"[Cc]himera[Xx]-[Cc]ore", req.name):
+                    # Always accept prereleases for the core for developers building
+                    # bundles
+                    req.specifier.prereleases = True
+                if installed_version not in req.specifier:
+                    raise ValueError(
+                        "Incompatible version for build dependency %s: %s (installed: %s)"
+                        % (pkg, req_str, str(installed_version))
+                    )
+
+            self.dependencies.append(req_str)
 
     def _get_initializations(self, bi):
         self.initializations = {}
@@ -529,7 +551,7 @@ class BundleBuilder:
         for e in self._get_elements(ce, "Define"):
             edef = BundleBuilder._get_element_text(e).split("=")
             if len(edef) > 2:
-                raise TypeError("Too many arguments for macro " "definition: %s" % edef)
+                raise TypeError("Too many arguments for macro definition: %s" % edef)
             elif len(edef) == 1:
                 edef.append(None)
             c.add_macro_define(*edef)
@@ -737,7 +759,6 @@ class BundleBuilder:
             if em is not None
         ]
         if not self._is_pure_python():
-
             if sys.platform == "darwin":
                 env = "Environment :: MacOS X :: Aqua"
                 op_sys = "Operating System :: MacOS :: MacOS X"
@@ -816,10 +837,12 @@ class BundleBuilder:
             with suppress_known_deprecation():
                 dist = setuptools.setup(**kw)
             return dist, True
-        except (SystemExit, Exception):
+        except Exception:
             import traceback
 
             traceback.print_exc()
+            return None, False
+        except SystemExit:
             return None, False
         finally:
             sys.argv = save
@@ -872,7 +895,6 @@ class BundleBuilder:
 
 
 class _CompiledCode:
-
     def __init__(self, name, uses_numpy, install_dir, limited_api):
         self.name = name
         self.uses_numpy = uses_numpy
@@ -1087,7 +1109,6 @@ class _CompiledCode:
 
 
 class _CModule(_CompiledCode):
-
     def __init__(self, name, uses_numpy, major, minor, libdir, limited_api):
         super().__init__(name, uses_numpy, libdir, limited_api)
         self.major = major
@@ -1128,13 +1149,11 @@ class _CModule(_CompiledCode):
 
 
 class _CLibrary(_CompiledCode):
-
     def __init__(self, name, uses_numpy, static, libdir, limited_api):
         super().__init__(name, uses_numpy, libdir, limited_api)
         self.static = static
 
     def compile(self, logger, dependencies, debug=False):
-
         compiler, objs, extra_link_args = self.compile_objects(
             logger, dependencies, self.static, debug
         )
@@ -1239,9 +1258,7 @@ class _CLibrary(_CompiledCode):
 
 
 class _CExecutable(_CompiledCode):
-
     def __init__(self, name, execdir, limited_api):
-
         if sys.platform == "win32":
             # Remove .exe suffix because it will be added
             if name.endswith(".exe"):
@@ -1249,7 +1266,6 @@ class _CExecutable(_CompiledCode):
         super().__init__(name, False, execdir, limited_api)
 
     def compile(self, logger, dependencies, debug=False):
-
         compiler, objs, extra_link_args = self.compile_objects(
             logger, dependencies, False, debug
         )
@@ -1287,7 +1303,6 @@ class _CExecutable(_CompiledCode):
 
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
-
     bb = BundleBuilder()
     for cmd in sys.argv[1:]:
         if cmd == "wheel":

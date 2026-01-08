@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Mutation Scores Format</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3>Mutation Scores Format</h3>
 <p>
@@ -39,18 +34,15 @@ The assay scores are tabulated in the file as comma-separated values.
 The first line of the file gives the names of the columns, and subsequent 
 lines give the values, for example:
 </p>
-<pre>
-variants,wildtype,position,mutation,type,surface,surface_se,abundance,abundance_se,dox,dox_se,mtx,mtx_se,sn38,sn38_se
+<pre>variants,wildtype,position,mutation,type,surface,surface_se,abundance,abundance_se,dox,dox_se,mtx,mtx_se,sn38,sn38_se
 p.(V6A),V,6,A,missense,0.052806582,0.311071605,0.095010571,0.391069124,-0.549746993,0.43742939,0.253708238,0.317841138,-0.373043663,0.444088911
 p.(V6C),V,6,C,missense,0.132574054,0.300261964,0.129538083,0.371928707,-0.012776432,0.376829305,-0.005007274,0.220479589,0.447843883,0.270068523
 [...]
 </pre>
 <p>
 The first column should describe the mutation in the 
-<a href="https://hgvs-nomenclature.org/stable/recommendations/protein/substitution/" 
-target="_blank">format</a>
-recommended by the <a href="https://hgvs-nomenclature.org/stable/"
-target="_blank">Human Genome Variation Society (HGVS)</a>,
+<a href="https://hgvs-nomenclature.org/stable/recommendations/protein/substitution/" target="_blank">format</a>
+recommended by the <a href="https://hgvs-nomenclature.org/stable/" target="_blank">Human Genome Variation Society (HGVS)</a>,
 except with 1-letter amino acid codes instead of 3-letter codes.
 For example, a mutation of tyrosine 392 to alanine would be described as:
 </p>
@@ -60,7 +52,7 @@ p.(Y392A)
 <p>
 Deep mutational scans often include deletions. For example,
 the following denotes a deletion of valine 6:
-<blockquote>
+</p><blockquote>
 p.(V6del)
 </blockquote>
 <p>
@@ -90,4 +82,5 @@ structure</b></a> command.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 November 2024</address>
+
 </body></html>

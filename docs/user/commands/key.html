@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: key</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: key</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -34,18 +29,17 @@ class="clRighticon" title="User Guide Index"/></a>
 [&nbsp;<b>font</b>&nbsp;&nbsp;<i>font-name</i>&nbsp;]
 [&nbsp;<b>fontSize</b>&nbsp;&nbsp;<i>font-size</i>&nbsp;]
 &nbsp;<a href="#options"><i>other-options</i></a></h3>
-</h3>
+
 <table class="clRight">
-<tr><td>
-<img class="outline" src="../tutorials/bind6.png" 
-alt="Coulombic ESP flat lighting" width="280px">
+<tbody><tr><td>
+<img class="outline" src="../tutorials/bind6.png" alt="Coulombic ESP flat lighting" width="280px">
 </td></tr>
 <tr><td align="center">
 <font size="-1">
 see <a href="../tutorials/binding-sites.html#esp">image how-to</a>
 </font>
 </td></tr>
-</table>
+</tbody></table>
 <a name="delete"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br>(&nbsp;<b>key&nbsp;delete</b>&nbsp;|&nbsp;<b>~key</b>&nbsp;)
@@ -61,20 +55,19 @@ value-color correspondences in a figure, such as from:
 <ul>
 <li><a href="color.html#byattribute"><b>color</b> by attribute</a>
 (bfactor <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/bfactor.png"></a>, 
+<img class="icon" border="1" src="../tools/shortcut-icons/bfactor.png" alt="computer generated image"></a>, 
 others)
-<li><a href="color.html#map"><b>color</b> by map value</a>
+</li><li><a href="color.html#map"><b>color</b> by map value</a>
 (sample, electrostatic, gradient)
-<li><a href="color.html#distance"><b>color</b> by distance</a>
+</li><li><a href="color.html#distance"><b>color</b> by distance</a>
 (radial, cylindrical, height)
-<li><a href="coulombic.html"><b>coulombic</b></a>
+</li><li><a href="coulombic.html"><b>coulombic</b></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/esp.png"></a>
-<li><a href="mlp.html"><b>mlp</b></a>
-<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img
-class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>
-<li><a href="measure.html#convexity"><b>measure convexity</b></a>
-</ul>
+<img class="icon" border="1" src="../tools/shortcut-icons/esp.png" alt="computer generated image"></a>
+</li><li><a href="mlp.html"><b>mlp</b></a>
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img class="icon" border="1" src="../tools/shortcut-icons/hydrophobicity.png" alt="computer generated image"></a>
+</li><li><a href="measure.html#convexity"><b>measure convexity</b></a>
+</li></ul>
 <p>
 It is the command-line implementation of the
 <a href="../tools/colorkey.html"><b>Color Key</b></a> tool.
@@ -83,7 +76,7 @@ See also:
 <a href="scalebar.html"><b>scalebar</b></a>,
 <a href="ui.html#mousemode"><b>mousemode</b></a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
-<img class="icon" border=1 src="../tools/mouse-icons/ckiconvertical.png"></a>,
+<img class="icon" border="1" src="../tools/mouse-icons/ckiconvertical.png" alt="computer generated image"></a>,
 <a href="../images.html">making images</a>
 </p><p>
 The color key is added as a new model that can be controlled with
@@ -103,12 +96,11 @@ The <i>colors-and-labels</i> specification
 can be given in either of the two ways described below, or even as
 a mixture of the two. Each label can be numeric, text, or blank.
 The initial default is 
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=blue width="10px" title="blue"></td>
-<td bgcolor=white width="10px" title="white"></td>
-<td bgcolor=red width="10px" title="red"></td>
-</tr></table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="blue" width="10px" title="blue"></td>
+<td bgcolor="white" width="10px" title="white"></td>
+<td bgcolor="red" width="10px" title="red"></td>
+</tr></tbody></table>
 with labels <b>min</b>, blank, and <b>max</b>.
 </p>
 <ol>
@@ -120,7 +112,7 @@ For example, to give the initial-default colors and labels mentioned above:
 <blockquote>
 <b>key blue:min white: red:max</b>
 </blockquote>
-<li>An existing <a href="color.html#palette-options"><i>palette-name</i></a>
+</li><li>An existing <a href="color.html#palette-options"><i>palette-name</i></a>
 followed by labels entered as:
 <blockquote>
 :<i>label1</i> :<i>label2</i> [...] :<i>labelN</i>
@@ -151,7 +143,7 @@ Example of a mixture of the two types of specification:
 <blockquote>
 <b>key blue:0.0 cyanmaroon :0.2 :0.5 :1.0 pos .2,.08 size .6,.05</b>
 </blockquote>
-</ol>
+</li></ol>
 <p>
 The colors and labels must be given in left&rarr;right order 
 for a horizontal key or bottom&rarr;top for a vertical key.
@@ -201,7 +193,7 @@ dialog to enable moving/redrawing the key with the mouse, adding or
 changing labels, and adjusting other settings interactively. 
 It can also be started by clicking
 the <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> toolbar icon:
-<img class="icon" src="../tools/mouse-icons/ckiconvertical.png">
+<img class="icon" src="../tools/mouse-icons/ckiconvertical.png" alt="computer generated image">
 </blockquote>
 <blockquote>
 <a name="size"></a>
@@ -344,4 +336,5 @@ Tick mark thickness in pixels (initial default <b>4.0</b>).
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 May 2022</address>
+
 </body></html>

@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Dock Prep</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Dock Prep</h3>
 <p>
@@ -31,10 +26,10 @@ molecular docking or other calculations, such as:
 </p>
 <ul>
 <li> deleting water molecules
-<li> repairing truncated sidechains
-<li> adding hydrogens
-<li> assigning partial charges
-</ul>
+</li><li> repairing truncated sidechains
+</li><li> adding hydrogens
+</li><li> assigning partial charges
+</li></ul>
 <p>
 Many of these steps can be performed separately, but
 <b>Dock Prep</b> unites them for convenience.
@@ -45,7 +40,8 @@ See also:
 <a href="rotamers.html"><b>Rotamers</b></a>,
 <a href="addhydrogens.html"><b>Add Hydrogens</b></a>,
 <a href="addcharges.html"><b>Add Charges</b></a>,
-<a href="viewdockx.html"><b>ViewDockX</b></a>
+<a href="viewdock.html"><b>ViewDock</b></a>,
+<a href="minimizestructure.html"><b>Minimize Structure</b></a>
 </p><p>
 If the atomic models to be prepared contain extra molecules such as ligands 
 or additional subunits that are unwanted for further calculations,
@@ -81,7 +77,7 @@ If any solvent molecules are thought to be important for ligand
 binding, however, one should manually delete the <i>other</i> solvent
 residues beforehand and deactivate this option in <b>Dock Prep</b>.
 <br><br>
-<li><b>Delete non-complexed ions</b> &ndash; delete any monatomic
+</li><li><b>Delete non-complexed ions</b> &ndash; delete any monatomic
 <a href="../commands/atomspec.html#builtin">ions</a>
 that are not participating in covalent or coordination bonds
 (by default, the latter are shown as dashed lines).
@@ -89,7 +85,7 @@ This bonded-or-not distinction is based solely on input bond specifications
 such as CONECT and LINK records in PDB files; it is not inferred from
 the chemistry of the system.
 <br><br>
-<li><b>&ldquo;Standardize&rdquo; certain residue types</b> 
+</li><li><b>&ldquo;Standardize&rdquo; certain residue types</b> 
 &ndash; whether to convert the following nonstandard residues to the 
 corresponding standard types:
   <ul>
@@ -99,29 +95,28 @@ corresponding standard types:
 change the selenium atom to a sulfur atom named SD
 and adjust the CG-SD and SD-CE bond lengths to 1.81 and 1.78 &Aring;,
 respectively
-  <li><b>bromo-UMP 
+  </li><li><b>bromo-UMP 
 (<a href="https://www.rcsb.org/ligand/5BU" target="_blank">5BU</a>)
 &rarr; UMP (U)</b> &ndash; change 5-bromouridine-5'-monophosphate
 to RNA residue uridine-5'-monophosphate by deleting the bromine atom
-  <li><b>methylselenyl-dUMP 
+  </li><li><b>methylselenyl-dUMP 
 (<a href="https://www.rcsb.org/ligand/UMS" target="_blank">UMS</a>)
 &rarr; UMP (U)</b> &ndash;
 replace the methylselenyl moiety with an oxygen atom named O2'
 and adjust the bond length to 1.430 &Aring;
-  <li><b>methylselenyl-dCMP
+  </li><li><b>methylselenyl-dCMP
 (<a href="https://www.rcsb.org/ligand/CSL" target="_blank">CSL</a>)
 &rarr; CMP (C)</b> &ndash;
 replace the methylselenyl moiety with an oxygen atom named O2'
 and adjust the bond length to 1.430 &Aring;
-  </ul>
+  </li></ul>
 <br>
-<li><b>Incomplete side chains</b>
+</li><li><b>Incomplete side chains</b>
 (see <a href="rotamers.html"><b>Rotamers</b></a> for more details on
 the rotamer libraries):
   <ul>
   <li><b>Replace using Dunbrack rotamer library</b> (default)
-&ndash; <a href="http://dunbrack.fccc.edu/bbdep2010/"
-target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>
+&ndash; <a href="http://dunbrack.fccc.edu/bbdep2010/" target="_blank">Dunbrack 2010 smooth backbone-dependent rotamer library</a>
 (5% stepdown; for chain-terminal residues,
 the Dunbrack 2002 backbone-independent version is used instead)
 <!--
@@ -133,10 +128,9 @@ Shapovalov MV, Dunbrack RL Jr.
 <i>Structure.</i> 2011 Jun 8;19(6):844-58.
    </blockquote>
 -->
-  <li><b>Replace using Dynameomics rotamer library</b> 
+  </li><li><b>Replace using Dynameomics rotamer library</b> 
 &ndash;
-<a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx"
-target="_blank">Dynameomics rotamer library</a>
+<a href="http://www.dynameomics.org/rotamer/indexRotamer.aspx" target="_blank">Dynameomics rotamer library</a>
 <!--
    <blockquote>
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/21280126" target="_blank">
@@ -146,7 +140,7 @@ Scouras AD, Daggett V.
 <i>Protein Sci.</i> 2011 Feb;20(2):341-52.
    </blockquote>
 -->
-  <li><b>Replace using Richardson (common-atom) rotamer library</b>
+  </li><li><b>Replace using Richardson (common-atom) rotamer library</b>
 &ndash; common-atom values (author-recommended)
 from the Richardson backbone-independent rotamer library
 <!--
@@ -157,27 +151,27 @@ Lovell SC, Word JM, Richardson JS, Richardson DC.
 <i>Proteins.</i> 2000 Aug 15;40(3):389-408.
    </blockquote>
 -->
-  <li><b>Replace using Richardson (mode) rotamer library</b>
+  </li><li><b>Replace using Richardson (mode) rotamer library</b>
 &ndash; mode values
 from the Richardson backbone-independent rotamer library
-  <li><b>Mutate residues to ALA (if CB present) or GLY</b>
+  </li><li><b>Mutate residues to ALA (if CB present) or GLY</b>
 &ndash; convert amino acid residues with truncated sidechains
 to alanine (leave only sidechain -CH<sub>3</sub>, if present,
 otherwise mutate to glycine, which does not have a sidechain)
-  <li><b>Mutate residues to GLY</b>
+  </li><li><b>Mutate residues to GLY</b>
 &ndash; convert amino acid residues with truncated sidechains
 to glycine (remove sidechain entirely)
-  </ul>
+  </li></ul>
 <br>
-<li><b>Add hydrogens</b> &ndash; whether to call 
+</li><li><b>Add hydrogens</b> &ndash; whether to call 
 <a href="addhydrogens.html"><b>Add Hydrogens</b></a>
 <br><br>
-<li><b>Add charges</b> &ndash; whether to call 
+</li><li><b>Add charges</b> &ndash; whether to call 
 <a href="addcharges.html"><b>Add Charges</b></a>
 <br><br>
-<li><b>Write Mol2 file</b> &ndash; 
+</li><li><b>Write Mol2 file</b> &ndash; 
 open a dialog for saving a Mol2 file
-</ul>
+</li></ul>
 <p>
 <b>OK</b> initiates processing and dismisses the dialog, 
 whereas <b>Cancel</b> simply dismisses the dialog. <b>Help</b>
@@ -186,5 +180,6 @@ opens this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2022</address>
+October 2025</address>
+
 </body></html>

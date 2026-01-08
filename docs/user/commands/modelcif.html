@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,27 +9,24 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: modelcif</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: modelcif</h3>
 <a name="pae"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>modelcif pae</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
-[&nbsp;<b>metricName</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
-[&nbsp;<b>defaultScore</b></a>&nbsp;&nbsp;<i>s</i>&nbsp;]
-[&nbsp;<b>jsonOutputPath</b></a>&nbsp;&nbsp;<i>filename</i>&nbsp;]
+[&nbsp;<b>metricName</b>&nbsp;&nbsp;<i>name</i>&nbsp;]
+[&nbsp;<b>defaultScore</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
+[&nbsp;<b>jsonOutputPath</b>&nbsp;&nbsp;<i>filename</i>&nbsp;]
 [&nbsp;<a href="color.html#palette-options"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
 [&nbsp;<a href="color.html#palette-options"><b>range</b></a>&nbsp;&nbsp;<i>low,high</i>&nbsp;|&nbsp;full&nbsp;]
 </h3>
@@ -50,7 +45,7 @@ Currently, plotting does not work for
 <a href="https://modelarchive.org/" target="_blank">ModelArchive</a>
 structures that contain any residues other than standard amino acids
 and nucleic acids.
-<p><p>
+</p><p></p><p>
 Some of the entries in the 
 <a href="https://modelarchive.org/" target="_blank">ModelArchive</a>
 have associated pairwise
@@ -65,12 +60,12 @@ structure of interest by its identifier in that database, for example:
 <blockquote>
 <b><a href="open.html#fetch">open</a> ma-bak-cepc-0944 from modelarchive</b>
 </blockquote>
-<li>use the <b>modelcif pae</b> command to plot pairwise scores for the
+</li><li>use the <b>modelcif pae</b> command to plot pairwise scores for the
 already opened model, for example:
 <blockquote>
 <b>modelcif pae #1 metricName "contact probability" defaultScore 0 palette rainbow range 0,1</b>
 </blockquote>
-</ol>
+</li></ol>
 <p>
 The <b>metricName</b> option specifies the name of the pairwise metric,
 as given in the mmCIF ma_qa_metric table.
@@ -92,7 +87,7 @@ The default <a href="color.html#palette-options"><b>palette</b></a>
 for coloring the PAE plot is <b>pae</b>, with colors assigned to values
 as follows:
 </p>
-<table border="" cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
+<table border cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
 <td bgcolor="blue" width="30px" title="blue" align="center"><font size="-1" color="white">0</font></td>
 <td bgcolor="cornflowerblue" width="30px" title="cornflowerblue" align="center"><font size="-1" color="white">5</font></td>
 <td bgcolor="yellow" width="30px" title="yellow" align="center"><font size="-1" color="black">10</font></td>
@@ -105,7 +100,7 @@ as follows:
 Another <a href="color.html#palette-options"><b>palette</b></a> 
 with value range suitable for PAE plots is <b>paegreen</b>:
 </p>
-<table border="" cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
+<table border cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
 <td bgcolor="#1e3546661e35" width="30px" title="#1e3546661e35" align="center"><font size="-1" color="white">0</font></td>
 <td bgcolor="#245a922c245a" width="30px" title="#245a922c245a" align="center"><font size="-1" color="white">5</font></td>
 <td bgcolor="#374cb168374c" width="30px" title="#374cb168374c" align="center"><font size="-1" color="white">10</font></td>
@@ -137,4 +132,5 @@ of multiple available is plotted and how the plot is initially colored.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 October 2024</address>
+
 </body></html>

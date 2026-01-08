@@ -1,0 +1,106 @@
+<html lang="en"><!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
+<title>Tool: Scenes</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Scenes</h3>
+<p>
+<b>Scenes</b> allows saving and restoring ChimeraX
+<b><i>scenes</i></b>. A scene currently includes:
+</p>
+<ul>
+<li>model and clipping plane positions
+(as in <a href="../commands/view.html#name"><b>view</b></a>)
+</li><li>atom, bond, and <a href="../pseudobonds.html">pseudobond</a>
+display states, styles, colors, and sizes
+</li><li><a href="../commands/cartoon.html">cartoon/ribbon styles</a> including
+<a href="render.html#worms">worms</a>
+</li><li><a href="2dlabels.html">2D labels and arrows</a>
+<!-- #19150 volume data support-->
+</li><li><a href="volumeviewer.html">volume data</a> (map)
+display styles, levels, coloring, and masking (such as with
+<a href="../commands/surface.html#dust"><b>surface dust</b></a>)
+</li><li><a href="../commands/set.html#bgColor">background color</a>
+</li></ul>
+<p>
+<!--
+#19307 has progress. Not yet saved:
+ribbon style, 3D labels visibility,
+molecular surface coloring (all? per-vertex?)
+-->
+<font color="brown">
+**In progress: not all aspects are saved; more will be added
+added as development proceeds**
+</font>
+</p><p>
+Users should not delete or close any models or their parts that appear 
+in a scene, as trying to restore the scene will not regenerate them.
+Scenes are saved in <a href="../commands/save.html#session">sessions</a>.
+The <b>Scenes</b> tool is also implemented as the 
+<a href="../commands/scenes.html"><b>scenes</b></a> command.
+See also: 
+<!--
+<a href="animations.html"><b>Animations</b></a>,
+-->
+<a href="../images.html">making images</a>,
+<a href="../movies.html">making movies</a>
+</p>
+<!--
+<table class="clRight">
+<tr><td>
+<img class="outline" src="scenes.png"
+alt="Scenes dialog" width="300px">
+</td></tr>
+</table>
+-->
+<p>
+<b>Scenes</b> can be started from the <b>Depiction</b> section of the 
+<b>Tools</b> menu and manipulated like other panels 
+(<a href="../window.html#panels">more...</a>).
+Currently saved scenes are shown as thumbnail images.
+Clicking the <b>Add</b> button saves the current contents of the graphics window
+as a new scene with the specified name, if any, otherwise
+an automatically generated integer name.
+The thumbnails can be reordered by drag-and-drop.
+</p><p>
+<a name="chosen"></a>
+Clicking a thumbnail <b><i>chooses</i></b> the scene, restores it, 
+draws an outline around its thumbnail, and places its name in the entry field. 
+Clicking a blank area of the dialog unchooses the scene, removes the outline,
+and clears the name entry field.
+</p><p>
+When a thumbnail is <a href="#chosen">chosen</a>, the following
+actions become available:
+</p>
+<ul>
+<li><b>Update</b>
+&ndash; overwrite the chosen scene with the current ChimeraX contents
+</li><li><b>Rename</b>
+&ndash; enter a new name for the chosen scene
+</li><li><b>Delete</b>
+&ndash; delete the chosen scene
+</li></ul>
+<p>
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+November 2025</address>
+
+</body></html>

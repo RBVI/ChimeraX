@@ -26,10 +26,18 @@ from chimerax.ui.widgets import ItemListWidget, ItemMenuButton
 from chimerax.ui.options import Option
 from chimerax.core.triggerset import TriggerSet
 from Qt.QtCore import Signal
+from Qt import using_pyqt6
+
+# PyQt uses Signal([type]) syntax for signals with arguments, PySide uses Signal(type)
+def _make_list_signal():
+    if using_pyqt6:
+        return Signal([list])
+    else:
+        return Signal(list)
 
 class AlignmentListWidget(ItemListWidget):
 
-    alignments_changed = Signal([list])
+    alignments_changed = _make_list_signal()
 
     def __init__(self, session, **kw):
         self.session = session
@@ -47,7 +55,7 @@ class AlignmentListWidget(ItemListWidget):
 
 class AlignmentMenuButton(ItemMenuButton):
 
-    alignments_changed = Signal([list])
+    alignments_changed = _make_list_signal()
 
     def __init__(self, session, **kw):
         self.session = session

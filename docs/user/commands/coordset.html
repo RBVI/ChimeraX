@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: coordset</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: coordset</h3>
 
@@ -167,11 +162,10 @@ The <b>computeSs</b>, <b>holdSteady</b>, and <b>pauseFrames</b> options are
 as described <a href="#top">above</a> for the main <b>coordset</b> command.
 The slider can be dragged or a frame number entered directly.
 The interface also includes a play/pause button, a
-&nbsp;<img style="height:16px; margin: 1px -1px; vertical-align:top"
-src="../tools/ui-icons/snail.png">&nbsp; value to increase for slower playback
+&nbsp;<img style="height:16px; margin: 1px -1px; vertical-align:top" src="../tools/ui-icons/snail.png" alt="computer generated image">&nbsp; value to increase for slower playback
 (<b>pauseFrames</b> as described <a href="#top">above</a>),
 and a button for recording a movie
-(<img class="iconbar" src="../tools/ui-icons/record.png">).
+(<img class="iconbar" src="../tools/ui-icons/record.png" alt="computer generated image">).
 Sequential integers are added to the movie filename (movie1.mp4, movie2.mp4, 
 ...) so that repeated recordings will not overwrite the previous ones, 
 and the save location can be set with the 
@@ -192,27 +186,46 @@ The slider <a href="../window.html#context-menu">context menu</a> includes:
 <ul>
 <a name="plotting"></a>
 <li><b>Plot</b> &ndash; plot various measurables across the whole trajectory,
-with frame number on the horizontal (X) axis. 
+with frame number on the horizontal (X) axis. See also:
+<a href="../measurements.html">measurements</a>
 <p>
 In general, each measurement is defined by 
 <a href="../selection.html">selecting</a> the desired atoms 
 (two for <b>Distances</b>, three for <b>Angles</b>, four for <b>Torsions</b>,
-any number for <b>SASAs</b>) and clicking <b>Plot</b>. 
-For SASA (area of the atoms'
-<a href="surface.html#surfdefs">solvent-accessible surface</a>),
-there are also checkbox options to omit residues 
-<a href="atomspec.html#surfcats">classified</a> as ions, ligand, and/or
-solvent from the calculation.
+any number for <b>SASAs</b>, <b>RMSDs</b>, or <b>H-Bonds</b>)
+and clicking <b>Plot</b>. For <b>H-Bonds</b>, 
+clicking <b>Plot</b> brings up another dialog for (optionally) adjusting 
+certain <a href="../tools/hbonds.html"><b>H-Bonds</b></a> parameters beforehand.
+</p><p>
+For RMSD, the <b>Reference frame</b> for calculating the (best-fit)
+root-mean-square deviation of the set of atoms must also be designated.
+</p><p>
+Additional options for SASA (area of the atoms'
+<a href="surface.html#surfdefs">solvent-accessible surface</a>) and/or RMSD:
+</p>
 <!-- 
 SASA details: the entire surfcats of all specified atoms are lumped as the 
 first arg of "measure sasa" and the specified atoms are used as the "sum" arg,
 with probe radius default = 1.4 Angstroms 
 -->
+<ul>
+<li><b>Ignore solvent and non-metal ions</b> (default <b>on</b>)
+&ndash; whether to omit <a href="atomspec.html#surfcats">solvent</a> residues
+and non-metal monatomic ions 
+(Cl<sup>&ndash;</sup>, Br<sup>&ndash;</sup>, <i>etc.</i>) 
+</li><li><b>Ignore hydrogens</b> (only for RMSD; default <b>on</b>)
+</li><li><b>Ignore ligands</b> (default <b>on</b>)
+&ndash; whether to omit <a href="atomspec.html#surfcats">ligand</a> residues
+</li><li><b>Ignore metal ions</b>
+&ndash; whether to omit <b>alkali</b> metal ions (Li<sup>+</sup>, Na<sup>+</sup>,
+K<sup>+</sup>, <i>etc.</i>), or all metal ions (if <b>true</b>), or none 
+(if <b>false</b>, thus including them all)
+</li></ul>
+<p>
 Several different measurements of the same type 
 (for example, several distances) can be shown on the same plot. 
 Each measurement is listed in a table on the right along with a
-&nbsp;<img class="iconbar" src="../tools/ui-icons/shown.png"
-title="eye icon" alt="eye icon">&nbsp; show/hide checkbox and
+&nbsp;<img class="iconbar" src="../tools/ui-icons/shown.png" title="eye icon" alt="eye icon">&nbsp; show/hide checkbox and
 a color well that can be clicked to change the line color interactively.
 Choosing one or more rows in the table and clicking <b>Delete</b>
 removes the associated measurement(s).
@@ -226,15 +239,30 @@ definitions will be lost if that occurs. If the plot window is left open
 but gets lost behind other windows, it can be resurrected using the slider
 context menu.
 </p>
-<li><b>Loop Playback</b> (initially on) &ndash; whether interactive playback 
+<blockquote>
+The plot window has its own 
+<a href="../window.html#context-menu">context menu</a>, including:
+  <ul>
+  <li><b>Save Plot Image...</b> save the plot to an image file 
+(several choices of image file format), optionally with a
+<b>Transparent background</b> and a specified <b>DPI</b>
+(resolution in pixels per inch; although the displayed aspect ratio is
+retained, however, there is no way to specify the size in inches,
+which is somehow determined by
+<a href="https://matplotlib.org/" target="_blank">Matplotlib</a>)
+  </li><li><b>Save CSV or TSV File...</b> save the plotted values to a 
+  comma- or tab-separated values file
+  </li></ul>
+</blockquote>
+</li><li><b>Loop Playback</b> (initially on) &ndash; whether interactive playback 
 should continue until explicitly paused 
-<li><b>Bounce Playback</b> (only available when <b>Loop Playback</b> is on)
+</li><li><b>Bounce Playback</b> (only available when <b>Loop Playback</b> is on)
 &ndash; whether looping wraps from end to beginning so that playback is only 
 in the forward direction (initial setting, <b>Bounce Playback</b> off) 
 or alternates between forward and backward (<b>Bounce Playback</b> on).
 These loop/bounce settings apply only to interactive viewing, not recording 
 a movie with the button mentioned above.
-</ul>
+</li></ul>
 <p>
 See also: 
 <a href="distance.html"><b>distance</b></a>,
@@ -278,10 +306,10 @@ Note that &ldquo;frames&rdquo; is commonly used for two disparate concepts:
 <li>coordinate sets from successive time points in a 
 <a href="../trajectories.html">trajectory</a>; 
 changes in conformation and configuration
-<li>graphics image updates,
+</li><li>graphics image updates,
 nominally 60 fps in ChimeraX (<a href="set.html#maxFrameRate">default</a>),
 showing any graphical changes
-</ul>
+</li></ul>
 <p>
 Because of such broad usage, the documentation also uses &ldquo;frames&rdquo;
 in both senses, but context and wording should indicate which meaning 
@@ -290,5 +318,6 @@ applies in a particular situation.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2025</address>
+July 2025</address>
+
 </body></html>

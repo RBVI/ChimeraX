@@ -5,48 +5,54 @@ on:
     - cron: "0 7 * * *" # 7AM UTC / 11PM PST / 12AM PDT
 
 jobs:
-  build-rocky8-docker:
-    name: Build ChimeraX for Rocky 8
+  build-rocky9-docker:
+    name: Build ChimeraX for Rocky 9
     strategy:
       fail-fast: false
       matrix:
-        include: 
-          - branch: release/v1.10
-            release_type: candidate
+        include:
+          #- branch: release/v1.12
+          #  release_type: candidate
           - branch: develop
             release_type: daily
-    uses: ./.github/workflows/rocky8_build.yml
+          - branch: flying_edges
+            release_type: techpreview
+    uses: ./.github/workflows/rocky9_build.yml
     with:
       branch: ${{ matrix.branch }}
       release_type: ${{ matrix.release_type }}
     secrets: inherit
-  build-rocky9-docker:
-    name: Build ChimeraX for Rocky 9
-    needs: [build-rocky8-docker]
+  build-rocky10-docker:
+    name: Build ChimeraX for Rocky 10
+    needs: [build-rocky9-docker]
     strategy:
       fail-fast: false
       matrix:
-        include: 
-          - branch: release/v1.10
-            release_type: candidate
+        include:
+        #  - branch: release/v1.12
+        #    release_type: candidate
           - branch: develop
             release_type: daily
-    uses: ./.github/workflows/rocky9_build.yml
+          - branch: flying_edges
+            release_type: techpreview
+    uses: ./.github/workflows/rocky10_build.yml
     with:
       branch: ${{ matrix.branch }}
       release_type: ${{ matrix.release_type }}
     secrets: inherit
   build-ubuntu:
     name: Build ChimeraX for Ubuntu
-    needs: [build-rocky8-docker]
+    needs: [build-rocky9-docker]
     strategy:
       fail-fast: false
       matrix:
         include:
-          - branch: release/v1.10
-            release_type: candidate
+        #  - branch: release/v1.12
+        #    release_type: candidate
           - branch: develop
             release_type: daily
+          - branch: flying_edges
+            release_type: techpreview
     uses: ./.github/workflows/ubuntu_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -54,15 +60,17 @@ jobs:
     secrets: inherit
   build-flatpak:
     name: Build ChimeraX FlatPak
-    needs: [build-rocky8-docker]
+    needs: [build-rocky9-docker]
     strategy:
       fail-fast: false
       matrix:
         include:
-          - branch: release/v1.10
-            release_type: candidate
+        #  - branch: release/v1.12
+        #    release_type: candidate
           - branch: develop
             release_type: daily
+          - branch: flying_edges
+            release_type: techpreview
     uses: ./.github/workflows/flatpak_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -73,11 +81,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: 
-          - branch: release/v1.10
-            release_type: candidate
+        include:
+        #  - branch: release/v1.12
+        #    release_type: candidate
           - branch: develop
             release_type: daily
+          - branch: flying_edges
+            release_type: techpreview
     uses: ./.github/workflows/flatpak_arm_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -88,11 +98,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: 
-          - branch: release/v1.10
-            release_type: candidate
+        include:
+          #- branch: release/v1.12
+          #  release_type: candidate
           - branch: develop
             release_type: daily
+          - branch: flying_edges
+            release_type: techpreview
     uses: ./.github/workflows/mac_arm_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -103,11 +115,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: 
-          - branch: release/v1.10
-            release_type: candidate
+        include:
+          #- branch: release/v1.12
+          #  release_type: candidate
           - branch: develop
             release_type: daily
+          - branch: flying_edges
+            release_type: techpreview
     uses: ./.github/workflows/mac_intel_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -119,11 +133,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: 
-          - branch: release/v1.10
-            release_type: candidate
+        include:
+          #- branch: release/v1.12
+          #  release_type: candidate
           - branch: develop
             release_type: daily
+          - branch: flying_edges
+            release_type: techpreview
     uses: ./.github/workflows/mac_universal_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -134,11 +150,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: 
-          - branch: release/v1.10
-            release_type: candidate
+        include:
+          #- branch: release/v1.12
+          #  release_type: candidate
           - branch: develop
             release_type: daily
+          - branch: flying_edges
+            release_type: techpreview
     uses: ./.github/workflows/windows_build.yml
     with:
       branch: ${{ matrix.branch }}

@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Crystal Contacts</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Crystal Contacts</h3>
 <p>
@@ -52,17 +47,17 @@ current atomic models, and the desired <b>contact distance</b> specified
 </p><p>
 <a name="options"></a>
 Clicking <b>Options</b> shows/hides additional options:
-<ul>
+</p><ul>
 <li><b>Create copies of contacting structures</b>
 &ndash; load contacting copies as full atomic models
-<li><b>Rainbow color copies</b>
+</li><li><b>Rainbow color copies</b>
 &ndash; whether to rainbow-color the additional atomic models;
 otherwise, they will be the same color as the original
-<li><b>Show schematic of contacting structures</b>
+</li><li><b>Show schematic of contacting structures</b>
 &ndash; generate a <a href="#schematic">schematic representation</a>
 of the copies and contacts
-</ul>
-</p>
+</li></ul>
+<p></p>
 Clicking <b>Show Contacts</b> <a href="#copies">generates copies</a>,
 identifies atomic contacts within the specified <b>contact distance</b>,
 and shows them according to the <a href="#options">options</a>.
@@ -72,7 +67,7 @@ Clicking <b>Delete Contacts</b> removes the atomic copies
 and/or schematic representation.
 Clicking <b>Help</b> shows this page
 in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
-</p><p>
+<p></p><p>
 <a name="results"></a>
 Crystal contact information is listed in the <a href="log.html"><b>Log</b></a>.
 Each line reports a pair of copies (NCS asymmetric units) that are in
@@ -107,7 +102,7 @@ true</b></a>.
 <ol>
 <li>CRYST1 information is used to define a unit cell box
 with one corner at (0,0,0).
-<li>MTRIX records are used to generate copies related by 
+</li><li>MTRIX records are used to generate copies related by 
 noncrystallographic symmetry. Together with the original, these copies
 make up the <b><i>crystal asymmetric unit (CAU)</i></b>.
 If there are no MTRIX records, the starting structure is already the
@@ -116,10 +111,10 @@ Icosahedral capsid structures typically contain a fraction of the CAU, a
 <b><i>noncrystallographic symmetry (NCS) asymmetric unit</i></b>
 that must be duplicated according to MTRIX records to generate the CAU
 (example: PDB entry <b>1v9u</b>).
-<li>CRYST1 or SMTRY records are used to generate copies
+</li><li>CRYST1 or SMTRY records are used to generate copies
 related by crystallographic symmetry. Together with the copies from
 the previous step, these copies make up one <i><b>crystal unit cell</b></i>.
-</ol>
+</li></ol>
 
 <a name="schematic"></a>
 <p class="nav">
@@ -136,19 +131,19 @@ a single ball, even if it includes multiple chains.
 <li>light green balls &ndash; the original structure and
 any copies related by noncrystallographic symmetry, collectively
 representing the crystallographic asymmetric unit (CAU)
-<li>light blue balls &ndash; copies related by crystallographic symmetry,
+</li><li>light blue balls &ndash; copies related by crystallographic symmetry,
 together with the green balls representing the contents of one unit cell
-<li>light red cylinders &ndash; close contacts between copies, with radii
+</li><li>light red cylinders &ndash; close contacts between copies, with radii
 proportional to the number of contacting atoms.
 the minimum and maximum cylinder radii are limited, with the minimum
 corresponding to 1% of atoms in contact and maximum corresponding to 5%.
-<li>yellow balls &ndash; any copies from neighboring unit cells found
+</li><li>yellow balls &ndash; any copies from neighboring unit cells found
 to be within the contact distance of any copy in the CAU
-<li>light blue cylinders &ndash; outline of a unit cell box, where
+</li><li>light blue cylinders &ndash; outline of a unit cell box, where
 the contents of a unit cell could be placed relative to each vertex
-<li>copies right on top of each other are shown with a transparent green ball
+</li><li>copies right on top of each other are shown with a transparent green ball
 rather than a connecting cylinder
-</ul>
+</li></ul>
 <p>
 The balls may not be packed into the unit cell box because the matrices 
 in the input file are only required to generate the correct symmetries, 
@@ -161,4 +156,5 @@ The balls and cylinders are created as a
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 May 2022</address>
+
 </body></html>

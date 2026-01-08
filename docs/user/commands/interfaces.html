@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: interfaces</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: interfaces</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -51,7 +46,7 @@ specified set of atoms, based on chain IDs,
 and generates a <a href="#diagram">network diagram</a>
 of the interchain interfaces. 
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/interfaces.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/interfaces.png" alt="computer generated image"></a>
 Unspecified atoms are ignored, but
 solvent, ions, and ligand residues are NOT excluded automatically.
 The buried SASA is calculated as described for
@@ -67,8 +62,7 @@ See also:
 <a href="hbonds.html"><b>hbonds</b></a>,
 <a href="../radii.html">VDW radii</a>,
 <a href="../measurements.html">measurements</a>,
-the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#chain-network"
-target="_blank">ChimeraX interfaces highlight</a>
+the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#chain-network" target="_blank">ChimeraX interfaces highlight</a>
 </p><p>
 The default <b>probeRadius</b> <i>rad</i> for calculating each SAS
 is <b>1.4</b> &Aring;, often used to approximate a water molecule.
@@ -104,10 +98,8 @@ For a similar calculation but without grouping residues by chain, see
 <h3>Chain-Chain Network Diagram</h3>
 <p>
 <table class="clRight">
-<tr><td><img class="outline" src="contacts.png" width="330px"
-alt="1i50 'interfaces protein' diagram"
-title="1i50 'interfaces protein' diagram"></td></tr>
-</table>
+<tbody><tr><td><img class="outline" src="contacts.png" width="330px" alt="1i50 'interfaces protein' diagram" title="1i50 'interfaces protein' diagram"></td></tr>
+</tbody></table>
 In the 2D network diagram
 created by the <a href="#top"><b>interfaces</b></a> command,
 the <b><i>nodes</i></b> (circles) represent chains,
@@ -152,32 +144,32 @@ The <b>background</b> <a href="#context">context menu</a> includes:
 <ul>
 <li><b>Show All</b>
 &ndash; display all chains used in the calculation 
-<li><b>Select All Contact Residues</b>
+</li><li><b>Select All Contact Residues</b>
 &ndash; <a href="../selection.html">select</a>
 only the <a href="#interface-residues">interface residues</a> from all chains
-<li><b>Select All</b>
+</li><li><b>Select All</b>
 &ndash; <a href="../selection.html">select</a> all atoms used in the calculation
-<li><b>Clear Selection</b>
+</li><li><b>Clear Selection</b>
 &ndash; clear the current <a href="../selection.html">selection</a> 
-<li><b>Explode All</b>
+</li><li><b>Explode All</b>
 &ndash; move chains apart to separate the interfaces; exploding an interface
 moves two chains in opposite directions along the line connecting the 
 geometric centers of the two sets of 
 <a href="#interface-residues">interface residues</a>
-<li><b>Unexplode All</b>
+</li><li><b>Unexplode All</b>
 &ndash; move chains back together to restore the original structure
-<li><b>Lay Out to Match Structure</b>
+</li><li><b>Lay Out to Match Structure</b>
 &ndash; redraw diagram with orientation similar to the current 3D structure
 (including repulsion to prevent node overlaps in the diagram)
-<li><b>Orient Structure to Match Layout</b>
+</li><li><b>Orient Structure to Match Layout</b>
 &ndash; rotate the structure to an orientation similar to the 2D diagram
-<li><a name="saveplot"></a><b>Save Plot As...</b>
+</li><li><a name="saveplot"></a><b>Save Plot As...</b>
 save the plot window contents as PNG, PDF, or SVG,
 using parameters of the matplotlib 
 <a href="https://matplotlib.org/stable/api/figure_api.html#matplotlib.figure.Figure.savefig" target="_blank">Figure.save_fig() method</a>:
 resolution 300 dpi (if PNG or PDF) and border padding 0.1 inch. Currently,
 there is no command for saving the plot and no way to change these parameters.
-</ul>
+</li></ul>
 <p>
 <a name="nodemenu"></a>
 The <b>node</b> <a href="#context">context menu</a> includes:
@@ -185,9 +177,9 @@ The <b>node</b> <a href="#context">context menu</a> includes:
 <ul>
 <li><b>Show Only [<i>chain</i>]</b>
 &ndash; show the corresponding chain; hide others
-<li><b>Show [<i>chain</i>] and Neighbors</b> 
+</li><li><b>Show [<i>chain</i>] and Neighbors</b> 
 &ndash; show only the corresponding chain and its contacting chains
-<li><b>Show Contact Residues of Neighbors with [<i>chain</i>]</b>
+</li><li><b>Show Contact Residues of Neighbors with [<i>chain</i>]</b>
 &ndash; show the corresponding chain with its 
 <a href="#interface-residues">interface residues</a>
 in light gray, plus only the relevant
@@ -195,24 +187,24 @@ in light gray, plus only the relevant
 from its contacting chains
 (not their <a href="#interface-residues">interface residues</a>
 with other chains)
-<li><b>Select [<i>chain</i>]</b>
+</li><li><b>Select [<i>chain</i>]</b>
 &ndash; <a href="../selection.html">select</a> the corresponding chain
 (same as Alt-clicking the node)
-<li><b>Select Neighbors of [<i>chain</i>]</b>
+</li><li><b>Select Neighbors of [<i>chain</i>]</b>
 &ndash; <a href="../selection.html">select</a> 
 chains contacting the corresponding chain
-<li><b>Select Contact Residues of [<i>chain</i>] and Neighbors</b>
+</li><li><b>Select Contact Residues of [<i>chain</i>] and Neighbors</b>
 &ndash; <a href="../selection.html">select</a> the
 <a href="#interface-residues">interface residues</a>
 on both sides of all interfaces 
 of the corresponding chain
-<li><b>Explode Neighbors of [<i>chain</i>]</b>
+</li><li><b>Explode Neighbors of [<i>chain</i>]</b>
 &ndash; move chains apart to separate the interfaces
-<li><b>Unexplode Neighbors of [<i>chain</i>]</b>
+</li><li><b>Unexplode Neighbors of [<i>chain</i>]</b>
 &ndash; move chains back together
-<li><a name="saveplot"></a><b>Save Plot As...</b>
+</li><li><a name="saveplot"></a><b>Save Plot As...</b>
 as <a href="#saveplot">above</a>
-</ul>
+</li></ul>
 <p>
 <a name="edgemenu"></a>
 The <b>edge</b> <a href="#context">context menu</a> includes:
@@ -220,57 +212,55 @@ The <b>edge</b> <a href="#context">context menu</a> includes:
 <ul>
 <li><b>Show Only [<i>chain1</i>] and [<i>chain2</i>]</b>
 &ndash; show the corresponding chains; hide others
-<li><b>Show Contact Residues of [<i>chain1</i>] with [<i>chain2</i>]</b> 
+</li><li><b>Show Contact Residues of [<i>chain1</i>] with [<i>chain2</i>]</b> 
 &ndash; show only the 
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 of <i>chain1</i>, plus all of <i>chain2</i> as spheres 
 with its non-interface residues in light gray; orient view to face <i>chain2</i>
-<li><b>Show Contact Residues of [<i>chain2</i>] with [<i>chain1</i>]</b> 
+</li><li><b>Show Contact Residues of [<i>chain2</i>] with [<i>chain1</i>]</b> 
 &ndash; show only the
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 of <i>chain2</i>, plus all of <i>chain1</i> as spheres 
 with its non-interface residues in light gray; orient view to face <i>chain1</i>
 <table class="clRight">
-<tr><td><img class="outline" src="resplot.png" width="220px"
-alt="1i50 C-J residue plot"
-title="1i50 C-J residue plot"></td></tr>
-</table>
-<li><b>Residue Plot [<i>chain1</i>] with [<i>chain2</i>]</b> 
+<tbody><tr><td><img class="outline" src="resplot.png" width="220px" alt="1i50 C-J residue plot" title="1i50 C-J residue plot"></td></tr>
+</tbody></table>
+</li><li><b>Residue Plot [<i>chain1</i>] with [<i>chain2</i>]</b> 
 &ndash; adjust the 3D view in the same way as 
 <b>Show Contact Residues of [<i>chain1</i>] with [<i>chain2</i>]</b> (above)
 and create an <a href="#residue-plot">interface residue plot</a>, essentially
 a 2D representation of the 3D view: colored circles for individual
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 superimposed on a gray silhouette of the remaining residues of <i>chain2</i>
-<li><b>Residue Plot [<i>chain2</i>] with [<i>chain1</i>]</b> 
+</li><li><b>Residue Plot [<i>chain2</i>] with [<i>chain1</i>]</b> 
 &ndash; adjust the 3D view in the same way as 
 <b>Show Contact Residues of [<i>chain2</i>] with [<i>chain1</i>]</b> (above)
 and create an <a href="#residue-plot">interface residue plot</a>, essentially
 a 2D representation of the 3D view: colored circles for individual
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 superimposed on a gray silhouette of the remaining residues of <i>chain1</i>
-<li><b>Select [<i>chain1</i>] and [<i>chain2</i>]</b>
+</li><li><b>Select [<i>chain1</i>] and [<i>chain2</i>]</b>
 &ndash; <a href="../selection.html">select</a> the corresponding chains
 (same as Alt-clicking the edge)
-<li><b>Select Contact Residues of [<i>chain1</i>] and [<i>chain2</i>]</b>
+</li><li><b>Select Contact Residues of [<i>chain1</i>] and [<i>chain2</i>]</b>
 &ndash; <a href="../selection.html">select</a> the
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 of both chains
-<li><b>Select Contact Residues of [<i>chain1</i>] with [<i>chain2</i>]</b> 
+</li><li><b>Select Contact Residues of [<i>chain1</i>] with [<i>chain2</i>]</b> 
 &ndash; <a href="../selection.html">select</a> the
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 of <i>chain1</i>
-<li><b>Select Contact Residues of [<i>chain2</i>] with [<i>chain1</i>]</b> 
+</li><li><b>Select Contact Residues of [<i>chain2</i>] with [<i>chain1</i>]</b> 
 &ndash; <a href="../selection.html">select</a> the
 <i>chain1-chain2</i> <a href="#interface-residues">interface residues</a>
 of <i>chain2</i>
-<li><b>Explode [<i>chain1</i>] and [<i>chain2</i>]</b>
+</li><li><b>Explode [<i>chain1</i>] and [<i>chain2</i>]</b>
 &ndash; move chains apart to separate the interfaces
-<li><b>Unexplode [<i>chain1</i>] and [<i>chain2</i>]</b>
+</li><li><b>Unexplode [<i>chain1</i>] and [<i>chain2</i>]</b>
 &ndash; move chains back together
-<li><a name="saveplot"></a><b>Save Plot As...</b>
+</li><li><a name="saveplot"></a><b>Save Plot As...</b>
 as <a href="#saveplot">above</a>
-</ul>
+</li></ul>
 
 <a name="residue-plot"></a>
 <p class="nav">
@@ -305,14 +295,15 @@ The residue plot has its own <a href="#context">context menus</a>, with:
 &ndash; in 3D, show the <a href="#interface-residues">interface residues</a> 
 from the two chains plus the remaining residues of the second chain in 
 light gray; orient view to face the second chain, shown as spheres
-<li><b>Select Residue</b> (in residue context menu)
+</li><li><b>Select Residue</b> (in residue context menu)
 &ndash; <a href="../selection.html">select</a> 
 the corresponding residue in the structure
-<li><a name="saveplot"></a><b>Save Plot As...</b>
+</li><li><a name="saveplot"></a><b>Save Plot As...</b>
 as <a href="#saveplot">above</a>
-</ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 May 2022</address>
+
 </body></html>

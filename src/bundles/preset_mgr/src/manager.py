@@ -120,6 +120,7 @@ class PresetsManager(ProviderManager):
 
     def _gather_presets(self, folder):
         import os, os.path
+        from chimerax.core.commands import run, FileNameArg, StringArg
         preset_info = {}
         subfolders = []
         for entry in os.listdir(folder):
@@ -128,11 +129,14 @@ class PresetsManager(ProviderManager):
                 subfolders.append(entry)
                 continue
             if entry.endswith(".cxc"):
-                f = open(entry_path, "r")
-                preset_info[entry[:-4].replace('_', ' ')] = f.read()
-                f.close()
+                try:
+                    with open(entry_path, "r") as f:
+                        preset_info[entry[:-4].replace('_', ' ')] = f.read()
+                except UnicodeDecodeError:
+                    self.session.logger.warning("Skipping preset file %s due to unusual character in"
+                        " file name or file contents" % StringArg.unparse(entry_path))
+                    continue
             elif entry.endswith(".py"):
-                from chimerax.core.commands import run, FileNameArg
                 preset_info[entry[:-3].replace('_', ' ')] = lambda p=FileNameArg.unparse(entry_path), \
                     run=run, ses=self.session: run(ses, "open " + p, log=False)
         return preset_info, subfolders

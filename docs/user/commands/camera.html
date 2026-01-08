@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: camera</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: camera</h3>
 
@@ -53,36 +48,36 @@ The camera <i>mode</i> can be:
 <ul>
 <li><b>mono</b> (default) &ndash; monoscopic with perspective 
 (apparent size decreasing with distance from the viewer)
-<li><b>ortho</b> &ndash; orthographic, monoscopic without perspective
-<li><b>crosseye</b> &ndash; side-by-side left- and right-eye views
+</li><li><b>ortho</b> &ndash; orthographic, monoscopic without perspective
+</li><li><b>crosseye</b> &ndash; side-by-side left- and right-eye views
 for visualization with crossed eyes; 
 defaults aim to place the virtual scene 30 cm from the eyes
 with the screen 60 cm away so that the whole scene is visible:
 eye separation twice the scene diameter <i>d</i>,
-camera distance 10<i>d</i>, field of view 6&deg;, and convergence 6&deg.
+camera distance 10<i>d</i>, field of view 6&deg;, and convergence 6&deg;.
 Ideally, the window width onscreen should be about 12 cm.
-<li><b>walleye</b> &ndash; side-by-side left- and right-eye views.
+</li><li><b>walleye</b> &ndash; side-by-side left- and right-eye views.
 for visualization with diverged eyes;
 defaults aim to place the virtual scene 60 cm from the eyes
 with the screen 30 cm away so that the whole scene is visible:
 eye separation same as the scene diameter <i>d</i>,
 camera distance 10<i>d</i>, field of view 6&deg;, and convergence 3&deg;.
 Ideally, the window width onscreen should be about 12 cm.
-<li><b>stereo</b> &ndash; sequential stereoscopic; see also the
+</li><li><b>stereo</b> &ndash; sequential stereoscopic; see also the
 <a href="../options.html#stereo"><b>--stereo</b> startup option</a>
-<li><b>sbs</b> &ndash; stereoscopic side-by-side layout (similar to walleye)
-<li><b>tb</b> &ndash; stereoscopic top-bottom layout
-<li><b>360</b> &ndash; 360&deg; equirectangular projection
+</li><li><b>sbs</b> &ndash; stereoscopic side-by-side layout (similar to walleye)
+</li><li><b>tb</b> &ndash; stereoscopic top-bottom layout
+</li><li><b>360</b> &ndash; 360&deg; equirectangular projection
 with longitude 0-360&deg; along the X axis and latitude &minus;90-90&deg;
 along Y, rendered from a cube map
-<li><b>360sbs</b> &ndash; 360&deg; stereoscopic side-by-side layout
-<li><b>360tb</b> &ndash; 360&deg; stereoscopic top-bottom layout
-<li><b>dome</b> &ndash; 180&deg; (half-sphere) projection
+</li><li><b>360sbs</b> &ndash; 360&deg; stereoscopic side-by-side layout
+</li><li><b>360tb</b> &ndash; 360&deg; stereoscopic top-bottom layout
+</li><li><b>dome</b> &ndash; 180&deg; (half-sphere) projection
 in which the distance from the window center is proportional to the
 angle from the view direction up to 90&deg; at the nearest window edge,
 rendered from a cube map;
 see also <a href="../window.html#fullscreen">using ChimeraX fullscreen</a>
-</ul>
+</li></ul>
 <p>
 The <b>eyeSeparation</b> option specifies the distance between
 left- and right-eye viewpoints in scene distance units, 
@@ -124,7 +119,7 @@ except as specified in the command; previous settings are not retained.
 In stereo modes (those with separate views for left and right eyes),
 the <a href="ui.html#zoom"><b>zoom</b> mousemode</a>
 <a href="../tools/mousemodes.html#zoom" title="Right Mouse Toolbar...">
-<img class="icon" border=1 src="../tools/mouse-icons/zoom.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/zoom.png" alt="computer generated image"></a>
 adjusts the eye separation proportionally to
 moving the camera closer or farther away so that the apparent distance
 to a model stays the same while its apparent size changes.
@@ -137,4 +132,5 @@ See also: <a href="../tools/mousemodes.html#vr">zooming in VR</a>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 June 2022</address>
-</body></html> 
+ 
+</body></html>

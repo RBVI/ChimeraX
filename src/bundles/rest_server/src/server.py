@@ -35,6 +35,7 @@ class RESTServer(Task):
 
         self.httpd = None
         self.log = kw.pop("log", False)
+        self.cors = kw.pop("cors", False)
         self.run_count = 0
         self.run_lock = threading.Lock()
         super().__init__(*args, **kw)
@@ -125,6 +126,31 @@ class RESTServer(Task):
         return "REST Server, ID %s" % self.id
 
 
+def _is_localhost_origin(origin):
+    """Check if an origin is a localhost origin (http://localhost:* or http://127.0.0.1:*).
+
+    Returns True if the origin is a localhost origin, False otherwise.
+    """
+    if not origin:
+        return False
+    from urllib.parse import urlparse
+    try:
+        parsed = urlparse(origin)
+        # Only allow http and https schemes
+        if parsed.scheme not in ('http', 'https'):
+            return False
+        # Check for localhost or 127.0.0.1
+        host = parsed.hostname
+        if host in ('localhost', '127.0.0.1'):
+            return True
+        # Also allow ::1 (IPv6 localhost)
+        if host == '::1':
+            return True
+        return False
+    except Exception:
+        return False
+
+
 class RESTHandler(BaseHTTPRequestHandler):
     """Process one REST request."""
 
@@ -137,6 +163,25 @@ class RESTHandler(BaseHTTPRequestHandler):
     # Whether to log to the ChimeraX log as well as whatever client is being
     # used
     log = False
+
+    def do_OPTIONS(self):
+        """Handle CORS preflight requests."""
+        if not self.server.chimerax_restserver.cors:
+            self.send_error(405, "Method Not Allowed")
+            return
+
+        origin = self.headers.get("Origin")
+        if not _is_localhost_origin(origin):
+            self.send_error(403, "Forbidden: CORS only allowed for localhost origins")
+            return
+
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", origin)
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Max-Age", "86400")  # Cache preflight for 24 hours
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def do_GET(self):
         if not self.server.chimerax_restserver.run_increment():
@@ -207,6 +252,13 @@ class RESTHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         if length is not None:
             self.send_header("Content-Length", str(length))
+        # Add CORS headers if enabled and origin is localhost
+        if self.server.chimerax_restserver.cors:
+            origin = self.headers.get("Origin")
+            if _is_localhost_origin(origin):
+                self.send_header("Access-Control-Allow-Origin", origin)
+                self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+                self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
     def _run(self, args):
@@ -217,9 +269,8 @@ class RESTHandler(BaseHTTPRequestHandler):
         session = self.server.chimerax_restserver.session
         q = Queue()
 
-        def f(
-            args=args, session=session, q=q, json=self.server.chimerax_restserver.json
-        ):
+        json = self.server.chimerax_restserver.json
+        def f(args=args, session=session, q=q, json=json):
             logger = session.logger
             # rest_log.log_summary gets called at the end
             # of the "with" statement
@@ -274,7 +325,7 @@ class RESTHandler(BaseHTTPRequestHandler):
                             python_vals.append(val)
                     response = {}
                     response["json values"] = json_vals
-                    response["python values"] = python_vals
+                    response["python values"] = make_json_friendly(python_vals)
                     response["log messages"] = rest_log.getvalue()
                     if error_info is None:
                         response["error"] = None
@@ -283,15 +334,101 @@ class RESTHandler(BaseHTTPRequestHandler):
                             "type": error_info.__class__.__name__,
                             "message": str(error_info),
                         }
-                    q.put(JSONEncoder(default=lambda x: None).encode(response))
+                    q.put(JSONEncoder().encode(response))
                 else:
                     q.put(rest_log.getvalue())
 
         session.ui.thread_safe(f)
         data = bytes(q.get(), "utf-8")
-        self._header(200, "text/plain", len(data))
+        content_type = "application/json" if json else "text/plain"
+        self._header(200, content_type, len(data))
         self.wfile.write(data)
 
+from chimerax.atomic import Structure, AtomicStructure, Chain, Atom, Bond, Residue
+try:
+    from chimerax.map import Volume
+    _stringables = (Structure, AtomicStructure, Chain, Atom, Bond, Residue, Volume)
+except ImportError:
+    # map bundle may not be installed
+    _stringables = (Structure, AtomicStructure, Chain, Atom, Bond, Residue)
+
+def _objects_to_string(objects):
+    """Convert Objects instance to a human-readable string summary"""
+    from chimerax.core.objects import Objects
+    if not isinstance(objects, Objects):
+        return str(objects)
+    
+    # Build summary similar to report_selection
+    lines = []
+    ac = objects.num_atoms
+    bc = objects.num_bonds
+    pbc = objects.num_pseudobonds
+    rc = objects.num_residues
+    mc = len(objects.models)
+    
+    if mc == 0 and ac == 0 and bc == 0 and pbc == 0:
+        return "Nothing"
+    
+    if ac != 0:
+        plural = ('s' if ac > 1 else '')
+        lines.append('%d atom%s' % (ac, plural))
+    if bc != 0:
+        plural = ('s' if bc > 1 else '')
+        lines.append('%d bond%s' % (bc, plural))
+    if pbc != 0:
+        plural = ('s' if pbc > 1 else '')
+        lines.append('%d pseudobond%s' % (pbc, plural))
+    if rc != 0:
+        plural = ('s' if rc > 1 else '')
+        lines.append('%d residue%s' % (rc, plural))
+    if mc != 0:
+        plural = ('s' if mc > 1 else '')
+        lines.append('%d model%s' % (mc, plural))
+    
+    return ', '.join(lines)
+
+def make_json_friendly(val):
+    # Check for basic JSON-serializable types first (fast path)
+    if val is None or isinstance(val, (bool, int, float, str)):
+        return val
+    
+    # Check for Objects first (before _stringables)
+    from chimerax.core.objects import Objects
+    if isinstance(val, Objects):
+        return _objects_to_string(val)
+    
+    # Check for Fit objects from map_fit bundle
+    try:
+        from chimerax.map_fit.search import Fit
+        if isinstance(val, Fit):
+            return val.fit_message()
+    except (ImportError, AttributeError):
+        # map_fit bundle may not be installed or Fit class not available
+        pass
+    
+    # Check for known stringable types
+    if isinstance(val, _stringables):
+        return str(val)
+    
+    # Recursively handle collections
+    if isinstance(val, dict):
+        return { make_json_friendly(k): make_json_friendly(v) for k, v in val.items() }
+    if isinstance(val, list):
+        return [make_json_friendly(v) for v in val]
+    if isinstance(val, tuple):
+        return tuple(make_json_friendly(v) for v in val)
+    
+    # Generic fallback for any ChimeraX object: try __str__
+    # This handles ToolInstance objects (like Isolde) and other ChimeraX classes
+    try:
+        # Check if it's a ChimeraX object (has a session attribute)
+        if hasattr(val, 'session') or hasattr(val, '__module__') and 'chimerax' in val.__module__:
+            return str(val)
+    except:
+        pass
+    
+    # Last resort: return the value as-is and let JSON encoder handle it or fail
+    return val
 
 class ByLevelPlainTextLog(StringPlainTextLog):
     propagate_to_chimerax = False

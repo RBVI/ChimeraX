@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: blastprotein</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: blastprotein</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -67,14 +62,12 @@ The query <i>sequence</i> can be given as any of the following:
   <ul>
   <li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
   corresponding to a single chain in an atomic structure open in ChimeraX
-  <li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+  </li><li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
   in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
-  <li>a <a href="https://www.uniprot.org/help/entry_name"
-  target="_blank">UniProt name</a> or 
-  <a href="https://www.uniprot.org/help/accession_numbers"
-  target="_blank">accession number</a>
-  <li>plain text pasted directly into the command line
-  </ul>
+  </li><li>a <a href="https://www.uniprot.org/help/entry_name" target="_blank">UniProt name</a> or 
+  <a href="https://www.uniprot.org/help/accession_numbers" target="_blank">accession number</a>
+  </li><li>plain text pasted directly into the command line
+  </li></ul>
 <p>
 The protein <i>sequence-database</i> to search can be:
 </p>
@@ -82,50 +75,49 @@ The protein <i>sequence-database</i> to search can be:
 <li><b>pdb</b> (default) 
 &ndash; experimentally determined structures in the
 <a href="https://www.rcsb.org" target="_blank">Protein Data Bank (PDB)</a>
-<li><b>nr</b>
+</li><li><b>nr</b>
 &ndash; NCBI &ldquo;non-redundant&rdquo; database containing
 <a href="https://www.ncbi.nlm.nih.gov/genbank/" target="_blank">GenBank</a>
 CDS translations + <a href="https://www.rcsb.org" target="_blank">PDB</a>
 + <a href="https://www.uniprot.org/" target="_blank">SwissProt</a> +
-<a href="https://proteininformationresource.org/"  target="_blank">PIR</a>
+<a href="https://proteininformationresource.org/" target="_blank">PIR</a>
 + <a href="https://www.prf.or.jp/index-e.html" target="_blank">PRF</a>
 excluding environmental samples from whole-genome sequencing; this database
 is much larger than <b>pdb</b> alone and takes much longer to search
-<li><b>alphafold</b>
+</li><li><b>alphafold</b>
 &ndash; artificial-intelligence-predicted structures in the
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 (<a href="alphafold.html">more...</a>)
   <ul>
   <li>the <b>version</b> option applies only to the <b>alphafold</b> database
 (<a href="alphafold.html#version">details...</a>)
-  </ul>
-<li><b>esmfold</b> &ndash; artificial-intelligence-predicted structures in the
+  </li></ul>
+</li><li><b>esmfold</b> &ndash; artificial-intelligence-predicted structures in the
 <a href="https://esmatlas.com/about#about_this_website" target="_blank">ESM
 Metagenomic Atlas</a> (<a href="esmfold.html">more...</a>)
-<li><b>uniref100</b> &ndash;
-<a href="https://www.uniprot.org/help/uniref"
-target="_blank">UniProt Reference Cluster</a> at 100% identity
+</li><li><b>uniref100</b> &ndash;
+<a href="https://www.uniprot.org/help/uniref" target="_blank">UniProt Reference Cluster</a> at 100% identity
 (identical sequences and subfragments collapsed into a single entry)
-   <li><b>uniref90</b> &ndash; based on <b>uniref100</b>, but omitting
+   </li><li><b>uniref90</b> &ndash; based on <b>uniref100</b>, but omitting
 sequences shorter than 11 residues and clustering at 90% identity
-   <li><b>uniref50</b> &ndash; based on <b>uniref100</b>, but omitting
+   </li><li><b>uniref50</b> &ndash; based on <b>uniref100</b>, but omitting
 sequences shorter than 11 residues and clustering at 50% identity
-</ul>
+</li></ul>
 <p>
 The <b>matrix</b> option indicates which amino acid <i>similarity-matrix</i> 
 to use for alignment scoring (uppercase or lowercase can be used):
 </p>
 <ul>
   <li><b>BLOSUM45</b>
-  <li><b>BLOSUM50</b>
-  <li><b>BLOSUM62</b> (default)
-  <li><b>BLOSUM80</b>
-  <li><b>BLOSUM90</b>
-  <li><b>PAM30</b>
-  <li><b>PAM70</b>
-  <li><b>PAM250</b>
-  <li><b>IDENTITY</b>
-</ul>
+  </li><li><b>BLOSUM50</b>
+  </li><li><b>BLOSUM62</b> (default)
+  </li><li><b>BLOSUM80</b>
+  </li><li><b>BLOSUM90</b>
+  </li><li><b>PAM30</b>
+  </li><li><b>PAM70</b>
+  </li><li><b>PAM250</b>
+  </li><li><b>IDENTITY</b>
+</li></ul>
 <p>
 The <b>cutoff</b> <i>evalue</i> is the maximum or least significant
 <a href="https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=FAQ#expect" target="_blank">E-value</a>
@@ -137,8 +129,8 @@ may be obtained because multiple structures or other sequence-database entries
 may have the same sequence.
 </p><p>
 The remaining options control what happens when the search completes:
-<p>
-<ul>
+</p><p>
+</p><ul>
 <li>The <b>showResultsTable</b> option indicates whether the results should be
 shown in an interactive table in a 
 <a href="../tools/blastprotein.html#results">separate window</a>
@@ -150,7 +142,7 @@ The <b>name</b> option allows supplying a name for a specific set of
 <a href="../tools/blastprotein.html"><b>Blast Protein</b></a> results,
 which may be useful when several sets of results are shown at the same time. 
 The name appears in the title bar of the results panel.
-</p><p>
+<p></p><p>
 In the results panel, double-clicking a row with
 <a name="structurefetch"></a>
 an associated structure (from searching PDB, AlphaFold, ESMFold)
@@ -177,10 +169,10 @@ show their <a href="../tools/blastprotein.html#notes">multiple
 sequence alignment</a> with the query
 in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
 </p>
-<li>The <b>log</b> option indicates whether to also list the results in the
+</li><li>The <b>log</b> option indicates whether to also list the results in the
 <a href="../tools/log.html"><b>Log</b></a> (default <b>false</b>).
 <br><br>
-<li>The <b>loadStructures</b> option indicates that for each hit with an
+</li><li>The <b>loadStructures</b> option indicates that for each hit with an
 associated structure (from searching PDB, AlphaFold, ESMFold),
 the structure should be fetched and superimposed
 as described <a href="#structurefetch">above</a> (default <b>false</b>).
@@ -193,7 +185,7 @@ If <b>onlyBest</b> is <b>true</b>, a given PDB entry will only be opened once
 and matched on the chain with the best sequence alignment score.
 To open only specific structures of interest, use the results table instead.
 <br><br>
-<li>The <b>showSequenceAlignment</b> option indicates whether to show the
+</li><li>The <b>showSequenceAlignment</b> option indicates whether to show the
 <a href="../tools/blastprotein.html#notes">multiple sequence alignment</a>
 of all hits with the query
 in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
@@ -204,10 +196,11 @@ from the same PDB entry (<i>e.g.</i>, the four chains of a homotetramer).
 If <b>onlyBest</b> is <b>true</b>, only the chain with the best alignment
 score will be included for a given PDB entry.
 To include only specific sequences of interest, use the results table instead.
-</p>
-</ul>
+<p></p>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 November 2024</address>
+
 </body></html>

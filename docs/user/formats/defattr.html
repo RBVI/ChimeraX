@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,19 +9,16 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
+--><head><meta charset="utf-8">
 <title>Attribute Assignment Files</title>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3>Attribute Assignment Files</h3>
 <p>
@@ -57,7 +52,7 @@ Example commands showing how such a file could be used:
 <br>
 <a href="../commands/color.html#byattribute">color byattribute</a> kdHydrophobicity palette ^RdYlBu
 <br>
-<a href="../commands/select.html#new">select</a> ::kdHydrophobicity>2.0
+<a href="../commands/select.html#new">select</a> ::kdHydrophobicity&gt;2.0
 </b></blockquote>
 
 <a name="format"></a>
@@ -73,66 +68,66 @@ in <b><i>control lines</i></b> of the form:
 <i>identifier: value</i>
 </blockquote>
 Possible control line contents:
-<table border cellspacing="0" cellpadding="3">
-<TR><td align=center><b>identifier</b></td>
-<td align=center><b>value</b></td>
-<td align=center><b>description</b></td>
-</tr><TR>
-<a name="attrname"></a>
-<td align=center><b>attribute</b><br>(required)</td>
+<a name="attrname"></a><table border cellspacing="0" cellpadding="3">
+<tbody><tr><td align="center"><b>identifier</b></td>
+<td align="center"><b>value</b></td>
+<td align="center"><b>description</b></td>
+</tr><tr>
+
+<td align="center"><b>attribute</b><br>(required)</td>
 <td>alphanumeric string without spaces;
 can include underscores; cannot begin with a digit</td>
-<td align=center>attribute name, existing or new</td>
-</tr><TR>
-<td align=center><b>match&nbsp;mode</b><br>(optional)</td>
-<td align=center><b>any</b> (default)<br>non-zero<br>1-to-1</td>
-<td align=center>expected matches per
+<td align="center">attribute name, existing or new</td>
+</tr><tr>
+<td align="center"><b>match&nbsp;mode</b><br>(optional)</td>
+<td align="center"><b>any</b> (default)<br>non-zero<br>1-to-1</td>
+<td align="center">expected matches per
 <a href="#assignline">assignment line</a>
 (an error message will be sent to the
 <a href="../tools/log.html"><b>Log</b></a>
 when a line's match behavior differs from the match mode)</td>
-</tr><TR>
-<td align=center><b>recipient</b><br>(optional)</td>
-<td align=center><b>atoms</b> (default)<br>residues<br>chains<br>structures<sup><a href="#note">&#8224;</a></sup><br>bonds<br>pseudobonds</td>
-<td align=center>level of attribute assignment</td>
-</tr><TR>
-<td align=center><b>none handling</b><br>(optional)</td>
-<td align=center><b>None</b> (default)<br>string<br>delete</td>
-<td align=center>treatment of values given as <b>none</b> or <b>None</b>:
+</tr><tr>
+<td align="center"><b>recipient</b><br>(optional)</td>
+<td align="center"><b>atoms</b> (default)<br>residues<br>chains<br>structures<sup><a href="#note">&dagger;</a></sup><br>bonds<br>pseudobonds</td>
+<td align="center">level of attribute assignment</td>
+</tr><tr>
+<td align="center"><b>none handling</b><br>(optional)</td>
+<td align="center"><b>None</b> (default)<br>string<br>delete</td>
+<td align="center">treatment of values given as <b>none</b> or <b>None</b>:
 as the Python value None, as a string,
 or as removal of any assignment of that attribute from the specified item
 </td>
 </tr>
-</table>
+</tbody></table>
 <a name="note"></a>
-<sup>&#8224;</sup>
+<sup>&dagger;</sup>
 Either <b>structures</b> or <b>molecules</b> (for backwards compatibility
 with Chimera files) can be used to indicate an attribute of atomic models.
 <p>
 <a name="assignline"></a>
 The attribute assignments are described in
 <b><i>assignment lines</i></b> of the form:
-<blockquote>
+</p><blockquote>
 (Tab)<a href="../commands/atomspec.html"><i>atom-spec</i></a>(Tab)<i>attr-value</i>
 </blockquote>
 Any kind of <a href="../commands/atomspec.html">atom specification</a> can be used.
-</p><p>
+<p></p><p>
 <a href="#controlline">Control lines</a> and <a href="#comment">comments</a>
 can be interspersed with assignment lines, except that the
 <b>attribute</b> control line should precede all assignment
 lines for the corresponding attribute.
 </p><p>
 Allowed <i>attr-value</i> types are:
-<li> integer
-<li> boolean (<b>true</b> or <b>false</b>, case-independent)
-<li> color &ndash; an attribute whose <a href="#attrname">name</a>
+</p><li> integer
+</li><li> boolean (<b>true</b> or <b>false</b>, case-independent)
+</li><li> color &ndash; an attribute whose <a href="#attrname">name</a>
 ends with <b>color</b> (case-independent) will be interpreted as
 a color-valued attribute. Colors can be specified in the
 <a href="../commands/colornames.html">same ways</a> as in commands.
-<li> string &ndash; a string of any characters except tabs;
+</li><li> string &ndash; a string of any characters except tabs;
 values that might be interpreted as one of the other types
 should be enclosed in quotation marks
-</ul>
+
 
 <a name="examples"></a>
 <p class="nav">
@@ -149,12 +144,11 @@ assign the corresponding attributes.
 <li><a href="percentExposed.defattr">percentExposed.defattr</a>
 creates a new residue attribute, <b>percentExposed</b>, and assigns
 values previously calculated by
-<a href="http://curie.utmb.edu/getarea.html"
-target="_blank">Getarea</a> for the protein structure 121p
+<a href="http://curie.utmb.edu/getarea.html" target="_blank">Getarea</a> for the protein structure 121p
 (see <a href="getarea-121p.txt">raw results</a>).
 See also: <a href="../commands/measure.html#sasa"><b>measure sasa</b></a>
 <br><br>
-<li><a href="midasrad.defattr">midasrad.defattr</a>
+</li><li><a href="midasrad.defattr">midasrad.defattr</a>
 assigns atomic radii, <i>i.e.</i>, sets values for the existing
 <a href="../attributes.html#atom">atom attribute</a> <b>radius</b>.
 The first assignment line applies to all atoms.
@@ -164,7 +158,7 @@ will have the <a href="../radii.html">default radii</a>
 instead of those in the assignment file.
 See also: <a href="../commands/size.html"><b>size</b></a>
 <br><br>
-<li>Several files of
+</li><li>Several files of
 <a href="../hydrophobicity.html">amino acid hydrophobicity scales</a>
 are provided;
   <ul>
@@ -172,22 +166,23 @@ are provided;
   <a href="kdHydrophobicity.defattr">kdHydrophobicity.defattr</a>
 &ndash; Kyte-Doolittle
 (see also <a href="../preferences.html#startup">custom presets</a>)
-  <li>
+  </li><li>
   <a href="wwHydrophobicity.defattr">wwHydrophobicity.defattr</a>
 &ndash; Wimley-White
-  <li>
+  </li><li>
   <a href="hhHydrophobicity.defattr">hhHydrophobicity.defattr</a>
 &ndash; Hessa <i>et al.</i>
-  <li>
+  </li><li>
   <a href="mfHydrophobicity.defattr">mfHydrophobicity.defattr</a>
 &ndash; Moon-Fleming
-  <li>
+  </li><li>
   <a href="ttHydrophobicity.defattr">ttHydrophobicity.defattr</a>
 &ndash; transmembrane tendency (contributed by Shyam M. Saladi)
-  </ul>
-</ul>
+  </li></ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 November 2024</address>
-</body></html>
+
+</li></body></html>

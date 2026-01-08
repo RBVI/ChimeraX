@@ -14,6 +14,8 @@
 from chimerax.ui.widgets.slider import Slider
 class CoordinateSetSlider(Slider):
 
+    help = "help:user/commands/coordset.html#slider"
+
     def __init__(self, session, structure, pause_frames = 1, movie_framerate = 25,
                  steady_atoms = None, compute_ss = False):
 
@@ -33,6 +35,7 @@ class CoordinateSetSlider(Slider):
                                            compute_ss = compute_ss, steady_atoms = steady_atoms)
         self.set_slider(structure.active_coordset_id)
 
+        self._changes_pending = session.change_tracker.changed
         self._coordset_change_handler = structure.triggers.add_handler('changes', self.coordset_change_cb)
         
         from chimerax.core.models import REMOVE_MODELS
@@ -48,13 +51,17 @@ class CoordinateSetSlider(Slider):
             color="forest green", blank_after=10)
 
     def change_value(self, i, playing = False):
-      self._player.change_coordset(i)
+        self._player.change_coordset(i)
 
     def valid_value(self, i):
         return i in self.coordset_ids
 
     def coordset_change_cb(self, name, change_info):
         # If coordset changed by command, update slider
+        if self._changes_pending:
+            # Ignore changes that were pending when the slider was created [#19448]
+            self._changes_pending = False
+            return
         s, changes = change_info
         if changes.num_deleted_coordsets() > 0 or len(changes.created_coordsets()) > 0:
             pf = self.pause_frames

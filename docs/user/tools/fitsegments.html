@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Fit to Segments</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Fit to Segments</h3>
 
@@ -31,9 +26,8 @@ class="clRighticon" title="User Guide Index"/></a>
 <a href="segment.html">segmentation regions</a>
 from <a href="segment.html"><b>Segment Map</b></a>.
 Along with that tool, it is part of the
-<a href="https://cryoem-ncmi.slac.stanford.edu/resources/software/segger"
-target="_blank">Segger package</a> described in:
-<blockquote>
+<a href="https://cryoem-ncmi.slac.stanford.edu/resources/software/segger" target="_blank">Segger package</a> described in:
+</p><blockquote>
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/20338243" target="_blank">
 Quantitative analysis of cryo-EM density map segmentation by watershed and 
 scale-space filtering, and fitting of structures by alignment to regions.</a>
@@ -51,9 +45,8 @@ See also:
 <a href="../commands/fitmap.html"><b>fitmap</b></a>,
 <a href="../commands/measure.html#correlation"><b>measure correlation</b></a>,
 <a href="../commands/measure.html#rotation"><b>measure rotation</b></a>,
-<a href="https://cryoem-ncmi.slac.stanford.edu/resources/software/segger"
-target="_blank">Segger website</a>
-</p>
+<a href="https://cryoem-ncmi.slac.stanford.edu/resources/software/segger" target="_blank">Segger website</a>
+<p></p>
 
 <a name="dialog"></a>
 <p class="nav">
@@ -79,41 +72,41 @@ to the <a href="../selection.html">selected</a> set of one or more
 <a href="segment.html">segmentation region(s)</a>
 using the principal axes method. The regions are made transparent;
 region transparency/opacity can be adjusted further using the
-<a href="segment.html#shortcuts"><b>Segment Map</b> shortcuts options</b></a>
-or its <a href="segment.html#menu-regions"><b>Regions</b> menu</b></a>.
+<a href="segment.html#shortcuts"><b>Segment Map</b> shortcuts options</a>
+or its <a href="segment.html#menu-regions"><b>Regions</b> menu</a>.
 </p><p>
 <a name="table">Fit information is shown in a table</a>:
-<ul>
+</p><ul>
 <li><a name="corr"><b>Corr</b></a>
 &ndash; the <a href="../commands/fitmap.html#corrzero">correlation</a>,
 also known as the <b><i>cross-correlation score</i></b>,
 between the map that was segmented (the fitting target) and the map to fit
 (either specified directly or 
 <a href="#molmap">generated from the atomic structure</a>)
-<li><b>Atoms</b> &ndash; atom inclusion,
+</li><li><b>Atoms</b> &ndash; atom inclusion,
 fraction of atoms within the target map contour;
 an atom is within the contour if its position in the map has a density value 
 above the current <a href="volumeviewer.html#threshold">threshold</a> level
-<li><b>Backbone</b> &ndash; backbone-atom inclusion,
+</li><li><b>Backbone</b> &ndash; backbone-atom inclusion,
 fraction of backbone atoms within the target map contour
-<li><b>Clash</b> &ndash; fraction of atoms clashing with symmetry copies
+</li><li><b>Clash</b> &ndash; fraction of atoms clashing with symmetry copies
 (if <a href="#clashes">clashes</a> are being evaluated)
-<li><b>Occupied</b> &ndash; density occupancy, fraction of voxels within
+</li><li><b>Occupied</b> &ndash; density occupancy, fraction of voxels within
 the target <a href="segment.html">segmentation region(s)</a>
 occupied by at least one atom of the fit structure
-<li><b>Molecule</b> &ndash; the fit structure, either an atomic model or a map
-<li><b>Map</b> &ndash; the fitting target, the map from which the
+</li><li><b>Molecule</b> &ndash; the fit structure, either an atomic model or a map
+</li><li><b>Map</b> &ndash; the fitting target, the map from which the
 <a href="segment.html">segmentation region(s)</a> were derived
-<li><b>Region</b>
+</li><li><b>Region</b>
 &ndash; the <a href="segment.html">segmentation region(s)</a> used for fitting
-</ul>
+</li></ul>
 <a name="chosenfit">
 One or more rows (fits) can be <b><i>chosen</i></b> with the mouse. 
 </a>
 The structure is repositioned as each fit is chosen.
 The chosen fit(s) can be saved to files or removed from the table using
 the <b>Fit to Segments</b> <a href="#menu">menu</a>.
-</p><p>
+<p></p><p>
 Clicking <b>Help</b> shows this page in the
 this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 </p>
@@ -131,7 +124,7 @@ this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
 with the same main model number (#2.1, #2.2, <i>etc.</i>) 
 collectively as a single structure instead of separately
 <br><br>
-<li style="list-style-type:none"><a name="molmap"><b>Density map resolution 
+</li><li style="list-style-type:none"><a name="molmap"><b>Density map resolution 
 [<i>r</i>] grid spacing [<i>s</i>]</b></a>
 &ndash; set parameters for generating a density map from the atomic structure,
 to allow calculating <a href="#corr">correlation</a> values for fits.
@@ -147,24 +140,24 @@ for the map into which the structure is being fit (the map that was
 Clicking <b>Fit</b> or <b>Calculate Map</b> will generate the map from the
 structure if it does not already exist.
 <br><br>
-<li style="list-style-type:none"><b>Which regions to use for fitting</b>:
+</li><li style="list-style-type:none"><b>Which regions to use for fitting</b>:
   <ul>
   <li><b>Combined selected regions</b> (default)
   &ndash; use the <a href="../selection.html">selected</a> 
   segmentation regions collectively
-  <li><b>Each selected region</b>
+  </li><li><b>Each selected region</b>
   &ndash; use each <a href="../selection.html">selected</a> 
   segmentation region for a separate fit
-  <li><b>Groups of regions including selected region(s)</b>
+  </li><li><b>Groups of regions including selected region(s)</b>
   &ndash; generate groups of segmentation regions that include the
   <a href="../selection.html">selected</a> one, try 
   fitting to each group; save the best fits in the <a href="#table">table</a>
-  <li><b>Groups of regions including all regions</b>
+  </li><li><b>Groups of regions including all regions</b>
   &ndash; combinatorially group subsets of all segmentation regions, try 
   fitting to each group; save the best fits in the <a href="#table">table</a>
-  </ul>
+  </li></ul>
 <br>
-<li style="list-style-type:none"><a name="method"><b>Alignment method</b></a>:
+</li><li style="list-style-type:none"><a name="method"><b>Alignment method</b></a>:
   <ul>
   <li><b>Align principal axes
   (faster &ndash; only 4 fits will be tried)</b> (default)
@@ -188,18 +181,18 @@ structure if it does not already exist.
   <a href="segment.html#menu-regions"><b>Regions</b>
   menu</a> in <a href="segment.html"><b>Segment Map</b></a>.
   </p>
-  <li><b>Rotational search (try [<i>N</i>] evenly rotated fits)</b> 
+  </li><li><b>Rotational search (try [<i>N</i>] evenly rotated fits)</b> 
   &ndash; align centers, then rotate the structure to find the best fit 
   (<i>N</i> orientations tried, default <b>100</b>).
   The alignment with the highest <a href="#corr">correlation</a> is kept.
-  </ul>
+  </li></ul>
 <br>
-<li><a name="mask"><b>Mask map with region(s) to prevent large drifts</b></a>
+</li><li><a name="mask"><b>Mask map with region(s) to prevent large drifts</b></a>
 (off by default) &ndash; whether to mask the map with the 
 <a href="../selection.html">selected</a> segmentation regions,
 zeroing voxels outside the region(s) to prevent large displacements during
 <a href="#optimize">optimization</a>
-<li><b>Use Laplacian filter</b> (off by default) &ndash; whether to apply 
+</li><li><b>Use Laplacian filter</b> (off by default) &ndash; whether to apply 
 Laplacian filtering (as is done by the command
 <a href="../commands/volume.html#laplacian"><b>volume laplacian</b></a>)
 to both the target map and the map to fit (which was either specified 
@@ -207,13 +200,13 @@ directly or <a href="#molmap">generated from the atomic structure</a>).
 This filter may emphasize contours in images and may help to distinguish 
 the correct fit from incorrect fits
 at medium-to-low resolutions (~10&Aring; and lower).
-<li><a name="optimize"><b>Optimize fits</b></a> (on by default)
+</li><li><a name="optimize"><b>Optimize fits</b></a> (on by default)
 &ndash; whether to perform a local optimization 
 (as with the command <a href="../commands/fitmap.html"><b>fitmap</b></a>) of
 each fit. Optimization uses density both inside and outside the region(s) 
 chosen for fitting (unless the outside density is <a href="#mask">masked</a>) 
 and can move a structure far from those region(s).
-<li><b>Cluster fits that are &lt; [<i>d</i>] Angstroms and &lt; [<i>a</i>] 
+</li><li><b>Cluster fits that are &lt; [<i>d</i>] Angstroms and &lt; [<i>a</i>] 
 degrees apart</b> (on by default) 
 &ndash; whether to coalesce fits that are similar in both location 
 (center-of-mass translation &lt; <i>d</i>, default <b>5.0</b> &Aring;) 
@@ -223,7 +216,7 @@ and orientation<br>
 <b>Add top [<i>N</i>] fit(s) to list (empty to add all fits to list)</b>
 &ndash; how many fits to add to the list from the current round of fitting
 (all, if <i>N</i> is not specified)
-<li><a name="clashes"><b>Clashes with copies from symmetry [<i>sym</i>]</b></a> (off by default)
+</li><li><a name="clashes"><b>Clashes with copies from symmetry [<i>sym</i>]</b></a> (off by default)
 &ndash; whether to evaluate clashes of the fit structure with its copies by
 symmetry <i>sym</i> (<i>e.g.</i>, C6); clicking <b>Fit</b> or
 <b>Detect</b> will guess the symmetry of the map (see 
@@ -234,7 +227,7 @@ the fraction of atoms in the fitted structure
 within 3 &Aring; of any atom in its symmetry copies.
 <b>Show</b> displays the symmetry copies. The copies can be removed
 using the <b>Fit to Segments</b> <a href="#menu">menu</a>.
-</ul>
+</li></ul>
 
 <a name="menu"></a>
 <p class="nav">
@@ -245,67 +238,68 @@ using the <b>Fit to Segments</b> <a href="#menu">menu</a>.
 <ul>
 <li><b>Delete selected fits from list</b>
 &ndash; remove the chosen row(s) from the <a href="#table">table of fits</a>
-<li><b>Delete ALL fits from list</b>
+</li><li><b>Delete ALL fits from list</b>
 &ndash; empty the <a href="#table">table of fits</a>
-</ul><ul>
+</li></ul><ul>
 <li><b>Place molecule copies</b>
 &ndash; add a copy of the structure in its fit position (as a new model) for
 each <a href="#chosenfit">chosen fit</a>
-<li><b>Place map copies</b>
+</li><li><b>Place map copies</b>
 &ndash; if a map was fitted, add a resampled copy of the map
 in its fit position 
 (as a new model) for each <a href="#chosenfit">chosen fit</a>
-<li><b>Close placed copies</b>
+</li><li><b>Close placed copies</b>
 &ndash; close copies of the fit atomic structure and/or map that were
 added with the &ldquo;place copies&rdquo; options above or the button to
 <b>Show</b> symmetry copies 
-</ul><ul>
+</li></ul><ul>
 <li><b>Save chosen fit molecules</b>
 &ndash; save a PDB file of the structure in its fit position for 
 each <a href="#chosenfit">chosen fit</a>
 (each chosen row in the <a href="#table">table of fits</a>)
-</ul><ul>
+</li></ul><ul>
 <li><b>Copy fit map on segmented map grid</b>
 &ndash; add a resampled copy of the map currently specified as the 
 <b>Structure or Map to fit</b>
 (as a new model) for each <a href="#chosenfit">chosen fit</a>
-</ul><ul>
+</li></ul><ul>
 <li><b>Group regions by visible (Molecule) models</b> 
 &ndash; group regions in the <a href="segment.html#currseg">current segmentation</a>
 based on which visible structures they overlap the most;
 <a href="modelpanel.html"><b>Model Panel</b></a> checkboxes 
 can be used to set visibility
-<li><b>Group regions by chains in visible (Molecule) models</b> 
+</li><li><b>Group regions by chains in visible (Molecule) models</b> 
 &ndash; group regions in the <a href="segment.html#currseg">current segmentation</a>
 based on which chains of the visible structures they overlap the most;
 <a href="modelpanel.html"><b>Model Panel</b></a> checkboxes 
 can be used to set visibility
-</ul><ul>
+</li></ul><ul>
 <li><b>Show molecule axes</b> 
 &ndash; display the <a href="#method">principal axes</a>
 of the atomic structure as arrows
-<li><b>Hide molecule axes</b>
+</li><li><b>Hide molecule axes</b>
 &ndash; hide the <a href="#method">principal axes</a> of the atomic structure
-<li><b>Show overlapping regions</b> &ndash; display only the regions that
+</li><li><b>Show overlapping regions</b> &ndash; display only the regions that
 overlap the atomic structure in its current position
   (all regions can be displayed again using the
   <a href="segment.html#menu-regions"><b>Regions</b>
   menu</a> in <a href="segment.html"><b>Segment Map</b></a>)
-</ul><ul>
+</li></ul><ul>
 <li><b>Export fit scores</b>
 &ndash; save information in the <a href="#table">table of fits</a> to a text file
-<li><b>Plot fit scores</b>
+</li><li><b>Plot fit scores</b>
 &ndash; create a basic plot of the cross-correlation scores 
 in the <a href="#table">table of fits</a>
 (PNG image, colored bars from left to right representing all fits in
 the order listed)
-<li><b>Inter-molecule clash scores</b>
+</li><li><b>Inter-molecule clash scores</b>
 &ndash; report fraction of atoms clashing with symmetry copies
 (if <a href="#clashes">clashes</a> are being evaluated)
 to the <a href="log.html"><b>Log</b></a>
-</ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 October 2022</address>
+
 </body></html>

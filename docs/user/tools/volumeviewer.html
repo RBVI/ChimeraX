@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Volume Viewer</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Volume Viewer</h3>
 <p>
@@ -37,11 +32,10 @@ Volume data can be opened with the command
 <a href="../commands/save.html"><b>save</b></a>.
 </p>
 <table class="clRight">
-<tr><td>
+<tbody><tr><td>
 <a href="3eebB-dx-screenshot.png">
-<img class="outline" src="3eebB-dx-screenshot.png" title="click to enlarge..."
-alt="3eebB ESP isosurfaces" width="700px"></a></td></tr>
-</table>
+<img class="outline" src="3eebB-dx-screenshot.png" title="click to enlarge..." alt="3eebB ESP isosurfaces" width="700px"></a></td></tr>
+</tbody></table>
 <p>
 <b>Volume Viewer</b> is a graphical interface for adjusting contour levels
 and other aspects of volume data display.
@@ -63,6 +57,7 @@ See also:
 <a href="colorzone.html"><b>Color Zone</b></a>,
 <a href="surfacezone.html"><b>Surface Zone</b></a>,
 <a href="hidedust.html"><b>Hide Dust</b></a>,
+<a href="orthoplanes.html"><b>Orthoplanes</b></a>,
 <a href="../commands/show.html"><b>show</b></a>,
 <a href="../commands/color.html"><b>color</b></a>,
 <a href="../commands/transparency.html"><b>transparency</b></a>,
@@ -103,87 +98,87 @@ A histogram of values with moveable <a href="#threshold">thresholds</a>
 </p>
 <ul>
 <li>the model name 
-<li>an <b>eye icon</b> for showing/hiding the model
-<li>a color well (that can be clicked to change the color interactively)
+</li><li>an <b>eye icon</b> for showing/hiding the model
+</li><li>a color well (that can be clicked to change the color interactively)
 for the <a href="#threshold">threshold</a> most recently moved or clicked
 <br>(to recolor all of a model's <a href="#threshold">thresholds</a>
 at once, instead use
 its color well in the <a href="modelpanel.html"><b>Model Panel</b></a>,
 or the <a href="../commands/volume.html"><b>volume</b></a> command)
-<li>the model number
-<li>dimensions in grid units of the <a href="#region">display region</a>
-<li>the <a href="#step">step size</a> (subsampling)
-<li>the level of the <a href="#threshold">threshold</a>
+</li><li>the model number
+</li><li>dimensions in grid units of the <a href="#region">display region</a>
+</li><li>the <a href="#step">step size</a> (subsampling)
+</li><li>the level of the <a href="#threshold">threshold</a>
 most recently moved or clicked
-<li>the range of values in the <a href="#region">display region</a>
-<li>a pulldown menu with display settings:
+</li><li>the range of values in the <a href="#region">display region</a>
+</li><li>a pulldown menu with display settings:
   <ul>
   <li><b>surface</b> &ndash; solid isosurfaces, the
   <b>surface</b> <a href="../commands/volume.html#style">display style</a>
 (default for most types of data) 
-  <li><b>mesh</b>
+  </li><li><b>mesh</b>
   &ndash; mesh isosurfaces,
   the <b>mesh</b> <a href="../commands/volume.html#style">display style</a>
-  <li><b>volume</b> &ndash; cloudlike with varying intensity and opacity, also known
+  </li><li><b>volume</b> &ndash; cloudlike with varying intensity and opacity, also known
   as the <b>image</b> <a href="../commands/volume.html#style">display style</a>
-  <li><b>maximum</b>
+  </li><li><b>maximum</b>
 &ndash; image style,
  <a href="../commands/volume.html#maximumintensity">maximum intensity projection</a>
-  <li><b>plane</b> 
+  </li><li><b>plane</b> 
 &ndash; image style,
 a <a href="../commands/volume.html#planes">single plane</a> perpendicular to Z;
 a slider interface is shown below the histogram 
 and the right-button <a href="../commands/ui.html#mousemode">mouse mode</a> 
 is set to <b>move planes</b> 
     <a href="mousemodes.html" title="Mouse Modes for Right Button...">
-    <img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>
+    <img class="icon" border="1" src="mouse-icons/moveplanes.png" alt="computer generated image"></a>
     <ul>
     <li>pausing the cursor over a single-plane display shows the voxel indices
     and data value in a pop-up balloon
-    <li>planes along X, Y, and/or Z can be displayed and adjusted with the
+    </li><li>planes along X, Y, and/or Z can be displayed and adjusted with the
     <a href="../commands/volume.html"><b>volume</b></a> command or the
     <a href="../commands/ui.html#mousemode">mouse mode</a> for
     <b>move planes</b> 
     <a href="mousemodes.html" title="Mouse Modes for Right Button...">
-    <img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>,
-    </ul>
-  <li><b>orthoplanes</b>
+    <img class="icon" border="1" src="mouse-icons/moveplanes.png" alt="computer generated image"></a>,
+    </li></ul>
+  </li><li><b>orthoplanes</b>
 &ndash; image style,
 <a href="../commands/volume.html#orthoplanes">XYZ planes</a> simultaneously;
 the right-button <a href="../commands/ui.html#mousemode">mouse mode</a> 
 is set to <b>move planes</b>
     <a href="mousemodes.html" title="Mouse Modes for Right Button...">
-    <img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>
-  <li><b>box</b>
+    <img class="icon" border="1" src="mouse-icons/moveplanes.png" alt="computer generated image"></a>
+  </li><li><b>box</b>
 &ndash; image style,
 <a href="../commands/volume.html#boxfaces">box faces</a>
 of the current <a href="#region">display region</a>;
 the right-button <a href="../commands/ui.html#mousemode">mouse mode</a>
 is set to <b>crop volume</b> 
 <a href="mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="mouse-icons/crop.png"></a>
-  <li><b>tilted slab</b>
+<img class="icon" border="1" src="mouse-icons/crop.png" alt="computer generated image"></a>
+  </li><li><b>tilted slab</b>
 &ndash; image style,
 <a href="../commands/volume.html#tiltedslab">sliced at any angle</a>
 relative to the data axes; the slab can be rotated with the
 <b>rotate slab</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
     <a href="medicalimage.html#mousemodes" title="Medical Image Toolbar">
-    <img class="icon" border=1 src="mouse-icons/rotateslab.png"></a>,
+    <img class="icon" border="1" src="mouse-icons/rotateslab.png" alt="computer generated image"></a>,
 translated along its axis with
 either the <b>rotate slab</b> button + <b>Shift</b> or the
 <b>move planes</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
     <a href="mousemodes.html" title="Mouse Modes for Right Button...">
-    <img class="icon" border=1 src="mouse-icons/moveplanes.png"></a>,
+    <img class="icon" border="1" src="mouse-icons/moveplanes.png" alt="computer generated image"></a>,
 and its thickness (single- or multi-plane) adjusted with the
 <b>crop volume</b> <a href="../commands/ui.html#mousemode">mouse mode</a>
     <a href="mousemodes.html" title="Mouse Modes for Right Button...">
-    <img class="icon" border=1 src="mouse-icons/crop.png"></a>.
+    <img class="icon" border="1" src="mouse-icons/crop.png" alt="computer generated image"></a>.
 The slab is initially perpendicular to the line of sight
 and placed at the center of the current <a href="#region">display region</a>
 (<a href="../commands/volume.html#tiltedslab">details...</a>).
-  </ul>
-<li>a <b>minus-sign button</b> for closing the model
-</ul>
+  </li></ul>
+</li><li>a <b>minus-sign button</b> for closing the model
+</li></ul>
 <p>
 <a name="step"></a>
 The <b>step</b> setting controls <b><i>subsampling</i></b>;
@@ -204,7 +199,7 @@ of the data grid; it can be limited with the
 <a href="../commands/volume.html#dimensions"><b>region</b></a> option or the
 <a href="../commands/ui.html#mousemode">mouse mode</a> for <b>crop volume</b> 
 <a href="mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="mouse-icons/crop.png"></a>.
+<img class="icon" border="1" src="mouse-icons/crop.png" alt="computer generated image"></a>.
 </p><p>
 <a name="threshold"></a>
 The <b><i>thresholds</i></b> on the <a href="#top"><b>Volume Viewer</b></a>
@@ -216,10 +211,9 @@ and adjusted interactively by dragging in the histogram,
 or by dragging in the graphics window with the 
 <a href="../commands/ui.html#mousemode">mouse mode</a> for <b>contour level</b>
 <a href="mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="mouse-icons/contour.png"></a>
-or <b>windowing</b> <a href="mousemodes.html#multiwindowing" 
-title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="mouse-icons/windowing.png"></a>.
+<img class="icon" border="1" src="mouse-icons/contour.png" alt="computer generated image"></a>
+or <b>windowing</b> <a href="mousemodes.html#multiwindowing" title="Mouse Modes for Right Button...">
+<img class="icon" border="1" src="mouse-icons/windowing.png" alt="computer generated image"></a>.
 </p>
 <blockquote>
 For the <b>surface</b> or <b>mesh</b> style:<br>
@@ -253,21 +247,21 @@ largest negative and largest positive values. The image representation is a
 <a href="modelpanel.html">submodel</a> of the data model.
 Initial threshold positions for the image style can be restored by clicking the
 <a href="medicalimage.html"><b>Medical Image</b></a> icon
-<img class="icon" src="shortcut-icons/initialcurve.png">.
+<img class="icon" src="shortcut-icons/initialcurve.png" alt="computer generated image">.
 </blockquote>
 <a name="context"></a>
 <p>
 The <b>Volume Viewer</b> <a href="../window.html#context-menu">context menu</a>
 includes:
-<ul>
+</p><ul>
 <li><b>Show Outline Box</b>
 &ndash; toggle <a href="../commands/volume.html#outline">outline box</a>
-<li><b>Show Full Region</b>
+</li><li><b>Show Full Region</b>
 &ndash; show the entire <a href="#region">region</a> (instead of a subregion or 
 a <a href="../commands/volume.html#planes">single plane</a>)
-<li><b>New Threshold</b>
-<li><b>Delete Threshold</b>
-</ul>
+</li><li><b>New Threshold</b>
+</li><li><b>Delete Threshold</b>
+</li></ul>
 Each threshold is shown in the same color as its display.
 The color and level shown above the histogram apply
 to the threshold most recently moved or clicked.
@@ -277,7 +271,7 @@ The level can be changed by entering a different value
 or by dragging the threshold.
 Holding the Shift key down reduces the speed (mouse sensitivity) of threshold
 dragging tenfold, allowing finer control.
-</p><p>
+<p></p><p>
 Histogram ranges and threshold levels are given in the same units as the
 data. The <a href="../commands/volume.html"><b>volume</b></a>
 command also allows specifying threshold levels in units of
@@ -316,11 +310,11 @@ Color blending of multichannel data in the
 can be done <a href="../commands/volume.html#blendOnGpu">on the GPU</a>.
 </p><p>
 See also:
-the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#multichannel"
-target="_blank">ChimeraX light microscopy highlight</a>
+the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#multichannel" target="_blank">ChimeraX light microscopy highlight</a>
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2024</address>
+October 2025</address>
+
 </body></html>

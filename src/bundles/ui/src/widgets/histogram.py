@@ -371,7 +371,7 @@ class MarkedHistogram(QWidget):
 
     @redraw_delay.setter
     def redraw_delay(self, secs):
-        self._redraw_timer.setInterval(secs * 1000)
+        self._redraw_timer.setInterval(round(secs * 1000))
 
     @property
     def scaling(self):
@@ -773,12 +773,13 @@ class MarkedHistogram(QWidget):
     def _set_value_cb(self):
         val_text = self._value_entry.text()
         # Qt's double validator allows leading zeroes whereas Python doesn't like that [#17306]
-        while len(val_text) > 0 and val_text[0] == "0" and not val_text.startswith("0x"):
+        while len(val_text) > 1 and val_text[0] == "0" and not val_text.startswith(("0x", "0.", "0e")):
             val_text = val_text[1:]
         try:
             v = eval(val_text)
         except Exception:
-            raise ValueError("Invalid histogram value")
+            from chimerax.core.errors import UserError
+            raise UserError("Invalid histogram value")
         if type(self._min_val) != type(v):
             v = type(self._min_val)(v)
         if v < self._min_val:

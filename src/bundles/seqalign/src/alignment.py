@@ -88,22 +88,14 @@ class Alignment(State):
     COL_IDENTITY_ATTR = "seq_identity"
 
     def __init__(self, session, seqs, ident, file_attrs, file_markups, auto_destroy, auto_associate,
-            description, intrinsic, *, create_headers=True, session_restore=False, copy_seqs=None):
+            description, intrinsic, *, create_headers=True, session_restore=False):
         if not seqs:
             raise ValueError("Cannot create alignment of zero sequences")
         self.session = session
         self._session_restore = session_restore
         if isinstance(seqs, tuple):
             seqs = list(seqs)
-        # prevent later accidental modification; also different alignments may contain the same sequence
-        # (so prevent Alignment._destroy from messing up other alignments)
-        if copy_seqs is None:
-            copy_seqs = False if ident is False else True
-        if session_restore or not copy_seqs:
-            self._seqs = seqs
-        else:
-            from copy import copy
-            self._seqs = [copy(seq) for seq in seqs]
+        self._seqs = seqs
         self.ident = ident
         self.file_attrs = file_attrs
         self.file_markups = file_markups
@@ -128,11 +120,9 @@ class Alignment(State):
         self.intrinsic = intrinsic
         self._in_destroy = False
         self._seq_handlers = []
+        self.match_maps = {}
         for i, seq in enumerate(self._seqs):
-            if isinstance(seq, Chain):
-                from copy import copy
-                self._seqs[i] = copy(seq)
-            self._seqs[i].match_maps = {}
+            self.match_maps[seq] = {}
             self._seq_handlers.append(
                 self._seqs[i].triggers.add_handler("rename", self._seq_name_changed_cb))
             if isinstance(self._seqs[i], StructureSeq):
@@ -452,7 +442,7 @@ class Alignment(State):
             aseqs = self.seqs
         residues = []
         for aseq in aseqs:
-            for match_map in aseq.match_maps.values():
+            for match_map in self.match_maps[aseq].values():
                 residues.extend(match_map.res_to_pos.keys())
         return residues
 
@@ -525,13 +515,13 @@ class Alignment(State):
             return
 
         aseq = self.associations[sseq]
-        if self.intrinsic and len(aseq.match_maps) == 1:
+        if self.intrinsic and len(self.match_maps[aseq]) == 1:
             if demotion:
                 self.session.alignments.destroy_alignment(self)
                 return
             self.intrinsic = False
-        match_map = aseq.match_maps[sseq]
-        del aseq.match_maps[sseq]
+        match_map = self.match_maps[aseq][sseq]
+        del self.match_maps[aseq][sseq]
         del self.associations[sseq]
         match_map.mod_handler.remove()
         if reassoc:
@@ -579,7 +569,7 @@ class Alignment(State):
 
         sel_columns = set()
         for aseq in self.seqs:
-            for mm in aseq.match_maps.values():
+            for mm in self.match_maps[aseq].values():
                 for sr in sel_residues:
                     try:
                         ungapped = mm[sr]
@@ -589,7 +579,7 @@ class Alignment(State):
 
         expansion = []
         for aseq in self.seqs:
-            for mm in aseq.match_maps.values():
+            for mm in self.match_maps[aseq].values():
                 for sc in sel_columns:
                     ungapped = aseq.gapped_to_ungapped(sc)
                     if ungapped is None:
@@ -653,14 +643,14 @@ class Alignment(State):
             if conservation is None:
                 final_restriction = None
             else:
-                threshold = len(self._seqs) * conservation / 100.0
+                threshold = len(self._seqs) * conservation
                 final_restriction = set([col for col in range(len(self._seqs[0]))
                     if self.most_common(col)[-1] >= threshold])
         else:
             if conservation is None:
                 final_restriction = set(restriction)
             else:
-                threshold = len(self._seqs) * conservation / 100.0
+                threshold = len(self._seqs) * conservation
                 final_restriction = set([col for col in restriction
                     if self.most_common(col)[-1] >= threshold])
 
@@ -680,8 +670,8 @@ class Alignment(State):
                         restriction_set.add(ur)
             ref_atoms = []
             match_atoms = []
-            ref_res_to_pos = ref_seq.match_maps[ref_chain].res_to_pos
-            match_pos_to_res = match_seq.match_maps[match_chain].pos_to_res
+            ref_res_to_pos = self.match_maps[ref_seq][ref_chain].res_to_pos
+            match_pos_to_res = self.match_maps[match_seq][match_chain].pos_to_res
             for rres, rpos in ref_res_to_pos.items():
                 if final_restriction is not None and rpos not in restriction_set:
                     continue
@@ -756,7 +746,7 @@ class Alignment(State):
         sseq = match_map.struct_seq
         chain = sseq.chain
         self._sseq_to_chain[sseq] = chain
-        aseq.match_maps[chain] = match_map
+        self.match_maps[aseq][chain] = match_map
         self.associations[chain] = aseq
 
         # set up callbacks for structure changes
@@ -777,7 +767,10 @@ class Alignment(State):
 
     def remove_observer(self, observer):
         """Called when an observer is done with the alignment (see add_observer)"""
-        self.observers.remove(observer)
+        # Observers may be slow to remove themselves if the removal is because
+        # of garbage collection [#18702], so this test...
+        if not self._in_destroy:
+            self.observers.remove(observer)
 
     def resume_notify_observers(self):
         self._observer_notification_suspended -= 1
@@ -843,11 +836,13 @@ class Alignment(State):
                 self._rmsd_chains = best_chains
         if prev_rmsd_chains:
             if not self._rmsd_chains:
-                self._rmsd_handler.remove()
-                self._rmsd_handler = None
+                if self._rmsd_handler is not None:
+                    self._rmsd_handler.remove()
+                    self._rmsd_handler = None
         elif self._rmsd_chains:
             from chimerax.atomic import get_triggers
-            self._rmsd_handler = get_triggers().add_handler('changes', self._rmsd_atomic_cb)
+            if self._rmsd_handler is None:
+                self._rmsd_handler = get_triggers().add_handler('changes', self._rmsd_atomic_cb)
         return self._rmsd_chains
 
     def save(self, output, format_name="fasta"):
@@ -880,10 +875,10 @@ class Alignment(State):
             header.destroy()
         aseqs = set()
         for sseq, aseq in self.associations.items():
-            aseq.match_maps[sseq].mod_handler.remove()
+            self.match_maps[aseq][sseq].mod_handler.remove()
             aseqs.add(aseq)
         for aseq in aseqs:
-            aseq.match_maps.clear()
+            self.match_maps[aseq].clear()
         self.associations.clear()
         for handler in [self._assoc_handler, self._mmap_handler, self._rmsd_handler]:
             if handler:
@@ -929,7 +924,7 @@ class Alignment(State):
     def _gather_coords(self, chains, pa_name):
         coord_lists = []
         seqs = [self.associations[chain] for chain in chains]
-        match_maps = [self.associations[chain].match_maps[chain] for chain in chains]
+        match_maps = [self.match_maps[self.associations[chain]][chain] for chain in chains]
         for pos in range(len(self.seqs[0])):
             crd_list = []
             for seq, mmap in zip(seqs, match_maps):
@@ -996,7 +991,7 @@ class Alignment(State):
             session_restore=True)
         aln.associations = data['associations']
         for s, mm in zip(aln.seqs, data['match maps']):
-            s.match_maps = mm
+            aln.match_maps[s] = mm
             for chain, match_map in mm.items():
                 match_map.mod_handler = match_map.triggers.add_handler('modified', aln._mmap_mod_cb)
         if 'sseq to chain' in data:
@@ -1060,7 +1055,7 @@ class Alignment(State):
 
     def _set_residue_attributes(self, *, headers=None, match_maps=None):
         if match_maps is None:
-            match_maps = [mm for aseq in self.associations.values() for mm in aseq.match_maps.values()]
+            match_maps = [mm for aseq in self.associations.values() for mm in self.match_maps[aseq].values()]
         if not match_maps:
             return
         def process_attr(attr_name, col_vals):
@@ -1083,7 +1078,8 @@ class Alignment(State):
         if headers is None:
             headers = [hdr for hdr in self._headers if hdr.shown or hdr.eval_while_hidden]
             if len(self.seqs) > 1:
-                values = [100.0 * self.most_common(col)[1] for col in range(len(self._seqs[0]))]
+                num_seqs = len(self._seqs)
+                values = [100.0 * self.most_common(col)[1] / num_seqs for col in range(len(self._seqs[0]))]
                 process_attr(self.COL_IDENTITY_ATTR, values)
         from chimerax.atomic import Residue
         for header in headers:
@@ -1101,7 +1097,7 @@ class Alignment(State):
         ts = get_toolshed()
         return { 'version': 2, 'seqs': self._seqs, 'ident': self.ident,
             'file attrs': self.file_attrs, 'file markups': self.file_markups,
-            'associations': self.associations, 'match maps': [s.match_maps for s in self._seqs],
+            'associations': self.associations, 'match maps': [self.match_maps[s] for s in self._seqs],
             'auto_destroy': self.auto_destroy, 'auto_associate': self.auto_associate,
             'description' : self.description, 'intrinsic' : self.intrinsic,
             'sseq to chain': self._sseq_to_chain,

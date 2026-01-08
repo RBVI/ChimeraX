@@ -24,7 +24,7 @@
 
 def similar_structures_cluster(session, query_residues = None, align_with = None, alignment_cutoff_distance = None,
                                cluster_count = None, cluster_distance = None, color_by_species = False,
-                               replace = True, from_set = None, of_structures = None):
+                               replace = True, from_set = None, of_structures = None, log_clusters = False):
     from .simstruct import similar_structure_results
     results = similar_structure_results(session, from_set)
     hits = results.named_hits(of_structures)
@@ -48,10 +48,11 @@ def similar_structures_cluster(session, query_residues = None, align_with = None
     _show_umap(session, results, hits, query_residues,
                align_with = align_with, alignment_cutoff_distance = alignment_cutoff_distance,
                cluster_count = cluster_count, cluster_distance = cluster_distance,
-               color_by_species = color_by_species, replace = replace)
+               color_by_species = color_by_species, replace = replace, log_clusters = log_clusters)
 
 def _show_umap(session, results, hits, query_residues, align_with = None, alignment_cutoff_distance = 2.0,
-               cluster_count = None, cluster_distance = None, color_by_species = False, replace = True):
+               cluster_count = None, cluster_distance = None, color_by_species = False, replace = True,
+               log_clusters = False):
 
     coord_offsets, hit_names = _aligned_coords(results, hits, query_residues,
                                                align_with = align_with,
@@ -92,8 +93,27 @@ def _show_umap(session, results, hits, query_residues, align_with = None, alignm
         msg += f' into {max(cluster_numbers)} groups'
     session.logger.info(msg)
 
+    if log_clusters and cluster_numbers is not None:
+        _log_cluster_structure_names(hit_names, cluster_numbers, session.logger)
+
+def _log_cluster_structure_names(hit_names, cluster_numbers, logger):
+    cnames = {}
+    for c, name in zip(cluster_numbers, hit_names):
+        if c in cnames:
+            cnames[c].append(name)
+        else:
+            cnames[c] = [name]
+
+    lines = [f'{len(cnames)} clusters']
+    lines.extend([f'{len(names)} structures: {", ".join(names)}'
+                  for names in cnames.values()])
+    msg = '\n\n'.join(lines)
+    logger.info(msg)
+
 from chimerax.umap import UmapPlot
 class SimilarStructurePlot(UmapPlot):
+    help = 'help:user/tools/foldseek.html#clusters'
+
     def __init__(self, session):
         self._similar_structures_id = None
         self._query_residues = None
@@ -141,6 +161,8 @@ class SimilarStructurePlot(UmapPlot):
                                 lambda self=self, item=item: self._show_table_row(item))
             self.add_menu_entry(menu, f'Select rows for cluster {item.name}',
                                 lambda self=self, item=item: self._select_cluster_table_rows(item))
+            self.add_menu_entry(menu, f'Log structure names for cluster {item.name}',
+                                lambda self=self, item=item: self._log_cluster_structure_names(item))
 
         self.add_menu_separator(menu)
         self.add_menu_entry(menu, 'Show reference atoms', self._show_reference_atoms)
@@ -310,6 +332,11 @@ class SimilarStructurePlot(UmapPlot):
             ssp.select_table_rows_by_names(cnames)
         ssp.display(True)
 
+    def _log_cluster_structure_names(self, node):
+        cnames = self._cluster_names(node)
+        msg = f'{len(cnames)} structures in cluster: {", ".join(cnames)}'
+        self.session.logger.info(msg)
+
     def _show_reference_atoms(self):
         qres = self._query_residues
         qatoms = qres.find_existing_atoms('CA')
@@ -439,6 +466,7 @@ def register_similar_structures_cluster_command(logger):
                    ('replace', BoolArg),
                    ('from_set', StringArg),
                    ('of_structures', StringArg),
+                   ('log_clusters', BoolArg),
                    ],
         synopsis = 'Show umap plot of similar structure hit coordinates for specified residues.'
     )

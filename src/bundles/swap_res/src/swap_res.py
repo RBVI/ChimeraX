@@ -410,9 +410,8 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
             preserve_dihed = None
 
     # prune non-backbone atoms
-    for a in res.atoms:
-        if a.name not in fixed:
-            a.structure.delete_atom(a)
+    from chimerax.atomic import Atoms
+    Atoms([a for a in res.atoms if a.name not in fixed]).delete()
 
     # add new sidechain
     new_atoms = []

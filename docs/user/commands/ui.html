@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: ui, functionkey, mousemode</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>:
 ui, functionkey, mousemode, windowfill</h3>
@@ -32,13 +27,13 @@ The <b>ui</b> command adjusts the user interface (UI):
 </p>
 <ul>
 <li><a href="#uiprefs">sets tool-interface preferences</a>
-<li><a href="#uishow">shows and hides</a> graphical interfaces
-<li><a href="#uiassign">assigns functions</a>
+</li><li><a href="#uishow">shows and hides</a> graphical interfaces
+</li><li><a href="#uiassign">assigns functions</a>
 to the <a href="#mousemode">mouse/touchpad</a>
 and <a href="#functionkey">function keys</a>
-<li><a href="#view">shows orthogonal slice views</a> of
+</li><li><a href="#view">shows orthogonal slice views</a> of
 <a href="../tools/volumeviewer.html">volume data</a>
-</ul>
+</li></ul>
 
 <a name="uiprefs"></a>
 <p class="nav">
@@ -87,7 +82,7 @@ Whether the tool should be listed in the <a href="../menu.html#favorites">
 <b>Favorites</b> menu</a>; saved in 
 <a href="../preferences.html#other">preferences</a>. Can also be adjusted 
 through <a href="../window.html#tool-context">context menus</a>.
-</blockquote>
+</p></blockquote>
 
 <a name="fullscreen"></a>
 <a href="#top" class="nounder">&bull;</a>
@@ -144,8 +139,8 @@ Show/hide the <a href="../window.html">status line</a>.
 <blockquote>
 The <b>ui windowfill</b> command expands/contracts the graphics window
 within the <a href="../window.html">overall window</a> like the icons: 
-<img class="iconbar" src="../tools/ui-icons/expand1.png"> 
-<img class="iconbar" src="../tools/ui-icons/contract1.png">
+<img class="iconbar" src="../tools/ui-icons/expand1.png" alt="computer generated image"> 
+<img class="iconbar" src="../tools/ui-icons/contract1.png" alt="computer generated image">
 </blockquote>
 <a name="hideFloating"></a>
 <a href="#top" class="nounder">&bull;</a>
@@ -187,16 +182,16 @@ See also: <a href="alias.html"><b>alias</b></a>,
 <a href="#mousemode"><b>mousemode</b></a>
 <p>
 Examples:
-<ul class="none"><b>
+</p><ul class="none"><b>
 <li>
 fun F1 <a href="#mousemode">mousemode</a> right 'rotate selected models'
-<li>
+</li><li>
 fun F2 <a href="#mousemode">mousemode</a> right 'translate selected models'
-<li>
+</li><li>
 fun f3 <a href="view.html#initial">view</a> cofr false
-<li>
+</li></b><li><b>
 fun f4 "<a href="view.html#initial">view</a> orient; <a href="view.html#initial">view</a> initial"
-</b></ul>
+</b></li></ul>
 </blockquote>
 
 <a name="mousemode"></a>
@@ -213,7 +208,7 @@ fun f4 "<a href="view.html#initial">view</a> orient; <a href="view.html#initial"
 <a href="#top" class="nounder">&bull;</a>
 <b>mousemode setting</b> 
 [&nbsp;<a href="#functions"><i>function</i></a>&nbsp;]
-[&nbsp;<b>speed</b>&nbsp;&nbsp;<i>s</i></a>&nbsp;]
+[&nbsp;<b>speed</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
 <blockquote>
 <p>
 The <b>mousemode</b> command (same as <b>ui mousemode</b>)
@@ -274,9 +269,9 @@ Sensitivity changes do not apply to
 <a name="mousedefaults"></a>
 Summary of mouse and trackpad default assignments:
 </p>
-<table border cellpadding="4" cellspacing="0"><tr>
+<table border cellpadding="4" cellspacing="0"><tbody><tr>
 <td align="center" rowspan="2"><b>rotate</b>
-<br><img src="../tools/mouse-icons/rotate.png" class="icon3">
+<br><img src="../tools/mouse-icons/rotate.png" class="icon3" alt="computer generated image">
 <br><font size="-1">XY-rotate, except Z-rotate
 <br>with cursor near edge of window</font></td>
 <td>left mouse button</td>
@@ -286,7 +281,7 @@ Summary of mouse and trackpad default assignments:
 <a href="../preferences.html#trackpad">multitouch gestures</a> enabled</td>
 </tr><tr>
 <td align="center" rowspan="2"><b>translate</b>
-<br><img src="../tools/mouse-icons/translate.png" class="icon3"></td>
+<br><img src="../tools/mouse-icons/translate.png" class="icon3" alt="computer generated image"></td>
 <td>middle mouse button, right mouse button</td>
 </tr><tr>
 <td class="text">
@@ -302,7 +297,7 @@ and <i>vice versa</i> (<a href="#functions">details...</a>)
 </td>
 </tr><tr>
 <td align="center" rowspan="2"><b>zoom</b>
-<br><img src="../tools/mouse-icons/zoom.png" class="icon3"></td>
+<br><img src="../tools/mouse-icons/zoom.png" class="icon3" alt="computer generated image"></td>
 <td>mouse scroll wheel</td>
 </tr><tr>
 <td class="text">
@@ -314,29 +309,29 @@ Windows: trackpad 2-finger drag
 </td>
 </tr><tr>
 <td align="center" rowspan="2"><b>select</b>
-<br><img src="../tools/mouse-icons/select.png" class="icon3"></td>
+<br><img src="../tools/mouse-icons/select.png" class="icon3" alt="computer generated image"></td>
 <td>left mouse button + <b>Ctrl</b>, + <b>Shift</b> to toggle
 or add to selection</td>
 </tr><tr>
 <td class="text">
 trackpad + <b>Ctrl</b>, + <b>Shift</b> to toggle or add to selection</td>
-</tr></table>
+</tr></tbody></table>
 <p>
 The right mouse button (= trackpad + <b>Alt</b> on Windows,
-trackpad + <img src="../icon-clover.png" width="12px" style="background:white">
+trackpad + <img src="../icon-clover.png" width="12px" style="background:white" alt="computer generated image">
 on Mac) is also assigned to <b>translate</b> by default, 
 but can be reassigned by clicking an icon in the following tabs of the
 <a href="../tools/toolbar.html"><b>Toolbar</b></a>:
 </p>
 <ul>
 <li><a href="../tools/mousemodes.html"><b>Right Mouse</b></a>:&nbsp;
-&nbsp;<img class="iconbar" src="../mouse-icons.png">
-<li><a href="../tools/markers.html"><b>Markers</b></a>:&nbsp;
-<img class="iconbar" src="../marker-icons.png">
-<li><a href="../tools/medicalimage.html"><b>Medical Image</b></a>
+&nbsp;<img class="iconbar" src="../mouse-icons.png" alt="computer generated image">
+</li><li><a href="../tools/markers.html"><b>Markers</b></a>:&nbsp;
+<img class="iconbar" src="../marker-icons.png" alt="computer generated image">
+</li><li><a href="../tools/medicalimage.html"><b>Medical Image</b></a>
 (just the last section, which contains a subset of the 
 <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> icons)
-</ul>
+</li></ul>
 <p>
 Details on the functions are given <a href="#functions">below</a>.
 The icon for the current right-mouse assignment is highlighted
@@ -352,7 +347,7 @@ only <b>identify object</b> and <b>none</b> are reasonable functions for
 </p>
 <a name="functions"></a>
 <table border cellpadding="4" cellspacing="0">
-<tr>
+<tbody><tr>
 <td align="center"><b><i>function</i></b><br>(default,&nbsp;if&nbsp;any)</td>
 <td align="center"><b>description</b></td>
 <td align="center"><b><a href="../tools/mousemodes.html">Right Mouse</a>
@@ -364,7 +359,7 @@ items for subsequent operations, +<b>Shift</b> to toggle or add to selection;
 see also <a href="select.html"><b>select</b></a>
 and <a href="../tools/mousemodes.html#vr">differences in VR</a>
 </td>
-<td align="center"><img src="../tools/mouse-icons/select.png" class="icon4"></td>
+<td align="center"><img src="../tools/mouse-icons/select.png" class="icon4" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>rotate</b><br>(left)</td>
 <td align="center" class="text">XY-rotate 
@@ -377,7 +372,7 @@ see also <a href="turn.html"><b>turn</b></a>,
 <br>assigned button + <b>Ctrl</b> (where <b>Ctrl</b> must be pressed last)
 switches to Z-rotation instead
 (or Z-translation with vertical drag, if <b>Shift</b> is also pressed)</td>
-<td align="center"><img src="../tools/mouse-icons/rotate.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/rotate.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>translate</b><br>(middle, right)</td>
 <td align="center" class="text">XY-translate
@@ -387,14 +382,14 @@ except if wheel, Z-translate; see also <a href="move.html"><b>move</b></a>;
 <br>assigned button + <b>Ctrl</b> (where <b>Ctrl</b> must be pressed last)
 switches to Z-translation with vertical drag instead
 (or Z-rotation, if <b>Shift</b> is also pressed)</td>
-<td align="center"><img src="../tools/mouse-icons/translate.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/translate.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><a name="zoom"></a><b>zoom</b><br>(wheel)</td>
 <td align="center" class="text">zoom the view
 (slightly <a href="../tools/mousemodes.html#vr">different in VR</a> and
 <a href="camera.html#stereozoom">in stereo</a>);
 see also <a href="zoom.html"><b>zoom</b></a></td>
-<td align="center"><img src="../tools/mouse-icons/zoom.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/zoom.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center" id="identify">
 <b>identify object</b><br>(pause)</td>
@@ -416,7 +411,7 @@ instead;
 <br>assigned button + <b>Ctrl</b> (where <b>Ctrl</b> must be pressed last)
 switches to Z-translation with vertical drag instead 
 (or Z-rotation, if <b>Shift</b> is also pressed)</td>
-<td align="center"><img src="../tools/mouse-icons/move_h2o.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/move_h2o.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>rotate selected models</b></td>
 <td align="center" class="text">rotate models with any part
@@ -426,7 +421,7 @@ instead;
 <br>assigned button + <b>Ctrl</b> (where <b>Ctrl</b> must be pressed last)
 switches to Z-rotation
 instead (or Z-translation with vertical drag, if <b>Shift</b> is also pressed)</td>
-<td align="center"><img src="../tools/mouse-icons/rotate_h2o.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/rotate_h2o.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>move picked model</b></td>
 <td align="center" class="text">translate the model under the mouseclick;
@@ -434,7 +429,7 @@ instead (or Z-translation with vertical drag, if <b>Shift</b> is also pressed)</
 <br>assigned button + <b>Ctrl</b> (where <b>Ctrl</b> must be pressed last) 
 switches to Z-translation with vertical drag instead
 (or Z-rotation, if <b>Shift</b> is also pressed)</td>
-<td align="center"><img src="../tools/mouse-icons/move_picked_model.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/move_picked_model.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>translate selected atoms</b></td>
 <td align="center" class="text">translate any
@@ -444,7 +439,7 @@ instead;
 <br>assigned button + <b>Ctrl</b> (where <b>Ctrl</b> must be pressed last)
 switches to Z-translation with vertical drag instead
 (or Z-rotation, if <b>Shift</b> is also pressed)</td>
-<td align="center"><img src="../tools/mouse-icons/move_atoms.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/move_atoms.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>rotate selected atoms</b></td>
 <td align="center" class="text">rotate any
@@ -454,7 +449,7 @@ instead;
 <br>assigned button + <b>Ctrl</b> (where <b>Ctrl</b> must be pressed last)
 switches to Z-rotation instead
 (or Z-translation with vertical drag, if <b>Shift</b> is also pressed)</td>
-<td align="center"><img src="../tools/mouse-icons/rotate_atoms.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/rotate_atoms.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>translate xy selected models</b></td>
 <td align="center" class="text">translate models with any part 
@@ -493,7 +488,7 @@ see also
 <td align="center" class="text">set center of rotation to clicked atom,
 bond, ribbon segment, or surface point;
 see also <a href="cofr.html"><b>cofr</b></a></td>
-<td align="center"><img src="../tools/mouse-icons/pivot.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/pivot.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>center</b></td>
 <td align="center" class="text">set center of view (animated over 10 frames)
@@ -519,7 +514,7 @@ between two successively clicked atoms or remove existing distance monitor;
 see also <a href="distance.html"><b>distance</b></a>,
 <a href="label.html"><b>label</b></a>,
 and the <a href="#tape"><b>tape measure</b> mode</a></td>
-<td align="center"><img src="../tools/mouse-icons/distance.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/distance.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>label</b></td>
 <td align="center" class="text">label/unlabel clicked atom or ribbon segment
@@ -527,14 +522,14 @@ with residue name and number
 (slightly <a href="../tools/mousemodes.html#vr">different in VR</a>),
 <br>unlabel all residues when background is clicked;
 see also <a href="label.html"><b>label</b></a></td>
-<td align="center"><img src="../tools/mouse-icons/label.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/label.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>move label</b></td>
 <td align="center" class="text">
 move <a href="2dlabels.html">2D label</a>,
 <a href="2dlabels.html">2D arrow</a> (by dragging either end),
 or <a href="label.html">&ldquo;3D&rdquo; label</a></td>
-<td align="center"><img src="../tools/mouse-icons/movelabel.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/movelabel.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>color key</b></td>
 <td align="center" class="text">
@@ -543,7 +538,7 @@ set <a href="../tools/colorkey.html">color key</a> location and dimensions
 by clicking and dragging; a previously created color key can be moved 
 by clicking near its center and dragging, but clicking elsewhere will delete
 the key and start over</td>
-<td align="center"><img src="../tools/mouse-icons/ckiconvertical.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/ckiconvertical.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>clip</b> </td>
 <td align="center" class="text">
@@ -558,7 +553,7 @@ front/back planes that rotate with the scene or near/far planes
 that remain parallel to the screen is set in the
 <a href="../preferences.html#clipping"><b>Clipping</b> preferences</a>;
 see also <a href="clip.html"><b>clip</b></a></td>
-<td align="center"><img src="../tools/mouse-icons/clip.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/clip.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>clip rotate</b></td>
 <td align="center" class="text">click without dragging to 
@@ -566,20 +561,20 @@ activate/deactivate clipping,
 click-drag to activate (if not already active) and
 rotate front/back clipping planes;
 see also <a href="clip.html"><b>clip</b></a></td>
-<td align="center"><img src="../tools/mouse-icons/cliprot.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/cliprot.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>zone</b></td>
 <td align="center" class="text">
 limit atomic and <a href="../tools/volumeviewer.html">volume data</a> display
 to a zone around the clicked residue
 (<a href="../tools/mousemodes.html#zone">details...</a>)</td>
-<td align="center"><img src="../tools/mouse-icons/zone.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/zone.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>contour level</b></td>
 <td align="center" class="text">adjust
 <a href="../tools/volumeviewer.html">volume data</a>
 threshold level; see also <a href="volume.html"><b>volume</b></a></td>
-<td align="center"><img src="../tools/mouse-icons/contour.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/contour.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>move planes</b></td>
 <td align="center" class="text">
@@ -587,7 +582,7 @@ show <a href="volume.html#planes">single plane</a> of clicked
 <a href="../tools/volumeviewer.html">volume data</a>
 if full region shown initially, move plane or slab along its axis to show 
 a different section; see also <a href="volume.html"><b>volume</b></a></td>
-<td align="center"><img src="../tools/mouse-icons/moveplanes.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/moveplanes.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>rotate slab</b></td>
 <td align="center" class="text">
@@ -599,7 +594,7 @@ and from clicking elsewhere is the center of the volume box;
 <br>assigned button + <b>Shift</b> translates the slab along its axis;
 in <a href="../vr.html">VR</a>, this mode
 both rotates and translates the slab</td>
-<td align="center"><img src="../tools/mouse-icons/rotateslab.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/rotateslab.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>crop volume</b></td>
 <td align="center" class="text">
@@ -608,7 +603,7 @@ and adjust region size by dragging any face;
 see also <a href="volume.html"><b>volume</b></a>
 and <a href="../tools/mousemodes.html#vr">differences in VR</a>
 </td>
-<td align="center"><img src="../tools/mouse-icons/crop.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/crop.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>tape measure</b></td>
 <td align="center" class="text"><a name="tape"></a>
@@ -616,13 +611,13 @@ click to anchor distance measurement,
 drag to desired endpoint; click in empty space
 to &ldquo;erase&rdquo; (<a href="../tools/mousemodes.html#tapemeasure">details...</a>);
 see also the <a href="#distance"><b>distance</b> mode</a></td>
-<td align="center"><img src="../tools/mouse-icons/tape.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/tape.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>pick blobs</b></td>
 <td align="center" class="text"><a href="../tools/measureblobs.html">pick
 surface blob</a> to measure area, volume, size; see also
 <a href="measure.html#blob"><b>measure blob</b></a></td>
-<td align="center"><img src="../tools/mouse-icons/pickblobs.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/pickblobs.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><a name="hideblobs"></a><b>hide blobs</b></td>
 <td align="center" class="text">hide the clicked surface blob
@@ -634,13 +629,13 @@ surface blob</a> to measure area, volume, size; see also
 <td align="center" class="text">move
 <a href="../tools/maperaser.html">map eraser</a> sphere; see also
 <a href="volume.html#erase"><b>volume erase</b></a></td>
-<td align="center"><img src="../tools/mouse-icons/eraser.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/eraser.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>play map series</b></td>
 <td align="center" class="text">play 
 <a href="../trajectories.html#vseries">volume series</a>, with wrapping;
 see also <a href="vseries.html"><b>vseries</b></a></td>
-<td align="center"><img src="../tools/mouse-icons/vseries.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/vseries.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>windowing</b></td>
 <td align="center" class="text">adjust
@@ -653,15 +648,15 @@ and the dominant type of motion wins out;
 for adjusting multiple windows within a single histogram,
 see <a href="../tools/mousemodes.html#multiwindowing">details</a>
 </td>
-<td align="center"><img src="../tools/mouse-icons/windowing.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/windowing.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><a name="orthopick"></a><b>orthopick</b></td>
-<td align="center" class="text">in
-<a href="../tools/volumeviewer.html">volume data</a>,
+<td align="center" class="text"><a name="orthopick"></a>
+in <a href="../tools/volumeviewer.html">volume data</a>,
 show three orthogonal slices centered at the clicked point 
 as well as laid out in a plane for easy viewing without rotation
-(<a href="https://www.rbvi.ucsf.edu/chimerax/data/membrane-jun2024/membrane_pick.html" target="_blank">details...</a>)</td>
-<td align="center"><img src="../tools/mouse-icons/orthopick.png" width="35px"></td>
+(<a href="../tools/orthopick.html">details...</a>)</td>
+<td align="center"><img src="../tools/mouse-icons/orthopick.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>bond rotation</b></td>
 <td align="center" class="text">adjust torsion angle (original position 
@@ -669,7 +664,7 @@ not retained) by clicking a bond and dragging vertically, <b>+Shift</b> to
 move the larger set of atoms in the molecule instead of the smaller;
 see also <a href="torsion.html"><b>torsion</b></a>,
 <a href="../tools/buildstructure.html#adjust"><b>Adjust Torsions</b></a></td>
-<td align="center"><img src="../tools/mouse-icons/bondrot.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/bondrot.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>swapaa</b></td>
 <td align="center" class="text">
@@ -678,7 +673,7 @@ and <a href="label.html">label</a> the amino acid residue
 under the mouseclick,
 with vertical drag cycling through the 20 standard types
 in arbitrary conformations; original sidechain not retained</td>
-<td align="center"><img src="../tools/mouse-icons/swapaa.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/swapaa.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>play coordinates</b></td>
 <td align="center" class="text">
@@ -686,7 +681,7 @@ drag up/down or left/right to play through the coordinate sets
 in each displayed <a href="../trajectories.html">trajectory</a>;
 dragging horizontally the full width of the graphics window (or in 
 <a href="../vr.html">VR</a>, 50 cm vertically) plays the whole trajectory</td>
-<td align="center"><img src="../tools/mouse-icons/coordset.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/coordset.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>tug</b></td>
 <td align="center" class="text">drag atoms and apply OpenMM dynamics
@@ -694,7 +689,7 @@ while button is held down
 (<a href="../tools/mousemodes.html#openmm">details...</a>);
 original coordinates not retained;
 see also <a href="tug.html"><b>tug</b></a></td>
-<td align="center"><img src="../tools/mouse-icons/tug.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/tug.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>minimize</b></td>
 <td align="center" class="text">
@@ -702,14 +697,13 @@ jiggle residue and its neighbors with OpenMM dynamics
 while button is held down
 (<a href="../tools/mousemodes.html#openmm">details...</a>);
 original coordinates not retained</td>
-<td align="center"><img src="../tools/mouse-icons/minimize.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/minimize.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>next docked</b></td>
 <td align="center" class="text">
 click-drag to show the next/previous docked ligand when docking results
-are open in <a href="../tools/viewdockx.html"><b>ViewDockX</b></a></td>
-<td align="center"><img src="../tools/mouse-icons/nextdocking.png" 
-width="35px"></td>
+are open in <a href="../tools/viewdock.html"><b>ViewDock</b></a></td>
+<td align="center"><img src="../tools/mouse-icons/nextdocking.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>select add</b></td>
 <td align="center" class="text">add to 
@@ -733,14 +727,14 @@ subtract from <a href="../selection.html">selection</a>
 <a href="../selection.html">select</a>, drag to rotate</td>
 <td>&nbsp;</td>
 </tr>
-</table>
+</tbody></table>
 <p>
 The following mouse modes pertain to <a href="../markers.html">markers
 and links</a>.
 See also: <a href="../tools/markerplacement.html"><b>Marker Placement</b></a>
 </p>
 <table border cellpadding="4" cellspacing="0">
-<tr>
+<tbody><tr>
 <td align="center"><b><i>function</i></b></td>
 <td align="center"><b>description</b></td>
 <td align="center"><b><a href="../tools/markers.html">Markers</a>
@@ -752,40 +746,40 @@ add marker at the nearest local maximum in
 <a href="../tools/volumeviewer.html">volume data</a>
 above the <a href="../tools/volumeviewer.html#threshold">threshold</a>
 along the line of sight</td>
-<td align="center"><img src="../tools/mouse-icons/maximum.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/maximum.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>mark plane</b></td>
 <td align="center">add marker in single-plane
 <a href="../tools/volumeviewer.html">volume</a> display</td>
-<td align="center"><img src="../tools/mouse-icons/plane.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/plane.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>mark surface</b></td>
 <td align="center">
 add marker at the nearest surface point along the line of sight</td>
-<td align="center"><img src="../tools/mouse-icons/marker.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/marker.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center" class="text">
 <b>mark center</b></td>
 <td align="center" class="text">
 add marker at the geometric center of the clicked surface blob,
 ignoring other blobs</td>
-<td align="center"><img src="../tools/mouse-icons/marker2.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/marker2.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center" class="text">
 <b>mark point</b></td>
 <td align="center" class="text">
 Place marker at the tip of the hand-controller cone
 in <a href="../vr.html">virtual reality</a></td>
-<td align="center"><img src="../tools/mouse-icons/point.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/point.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
-<td align="center"><b>link markers</b></b>
-<td align="center"><a href="../selection.html">select</a> and link
+<td align="center"><b>link markers</b>
+</td><td align="center"><a href="../selection.html">select</a> and link
 successively clicked markers</td>
-<td align="center"><img src="../tools/mouse-icons/link.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/link.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>move markers</b></td>
 <td align="center">drag marker to reposition</td>
-<td align="center"><img src="../tools/mouse-icons/move.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/move.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>resize markers</b></td>
 <td align="center">drag to adjust marker/link radii</td>
@@ -793,13 +787,13 @@ successively clicked markers</td>
 (also acts on atoms and stick bonds; restore default radii
 with the <a href="commands/size.html"><b>size</b></a> command)
 -->
-<td align="center"><img src="../tools/mouse-icons/resize.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/resize.png" width="35px" alt="computer generated image"></td>
 </tr><tr>
 <td align="center"><b>delete markers</b></td>
 <td align="center">delete markers and links</td>
-<td align="center"><img src="../tools/mouse-icons/delete.png" width="35px"></td>
+<td align="center"><img src="../tools/mouse-icons/delete.png" width="35px" alt="computer generated image"></td>
 </tr>
-</table>
+</tbody></table>
 </blockquote>
 
 <a name="touchpad"></a>
@@ -813,7 +807,7 @@ but can be combined with modifier keys to emulate middle and right:
 <ul>
 <li>On a <b>Mac</b>, the modifier keys 
 to emulate middle and right are <b>alt</b> and <b>command</b>
-(<img src="../icon-clover.png" width="12px">), respectively.
+(<img src="../icon-clover.png" width="12px" alt="computer generated image">), respectively.
 In other words, leaving <b>alt left</b> and <b>command left</b>
 unassigned allows them to serve the middle- and right-button functions.
 <p>
@@ -828,7 +822,7 @@ a two-finger click-and-drag performs the right-button action.
 Magic Mouse scrolling will not work after a trackpad has been used 
 unless the <b>Trackpad gestures</b> option has been turned off.
 </p>
-<li>On <b>Windows</b>, the modifier keys to emulate middle and right are 
+</li><li>On <b>Windows</b>, the modifier keys to emulate middle and right are 
 <b>control alt</b> and <b>alt</b>, respectively.
 In addition, on many Windows 10 laptops, a click in the 
 lower right corner of the trackpad is a right click, and
@@ -837,7 +831,7 @@ clicking in the lower right corner with one finger and dragging with
 another finger near the middle of the trackpad. On laptops 
 with a &ldquo;precision touchpad,&rdquo; a two-finger tap is also
 interpreted as right-click, but a two-finger drag still performs scrolling.
-</ul>
+</li></ul>
 
 <a name="selective"></a>
 <h3><a href="#mousemode" class="nounder"><b>&larr;</b></a>
@@ -853,32 +847,32 @@ In ChimeraX, however, specific mouse modes are used instead:
   <ul>
   <li><b>translate selected models</b>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="../tools/mouse-icons/move_h2o.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/move_h2o.png" alt="computer generated image"></a>
 (+Shift to rotate)
-  <li><b>rotate selected models</b>
+  </li><li><b>rotate selected models</b>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="../tools/mouse-icons/rotate_h2o.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/rotate_h2o.png" alt="computer generated image"></a>
 (+Shift to translate)
-  <li><b>translate xy selected models</b>
-  <li><b>rotate z selected models</b>
-  </ul>
-<li>move only the clicked model: <b>move picked model</b>
+  </li><li><b>translate xy selected models</b>
+  </li><li><b>rotate z selected models</b>
+  </li></ul>
+</li><li>move only the clicked model: <b>move picked model</b>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="../tools/mouse-icons/move_picked_model.png"></a>
-<li>move only the <a href="../selection.html">selected</a> atoms:
+<img class="icon" border="1" src="../tools/mouse-icons/move_picked_model.png" alt="computer generated image"></a>
+</li><li>move only the <a href="../selection.html">selected</a> atoms:
   <ul>
   <li><b>translate selected atoms</b>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="../tools/mouse-icons/move_atoms.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/move_atoms.png" alt="computer generated image"></a>
  (+Shift to rotate)
-  <li><b>rotate selected atoms</b> (+Shift to translate)
-  </ul>
-</ul>
+  </li><li><b>rotate selected atoms</b> (+Shift to translate)
+  </li></ul>
+</li></ul>
 <p>
 Details on how each mode works are given <a href="#functions">above</a>.
 A mouse mode can be assigned to the right mouse button 
 (= trackpad + <b>Alt</b> on Windows,
-trackpad + <img src="../icon-clover.png" width="12px"> on Mac)
+trackpad + <img src="../icon-clover.png" width="12px" alt="computer generated image"> on Mac)
 by clicking its icon
 in the <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> tab
 of the <a href="../tools/toolbar.html"><b>Toolbar</b></a>, or
@@ -889,7 +883,7 @@ by using the <a href="#mousemode"><b>mousemode</b></a> command.
 <a name="view"></a>
 <p class="nav">
 [<a href="#top">back to top: ui</a>]
-<h3>Orthogonal Slice Views of Volume Data</h3>
+</p><h3>Orthogonal Slice Views of Volume Data</h3>
 
 <a href="#top" class="nounder">&bull;</a>
 <b>ui &nbsp;view</b>
@@ -907,25 +901,25 @@ axial, coronal, and sagittal sections.
 See also:
 <a href="view.html"><b>view</b></a>,
 <a href="volume.html#planes"><b>volume planes</b></a>,
+<a href="../tools/orthoplanes.html"><b>Orthoplanes</b></a>,
 the <a href="../tools/medicalimage.html"><b>Medical&nbsp;Image</b> toolbar</a>,
 <a href="../tools/downloaddicom.html"><b>Download DICOM</b></a>,
 <a href="../tools/segmentations.html"><b>Segmentations</b></a>,
 <a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
-target="_blank">ChimeraX for Medical Image Analysis</a>
+<a href="https://www.rbvi.ucsf.edu/chimerax/dicom/index.html" target="_blank">ChimeraX for Medical Image Analysis</a>
 </p><p>
 Choices of layout include:
 </p>
 <ul>
 <li><b>default</b> &ndash; a single view in the graphics window
-<li><b>fourup</b> &ndash; four panes in the graphics window,
+</li><li><b>fourup</b> &ndash; four panes in the graphics window,
 arranged 2x2: axial slice (top left), 3D rendering (top right),
 coronal slice (bottom left), sagittal slice (bottom right)
-<li><b>overunder</b> &ndash; 3D view across the top, the three orthogonal slice
+</li><li><b>overunder</b> &ndash; 3D view across the top, the three orthogonal slice
 views arranged horizontally across the bottom
-<li><b>sidebyside</b> &ndash; 3D view on the left, the three orthogonal slice
+</li><li><b>sidebyside</b> &ndash; 3D view on the left, the three orthogonal slice
 views arranged vertically on the right
-</ul>
+</li></ul>
 <p>
 <a name="slice-guidelines"></a>
 The <b>guidelines</b> option of <b>ui view</b>
@@ -939,10 +933,10 @@ in each slice view. This mapping can be adjusted interactively in the
 </p><p>
 The <a href="#slice-context">slice view context menu</a> allows toggling
 the display of color keys and guidelines.
-<p>
+</p><p>
 
 <a name="navigation"></a>
-<h3>Slice Navigation and Manipulation</h3>
+</p><h3>Slice Navigation and Manipulation</h3>
 <p>
 Each slice view has a slider for navigating through the data planes
 along the corresponding axis. Alternatively, the following keys can be used,
@@ -950,8 +944,8 @@ optionally + Shift for faster movement:
 </p>
 <ul>
 <li>letters A and D
-<li>left and right arrow keys
-</ul>
+</li><li>left and right arrow keys
+</li></ul>
 <p>
 The depth of the current plane is reported to the right of the slider.
 </p><p>
@@ -967,10 +961,11 @@ and <a href="#slice-colorkey">color keys</a> on or off:
 </p>
 <ul>
 <li><b>Toggle Guidelines</b>
-<li><b>Toggle Color Keys</b>
-</ul>
+</li><li><b>Toggle Color Keys</b>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2025</address>
+October 2025</address>
+
 </body></html>

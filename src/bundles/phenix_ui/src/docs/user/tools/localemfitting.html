@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,37 +9,32 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Local EM Fitting</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Local EM Fitting</h3>
 <p>
 The <b>Local EM Fitting</b> tool in ChimeraX runs
-<a href="https://phenix-online.org/documentation/reference/emplace_local.html"
-target="_blank"><i>voyager.emplace_local</i></a> (included in the 
+<a href="https://phenix-online.org/documentation/reference/emplace_local.html" target="_blank"><i>voyager.emplace_local</i></a> (included in the 
 <a href="https://phenix-online.org" target="_blank">Phenix</a> nightly build)
 to fit an atomic structure within a local region of cryo-EM density.
 The command implementation is 
 <a href="../commands/phenix.html#emplaceLocal"><b>phenix emplaceLocal</b></a>.
 See also:
 <a href="fitmap.html"><b>Fit in Map</b></a>,
+<a href="fitligand.html"><b>Fit Ligand</b></a>,
 <a href="waterplacement.html"><b>Water Placement</b></a>,
 <a href="fitloops.html"><b>Fit Loops</b></a>,
 <a href="#symmetry">adding symmetry copies after fitting</a>,
-videos: <a href="https://www.youtube.com/watch?v=DlVgrQTZ5t8"
-target="_blank">Phenix/ChimeraX setup</a> and
-<a href="https://www.youtube.com/watch?v=nRiumhKA6BM"
-target="_blank">Phenix/ChimeraX Local EM Fitting</a>
+videos: <a href="https://www.youtube.com/watch?v=DlVgrQTZ5t8" target="_blank">Phenix/ChimeraX setup</a> and
+<a href="https://www.youtube.com/watch?v=nRiumhKA6BM" target="_blank">Phenix/ChimeraX Local EM Fitting</a>
 </p><p>
 Limiting the search space to a local region of the map (subvolume)
 can improve the signal-to-noise ratio and lead to success in cases 
@@ -49,8 +42,7 @@ where global search fails, in addition to being much faster.
 The method is described in:
 </p>
 <blockquote>
-<a href="https://journals.iucr.org/d/issues/2024/08/00/id5013/index.html"
-target="_blank">
+<a href="https://journals.iucr.org/d/issues/2024/08/00/id5013/index.html" target="_blank">
 Likelihood-based interactive local docking into cryo-EM maps in ChimeraX.</a>
 <authors>Read RJ, Pettersen EF, McCoy AJ, Croll TI, Terwilliger TC, Poon BK, Meng EC, Liebschner D, Adams PD.</authors>
 <i>Acta Crystallogr D Struct Biol.</i> 2024 Aug 1;80(Pt 8):588-598.
@@ -101,33 +93,33 @@ Although the local resolution is initially set to <b>0.0</b> &Aring;,
 a positive value is required and must be supplied if a full map is used.
 If half maps are used but no positive value is supplied,
 the local resolution will be estimated from the half maps.
-<li><b>Pre-fitted structures (if any)</b> 
+</li><li><b>Pre-fitted structures (if any)</b> 
 &ndash; specify atomic models, if any,
 that are already in place within parts of the map
-<li><b>Center search at</b>
+</li><li><b>Center search at</b>
   <ul>
   <li><b>center of model...</b> center of the bounding box of the chosen model
-  <li><b>center of selection</b> &ndash; center of the current 
+  </li><li><b>center of selection</b> &ndash; center of the current 
 <a href="../selection.html">selection</a>, <i>e.g.</i>,
 one or more previously created <a href="../markers.html">markers</a>
-  <li><b>center of view</b> &ndash; determined as follows:
+  </li><li><b>center of view</b> &ndash; determined as follows:
     <ol>
     <li>if center-of-rotation crosshairs are displayed
 (<b><a href="../commands/cofr.html">cofr</a> showPivot true</b>),
 at the center of the crosshairs;
-   <li>otherwise, if the <a href="../commands/cofr.html">center-of-rotation 
+   </li><li>otherwise, if the <a href="../commands/cofr.html">center-of-rotation 
 method</a> is <b>fixed</b>, at that center of rotation;
-   <li>otherwise, if a single map is displayed, in the center of the graphics
+   </li><li>otherwise, if a single map is displayed, in the center of the graphics
 window in the plane of the window (screen XY coordinates), and at the middle 
 of the map's bounding box in depth (screen Z-coordinate)
-   <li>otherwise, if more than one map is displayed, as immediately above except
+   </li><li>otherwise, if more than one map is displayed, as immediately above except
 using the bounding box of one of the half maps used in the fitting calculation
-   </ol>
-  <li><b>specified xyz position...</b> X, Y, and Z coordinates (&Aring;)
+   </li></ol>
+  </li><li><b>specified xyz position...</b> X, Y, and Z coordinates (&Aring;)
 relative to the origin of the map and in the coordinate system of the map
-  </ul>
+  </li></ul>
 <a name="adjust"></a>
-<li><b>Interactively verify/adjust center before searching</b>
+</li><li><b>Interactively verify/adjust center before searching</b>
 (initial default <b>on</b>)
 &ndash; whether to generate a transparent orange
 <a href="../markers.html">marker</a> to show the search space size and location.
@@ -138,11 +130,11 @@ structure and cannot be adjusted, but the search center can be moved by
 moving the marker, using any ChimeraX method for moving markers or models
 (<i>e.g.</i>, clicking the <b>move markers</b>
 <a href="markers.html" title="Markers...">
-<img class="icon" border=1 src="mouse-icons/move.png"></a> icon
+<img class="icon" border="1" src="mouse-icons/move.png" alt="computer generated image"></a> icon
 in the <a href="markers.html"><b>Markers</b></a> toolbar to assign the mode to 
 the right mouse button, then using right-mouse click-drag to move the marker).
 Clicking <b>Start search</b> starts the local fitting calculation.
-<li><b>Make maps opaque while verifying center</b>
+</li><li><b>Make maps opaque while verifying center</b>
 (only available when <a href="#adjust">interactive verification</a> is turned on;
 initial default <b>on</b>)
 &ndash; since ChimeraX only shows a single layer of transparency, 
@@ -152,14 +144,14 @@ This option temporarily makes map surfaces and meshes opaque
 to prevent them from &ldquo;disappearing&rdquo; inside the orange sphere.
 When the search is initiated and the sphere is removed, map surfaces 
 are automatically reset to their previous transparency levels, if any.
-<li><b>Show locally sharpened map computed by Phenix</b>
+</li><li><b>Show locally sharpened map computed by Phenix</b>
 (initial default <b>off</b>)
 &ndash; whether the sharpened map model generated by Phenix as part of
 the calculation should be shown or hidden; either way, it can be shown/hidden
 later using any of the usual methods 
 (<a href="../commands/show.html"><b>show/hide</b></a> commands,
 <a href="modelpanel.html"><b>Model Panel</b></a> checkbox, <i>etc.</i>)
-<li><a name="symmetry"></a>
+</li><li><a name="symmetry"></a>
 <b>After fitting, add symmetry copies automatically if map symmetry
 is detected</b>
 &ndash; after fitting the atomic structure, whether to try to discern
@@ -170,7 +162,7 @@ accordingly. This is equivalent to using commands:
 to detect symmetry from the map; this only works for certain symmetries 
 in standard coordinate systems
 (<a href="../commands/measure.html#symmetry">details...</a>)
-<li><a href="../commands/sym.html#symmetry"><b>sym</b></a> to add copies 
+</li><li><a href="../commands/sym.html#symmetry"><b>sym</b></a> to add copies 
 of the structure according to the detected symmetry of the map
 <!--
 For example, if the map is model #1 and the fitted monomer model #2:
@@ -181,16 +173,16 @@ For example, if the map is model #1 and the fitted monomer model #2:
 copies true</b>
 </blockquote>
 -->
-<li><a href="../commands/combine.html"><b>combine</b></a> to merge the copies
+</li><li><a href="../commands/combine.html"><b>combine</b></a> to merge the copies
 into a single model
-</ul>
+</li></ul>
 <p>
 <b>Local EM Fitting</b> does not use the map symmetry (if any) for fitting.
 The symmetry is simply used to add copies of the fitted structure afterward,
 without consideration of steric clashes. Thus, further
 refinements may be required to generate a realistic model.
 </p>
-</ul>
+</li></ul>
 <p>
 If the <b>Interactively verify...</b> option mentioned above is not used,
 clicking <b>Apply</b> on the main dialog (or <b>OK</b>, which also dismisses
@@ -219,17 +211,16 @@ with metrics:
 <li><b>Correlation Coefficient</b> &ndash; 
 correlation between the locally sharpened target map and a map 
 computed from the atomic structure
-<li><b>Log-Likelihood Gain</b> &ndash;
+</li><li><b>Log-Likelihood Gain</b> &ndash;
 gain in log-likelihood score compared with an uninformative model
 (for details, see 
-<a href="https://journals.iucr.org/d/issues/2023/04/00/vo5011/index.html" 
-target="_blank">Read <i>et al.</i></a>, 
+<a href="https://journals.iucr.org/d/issues/2023/04/00/vo5011/index.html" target="_blank">Read <i>et al.</i></a>, 
 <i>Acta Crystallogr D Struct Biol.</i> <b>79</b>:271 (2023)).
-Log-likelihood-gain scores &gsim; 60 generally indicate
+Log-likelihood-gain scores &gtrsim; 60 generally indicate
 significant solutions that are either correct or correspond to density for
 a related molecule.
 Solutions with lower scores should be interpreted with caution.
-</ul>
+</li></ul>
 <p>
 <a name="chosen"></a>
 Clicking a row in the list <b><i>chooses</i></b> the corresponding fit
@@ -243,9 +234,10 @@ to <b>Show symmetry copies</b> for the chosen fit.
 </p><p>
 Clicking <b>OK</b> retains the displayed models for the chosen fit
 and dismisses the fit-list dialog.
-<p>
+</p><p>
 
-<hr>
+</p><hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2025</address>
+November 2025</address>
+
 </body></html>

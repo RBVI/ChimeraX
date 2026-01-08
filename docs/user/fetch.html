@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,20 +9,17 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="userdocs.css">
 <title>Fetch by ID</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="index.html">
-<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
-<h2>Fetch by ID</h3>
+<h2>Fetch by ID</h2>
 
 <p>
 Choosing <a href="menu.html#file"><b>File... Fetch by ID</b></a>
@@ -60,109 +55,101 @@ Web-fetched data are stored locally in <b>~/Downloads/ChimeraX/</b>
 <b>PDB</b>, <b>EMDB</b>, <i>etc.</i>
 </p><p>
 Fetch types:
-<p>
-<ul>
+</p><p>
+</p><ul>
 <li><b>AlphaFold</b> 
-&ndash; from the <a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold Database</a>,
+&ndash; from the <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>,
 theoretical protein structure modeled by
-<a href="https://www.nature.com/articles/s41586-021-03819-2"
-target="_blank">AlphaFold</a> and specified by
+<a href="https://www.nature.com/articles/s41586-021-03819-2" target="_blank">AlphaFold</a> and specified by
 <a href="https://www.uniprot.org/" target="_blank">UniProt</a> name
 or accession number (<a href="commands/alphafold.html#fetch">details...</a>)
-<li><b>EDS (2Fo-Fc)</b>
+</li><li><b>EDS (2Fo-Fc)</b>
 &ndash; from the <a href="https://www.ebi.ac.uk/pdbe/" target="_blank">PDBe</a>
 Electron Density Server (EDS), (2Fo-Fc) electron density map 
 for a PDB entry (not available for all PDB entries)
-<li><b>EDS (Fo-Fc)</b>
+</li><li><b>EDS (Fo-Fc)</b>
 &ndash; from the <a href="https://www.ebi.ac.uk/pdbe/" target="_blank">PDBe</a>
 Electron Density Server (EDS), (Fo-Fc) electron density difference map 
 for a PDB entry (not available for all PDB entries)
-<li><b>EMDB</b>
-&ndash; electron density map from the <a href="https://www.ebi.ac.uk/emdb/"
-target="_blank">Electron Microscopy Data Bank (EMDB)</a>
-<li><b>EMDB & fit PDBs</b>
-&ndash; electron density map from the <a href="https://www.ebi.ac.uk/emdb/" 
-target="_blank">Electron Microscopy Data Bank (EMDB)</a>
+</li><li><b>EMDB</b>
+&ndash; electron density map from the <a href="https://www.ebi.ac.uk/emdb/" target="_blank">Electron Microscopy Data Bank (EMDB)</a>
+</li><li><b>EMDB & fit PDBs</b>
+&ndash; electron density map from the <a href="https://www.ebi.ac.uk/emdb/" target="_blank">Electron Microscopy Data Bank (EMDB)</a>
 and corresponding fit PDBs (if given in the EMDB map metadata) from the
 <a href="https://www.rcsb.org/" target="_blank">Protein Data Bank</a> 
-<li><b>ESMFold</b>
-&ndash; from the <a href="https://esmatlas.com/about#about_this_website"
-target="_blank">ESM Metagenomic Atlas</a>,
+</li><li><b>ESMFold</b>
+&ndash; from the <a href="https://esmatlas.com/about#about_this_website" target="_blank">ESM Metagenomic Atlas</a>,
 theoretical protein structure modeled by
 <a href="https://pubmed.ncbi.nlm.nih.gov/36927031/" target="_blank">ESMFold</a>
 (Evolutionary Scale Modeling) and specified by MGnify identifier
 (<a href="commands/esmfold.html#fetch">details...</a>)
-<li><b>IUPAC</b>
+</li><li><b>Integrative Hybrid Models</b>
+&ndash; from <a href="https://pdb-ihm.org/" target="_blank">PDB-IHM</a>;
+may create <a href="attributes.html#residue">residue attributes</a>
+</li><li><b>IUPAC</b>
 &ndash; modeled atomic coordinates specified by IUPAC name,
 first translated from IUPAC to
-a <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
-target="_blank">SMILES</a> string using the
+a <a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html" target="_blank">SMILES</a> string using the
 <a href="https://opsin.ch.cam.ac.uk/index.html" target="_blank">OPSIN
-web service</a> provided by the <a href="https://www-cmi.ch.cam.ac.uk/"
-target="_blank">Centre for Molecular Informatics</a>
+web service</a> provided by the <a href="https://www-cmi.ch.cam.ac.uk/" target="_blank">Centre for Molecular Informatics</a>
 at the University of Cambridge, followed by the process below for SMILES
-<li><b>Model Archive</b>
+</li><li><b>Model Archive</b>
 &ndash; theoretical atomic structure from the
 <a href="https://modelarchive.org/" target="_blank">ModelArchive</a>
 specified by its identifier in that database;
 see also <a href="commands/modelcif.html#pae"><b>modelcif pae</b></a>
-<li><b>NMR constraints</b>
+</li><li><b>NMR constraints</b>
 &ndash; nuclear magnetic resonance (NMR) distance constraints,
 available for certain entries in the
 <a href="https://www.rcsb.org/" target="_blank">Protein Data Bank</a>
 and specified by PDB identifier; the corresponding atomic structure should
 already be open (<a href="commands/open.html#nmrstar">details...</a>)
-<li><b>PDB</b>
+</li><li><b>PDB</b>
 &ndash; atomic coordinates from the 
 <a href="https://www.rcsb.org/" target="_blank">Protein Data Bank</a> 
 specified by PDB identifier
-<li><b>PDB (biounit)</b>
+</li><li><b>PDB (biounit)</b>
 &ndash; from the <a href="https://www.ebi.ac.uk/pdbe/" target="_blank">PDBe</a>,
 atomic coordinates for biological assembly or assemblies 
 specified by PDB identifier
-<li><b>PDB chemical component</b>
-&ndash; from the <a href="https://www.wwpdb.org/data/ccd"
-target="_blank">PDB Chemical Component Dictionary (CCD)</a>,
+</li><li><b>PDB chemical component</b>
+&ndash; from the <a href="https://www.wwpdb.org/data/ccd" target="_blank">PDB Chemical Component Dictionary (CCD)</a>,
 idealized structure of PDB chemical component
 specified by CCD ID (residue name)
-<li><b>PDB-REDO (map)</b>
+</li><li><b>PDB-REDO (map)</b>
 &ndash; diffraction data (MTZ) from
 <a href="https://pdb-redo.eu/" target="_blank">PDB-REDO database</a> 
 specified by PDB identifier; opening MTZ files requires the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper"
-target="_blank"><b>Clipper</b> bundle</a> available from the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/"
-target="_blank">ChimeraX Toolshed</a>
+<a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper" target="_blank"><b>Clipper</b> bundle</a> available from the
+<a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">ChimeraX Toolshed</a>
 (<a href="commands/open.html#clipper">details...</a>)
-<li><b>PDB-REDO (structure)</b>
+</li><li><b>PDB-REDO (structure)</b>
 &ndash; atomic coordinates from the 
 <a href="https://pdb-redo.eu/" target="_blank">PDB-REDO database</a> 
 specified by PDB identifier
-<li><b>PubChem</b>
-&ndash; from <a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
-target="_blank">PubChem3D</a>,
+</li><li><b>PubChem</b>
+&ndash; from <a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d" target="_blank">PubChem3D</a>,
 modeled atomic coordinates specified by
 <a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank">PubChem</a>
 compound identifier (CID), available for most but not all entries 
 in PubChem Compound; partial charges are assigned as the atom
 <a href="attributes.html">attribute</a> named <b>charge</b>
-<li><b>SMILES</b>
+</li><li><b>SMILES</b>
 &ndash; modeled atomic coordinates specified by
-<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
-target="_blank">SMILES</a> string, generated using the
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html" target="_blank">SMILES</a> string, generated using the
 <a href="https://cactus.nci.nih.gov/translate/" target="_blank">SMILES
 translator</a> provided by the
 <a href="https://cactus.nci.nih.gov/" target="_blank">National Cancer Institute
 CADD group</a>
-<li><b>UniProt</b>
+</li><li><b>UniProt</b>
 &ndash; from <a href="https://www.uniprot.org" target="_blank">UniProt</a>, 
 protein sequence (along with its associated 
 <a href="tools/sequenceviewer.html#uniprot">sequence features</a>)
 specified by UniProt name or accession number
-</ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2024</address>
+November 2025</address>
+
 </body></html>

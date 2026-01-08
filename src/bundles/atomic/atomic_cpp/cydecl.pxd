@@ -182,6 +182,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         const Neighbors& neighbors()
         int num_explicit_bonds()
         float occupancy()
+        float occupancy(char)
         object py_instance(bool)
         float radius()
         Residue* residue()

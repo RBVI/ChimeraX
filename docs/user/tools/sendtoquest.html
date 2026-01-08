@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,25 +9,21 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Send to Quest</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Send to Quest</h3>
 <p>
 This tool sends a scene to an Oculus Quest VR headset to be viewed by the 
 LookSee application. See
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/looksee-mar2023/looksee.html"
-target="_blank">ChimeraX VR on standalone Quest headsets</a>
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/looksee-mar2023/looksee.html" target="_blank">ChimeraX VR on standalone Quest headsets</a>
 for how to install LookSee on a Quest 2 or Quest Pro headset.
 See also: <a href="../vr.html">ChimeraX virtual reality</a>
 </p><p>
@@ -56,8 +50,7 @@ To send the scene, the computer must know the Quest internet address.
 Start LookSee and enable "Receive files from ChimeraX" and it will
 show the address, for example, "Receive files from 192.168.0.157".
 Enter that address in the ChimeraX Send to Quest tool under Options.
-More detailed instructions are <a href="https://www.rbvi.ucsf.edu/chimerax/data/looksee-mar2023/looksee.html"
-target="_blank">available</a>.
+More detailed instructions are <a href="https://www.rbvi.ucsf.edu/chimerax/data/looksee-mar2023/looksee.html" target="_blank">available</a>.
 </p>
 
 <h3>Using a USB cable instead of WiFi</h3>
@@ -72,22 +65,23 @@ To set up wireless transfer, follow these steps:
 </p>
   <ol>
   <li>Plug in Quest to computer with usb cable.
-  <li>Click Allow Access in Quest headset.
-  <li>Select the "Use adb executable" option in under the Send to Quest Options.
-  </ol>
+  </li><li>Click Allow Access in Quest headset.
+  </li><li>Select the "Use adb executable" option in under the Send to Quest Options.
+  </li></ol>
 
 <p>It is also possible to use adb with a wireless connection with these additional steps.</p>
 
-  <ol start=4>
+  <ol start="4">
   <li>Check Quest IP address in headset clicking the wifi symbol in the Quest,
     then clicking the connected wifi name, then scroll down and click Advanced.
-  <li>Use adb command "adb tcpip 5555" from a shell on the computer.
-  <li>Use adb command "adb 192.168.0.135" to specify the Quest IP address.
-  <li>Disconnect usb cable from Quest.
-  <li>Optionally, check connected devices with "adb devices"
-</ol>
+  </li><li>Use adb command "adb tcpip 5555" from a shell on the computer.
+  </li><li>Use adb command "adb 192.168.0.135" to specify the Quest IP address.
+  </li><li>Disconnect usb cable from Quest.
+  </li><li>Optionally, check connected devices with "adb devices"
+</li></ol>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 April 2023</address>
+
 </body></html>

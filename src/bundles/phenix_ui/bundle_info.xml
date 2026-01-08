@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-PhenixUI" version="1.4.4"
+<BundleInfo name="ChimeraX-PhenixUI" version="1.4.9"
 	    package="chimerax.phenix_ui"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -35,12 +35,12 @@
     <ChimeraXClassifier>Command :: phenix douse :: Structure Editing :: Place waters in a map</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: phenix emplaceLocal :: Structure Editing :: Place model in map</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: phenix fitLoops :: Structure Editing :: Fill in missing structure guided by map</ChimeraXClassifier>
-	<!-- <ChimeraXClassifier>Command :: phenix ligandFit :: Structure Editing :: Fit ligand into density</ChimeraXClassifier> -->
+	<ChimeraXClassifier>Command :: phenix ligandFit :: Structure Editing :: Fit ligand into density</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: phenix location :: Structure Editing :: Set location of Phenix installation</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Water Placement :: Structure Editing, Phenix :: Place waters in a map</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Local EM Fitting :: Structure Editing, Phenix :: Place structure in a map using localized search</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Fit Loops :: Structure Editing, Phenix :: Fill in missing structure or remodel structure guided by Cryo-EM map</ChimeraXClassifier>
-    <!-- <ChimeraXClassifier>Tool :: Fit Ligand :: Structure Editing, Phenix :: Place a ligand based on map density</ChimeraXClassifier> -->
+    <ChimeraXClassifier>Tool :: Fit Ligand :: Structure Editing, Phenix :: Place a ligand based on map density</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

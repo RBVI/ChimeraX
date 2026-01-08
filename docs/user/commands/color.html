@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: color, rainbow</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: color, rainbow</h3>
 <p>
@@ -32,23 +27,23 @@ different sets of items:
 <ul class="none">
 <li><a href="#simple"><b>Simple Coloring</b></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/colorbyelement.png" alt="computer generated image"></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/colorbychain.png" alt="computer generated image"></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/polymer.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/polymer.png" alt="computer generated image"></a>
 <a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
-<img class="icon" border=1 src="../tools/nuc-icons/nuc-color.png"></a>
+<img class="icon" border="1" src="../tools/nuc-icons/nuc-color.png" alt="computer generated image"></a>
 &ndash; atomic models,
 <a href="../tools/volumeviewer.html">volume data</a> (maps),
 <a href="2dlabels.html">2D labels</a>
-<li><a href="#sequential"><b>Sequential Coloring (Rainbow)</b></a> 
+</li><li><a href="#sequential"><b>Sequential Coloring (Rainbow)</b></a> 
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/rainbow.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/rainbow.png" alt="computer generated image"></a>
 &ndash; atomic models
-<li><a href="#modify"><b>Color Modification</b></a>
+</li><li><a href="#modify"><b>Color Modification</b></a>
 &ndash; lightening, hue shift, <i>etc.</i> for atomic models
-<li><b>Coloring by Value</b>
+</li><li><b>Coloring by Value</b>
 (see also the <a href="../tools/colorkey.html"><b>Color Key</b></a> tool
 or <a href="key.html"><b>key</b></a> command):
   <ul>
@@ -57,29 +52,28 @@ or <a href="key.html"><b>key</b></a> command):
    residues, or structures (atomic models);
     <a href="#byattribute"><b>color bfactor</b></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/bfactor.png"></a>
-  <li><a href="#map"><b>Map</b></a> (sample, electrostatic, gradient)
+<img class="icon" border="1" src="../tools/shortcut-icons/bfactor.png" alt="computer generated image"></a>
+  </li><li><a href="#map"><b>Map</b></a> (sample, electrostatic, gradient)
   &ndash; surfaces, molecular and nonmolecular
-  <li><a href="#distance"><b>Distance</b></a> (radial, cylindrical, height)
+  </li><li><a href="#distance"><b>Distance</b></a> (radial, cylindrical, height)
   &ndash; surfaces
-  </ul>
-<li><a href="#zone"><b>Coloring by Zone</b></a>
+  </li></ul>
+</li><li><a href="#zone"><b>Coloring by Zone</b></a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/colorzone.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/colorzone.png" alt="computer generated image"></a>
 &ndash; color surfaces to match nearby atoms
 or <a href="../markers.html">markers</a>
-<li><a href="#single"><b>Removing Coloring by Value or Zone</b></a>
-<li><a href="#image"><b>Coloring from Image File</b></a>
+</li><li><a href="#single"><b>Removing Coloring by Value or Zone</b></a>
+</li><li><a href="#image"><b>Coloring from Image File</b></a>
 &ndash; paste an image from a file onto a surface; perform texture mapping
-</ul>
+</li></ul>
 <p>
 See also: <a href="transparency.html"><b>transparency</b></a>,
 <a href="coulombic.html"><b>coulombic</b></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/esp.png"></a>,
+<img class="icon" border="1" src="../tools/shortcut-icons/esp.png" alt="computer generated image"></a>,
 <a href="mlp.html"><b>mlp</b></a>
-<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img
-class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>,
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img class="icon" border="1" src="../tools/shortcut-icons/hydrophobicity.png" alt="computer generated image"></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="volume.html"><b>volume</b></a>,
@@ -99,15 +93,15 @@ Additional subcommands manage the set of named colors:
 <ul>
 <li><a href="#name"><b>color name</b></a> 
 &ndash; define color names 
-<li><a href="#delete"><b>color delete</b></a>
+</li><li><a href="#delete"><b>color delete</b></a>
 &ndash; forget user-defined color names
-<li><a href="#list"><b>color list</b></a>
+</li><li><a href="#list"><b>color list</b></a>
 &ndash; show color names and swatches in 
 the <a href="../tools/log.html"><b>Log</b></a> 
-<li><a href="#show"><b>color show</b></a> 
+</li><li><a href="#show"><b>color show</b></a> 
 &ndash; report RGB definitions of color names in the
 <a href="../tools/log.html"><b>Log</b></a>
-</ul>
+</li></ul>
 
 <a name="simple"></a>
 <p class="nav">
@@ -129,34 +123,34 @@ Simple coloring applies to atomic models, including
 <a href="../tools/volumeviewer.html">volume data</a> (map) displays,
 and <a href="2dlabels.html">2D labels</a>.
 The <a name="colorname"><i>colorname</i></a> can be:
-<ul>
+</p><ul>
 <li>a <a href="colornames.html">color specification</a> by name,
 hexadecimal color code, or component values
-<li><a name="byelement"><b>byelement</b> or <b>byatom</b></a>
+</li><li><a name="byelement"><b>byelement</b> or <b>byatom</b></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/colorbyelement.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/colorbyelement.png" alt="computer generated image"></a>
 &ndash; a <a href="colortables.html#element">color-by-element scheme</a>;
 only applies to atomic representations and per-atom patches of 
 molecular surfaces
-<li><a name="byhet"><b>byhet</b> or <b>byhetero</b></a>
+</li><li><a name="byhet"><b>byhet</b> or <b>byhetero</b></a>
 &ndash; same as <b>byelement</b>, except leaving carbon atoms unchanged
-<li><b>fromatoms</b>
+</li><li><b>fromatoms</b>
 &ndash; color molecular surface patches to match the corresponding atoms
-<li><b>fromcartoons</b> or <b>fromribbons</b>
+</li><li><b>fromcartoons</b> or <b>fromribbons</b>
 &ndash; color molecular surface patches to match the cartoon segments
 of the corresponding residues
-<li><a name="bynucleotide"><b>bynucleotide</b></a> 
+</li><li><a name="bynucleotide"><b>bynucleotide</b></a> 
 <a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
-<img class="icon" border=1 src="../tools/nuc-icons/nuc-color.png"></a>
+<img class="icon" border="1" src="../tools/nuc-icons/nuc-color.png" alt="computer generated image"></a>
 &ndash; a built-in scheme 
 <a href="colortables.html#residue">by nucleotide base type</a>
-<li><a name="bychain"><b>bychain</b></a>
+</li><li><a name="bychain"><b>bychain</b></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/colorbychain.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/colorbychain.png" alt="computer generated image"></a>
 &ndash; a built-in scheme <a href="colortables.html#autocolors">by chain ID</a>
-<li><a name="bypolymer"></a><b>byidentity</b> or <b>bypolymer</b>
+</li><li><a name="bypolymer"></a><b>byidentity</b> or <b>bypolymer</b>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/polymer.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/polymer.png" alt="computer generated image"></a>
 &ndash; a random color per unique biopolymer chain (macromolecular entity);
 the chain sequence is used to initialize the random number
 generator for choosing red, green, and blue color components,
@@ -164,26 +158,26 @@ so the same sequence will always give the same color
 <!-- 
 using sequence 1-letter codes, rgb values chosen in range 128-255, opacity 255
 -->
-<li><a name="bymodel"><b>bymodel</b></a>
+</li><li><a name="bymodel"><b>bymodel</b></a>
 &ndash; the <a href="colortables.html#autocolors">initial colors</a> 
 of atomic models
-<li><a name="random"><b>random</b></a>
+</li><li><a name="random"><b>random</b></a>
 &ndash; random color per atom and residue
-</ul>
+</li></ul>
 <p>
 <a name="target"></a>
 The <b>target</b> option allows coloring only 
 a subset of the possible displays of a given atom, residue, <i>etc.</i>
 The <i>string</i> can be any combination of the following letters,
 without commas or spaces:
- <ul>
+ </p><ul>
  <li><b>a</b> &ndash; atoms/bonds
  (coloring shown for bonds in <a href="#halfbond">halfbond mode</a>)
- <li><b>b</b> &ndash; bonds-only
+ </li><li><b>b</b> &ndash; bonds-only
  (coloring shown for bonds not in <a href="#halfbond">halfbond mode</a>)
- <li><b>c</b> &nbsp;or&nbsp; <b>r</b>
+ </li><li><b>c</b> &nbsp;or&nbsp; <b>r</b>
  &ndash; cartoons (ribbons) (divisible to per-residue segments)
- <li><b>s</b> &ndash; surfaces
+ </li><li><b>s</b> &ndash; surfaces
  (molecular surfaces divisible to per-atom patches, other surface models such
  as volume isosurfaces, and for <a href="#simple">simple coloring</a> only, 
  solid volume displays)
@@ -194,19 +188,19 @@ however, if atoms have been colored sequentially, their
 molecular surfaces can be colored to match with the command: 
 <b><a href="#simple">color</a> fromatoms target s</b>
 -->
- <li><b>p</b> &ndash; pseudobonds-only
+ </li><li><b>p</b> &ndash; pseudobonds-only
  (coloring shown for <a href="../pseudobonds.html">pseudobonds</a>
  not in <a href="#halfbond">halfbond mode</a>)
- <li><b>f</b> &ndash; <a href="style.html">ring fill</a>
+ </li><li><b>f</b> &ndash; <a href="style.html">ring fill</a>
  and <a href="nucleotides.html">nucleotide representations</a>
- <li><b>l</b> &ndash; labels
+ </li><li><b>l</b> &ndash; labels
 (<a href="label.html">3D</a> and <a href="2dlabels">2D</a>)
 <!--
  <li><b>n</b> &ndash; nonmolecular models (model-level color)
  <li><b>m</b> &ndash; molecular models (model-level color)
  <li><b>d</b> &ndash; distances and other pseudobond labels
 -->
- </ul>
+ </li></ul>
 The default is all of the above (<b>target abcspf</b>)
 except labels, which can be colored independently:
 3D labels with the <a href="label.html"><b>label</b></a> command,
@@ -221,21 +215,21 @@ as a comma-separated list:
 </p>
 <ul>
 <li><b>atoms</b> &ndash; equivalent to <b>target a</b>
-<li><b>bonds</b> &ndash; equivalent to <b>target b</b>
-<li><b>cartoons</b> or <b>ribbons</b> &ndash; equivalent to <b>target c</b>
+</li><li><b>bonds</b> &ndash; equivalent to <b>target b</b>
+</li><li><b>cartoons</b> or <b>ribbons</b> &ndash; equivalent to <b>target c</b>
 or <b>target r</b>
-<li><b>surfaces</b> &ndash; equivalent to <b>target s</b>
-<li><b>pseudobonds</b> &ndash; equivalent to <b>target p</b>
-<li><b>rings</b> &ndash; equivalent to <b>target f</b>
-<li><b>labels</b> &ndash; equivalent to <b>target l</b>
-<li><b>All</b> &ndash; equivalent to <b>target abcspfl</b>
-</ul>
+</li><li><b>surfaces</b> &ndash; equivalent to <b>target s</b>
+</li><li><b>pseudobonds</b> &ndash; equivalent to <b>target p</b>
+</li><li><b>rings</b> &ndash; equivalent to <b>target f</b>
+</li><li><b>labels</b> &ndash; equivalent to <b>target l</b>
+</li><li><b>All</b> &ndash; equivalent to <b>target abcspfl</b>
+</li></ul>
 These <i>what</i> keywords must be given in the right place in the command:
 <ul>
 <li>for <a href="#simple">simple</a> or <a href="#byattribute">attribute</a> 
 coloring, before any other optional arguments
-<li>for <a href="#modify">color modification</a>, at the end of the command
-</ul>
+</li><li>for <a href="#modify">color modification</a>, at the end of the command
+</li></ul>
 <p>
 <a name="halfbond"></a>
 By default, bonds are shown in <b><i>halfbond mode</i></b>,
@@ -310,34 +304,33 @@ Color map #4:
 The <b>color sequential</b> command (synonym <b>rainbow</b>)
 applies a <a href="#palette-options">series of colors</a>
 to atomic models at the specified <i>level</i>:
-<ul>
+</p><ul>
 <li><b>residues</b> (default)
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/rainbow.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/rainbow.png" alt="computer generated image"></a>
 &ndash; a different color for each residue in a biopolymer chain;
 other residues such as 
 <a href="atomspec.html#builtin"><b>ligand</b></a> are not affected
 <!-- 4hvp is example where ligand is also protein, but is not rainbowed -->
-<li><b>chains</b> &ndash; a different color for each biopolymer chain in an 
+</li><li><b>chains</b> &ndash; a different color for each biopolymer chain in an 
 atomic model; non-biopolymer residues are not affected
-<li><b>polymers</b> &ndash; a different color for each unique biopolymer chain 
+</li><li><b>polymers</b> &ndash; a different color for each unique biopolymer chain 
 (macromolecular entity) in an atomic model, based on sequence;
 non-biopolymer residues are not affected
 (see also <a href="#simple"><b>color bypolymer</b></a>)
-<li><b>structures</b> &ndash; a different color for each atomic model
-</ul>
+</li><li><b>structures</b> &ndash; a different color for each atomic model
+</li></ul>
 Sequential coloring can be restricted to certain representations 
 with the <a href="#target"><b>target</b></a> option.
 The <a href="#palette-options"><b>palette</b></a> option specifies
 what colors to use (default
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=blue width="10px" title="blue"></td>
-<td bgcolor=cyan width="10px" title="cyan"></td>
-<td bgcolor=lime width="10px" title="lime"></td>
-<td bgcolor=yellow width="10px" title="yellow"></td>
-<td bgcolor=red width="10px" title="red"></td>
-</tr></table>).
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="blue" width="10px" title="blue"></td>
+<td bgcolor="cyan" width="10px" title="cyan"></td>
+<td bgcolor="lime" width="10px" title="lime"></td>
+<td bgcolor="yellow" width="10px" title="yellow"></td>
+<td bgcolor="red" width="10px" title="red"></td>
+</tr></tbody></table>).
 If the scope of coloring is limited by giving an
 <a href="atomspec.html"><i>atom-spec</i></a> in the command,
 the full palette will be mapped to the specification only.
@@ -348,7 +341,7 @@ sets transparency to the specified <i>percent</i>,
 where 0% is completely opaque and 100% is completely transparent.
 Existing transparency is not changed unless this option is used or the
 <a href="#palette-options"><b>palette</b></a> is defined with transparency
-(any of its colors have alpha < 1); if both, the <b>transparency</b> 
+(any of its colors have alpha &lt; 1); if both, the <b>transparency</b> 
 option wins out.
 See also: <a href="transparency.html"><b>transparency</b></a>
 </p>
@@ -377,8 +370,7 @@ along the range cornflower blue &rarr; red &rarr; gold
 &nbsp;palette cornflowerblue:red:gold</b>
 </blockquote>
 Color the 10-mer in PDB entry 
-<a href="https://www.rcsb.org/pdb/explore/explore.do?structureId=1qmv"
-target="_blank">1qmv</a> using the 10-color version of the &ldquo;paired&rdquo;
+<a href="https://www.rcsb.org/pdb/explore/explore.do?structureId=1qmv" target="_blank">1qmv</a> using the 10-color version of the &ldquo;paired&rdquo;
 <a href="palettes.html#colorbrewer">ColorBrewer palette</a>:
 <blockquote>
 <b>open 1qmv; rainbow chain palette paired-10</b>
@@ -392,14 +384,14 @@ target="_blank">1qmv</a> using the 10-color version of the &ldquo;paired&rdquo;
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color modify</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
-&nbsp;<b>hue</b>&nbsp; [&nbsp;&plus;&nbsp;|&nbsp;&minus;&nbsp;]
+&nbsp;<b>hue</b>&nbsp; [&nbsp;+&nbsp;|&nbsp;&minus;&nbsp;]
 &nbsp;<i>angle</i>&nbsp;
 [&nbsp;<i>what</i>&nbsp;|&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color modify</b> &nbsp;<a href="atomspec.html"><i>spec</i></a>&nbsp;
 (&nbsp;<b>saturation</b>&nbsp;|&nbsp;<b>lightness</b>&nbsp;|&nbsp;<b>whiteness</b>&nbsp;|&nbsp;<b>blackness</b>&nbsp;|&nbsp;<b>red</b>&nbsp;|&nbsp;<b>green</b>&nbsp;|&nbsp;<b>blue</b>&nbsp;)
-[&nbsp;&plus;&nbsp;|&nbsp;&minus;&nbsp;|&nbsp;*&nbsp;]
+[&nbsp;+&nbsp;|&nbsp;&minus;&nbsp;|&nbsp;*&nbsp;]
 &nbsp;<i>percent</i>&nbsp;
 [&nbsp;<i>what</i>&nbsp;|&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 <br>
@@ -416,29 +408,25 @@ The color component to modify must be specified, with choices:
 </p>
 <ul>
 <li><b>hue</b> &ndash; hue <i>angle</i> (0-360&deg;) in the 
-<a href="https://en.wikipedia.org/wiki/HSL_and_HSV" 
-target="_blank">hue-saturation-lightness</a> (HSL; see
-<a href="https://www.w3schools.com/colors/colors_hsl.asp"
-target="_blank">interactive calculator</a>) and
-<a href="https://en.wikipedia.org/wiki/HWB_color_model"
-target="_blank">hue-whiteness-blackness</a> (HWB) color spaces
-<li><b>saturation</b> &ndash; saturation <i>percent</i> in the HSL color space
-<li><b>lightness</b> &ndash; lightness <i>percent</i> in the HSL color space
-<li><b>whiteness</b> &ndash; whiteness <i>percent</i> in the HWB color space
-<li><b>blackness</b> &ndash; blackness <i>percent</i> in the HWB color space
-<li><b>red</b> &ndash; red <i>percent</i> in the 
-<a href="https://en.wikipedia.org/wiki/RGB_color_space"
-target="_blank">red-green-blue</a> (RGB) color space
-<li><b>green</b> &ndash; green <i>percent</i> in the RGB color space
-<li><b>blue</b> &ndash; blue <i>percent</i> in the RGB color space
-<li><b>contrast</b> &ndash; contrast <i>percent</i> from a reference color 
+<a href="https://en.wikipedia.org/wiki/HSL_and_HSV" target="_blank">hue-saturation-lightness</a> (HSL; see
+<a href="https://www.w3schools.com/colors/colors_hsl.asp" target="_blank">interactive calculator</a>) and
+<a href="https://en.wikipedia.org/wiki/HWB_color_model" target="_blank">hue-whiteness-blackness</a> (HWB) color spaces
+</li><li><b>saturation</b> &ndash; saturation <i>percent</i> in the HSL color space
+</li><li><b>lightness</b> &ndash; lightness <i>percent</i> in the HSL color space
+</li><li><b>whiteness</b> &ndash; whiteness <i>percent</i> in the HWB color space
+</li><li><b>blackness</b> &ndash; blackness <i>percent</i> in the HWB color space
+</li><li><b>red</b> &ndash; red <i>percent</i> in the 
+<a href="https://en.wikipedia.org/wiki/RGB_color_space" target="_blank">red-green-blue</a> (RGB) color space
+</li><li><b>green</b> &ndash; green <i>percent</i> in the RGB color space
+</li><li><b>blue</b> &ndash; blue <i>percent</i> in the RGB color space
+</li><li><b>contrast</b> &ndash; contrast <i>percent</i> from a reference color 
 related to the current color (0) to a maximally contrasting color (100).
 The default is <b>100</b>, either white or black depending on the current color.
-</ul>
+</li></ul>
 <p>
 For <b>saturation</b>, <b>lightness</b>, <b>whiteness</b>,
 <b>blackness</b>, <b>red</b>, <b>green</b>, or <b>blue</b>,
-the <i>percent</i> can be added to (&plus;), 
+the <i>percent</i> can be added to (+), 
 subtracted from (&minus;), or multiplied by (*) the current value,
 or simply set as the current value if no operator symbol is given
 (or the space after the operator symbol is omitted;
@@ -448,8 +436,7 @@ For <b>hue</b>, the <i>angle</i> can be added to or subtracted from
 the current value, or simply set as the current value.
 </p><p>
 Example image and script:
-<a href="https://www.rbvi.ucsf.edu/chimerax/gallery.html#colormod"
-target="_blank">Potassium Channel-Calmodulin Complex</a> 
+<a href="https://www.rbvi.ucsf.edu/chimerax/gallery.html#colormod" target="_blank">Potassium Channel-Calmodulin Complex</a> 
 </p>
 
 <a name="byattribute"></a>
@@ -491,10 +478,8 @@ See also <a href="size.html#byattribute"><b>size byattribute</b></a>,
 <a href="cartoon.html#byattribute"><b>cartoon byattribute</b></a>
 (<a href="cartoon.html#worm"><b>worm</b></a>),
 the tutorial
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html"
-target="_blank">Coloring by Sequence Conservation</a> and the video
-<a href="https://youtu.be/XaTpB-UIxnU"
-target="_blank">Coloring Aligned Proteins by C&alpha; RMSD</a>.
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/conservation-coloring/conservation-coloring.html" target="_blank">Coloring by Sequence Conservation</a> and the video
+<a href="https://youtu.be/XaTpB-UIxnU" target="_blank">Coloring Aligned Proteins by C&alpha; RMSD</a>.
 <!-- 
 my detailed explanation in chimerax-users:
 https://mail.cgl.ucsf.edu/mailman/archives/list/chimerax-users@cgl.ucsf.edu/thread/MD5TJDW43VDKH5LPTUYL6OHAXOXQXLNO/
@@ -508,15 +493,14 @@ or (atomic) model,
 but this is only needed when the name exists at multiple levels. 
 The color-to-value mapping is specified
 with <a href="#palette-options">palette options</a>
-(default <table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=blue width="10px" title="blue"></td>
-<td bgcolor=white width="10px" title="white"></td>
-<td bgcolor=red width="10px" title="red"></td>
-</tr></table> over the full range).
+(default <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="blue" width="10px" title="blue"></td>
+<td bgcolor="white" width="10px" title="white"></td>
+<td bgcolor="red" width="10px" title="red"></td>
+</tr></tbody></table> over the full range).
 </p><p>
 <a name="transparency-bfactor"></a>
-Transparency (alpha < 1) can be inherent in the colors of the
+Transparency (alpha &lt; 1) can be inherent in the colors of the
 <a href="#palette">palette</a>, or the separate
 <b>transparency</b> option can be used to specify it as a <i>percent</i>,
 where 0% is completely opaque and 100% is completely transparent.
@@ -544,7 +528,7 @@ they should be colored by the average per residue.
 </p><p>
 The command <b>color bfactor</b>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/bfactor.png"></a>&nbsp;
+<img class="icon" border="1" src="../tools/shortcut-icons/bfactor.png" alt="computer generated image"></a>&nbsp;
 is shorthand for <b>color byattribute bfactor</b>.
 For example, to color chain A atoms by B-factor 
 and cartoons by the average B-factor per residue, 
@@ -569,7 +553,7 @@ the specification excludes them, or they have been deleted beforehand.
 For example, to rainbow-color chain A atoms <i>etc.</i> 
 by the average B-factor per residue, spreading the coloring across 
 the full range of values from protein only:
-<blockquote>
+</p><blockquote>
 <b>color bfactor (/A & protein) palette rainbow ave residue</b>
 </blockquote>
 <!--
@@ -608,7 +592,7 @@ to make the cap match the nearby atoms.
 [&nbsp;<a href="#palette"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
 [&nbsp;<b>range</b>&nbsp;&nbsp;<i>low</i>,<i>high</i>&nbsp;|&nbsp;full&nbsp;]
 [&nbsp;<a href="#transparency-bfactor"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
-[&nbsp;<b>outsideColor</b>&nbsp&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>outsideColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 </blockquote>
 <p>
 The <b>sample</b>, <b>electrostatic</b>, and <b>gradient</b> coloring options
@@ -622,18 +606,16 @@ The color-to-value mapping is specified
 with <a href="#palette-options">palette options</a>,
 where the <a href="#palette"><b>palette</b></a> 
 default is <b>red-white-blue</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=red width="10px" title="red"></td>
-<td bgcolor=white width="10px" title="white"></td>
-<td bgcolor=blue width="10px" title="blue"></td>
-</tr></table> and the <a href="#range"><b>range</b></a> default depends on the 
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="red" width="10px" title="red"></td>
+<td bgcolor="white" width="10px" title="white"></td>
+<td bgcolor="blue" width="10px" title="blue"></td>
+</tr></tbody></table> and the <a href="#range"><b>range</b></a> default depends on the 
 specific type of map coloring, explained below;
 the <b>outsideColor</b> is used for surface vertices 
 that fall outside the volume data grid box
-(default <b>#808080</b> <table border cellpadding="4" cellspacing="0"
-style="display:inline-block"><tr>
-<td bgcolor="#808080" width="10px" title="#808080"></td></tr></table>).
+(default <b>#808080</b> <table border cellpadding="4" cellspacing="0" style="display:inline-block"><tbody><tr>
+<td bgcolor="#808080" width="10px" title="#808080"></td></tr></tbody></table>).
 </p><p>
 When the coloring command is run interactively (in gui mode and not via a
 <a href="usageconventions.html#cxc-files">script</a>),
@@ -647,19 +629,17 @@ For coloring by segmentation region,
 see <a href="segmentation.html"><b>segmentation</b></a>.
 The <a href="coulombic.html"><b>coulombic</b></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/esp.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/esp.png" alt="computer generated image"></a>
 command colors molecular surfaces
 by Coulombic electrostatic potential without requiring an input map.
 See also: 
 <a href="mlp.html"><b>mlp</b></a>
-<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img 
-class="icon" border=1 src="../tools/shortcut-icons/hydrophobicity.png"></a>,
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img class="icon" border="1" src="../tools/shortcut-icons/hydrophobicity.png" alt="computer generated image"></a>,
 <a href="surface.html#cap"><b>surface cap</b></a>,
 <a href="clip.html#model">per-model clipping</a>,
 the <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
 tutorial</a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
-target="_blank">ChimeraX videos</a>:
+<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/" target="_blank">ChimeraX videos</a>:
 <a href="https://youtu.be/FEIJ0lmybXo" target="_blank">coloring by 
 electrostatic potential</a>,
 <a href="https://youtu.be/2EDZQs7lGNs" target="_blank">coloring a map by local
@@ -680,7 +660,7 @@ The <a href="#range"><b>range</b></a>
 specifies what data values the palette colors should span
 (default <b>full</b>, the full range of values found at the surface).
 <br><br>
-<li><b>color electrostatic</b> is the same as <b>color sample</b> except
+</li><li><b>color electrostatic</b> is the same as <b>color sample</b> except
 with default <b>offset</b> <b>1.4</b> &Aring; 
 and default <a href="#range"><b>range</b></a> <b>-10,10</b>.
 An offset of 1.4 &Aring; is typically used for coloring a 
@@ -699,7 +679,7 @@ of a <a href="clip.html">clipped</a> surface,
 and a zero or negative offset for coloring the surface of one structure
 by the potential from another.**
 <br><br>
-<li><b>color gradient</b> colors by map gradient norm with 
+</li><li><b>color gradient</b> colors by map gradient norm with 
 default <b>offset</b> <b>0.0</b> &Aring; and default 
 <a href="#range"><b>range</b></a> <b>full</b>.
 The gradient at each volume grid point is
@@ -712,7 +692,7 @@ The norm of the interpolated gradient (the length of the gradient vector)
 is used for assigning colors.
 The <b>map</b> specification can be omitted when it is the same
 model as the surface being colored.
-</ul>
+</li></ul>
 <!--
 <h4><a href="#map" class="nounder">&larr;</a> Examples</h4>
 -->
@@ -770,12 +750,11 @@ It is also implemented in the
 <a href="../tools/surfacecolor.html"><b>Surface Color</b></a> tool.
 The color-to-distance mapping is specified
 with <a href="#palette-options">palette options</a>
-(default <table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=red width="10px" title="red"></td>
-<td bgcolor=white width="10px" title="white"></td>
-<td bgcolor=blue width="10px" title="blue"></td>
-</tr></table> across the full range).
+(default <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="red" width="10px" title="red"></td>
+<td bgcolor="white" width="10px" title="white"></td>
+<td bgcolor="blue" width="10px" title="blue"></td>
+</tr></tbody></table> across the full range).
 </p><p>
 When the coloring command is run interactively (in gui mode and not via a
 <a href="usageconventions.html#cxc-files">script</a>),
@@ -790,23 +769,23 @@ when the shape of the surface changes.
 <li><b>color radial</b> colors by distance from a 
 <a href="pointspec.html#point">point</a> given with the <b>center</b> option
 (default <b>0,0,0</b>).
-<li><b>color cylindrical</b> colors by distance from an axis.
+</li><li><b>color cylindrical</b> colors by distance from an axis.
 The axis is defined by a <a href="pointspec.html#point">point</a> 
 on the axis (given with <b>center</b>) 
 and its direction (a <a href="pointspec.html#vector">vector</a> 
 given with <b>axis</b>, default <b>z</b>).
-<li><b>color height</b> colors by topographic height, or distance from a plane.
+</li><li><b>color height</b> colors by topographic height, or distance from a plane.
 The plane is defined by a <a href="pointspec.html#point">point</a>
 on the plane (given with <b>center</b>)
 and a <a href="pointspec.html#vector">vector</a> 
 normal to the plane (given with <b>axis</b>).
-</ul>
+</li></ul>
 The <b>coordinateSystem</b> for interpreting <b>center</b> and <b>axis</b>
 coordinates can be specified by reference model number. 
 The default coordinate system is that of the model being colored, generally
 the same as the <a href="view.html#scenecoords">scene coordinate system</a> 
 unless the model has been moved separately.
-</p>
+<p></p>
 
 <a name="zone"></a>
 <p class="nav">
@@ -819,7 +798,7 @@ unless the model has been moved separately.
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
 <b>near</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>distance</b>&nbsp;&nbsp;<i>cutoff</i>&nbsp;]
-[&nbsp;<b>sharpEdges</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>sharpEdges</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>farColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;keep&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
@@ -830,7 +809,7 @@ Coloring by <b>zone</b> to match nearby atoms or
 The <b>distance</b> <i>cutoff</i> is specified in physical units,
 typically &Aring; (default <b>2.0</b>).
 The corresponding <a href="../tools/densitymaps.html"><b>Map</b></a> icon
-<img class="icon" border=1 src="../tools/shortcut-icons/colorzone.png">
+<img class="icon" border="1" src="../tools/shortcut-icons/colorzone.png" alt="computer generated image">
 uses a <b>distance</b> value six times the grid spacing of the map.
 The graphical implementation,
 <a href="../tools/colorzone.html"><b>Color Zone</b></a>,
@@ -863,8 +842,7 @@ A map that has been colored by zone can be split accordingly with
 For coloring by segmentation region, 
 see <a href="segmentation.html"><b>segmentation</b></a>.
 See also: 
-<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
-target="_blank">ChimeraX video</a>:
+<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/" target="_blank">ChimeraX video</a>:
 <a href="https://youtu.be/zU3Xb6LRFco" target="_blank">coloring each protein
 in an EM map</a>
 </p>
@@ -899,14 +877,13 @@ The surface model is returned to its single-color setting.
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color</b> &nbsp;<b>image</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-spec</i></a>&nbsp;
-[&nbsp;<b>file</b>&nbsp;&nbsp;none&nbsp;|&nbsp;<i>input-image-file</i></a>&nbsp;[&nbsp;<b>modulate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]]
-[&nbsp;<b>coords</b></a>&nbsp;&nbsp;pole&nbsp;|&nbsp;south&nbsp;|&nbsp;sphere&nbsp;|&nbsp;vertexcolors&nbsp;]
+[&nbsp;<b>file</b>&nbsp;&nbsp;none&nbsp;|&nbsp;<i>input-image-file</i>&nbsp;[&nbsp;<b>modulate</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]]
+[&nbsp;<b>coords</b>&nbsp;&nbsp;pole&nbsp;|&nbsp;south&nbsp;|&nbsp;sphere&nbsp;|&nbsp;vertexcolors&nbsp;]
 [&nbsp;<b>writeColors</b>&nbsp;&nbsp;<i>output-image-file</i>&nbsp;]
 </blockquote>
 <p>
 Coloring by <b>image</b> applies to surfaces only. In this technique, 
-also known as <a href="https://en.wikipedia.org/wiki/Texture_mapping" 
-target="_blank">texture mapping</a>, surface vertices are associated with
+also known as <a href="https://en.wikipedia.org/wiki/Texture_mapping" target="_blank">texture mapping</a>, surface vertices are associated with
 U,V coordinates that map to the X,Y coordinates in an image.
 The <b>file</b> option specifies an image from a file to paste 
 onto the surface (<a href="save.html#imgformats">image format</a> 
@@ -930,12 +907,12 @@ to surface vertices:
 <li><b>pole</b>
 &ndash; surface north pole at the middle of the image (U,V = 0.5,0.5)
 and the south pole on a circle touching the image edges
-<li><b>south</b>
+</li><li><b>south</b>
 &ndash; as above, except reversing north and south
-<li><b>sphere</b>
+</li><li><b>sphere</b>
 &ndash; UV coordinates are the latitude and longitude of a vertex
 on a sphere centered at 0,0,0 in the surface model coordinate system
-<li><b>vertexcolors</b>
+</li><li><b>vertexcolors</b>
 &ndash; UV coordinates are determined from the existing vertex colors,
 a unique U,V pair for each color; this would be used without specifying 
 an input image.
@@ -945,7 +922,7 @@ indicated by the filename suffix).
 This allows saving texture coloring for import into other programs
 that do not use vertex colors directly, and is most useful for 
 surfaces with a handful of distinct colors rather than many color gradations.
-</ul>
+</li></ul>
 <p>
 If the <b>coords</b> option is not used, UV coordinates are not assigned 
 (for example, to allow using Python to assign them in some other way).
@@ -967,11 +944,12 @@ See also:
 <a href="mlp.html"><b>mlp</b></a>,
 <a href="alphafold.html#contacts"><b>alphafold contacts</b></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>
-<blockquote>
-<a name="palette"></a><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>
+</p><blockquote>
+<a name="palette"></a><b>palette</b>&nbsp;&nbsp;<i>palette</i>
 <br>
 The <i>palette</i> can be specified as one of the following
-(or as <b>^</b><i>palette</i> to reverse the order of the colors):
+(or as <b>^</b><i>palette</i> to reverse the order of the colors)
+to apply across the <a href="#range">range</a> of values:
 <ul>
 <li><i>palette-name</i> &ndash; the name of an existing 
 <a href="palettes.html">palette</a>;
@@ -982,201 +960,156 @@ Predefined palettes include the following, with
 colors shown in ascending value order:
   <ul>
   <li><b>rainbow</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=blue width="30px" title="blue"></td>
-<td bgcolor=cyan width="30px" title="cyan"></td>
-<td bgcolor=lime width="30px" title="lime"></td>
-<td bgcolor=yellow width="30px" title="yellow"></td>
-<td bgcolor=red width="30px" title="red"></td>
-</tr></table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="blue" width="30px" title="blue"></td>
+<td bgcolor="cyan" width="30px" title="cyan"></td>
+<td bgcolor="lime" width="30px" title="lime"></td>
+<td bgcolor="yellow" width="30px" title="yellow"></td>
+<td bgcolor="red" width="30px" title="red"></td>
+</tr></tbody></table>
 (default for <a href="#sequential">sequential coloring</a>)
-  <li><b>red-white-blue</b> or <b>redblue</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=red width="30px" title="red"></td>
-<td bgcolor=white width="30px" title="white"></td>
-<td bgcolor=blue width="30px" title="blue"></td>
-</tr></table>
+  </li><li><b>red-white-blue</b> or <b>redblue</b>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="red" width="30px" title="red"></td>
+<td bgcolor="white" width="30px" title="white"></td>
+<td bgcolor="blue" width="30px" title="blue"></td>
+</tr></tbody></table>
 (default for <a href="#map">coloring by map value</a>
 or <a href="#distance">coloring by distance</a>)
-  <li><b>blue-white-red</b> or <b>bluered</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=blue width="30px" title="blue"></td>
-<td bgcolor=white width="30px" title="white"></td>
-<td bgcolor=red width="30px" title="red"></td>
-</tr></table>
+  </li><li><b>blue-white-red</b> or <b>bluered</b>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="blue" width="30px" title="blue"></td>
+<td bgcolor="white" width="30px" title="white"></td>
+<td bgcolor="red" width="30px" title="red"></td>
+</tr></tbody></table>
 (default for <a href="#byattribute">coloring by attribute</a>)
-  <li><b>cyan-white-maroon</b> or <b>cyanmaroon</b> 
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=#0f1bc7adcf5b width="30px" title="#0f1bc7adcf5b"></td>
-<td bgcolor=white width="30px" title="white"></td>
-<td bgcolor=#9eb820005eb8 width="30px" title="#9eb820005eb8"></td>
-</tr></table>
-  <li><b>cyan-gray-maroon</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=#0f1bc7adcf5b width="30px" title="#0f1bc7adcf5b"></td>
-<td bgcolor=#b333b333b333 width="30px" title="#b333b333b333"></td>
-<td bgcolor=#9eb820005eb8 width="30px" title="#9eb820005eb8"></td>
-</tr></table>
+  </li><li><b>cyan-white-maroon</b> or <b>cyanmaroon</b> 
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="#0f1bc7adcf5b" width="30px" title="#0f1bc7adcf5b"></td>
+<td bgcolor="white" width="30px" title="white"></td>
+<td bgcolor="#9eb820005eb8" width="30px" title="#9eb820005eb8"></td>
+</tr></tbody></table>
+  </li><li><b>cyan-gray-maroon</b>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="#0f1bc7adcf5b" width="30px" title="#0f1bc7adcf5b"></td>
+<td bgcolor="#b333b333b333" width="30px" title="#b333b333b333"></td>
+<td bgcolor="#9eb820005eb8" width="30px" title="#9eb820005eb8"></td>
+</tr></tbody></table>
   (default for <a href="measure.html#convexity"><b>measure convexity</b></a>,
   along with <a href="#range"><b>range</b></a> -1,1)
-  <li><b>grayscale</b> or <b>gray</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=black width="30px" title="black"></td>
-<td bgcolor=white width="30px" title="white"></td>
-</tr></table>
-  <li><b>lipophilicity</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=darkcyan width="30px" title="darkcyan"></td>
-<td bgcolor=white width="30px" title="white"></td>
-<td bgcolor=darkgoldenrod width="30px" title="darkgoldenrod"></td>
-</tr></table>
+  </li><li><b>grayscale</b> or <b>gray</b>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="black" width="30px" title="black"></td>
+<td bgcolor="white" width="30px" title="white"></td>
+</tr></tbody></table>
+  </li><li><b>lipophilicity</b>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="darkcyan" width="30px" title="darkcyan"></td>
+<td bgcolor="white" width="30px" title="white"></td>
+<td bgcolor="darkgoldenrod" width="30px" title="darkgoldenrod"></td>
+</tr></tbody></table>
   (default for the <a href="mlp.html"><b>mlp</b></a> command,
   along with <a href="#range"><b>range</b></a> -20,20)
-<li><b>alphafold</b>
-<table border cellpadding="0" cellspacing="0"
-style="display:inline-block; vertical-align:top"><tr>
-<td bgcolor=red width="30px" title="red"
-align="center"><font size="-1" color="white">0</font></td>
-<td bgcolor=orange width="30px" title="orange"
-align="center"><font size="-1">50</font></td>
-<td bgcolor=yellow width="30px" title="yellow"
-align="center"><font size="-1" color="black">70</font></td>
-<td bgcolor=cornflowerblue width="30px" title="cornflowerblue"
-align="center"><font size="-1" color="white">90</font></td>
-<td bgcolor=blue width="30px" title="blue"
-align="center"><font size="-1" color="white">100</font></td>
-</tr></table>
+</li><li><b>alphafold</b>
+<table border cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
+<td bgcolor="red" width="30px" title="red" align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="orange" width="30px" title="orange" align="center"><font size="-1">50</font></td>
+<td bgcolor="yellow" width="30px" title="yellow" align="center"><font size="-1" color="black">70</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue" align="center"><font size="-1" color="white">90</font></td>
+<td bgcolor="blue" width="30px" title="blue" align="center"><font size="-1" color="white">100</font></td>
+</tr></tbody></table>
 (used to show the
 <a href="https://alphafold.ebi.ac.uk/faq#faq-12" target="_blank">pLDDT
 confidence measure</a> in the B-factor field of
 <a href="../tools/alphafold.html">AlphaFold predictions</a>)
-<li><b>esmfold</b>
-<table border cellpadding="0" cellspacing="0"
-style="display:inline-block; vertical-align:top"><tr>
-<td bgcolor=red width="30px" title="red"
-align="center"><font size="-1" color="white">0.0</font></td>
-<td bgcolor=orange width="30px" title="orange"
-align="center"><font size="-1">0.5</font></td>
-<td bgcolor=yellow width="30px" title="yellow"
-align="center"><font size="-1" color="black">0.7</font></td>
-<td bgcolor=cornflowerblue width="30px" title="cornflowerblue"
-align="center"><font size="-1" color="white">0.9</font></td>
-<td bgcolor=blue width="30px" title="blue"
-align="center"><font size="-1" color="white">1.0</font></td>
-</tr></table>
+</li><li><b>esmfold</b>
+<table border cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
+<td bgcolor="red" width="30px" title="red" align="center"><font size="-1" color="white">0.0</font></td>
+<td bgcolor="orange" width="30px" title="orange" align="center"><font size="-1">0.5</font></td>
+<td bgcolor="yellow" width="30px" title="yellow" align="center"><font size="-1" color="black">0.7</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue" align="center"><font size="-1" color="white">0.9</font></td>
+<td bgcolor="blue" width="30px" title="blue" align="center"><font size="-1" color="white">1.0</font></td>
+</tr></tbody></table>
 (used to show the
 <a href="https://alphafold.ebi.ac.uk/faq#faq-12" target="_blank">pLDDT
 confidence measure</a> in the B-factor field of
 <a href="esmfold.html">ESMFold predictions</a>)
-<li><b>pae</b>
-<table border cellpadding="0" cellspacing="0"
-style="display:inline-block; vertical-align:top"><tr>
-<td bgcolor="blue" width="30px" title="blue"
-align="center"><font size="-1" color="white">0</font></td>
-<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue"
-align="center"><font size="-1" color="white">5</font></td>
-<td bgcolor="yellow" width="30px" title="yellow"
-align="center"><font size="-1" color="black">10</font></td>
-<td bgcolor="orange" width="30px" title="orange"
-align="center"><font size="-1">15</font></td>
-<td bgcolor="gray" width="30px" title="gray"
-align="center"><font size="-1" color="white">20</font></td>
-<td bgcolor="lightgray" width="30px" title="lightgray"
-align="center"><font size="-1" color="black">25</font></td>
-<td bgcolor="white" width="30px" title="white"
-align="center"><font size="-1" color="black">30</font></td>
-</tr></table>
+</li><li><b>pae</b>
+<table border cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
+<td bgcolor="blue" width="30px" title="blue" align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue" align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="yellow" width="30px" title="yellow" align="center"><font size="-1" color="black">10</font></td>
+<td bgcolor="orange" width="30px" title="orange" align="center"><font size="-1">15</font></td>
+<td bgcolor="gray" width="30px" title="gray" align="center"><font size="-1" color="white">20</font></td>
+<td bgcolor="lightgray" width="30px" title="lightgray" align="center"><font size="-1" color="black">25</font></td>
+<td bgcolor="white" width="30px" title="white" align="center"><font size="-1" color="black">30</font></td>
+</tr></tbody></table>
 (the default for plotting PAE
 <a href="alphafold.html#pae">from AlphaFold</a>
 or <a href="esmfold.html#pae">from ESMFold</a>)
-<li><b>paegreen</b>
-<table border cellpadding="0" cellspacing="0"
-style="display:inline-block; vertical-align:top"><tr>
-<td bgcolor="#1e3546661e35" width="30px" title="#1e3546661e35"
-align="center"><font size="-1" color="white">0</font></td>
-<td bgcolor="#245a922c245a" width="30px" title="#245a922c245a"
-align="center"><font size="-1" color="white">5</font></td>
-<td bgcolor="#374cb168374c" width="30px" title="#374cb168374c"
-align="center"><font size="-1" color="white">10</font></td>
-<td bgcolor="#5687c9ba5687" width="30px" title="#5687c9ba5687"
-align="center"><font size="-1">15</font></td>
-<td bgcolor="#828fddf3828f" width="30px" title="#828fddf3828f"
-align="center"><font size="-1" color="black">20</font></td>
-<td bgcolor="#bae1efdebae1" width="30px" title="#bae1efdebae1"
-align="center"><font size="-1" color="black">25</font></td>
-<td bgcolor=white width="30px" title="white"
-align="center"><font size="-1" color="black">30</font></td>
-</tr></table>
-<li><b>paecontacts</b>
-<table border cellpadding="0" cellspacing="0"
-style="display:inline-block; vertical-align:top"><tr>
-<td bgcolor="blue" width="30px" title="blue"
-align="center"><font size="-1" color="white">0</font></td>
-<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue"
-align="center"><font size="-1" color="white">5</font></td>
-<td bgcolor="yellow" width="30px" title="yellow"
-align="center"><font size="-1" color="black">10</font></td>
-<td bgcolor="orange" width="30px" title="orange"
-align="center"><font size="-1">15</font></td>
-<td bgcolor="red" width="30px" title="red"
-align="center"><font size="-1">20</font></td>
-</tr></table>
+</li><li><b>paegreen</b>
+<table border cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
+<td bgcolor="#1e3546661e35" width="30px" title="#1e3546661e35" align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="#245a922c245a" width="30px" title="#245a922c245a" align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="#374cb168374c" width="30px" title="#374cb168374c" align="center"><font size="-1" color="white">10</font></td>
+<td bgcolor="#5687c9ba5687" width="30px" title="#5687c9ba5687" align="center"><font size="-1">15</font></td>
+<td bgcolor="#828fddf3828f" width="30px" title="#828fddf3828f" align="center"><font size="-1" color="black">20</font></td>
+<td bgcolor="#bae1efdebae1" width="30px" title="#bae1efdebae1" align="center"><font size="-1" color="black">25</font></td>
+<td bgcolor="white" width="30px" title="white" align="center"><font size="-1" color="black">30</font></td>
+</tr></tbody></table>
+</li><li><b>paecontacts</b>
+<table border cellpadding="0" cellspacing="0" style="display:inline-block; vertical-align:top"><tbody><tr>
+<td bgcolor="blue" width="30px" title="blue" align="center"><font size="-1" color="white">0</font></td>
+<td bgcolor="cornflowerblue" width="30px" title="cornflowerblue" align="center"><font size="-1" color="white">5</font></td>
+<td bgcolor="yellow" width="30px" title="yellow" align="center"><font size="-1" color="black">10</font></td>
+<td bgcolor="orange" width="30px" title="orange" align="center"><font size="-1">15</font></td>
+<td bgcolor="red" width="30px" title="red" align="center"><font size="-1">20</font></td>
+</tr></tbody></table>
 (the default for 
 <a href="alphafold.html#contacts"><b>alphafold contacts</b></a>)
-  <li><a href="palettes.html#colorbrewer">ColorBrewer palettes</a> &ndash;
+  </li><li><a href="palettes.html#colorbrewer">ColorBrewer palettes</a> &ndash;
 a default number of colors will be used if the number is omitted from the name.
 Examples:
 <blockquote>
 <b>palette pastel2-4</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td style="background:#b3e2cd" width="30px" title="#b3e2cd"></td>
 <td style="background:#fdcdac" width="30px" title="#fdcdac"></td>
 <td style="background:#cbd5e8" width="30px" title="#cbd5e8"></td>
 <td style="background:#f4cae4" width="30px" title="#f4cae4"></td>
-</tr></table>
+</tr></tbody></table>
 <br><b>palette paired-6</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td style="background:#a6cee3" width="30px" title="#a6cee3"></td>
 <td style="background:#1f78b4" width="30px" title="#1f78b4"></td>
 <td style="background:#b2df8a" width="30px" title="#b2df8a"></td>
 <td style="background:#33a02c" width="30px" title="#33a02c"></td>
 <td style="background:#fb9a99" width="30px" title="#fb9a99"></td>
 <td style="background:#e31a1c" width="30px" title="#e31a1c"></td>
-</tr></table>
+</tr></tbody></table>
 <br><b>palette piyg</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td style="background:#d01c8b" width="30px" title="#d01c8b"></td>
 <td style="background:#f1b6da" width="30px" title="#f1b6da"></td>
 <td style="background:#f7f7f7" width="30px" title="#f7f7f7"></td>
 <td style="background:#b8e186" width="30px" title="#b8e186"></td>
 <td style="background:#4dac26" width="30px" title="#4dac26"></td>
-</tr></table>
+</tr></tbody></table>
 <br><b>palette ^piyg</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td style="background:#4dac26" width="30px" title="#4dac26"></td>
 <td style="background:#b8e186" width="30px" title="#b8e186"></td>
 <td style="background:#f7f7f7" width="30px" title="#f7f7f7"></td>
 <td style="background:#f1b6da" width="30px" title="#f1b6da"></td>
 <td style="background:#d01c8b" width="30px" title="#d01c8b"></td>
-</tr></table>
+</tr></tbody></table>
 </blockquote>
 Users should cite:
 www.ColorBrewer.org, color specifications and designs by Cynthia A. Brewer,
 Pennsylvania State University.
-  </ul>
+  </li></ul>
 <br>
-<li> <i>color1</i>:<i>color2</i>:<i>color3</i>...
+</li><li> <i>color1</i>:<i>color2</i>:<i>color3</i>...
 a series of <a href="colornames.html">color specifications</a> 
 separated by colons,
 collectively enclosed in quotation marks if it contains any spaces
@@ -1186,7 +1119,7 @@ The colors are placed evenly along the range,
 with the first and last colors at the extremes.
 Colors for intermediate values are interpolated.
 <br><br>
-<li> <i>value1,color1</i>:<i>value2,color2</i>:<i>value3,color3</i>...
+</li><li> <i>value1,color1</i>:<i>value2,color2</i>:<i>value3,color3</i>...
 a series of <i>value,<a href="colornames.html">color</a></i> pairs 
 separated by colons,
 collectively enclosed in quotation marks if it contains any spaces
@@ -1207,7 +1140,7 @@ for the upper- and lower-bound values of a &ldquo;bin.&rdquo;
 Reversing the colors in this type of palette specification with <b>^</b> 
 is not recommended, as it would disrupt the specified color-value pairing.
 <br><br>
-<li> <i>colourlovers-id</i> 
+</li><li> <i>colourlovers-id</i> 
 &ndash; the ID number, name, or name+author of a palette to be fetched from 
 <a href="https://www.colourlovers.com/" target="_blank">COLOURlovers.com</a>. 
 Examples:
@@ -1231,7 +1164,7 @@ In ChimeraX, the palette colors are used in left-to-right order,
 spaced equally along the range of values.
 Web-fetched palettes are cached locally as
 <a href="open.html#fetch">described for <b>open</b></a>.
-</ul>
+</li></ul>
 </blockquote>
 <blockquote>
 <a name="range"></a>
@@ -1242,8 +1175,16 @@ what values should map to the extremes of the palette (default <b>full</b>,
 the minimum and maximum values for the items to be colored). 
 Alternatively, <i>low</i> and <i>high</i> values separated by a comma only
 can be supplied.
+Values beyond the range will be colored to match the nearest end
+of the range. Giving the range in <i>high</i>,<i>low</i> order is the
+same as reversing the <a href="#palette">palette</a>.
 When multiple models are colored in a single command,
 the <b>full</b> range is determined separately for each model.
+Specifying a range overrides the values in a palette defined as value,color 
+pairs (for example, the <a href="#palette">palettes</a>
+named <b>alphafold</b> and <b>esmfold</b>)
+Instead, the the colors in the palette will be spread over the specified range, 
+retaining the same proportional spacing as in the original palette.
 </blockquote>
 
 <hr>
@@ -1303,10 +1244,10 @@ color swatches in the <a href="../tools/log.html"><b>Log</b></a>, with options:
 </p>
 <ul>
 <li><b>all</b> (default)
-<li><b>builtin</b> &ndash; just the 
+</li><li><b>builtin</b> &ndash; just the 
 <a href="colornames.html#builtin">built-in colors</a>
-<li><b>custom</b> &ndash; just the user-defined colors
-</ul>
+</li><li><b>custom</b> &ndash; just the user-defined colors
+</li></ul>
 <p>
 The command &ldquo;<b>color show</b> <i>cname</i>&rdquo;
 reports in the <a href="../tools/log.html"><b>Log</b></a>
@@ -1317,5 +1258,6 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2025</address>
+October 2025</address>
+
 </body></html>

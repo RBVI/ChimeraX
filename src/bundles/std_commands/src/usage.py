@@ -46,10 +46,19 @@ def usage(session, command_name=None, option=None):
             verb = cli.plural_form(cmds, 'is', 'are')
             info("The following %s %s available: %s" % (noun, verb, text))
         return
-    elif command_name == 'all':
-        info("Syntax for all commands:")
+    elif command_name in ('all', 'aliases'):
+        aliases = command_name == 'aliases'
         usage = []
-        cmds = cli.registered_commands(multiword=True)
+        if aliases:
+            cmds = cli.list_aliases()
+        else:
+            cmds = cli.registered_commands(multiword=True)
+        if not aliases:
+            info("Syntax for all commands:")
+        elif not cmds:
+            info("No custom aliases.")
+        else:
+            info("Syntax for custom aliases:")
         if not session.ui.is_gui:
             for name in cmds:
                 try:

@@ -31,14 +31,47 @@ class _BoltzBundle(BundleAPI):
         if tool_name == 'Boltz':
             from . import boltz_gui
             return boltz_gui.show_boltz_panel(session)
+        elif tool_name == 'Boltz History':
+            from . import history
+            return history.show_predictions_panel(session)
 
     @staticmethod
     def register_command(command_name, logger):
-        if command_name == 'boltz predict':
+        if command_name in ('boltz predict', 'boltz ligandtable'):
             from . import predict
             predict.register_boltz_predict_command(logger)
         elif command_name == 'boltz install':
             from . import install
             install.register_boltz_install_command(logger)
+        elif command_name.startswith('boltz server'):
+            from . import server
+            server.register_boltz_server_command(logger)
+
+    @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        if mgr == session.open_command:
+            from chimerax.open_command import OpenerInfo
+            if name == 'Boltz ligands':
+                class BoltzLigandsInfo(OpenerInfo):
+                    def open(self, session, path, file_name, **kw):
+                        if session.ui.is_gui:
+                            from . import boltz_gui
+                            blt = boltz_gui.open_boltz_ligands_file(session, path, align_to = kw.get('align_to'))
+                            msg = f'Read {blt.ligand_count()} ligands'
+                        else:
+                            msg = 'Cannot show ligands table in no-GUI mode.'
+                        return [], msg
+                    @property
+                    def open_args(self):
+                        from chimerax.atomic import AtomicStructureArg
+                        return { 'align_to': AtomicStructureArg, }
+                return BoltzLigandsInfo()
+
+    # Make class name to class for session restore
+    @staticmethod
+    def get_class(class_name):
+        if class_name == 'BoltzHistoryPanel':
+            from .history import BoltzHistoryPanel
+            return BoltzHistoryPanel
 
 bundle_api = _BoltzBundle()

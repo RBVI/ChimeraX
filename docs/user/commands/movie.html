@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: movie</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: movie</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -42,34 +37,34 @@ See also: <a href="wait.html"><b>wait</b></a>,
 <a href="../movies.html">making movies</a>,
 <a href="../vr.html">virtual reality</a>,
 <a href="../tools/toolbar.html#home" title="Toolbar Home">
-<img class="icon" border=1 src="../tools/shortcut-icons/video.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/video.png" alt="computer generated image"></a>
 </p><p>
 One of the following <i>action</i> keywords must be given:
 </p>
 <ul>
 <li><a href="#record"><b>record</b></a>
 &ndash; start recording frames
-<li><a href="#encode"><b>encode</b></a>
+</li><li><a href="#encode"><b>encode</b></a>
 &ndash; stop any ongoing recording and
 encode the saved image frames into a movie file
-<li><b>stop</b> 
+</li><li><b>stop</b> 
 &ndash; stop recording frames
-<li><a href="#reset"><b>reset</b></a>
+</li><li><a href="#reset"><b>reset</b></a>
 &ndash; reset status to zero frames saved
-<li><b>abort</b>
+</li><li><b>abort</b>
 &ndash; halt any encoding in progress and perform a <b>reset</b>
-<li><a href="#crossfade"><b>crossfade</b></a>
+</li><li><a href="#crossfade"><b>crossfade</b></a>
 &ndash; interpolate from the preceding frame to the following frame
-<li><a href="#duplicate"><b>duplicate</b></a>
+</li><li><a href="#duplicate"><b>duplicate</b></a>
 &ndash; expand the preceding frame into multiple frames
-<li><a href="#ignore"><b>ignore</b></a>
+</li><li><a href="#ignore"><b>ignore</b></a>
 &ndash; start/stop ignoring subsequent <b>movie</b> commands
-<li><b>formats</b>
+</li><li><b>formats</b>
 &ndash; list the available movie file formats
-<li><b>status</b>
+</li><li><b>status</b>
 &ndash; report status (number of saved frames, <i>etc.</i>)
 in the <a href="../tools/log.html"><b>Log</b></a>
-</ul>
+</li></ul>
 <p>
 <a name="options"></a>
 Actions may have specific options and arguments, described below.
@@ -187,7 +182,7 @@ Alternatively, the format can be specified by <a href="#output">output</a>
 filename suffix.  The available formats can be listed with the command
 <a href="#top"><b>movie formats</b></a>.
 <br>
-<table border cellpadding="4" cellspacing="0"><tr>
+<table border cellpadding="4" cellspacing="0"><tbody><tr>
 <td align="center"><b>format keyword, <br>synonyms</b></td>
 <td align="center"><b>format</b></td>
 <td align="center"><b><a name="suffix">filename suffix</a></b></td>
@@ -213,7 +208,7 @@ filename suffix.  The available formats can be listed with the command
 </tr><tr>
 <td align="center">apng</td><td align="center">APNG</td>
 <td align="center">.png</td>
-</tr></table>
+</tr></tbody></table>
 </blockquote>
 <blockquote>
 <a name="quality"></a>
@@ -231,7 +226,7 @@ When specified by the user,
 The <b>quality</b>, <a href="#qscale"><b>qscale</b></a>, and
 <a href="#bitrate"><b>bitrate</b></a> options do not apply to the
 lossless animated PNG (apng) <a href="#format">format</a>.
-</blockquote>
+</p></blockquote>
 <blockquote>
 <a name="qscale"></a>
 <b>qscale</b> &nbsp;<i>factor</i>
@@ -342,4 +337,5 @@ script (movie content) development.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 August 2023</address>
+
 </body></html>

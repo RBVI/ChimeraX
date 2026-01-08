@@ -63,6 +63,9 @@ def register_settings_options(session):
                 # class scope can't reference local variables, so...
                 return lambda *args, v=values, l=[v.title() for v in viewers], **kw: \
                     SymbolicEnumOption(*args, values=v, labels=l, **kw)
+            # didn't find current setting as synonym for any viewer(!), revert to default setting [#17895]
+            setattr(settings, attribute, fallbacks[attribute])
+        raise AssertionError("Default %s not found" % attribute)
     settings_info = {}
     settings_info['large_align_viewer'] = ("Large alignment viewer",
         viewer_option("alignment", "large_align_viewer"),

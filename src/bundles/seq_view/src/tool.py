@@ -168,8 +168,9 @@ class SequenceViewer(ToolInstance):
         if self.alignment.associations:
             # There are pre-existing associations, show them
             for aseq in self.alignment.seqs:
-                if aseq.match_maps:
+                if self.alignment.match_maps[aseq]:
                     self.seq_canvas.assoc_mod(aseq)
+        self._feature_browsers = {}
         self._regions_tool = None
         from .region_browser import RegionManager
         self.region_manager = RegionManager(self.seq_canvas)
@@ -177,12 +178,11 @@ class SequenceViewer(ToolInstance):
         for seq in self.alignment.seqs:
             self._seq_rename_handlers[seq] = seq.triggers.add_handler("rename",
                 self.region_manager._seq_renamed_cb)
-            if seq.match_maps:
+            if self.alignment.match_maps[seq]:
                self._update_errors_gaps(seq)
         if self.alignment.intrinsic and not from_session:
             self.show_ss(True)
             self.status("Helices/strands depicted in gold/green")
-        self._feature_browsers = {}
         if not from_session:
             if len(self.alignment.seqs) == 1:
                 seq = self.alignment.seqs[0]
@@ -607,7 +607,7 @@ class SequenceViewer(ToolInstance):
 
         seq, seq, index, index = self.seq_canvas.bounded_by(x, y, x, y, exclude_headers=True)
         if seq is not None and seq in self.alignment.seqs:
-            for chain, mm in seq.match_maps.items():
+            for chain, mm in self.alignment.match_maps[seq].items():
                 try:
                     view_targets.append(mm[seq.gapped_to_ungapped(index)])
                 except KeyError:
@@ -908,6 +908,12 @@ class SequenceViewer(ToolInstance):
     def _regions_tool_notification(self, category, region):
         if self._regions_tool:
             self._regions_tool.region_notification(category, region)
+        try:
+            fb = self._feature_browsers[region.sequence]
+        except KeyError:
+            pass
+        else:
+            fb.region_notification(category, region)
 
     def _update_errors_gaps(self, aseq):
         if not self.settings.error_region_shown and not self.settings.gap_region_shown:
@@ -916,7 +922,7 @@ class SequenceViewer(ToolInstance):
         errors = [0] * len(a_ref_seq)
         gaps = [0] * len(a_ref_seq)
         from chimerax.atomic import Sequence
-        for chain, match_map in aseq.match_maps.items():
+        for chain, match_map in self.alignment.match_maps[aseq].items():
             for i, char in enumerate(a_ref_seq):
                 try:
                     res = match_map[i]
@@ -927,7 +933,7 @@ class SequenceViewer(ToolInstance):
                         errors[i] += 1
         partial_error_blocks, full_error_blocks = [], []
         partial_gap_blocks, full_gap_blocks = [], []
-        num_assocs = len(aseq.match_maps)
+        num_assocs = len(self.alignment.match_maps[aseq])
         if num_assocs > 0:
             for partial, full, check in [(partial_error_blocks, full_error_blocks, errors),
                     (partial_gap_blocks, full_gap_blocks, gaps)]:

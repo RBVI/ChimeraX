@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: coulombic</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: coulombic</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -46,15 +41,14 @@ with default coloring
 ranging from <b>red</b> for negative potential through <b>white</b> 
 to <b>blue</b> for positive potential
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/esp.png"></a>.
+<img class="icon" border="1" src="../tools/shortcut-icons/esp.png" alt="computer generated image"></a>.
 If the surfaces do not already exist, they will be generated.
 </p><p>
 The calculation can handle structures with or without explicit hydrogens
 (<a href="#hydrogens">details...</a>).
 Partial atomic charges are looked up for standard residues,
 and in the rarer case they are needed for nonstandard residues, calculated 
-by <a href="https://ambermd.org/antechamber/antechamber.html"
-target="_blank"><b>Antechamber</b></a>
+by <a href="https://ambermd.org/antechamber/antechamber.html" target="_blank"><b>Antechamber</b></a>
 according to the <b>chargeMethod</b> option (default <b>am1-bcc</b>)
 (<a href="#charges">details...</a>).
 </p><p>
@@ -63,12 +57,12 @@ were already present (such as from prior use
 of <b>coulombic</b> or <a href="addcharge.html"><b>addcharge</b></a>),
 but either of the following occurred after those charges were assigned:
 </p>
-</ul>
+
 <li>the <a href="../atomtypes.html">atom type</a> of one or more atoms was 
 changed and the user wishes the Coulombic calculation to reflect that change
-<li>explicit hydrogen atoms were deleted
+</li><li>explicit hydrogen atoms were deleted
 (<i>e.g.</i>, to make the molecular surface of a protein less rugged)
-</ul>
+
 <p>
 See also: 
 <a href="key.html"><b>key</b></a>,
@@ -79,10 +73,8 @@ See also:
 <a href="../measurements.html">measurements</a>,
 the <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
 tutorial</a>,
-the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#coulombic"
-target="_blank">ChimeraX Coulombic ESP highlight</a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
-target="_blank">ChimeraX video</a>:
+the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#coulombic" target="_blank">ChimeraX Coulombic ESP highlight</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/" target="_blank">ChimeraX video</a>:
 <a href="https://youtu.be/FEIJ0lmybXo" target="_blank">coloring by
 electrostatic potential</a>
 </p><p>
@@ -90,7 +82,7 @@ Coulombic electrostatic potential is calculated from atomic partial charges
 and coordinates according to Coulomb's law:
 </p>
 <blockquote>
-<font size ="+1">
+<font size="+1">
 &phi; = &Sigma; [q<sub>i</sub> / (&epsilon;d<sub>i</sub>)]
 </font>
 </blockquote>
@@ -99,18 +91,18 @@ q are the atomic partial charges,
 d are the distances from the atoms, and
 &epsilon; is the dielectric, representing screening by the medium.
 The resulting potential is in units of kcal/(mol&middot;<i>e</i>) at 298 K.
-</p><p>
+<p></p><p>
 A distance-dependent dielectric is sometimes used to approximate screening
 by implicit solvent. By default,
 <b>distDep true</b> and <b>dielectric 4.0</b> are used:
-<blockquote>
-<font size ="+1">
+</p><blockquote>
+<font size="+1">
 &epsilon; = 4d
 </font>
 </blockquote>
 With <b>distDep false</b>, &epsilon; is a constant <i>C</i>
 given with the <b>dielectric</b> option.
-</p><p>
+<p></p><p>
 The <a name="offset"><b>offset</b></a> <i>d</i> is how far out
 from each surface vertex, along its normal, to evaluate the data.
 The default of <b>1.4</b> &Aring; is typically used for coloring a
@@ -132,18 +124,17 @@ for coloring the surface of one structure by the potential from another. **
 </p><p>
 <a name="palette-options"></a>
 The default <a href="color.html#palette-options"><i>palette-options</i></a> 
-for coloring are <table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=red width="10px" title="red"></td>
-<td bgcolor=white width="10px" title="white"></td>
-<td bgcolor=blue width="10px" title="blue"></td>
-</tr></table>:
-<blockquote>
+for coloring are <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="red" width="10px" title="red"></td>
+<td bgcolor="white" width="10px" title="white"></td>
+<td bgcolor="blue" width="10px" title="blue"></td>
+</tr></tbody></table>:
+</p><blockquote>
 <b><a href="color.html#palette">palette</a> red-white-blue 
 &nbsp;<a href="color.html#range">range</a> -10,10</b>
 </blockquote>
 <p>
-Transparency (alpha < 1) can be inherent in the colors of the
+Transparency (alpha &lt; 1) can be inherent in the colors of the
 <a href="color.html#palette-options">palette</a>.
 See also: <a href="transparency.html"><b>transparency</b></a>
 </p><p>
@@ -188,23 +179,23 @@ are used, except that:
 </p>
 <ul>
 <li>hydrogen addition is not H-bond-guided for trajectory models
-<li>for other atomic models,
+</li><li>for other atomic models,
 the <b>hisScheme</b> option allows different treatments 
 of HIS residues in structures without hydrogens:
  <ul>
  <li>HID
  &ndash; neutral sidechain, implicitly protonated at &delta;-nitrogen
- <li>HIE
+ </li><li>HIE
  &ndash; neutral sidechain, implicitly protonated at &epsilon;-nitrogen
- <li>HIP
+ </li><li>HIP
  &ndash; positive sidechain, implicitly protonated at both sidechain nitrogens
- </ul>
+ </li></ul>
 If <b>hisScheme</b> is not specified, the protonation state of each HIS
 residue will be chosen based on the local H-bonding environment.
 The option applies only to residues named HIS. Regardless of this option,
 histidines that already have the special names (HID, HIE, HIP) 
 will be protonated accordingly.
-</ul>
+</li></ul>
 
 <a name="charges"></a>
 <p class="nav">
@@ -228,8 +219,7 @@ ATP, ADP, GTP, GDP, NAD, NDP, certain lipids, and a few common variants
 and capping groups. The presence of other residue types 
 (&ldquo;nonstandard&rdquo;) within the biopolymer surface
 will trigger a charge calculation with
-<a href="https://ambermd.org/antechamber/antechamber.html"
-target="_blank"><b>Antechamber</b></a>
+<a href="https://ambermd.org/antechamber/antechamber.html" target="_blank"><b>Antechamber</b></a>
 according to the <b>chargeMethod</b> option (default <b>am1-bcc</b>).
 Solvent, ligands, ions, and cofactors are normally not enclosed in the
 same <a href="surface.html">molecular surface</a> as the biopolymer
@@ -289,4 +279,5 @@ used to compute the ESP (default <b>5.0</b> &Aring;).
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 July 2024</address>
-</body></html>
+
+</li></body></html>

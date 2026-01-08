@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: unitcell</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: unitcell</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -47,13 +42,13 @@ class="clRighticon" title="User Guide Index"/></a>
 <br><b>unitcell outline</b> 
 &nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model</i></a>&nbsp;
 [&nbsp;<a href="#origin"><b>origin</b></a>&nbsp;&nbsp;<i>f1,f2,f3</i>&nbsp;]
-[&nbsp;<b>close</b></a>&nbsp;]
+[&nbsp;<b>close</b>&nbsp;]
 </h3>
 <a name="delete"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>unitcell delete</b> 
 &nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model</i></a>&nbsp;
-[&nbsp;<b>outline</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>outline</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <p>
 The <b>unitcell</b> command builds crystallographic unit cells
@@ -76,13 +71,13 @@ One or more atomic models can be
 <li><b>unitcell info</b>
 &ndash; report symmetry information in the 
 <a href="../tools/log.html"><b>Log</b></a>
-<li><b>unitcell outline</b>
+</li><li><b>unitcell outline</b>
 &ndash; show, shift to different <a href="#origin">origin</a>, 
 or close (remove) a white outline box of the unit cell
-<li><b>unitcell delete</b>
+</li><li><b>unitcell delete</b>
 &ndash; delete the additional copies and optionally the outline box
 (default <b>true</b>)
-</ul>
+</li></ul>
 
 <a name="options"></a>
 <p class="nav">
@@ -110,8 +105,7 @@ whether to use the space group name in the CRYST1 record of a PDB file
 to look up the crystallographic symmetry (default <b>true</b>).
 Space group names are the full
 Hermann-Mauguin symbols, <i>e.g.</i>, P 1 21 1 rather than P 21
-(see <a href="https://en.wikipedia.org/wiki/List_of_space_groups"
-target="_blank">lists of names</a>).
+(see <a href="https://en.wikipedia.org/wiki/List_of_space_groups" target="_blank">lists of names</a>).
 </blockquote>
 <blockquote>
 <a name="ncs"></a>
@@ -173,4 +167,5 @@ in the middle cell along the first axis.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 March 2021</address>
+
 </body></html>

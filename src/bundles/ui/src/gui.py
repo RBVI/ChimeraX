@@ -139,6 +139,9 @@ class UI(QApplication):
                 color_scheme = 'light'
         else:
             self.styleHints().setColorScheme(Qt.ColorScheme.Light)
+        from sys import platform
+        if platform == 'linux':
+            self._set_linux_palette(color_scheme)
         self.color_scheme = color_scheme
         set_default_color_scheme(self.color_scheme)
 
@@ -159,6 +162,46 @@ class UI(QApplication):
             self.screenAdded.connect(self._screen_added)
             self.screenRemoved.connect(self._screen_removed)
 
+    def _set_linux_palette(self, new_scheme):
+        # On Linux, the standard dark palette is lacking. Input fields are hard
+        # distinguish, and radio buttons locations aren't visible
+        if new_scheme != 'dark':
+            self.setPalette(self.style().standardPalette())
+            return
+        # TODO: use values from corresponding CSS4 colors in a HTML widget
+        from Qt.QtGui import QPalette, QColor
+        palette = QPalette()
+        # duplicate values from Windows 10 dark mode
+        colors = {
+            # QPalette.ColorRole: ((Active Color), (Disabled Color), (Inactive Color))
+            QPalette.Accent: ((46, 120, 175), (157, 157, 157), (30, 30, 30)),
+            QPalette.AlternateBase: ((23, 44, 61), (52, 52, 52), (23, 44, 61)),
+            QPalette.Base: ((45, 45, 45), (30, 30, 30), (45, 45, 45)),
+            QPalette.BrightText: ((73, 136, 183), (73, 136, 183), (73, 136, 183)),
+            QPalette.Button: ((60, 60, 60), (60, 60, 60), (60, 60, 60)),
+            QPalette.ButtonText: ((255, 255, 255), (157, 157, 157), (255, 255, 255)),
+            QPalette.Dark: ((30, 30, 30), (30, 30, 30), (30, 30, 30)),
+            QPalette.Highlight: ((46, 91, 125), (46, 91, 125), (30, 30, 30)),
+            QPalette.HighlightedText: ((255, 255, 255), (255, 255, 255), (255, 255, 255)),
+            QPalette.Light: ((120, 120, 120), (120, 120, 120), (120, 120, 120)),
+            QPalette.Link: ((73, 136, 183), (48, 140, 198), (73, 136, 183)),
+            QPalette.LinkVisited: ((46, 120, 175), (255, 0, 255), (46, 120, 175)),
+            QPalette.Mid: ((40, 40, 40), (40, 40, 40), (40, 40, 40)),
+            QPalette.Midlight: ((90, 90, 90), (90, 90, 90), (90, 90, 90)),
+            QPalette.PlaceholderText: ((255, 255, 255), (255, 255, 255), (255, 255, 255)),
+            QPalette.Shadow: ((0, 0, 0), (0, 0, 0), (0, 0, 0)),
+            QPalette.Text: ((255, 255, 255), (157, 157, 157), (255, 255, 255)),
+            QPalette.ToolTipBase: ((60, 60, 60), (255, 255, 220), (60, 60, 60)),
+            QPalette.ToolTipText: ((212, 212, 212), (0, 0, 0), (212, 212, 212)),
+            QPalette.Window: ((30, 30, 30), (30, 30, 30), (30, 30, 30)),
+            QPalette.WindowText: ((255, 255, 255), (157, 157, 157), (255, 255, 255)),
+        }
+        for role, (active, disabled, inactive) in colors.items():
+            palette.setColor(QPalette.Active, role, QColor(*active))
+            palette.setColor(QPalette.Disabled, role, QColor(*disabled))
+            palette.setColor(QPalette.Inactive, role, QColor(*inactive))
+        self.setPalette(palette)
+
     def _update_color_scheme(self):
         from Qt.QtCore import Qt
         from Qt.QtCore import QEvent
@@ -166,6 +209,9 @@ class UI(QApplication):
         if new_scheme != self.color_scheme:
             self.color_scheme = new_scheme
             set_default_color_scheme(self.color_scheme)
+            from sys import platform
+            if platform == 'linux':
+                self._set_linux_palette(new_scheme)
             sbar = self.main_window._status_bar
             sbar.set_colors()
             msg = f"Desktop color scheme is {new_scheme}"
@@ -394,9 +440,11 @@ class UI(QApplication):
                 return
             # Up arrow on an empty selection was probably intended for the command history...
         elif k == Qt.Key.Key_Down:
-            from chimerax.core.commands import run
-            run(self.session, 'select down')
-            return
+            if not self.session.selection.empty():
+                from chimerax.core.commands import run
+                run(self.session, 'select down')
+                return
+            # other keystroke sinks (e.g. ViewDock) could be interested in arrow down...
         elif k in (Qt.Key.Key_Right, Qt.Key.Key_Left):
             from chimerax.core.commands import run
             if event.modifiers() & Qt.ShiftModifier:

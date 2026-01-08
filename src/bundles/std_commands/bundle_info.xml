@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<BundleInfo name="ChimeraX-StdCommands" version="1.19.1" package="chimerax.std_commands" customInit="true" minSessionVersion="1" maxSessionVersion="1">
+<BundleInfo name="ChimeraX-StdCommands" version="1.19.2" package="chimerax.std_commands" customInit="true" minSessionVersion="1" maxSessionVersion="1">
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>

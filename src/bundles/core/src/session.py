@@ -522,9 +522,7 @@ class Session:
         from . import logger
 
         self.logger = logger.Logger(self)
-        from . import nogui
 
-        self.ui = nogui.UI(self)
         from . import triggerset
 
         self.triggers = triggerset.TriggerSet()
@@ -567,14 +565,6 @@ class Session:
             trigger_set=self.triggers,
         )
         self.main_view = view
-        try:
-            from .core_settings import settings
-
-            self.main_view.background_color = settings.background_color.rgba
-        except ImportError:
-            pass
-        if offscreen_rendering:
-            self.ui.initialize_offscreen_rendering()
 
         from .selection import Selection
 
@@ -795,7 +785,7 @@ class Session:
                 or len(tokens) < 5
                 or tokens[0:4] != [b"#", b"ChimeraX", b"Session", b"version"]
             ):
-                raise RuntimeError("Not a ChimeraX session file")
+                raise UserError("Not a ChimeraX session file")
             version = int(tokens[4])
             if version == 2:
                 raise UserError(
@@ -1056,6 +1046,10 @@ def save(session, path, version=3, compress="lz4", include_maps=False):
     session.session_file_path = path
     try:
         session.save(output, version=version, include_maps=include_maps)
+    except MemoryError:
+        if open_func is not None:
+            output.close("exceptional")
+        raise _session_save_out_of_memory_error(session, include_maps=include_maps)
     except Exception:
         if open_func is not None:
             output.close("exceptional")
@@ -1083,6 +1077,24 @@ def save(session, path, version=3, compress="lz4", include_maps=False):
 
         remember_file(session, path, "ses", "all models", file_saved=True)
 
+def _session_save_out_of_memory_error(session, include_maps):
+    msg = 'Ran out of memory trying to save a ChimeraX session file.'
+
+    from chimerax.map import Volume
+    vlist = session.models.list(type = Volume)
+    vmem = [v for v in vlist if v.data.path == '']
+
+    if include_maps and len(vlist) > len(vmem):
+        vmemtot = sum([(v.data.voxel_count() * v.data.value_type.itemsize) for v in vlist], 0)
+        gbytes = "%.3g" % (vmemtot/1024**3)
+        msg += f'\n\nYou are requesting to save density maps in the session file and have {len(vlist)} density maps open taking {gbytes} Gbytes.  Closing some of these density maps or not including density maps in the session may avoid the out of memory error.'
+    elif vmem:
+        vmemtot = sum([(v.data.voxel_count() * v.data.value_type.itemsize) for v in vmem], 0)
+        gbytes = "%.3g" % (vmemtot/1024**3)
+        msg += f'\n\nYou have {len(vmem)} density maps open taking {gbytes} Gbytes that were created in ChimeraX by commands such as "volume splitbyzone", "volume gaussian", "molmap" that are not saved in separate files and will be saved in the session file.  Closing some of these density maps may avoid the out of memory error when saving a session file.'
+
+    from .errors import UserError
+    raise UserError(msg)
 
 def sdump(session, session_file, output=None):
     """dump contents of session for debugging"""

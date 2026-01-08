@@ -17,14 +17,15 @@ ui.widgets: ChimeraX graphical user interface widgets
 from Qt import qt_have_web_engine
 if qt_have_web_engine():
     from .htmlview import HtmlView, ChimeraXHtmlView
-from .color_button import ColorButton, MultiColorButton, hex_color_name
 from .citation import Citation
+from .color_button import ColorButton, MultiColorButton, hex_color_name
+from .composite import radio_buttons, button_row, vertical_layout, horizontal_layout, row_frame, column_frame
+from .composite import EntriesRow, CollapsiblePanel, ModelMenu
 from .disclosure import DisclosureArea
 from .histogram import MarkedHistogram
 from .item_chooser import ModelListWidget, ModelMenuButton, ItemListWidget, ItemMenuButton
 from .item_table import ItemTable
-from .composite import radio_buttons, button_row, vertical_layout, horizontal_layout, row_frame
-from .composite import EntriesRow, CollapsiblePanel, ModelMenu
-from .slider import Slider, LogSlider, FloatSlider
+from .job_dialog import LongJobDialog
 from .palette_chooser import PaletteChooser
+from .slider import Slider, LogSlider, FloatSlider
 from .tricheckbox import TwoThreeStateCheckBox

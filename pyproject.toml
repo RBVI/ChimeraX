@@ -25,17 +25,17 @@ file = "README.md"
 [project.optional-dependencies]
 gui = [
   "openvr==1.26.701",
-  "PyOpenGL==3.1.9",
-  "PyOpenGL-accelerate==3.1.9",
+  "PyOpenGL==3.1.10",
+  "PyOpenGL-accelerate==3.1.10",
   # PyQt handled in prereqs/PyQt"
   # sip handled in prereqs/PyQt
-  #PySide6==6.9.0
-  #shiboken6==6.9.0
-  "qtconsole==5.5.2",
-  "qtshim==1.1",
+  #PySide6==6.10.0
+  #shiboken6==6.10.0
+  # let version float to latest for testing; "qtconsole==5.7.0",
+  "qtshim==1.2",
   # Used by the DICOM bundle for a double-ended QSlider"
-  "superqt==0.7.1",
-  #tinyarray==1.2.4
+  "superqt==0.7.6",
+  "tinyarray==1.2.5",
   "webcolors==24.11.1",
   "wheel-filename==1.4.2",
   #
@@ -47,62 +47,68 @@ gui = [
   "Pygments==2.18.0",
   "Sphinx==8.2.3",
   "sphinxcontrib-blockdiag==3.0.0",
-  "sphinx_autodoc_typehints==3.1.0",
+  "sphinx_autodoc_typehints==3.2.0",
   #
   # Windows
   #
-  "pywin32==310; sys_platform == 'win32'",
+  "pywin32==311; sys_platform == 'win32'",
   "WMI==1.5.1; sys_platform == 'win32'",
-  "comtypes==1.4.10; sys_platform == 'win32'",
+  "comtypes==1.4.11; sys_platform == 'win32'",
   #
   # Linux
   #
   "distro==1.9.0; sys_platform == 'linux'",
 ]
 wheel = [
+  "aiohttp==3.13.1",
   "appdirs==1.4.4",
-  "beautifulsoup4==4.13.3",
+  "beautifulsoup4==4.13.5",
   "colorama==0.4.6",
-  "Cython==3.0.12",
-  "filelock==3.18.0",
+  "Cython==3.1.4",
+  "filelock==3.19.1",
   "grako==3.16.5",
-  "html2text==2024.2.26",
+  "html2text==2025.4.15",
   "ihm==2.2",
   "imagecodecs==2024.6.1",
   # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
   # try a newer version of jedi
-  "ipykernel==6.29.5",
-  "ipython==8.26.0",
+  # let version float to latest for testing; "ipykernel==6.30.1",
+  # let version float to latest for testing; "ipython==9.5.0",
   # the version of jedi that works with ipython
-  "jedi==0.19.1",
-  "jupyter-client==8.6.3",
-  "lxml==5.3.1",
-  "lz4==4.4.4",
-  "matplotlib==3.10.1",
-  "msgpack==1.1.0",
+  # let version float to latest for testing; "jedi==0.19.2",
+  # let version float to latest for testing; "jupyter-client==8.6.3",
+  "lxml==6.0.2",
+  # lz4 4.4.4 has problems decompressing what it encoded, ticket #18140
+  "lz4==4.3.2",
+  "matplotlib==3.10.7",
+  "mcp==1.18.0",
+  "msgpack==1.1.1",
   "nibabel == 5.2.0",
   "netCDF4==1.6.5",
   "networkx==3.3",
   "numpy==1.26.4",
-  "openmm==8.2.0 ; platform_machine != 'aarch64'",
-  "packaging==24.2",
+  # if the OpenMM version changes, the patches in prereqs/pips need to be updated
+  "openmm==8.4.0 ; platform_machine != 'aarch64'",
+  "openmm-cuda-12==8.4.0 ; ((sys_platform == 'win32') or (sys_platform == 'linux')) and (platform_machine != 'aarch64')",
+  "packaging==25.0",
   # as per Tristan's request in ticket #3055"
   "ParmEd==4.2.2",
   "pep517==0.13.1",
   # optional package to prevent warning in Python shell [#16571]
   "pickleshare==0.7.5",
-  "Pillow==10.4.0",
-  "pkginfo==1.11.1",
+  "Pillow==11.3.0",
+  "pkginfo==1.12.1.2",
   "psutil==7.0.0",
+  "pybind11==3.0.1",
   "pycollada==0.8",
   "pydicom==2.4.4",
   "pynrrd==1.0.0",
   "pyopenxr==1.1.4501",
   "tcia_utils==1.5.1",
   "python-dateutil==2.9.0.post0",
-  "requests==2.32.3",
+  "requests==2.32.5",
   "scipy==1.14.0",
-  "six==1.16.0",
+  # let version float to latest for testing; "six==1.17.0",
   "sortedcontainers==2.4.0",
   "tables==3.10.2",
   "tifffile==2025.3.13",
@@ -114,13 +120,13 @@ wheel = [
   "Pygments==2.18.0",
   "Sphinx==8.2.3",
   "sphinxcontrib-blockdiag==3.0.0",
-  "sphinx_autodoc_typehints==3.1.0",
+  "sphinx_autodoc_typehints==3.2.0",
   #
   # Windows
   #
-  "pywin32==310; sys_platform == 'win32'",
+  "pywin32==311; sys_platform == 'win32'",
   "WMI==1.5.1; sys_platform == 'win32'",
-  "comtypes==1.4.10; sys_platform == 'win32'",
+  "comtypes==1.4.11; sys_platform == 'win32'",
   #
   # Linux
   #
@@ -130,7 +136,7 @@ wheel = [
   #
   "traitlets==5.14.3",
 ]
-dev = ["line_profiler==4.2.0"]
+dev = ["line_profiler==5.0.0", "markdown==3.8.2"]
 test = ["pytest", "pytest-cov", "coverage"]
 
 [tool.setuptools.dynamic]

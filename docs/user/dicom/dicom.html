@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,23 +9,19 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>DICOM Files</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3>DICOM Files</h3>
 <p>
-<a href="https://www.dicomstandard.org/current/"
-target="_blank">DICOM</a> (Digital Imaging and Communications in Medicine)
+<a href="https://www.dicomstandard.org/current/" target="_blank">DICOM</a> (Digital Imaging and Communications in Medicine)
 refers to a broad and complex set of standards for medical images and 
 related information. 
 We gratefully acknowledge support from
@@ -51,8 +45,7 @@ See also:
 <a href="../commands/ui.html#view"><b>ui view</b></a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-vr.html">DICOM in VR tutorial</a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html">DICOM segmentation tutorial</a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/dicom/index.html"
-target="_blank">ChimeraX for Medical Image Analysis</a>
+<a href="https://www.rbvi.ucsf.edu/chimerax/dicom/index.html" target="_blank">ChimeraX for Medical Image Analysis</a>
 </p><p>
 In ChimeraX, DICOM format is indicated by the filename suffix <b>.dcm</b>
 or the <b>format dicom</b> option in the
@@ -67,7 +60,7 @@ Menu: <b>File... Open DICOM Folder</b>
 browse to location, choose directory, click <b>Choose</b>
 <br>&ndash; or &ndash;
 <br>
-click <img class="icon" border=1 src="../tools/toolbar-icons/opendicom.png">
+click <img class="icon" border="1" src="../tools/toolbar-icons/opendicom.png" alt="computer generated image">
 in the <a href="../tools/medicalimage.html"><b>Medical Image</b></a> tab of the
 <a href="../tools/toolbar.html"><b>Toolbar</b></a>
 &ndash; in the resulting dialog,
@@ -81,7 +74,7 @@ Command: <a href="../commands/open.html#local"><b>open</b></a>
 ...where <i>directory-pathname</i> may contain * as wildcard
 and should be enclosed in quotation marks if it includes spaces.
 Each image stack found will be opened as a separate model.
-<li>Alternatively, multiple DICOM files comprising a single 3D image stack
+</p></li><li>Alternatively, multiple DICOM files comprising a single 3D image stack
 can be opened as follows:
 <blockquote>
 Menu: <b>File... Open</b>, browse to location, click first file,
@@ -94,7 +87,7 @@ Command: <a href="../commands/open.html#local"><b>open</b></a>
 ...where <i>pathname-glob</i> specifies the name and location of 
 multiple files, typically using * as wildcard 
 and enclosed in quotation marks if it contains spaces. 
-</ul>
+</li></ul>
 <p>
 The <a href="../commands/open.html"><b>open</b></a> command
 <a href="../commands/open.html#verbose"><b>verbose</b></a> option 
@@ -134,12 +127,12 @@ shown in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>:
 </p>
 <ol>
 <li>DICOM folder (if multiple patients)
-<li>patient (ID)
-<li>study (date)
-<li>series (description), each corresponding to a 
+</li><li>patient (ID)
+</li><li>study (date)
+</li><li>series (description), each corresponding to a 
 <a href="tools/volumeviewer.html">volume model</a>, typically 3D imaging 
 (<i>e.g.</i> CT, MRI) and derivations thereof (<i>e.g.</i>, segmentations)
-</ol>
+</li></ol>
 <p>
 The <a href="../tools/dicombrowser.html"><b>DICOM Browser</b></a>
 also shows the hierarchy.
@@ -159,14 +152,15 @@ DICOM-specific defaults for image-style rendering correspond to the
 </p>
 <ul>
 <li><a href="../commands/volume.html#pmode"><b>projectionMode 3d</b></a>
-<li><a href="../commands/volume.html#colormapOnGpu"><b>colormapOnGpu 
+</li><li><a href="../commands/volume.html#colormapOnGpu"><b>colormapOnGpu 
 true</b></a>
-<li><a href="../commands/volume.html#fullRegionOnGpu"><b>fullRegionOnGpu
+</li><li><a href="../commands/volume.html#fullRegionOnGpu"><b>fullRegionOnGpu
 true</b></a>
-<li><a href="../commands/volume.html#appearance"><b>appearance initial</b></a>
-</ul>
+</li><li><a href="../commands/volume.html#appearance"><b>appearance initial</b></a>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 May 2024</address>
+
 </body></html>

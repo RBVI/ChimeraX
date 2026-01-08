@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="userdocs.css">
 <title>Startup and Input</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="index.html">
-<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3>Startup</h3>
 <p>
@@ -48,27 +43,25 @@ or <a href="#inputfiles">input files</a> at startup, create a new shortcut:
 <ol>
 <li>drag the ChimeraX icon with the right mouse button
 and select <b>Copy Here</b> from the menu to create another shortcut icon
-<li>right-click the new icon, select <b>Properties</b> from the menu that appears
-<li>in the resulting panel, click the <b>Shortcut</b> tab and then
+</li><li>right-click the new icon, select <b>Properties</b> from the menu that appears
+</li><li>in the resulting panel, click the <b>Shortcut</b> tab and then
 append the desired <a href="options.html">option(s)</a> and
 <a href="#inputfiles">input(s)</a>
 to the command in the <b>Target</b> field.
 The path to the ChimeraX executable, arguments of options, and
 input file pathnames should be enclosed in quotation marks if
 they contain any spaces, for example:
-<pre>
-<b>"C:\Program Files\ChimeraX\bin\chimerax.exe" <a href="options.html#stereo">--stereo</a> <a href="options.html#start">--start</a> "Side View"</b>
+<pre><b>"C:\Program Files\ChimeraX\bin\chimerax.exe" <a href="options.html#stereo">--stereo</a> <a href="options.html#start">--start</a> "Side View"</b>
 </pre>
-<li>click the new icon to start ChimeraX with the specified options
-</ol>
+</li><li>click the new icon to start ChimeraX with the specified options
+</li></ol>
 </blockquote>
 
 <a name="unixstart">
 On <b>Linux</b></a>,
 <blockquote>
 ChimeraX can be started from the system command line:
-<br><pre>
-&dollar; <b>chimerax [<a href="options.html"><i>options</i></a>] [<a href="#inputfiles"><i>input1</i> <i>input2</i></a> ...]</b>
+<br><pre>$ <b>chimerax [<a href="options.html"><i>options</i></a>] [<a href="#inputfiles"><i>input1</i> <i>input2</i></a> ...]</b>
 </pre>
 ... using the symbolic link to the executable created by the installer. 
 (The executable is in the bin subdirectory of the ChimeraX installation.)
@@ -77,12 +70,10 @@ Note that ARM CPUs may not support OpenGL, which ChimeraX uses for graphics.
 On an ARM machine, <i>e.g.</i> Raspberry Pi, Snapdragon laptop, it may be
 necessary to prepend <small><b>MESA_GL_VERSION_OVERRIDE=3.3</b></small>
 to the startup command:
-<br><pre>
-&dollar; <b>MESA_GL_VERSION_OVERRIDE=3.3 chimerax [<a href="options.html"><i>options</i></a>] [<a href="#inputfiles"><i>input1</i> <i>input2</i></a> ...]</b>
+<br></p><pre>$ <b>MESA_GL_VERSION_OVERRIDE=3.3 chimerax [<a href="options.html"><i>options</i></a>] [<a href="#inputfiles"><i>input1</i> <i>input2</i></a> ...]</b>
 </pre>
 Alternatively, the override could be placed in the shell's startup script:
-<br><pre>
-<b>MESA_GL_VERSION_OVERRIDE=3.3</b>
+<br><pre><b>MESA_GL_VERSION_OVERRIDE=3.3</b>
 </pre>
 </blockquote>
 
@@ -91,8 +82,7 @@ On <b>Mac OS X</b>,
 ChimeraX can be started by clicking its icon or by drag-and-drop
 of <a href="commands/open.html#formats">known file types</a> onto the icon.
 It can also be started from the Terminal command line: 
-<br><pre>
-<b>&dollar; <i>chimerax_install_dir</i>/Contents/MacOS/ChimeraX [<a href="options.html"><i>options</i></a>] [<a href="#inputfiles"><i>input1</i> <i>input2</i></a> ...]</b>
+<br><pre><b>$ <i>chimerax_install_dir</i>/Contents/MacOS/ChimeraX [<a href="options.html"><i>options</i></a>] [<a href="#inputfiles"><i>input1</i> <i>input2</i></a> ...]</b>
 </pre>
 The <b><i>chimera_install_dir</i></b> is typically
 <b>/Applications/ChimeraX.app</b>. 
@@ -101,11 +91,11 @@ of the same ChimeraX installation on Mac.
 </blockquote>
 
 <a name="inputfiles">
-<p class="nav">
-[<a href="#top">back to top: Startup</a>]
+</a><p class="nav"><a name="inputfiles">
+[</a><a href="#top">back to top: Startup</a>]
 </p>
 <h3>Startup Input and Commands</h3>
-</a><p>
+<p>
 Input files may contain data to be displayed or commands or code to be executed.
 </p><p>
 Any of the <a href="commands/open.html#formats">known file types</a>
@@ -144,4 +134,5 @@ using the ChimeraX menu to <b>Quit</b>, or by entering
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 October 2024</address>
+
 </body></html>

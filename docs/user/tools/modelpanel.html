@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Model Panel</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Model Panel</h3>
 <p>
@@ -49,9 +44,9 @@ Models that are grouped automatically include:
 </p>
 <ul>
 <li>NMR ensembles of atomic models
-<li>multiple contour surfaces of the same
+</li><li>multiple contour surfaces of the same
 <a href="volumeviewer.html">volume data</a>
-</ul>
+</li></ul>
 <p>
 Like other tools, the <b>Model Panel</b> can be opened from the 
 <b>Tools</b> menu (<a href="../window.html#panels">more...</a>).
@@ -59,19 +54,17 @@ It lists the current models, with columns:
 </p>
 <ul>
 <li><b>Name</b> &ndash; model name; doubleclick to edit
-<li><b>ID</b> &ndash; model number; doubleclick to edit
-<li>a color well; click to change the color interactively
-<li><img class="iconbar" src="ui-icons/shown.png" 
-title="eye icon" alt="eye icon">
+</li><li><b>ID</b> &ndash; model number; doubleclick to edit
+</li><li>a color well; click to change the color interactively
+</li><li><img class="iconbar" src="ui-icons/shown.png" title="eye icon" alt="eye icon">
 &ndash; <a href="../commands/show.html">show/hide</a> checkbox
-<li><img class="iconbar" src="ui-icons/select.png" 
-title="hand icon" alt="hand icon">
+</li><li><img class="iconbar" src="ui-icons/select.png" title="hand icon" alt="hand icon">
 &ndash; <a href="../selection.html">selection</a> checkbox
 (a checkbox containing &ldquo;<b>&ndash;</b>&rdquo; means 
 that the model is partially selected)
-<li><b>Skip</b> (if enabled as described <a href="#next">below</a>)
+</li><li><b>Skip</b> (if enabled as described <a href="#next">below</a>)
 &ndash; exclude model from <a href="#next">next/previous</a> actions
-</ul>
+</li></ul>
 <p>
 Disclosure triangles allow collapsing/expanding the hierarchy when multiple
 levels are present.
@@ -88,13 +81,13 @@ or if none are highlighted, all entries:
 </p>
 <ul>
 <li><b>Close</b> &ndash; <a href="../commands/close.html">close</a> model(s)
-<li><b>Hide</b> &ndash; <a href="../commands/show.html">hide</a> model(s);
+</li><li><b>Hide</b> &ndash; <a href="../commands/show.html">hide</a> model(s);
 see also <a href="#next">next/previous</a>
-<li><b>Show</b> &ndash; <a href="../commands/show.html">show</a> model(s);
+</li><li><b>Show</b> &ndash; <a href="../commands/show.html">show</a> model(s);
 see also <a href="#next">next/previous</a>
-<li><b>View</b> &ndash; <a href="../commands/view.html#initial">focus 
+</li><li><b>View</b> &ndash; <a href="../commands/view.html#initial">focus 
 the view</a> on model(s) and turn off clipping
-<li><b>Info</b> &ndash; for atomic structures,
+</li><li><b>Info</b> &ndash; for atomic structures,
 show <a href="../modelinfo.html">model information</a>
 in the <a href="log.html"><b>Log</b></a>;
 for <a href="../dicom/dicom.html">DICOM</a> data,
@@ -102,24 +95,32 @@ show the <a href="dicombrowser.html"><b>DICOM Browser</b></a>
 (if patient or study model) or 
 <a href="dicommetadata.html"><b>DICOM Metadata</b></a>
 (if series model)
-<li><b>Next</b> (if enabled as described <a href="#next">below</a>;
+</li><li><b>Next</b> (if enabled as described <a href="#next">below</a>;
 down arrow is the keyboard shortcut)
-<li><b>Previous</b> (if enabled as described <a href="#next">below</a>;
+</li><li><b>Previous</b> (if enabled as described <a href="#next">below</a>;
 up arrow is the keyboard shortcut)
-</ul>
+</li></ul>
 <p>
 The corresponding commands are shown in the <a href="log.html"><b>Log</b></a>.
 </p>
 
-<a name="next"></a>
+<a name="context"></a>
 <p class="nav">
 [<a href="#top">back to top: Model Panel</a>]
 </p>
-<h3>Adding Next/Previous Buttons</h3>
+<h3>Context Menu</h3>
 <p>
 The <b>Model Panel</b> <a href="../window.html#context-menu">context menu</a>
-includes an option to <b>Show Sequential Display Controls</b>.
-Checking this option will add <b>Next</b> and <b>Previous</b> action
+includes options to:
+</p>
+<ul>
+<li><a name="group"></a><b>Group Models...</b> 
+bring up a dialog for choosing models to group
+as submodels of a specified new model number and (group) name.
+To ungroup models or otherwise change their model numbers or names,
+see <a href="../commands/rename.html"><b>rename</b></a>.
+</li><li><a name="next"></a><b>Show Sequential Display Controls</b> &ndash;
+checking this option will add <b>Next</b> and <b>Previous</b> action
 buttons for rapidly flipping the display through the list of models
 (showing each model in turn while hiding others),
 as well as a <b>Skip</b> column to allow excluding a model from these actions.
@@ -127,8 +128,10 @@ When these controls are shown and the mouse focus is in the <b>Model Panel</b>,
 next/previous actions can also be performed with the down/up arrow keys.
 The setting to show these controls is automatically saved as a 
 <a href="../preferences.html#other">preference</a> for future sessions.
-</p>
+</li></ul>
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2024</address>
+September 2025</address>
+
 </body></html>

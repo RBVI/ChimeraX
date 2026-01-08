@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,10 +9,8 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>ChimeraX Tutorial: Protein-Ligand Binding Sites</title>
 <script type="text/javascript" src="../../js/cxlinks.js"></script>
 <!--
@@ -24,14 +20,12 @@ or derivations thereof.
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
-<h3><a href="https://www.rbvi.ucsf.edu/chimerax/tutorials.html"
-target="_blank">ChimeraX Tutorial</a>: Protein-Ligand Binding Sites</h3>
+<h3><a href="https://www.rbvi.ucsf.edu/chimerax/tutorials.html" target="_blank">ChimeraX Tutorial</a>: Protein-Ligand Binding Sites</h3>
 
 <table class="clRight" cellpadding="0px">
-<tr><td>
+<tbody><tr><td>
 <a href="#hbonds">
 <img class="outline" src="bind2.png" alt="H-bonds" width="100px"></a>
 </td></tr>
@@ -43,46 +37,43 @@ target="_blank">ChimeraX Tutorial</a>: Protein-Ligand Binding Sites</h3>
 <a href="#esp">
 <img class="outline" src="bind6.png" alt="electrostatics" width="100px"></a>
 </td></tr>
-</table>
+</tbody></table>
 
 <ul>
 <!-- Kinase and inhibitor -->
 <li><a href="#opening"><b>Opening a Structure and Surveying Its Parts</b></a>
-<li><a href="#manipulation"><b>Manipulation</b></a>
-<img class="iconbar" src="../tools/mouse-icons/rotate.png">
-<img class="iconbar" src="../tools/mouse-icons/translate.png">
-<img class="iconbar" src="../tools/mouse-icons/zoom.png">
-<img class="iconbar" src="../tools/mouse-icons/select.png">
-<li><a href="#display"><b>Atomic Display Styles</b></a>
-<img class="iconbar" src="../tools/shortcut-icons/stick.png">
-<img class="iconbar" src="../tools/shortcut-icons/sphere.png">
-<img class="iconbar" src="../tools/shortcut-icons/ball.png">
-<li><a href="#hbonds"><b>H-Bonds and Contacts</b></a>
-<li><a href="#resist"><b>Resistance Mutations and Sequence Viewer</b></a>
+</li><li><a href="#manipulation"><b>Manipulation</b></a>
+<img class="iconbar" src="../tools/mouse-icons/rotate.png" alt="computer generated image">
+<img class="iconbar" src="../tools/mouse-icons/translate.png" alt="computer generated image">
+<img class="iconbar" src="../tools/mouse-icons/zoom.png" alt="computer generated image">
+<img class="iconbar" src="../tools/mouse-icons/select.png" alt="computer generated image">
+</li><li><a href="#display"><b>Atomic Display Styles</b></a>
+<img class="iconbar" src="../tools/shortcut-icons/stick.png" alt="computer generated image">
+<img class="iconbar" src="../tools/shortcut-icons/sphere.png" alt="computer generated image">
+<img class="iconbar" src="../tools/shortcut-icons/ball.png" alt="computer generated image">
+</li><li><a href="#hbonds"><b>H-Bonds and Contacts</b></a>
+</li><li><a href="#resist"><b>Resistance Mutations and Sequence Viewer</b></a>
 <!-- Enzyme with hydrophobic substrate; membrane protein(s) -->
-<li><a href="#mlp"><b>Surface Coloring by Lipophilicity</b></a>
-<img class="iconbar" src="../tools/shortcut-icons/hydrophobicity.png">
+</li><li><a href="#mlp"><b>Surface Coloring by Lipophilicity</b></a>
+<img class="iconbar" src="../tools/shortcut-icons/hydrophobicity.png" alt="computer generated image">
   <ul>
   <li><a href="#cap-example"><b>Coloring a Clipped Surface</b></a>
-  </ul>
+  </li></ul>
 <!-- Bacterial gene regulator with DNA and small-molecule binding sites -->
-<li><a href="#esp"><b>Surface Coloring by Electrostatic Potential</b></a>
-<img class="iconbar" src="../tools/shortcut-icons/esp.png">
+</li><li><a href="#esp"><b>Surface Coloring by Electrostatic Potential</b></a>
+<img class="iconbar" src="../tools/shortcut-icons/esp.png" alt="computer generated image">
   <ul>
   <li><a href="#key"><b>Color Key and 2D Label</b></a>
-  </ul>
-</ul>
+  </li></ul>
+</li></ul>
 
 <p>
 This tutorial explores some ways to examine the complementarity
 between proteins and their ligands, including drug molecules.
 Related tutorials:
-<a href="/chimerax/data/conservation-coloring/conservation-coloring.html"
-target="_blank">Coloring by Sequence Conservation</a>,
-<a href="/chimerax/data/delta-opioid-jan2020/binding.html"
-target="_blank">Delta-Opioid Receptor</a>,
-<a href="https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html#/"
-target="_blank">Structure Analysis and Comparison</a>,
+<a href="/chimerax/data/conservation-coloring/conservation-coloring.html" target="_blank">Coloring by Sequence Conservation</a>,
+<a href="/chimerax/data/delta-opioid-jan2020/binding.html" target="_blank">Delta-Opioid Receptor</a>,
+<a href="https://rbvi.github.io/chimera-tutorials/presentations/modules/chimerax-comp-structures/index.html#/" target="_blank">Structure Analysis and Comparison</a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/electrostatics-apr2021/crm1.html" target="_blank">Coloring CRM1 by Electrostatic Potential</a>
 </p>
 
@@ -94,20 +85,19 @@ Start ChimeraX.
 If you want to use the click-to-execute links in this tutorial, view this
 page in the <a href="../tools/helpviewer.html"><b>ChimeraX Browser</b></a>.
 One way to do so is by entering the ChimeraX command:
-<blockquote>
+</p><blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:open help:user/tutorials/binding-sites.html">open help:user/tutorials/binding-sites.html</a></b>
 </blockquote>
 All of the click-to-execute links in this
 tutorial are indented and appear after &ldquo;<i>Command</i>:&rdquo;
 Other links are simply informative and can be clicked or not, as you prefer.
-</p><p>
+<p></p><p>
 ChimeraX can fetch a structure directly from the
 <a href="https://www.rcsb.org" target="_blank">Protein Data Bank</a> (PDB)
 given its 4-character ID. Open
 <a href="https://www.rcsb.org/structure/2HYY" target="_blank">2hyy</a>,
 a structure of the human Abl kinase domain in complex with the anticancer drug 
-<a href="https://en.wikipedia.org/wiki/Imatinib"
-target="_blank">imatinib</a>:
+<a href="https://en.wikipedia.org/wiki/Imatinib" target="_blank">imatinib</a>:
 </p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:open 2hyy">open 2hyy</a></b>
@@ -115,8 +105,7 @@ target="_blank">imatinib</a>:
 <p>
 The <a href="../tools/modelpanel.html"><b>Model Panel</b></a>
 (lower right side of the ChimeraX window) lists 2hyy as model 1, and the 
-&nbsp;<img class="iconbar" src="../tools/ui-icons/shown.png" title="eye icon" 
-alt="eye icon">&nbsp; checkbox indicates that the model is displayed.
+&nbsp;<img class="iconbar" src="../tools/ui-icons/shown.png" title="eye icon" alt="eye icon">&nbsp; checkbox indicates that the model is displayed.
 </p><p>
 The <a href="../tools/log.html"><b>Log</b></a> (right side of window)
 shows several kinds of information associated with the structure:
@@ -135,8 +124,7 @@ Note:
 <a href="../selection.html">Selections</a>
 are used to limit the scope of using the <b>Actions</b> menu
 or clicking certain icons.
-The &nbsp;<img class="iconbar" src="../tools/ui-icons/select.png"
-title="hand icon" alt="hand icon"> checkbox
+The &nbsp;<img class="iconbar" src="../tools/ui-icons/select.png" title="hand icon" alt="hand icon"> checkbox
 in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>
 shows when a model is selected, with three possible states: 
 checked, unchecked, and partially checked (shown with a dash on Mac).
@@ -154,10 +142,9 @@ In the <b>2hyy mmCIF Assemblies</b> table, click <b>1</b> to generate
 &ldquo;assembly 1,&rdquo; a single copy of the protein-ligand complex.
 As can be seen in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>,
 this opens the assembly as model 2 and hides the original structure (model 1,
-<img class="iconbar" src="../tools/ui-icons/shown.png"
-title="eye icon" alt="eye icon">&nbsp; box unchecked).
+<img class="iconbar" src="../tools/ui-icons/shown.png" title="eye icon" alt="eye icon">&nbsp; box unchecked).
 Close the original structure:
-<blockquote>
+</p><blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:close #1">close #1</a></b>
 </blockquote>
 <blockquote style="color:black; background-color:#f0f0f0; margin:15px; 
@@ -192,9 +179,9 @@ Manipulation</h3>
 <p>
 Try moving the structure around. Default mouse/trackpad assignments:
 </p>
-<table border cellpadding="4" cellspacing="0"><tr>
+<table border cellpadding="4" cellspacing="0"><tbody><tr>
 <td align="center" rowspan="2">rotate
-<br><img src="../tools/mouse-icons/rotate.png" class="icon3">
+<br><img src="../tools/mouse-icons/rotate.png" class="icon3" alt="computer generated image">
 <br><font size="-1">XY-rotate, except Z-rotate
 <br>with cursor near edge of window</font></td>
 <td>left mouse button</td>
@@ -202,7 +189,7 @@ Try moving the structure around. Default mouse/trackpad assignments:
 <td class="text">trackpad click-drag</td>
 </tr><tr>
 <td align="center" rowspan="2">translate in 2D
-<br><img src="../tools/mouse-icons/translate.png" class="icon3"></td>
+<br><img src="../tools/mouse-icons/translate.png" class="icon3" alt="computer generated image"></td>
 <td>middle or right mouse button</td>
 </tr><tr>
 <td class="text">
@@ -214,7 +201,7 @@ trackpad + <b>Alt</b>
 </td>
 </tr><tr>
 <td align="center" rowspan="2">zoom
-<br><img src="../tools/mouse-icons/zoom.png" class="icon3"></td>
+<br><img src="../tools/mouse-icons/zoom.png" class="icon3" alt="computer generated image"></td>
 <td>mouse scroll wheel</td>
 </tr><tr>
 <td class="text">
@@ -222,18 +209,18 @@ trackpad 2-finger drag (except pinch on Mac as per
 <a href="../preferences.html#trackpad">Trackpad preferences</a>)</td>
 </tr><tr>
 <td align="center" rowspan="2"><a href="../selection.html">select</a>
-<br><img src="../tools/mouse-icons/select.png" class="icon3"></td>
+<br><img src="../tools/mouse-icons/select.png" class="icon3" alt="computer generated image"></td>
 <td>left mouse button + <b>Ctrl</b>, + <b>Shift</b> to toggle
 or add to selection</td>
 </tr><tr>
 <td class="text">
 trackpad + <b>Ctrl</b>, + <b>Shift</b> to toggle
 or add to selection</td>
-</td>
-</tr></table>
+
+</tr></tbody></table>
 <p>
 To list the current assignments in the <b>Log</b>:
-<blockquote>
+</p><blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:mousemode">mousemode</a></b>
 </blockquote>
 <p>
@@ -258,7 +245,7 @@ Many actions can be done in several different ways.
 One way to change the display is with presets. 
 For example, all atoms as sticks can be shown with menu:
 <b>Presets... Sticks</b> or the command:
-<blockquote>
+</p><blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:preset sticks">preset sticks</a></b>
 </blockquote>
 <p>
@@ -287,19 +274,19 @@ be displayed at the time.
 <i>Command</i>:&nbsp;<b><a href="cxcmd:style stick">style stick</a></b>
 </blockquote>
 <p>
-The style icons <img class="iconbar" src="../tools/shortcut-icons/stick.png">
-<img class="iconbar" src="../tools/shortcut-icons/sphere.png">
-<img class="iconbar" src="../tools/shortcut-icons/ball.png">
+The style icons <img class="iconbar" src="../tools/shortcut-icons/stick.png" alt="computer generated image">
+<img class="iconbar" src="../tools/shortcut-icons/sphere.png" alt="computer generated image">
+<img class="iconbar" src="../tools/shortcut-icons/ball.png" alt="computer generated image">
 in the <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> tab
 of the <a href="../tools/toolbar.html"><b>Toolbar</b></a>
 apply to the currently <a href="../selection.html">selected</a> atoms, or
 if none are selected, all atoms.
 </p>
 <table class="clRight">
-<tr><td>
+<tbody><tr><td>
 <img class="outline" src="bind1.png" alt="imatinib binding site" width="300px">
 </td></tr>
-</table>
+</tbody></table>
 <p>
 Make imatinib more obvious by changing the color of its carbon atoms:
 </p>
@@ -311,14 +298,13 @@ color :sti & C salmon</a></b>
 Capitalization of residue names in the command line is optional, 
 but element symbols always need to be capitalized.
 To list color names in the <b>Log</b>:
-<blockquote>
+</p><blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:color list">
 color list</a></b>
 </blockquote>
 <p>
 (A more organized
-<a href="../commands/colornames.html#builtin"
-target="_blank">table</a> is also available.)
+<a href="../commands/colornames.html#builtin" target="_blank">table</a> is also available.)
 </p>
 
 <a name="hbonds"></a>
@@ -335,7 +321,7 @@ simply press the keyboard down arrow to go back.
 </p><p>
 Alternatively, the imatinib residue could be selected
 with the menu: <b>Select... Residues... STI</b> or a command:
-<blockquote>
+</p><blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:select :sti">select :sti</a></b>
 </blockquote>
 <p>
@@ -353,26 +339,26 @@ Use the <b><a href="../tools/hbonds.html">H-Bonds</a></b> tool
 (menu: <b>Tools... Structure Analysis... H-Bonds</b>). 
 Keep the default settings, except turn on (check)
 the following if they are not already:
-<ul>
+</p><ul>
 <li><b>Limit by selection: with at least one end selected</b>
 &ndash; only find H-bonds involving the
 currently <a href="../selection.html">selected</a> atoms
-<li><b>Reveal atoms of H-bonding residues</b> &ndash;
+</li><li><b>Reveal atoms of H-bonding residues</b> &ndash;
 the &ldquo;pseudobonds&rdquo; representing the H-bonds are only
 displayed when both of their endpoint atoms are displayed; 
 this option displays atoms as needed to show all of the H-bonds
-<li><b>Log</b> &ndash; show information about each H-bond in
+</li><li><b>Log</b> &ndash; show information about each H-bond in
 the <a href="../tools/log.html"><b>Log</b></a>
-</ul>
+</li></ul>
 Make sure that the imatinib residue is still selected, then run the calculation
 by clicking <b>Apply</b> or <b>OK</b> (the difference between those two
 is that <b>OK</b> closes the dialog).
-</p>
+<p></p>
 <table class="clRight">
-<tr><td>
+<tbody><tr><td>
 <img class="outline" src="bind2.png" alt="imatinib H-bonds" width="300px">
 </td></tr>
-</table>
+</tbody></table>
 <p>
 The <b>Log</b> lists five H-bonds involving imatinib.
 If the wrong settings were used by mistake, no worries: just change the
@@ -407,16 +393,16 @@ Use the <b><a href="../tools/clashes.html">Contacts</a></b> tool
 (menu: <b>Tools... Structure Analysis... Contacts</b>).
 Keep the default settings, except turn on (check)
 the following if they are not already:
-<ul>
+</p><ul>
 <li><b>Limit by selection: with at least one end selected</b>
-<li><b>Reveal atoms of interacting residues</b>
-<li><b>Log</b>
-</ul>
+</li><li><b>Reveal atoms of interacting residues</b>
+</li><li><b>Log</b>
+</li></ul>
 ...and turn off (uncheck) <b>Display as pseudobonds</b>,
 Make sure that the imatinib residue
 is selected as described <a href="#hbonds">above</a>, 
 then click <b>Apply</b> or <b>OK</b>.
-</p><p>
+<p></p><p>
 The <b>Log</b> lists 87 atomic contacts involving imatinib.
 The same calculation could be done with the following command:
 </p>
@@ -445,8 +431,7 @@ Resistance Mutations and Sequence Viewer</h3>
 <p>
 Several mutations in kinase domain of the Bcr-Abl fusion protein
 have been implicated in cancer resistance to imatinib treatment.
-According to <a href="https://www.nature.com/articles/s41598-019-38672-x"
-target="_blank">Chandrasekhar <i>et al.</i></a> Sci Rep <b>9</b>:2412 (2019),
+According to <a href="https://www.nature.com/articles/s41598-019-38672-x" target="_blank">Chandrasekhar <i>et al.</i></a> Sci Rep <b>9</b>:2412 (2019),
 these include 
 G250E, Y253H, V256G, L301I, T315I, F317L, Y320H, M351T, E373D, and D381N.
 </p><p>
@@ -541,7 +526,7 @@ to identify interaction sites for nonpolar molecules or the lipid membrane.
 Open <a href="https://www.rcsb.org/structure/1FPP" target="_blank">1fpp</a>,
 a structure of the protein farnesyltransferase in complex with 
 farnesyl diphosphate (residue name FPP):
-<blockquote>
+</p><blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:open 1fpp">open 1fpp</a></b>
 </blockquote>
 <p>
@@ -565,23 +550,22 @@ surfaces by the values. This can be done with the command:
 <i>Command</i>:&nbsp;<b><a href="cxcmd:mlp">mlp</a></b>
 </blockquote>
 <table class="clRight">
-<tr><td>
+<tbody><tr><td>
 <img class="outline" src="bind3.png" alt="hydrophobic pocket" width="300px">
 </td></tr>
-</table>
+</tbody></table>
 <p>
 ...or by clicking the
-<img class="iconbar" src="../tools/shortcut-icons/hydrophobicity.png"> icon
+<img class="iconbar" src="../tools/shortcut-icons/hydrophobicity.png" alt="computer generated image"> icon
 in the <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> tab
 of the <a href="../tools/toolbar.html"><b>Toolbar</b></a>.
 The default coloring is from <b>dark cyan</b> for most hydrophilic 
 through <b>white</b> to <b>dark goldenrod</b> for most hydrophobic:
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=darkcyan width="10px" title="darkcyan"></td>
-<td bgcolor=white width="10px" title="white"></td>
-<td bgcolor=darkgoldenrod width="10px" title="darkgoldenrod"></td>
-</tr></table>.
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="darkcyan" width="10px" title="darkcyan"></td>
+<td bgcolor="white" width="10px" title="white"></td>
+<td bgcolor="darkgoldenrod" width="10px" title="darkgoldenrod"></td>
+</tr></tbody></table>.
 Different options for the functional form of the calculation and the coloring 
 scheme are available with the <a href="../commands/mlp.html"><b>mlp</b></a>
 command.
@@ -608,8 +592,7 @@ in the <a href="../tools/modelpanel.html"><b>Model Panel</b></a>
 (lower right side of the ChimeraX window) shows that there are 
 separate models for the surfaces of chain A and chain B.
 You can hide/show them individually with the checkboxes under the eye icon
-&nbsp;<img class="iconbar" src="../tools/ui-icons/shown.png" title="eye icon" 
-alt="eye icon">.
+&nbsp;<img class="iconbar" src="../tools/ui-icons/shown.png" title="eye icon" alt="eye icon">.
 </p><p>
 When finished viewing this pocket, close the structure:
 </p>
@@ -620,7 +603,7 @@ When finished viewing this pocket, close the structure:
 Coloring by lipophilicity is also used to identify or
 highlight membrane-embedded regions.
 Optionally, try using the icon 
-<img class="iconbar" src="../tools/shortcut-icons/hydrophobicity.png">
+<img class="iconbar" src="../tools/shortcut-icons/hydrophobicity.png" alt="computer generated image">
 or the command <a href="../commands/mlp.html"><b>mlp</b></a> 
 on a transmembrane protein (many examples:
 <a href="https://www.rcsb.org/structure/1PHO" target="_blank">1pho</a>,
@@ -635,24 +618,22 @@ where a protein sits in the membrane. For example:
 <i>Command</i>:&nbsp;<b><a href="cxcmd:mlp">mlp</a></b>
 </blockquote>
 <table class="clRight">
-<tr><th>4xt3: MLP vs. Kyte-Doolittle coloring</th></tr>
+<tbody><tr><th>4xt3: MLP vs. Kyte-Doolittle coloring</th></tr>
 <tr><td>
-<img class="outline" src="bind4.png" alt="4xt3 MLP vs. kdHydrophobicity" 
-width="250px">
+<img class="outline" src="bind4.png" alt="4xt3 MLP vs. kdHydrophobicity" width="250px">
 </td></tr>
-</table>
+</tbody></table>
 <p>
 An alternative to calculating the MLP is to use a constant lookup value for 
 each type of amino acid residue. 
 A ChimeraX command script to assign Kyte-Doolittle hydrophobicity values
 and color the protein surface from <b>dodger blue</b> for the most
 hydrophilic through <b>white</b> to <b>orange red</b> for the most hydrophobic
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=dodgerblue width="10px" title="dodgerblue"></td>
-<td bgcolor=white width="10px" title="white"></td>
-<td bgcolor=orangered width="10px" title="orangered"></td>
-</tr></table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="dodgerblue" width="10px" title="dodgerblue"></td>
+<td bgcolor="white" width="10px" title="white"></td>
+<td bgcolor="orangered" width="10px" title="orangered"></td>
+</tr></tbody></table>
 is provided here:
 <a href="https://www.rbvi.ucsf.edu/chimerax/docs/user/kyte-doolittle_hydrophobicity.cxc">kyte-doolittle_hydrophobicity.cxc</a>. 
 Saving the file as plain text and opening it in ChimeraX 
@@ -679,14 +660,12 @@ If any structures are open, close them:
 <h3><a href="#top" class="nounder">&larr;</a>
 Coloring a Clipped Surface</h3>
 <table class="clRight">
-<tr><td>
-<img class="outline" src="mlpclip.png" alt="clipped surface colored by MLP" 
-width="220px">
+<tbody><tr><td>
+<img class="outline" src="mlpclip.png" alt="clipped surface colored by MLP" width="220px">
 </td></tr>
-</table>
+</tbody></table>
 <p>
-The protein in structure <a href="https://www.rcsb.org/structure/1G74"
-target="_blank">1g74</a> has an oleic acid residue <b>OLA</b> in an
+The protein in structure <a href="https://www.rcsb.org/structure/1G74" target="_blank">1g74</a> has an oleic acid residue <b>OLA</b> in an
 interior pocket. 
 The following commands open the structure (model #1), show its
 <a href="../commands/surface.html">molecular surface</a> (model #1.1),
@@ -720,9 +699,9 @@ the carbon atoms in oleic acid green:
 The clipping plane can be translated and rotated
 interactively <a href="../commands/ui.html#mousemode">with the mouse</a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
-<img class="icon" border=1 src="../tools/mouse-icons/clip.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/clip.png" alt="computer generated image"></a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
-<img class="icon" border=1 src="../tools/mouse-icons/cliprot.png"></a>.
+<img class="icon" border="1" src="../tools/mouse-icons/cliprot.png" alt="computer generated image"></a>.
 </p><p>
 Color the molecular surface by
 <a href="../commands/mlp.html">molecular lipophilicity potential</a> (MLP).
@@ -746,7 +725,7 @@ The cap can be made transparent with another command, for example:
 Analogously, to color the surface cap by 
 <a href="../commands/coulombic.html">Coulombic electrostatic potential</a>
 (more about electrostatic potential in the <a href="#esp">next section</a>): 
-</p>
+<p></p>
 <blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein">coulombic protein</a></b>
 <br>
@@ -778,19 +757,18 @@ a separate calculation.
 Open an assembly of
 <a href="https://www.rcsb.org/structure/3D6Y" target="_blank">3d6y</a>,
 the bacterial gene regulator BmrR:
-<blockquote>
+</p><blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:open 3d6y from rcsb_bio maxAssemblies 1">open 3d6y from rcsb_bio maxAssemblies 1</a></b>
 </blockquote>
 <table class="clRight">
-<tr><td>
+<tbody><tr><td>
 <img class="outline" src="bind5.png" alt="3d6y assembly" width="300px">
 </td></tr>
-</table>
+</tbody></table>
 <p>
 BmrR regulates multidrug resistance. In this structure, it is bound to DNA 
 and the positively charged alkaloid
-<a href="https://en.wikipedia.org/wiki/Berberine"
-target="_blank">berberine</a>. The <b>Non-standard residues</b> table 
+<a href="https://en.wikipedia.org/wiki/Berberine" target="_blank">berberine</a>. The <b>Non-standard residues</b> table 
 in the <b>Log</b> lists berberine and glycerol; click the residue names
 <b>BER</b> and <b>GOL</b> to see where they are in the structure.
 Hide glycerol, water, and protein atoms: 
@@ -819,19 +797,18 @@ and colors them by Coulombic ESP calculated on the fly:
 <p>
 The default color scheme is red for negative potential, white at zero,
 and blue for positive:
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=red width="10px" title="red"></td>
-<td bgcolor=white width="10px" title="white"></td>
-<td bgcolor=blue width="10px" title="blue"></td>
-</tr></table>.
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="red" width="10px" title="red"></td>
+<td bgcolor="white" width="10px" title="white"></td>
+<td bgcolor="blue" width="10px" title="blue"></td>
+</tr></tbody></table>.
 There are positive patches for binding the negatively charged DNA, 
 and a deep pocket of negative potential for binding 
 the positively charged small molecule berberine.
 </p><p>
 The <a href="../tools/moldisplay.html"><b>Molecule Display</b></a> tab
 of the <a href="../tools/toolbar.html"><b>Toolbar</b></a>
-includes an <img class="iconbar" src="../tools/shortcut-icons/esp.png">
+includes an <img class="iconbar" src="../tools/shortcut-icons/esp.png" alt="computer generated image">
 icon for Coulombic coloring,
 but it will also apply to the DNA unless protein (only) is 
 <a href="../selection.html">selected</a> before the icon is clicked.
@@ -840,13 +817,12 @@ The remaining commands in this section are just examples of display settings
 that might be useful for figures. 
 </p><p>
 The nucleotides are color-coded by base type:
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr style="line-height:8px">
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr style="line-height:8px">
 <td style="background:#ff4040;color:white">A</td>
 <td style="background:#4040ff;color:white">T</td>
 <td style="background:#40ff40;color:black">G</td>
 <td style="background:#ffff40;color:black">C</td>
-</tr></table>.
+</tr></tbody></table>.
 Make them a single color instead, so as not to distract from the surface 
 coloring. You can also change the DNA ribbon to a tube shape
 and show nucleotide sidechains as stubs (broken ladder rungs): 
@@ -860,7 +836,7 @@ and show nucleotide sidechains as stubs (broken ladder rungs):
 </blockquote>
 <p>
 The nucleotide change to stubs can also be done by clicking
-<img class="iconbar" src="../tools/nuc-icons/nuc-stubs.png">
+<img class="iconbar" src="../tools/nuc-icons/nuc-stubs.png" alt="computer generated image">
 in the <a href="../tools/nucdisplay.html"><b>Nucleotides</b></a> tab
 of the <a href="../tools/toolbar.html"><b>Toolbar</b></a>.
 </p><p>
@@ -878,25 +854,24 @@ of the <a href="../tools/toolbar.html"><b>Toolbar</b></a> to:
 </p>
 <ul>
 <li>change the background color
-<img class="iconbar" src="../tools/shortcut-icons/whitebg.png">
-<img class="iconbar" src="../tools/shortcut-icons/graybg.png">
-<img class="iconbar" src="../tools/shortcut-icons/blackbg.png">
-<li>toggle silhouettes
-<img class="iconbar" src="../tools/shortcut-icons/silhouette.png">
+<img class="iconbar" src="../tools/shortcut-icons/whitebg.png" alt="computer generated image">
+<img class="iconbar" src="../tools/shortcut-icons/graybg.png" alt="computer generated image">
+<img class="iconbar" src="../tools/shortcut-icons/blackbg.png" alt="computer generated image">
+</li><li>toggle silhouettes
+<img class="iconbar" src="../tools/shortcut-icons/silhouette.png" alt="computer generated image">
 or shadows
-<img class="iconbar" src="../tools/shortcut-icons/shadow.png">
-<li>try different lighting modes
-<img class="iconbar" src="../tools/shortcut-icons/simplelight.png">
-<img class="iconbar" src="../tools/shortcut-icons/softlight.png">
-<img class="iconbar" src="../tools/shortcut-icons/fulllight.png">
-<img class="iconbar" src="../tools/shortcut-icons/flat.png">
-</ul>
+<img class="iconbar" src="../tools/shortcut-icons/shadow.png" alt="computer generated image">
+</li><li>try different lighting modes
+<img class="iconbar" src="../tools/shortcut-icons/simplelight.png" alt="computer generated image">
+<img class="iconbar" src="../tools/shortcut-icons/softlight.png" alt="computer generated image">
+<img class="iconbar" src="../tools/shortcut-icons/fulllight.png" alt="computer generated image">
+<img class="iconbar" src="../tools/shortcut-icons/flat.png" alt="computer generated image">
+</li></ul>
 <table class="clRight">
-<tr><td>
-<img class="outline" src="bind6.png" alt="Coulombic ESP flat lighting" 
-width="300px">
+<tbody><tr><td>
+<img class="outline" src="bind6.png" alt="Coulombic ESP flat lighting" width="300px">
 </td></tr>
-</table>
+</tbody></table>
 <a name="key"></a>
 <h4><a href="#esp" class="nounder">&larr;</a>
 Color Key and 2D Label</h4>
@@ -909,7 +884,7 @@ sizes and positions will need to be adjusted to fit the image layout.
 A color key can be added with the 
 <b>key</b> option of the coloring command, in this case,
 <a href="../commands/coulombic.html"><b>coulombic</b></a>:
-<blockquote>
+</p><blockquote>
 <i>Command</i>:&nbsp;<b><a href="cxcmd:coulombic protein key true">coulombic protein key true</a></b>
 </blockquote>
 <p>
@@ -934,9 +909,9 @@ a text label can be added with a command, for example:
 with the <b>move label</b> mouse mode:
 in the <a href="../tools/mousemodes.html"><b>Right Mouse</b></a> tab
 of the <a href="../tools/toolbar.html"><b>Toolbar</b></a>, click the icon 
-<img class="icon" border=1 src="../tools/mouse-icons/movelabel.png">
+<img class="icon" border="1" src="../tools/mouse-icons/movelabel.png" alt="computer generated image">
 and then use the right mouse button or trackpad + <b>Alt</b> on Windows,
-trackpad + <img src="../icon-clover.png" width="12px"> on Mac to drag the label.
+trackpad + <img src="../icon-clover.png" width="12px" alt="computer generated image"> on Mac to drag the label.
 </p><p>
 Although it is usually most convenient 
 to position the key and label interactively as described above, 
@@ -965,4 +940,5 @@ To quit from ChimeraX, just close its main window or use a command:
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 January 2022</address>
+
 </body></html>

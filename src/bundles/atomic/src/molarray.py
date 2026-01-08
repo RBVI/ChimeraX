@@ -122,7 +122,7 @@ class Collection(State):
             # presume iterable of objects of the object_class
             try:
                 pointers = numpy.array([i._c_pointer.value for i in items], cptr)
-            except Exception:
+            except TypeError:
                 t = str(type(items))
                 if isinstance(items, numpy.ndarray):
                     t += ' type %s' % str(items.dtype)
@@ -135,6 +135,8 @@ class Collection(State):
 
     def __eq__(self, items):
         if not isinstance(items, Collection):
+            if isinstance(items, self._object_class):
+                return self._pointers == items._c_pointer.value
             return False
         import numpy
         return numpy.array_equal(items._pointers, self._pointers)
@@ -281,12 +283,8 @@ class Collection(State):
         return [self._object_class.c_ptr_to_existing_py_inst(p) for p in self._pointers]
     STATE_VERSION = 1
     def take_snapshot(self, session, flags):
-        if flags == State.SCENE:
-            # Scene implementation
-            return {'version': self.STATE_VERSION}
-        else:
-            return {'version': self.STATE_VERSION,
-                    'pointers': self.session_save_pointers(session)}
+        return {'version': self.STATE_VERSION,
+                'pointers': self.session_save_pointers(session)}
     @classmethod
     def restore_snapshot(cls, session, data):
         if data['version'] > cls.STATE_VERSION:
@@ -295,13 +293,6 @@ class Collection(State):
                              " update your ChimeraX".format(data['version'], self.STATE_VERSION))
         c_pointers = cls.session_restore_pointers(session, data['pointers'])
         return cls(c_pointers)
-
-    def restore_scene(self, scene_data):
-        """
-        Implement Scene interface.  Restore the collection from the scene data.
-        """
-        if scene_data['version'] != self.STATE_VERSION:
-            raise ValueError(f"Don't know how to restore Collections from scene version {self.STATE_VERSION}")
 
     @classmethod
     def session_restore_pointers(cls, session, data):
@@ -903,28 +894,6 @@ class Atoms(Collection):
         atom_ids = [s.session_atom_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
         return [structures, array(atom_ids)]
 
-    def take_snapshot(self, session, flags):
-        # Scene implementation
-        if flags == State.SCENE:
-            scene_data = {}
-            scene_data['collection state'] = Collection.take_snapshot(self, session, flags)
-            scene_attrs = ['colors', 'coords', 'displays', 'selected']
-            for attr in scene_attrs:
-                if hasattr(self, attr):
-                    scene_data[attr] = getattr(self, attr)
-            return scene_data
-        else:
-            return super().take_snapshot(session, flags)
-
-    def restore_scene(self, scene_data):
-        """
-        Implementaiton of Scene interface
-        """
-        Collection.restore_scene(self, scene_data['collection state'])
-        for attr, value in scene_data.items():
-            if hasattr(self, attr):
-                setattr(self, attr, value)
-
 # -----------------------------------------------------------------------------
 #
 class Bonds(Collection):
@@ -1051,27 +1020,6 @@ class Bonds(Collection):
         structures = self.structures
         bond_ids = [s.session_bond_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
         return [structures, array(bond_ids)]
-
-    def take_snapshot(self, session, flags):
-        # Implementation of Scene interface
-        if flags == State.SCENE:
-            scene_data = {}
-            scene_data['collection state'] = Collection.take_snapshot(self, session, flags)
-            save_attrs = ['colors', 'displays', 'halfbonds', 'selected']
-            for attr in save_attrs:
-                scene_data[attr] = getattr(self, attr)
-            return scene_data
-        else:
-            return super().take_snapshot(session, flags)
-
-    def restore_scene(self, scene_data):
-        """
-        Implementation of Scene interface
-        """
-        Collection.restore_scene(self, scene_data['collection state'])
-        for attr, value in scene_data.items():
-            if hasattr(self, attr):
-                setattr(self, attr, value)
 
 # -----------------------------------------------------------------------------
 #
@@ -1499,27 +1447,6 @@ class Residues(Collection):
         structures = self.structures
         residue_ids = [s.session_residue_to_id(ptr) for s, ptr in zip(structures, self._c_pointers)]
         return [structures, array(residue_ids)]
-
-    def take_snapshot(self, session, flags):
-        # Implementation of Scene interface
-        if flags == State.SCENE:
-            scene_data = {}
-            scene_data['collection state'] = Collection.take_snapshot(self, session, flags)
-            save_attrs = ['ribbon_colors', 'ribbon_displays', 'ring_colors', 'ring_displays']
-            for attr in save_attrs:
-                scene_data[attr] = getattr(self, attr)
-            return scene_data
-        else:
-            return super().take_snapshot(session, flags)
-
-    def restore_scene(self, scene_data):
-        """
-        Implementation of Scene interface
-        """
-        Collection.restore_scene(self, scene_data['collection state'])
-        for attr, value in scene_data.items():
-            if hasattr(self, attr):
-                setattr(self, attr, value)
 
 # -----------------------------------------------------------------------------
 #

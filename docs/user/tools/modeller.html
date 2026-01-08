@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Modeller Comparative</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Modeller Comparative</h3>
 <p>
@@ -39,7 +34,7 @@ See also:
 <a href="alphafold.html"><b>AlphaFold</b></a>,
 <a href="boltz.html"><b>Boltz</b></a>,
 <a href="esmfold.html"><b>ESMFold</b></a>,
-<a href="taskmanager.html"><b>Task Manager</b></a>,
+<a href="taskmanager.html"><b>Task Manager</b></a>
 </p><p>
 Comparative modeling (sometimes called &ldquo;homology modeling&rdquo;)
 generates theoretical models of a protein using one or more known related 
@@ -64,22 +59,22 @@ Modeller comparative modeling requires the following for each target chain:
 <li>At least one template structure.
 <!-- apparently they do not need to be superimposed -->
 <blockquote>
-<table cellpadding="10px"><tr>
+<table cellpadding="10px"><tbody><tr>
 <td class="shaded">
 Modeling a multimer requires a multimeric template structure
 with the same stoichiometry and expected spatial relationship.
 Modeller uses this stoichiometry and spatial relationship rather
 than trying to calculate it.
-</td></tr></table>
+</td></tr></tbody></table>
 </blockquote>
 <br>
-<li>A sequence alignment that includes the sequence of the target;
+</li><li>A sequence alignment that includes the sequence of the target;
 other sequences may also be included. 
 The sequence alignment and template structure(s) should be open in ChimeraX
 and the template(s) <a href="sequenceviewer.html#association">associated</a>
 with sequence(s) in the alignment.
 <blockquote>
-<table cellpadding="10px"><tr>
+<table cellpadding="10px"><tbody><tr>
 <td class="shaded">
 The target sequence can be 
 <a href="../commands/open.html#fetch">fetched</a>
@@ -89,8 +84,7 @@ That single sequence suffices as the
 &ldquo;alignment&rdquo; if the template is similar enough in
 sequence to <a href="sequenceviewer.html#association">associate</a> with it
 (see an
-<a href="https://www.rbvi.ucsf.edu/chimerax/features.html#multichain-modeller"
-target="_blank">example</a>).
+<a href="https://www.rbvi.ucsf.edu/chimerax/features.html#multichain-modeller" target="_blank">example</a>).
 Otherwise, it can be used as a query to search the PDB for possible template 
 structures using <a href="blastprotein.html"><b>Blast Protein</b></a>
 (which can be started from the 
@@ -98,10 +92,10 @@ structures using <a href="blastprotein.html"><b>Blast Protein</b></a>
 Alternatively, a multiple sequence alignment of the target and template(s)
 can simply be opened from a <a href="../commands/open.html#sequence">file</a>,
 if available.
-</td></tr></table>
+</td></tr></tbody></table>
 </blockquote>
 <blockquote>
-<table cellpadding="10px"><tr>
+<table cellpadding="10px"><tbody><tr>
 <td class="shaded">
 Modeling a heteromultimer requires a separate sequence alignment
 for each unique chain. For example, modeling  an
@@ -113,21 +107,19 @@ with one alignment containing the target &alpha; sequence,
 and its two &beta; subunits 
 <a href="sequenceviewer.html#association">associated</a>
 with another alignment containing the target &beta; sequence.
-</td></tr></table>
+</td></tr></tbody></table>
 </blockquote>
-<li><a name="key"></a>
+</li><li><a name="key"></a>
 <!-- 
 Use of Modeller, whether a previously
 <a href="https://www.salilab.org/modeller/download_installation.html"
 target="_blank">downloaded</a> copy or via web service, requires
 -->
 A Modeller <b><i>license key</i></b>.
-Academic users can <a href="https://www.salilab.org/modeller/registration.html"
-target="_blank">register</a> free of charge to receive a license key.
+Academic users can <a href="https://www.salilab.org/modeller/registration.html" target="_blank">register</a> free of charge to receive a license key.
 Commercial entities and government research labs, please see
-<a href="https://www.salilab.org/modeller/accelrys.html"
-target="_blank">Modeller licensing</a>.
-</ol>
+<a href="https://www.salilab.org/modeller/accelrys.html" target="_blank">Modeller licensing</a>.
+</li></ol>
 
 <a name="input"></a>
 <p class="nav">
@@ -156,28 +148,27 @@ for example, if the template structure is a homotrimer, whether to model
 the target as a homotrimer instead of as a monomer with three templates
 <!-- if multiple templates, will give the highest multimer, e.g. dimer if
 one template is dimer and the other is monomer -->
-<li><b>Modeller license key</b>
+</li><li><b>Modeller license key</b>
 &ndash; see <a href="#key">above</a>
-<li><b>Number of models</b> (initial default <b>5</b>, maximum 1000)
+</li><li><b>Number of models</b> (initial default <b>5</b>, maximum 1000)
 &ndash; number of models to create
-<li><b>Computation location</b>
+</li><li><b>Computation location</b>
   <ul>
   <li><b>web service</b> (initial default)
 &ndash; run the Modeller web service hosted by the
-<a href="https://rbvi.cgl.ucsf.edu/Overview/index.html"
-target="_blank">UCSF RBVI</a>; the user must provide:
+<a href="https://rbvi.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF RBVI</a>; the user must provide:
     <ul>
     <li><b>Modeller license key</b> &ndash; see <a href="#key">above</a>
-    </ul>
-  <li><b>local machine</b>
+    </li></ul>
+  </li><li><b>local machine</b>
 &ndash; run a local installation of Modeller;
 the user must install Modeller version 10 or newer, then provide:
     <ul>
-    <li><b>Executable location</b></a>
+    <li><b>Executable location</b>
 &ndash; the pathname of the Modeller executable
-    </ul>
-  </ul>
-</ul>
+    </li></ul>
+  </li></ul>
+</li></ul>
 <p>
 <b>Advanced</b> settings:
 </p>
@@ -185,29 +176,29 @@ the user must install Modeller version 10 or newer, then provide:
 <li><b>Build models with hydrogens</b>
 (initial default <b>off</b>) 
 &ndash; whether to include hydrogen atoms in the output models; warning: slow
-<li><b>Include non-water HETATM residues from template</b>
+</li><li><b>Include non-water HETATM residues from template</b>
 (initial default <b>off</b>)
 &ndash; whether to include HETATM residues other than water (ligands, ions,
 detergent, <i>etc.</i>) from templates in the output models.
 Any such residues not desired in the output should be
 <a href="../commands/delete.html">deleted</a> from the template(s) beforehand
 if the option is turned on.
-<li><b>Include water molecules from template</b>
+</li><li><b>Include water molecules from template</b>
 (initial default <b>off</b>)
 &ndash; whether to include water residues from templates in the output models.
 Any water residues not desired in the output should be
 <a href="../commands/delete.html">deleted</a> from the template(s) beforehand
 if the option is turned on.
-<li><b>Temporary folder location (optional)</b>
+</li><li><b>Temporary folder location (optional)</b>
 &ndash; use the specified location for temporary files; 
 otherwise, a location will be generated automatically
-<li><b>Use fast/approximate mode (produces only one model)</b>
+</li><li><b>Use fast/approximate mode (produces only one model)</b>
 (initial default <b>off</b>)
 &ndash; use fast/approximate mode (~3 times faster) to get a rough idea of
 model appearance or to confirm that the alignment is reasonable.
 This mode does not randomize the starting structure (generates only a
 single model) and performs very little optimization of the target function.
-</ul>
+</li></ul>
 <p>
 <b>Modeller Comparative</b> settings including the 
 <a href="#key">license key</a> are automatically saved in the
@@ -235,9 +226,8 @@ Scores for the models are shown in a <b>Modeller Results</b> panel:
 </p>
 <ul>
 <li><b>Model</b> &ndash; model ID number
-<li>
-<a href="https://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#model_score"
-target="_blank"><b>GA341</b></a> &ndash;
+</li><li>
+<a href="https://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#model_score" target="_blank"><b>GA341</b></a> &ndash;
 model score derived from statistical potentials
 (see
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/11790853" target="_blank">Melo
@@ -245,12 +235,10 @@ model score derived from statistical potentials
 automatically assigned as a model <a href="../attributes.html">attribute</a>
 named <b>modeller_GA341</b>.
 Higher values signify better models, with those &gt; 0.7 generally indicating a
-<a href="https://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#reliablemodel"
-target="_blank">reliable model</a>,
+<a href="https://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#reliablemodel" target="_blank">reliable model</a>,
 defined as &ge; 95% probability of correct fold.
-<li>
-<a href="https://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#dope"
-target="_blank"><b>zDOPE</b></a>
+</li><li>
+<a href="https://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#dope" target="_blank"><b>zDOPE</b></a>
 &ndash; normalized Discrete Optimized Protein Energy (DOPE), an
 atomic distance-dependent statistical score (see
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/17075131" target="_blank">Shen
@@ -258,9 +246,8 @@ and Sali</a>, <i>Protein Sci</i> <b>15</b>:2507 (2006)),
 automatically assigned as a model <a href="../attributes.html">attribute</a>
 named <b>modeller_zDOPE</b>.
 Lower values signify better models, with those &lt; 0 generally indicating a
-<a href="https://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#reliablemodel"
-target="_blank">reliable model</a>.
-</ul>
+<a href="https://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#reliablemodel" target="_blank">reliable model</a>.
+</li></ul>
 <p>
 Clicking a row in the panel shows the corresponding model and hides the others.
 Clicking elsewhere in the panel shows all of the models at once. 
@@ -268,15 +255,13 @@ Clicking a column header sorts on the values in that column.
 </p><p>
 The panel's <a href="../window.html#context-menu">context menu</a>
 includes an option to <b>Fetch Additional Scores</b> using the
-<a href="https://modbase.compbio.ucsf.edu/evaluation/"
-target="_blank">SaliLab Model Evaluation Server</a>:
-<ul>
+<a href="https://modbase.compbio.ucsf.edu/evaluation/" target="_blank">SaliLab Model Evaluation Server</a>:
+</p><ul>
 <li>
 <b>GA341</b> and <b>zDOPE</b> (described above), if missing for any models
-<li>
+</li><li>
 <b>predicted NO35</b> &ndash;
-<a href="https://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#tsvmod"
-target="_blank">TSVMod</a>-predicted native overlap (3.5 &Aring;),
+<a href="https://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#tsvmod" target="_blank">TSVMod</a>-predicted native overlap (3.5 &Aring;),
 the fraction of C&alpha; atoms in the model within 3.5 &Aring;
 of the corresponding atoms in the native structure after rigid-body
 superposition (see
@@ -284,16 +269,15 @@ superposition (see
 <i>et al.</i></a>, <i>Protein Sci</i> <b>17</b>:1881 (2008));
 automatically assigned as a model <a href="../attributes.html">attribute</a>
 named <b>modeller_predicted_NO35</b>.
-<li>
+</li><li>
 <b>predicted RMSD</b> &ndash;
-<a href="https://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#tsvmod"
-target="_blank">TSVMod</a>-predicted C&alpha; root-mean-square deviation (RMSD)
+<a href="https://modbase.compbio.ucsf.edu/modbase-cgi/display.cgi?type=help&server=modbase#tsvmod" target="_blank">TSVMod</a>-predicted C&alpha; root-mean-square deviation (RMSD)
 of the model from the native structure (see
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/18832340" target="_blank">Eramian
 <i>et al.</i></a>, <i>Protein Sci</i> <b>17</b>:1881 (2008));
 automatically assigned as a model <a href="../attributes.html">attribute</a>
 named <b>modeller_predicted_RMSD</b>.
-</ul>
+</li></ul>
 <p>
 The same <a href="#key">Modeller license key</a> as needed for 
 comparative or loop modeling is also required by the evaluation server, 
@@ -313,4 +297,5 @@ after making modifications that are expected to improve the scores.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 May 2025</address>
+
 </body></html>

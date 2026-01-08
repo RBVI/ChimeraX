@@ -8,22 +8,28 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+"""
+Generate license informatin for embedded packages
+"""
 
-import sys
 import copy
 from html import escape
 import os
 import pathlib
+import platform
+import importlib
 import importlib.metadata
+import re
 import shutil
+import subprocess
 
-ffmpeg_doc = """
+FFMPEG_DOC = """
 <p>
-<dt><a href="https://ffmpeg.org/" target="_blank"> FFmpeg </a> version 3.2.4
+<dt><a href="https://ffmpeg.org/" target="_blank"> FFmpeg </a> version VERSION
 <dd>&ldquo;A complete, cross-platform solution to record, convert and stream audio and video.&rdquo;
 <br>
 License: <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU General Public License v3</a><br>
-Embedded licenses: <a href="licenses/ffmpeg/index.html" target="_blank">FFmpeg embedded licences</a>
+Embedded licenses: <a href="licenses/ffmpeg-LICENSE.html" target="_blank">FFmpeg embedded licences</a>
 <p>
 FFmpeg is bundled as a convenience for users of ChimeraX.
 It is a separate product,
@@ -33,7 +39,7 @@ See the <a href="https://www.gnu.org/licenses/gpl-faq.html" target="_blank">GPL 
 It can be found in the <code>bin</code> directory.
 """
 
-openmm_doc = """
+OPENMM_DOC = """
 <p>
 <dt><a href="https://openmm.org/" target="_blank">OpenMM</a> version 7.3.0
 <dd>
@@ -56,7 +62,7 @@ def get_packages_info():
     # based on https://stackoverflow.com/questions/19086030/can-pip-or-setuptools-distribute-etc-list-the-license-used-by-each-install
     # updated for Python3 and modified for use in ChimeraX
 
-    KEY_MAP = {
+    key_map = {
         "Name": 'name',
         "Version": 'version',
         "License": 'license',
@@ -64,7 +70,7 @@ def get_packages_info():
         "Home-page": 'homepage',
     }
     empty_info = {}
-    for key, name in KEY_MAP.items():
+    for key, name in key_map.items():
         empty_info[name] = ""
 
     infos = []
@@ -75,8 +81,8 @@ def get_packages_info():
         classifier_licenses = []
         for key, value in pkg.metadata.items():
             value = value.strip()
-            if key in KEY_MAP:
-                info[KEY_MAP[key]] = value
+            if key in key_map:
+                info[key_map[key]] = value
             elif key == 'Classifier':
                 category, text = value.split('::', 1)
                 category = category.strip()
@@ -102,9 +108,7 @@ def get_packages_info():
 
 
 def find_license_file(pkg):
-    # return absolute path to a file with the license for a package if found
-    import os
-    import re
+    """Get absolute path to a file with the license for a package if found"""
 
     license_re = re.compile('^(LICENSE|COPYING)')
     license_files = []
@@ -114,7 +118,7 @@ def find_license_file(pkg):
         if not path.parts[0].endswith("-info"):
             continue
         if path.name == "top_level.txt":
-            with open(pkg.locate_file(path), 'rt') as f:
+            with open(pkg.locate_file(path), 'rt', encoding='utf-8') as f:
                 top_levels = [x.strip() for x in f.readlines()]
         elif path.name == 'licenses':
             entry = pkg.locate_file(path)
@@ -133,11 +137,10 @@ def find_license_file(pkg):
 
     # scan modules provided by egg/wheel for a license
     if not license_files and top_levels:
-        import importlib
         for t in top_levels:
             try:
                 m = importlib.import_module(t)
-            except Exception:
+            except (ImportError, ValueError):
                 continue
             if not hasattr(m, '__path__'):
                 continue
@@ -151,6 +154,7 @@ def find_license_file(pkg):
 
 
 def html4_id(name):
+    """"Return HMTL4 version of package name"""
     # must match [A-Za-z][-A-Za-z0-9_:.]*
     # Python package names must start with letter, so don't check
     def cvt(c):
@@ -161,145 +165,104 @@ def html4_id(name):
 
 
 def print_pkgs(infos, out):
+    """Output package information"""
     ids = [html4_id(info['name']) for info in infos]
     print('<p>Packages:', file=out)
     sep = ' '
     for info, id in zip(infos, ids):
-        print('%s<a href="#%s">%s</a>' % (sep, id, info['name']), end='', file=out)
+        print(f'{sep}<a href="#{id}">{info["name"]}</a>', end='', file=out)
         sep = ', '
     print('.', file=out)
     print('<dl>', file=out)
     for info, id in zip(infos, ids):
-        print('<dt><a href="%s" id="%s" target="_blank">%s</a> version %s' % (
-            escape(info['homepage']),
-            id,
-            escape(info['name']),
-            escape(info['version'])), file=out)
-        print('<dd>%s<br>' % escape(info['summary']), file=out)
+        print(f'<dt><a href="{escape(info["homepage"])}" id="{id}" target="_blank">{escape(info["name"])}</a> version {escape(info["version"])}', file=out)
+        print(f'<dd>{escape(info["summary"])}<br>', file=out)
         license = info['license']
         if license:
             lf = info['license-file']
             if not lf:
-                print('License type: %s' % escape(license), file=out)
+                print(f'License type: {escape(license)}', file=out)
             else:
-                fn = 'licenses/%s-%s' % (id, os.path.basename(lf))
+                fn = f'licenses/{id}-{os.path.basename(lf)}'
                 if not os.path.splitext(fn)[1]:
                     fn += '.txt'
                 shutil.copyfile(lf, fn)
-                print('License type: <a href="%s">%s</a>' % (fn, escape(license)), file=out)
+                print(f'License type: <a href="{fn}">{escape(license)}</a>', file=out)
     print('</dl>', file=out)
 
 
-def extract_version(srcdir, var_name):
-    makefile = os.path.join(srcdir, 'Makefile')
-    version_str = f"{var_name} ="
-    with open(makefile) as f:
-        # var_name = 7.3.0
-        for line in f.readlines():
-            if line.startswith(version_str):
-                version = line.split()[2]
-                break
-        else:
-            return None
-        return version
+def get_ffmpeg_version():
+    """Get installed ffpeg's version"""
+    try:
+        output = subprocess.check_output(
+            ["../ChimeraX.app/bin/ffmpeg", "-version"],
+            encoding='utf-8',
+            env={'LANG': 'en_US.UTF-8'}
+        )
+    except (subprocess.SubprocessError, FileNotFoundError):
+        return None
+    first_line = output.split('\n', maxsplit=1)[0].split()
+    if first_line[0:2] != ['ffmpeg', 'version']:
+        return None
+    return first_line[2]
 
 
 def ffmpeg_licenses():
-    ffmpeg_srcdir = pathlib.Path('..', 'prereqs', 'ffmpeg')
-    version = extract_version(ffmpeg_srcdir, "FFMPEG_VERSION")
-    if version is None:
-        print('Unable to find openmm version')
-        return
-    import zipfile
-    windist_dir = 'ffmpeg-%s-win64-static' % version
-    zip_filename = os.path.join(ffmpeg_srcdir, '%s.zip' % windist_dir)
-    with zipfile.ZipFile(zip_filename) as zf:
-        out_dir = os.path.join('licenses', 'ffmpeg')
-        out_filename = os.path.join(out_dir, 'index.html')
-        license_prefix = '%s/licenses/' % windist_dir
-        licenses = [n for n in zf.namelist() if n.startswith(license_prefix)]
-        licenses.sort()
-        zf.extractall(path=out_dir, members=licenses)
-        with open(out_filename, 'w') as f:
-            print("""<html>
- <head>
-  <title> FFmpeg Embedded Licenses </title>
- </head
- <body>
- The FFmpeg binary incorporates some or all of the following libraries and their licenses:
-  <ul>
-""", file=f)
-            for n in licenses:
-                bn = os.path.basename(n)
-                if not bn:
-                    continue
-                library = os.path.splitext(bn)[0]
-                print('<li> <a href="%s">%s</a>' % (n, library), file=f)
-            print("""
-  </ul>
- </body>
-</html>
-""", file=f)
+    """Get ffpmeg licences"""
+    import markdown
+    license_file = pathlib.Path('..', 'prereqs', 'ffmpeg', 'LICENSE.md')
+    header = '<html lang="en"><head><title>FFmpeg License</title></head><body>\n'
+    footer = '</body></html>'
+    try:
+        with open(license_file, 'r', encoding='utf-8') as f:
+            license = f.read()
+        html = markdown.markdown(license)
+    except FileNotFoundError:
+        html = "FFmpeg licenses not found"
+    with open('licenses/ffmpeg-LICENSE.html', 'w', encoding='utf-8') as f:
+        f.write(header)
+        f.write(html)
+        f.write(footer)
 
 
-def openmm_licenses():
-    openmm_srcdir = pathlib.Path('..', 'prereqs', 'openmm')
-    version = extract_version(openmm_srcdir, "VERSION")
-    if version is None:
-        print('Unable to find openmm version')
-        return
-    import tarfile
-    # openmm-7.3.0-linux-py37_cuda92_rc_1.tar.bz2
-    tarfiles = openmm_srcdir.glob(f'openmm-{version}-*.tar*')
-    for filename in tarfiles:
-        # TODO: select tarfile for our platform
-        with tarfile.open(filename) as f:
-            try:
-                member = f.getmember("licenses/Licenses.txt")
-            except KeyError:
-                continue
-            licenses = f.extractfile(member)
-            content = licenses.read()
-            if not content:
-                continue
-            out_filename = pathlib.Path('licenses', 'openmm.txt')
-            with open(out_filename, 'wb') as out:
-                out.write(content)
-            break
+def write_embedded():
+    """Output embedded.html"""
+    infos = get_packages_info()
+    infos.sort(key=lambda info: info['name'].casefold())
 
+    ffmpeg_version = get_ffmpeg_version()
+    include_ffmpeg = ffmpeg_version is not None
+    # don't include openmm if it will be automatically included
+    include_openmm = not any(info['name'].casefold() == 'openmm' for info in infos)
 
-infos = get_packages_info()
-infos.sort(key=(lambda info: info['name'].casefold()))
+    os.makedirs('licenses', exist_ok=True)
 
-include_ffmpeg = 'ffmpeg' in sys.argv
-# don't include openmm if it will be automatically included
-include_openmm = not any(info['name'].casefold() == 'openmm' for info in infos)
+    with open('embedded.html.in', encoding='utf-8') as src:
+        with open('embedded.html', 'w', encoding='utf-8') as out:
+            for line in src.readlines():
+                if line == 'PYTHON_PKGS\n':
+                    print_pkgs(infos, out)
+                elif line == 'PYTHON_VERSION\n':
+                    print(platform.python_version(), file=out)
+                elif line == 'GENERATED\n':
+                    from chimerax.core import buildinfo
+                    system = platform.system()
+                    chver = buildinfo.version
+                    date = buildinfo.date
+                    msg = f"This information was generated from ChimeraX {chver} for {system} on {date}."
+                    print(msg, file=out)
+                elif line == '<!--ffmpeg-->\n':
+                    if include_ffmpeg:
+                        print(FFMPEG_DOC.replace("VERSION", ffmpeg_version), end='', file=out)
+                elif line == '<!--openmm-->\n':
+                    if include_openmm:
+                        print(OPENMM_DOC, end='', file=out)
+                else:
+                    print(line, end='', file=out)
 
-os.makedirs('licenses', exist_ok=True)
-
-with open('embedded.html.in') as src:
-    with open('embedded.html', 'w') as out:
-        for line in src.readlines():
-            if line == 'PYTHON_PKGS\n':
-                print_pkgs(infos, out)
-            elif line == '<!--ffmpeg-->\n':
-                if include_ffmpeg:
-                    print(ffmpeg_doc, end='', file=out)
-            elif line == '<!--openmm-->\n':
-                if include_openmm:
-                    print(openmm_doc, end='', file=out)
-            else:
-                print(line, end='', file=out)
-
-try:
     if include_ffmpeg:
         ffmpeg_licenses()
-except Exception:
-    pass
-try:
-    if include_openmm:
-        openmm_licenses()
-except Exception:
-    pass
 
-raise SystemExit(0)
+
+if __name__ == '__main__':
+    write_embedded()

@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: log</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: log</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -40,10 +35,10 @@ class="clRighticon" title="User Guide Index"/></a>
 [&nbsp;<b>warningDialog</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <p>
-The <b>log</b> command acts on the
-<a href="../tools/log.html"><b>Log</b></a>. 
+The <b>log</b> command acts on the <a href="../tools/log.html"><b>Log</b></a>.
+See the <a href="../tools/log.html"><b>Log</b> context menu</a>
+for associated <a href="../preferences.html#other">preferences</a>.
 See also:
-<a href="../preferences.html#log"><b>Log</b> preferences</a>,
 <a href="../tools/cli.html#history"><b>Command History</b></a>,
 <a href="../tools/helpviewer.html">ChimeraX browser</a>,
 <a href="usage.html"><b>usage</b></a>,
@@ -55,34 +50,35 @@ Options of the main <b>log</b> command add images and/or specified text:
 <li><b>thumbnail</b> - include a thumbnail image of the current display;
 pixel <b>width</b> and <b>height</b> can be specified
 (default <b>100</b> x <b>100</b>)
-<li><b>text</b> - echo the rest of the command (up to the next 
+</li><li><b>text</b> - echo the rest of the command (up to the next 
 carriage return or semicolon, including any spaces) in the 
 <a href="../tools/log.html"><b>Log</b></a>;
 must be the last option in the command
-<li><b>html</b> - render the rest of the command (up to the next 
+</li><li><b>html</b> - render the rest of the command (up to the next 
 carriage return or semicolon, including any spaces) as HTML in the 
 <a href="../tools/log.html"><b>Log</b></a>;
 must be the last option in the command, for example:
 <blockquote>
 <b>log thumb html &lt;b&gt;Toxin from &lt;i&gt;Bacillus thuringiensis&lt;/i&gt;&lt;/b&gt;</b>
 </blockquote>
-</ul>
+</li></ul>
 <p>
 Subcommands:
 </p>
 <ul>
 <li><b>log show</b> &ndash; open the <a href="../tools/log.html"><b>Log</b></a>
-<li><b>log hide</b> &ndash; close the <a href="../tools/log.html"><b>Log</b></a>
-<li><b>log clear</b> &ndash; clear the contents
-<li><b>log settings</b> &ndash; whether errors/warnings should raise dialogs 
-(in the current session; can be saved for later sessions in the
-<a href="../preferences.html#log"><b>Log</b> preferences</a>)
-<li><a href="#save"><b>log save</b></a> &ndash; save contents to an HTML file
-<li><a href="#metadata"><b>log metadata</b></a>
+</li><li><b>log hide</b> &ndash; close the <a href="../tools/log.html"><b>Log</b></a>
+</li><li><b>log clear</b> &ndash; clear the contents
+</li><li><b>log settings</b> &ndash; whether errors/warnings should raise dialogs 
+(in the current session; use the
+<a href="../tools/log.html"><b>Log</b> context menu</a>
+to save preferences for later sessions)
+</li><li><a href="#save"><b>log save</b></a> &ndash; save contents to an HTML file
+</li><li><a href="#metadata"><b>log metadata</b></a>
 &ndash; show metadata associated with a model (literature citation, <i>etc.</i>)
-<li><a href="#chains"><b>log chains</b></a>
+</li><li><a href="#chains"><b>log chains</b></a>
 &ndash; show an interactive table of the biopolymer chains in a model
-</ul>
+</li></ul>
 
 <a name="save"></a>
 <p class="nav">
@@ -129,8 +125,7 @@ The subcommand <b>log metadata</b> reports model metadata in the
 <a href="../tools/log.html"><b>Log</b></a>. 
 Metadata is associated information read from the input file, such as 
 literature citation, experimental method, resolution, and 
-associated cryo-electron microscopy map (<a href="https://www.ebi.ac.uk/emdb/"
-target="_blank">Electron Microscopy Data Bank</a> entry), if applicable.
+associated cryo-electron microscopy map (<a href="https://www.ebi.ac.uk/emdb/" target="_blank">Electron Microscopy Data Bank</a> entry), if applicable.
 Using <b>verbose true</b> shows all available information, sometimes the
 same as with <b>verbose false</b> (depending on what is available).
 Currently, metadata is read from the mmCIF and PDB 
@@ -142,11 +137,10 @@ biopolymer chains, in which:
   <ul>
   <li>clicking a chain identifier <a href="../selection.html">selects</a>
    the corresponding chain in the structure
-  <li>clicking a chain description opens the sequence in the
+  </li><li>clicking a chain description opens the sequence in the
   <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
   associated with all of the corresponding chains in the structure
-  <li>clicking a <a href="https://www.uniprot.org"
-target="_blank">UniProt</a> identifier
+  </li><li>clicking a <a href="https://www.uniprot.org" target="_blank">UniProt</a> identifier
 <a href="open.html#fetch">fetches</a> the corresponding protein
 sequence and its <a href="../tools/sequenceviewer.html#uniprot">sequence
 feature annotations</a>, and clicking the residue number range
@@ -154,7 +148,7 @@ feature annotations</a>, and clicking the residue number range
 <a href="../selection.html">selects</a> the corresponding structure residues;
 multiple <a href="https://www.uniprot.org" target="_blank">UniProt</a>
 identifiers and residue ranges may be given for a fusion protein
-  </ul>
+  </li></ul>
 <p>
 See also: <a href="info.html"><b>info</b></a>,
 <a href="../tools/modelpanel.html#buttons"><b>Model Panel</b> buttons</a>,
@@ -163,5 +157,6 @@ See also: <a href="info.html"><b>info</b></a>,
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2023</address>
+October 2025</address>
+
 </body></html>

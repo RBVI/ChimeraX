@@ -27,7 +27,10 @@
 from chimerax.core.tools import ToolInstance
 class Plot(ToolInstance):
 
-    def __init__(self, session, tool_name, *, title=None):
+    def __init__(self, session, tool_name, *, title=None, zoom_axes = 'xy', translate_axes = 'xy'):
+        self.zoom_axes = zoom_axes
+        self.translate_axes = translate_axes
+        
         ToolInstance.__init__(self, session, tool_name)
 
         from chimerax.ui import MainToolWindow
@@ -103,8 +106,10 @@ class Plot(ToolInstance):
         y0, y1 = a.get_ylim()
         ys = delta_y/h * (y1-y0)
         ny0, ny1 = y0-ys, y1-ys
-        a.set_xlim(nx0, nx1)
-        a.set_ylim(ny0, ny1)
+        if 'x' in self.translate_axes:
+            a.set_xlim(nx0, nx1)
+        if 'y' in self.translate_axes:
+            a.set_ylim(ny0, ny1)
         self.canvas.draw()
 
     def zoom(self, factor):
@@ -121,8 +126,10 @@ class Plot(ToolInstance):
         ymid, ysize = 0.5*(y0+y1), y1-y0
         yh = 0.5*ysize/factor
         ny0, ny1 = ymid-yh, ymid+yh
-        a.set_xlim(nx0, nx1)
-        a.set_ylim(ny0, ny1)
+        if 'x' in self.zoom_axes:
+            a.set_xlim(nx0, nx1)
+        if 'y' in self.zoom_axes:
+            a.set_ylim(ny0, ny1)
         self.canvas.draw()
 
     def matplotlib_mouse_event(self, x, y):
@@ -185,10 +192,11 @@ class Graph(Plot):
     '''
     
     def __init__(self, session, nodes, edges, tool_name, title, hide_ticks = True,
-                 drag_select_callback = None):
+                 drag_select_callback = None, zoom_axes = 'xy', translate_axes = 'xy'):
 
         # Create matplotlib panel
-        Plot.__init__(self, session, tool_name, title = title)
+        Plot.__init__(self, session, tool_name, title = title,
+                      zoom_axes = zoom_axes, translate_axes = translate_axes)
         self.tool_window.fill_context_menu = self._fill_context_menu
 
         self.nodes = nodes
@@ -273,7 +281,7 @@ class Graph(Plot):
                                     node_size=node_sizes, node_color=node_colors, ax=self.axes,
                                     hide_ticks = self.hide_ticks)
         na.set_picker(True)	# Generate mouse pick events for clicks on nodes
-        if self._node_artist:
+        if self._node_artist and self._node_artist.axes is not None:
             self._node_artist.remove()
         self._node_artist = na	# matplotlib PathCollection object
         self._node_objects = nodes
@@ -336,7 +344,7 @@ class Graph(Plot):
         ea = nx.draw_networkx_edges(G, node_pos, edgelist=edges, width=widths,
                                     style=styles, ax=self.axes, hide_ticks = self.hide_ticks)
         ea.set_picker(True)
-        if self._edge_artist:
+        if self._edge_artist and self._edge_artist.axes is not None:
             self._edge_artist.remove()
         self._edge_artist = ea
 
@@ -361,7 +369,8 @@ class Graph(Plot):
         if self._labels:
             # Remove existing labels.
             for t in self._labels.values():
-                t.remove()
+                if t.axes is not None:
+                    t.remove()
         self._labels = labels	# Dictionary mapping node to matplotlib Text objects.
             
     def _mouse_press(self, event):

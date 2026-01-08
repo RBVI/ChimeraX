@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,36 +9,33 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Usage Conventions in Command Documentation</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3>Command Usage Conventions</h3>
 <p>
 <a href="../index.html#commands">Command help pages</a> have <b>Usage</b> lines 
 that show syntax and options using various fonts and symbols:
-<ul>
+</p><ul>
 <li> <b>keywords</b> to be taken literally are not italicized
-<li> <b><i>parameters</i></b> that should be replaced with 
+</li><li> <b><i>parameters</i></b> that should be replaced with 
 an appropriate value (such as a number or word) are italicized
-<li><b><i>atom-spec</i></b>, <b><i>model-spec</i></b>, <b><i>spec</i></b>,
+</li><li><b><i>atom-spec</i></b>, <b><i>model-spec</i></b>, <b><i>spec</i></b>,
 and similar terms indicate <a href="atomspec.html">target specification</a>
 strings, which generally mean &ldquo;all&rdquo; when left blank
-<li> optional keywords and parameters are referred to as
+</li><li> optional keywords and parameters are referred to as
 <b><i>options</i></b> or are enclosed in square brackets: <b>[&nbsp;]</b> 
-<li> mutually exclusive choices are separated by a vertical bar: <b>|</b>
-<li> mutually exclusive choices of a required item are grouped with
+</li><li> mutually exclusive choices are separated by a vertical bar: <b>|</b>
+</li><li> mutually exclusive choices of a required item are grouped with
 parentheses: <b>(&nbsp;)</b>
-</ul>
+</li></ul>
 <p>
 These brackets, vertical bars, and parentheses in <b>Usage</b> lines are 
 merely symbolic and should not be included in the typed command.
@@ -70,8 +65,7 @@ Command names and keywords can be truncated to unique strings,
 with rare exceptions specifically noted. However, the entire 
 command name may be needed as the &ldquo;unique string&rdquo; 
 if the name of another command (including those in bundles installed from the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/"
-target="_blank">ChimeraX Toolshed</a>) starts with the same string.
+<a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">ChimeraX Toolshed</a>) starts with the same string.
 If a truncation matches multiple keywords but one is a simpler compound word,
 the simpler one is used; otherwise, an ambiguity error is raised.
 </p><p>
@@ -129,10 +123,8 @@ see the <a href="open.html"><b>open</b></a> command option
 <a href="open.html#forEachFile"><b>forEachFile</b></a>.
 </p><p>
 For command file examples, see 
-the ChimeraX <a href="https://www.rbvi.ucsf.edu/chimerax/features.html"
-target="_blank">feature highlights</a> and 
-<a href="https://www.rbvi.ucsf.edu/chimerax/gallery.html"
-target="_blank">example images</a>.
+the ChimeraX <a href="https://www.rbvi.ucsf.edu/chimerax/features.html" target="_blank">feature highlights</a> and 
+<a href="https://www.rbvi.ucsf.edu/chimerax/gallery.html" target="_blank">example images</a>.
 See also:
 <a href="../preferences.html#startup"><b>Startup</b> preferences</a>,
 <a href="../movies.html">making movies</a>
@@ -145,14 +137,14 @@ with # as the first nonspace character following a semicolon (;)
 are interpreted as comments and ignored.
 Blank lines are also allowed.
 <br><br>
-<li><b>Command truncation</b>:
+</li><li><b>Command truncation</b>:
 As discussed <a href="#truncation">above</a>, although
 command names can be truncated to unique strings, using the full
 command names is more robust against possible name conflicts with other
 commands that might be added later.
 <br><br>
 <a name="multi-commands"></a>
-<li><b>Combining commands</b>:
+</li><li><b>Combining commands</b>:
 Multiple commands can be combined into a single line with 
 semicolon separators.
 This is done to make multi-frame actions start simultaneously and/or 
@@ -164,7 +156,7 @@ whether interactively or in a script. See also:
 <a href="volume.html#calculateSurfaces"><b>volume calculateSurfaces</b></a>
 <br><br>
 <a name="order"></a>
-<li><b>Order of execution</b>:
+</li><li><b>Order of execution</b>:
 Even when multiple actions occur within a single image update frame, 
 their order is important, and one command may need to precede or follow 
 another to give the desired result. In general, the order of execution 
@@ -173,20 +165,21 @@ For example, if a script plays a molecular dynamics trajectory and at each
 frame shows a molecular surface and colors it by electrostatic potential, 
 the coloring should come after the surface calculation.
 <br><br>
-<li><b>Concurrent <i>vs.</i> serial execution</b>:
+</li><li><b>Concurrent <i>vs.</i> serial execution</b>:
 The <a href="wait.html"><b>wait</b></a> command is used to enforce
 completion of a multi-frame action before initiation of the next command in 
 a script; omitting it or waiting for fewer frames allows successive actions 
 to overlap or run concurrently.
 <br><br>
-<li><b>Working directory</b>:
+</li><li><b>Working directory</b>:
 Opening a command file changes the current directory to the directory 
 containing that file. After execution of the file finishes,
 the current directory is changed back to what it was previously.
 See also: <a href="cd.html"><b>cd</b></a>
-</ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 May 2024</address>
+
 </body></html>

@@ -56,7 +56,7 @@ class RenderByAttrTool(ToolInstance):
         target_layout.addWidget(target_menu_widget, alignment=Qt.AlignCenter)
         target_menu_layout.addWidget(QLabel("Attributes of"), alignment=Qt.AlignRight)
         self.target_menu_button = QPushButton()
-        menu = QMenu()
+        menu = QMenu(self.target_menu_button)
         menu.triggered.connect(self._new_target)
         self.target_menu_button.setMenu(menu)
         target_menu_layout.addWidget(self.target_menu_button, alignment=Qt.AlignLeft)
@@ -69,7 +69,7 @@ class RenderByAttrTool(ToolInstance):
                 sh.setHeight(sh.height() // 2)
                 sh.setWidth(sh.width() * 2 // 3)
                 return sh
-        self._prev_model_value = None
+        self._prev_models_value = None
         self.model_list = SmallerModelListWidget(session, filter_func=self._filter_model)
         model_list_layout.addWidget(self.model_list, alignment=Qt.AlignTop)
         target_layout.addLayout(model_list_layout)
@@ -92,7 +92,7 @@ class RenderByAttrTool(ToolInstance):
         render_tab_layout.addWidget(attr_menu_widget, alignment=Qt.AlignCenter)
         attr_menu_layout.addWidget(QLabel("Attribute:"), alignment=Qt.AlignRight)
         self.render_attr_menu_button = QPushButton()
-        menu = QMenu()
+        menu = QMenu(self.render_attr_menu_button)
         menu.triggered.connect(self._new_render_attr)
         menu.aboutToShow.connect(self._update_render_attr_menu)
         self.render_attr_menu_button.setMenu(menu)
@@ -266,7 +266,7 @@ class RenderByAttrTool(ToolInstance):
         select_tab_layout.addWidget(attr_menu_widget, alignment=Qt.AlignCenter)
         attr_menu_layout.addWidget(QLabel("Attribute:"), alignment=Qt.AlignRight)
         self.select_attr_menu_button = QPushButton()
-        menu = QMenu()
+        menu = QMenu(self.select_attr_menu_button)
         menu.triggered.connect(self._new_select_attr)
         menu.aboutToShow.connect(self._update_select_attr_menu)
         self.select_attr_menu_button.setMenu(menu)
@@ -355,6 +355,123 @@ class RenderByAttrTool(ToolInstance):
         overall_layout.addWidget(bbox)
 
         tw.manage(placement=None)
+
+    def configure(self, *, models=None, target=None, tab=None, attr_name=None, level_info=None,
+            render_type=None):
+        '''Configure the Render By Attribute interface programmatically.
+
+           All the arguments are optional.  Any argument not specified will retain the current value.
+
+           'models' should be a list models that the rendering/selection will apply to.
+
+           'target' is one of the names from the target menu.  It is an extensible list, but the
+           default values provided by the atomic bundle are: atoms, residues, chains, and structures.
+
+           'tab' is "render" or "select".
+
+           'attr_name' is the name of the attribute whose values will be shown in the histogram.
+
+           'level_info' is where to place markers on the histogram and, if rendering, their color
+           or radius value as appropriate.  So for rendering, level_info is a series of (attribute-value,
+           color-or-radius) tuples, and for selecting it's just a two-tuple/list of attribute values.
+
+           'render_type' controls what sub-tab is shown for rendering.  It is one of
+           RenderByAttrTool.RENDER_COLORS, RENDER_RADII, or RENDER_WORMS.
+        '''
+        from chimerax.core.commands import commas
+        if models is not None:
+            self.model_list.value = models
+
+        if target is not None:
+            menu = self.target_menu_button.menu()
+            for action in menu.actions():
+                if action.text().lower() == target.lower():
+                    action.trigger()
+                    break
+            else:
+                raise ValueError("No target named '%s'; target names are: %s" % (target,
+                    commas([act.text() for act in menu.actions()], "and")))
+
+        if tab is not None:
+            tab_widget = self.mode_widget
+            for index in range(tab_widget.count()):
+                if tab_widget.tabText(index).lower() == tab.lower():
+                    tab_widget.setCurrentIndex(index)
+                    break
+            else:
+                raise ValueError("No mode tab named '%s'; tab names are: %s" % (tab,
+                    commas([tab_widget.tabText(i) for i in range(tab_widget.count())], "and")))
+
+        if attr_name is not None:
+            menu = (self.render_attr_menu_button
+                if self.mode_widget.tabText(self.mode_widget.currentIndex()) == "Render"
+                else self.select_attr_menu_button).menu()
+            menu.aboutToShow.emit()
+            for action in menu.actions():
+                if action.text() == attr_name:
+                    action.trigger()
+                    break
+            else:
+                raise ValueError("No attribute named '%s'; attribute names are: %s" % (attr_name,
+                    commas([act.text() for act in menu.actions()], "and")))
+
+        if render_type is not None:
+            tab_widget = self.render_type_widget
+            for index in range(tab_widget.count()):
+                if tab_widget.tabText(index).lower() == render_type.lower():
+                    tab_widget.setCurrentIndex(index)
+                    break
+            else:
+                raise ValueError("No render tab named '%s'; tab names are: %s" % (tab,
+                    commas([tab_widget.tabText(i) for i in range(tab_widget.count())], "and")))
+
+        if level_info is not None:
+            rendering = self.mode_widget.tabText(self.mode_widget.currentIndex()) == "Render"
+            if rendering:
+                render_type = self.render_type_widget.tabText(self.render_type_widget.currentIndex())
+                if render_type == self.RENDER_COLORS:
+                    markers = self.render_color_markers
+                elif render_type == self.RENDER_RADII:
+                    markers = self.render_radius_markers
+                else:
+                    markers = self.render_worm_markers
+            else:
+                markers = self.select_markers
+            while len(markers) > 0:
+                markers.pop()
+            coord_type = markers.coord_type
+            markers.coord_type = "absolute"
+            min_val = max_val = None
+            for info in level_info:
+                if rendering:
+                    if render_type == self.RENDER_COLORS:
+                        level, color = info
+                        arg = ((level, 0.0), color)
+                    else:
+                        level, radius = info
+                        arg = ((level, 0.0), None)
+                else:
+                    level = info
+                    arg = ((level, 0.0), None)
+                if min_val is None or level < min_val:
+                    min_val = level
+                elif max_val is None or level > max_val:
+                    max_val = level
+                marker = markers.append(arg)
+                if rendering and render_type != self.RENDER_COLORS:
+                    marker.radius = radius
+            histogram = self.render_histogram if rendering else self.select_histogram
+            cur_min, cur_max, data = histogram.data_source
+            set_data = False
+            if min_val < cur_min:
+                cur_min = min_val
+                set_data = True
+            if max_val > cur_max:
+                cur_max = max_val
+                set_data = True
+            if set_data:
+                histogram.data_source = (cur_min, cur_max, data)
+            markers.coord_type = coord_type
 
     @property
     def default_render_color_markers(self):
@@ -602,12 +719,8 @@ class RenderByAttrTool(ToolInstance):
         if model_val:
             if self.render_attr_menu_button.isEnabled():
                 attr_name = self.render_attr_menu_button.text()
-                if len(model_val) == 1:
-                    model = model_val[0]
-                    self._update_markers(None, markers_attr, self._prev_model_value, model, None, attr_name)
-                    self._prev_model_value = model
-                else:
-                    self._prev_model_value = None
+                self._update_markers(None, markers_attr, self._prev_models_value, model_val, None, attr_name)
+                self._prev_models_value = model_val
                 if attr_name != self.NO_ATTR_TEXT:
                     self._update_render_histogram(attr_name)
             else:
@@ -620,7 +733,7 @@ class RenderByAttrTool(ToolInstance):
                 self._new_select_attr()
         else:
             setattr(self, markers_attr, getattr(self, 'default_' + markers_attr))
-            self._prev_model_value = None
+            self._prev_models_value = None
             self._new_render_attr()
             self._new_select_attr()
         self._update_deworm_button()
@@ -647,7 +760,7 @@ class RenderByAttrTool(ToolInstance):
                 setattr(self, markers_attr, getattr(self, 'default_' + markers_attr))
                 self._prev_attr_name = None
             else:
-                self._update_markers(None, markers_attr, None, self._prev_model_value,
+                self._update_markers(None, markers_attr, None, self._prev_models_value,
                     self._prev_attr_name, monitored_attr)
                 self._prev_attr_name = monitored_attr
             self.render_attr_menu_button.setText(attr_name)
@@ -866,28 +979,51 @@ class RenderByAttrTool(ToolInstance):
                     numpy.histogram(values, bins=num_bins, range=(min_val, max_val), density=False)[0])
         return any_None
 
-    def _update_markers(self, prev_markers_attr, markers_attr, prev_model, model, prev_attr_name, attr_name):
+    def _update_markers(self, prev_markers_attr, markers_attr, prev_models, models,
+            prev_attr_name, attr_name):
         if prev_markers_attr is not None:
             # render type changing...
-            prev_markers = self._clone_markers(getattr(self, prev_markers_attr))
-            if model is not None:
-                self._render_markers[prev_markers_attr].setdefault(model, {})[attr_name] = prev_markers
-        if prev_model is not None:
-            # model changing...
+            if models is not None:
+                prev_markers = self._clone_markers(getattr(self, prev_markers_attr))
+                for model in models:
+                    self._render_markers[prev_markers_attr].setdefault(model, {})[attr_name] = prev_markers
+        if prev_models is not None:
+            # models changing...
             prev_markers = self._clone_markers(getattr(self, markers_attr))
-            self._render_markers[markers_attr].setdefault(prev_model, {})[attr_name] = prev_markers
+            for prev_model in prev_models:
+                self._render_markers[markers_attr].setdefault(prev_model, {})[attr_name] = prev_markers
         if prev_attr_name is not None:
             # attr changing...
-            prev_markers = self._clone_markers(getattr(self, markers_attr))
-            if model is not None:
-                self._render_markers[markers_attr].setdefault(model, {})[prev_attr_name] = prev_markers
-        try:
-            if model is None or attr_name is None:
-                # weak-key dicts don't like referencing None
-                raise KeyError("key is None")
-            new_markers = self._render_markers[markers_attr][model][attr_name]
-        except KeyError:
+            if models is not None:
+                prev_markers = self._clone_markers(getattr(self, markers_attr))
+                for model in models:
+                    self._render_markers[markers_attr].setdefault(model, {})[prev_attr_name] = prev_markers
+        # the markers for the new models must all agree
+        if models is None or attr_name is None:
             new_markers = getattr(self, 'default_' + markers_attr)
+        else:
+            new_markers = None
+            for model in models:
+                try:
+                    model_markers = self._render_markers[markers_attr][model][attr_name]
+                except KeyError:
+                    continue
+                if new_markers is None:
+                    new_markers = model_markers
+                else:
+                    if len(model_markers) != len(new_markers):
+                        new_markers = None
+                        break
+                    for mmk, nmk in zip(model_markers, new_markers):
+                        from numpy import array_equal
+                        if not array_equal(mmk.xy, nmk.xy) or not array_equal(mmk.rgba, nmk.rgba):
+                            new_markers = None
+                            break
+                    else:
+                        continue
+                    break
+            if new_markers is None:
+                new_markers = getattr(self, 'default_' + markers_attr)
         setattr(self, markers_attr, new_markers)
 
     def _update_palettes(self):

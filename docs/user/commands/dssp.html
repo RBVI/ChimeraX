@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: dssp</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: dssp</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -44,7 +39,7 @@ on the structure, but see also:
 The <b>dssp</b> command implements the algorithm for 
 <b>D</b>efining the <b>S</b>econdary <b>S</b>tructure of
 <b>P</b>roteins described in:
-<blockquote>
+</p><blockquote>
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/6667333" target="_blank">
 Dictionary of protein secondary structure: pattern recognition of 
 hydrogen-bonded and geometrical features.</a>
@@ -58,16 +53,16 @@ In PDB format, secondary structure assignments are described in HELIX and
 SHEET records, and analogous information is included in mmCIF files.
 However, not all input files include this information.
 The <b>dssp</b> calculation is run:
-</p>
+<p></p>
 <ul>
 <li>when an atomic structure of a protein 
 without secondary structure assignments is read
-<li>by <a href="matchmaker.html"><b>matchmaker</b></a> with default settings
+</li><li>by <a href="matchmaker.html"><b>matchmaker</b></a> with default settings
 (see <a href="matchmaker.html#computeSs"><b>computeSs</b></a>),
 even when the proteins being superimposed already have 
 secondary structure assignments
-<li>by <a href="coordset.html"><b>coordset</b></a> with <b>computeSs true</b> 
-</ul>
+</li><li>by <a href="coordset.html"><b>coordset</b></a> with <b>computeSs true</b> 
+</li></ul>
 <p>
 The calculation applies to all protein/peptide chains in models 
 containing the specified atoms.
@@ -103,7 +98,7 @@ if a field is blank, none of the values apply:
 see src/tools/ksdssp/ksdssp.cpp
 -->
 </p>
-<table border cellpadding="5" cellspacing="0" width="90%" align="center"><tr>
+<table border cellpadding="5" cellspacing="0" width="90%" align="center"><tbody><tr>
 <th>Field</th><th>Possible contents and meaning</th>
 </tr><tr>
 <td align="center">1. Secondary structure type
@@ -148,8 +143,9 @@ see src/tools/ksdssp/ksdssp.cpp
 A single-character name for the &beta;-sheet in which the residue 
 participates. Sheets are named sequentially from N- to C-terminus.
 </td>
-</tr></table>
+</tr></tbody></table>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 November 2017</address>
+
 </body></html>

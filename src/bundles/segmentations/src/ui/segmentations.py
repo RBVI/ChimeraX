@@ -90,33 +90,81 @@ class SegmentationListItem(QListWidgetItem):
 
 
 class SegmentationToolControlsDialog(QDialog):
-    right_hand_image = QImage(
-        os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "icons",
-            "right_controller.png",
-        )
-    )
-    # left_hand_image = QImage(os.path.join(os.path.dirname(os.path.abspath(__file__)), "right_controller.png"))
-    mouse_image = QImage(
-        os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "icons",
-            "mouse.png",
-        )
-    )
-
     def __init__(self, parent, session):
         super().__init__(parent)
         self.session = session
         self.setWindowTitle("Segmentation Tool Settings")
         self.setLayout(QVBoxLayout())
+
+        # Track current dark mode state
+        self._is_dark_mode = session.ui.dark_mode()
+
+        # Load images and invert if in dark mode
+        self._load_images()
+
         self.tab_widget = QTabWidget(self)
         self.layout().addWidget(self.tab_widget)
         self._add_settings_tab()
         self._add_mouse_2d_tab()
         self._add_mouse_3d_tab()
         self._add_vr_tab()
+
+        # Listen for color scheme changes
+        self._color_scheme_handler = session.ui.triggers.add_handler(
+            'color scheme changed', self._on_color_scheme_changed
+        )
+
+    def _load_images(self):
+        """Load and prepare images based on current color scheme"""
+        self.right_hand_image = QImage(
+            os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "icons",
+                "right_controller.png",
+            )
+        )
+        self.mouse_image = QImage(
+            os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "icons",
+                "mouse.png",
+            )
+        )
+
+        # Invert colors if in dark mode
+        if self._is_dark_mode:
+            self.right_hand_image.invertPixels()
+            self.mouse_image.invertPixels()
+
+    def _on_color_scheme_changed(self, trigger_name=None, trigger_data=None):
+        """Handle color scheme change by updating images"""
+        new_dark_mode = self.session.ui.dark_mode()
+        if new_dark_mode != self._is_dark_mode:
+            self._is_dark_mode = new_dark_mode
+            # Invert the current images
+            self.right_hand_image.invertPixels()
+            self.mouse_image.invertPixels()
+            # Update all the pixmaps in the UI
+            self._update_image_widgets()
+
+    def _update_image_widgets(self):
+        """Update all image widgets with the current (inverted) images"""
+        # Update mouse images in 2D and 3D tabs
+        mouse_pixmap = QPixmap.fromImage(
+            self.mouse_image.scaledToWidth(
+                350, Qt.TransformationMode.SmoothTransformation
+            )
+        )
+        self.mouse_2d_image_widget.setPixmap(mouse_pixmap)
+        self.mouse_3d_image_widget.setPixmap(mouse_pixmap)
+
+        # Update VR controller image
+        controller_pixmap = QPixmap.fromImage(
+            self.right_hand_image.scaledToWidth(
+                350, Qt.TransformationMode.SmoothTransformation
+            )
+        )
+        self.vr_controller_picture.setPixmap(controller_pixmap)
 
     def _add_settings_tab(self):
         settings = get_settings(self.session)
@@ -728,6 +776,15 @@ class SegmentationTool(ToolInstance):
             if self.session.ui.main_window.view_layout == "orthoplanes":
                 self.session.ui.main_window.main_view.add_segmentation(model)
 
+    def set_radius(self, axis, radius):
+        if axis not in self.segmentation_cursors:
+            new_cursor = SegmentationDisk(self.session, axis, height=5)
+            self.segmentation_cursors[axis] = new_cursor
+            self.session.models.add([new_cursor])
+            self.session.logger.info("Created segmentation sphere cursor with ID #%s" % new_cursor.id_string)
+        self.segmentation_cursors[axis].radius = radius
+
+
     def _clear_segmentation_list(self):
         for _ in range(self.segmentation_list.count()):
             item = self.segmentation_list.takeItem(0)
@@ -792,6 +849,9 @@ class SegmentationTool(ToolInstance):
                                 segments = [seg_item.segmentation]
                                 seg_item.segmentation = None
                                 del seg_item
+                if isinstance(model, SegmentationDisk):
+                    self.segmentation_cursors[model.axis] = None
+                    del self.segmentation_cursors[model.axis]
 
     def delete(self):
         self.session.triggers.remove_handler(self.model_added_handler)
