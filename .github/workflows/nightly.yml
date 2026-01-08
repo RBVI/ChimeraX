@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-rocky9-docker:
-    name: Build ChimeraX for Rocky 8
+    name: Build ChimeraX for Rocky 9
     strategy:
       fail-fast: false
       matrix:
