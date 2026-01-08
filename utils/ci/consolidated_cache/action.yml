@@ -238,7 +238,7 @@ runs:
       if: ${{ steps[format('cache-pyqt6-{0}-{1}', inputs.platform, inputs.architecture)].outputs.cache-hit != 'true' }}
       run: |
         export PYQT_VERSION=6.10.2
-        if ${{ inputs.platform == 'linux' && inputs.architecture == 'x86_64' }}; then
+        if ${{ !(inputs.platform == 'linux' && inputs.architecture == 'x86_64') }}; then
           export PYQTWE_VERSION=6.10.0
         else
           export PYQTWE_VERSION=6.10.0-1
