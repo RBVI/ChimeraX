@@ -46,16 +46,15 @@ else
 ifeq ($(OS),Darwin)
 WHEEL_CFLAGS="-Wno-error=int-conversion"
 ifeq ($(OSARCH),DarwinArm64)
-SCIPY_WHEEL = $(subst ==,-,$(shell grep '"scipy' $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_12_0_arm64.whl
+SCIPY_WHEEL = $(subst ==,-,$(shell grep '"scipy' $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp314-cp314-macosx_12_0_arm64.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
-SCIPY_WHEEL = $(subst ==,-,$(shell grep '"scipy' $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_10_14_x86_64.whl
+SCIPY_WHEEL = $(subst ==,-,$(shell grep '"scipy' $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp314-cp314-macosx_10_14_x86_64.whl
 endif
 endif
 endif
 endif
 endif
-
 PLATO_WHEELS = $(CXSERVICES_WHEEL)
 
 all:
