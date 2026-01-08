@@ -638,6 +638,7 @@ def _add_structure_display_info(session, structure, info):
                     'name': res.name,
                     'chain': res.chain_id,
                     'number': res.number,
+                    'spec': res.string(style='command', omit_structure=False),
                 }
                 if res.insertion_code:
                     lig_info['insertion_code'] = res.insertion_code
