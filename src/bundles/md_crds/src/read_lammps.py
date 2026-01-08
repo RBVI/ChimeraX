@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-import traceback
+import traceback, time
 
 from chimerax.atomic import AtomicStructure
 from chimerax.io import open_input
@@ -379,9 +379,13 @@ def safe_float(val, fallback=0.0):
     except ValueError:
         return fallback
 
-def read_dump(session, path, model):
+def read_dump2(session, path, model):
     from numpy import array, float64
     from chimerax.core.errors import UserError
+    
+    start = time.perf_counter()
+    
+    session.logger.info("*** read_dump()")
 
     try:
         stream = open_input(path, encoding='UTF-8')
@@ -425,23 +429,6 @@ def read_dump(session, path, model):
             except (IndexError, ValueError):
                 raise UserError(f"Could not parse atom ID from line: {' '.join(tokens)}")
                 
-            # Handle optional fields with defaults
-            if index_type >= 0 and index_type < len(tokens):
-                try:
-                    type = int(tokens[index_type])
-                except ValueError:
-                    type = 1  # Default type
-            else:
-                type = 1  # Default type
-                
-            if index_mol >= 0 and index_mol < len(tokens):
-                try:
-                    mol = int(tokens[index_mol])
-                except ValueError:
-                    mol = id  # Use atom ID as molecule ID
-            else:
-                mol = id  # Use atom ID as molecule ID
-                
             # Handle coordinates
             try:
                 x = float(tokens[index_x])
@@ -471,6 +458,10 @@ def read_dump(session, path, model):
 
         coords = array(coords_list, dtype=float64)[:,:,1:]
         stream.close()
+        
+        elapsed = time.perf_counter() - start
+        session.logger.info(f"*** read_dump() {elapsed:.6f} seconds")
+        
         return num_atoms, coords
         
     except Exception as e:
@@ -493,79 +484,148 @@ def read_dump(session, path, model):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import numpy as np
 import multiprocessing as mp
 import os
+import time
+import traceback
 
-def parse_dump_timestep(path, frame_idx, bytes_per_frame, atom_start_offset, num_atoms, num_cols, col_indices):
+def parse_frame_worker(path, offset, num_atoms, num_cols, col_indices):
     """
-    Worker function: Jumps directly to the byte offset and parses the atom block.
+    Worker jumps to byte offset and parses atom block.
     """
-    # Calculate exact byte location of the first atom in this frame
-    start_byte = (frame_idx * bytes_per_frame) + atom_start_offset
-    
     with open(path, 'rb') as f:
-        f.seek(start_byte)
+        f.seek(offset)
+        # Skip the 9 header lines to reach coordinate data
+        for _ in range(9):
+            f.readline()
         
-        # Fast C-level read of the entire block into a 1D array
-        # Reading all columns is faster than Python-level line splitting
+        # Binary block read: significantly faster than text mode
         data = np.fromfile(f, dtype=np.float32, sep=' ', count=num_atoms * num_cols)
-        
-        # Reshape to (Atoms, Columns)
         data = data.reshape((num_atoms, num_cols))
         
-        # Sort by atom ID (column 0) to maintain ChimeraX consistency
-        # Then slice only the required XYZ columns
+        # Sort by atom ID column
         data = data[data[:, col_indices[0]].argsort()]
+        
+        # Return XYZ columns as float64 for ChimeraX
         return data[:, col_indices[1:]].astype(np.float64)
 
-def fast_read_dump_mp(session, path, num_cores=None):
+def read_dump(session, path, model, num_cores=None):
+    from chimerax.core.errors import UserError
+    import time
+    
+    start_time = time.perf_counter()
     if num_cores is None:
         num_cores = mp.cpu_count()
 
-    # 1. MEASURE CONSTANTS (Master Process)
-    with open(path, 'rb') as f:
-        # Get atom count
-        f.readline() # ITEM: TIMESTEP
-        f.readline() # value
-        f.readline() # ITEM: NUMBER OF ATOMS
-        num_atoms = int(f.readline().split()[0])
+    try:
+        offsets = []
+        file_size = os.path.getsize(path)
         
-        # Measure Header Offset (first 9 lines)
-        f.seek(0)
-        for _ in range(9):
-            f.readline()
-        header_bytes = f.tell()
+        with open(path, 'rb') as f:
+            # 1. INITIAL METRICS
+            f.readline() # ITEM: TIMESTEP
+            f.readline() # timestep value
+            f.readline() # ITEM: NUMBER OF ATOMS
+            num_atoms = int(f.readline().strip())
+            for _ in range(4): f.readline() 
+            
+            # Correctly identify the ITEM: ATOMS header line
+            header_line = f.readline().decode('utf-8')
+            header_end_pos = f.tell()
+            
+            # Sample 3 lines for a robust average line length heuristic
+            sample_lens = [len(f.readline()) for _ in range(3)]
+            avg_line_len = sum(sample_lens) / 3.0
+            
+            # 2. COLUMN MAPPING
+            tokens = header_line.split()
+            col_names = tokens[2:] 
+            num_cols = len(col_names)
+            col_map = {name: i for i, name in enumerate(col_names)}
+            col_indices = [col_map['id'], col_map['x'], col_map['y'], col_map['z']]
+
+            # 3. CONSERVATIVE JUMP SEARCH
+            est_frame_size = header_end_pos + (num_atoms * avg_line_len)
+            offsets.append(0)
+            print(f"*** Frame 0 offset: 0")
+            
+            # Start very conservatively (50% of first frame) to avoid skipping Frame 2
+            search_pos = int(est_frame_size * 0.5) 
+
+            while search_pos < file_size:
+                f.seek(max(0, search_pos))
+                # 256KB buffer provides a much larger landing zone to catch missed tags
+                buffer = f.read(262144) 
+                if not buffer:
+                    break
+                
+                tag_idx = buffer.find(b"ITEM: TIMESTEP")
+                
+                if tag_idx != -1:
+                    actual_offset = f.tell() - len(buffer) + tag_idx
+                    
+                    if actual_offset > offsets[-1]:
+                        offsets.append(actual_offset)
+                        if len(offsets) % 100 == 0 or len(offsets) < 10: # Reduce print noise
+                            print(f"*** Frame {len(offsets)-1} offset: {actual_offset}")
+                        
+                        # Calculate actual size of last frame
+                        last_frame_size = offsets[-1] - offsets[-2]
+                        # Jump to 90% of the last frame size (Safer than 95% or 98%)
+                        search_pos = actual_offset + int(last_frame_size * 0.90)
+                    else:
+                        # If we found the same tag, we must move the pointer forward
+                        search_pos = actual_offset + 100 
+                else:
+                    # If tag not found, the jump was too far or the buffer too small
+                    # Scan forward in small steps
+                    search_pos += 65536
+
+        session.logger.info(f"Jump-indexed {len(offsets)} frames. Parsing with {num_cores} cores.")
+
+        # 4. PARALLEL PARSING
+        with mp.Pool(processes=num_cores) as pool:
+            args = [(path, off, num_atoms, num_cols, col_indices) for off in offsets]
+            results = pool.starmap(parse_frame_worker, args)
+
+        elapsed = time.perf_counter() - start_time
+        session.logger.info(f"*** read_dump() {elapsed:.6f} seconds")
+
+        return num_atoms, np.stack(results)
+
+    except Exception as e:
+        print(traceback.format_exc())
+        raise UserError(f"Fast read_dump failed: {e}")
         
-        # Measure Data Line Width (assumes fixed width)
-        first_atom_line = f.readline()
-        line_bytes = len(first_atom_line)
-        num_cols = len(first_atom_line.split())
         
-    # Total bytes per frame block
-    bytes_per_frame = header_bytes + (num_atoms * line_bytes)
-    file_size = os.path.getsize(path)
-    num_frames = file_size // bytes_per_frame
-    
-    session.logger.info(f"Parallel Read: {num_frames} frames, {num_cores} cores.")
-
-    # 2. IDENTIFY COLUMN INDICES
-    with open(path, 'r') as f:
-        for _ in range(8): f.readline()
-        tokens = f.readline().split() # ITEM: ATOMS id type mol x y z
-        col_indices = [
-            tokens.index('id') - 2,
-            tokens.index('x') - 2,
-            tokens.index('y') - 2,
-            tokens.index('z') - 2
-        ]
-
-    # 3. PARALLEL EXECUTION
-    # pool.starmap ensures frames remain in chronological order
-    with mp.Pool(processes=num_cores) as pool:
-        args = [(path, i, bytes_per_frame, header_bytes, num_atoms, num_cols, col_indices) 
-                for i in range(num_frames)]
-        results = pool.starmap(parse_frame_worker, args)
-
-    # Return (num_atoms, 3D array of shape [Frames, Atoms, 3])
-    return num_atoms, np.stack(results)
+        
