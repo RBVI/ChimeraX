@@ -598,55 +598,56 @@ def shown(session, models=None, *, return_json=True, save_file=None):
         return JSONResult(ArrayJSONEncoder().encode(display_info), None)
     
     # Text output for non-JSON mode
+    # Use visible markers for indentation since the log window strips leading whitespace
     lines = []
-    for model in display_info:
-        lines.append(f"Model {model['id']} ({model['name']}):")
+    for i, model in enumerate(display_info):
+        # Add blank line between models (but not before the first one)
+        if i > 0:
+            lines.append('')
+        
+        lines.append(f"Model {model['id']} ({model['name']})")
         mtype = model.get('type', 'Unknown')
         
         if mtype in ('AtomicStructure', 'Structure'):
             for chain in model.get('chains', []):
-                chain_parts = [f"  Chain {chain['id']} ({chain.get('polymer_type', 'unknown')}):"]
+                lines.append(f"├─ Chain {chain['id']} ({chain.get('polymer_type', 'unknown')}):")
                 if 'atoms_shown' in chain:
-                    chain_parts.append(f"atoms {chain['atoms_shown']['spec']}")
-                if 'hydrogens_shown' in chain:
-                    chain_parts.append(f"(H: {chain['hydrogens_shown']})")
+                    h_info = f" (H: {chain['hydrogens_shown']})" if 'hydrogens_shown' in chain else ''
+                    lines.append(f"│    atoms: {chain['atoms_shown']['spec']}{h_info}")
                 if 'ribbons_shown' in chain:
-                    chain_parts.append(f"ribbons {chain['ribbons_shown']['spec']}")
-                lines.append(' '.join(chain_parts))
+                    lines.append(f"│    ribbons: {chain['ribbons_shown']['spec']}")
             
             for lig in model.get('ligands', []):
-                lig_line = f"  Ligand {lig['name']} ({lig['spec']})"
+                lines.append(f"├─ Ligand {lig['name']} ({lig['spec']}):")
                 if 'atoms_shown' in lig:
-                    lig_line += f" [{lig['atoms_shown']} atoms]"
-                if 'hydrogens_shown' in lig:
-                    lig_line += f" (H: {lig['hydrogens_shown']})"
-                lines.append(lig_line)
+                    h_info = f" (H: {lig['hydrogens_shown']})" if 'hydrogens_shown' in lig else ''
+                    lines.append(f"│    atoms: {lig['atoms_shown']['spec']}{h_info}")
             
             for ion in model.get('ions', []):
-                lines.append(f"  Ion {ion['name']} ({ion['spec']})")
+                lines.append(f"├─ Ion: {ion['name']} ({ion['spec']})")
             
             if 'solvent' in model:
-                lines.append(f"  Solvent: {model['solvent']['spec']}")
+                lines.append(f"├─ Solvent: {model['solvent']['spec']}")
             
             for surf in model.get('surfaces', []):
-                lines.append(f"  Surface {surf['id']}: {surf['spec']}")
+                lines.append(f"├─ Surface {surf['id']}: {surf['spec']}")
             
             for pb in model.get('pseudobonds', []):
-                pb_line = f"  Pseudobonds '{pb['name']}'"
+                pb_line = f"├─ Pseudobonds '{pb['name']}'"
                 if 'count' in pb:
                     pb_line += f" [{pb['count']}]"
                 lines.append(pb_line)
         
         elif mtype == 'Volume':
             if 'surface_levels' in model:
-                lines.append(f"  Surface levels: {model['surface_levels']}")
+                lines.append(f"├─ Surface levels: {model['surface_levels']}")
             if 'image_levels' in model:
-                lines.append(f"  Image levels: {model['image_levels']}")
+                lines.append(f"├─ Image levels: {model['image_levels']}")
         
         elif mtype == 'PseudobondGroup':
             pbs = model.get('pseudobonds')
             if pbs is not None:
-                lines.append(f"  Pseudobonds: {pbs}")
+                lines.append(f"├─ Pseudobonds: {pbs}")
     
     msg = '\n'.join(lines)
     output(session.logger, save_file, msg)
