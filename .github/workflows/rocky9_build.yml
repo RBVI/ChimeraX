@@ -53,7 +53,7 @@ jobs:
           max_attempts: 1000
           timeout_seconds: 60
           command: ./utils/ci/nightly_logs.sh ${{ secrets.PREBUILT_CACHE_SECRET }} ${{ github.run_id }} ${{ steps.get_job_id.outputs.job_id }} centos-8 ${{ inputs.release_type }}
-      - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" BUILD_TYPE="${{ inputs.release_type }}" make -j$(nproc) -f Makefile.centos install-rbvi
+      - run: MAKEOPTS="-j$(nproc)" BUILD_TYPE="${{ inputs.release_type }}" make -j$(nproc) -f Makefile.centos install-rbvi
       - name: Install Pytest
         run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
