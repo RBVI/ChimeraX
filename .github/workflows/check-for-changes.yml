@@ -10,10 +10,10 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  build-and-test-rocky8-docker:
+  build-and-test-rocky9-docker:
     runs-on: ubuntu-22.04
     container:
-      image: rockylinux:8
+      image: rockylinux:9
     env:
       SHELL: /bin/bash
       PATH: /usr/bin:/usr/sbin:/bin:/sbin
