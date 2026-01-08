@@ -196,7 +196,7 @@ def _encode_ext(obj):
         return ExtType(8, packer.pack([obj.days, obj.seconds, obj.microseconds]))
     if isinstance(obj, Image.Image):
         return ExtType(9, _encode_image(obj))
-    if isinstance(obj, (numpy.number, numpy.bool_, numpy.bool8)):
+    if isinstance(obj, (numpy.number, numpy.bool_)):
         # handle numpy scalar subclasses
         return ExtType(10, packer.pack(_encode_numpy_number(obj)))
     if isinstance(obj, FinalizedState):

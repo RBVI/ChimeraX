@@ -35,8 +35,8 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/Python/Python-3.11.13.tar.xz
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.13
+          prereqs/Python/Python-3.14.2.tar.xz
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.14.2
 
     - name: Restore cached Python (Windows)
       id: cache-python-windows
@@ -44,9 +44,8 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/Python/python-3.11.9-win-amd64.tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.9
-
+          prereqs/Python/python-3.14.2-win-amd64.tar.bz2
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.14.2
 
     - name: Restore cached Python (macOS)
       id: cache-python-macos
@@ -54,8 +53,8 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/Python/python-3.11.9-mac.tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.9
+          prereqs/Python/python-3.14.2-mac.tar.bz2
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.14.2
 
     - name: Restore cached mmtf dependency sources
       id: cache-mmtf
@@ -301,15 +300,21 @@ runs:
       if: ${{ steps[format('cache-python-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
       run: |
         if [ "${{ inputs.platform }}" = "linux" ] ; then
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/python/Python-3.11.13.tar.xz -O -J
+        XZ compressed source tarball
+          curl https://www.python.org/ftp/python/3.14.2/Python-3.14.2.tar.xz -O -J
           mv Python* prereqs/Python/
         fi
         if [ "${{ inputs.platform }}" = "macos" ] ; then
           cd prereqs/Python && NO_LOCAL_SSL_CERT=1 make -f Makefile.macos
         fi
         if [ "${{ inputs.platform }}" = "windows" ] ; then
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/python/python-3.11.9-win-amd64.tar.bz2 -O -J
-          mv python* prereqs/Python/
+          curl https://www.python.org/ftp/python/3.14.2/python-3.14.2-win32.zip -O -J
+          mkdir tmp
+          mv python* tmp
+          cd tmp && unzip python*
+          cd tmp && rm python*.zip
+          cd tmp && tar -cvzf python-3.14.2-win-amd64.tar.bz2
+          mv tmp/python*.tar.bz2 prereqs/Python/
         fi
 
     - name: Fetch generic pips
