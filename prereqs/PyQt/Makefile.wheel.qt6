@@ -38,7 +38,7 @@ PYQTWE_VERSION = $(BASE_VERSION)
 else
 PYQTWE_VERSION = $(BASE_VERSION).$(PYQTWE_MINOR_VERSION)
 endif
-SIP_VERSION = 13.10.2
+SIP_VERSION = 13.10.3
 
 PYTHON_TAGS = cp39
 WE_PYTHON_TAGS = cp39
@@ -78,8 +78,13 @@ ifneq ($(PYQT_LICENSE),commercial)
 QT_WHEEL := PyQt6==$(PYQT_VERSION)
 WB_WHEEL := PyQt6_WebEngine==$(PYQTWE_VERSION)
 else
-QT_WHEEL = PyQt6_commercial-$(PYQT_VERSION)-$(BUILD_TAGS).whl
-WB_WHEEL = PyQt6_WebEngine_commercial-$(PYQTWE_VERSION)-$(WE_BUILD_TAGS).whl
+# New wheel filenames (built with recent setuptools) use all lowercase names 
+# which for some reason can break package dependencies. For example, PyQt6-WebEngine-Commercial
+# depends on PyQt6-Commercial but pip will trip up over pyqt6_commercial.whl
+QT_WHEEL_REMOTE = pyqt6_commercial-$(PYQT_VERSION)-$(BUILD_TAGS).whl
+WB_WHEEL_REMOTE = pyqt6_webengine_commercial-$(PYQTWE_VERSION)-$(WE_BUILD_TAGS).whl
+QT_WHEEL = PyQt6-commercial$(PYQT_VERSION)-$(BUILD_TAGS).whl
+WB_WHEEL = PyQt6_WebEngine-commercial$(PYQTWE_VERSION)-$(WE_BUILD_TAGS).whl
 endif
 
 WHEELS = $(SIP_WHEEL) $(QT_WHEEL) PyQt6-Qt6==$(QT_VERSION) $(WB_WHEEL) PyQt6-WebEngine-Qt6==$(QT_VERSION)
@@ -100,12 +105,12 @@ prefetch: $(QT_WHEEL) $(WB_WHEEL)
 
 $(QT_WHEEL):
 ifeq ($(PYQT_LICENSE),commercial)
-	rsync -av $(REMOTE_DIR)/$(PYQT_VERSION)/$(QT_WHEEL) .
+	rsync -av $(REMOTE_DIR)/$(PYQT_VERSION)/$(QT_WHEEL_REMOTE) $(QT_WHEEL)
 endif
 
 $(WB_WHEEL):
 ifeq ($(PYQT_LICENSE),commercial)
-	rsync -av $(REMOTE_DIR)/$(PYQTWE_VERSION)/$(WB_WHEEL) .
+	rsync -av $(REMOTE_DIR)/$(PYQTWE_VERSION)/$(WB_WHEEL_REMOTE) $(WB_WHEEL)
 endif
 
 clean:
