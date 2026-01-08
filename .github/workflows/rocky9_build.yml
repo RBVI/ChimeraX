@@ -139,7 +139,7 @@ jobs:
           tar -cvzf linux-bundles.tar.gz -C $BUNDLE_REPO_DIR .
           tar -cvzf linux-include.tar.gz -C build include
       - name: Cache the bundles and includes
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: |
             linux-bundles.tar.gz
