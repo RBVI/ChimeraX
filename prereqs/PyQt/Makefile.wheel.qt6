@@ -83,8 +83,8 @@ else
 # depends on PyQt6-Commercial but pip will trip up over pyqt6_commercial.whl
 QT_WHEEL_REMOTE = pyqt6_commercial-$(PYQT_VERSION)-$(BUILD_TAGS).whl
 WB_WHEEL_REMOTE = pyqt6_webengine_commercial-$(PYQTWE_VERSION)-$(WE_BUILD_TAGS).whl
-QT_WHEEL = PyQt6-commercial$(PYQT_VERSION)-$(BUILD_TAGS).whl
-WB_WHEEL = PyQt6_WebEngine-commercial$(PYQTWE_VERSION)-$(WE_BUILD_TAGS).whl
+QT_WHEEL = PyQt6_commercial-$(PYQT_VERSION)-$(BUILD_TAGS).whl
+WB_WHEEL = PyQt6_WebEngine_commercial-$(PYQTWE_VERSION)-$(WE_BUILD_TAGS).whl
 endif
 
 WHEELS = $(SIP_WHEEL) $(QT_WHEEL) PyQt6-Qt6==$(QT_VERSION) $(WB_WHEEL) PyQt6-WebEngine-Qt6==$(QT_VERSION)
