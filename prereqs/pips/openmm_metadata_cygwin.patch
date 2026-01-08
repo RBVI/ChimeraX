@@ -1,5 +1,5 @@
-*** OpenMM_CUDA_12-8.2.0.dist-info/METADATA.orig	Tue Jul 15 09:31:42 2025
---- OpenMM_CUDA_12-8.2.0.dist-info/METADATA	Tue Jul 15 09:31:52 2025
+*** OpenMM_CUDA_12-8.4.0.dist-info/METADATA.orig	Tue Jul 15 09:31:42 2025
+--- OpenMM_CUDA_12-8.4.0.dist-info/METADATA	Tue Jul 15 09:31:52 2025
 *************** Version: 8.2.0
 *** 4,12 ****
   Summary: CUDA platform for OpenMM
