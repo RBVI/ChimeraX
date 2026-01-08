@@ -27,7 +27,7 @@ jobs:
           platform: linux
           architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos build-minimal
+      - run: MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos build-minimal
       - name: Install Pytest
         run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
