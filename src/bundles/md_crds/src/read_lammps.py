@@ -404,18 +404,6 @@ def read_dump(session, path, model):
         
         # Get column indices, set default values for optional columns
         index_id = tokens.index('id')-2
-        
-        # Handle optional columns with default values
-        if 'type' in tokens:
-            index_type = tokens.index('type')-2
-        else:
-            index_type = -1  # Not found, will use a default value
-            
-        if 'mol' in tokens:
-            index_mol = tokens.index('mol')-2
-        else:
-            index_mol = -1  # Not found, will use atom id as molecule id
-            
         index_x = tokens.index('x')-2
         index_y = tokens.index('y')-2
         index_z = tokens.index('z')-2
@@ -490,3 +478,94 @@ def read_dump(session, path, model):
             stream.close()
         print(traceback.format_exc())
         raise UserError(f"Problem reading/processing DUMP file '{path}': {e}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import numpy as np
+import multiprocessing as mp
+import os
+
+def parse_dump_timestep(path, frame_idx, bytes_per_frame, atom_start_offset, num_atoms, num_cols, col_indices):
+    """
+    Worker function: Jumps directly to the byte offset and parses the atom block.
+    """
+    # Calculate exact byte location of the first atom in this frame
+    start_byte = (frame_idx * bytes_per_frame) + atom_start_offset
+    
+    with open(path, 'rb') as f:
+        f.seek(start_byte)
+        
+        # Fast C-level read of the entire block into a 1D array
+        # Reading all columns is faster than Python-level line splitting
+        data = np.fromfile(f, dtype=np.float32, sep=' ', count=num_atoms * num_cols)
+        
+        # Reshape to (Atoms, Columns)
+        data = data.reshape((num_atoms, num_cols))
+        
+        # Sort by atom ID (column 0) to maintain ChimeraX consistency
+        # Then slice only the required XYZ columns
+        data = data[data[:, col_indices[0]].argsort()]
+        return data[:, col_indices[1:]].astype(np.float64)
+
+def fast_read_dump_mp(session, path, num_cores=None):
+    if num_cores is None:
+        num_cores = mp.cpu_count()
+
+    # 1. MEASURE CONSTANTS (Master Process)
+    with open(path, 'rb') as f:
+        # Get atom count
+        f.readline() # ITEM: TIMESTEP
+        f.readline() # value
+        f.readline() # ITEM: NUMBER OF ATOMS
+        num_atoms = int(f.readline().split()[0])
+        
+        # Measure Header Offset (first 9 lines)
+        f.seek(0)
+        for _ in range(9):
+            f.readline()
+        header_bytes = f.tell()
+        
+        # Measure Data Line Width (assumes fixed width)
+        first_atom_line = f.readline()
+        line_bytes = len(first_atom_line)
+        num_cols = len(first_atom_line.split())
+        
+    # Total bytes per frame block
+    bytes_per_frame = header_bytes + (num_atoms * line_bytes)
+    file_size = os.path.getsize(path)
+    num_frames = file_size // bytes_per_frame
+    
+    session.logger.info(f"Parallel Read: {num_frames} frames, {num_cores} cores.")
+
+    # 2. IDENTIFY COLUMN INDICES
+    with open(path, 'r') as f:
+        for _ in range(8): f.readline()
+        tokens = f.readline().split() # ITEM: ATOMS id type mol x y z
+        col_indices = [
+            tokens.index('id') - 2,
+            tokens.index('x') - 2,
+            tokens.index('y') - 2,
+            tokens.index('z') - 2
+        ]
+
+    # 3. PARALLEL EXECUTION
+    # pool.starmap ensures frames remain in chronological order
+    with mp.Pool(processes=num_cores) as pool:
+        args = [(path, i, bytes_per_frame, header_bytes, num_atoms, num_cols, col_indices) 
+                for i in range(num_frames)]
+        results = pool.starmap(parse_frame_worker, args)
+
+    # Return (num_atoms, 3D array of shape [Frames, Atoms, 3])
+    return num_atoms, np.stack(results)
