@@ -506,43 +506,72 @@ def read_dump2(session, path, model):
 
 
 
-
-
-
-
-
-
-
 import numpy as np
 import multiprocessing as mp
 import os
 import time
+import ctypes
 import traceback
 
-def parse_frame_worker(path, offset, num_atoms, num_cols, col_indices):
+# Global shared memory buffers
+shared_coords_internal = None
+atom_lut_internal = None
+
+def init_worker(shared_array_base, shape, lut_base, lut_shape):
+    global shared_coords_internal, atom_lut_internal
+    shared_coords_internal = np.frombuffer(shared_array_base, dtype=np.float64).reshape(shape)
+    atom_lut_internal = np.frombuffer(lut_base, dtype=np.int32).reshape(lut_shape)
+
+def parse_frame_to_shared_scratch(path, frame_idx, offset, num_atoms, num_cols, col_indices):
     """
-    Worker jumps to byte offset and parses atom block.
+    Scratch-built byte-level parser. 
+    Parses each line, looks up the slot via LUT, and writes X, Y, Z directly.
     """
-    with open(path, 'rb') as f:
-        f.seek(offset)
-        # Skip the 9 header lines to reach coordinate data
-        for _ in range(9):
-            f.readline()
-        
-        # Binary block read: significantly faster than text mode
-        data = np.fromfile(f, dtype=np.float32, sep=' ', count=num_atoms * num_cols)
-        data = data.reshape((num_atoms, num_cols))
-        
-        # Sort by atom ID column
-        data = data[data[:, col_indices[0]].argsort()]
-        
-        # Return XYZ columns as float64 for ChimeraX
-        return data[:, col_indices[1:]].astype(np.float64)
+    try:
+        with open(path, 'rb', buffering=1024*1024) as f:
+            f.seek(offset)
+            # Skip the 9-line LAMMPS header
+            for _ in range(9):
+                f.readline()
+            
+            # Read the entire atom block into memory at once
+            # For 18k atoms, this is only ~1-2 MB per frame
+            raw_chunk = f.read() 
+            
+            # Use memoryview for zero-copy slicing of the buffer
+            mview = memoryview(raw_chunk)
+            lines = raw_chunk.split(b'\n')
+            
+            # Extract column indices
+            id_col, x_col, y_col, z_col = col_indices
+            
+            # Local reference for faster access in the loop
+            lut = atom_lut_internal
+            shared_frame = shared_coords_internal[frame_idx]
+            
+            for line in lines:
+                if not line:
+                    continue
+                
+                tokens = line.split()
+                if len(tokens) < 4: # Safety for EOF/short lines
+                    continue
+                
+                # 1. Parse ID and get target slot via LUT
+                atom_id = int(tokens[id_col])
+                target_slot = lut[atom_id]
+                
+                # 2. Parse X, Y, Z directly into the shared memory slot
+                # This avoids the intermediate data array and slicing
+                shared_frame[target_slot, 0] = float(tokens[x_col])
+                shared_frame[target_slot, 1] = float(tokens[y_col])
+                shared_frame[target_slot, 2] = float(tokens[z_col])
+                
+    except Exception:
+        print(traceback.format_exc())
 
 def read_dump(session, path, model, num_cores=None):
     from chimerax.core.errors import UserError
-    import time
-    
     start_time = time.perf_counter()
     if num_cores is None:
         num_cores = mp.cpu_count()
@@ -552,80 +581,78 @@ def read_dump(session, path, model, num_cores=None):
         file_size = os.path.getsize(path)
         
         with open(path, 'rb') as f:
-            # 1. INITIAL METRICS
+            # --- Indexing and Setup (Same as before) ---
             f.readline() # ITEM: TIMESTEP
-            f.readline() # timestep value
+            f.readline() # val
             f.readline() # ITEM: NUMBER OF ATOMS
             num_atoms = int(f.readline().strip())
             for _ in range(4): f.readline() 
-            
-            # Correctly identify the ITEM: ATOMS header line
             header_line = f.readline().decode('utf-8')
             header_end_pos = f.tell()
             
-            # Sample 3 lines for a robust average line length heuristic
             sample_lens = [len(f.readline()) for _ in range(3)]
             avg_line_len = sum(sample_lens) / 3.0
             
-            # 2. COLUMN MAPPING
             tokens = header_line.split()
             col_names = tokens[2:] 
             num_cols = len(col_names)
             col_map = {name: i for i, name in enumerate(col_names)}
             col_indices = [col_map['id'], col_map['x'], col_map['y'], col_map['z']]
 
-            # 3. CONSERVATIVE JUMP SEARCH
+            f.seek(header_end_pos)
+            first_frame_raw = f.read(int(num_atoms * (avg_line_len + 5)))
+            # Quick parse of first frame for LUT
+            first_ids = []
+            for line in first_frame_raw.split(b'\n')[:num_atoms]:
+                t = line.split()
+                if t: first_ids.append(int(t[col_indices[0]]))
+            
+            first_ids = np.array(first_ids, dtype=np.int32)
+            max_id = int(np.max(first_ids))
+            
+            lut_base = mp.RawArray(ctypes.c_int, max_id + 1)
+            atom_lut = np.frombuffer(lut_base, dtype=np.int32)
+            atom_lut[first_ids[first_ids.argsort()]] = np.arange(num_atoms)
+
+            # --- Heuristic Jump Search (Finding all frames) ---
             est_frame_size = header_end_pos + (num_atoms * avg_line_len)
             offsets.append(0)
-            print(f"*** Frame 0 offset: 0")
-            
-            # Start very conservatively (50% of first frame) to avoid skipping Frame 2
-            search_pos = int(est_frame_size * 0.5) 
-
+            search_pos = int(est_frame_size * 0.5)
             while search_pos < file_size:
                 f.seek(max(0, search_pos))
-                # 256KB buffer provides a much larger landing zone to catch missed tags
-                buffer = f.read(262144) 
-                if not buffer:
-                    break
-                
+                buffer = f.read(262144)
+                if not buffer: break
                 tag_idx = buffer.find(b"ITEM: TIMESTEP")
-                
                 if tag_idx != -1:
                     actual_offset = f.tell() - len(buffer) + tag_idx
-                    
                     if actual_offset > offsets[-1]:
                         offsets.append(actual_offset)
-                        if len(offsets) % 100 == 0 or len(offsets) < 10: # Reduce print noise
-                            print(f"*** Frame {len(offsets)-1} offset: {actual_offset}")
-                        
-                        # Calculate actual size of last frame
                         last_frame_size = offsets[-1] - offsets[-2]
-                        # Jump to 90% of the last frame size (Safer than 95% or 98%)
                         search_pos = actual_offset + int(last_frame_size * 0.90)
                     else:
-                        # If we found the same tag, we must move the pointer forward
-                        search_pos = actual_offset + 100 
+                        search_pos = actual_offset + 100
                 else:
-                    # If tag not found, the jump was too far or the buffer too small
-                    # Scan forward in small steps
                     search_pos += 65536
 
-        session.logger.info(f"Jump-indexed {len(offsets)} frames. Parsing with {num_cores} cores.")
+        # --- Parallel Parsing with Direct Writes ---
+        num_frames = len(offsets)
+        shape = (num_frames, num_atoms, 3)
+        shared_array_base = mp.RawArray(ctypes.c_double, num_frames * num_atoms * 3)
 
-        # 4. PARALLEL PARSING
-        with mp.Pool(processes=num_cores) as pool:
-            args = [(path, off, num_atoms, num_cols, col_indices) for off in offsets]
-            results = pool.starmap(parse_frame_worker, args)
+        with mp.Pool(processes=num_cores, 
+                     initializer=init_worker, 
+                     initargs=(shared_array_base, shape, lut_base, (max_id + 1,))) as pool:
+            
+            pool_args = [(path, i, off, num_atoms, num_cols, col_indices) 
+                         for i, off in enumerate(offsets)]
+            pool.starmap(parse_frame_to_shared_scratch, pool_args)
 
+        final_coords = np.frombuffer(shared_array_base, dtype=np.float64).reshape(shape)
         elapsed = time.perf_counter() - start_time
-        session.logger.info(f"*** read_dump() {elapsed:.6f} seconds")
+        session.logger.info(f"*** read_dump() (Scratch Parser) {elapsed:.6f} seconds")
 
-        return num_atoms, np.stack(results)
+        return num_atoms, final_coords
 
     except Exception as e:
         print(traceback.format_exc())
-        raise UserError(f"Fast read_dump failed: {e}")
-        
-        
-        
+        raise UserError(f"Scratch read_dump failed: {e}")
