@@ -38,6 +38,7 @@ def start_server(runs_directory, boltz_exe, host = None, port = 30172,
             msg = f'Error: {str(e)}\n\n{traceback.format_exc()}'.encode('utf-8')
 
         client_socket.sendall(msg)
+        client_socket.shutdown()
         client_socket.close()
 
         if returned_result:
@@ -323,12 +324,13 @@ def _default_host():
     host = socket.gethostbyname(host)  # IP address
     return host
 
-def send_to_server(zip_data, host, port):
+def send_to_server(zip_data, host, port, timeout = 10.0):
     if host is None:
         host = _default_host()
 
     import socket
     client_socket = socket.socket()  # Instantiate
+    client_socket.settimeout(timeout)
     try:
         client_socket.connect((host, port))  # Connect to the server
     except socket.gaierror as e:
