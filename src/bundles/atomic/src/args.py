@@ -778,3 +778,243 @@ def concise_chain_spec(chains):
         specs.append(structure.string(style = 'command') + '/' + ','.join(cids))
     spec = ''.join(specs)
     return spec
+
+
+def classify_hydrogen_visibility(displayed_atoms, all_atoms):
+    """Classify the hydrogen visibility pattern for a set of atoms.
+    
+    Compares displayed hydrogen atoms against available hydrogen atoms
+    in residues that have displayed atoms, to determine which visibility 
+    pattern applies.
+    
+    Parameters
+    ----------
+    displayed_atoms : Atoms
+        The atoms that are currently displayed
+    all_atoms : Atoms
+        All atoms in the context (e.g., all atoms in a chain)
+        
+    Returns
+    -------
+    str
+        One of:
+        - 'none': No hydrogens are shown
+        - 'polar': Only polar hydrogens (H & ~HC) are shown
+        - 'all': All hydrogens are shown
+        - 'some': An arbitrary subset of hydrogens is shown
+    """
+    from . import Atoms
+    if not isinstance(displayed_atoms, Atoms):
+        displayed_atoms = Atoms(displayed_atoms)
+    if not isinstance(all_atoms, Atoms):
+        all_atoms = Atoms(all_atoms)
+    
+    # Get displayed hydrogen atoms
+    displayed_h = displayed_atoms.filter(displayed_atoms.elements.numbers == 1)
+    num_displayed_h = len(displayed_h)
+    
+    if num_displayed_h == 0:
+        return 'none'
+    
+    # Get residues that have displayed atoms - we only consider H from these
+    displayed_residues = displayed_atoms.unique_residues
+    
+    # Get all hydrogen atoms from residues that have displayed atoms
+    # This ensures we compare against the relevant scope, not the entire chain
+    residue_atoms = displayed_residues.atoms
+    relevant_h = residue_atoms.filter(residue_atoms.elements.numbers == 1)
+    
+    if len(relevant_h) == 0:
+        # No hydrogens exist in displayed residues
+        return 'none'
+    
+    num_relevant_h = len(relevant_h)
+    
+    if num_displayed_h == num_relevant_h:
+        return 'all'
+    
+    # Check if only polar hydrogens are shown
+    # Polar H have idatm_type != 'HC' (HC = hydrogen bonded to carbon)
+    polar_h = relevant_h.filter(relevant_h.idatm_types != 'HC')
+    num_polar_h = len(polar_h)
+    
+    if num_polar_h > 0 and num_displayed_h == num_polar_h:
+        # Check that the displayed H are exactly the polar H from displayed residues
+        polar_h_set = set(polar_h._pointers)
+        displayed_h_set = set(displayed_h._pointers)
+        if polar_h_set == displayed_h_set:
+            return 'polar'
+    
+    # Otherwise, it's an arbitrary subset
+    return 'some'
+
+
+def concise_atom_spec(session, atoms, include_hydrogens=False):
+    """Generate concise atomspec for atoms.
+    
+    Uses residue-level specs when all non-hydrogen atoms of a residue are shown,
+    and atom-level specs (residue@atom1,atom2,...) when only some non-H atoms are shown.
+    
+    Example output: "#1/A:103@CA,CB,C,N,O:110,112"
+    - Residue 103 has only CA, CB, C, N, O shown (partial)
+    - Residues 110, 112 have all non-H atoms shown (full)
+    
+    Parameters
+    ----------
+    session : Session
+        The ChimeraX session
+    atoms : Atoms
+        Collection of atoms to generate spec for
+    include_hydrogens : bool
+        If True, include hydrogen atoms in the spec. If False (default),
+        hydrogens are excluded and only non-H atoms determine full/partial display.
+        
+    Returns
+    -------
+    str
+        Concise atomspec string
+    """
+    from . import Atoms
+    if not isinstance(atoms, Atoms):
+        atoms = Atoms(atoms)
+    
+    if len(atoms) == 0:
+        return ""
+    
+    from . import all_structures
+    need_model_spec = len(all_structures(session)) > 1
+    
+    # Create a set of atom pointers for fast lookup
+    atom_set = set(atoms._pointers)
+    
+    full_spec = ""
+    
+    for struct, struct_atoms in atoms.by_structure:
+        # Build index maps for range formation
+        res_index_map = {}
+        for i, r in enumerate(struct.residues):
+            res_index_map[r] = i
+        chain_id_index_map = {}
+        for i, cid in enumerate(sorted(struct.residues.unique_chain_ids)):
+            chain_id_index_map[cid] = i
+        
+        # Group atoms by chain
+        chain_data = {}  # chain_id -> list of (residue, atom_names or None)
+        
+        for struct, chain_id, chain_atoms in struct_atoms.by_chain:
+            residue_info = []  # list of (residue, atom_names or None)
+            
+            for res in chain_atoms.unique_residues:
+                res_atoms = res.atoms
+                
+                # Get which of our input atoms are in this residue
+                res_input_atoms = [a for a in res_atoms if a._c_pointer.value in atom_set]
+                
+                if include_hydrogens:
+                    # Include all atoms (including H) in determination
+                    all_res_atoms = res_atoms
+                    res_input_relevant = res_input_atoms
+                else:
+                    # Only consider non-hydrogen atoms
+                    all_res_atoms = res_atoms.filter(res_atoms.elements.numbers > 1)
+                    res_input_relevant = [a for a in res_input_atoms if a.element.number > 1]
+                
+                if len(res_input_relevant) == 0:
+                    # No relevant atoms from this residue
+                    continue
+                
+                # Check if all relevant atoms are in our input
+                if len(res_input_relevant) >= len(all_res_atoms):
+                    # Full display - just residue spec needed
+                    residue_info.append((res, None))
+                else:
+                    # Partial display - need atom names
+                    if include_hydrogens:
+                        atom_names = sorted(set(a.name for a in res_input_atoms))
+                    else:
+                        atom_names = sorted(set(a.name for a in res_input_atoms if a.element.number > 1))
+                    residue_info.append((res, atom_names))
+            
+            if residue_info:
+                # Sort by residue number and insertion code
+                residue_info.sort(key=lambda ri: (ri[0].number, ri[0].insertion_code))
+                chain_data[chain_id] = residue_info
+        
+        if not chain_data:
+            continue
+        
+        # Build spec for this structure
+        if full_spec:
+            full_spec += ' '
+        if need_model_spec:
+            full_spec += struct.string(style="command")
+        
+        # Process each chain
+        sorted_chain_ids = sorted(chain_data.keys(), key=lambda cid: chain_id_index_map.get(cid, 0))
+        for chain_id in sorted_chain_ids:
+            residue_info = chain_data[chain_id]
+            
+            # Check if all residues in this chain are full display
+            all_full = all(atom_names is None for res, atom_names in residue_info)
+            
+            if all_full:
+                # Use concise residue spec format (ranges)
+                residues = [res for res, _ in residue_info]
+                all_chain_res = struct.residues.filter(struct.residues.chain_ids == chain_id)
+                if len(residues) == len(all_chain_res):
+                    # All residues in chain - just chain spec
+                    full_spec += '/' + chain_id
+                else:
+                    res_spec = _form_range(residues, res_index_map, lambda r:
+                        r.string(omit_structure=True, style="command", residue_only=True)[1:])
+                    full_spec += '/' + chain_id + ':' + res_spec
+            else:
+                # Mix of full and partial - need to handle each segment
+                full_spec += '/' + chain_id
+                full_spec += _build_mixed_residue_spec(residue_info, res_index_map)
+    
+    return full_spec
+
+
+def _build_mixed_residue_spec(residue_info, res_index_map):
+    """Build residue spec when there's a mix of full and partial display residues.
+    
+    Parameters
+    ----------
+    residue_info : list of (Residue, atom_names or None)
+        List of residues with their atom names (None means full display)
+    res_index_map : dict
+        Map from residue to index for range formation
+        
+    Returns
+    -------
+    str
+        Residue spec portion (starting with ':')
+    """
+    if not residue_info:
+        return ""
+    
+    spec = ""
+    i = 0
+    while i < len(residue_info):
+        res, atom_names = residue_info[i]
+        
+        if atom_names is not None:
+            # Partial display - output with atom names
+            res_str = res.string(omit_structure=True, style="command", residue_only=True)
+            atom_str = ','.join(atom_names)
+            spec += res_str + '@' + atom_str
+            i += 1
+        else:
+            # Full display - collect consecutive full residues for range
+            full_start = i
+            while i < len(residue_info) and residue_info[i][1] is None:
+                i += 1
+            full_residues = [r for r, _ in residue_info[full_start:i]]
+            
+            # Use _form_range for consecutive full residues
+            res_spec = _form_range(full_residues, res_index_map, lambda r:
+                r.string(omit_structure=True, style="command", residue_only=True)[1:])
+            spec += ':' + res_spec
+    
+    return spec

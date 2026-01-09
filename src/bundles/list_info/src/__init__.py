@@ -89,5 +89,8 @@ class _InfoAPI(BundleAPI):
         register("info path",
                  cmd.info_path_desc,
                  cmd.info_path, logger=logger)
+        register("info shown",
+                 cmd.shown_desc,
+                 cmd.shown, logger=logger)
 
 bundle_api = _InfoAPI()

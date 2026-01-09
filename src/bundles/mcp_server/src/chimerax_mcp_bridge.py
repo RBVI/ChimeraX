@@ -985,17 +985,15 @@ async def run_command(command: str, session_id: Optional[int] = None) -> str:
     """Execute any ChimeraX command directly. Use this tool if you don't find another tool
     that suits your needs.
     
-    IMPORTANT RESTRICTIONS:
-    - DO NOT use this tool for 'show' or 'hide' commands
-    - For show/hide operations, use show_hide_objects() or show_hide_hydrogens() instead
-    - Attempting to run 'show' or 'hide' commands will raise an exception
-    
     When constructing commands that specify objects (models, chains, residues, atoms):
     - Use get_atomspec_guide() to learn the correct atomspec syntax
     - Common atomspecs: #1 (model), #1/A (chain), #1/A:100 (residue), @ca (atom type), HC (nonpolar hydrogens), #1/A & ligand (ligands in chain A of model 1)
     
     To see a list of all commands, use the list_commands() tool.
     For command syntax help, use get_command_documentation(command_name).
+
+    Frequently-used commands:
+    - volume #2 step 1 sdLevel 5.0 transparency 0.5 - display map #2 with step size 1, surface level 5.0 standard deviations (sigma), transparency 50%
 
     Args:
         command: ChimeraX command to execute (e.g., 'open 1gcn', 'color #1/A red')
@@ -1024,7 +1022,10 @@ async def open_structure(identifier: str, format: str = "auto-detect", session_i
     """Open a molecular structure file or fetch from PDB
 
     Hint:
-    - After opening a structure and before showing any objects of this new model, you should first hide all its representations, so that we start from a clean slate
+    - After opening a structure and before showing any objects of this new model, you should
+    first run the get_shown() tool to get the current display state of the model because ChimeraX
+    uses different default representations depending on model features (e.g. number of atoms, chains, etc.)
+
 
     Args:
         identifier: PDB ID (e.g., '1gcn') or file path to open
@@ -1145,12 +1146,12 @@ async def list_models(session_id: Optional[int] = None) -> str:
     """List all models currently loaded in ChimeraX with key details.
 
     Returns a summary line with the total number of models, followed by detailed 
-    information for each model, including whether it is visible. 
+    information for each model. 
     The format varies by model type:
     
     - Model ID (e.g., #1, #1.1, #2)
     - Model name
-    - Visibility status (shown/hidden)
+    - Visibility status (shown/hidden) (for more details on what is currently visible, call the get_shown() tool)
     
     For AtomicStructure models:
         - Number of atoms
@@ -1216,6 +1217,89 @@ async def list_models(session_id: Optional[int] = None) -> str:
         
         context = "\n".join(output)
         return format_chimerax_response(result, context)
+
+@mcp.tool()
+async def get_shown(session_id: Optional[int] = None) -> str:
+    """Get information about what is currently shown.
+        
+    This tool provides a concise view of the current visualization state in
+    the form of a JSON report showing only what IS visible.
+
+    Absence from the output means that model (or part of model, such 
+    as a chain or residue or atoms) is not visible.
+    
+    Use this tool to:
+    - Understand the current visualization state before making changes
+    - Verify that show/hide commands had the expected effect
+    - Get atomspecs for shown elements to use in subsequent commands
+    
+    Key behavior:
+    - Only visible models and/or parts of models are included in the output
+    - Hidden models do not appear at all
+    - Spec fields can be directly used in commands like `color`, `hide`, `show`
+    
+    Atom display reporting:
+    - The "atoms" field contains a "spec" with concise atomspec syntax
+    - When all non-H atoms of a residue are shown: residue-level spec (e.g., ":10-20")
+    - When only some non-H atoms shown: atom-level spec (e.g., ":10@CA,CB,N,O:11-20")
+    
+    Hydrogen visibility reporting:
+    - The "hydrogens" field indicates hydrogen atom visibility for chains/ligands:
+      - "none": No hydrogen atoms are shown
+      - "polar": Only polar hydrogens (H & ~HC) are shown (common default)
+      - "all": All hydrogen atoms are shown
+      - "some": An arbitrary subset of hydrogens is shown (spec includes H atoms)
+    - Only when hydrogens="some", the atom spec explicitly includes H atom names
+    
+    Example response for a structure with ribbons and partial atoms shown:
+    ```json
+    {
+      "models": [
+        {
+          "id": "#1",
+          "name": "1abc",
+          "type": "AtomicStructure",
+          "chains": [
+            {
+              "id": "A",
+              "polymer_type": "protein",
+              "atoms": {"spec": "#1/A:12,25,40-50"},
+              "hydrogens": "polar",
+              "ribbons": {"spec": "#1/A"}
+            }
+          ],
+          "ligands": [{"name": "ATP", "chain": "A", "number": 501, "spec": "#1/A:501", "hydrogens": "none"}],
+          "ions": [{"name": "MG", "chain": "A", "number": 502, "spec": "#1/A:502"}]
+        }
+      ]
+    }
+    ```
+    
+    If all models are hidden, returns an empty list: {"models": []}
+
+    Hints:
+    - if you expect an entire residue to be shown, you should check the "atoms" field for the residue-level spec (e.g., ":10-20"); if you see an atom-level spec (e.g., ":10@CA,CB,N,O:11-20"), only some of the atoms are shown and you need to re-run the show command with the correct atomspec to show the entire residue.
+
+    
+    Args:
+        session_id: ChimeraX session port (defaults to primary session)
+    """
+    result = await run_chimerax_command("info shown", session_id)
+    
+    # The 'info shown' command returns JSON data
+    json_values = result.get("json_values", [])
+    
+    if json_values and len(json_values) > 0:
+        import json
+        display_data = json_values[0] if isinstance(json_values[0], list) else json.loads(json_values[0])
+        
+        # Wrap in models key for consistent response structure
+        response = {"models": display_data}
+        
+        return json.dumps(response, indent=2, ensure_ascii=False)
+    else:
+        return '{"models": []}'
+
 
 @mcp.tool()
 async def get_model_info(model_id: str, session_id: Optional[int] = None) -> str:
@@ -1470,6 +1554,8 @@ async def superpose_residue(
     
     This is useful when the 'align' command won't work because the two residues 
     don't have the same atoms (e.g., different small molecule ligands).
+
+    Use this tool when the user asks to superpose a ligand with another ligand.
     
     The tool works by:
     1. Centering the view on the target residue (sets center of rotation)
@@ -1536,6 +1622,7 @@ async def show_hide_objects(
     - p: pseudobonds: Toggle on (show) or off (hide) the pseudobonds
     - c: cartoons or ribbons: Toggle on (show) or off (hide) the cartoon/ribbon representation of the atomspec
     - s: surfaces: Toggle on (show) or off (hide) the surfaces associated with the atomspec    
+    - m: models: Toggle on (show) or off (hide) the entire model, including all its subparts. You should only use this when the user asks you to hide a map (e.g. cryoEM or Xray map) model.
 
     Examples:
         - Show all atoms and bonds in model 1: action='show', atomspec='#1', target='ab'
@@ -1547,6 +1634,7 @@ async def show_hide_objects(
         - Show polar hydrogens in model 1: action='show', atomspec='#1 & H & ~HC', target='a'
         - Hide non-polar hydrogens in model 1: action='hide', atomspec='#1 & HC', target='a'
         - Show protein side chains near ligand #1/A:LIG: action='show #1 & protein & #1/A:LIG:<5', target='ab'
+        - Hide a map model: action='hide', atomspec='#2', target='m'
     
     Important:
         - Before you attempt for the first time to show a particular object, you MUST first hide all its representations (because you don't know what representations are already active)
