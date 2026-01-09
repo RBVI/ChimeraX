@@ -329,7 +329,11 @@ def send_to_server(zip_data, host, port):
 
     import socket
     client_socket = socket.socket()  # Instantiate
-    client_socket.connect((host, port))  # Connect to the server
+    try:
+        client_socket.connect((host, port))  # Connect to the server
+    except socket.gaierror as e:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Invalid host "{host}"  {e}') 
 
     client_socket.sendall(zip_data)
     client_socket.shutdown(socket.SHUT_WR)
