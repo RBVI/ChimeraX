@@ -80,7 +80,7 @@ endif
 	# Install Cython first so ndindex builds on Linux ARM64
 	$(APP_PIP_INSTALL) $(shell grep Cython $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt | sed -e 's/[\ #",]//g')
-ifeq ($(OSARCH),DarwinArm64)
+ifeq ($(OS),Darwin)
 	$(APP_PIP_INSTALL) ./$(SCIPY_WHEEL)
 endif
 	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
