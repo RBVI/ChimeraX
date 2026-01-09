@@ -1,5 +1,5 @@
-*** METADATA.orig	Thu Jan  8 14:22:36 2026
---- METADATA	Thu Jan  8 15:49:01 2026
+*** OpenMM_CUDA_12-8.4.0.dist-info/METADATA.orig	Thu Jan  8 14:22:36 2026
+--- OpenMM_CUDA_12-8.4.0.dist-info/METADATA	Thu Jan  8 15:49:01 2026
 ***************
 *** 4,14 ****
   Summary: CUDA platform for OpenMM
