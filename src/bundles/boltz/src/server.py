@@ -295,8 +295,10 @@ def predict_on_server(run_dir, host = None, port = 30172):
     if msg.startswith(b'Job id: '):
         job_id = msg[8:].decode('utf-8')
         print(f'Server {host}:{port} queued job {job_id}')
+    elif len(msg) == 0:
+        raise RuntimeError(f'Did not receive job id from server {host}:{port}')
     else:
-        raise RuntimeError(msg.decode('utf-8'))
+        raise RuntimeError(f'Server {host}:{port} did not return job id: {msg.decode("utf-8")}')
 
     from os.path import join
     with open(join(run_dir, 'server'), 'w') as f:
@@ -336,6 +338,8 @@ def send_to_server(zip_data, host, port, timeout = 10.0):
     except socket.gaierror as e:
         from chimerax.core.errors import UserError
         raise UserError(f'Invalid host "{host}"  {e}') 
+    except TimeoutError as e:
+        raise RuntimeError(f'Connection to host "{host}" was not made within {timeout} seconds') 
 
     client_socket.sendall(zip_data)
     client_socket.shutdown(socket.SHUT_WR)
