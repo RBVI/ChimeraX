@@ -175,9 +175,10 @@ def read_toml(file):
 
 
 class Bundle:
-    def __init__(self, logger, bundle_info):
+    def __init__(self, logger, bundle_info, bundle_path=None):
         self.logger = logger
         self.bundle_info = bundle_info
+        self._bundle_path = bundle_path
         project_data = bundle_info["project"]
         # If you use something with an automated TOML linter it's never going to shut up
         # about how additional properties are illegal, so accept 'tool.chimerax' as well
@@ -261,7 +262,7 @@ class Bundle:
             # Check that the version is valid and let the error propagate up if one is thrown
             self.version = str(Version(project_data["version"]))
 
-        self.path = os.getcwd()
+        self.path = self._bundle_path if self._bundle_path else os.getcwd()
         build_dir = os.path.join(self.path, "build")
         # Ensure a clean environment between builds, even when not using build isolation
         shutil.rmtree(build_dir, ignore_errors=True)
@@ -553,12 +554,15 @@ class Bundle:
 
     @classmethod
     def from_toml_file(cls, logger, toml_file):
-        return cls(logger, read_toml(toml_file))
+        abs_toml_file = os.path.abspath(toml_file)
+        bundle_path = os.path.dirname(abs_toml_file)
+        return cls(logger, read_toml(abs_toml_file), bundle_path=bundle_path)
 
     @classmethod
     def from_path(cls, logger, bundle_path):
-        toml_file = os.path.join(os.path.abspath(bundle_path), "pyproject.toml")
-        return cls(logger, read_toml(toml_file))
+        abs_bundle_path = os.path.abspath(bundle_path)
+        toml_file = os.path.join(abs_bundle_path, "pyproject.toml")
+        return cls(logger, read_toml(toml_file), bundle_path=abs_bundle_path)
 
     def make_wheel(self, debug=False, release=False):
         self.build_wheel(debug=debug, release=release)

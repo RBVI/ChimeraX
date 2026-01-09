@@ -29,7 +29,7 @@
 from chimerax.core.tools import ToolInstance
 class BoltzPredictionGUI(ToolInstance):
 #    help = 'help:user/tools/boltz.html'
-    help = 'help:boltz_help.html'
+    help = 'https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html'
 
     def __init__(self, session, tool_name):
 

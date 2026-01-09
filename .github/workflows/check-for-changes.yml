@@ -10,10 +10,10 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  build-and-test-rocky8-docker:
+  build-and-test-rocky9-docker:
     runs-on: ubuntu-22.04
     container:
-      image: rockylinux:8
+      image: rockylinux:9
     env:
       SHELL: /bin/bash
       PATH: /usr/bin:/usr/sbin:/bin:/sbin
@@ -31,7 +31,7 @@ jobs:
           platform: linux
           architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - run: source /opt/rh/gcc-toolset-10/enable && MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos build-minimal
+      - run: MAKEOPTS="-j$(nproc)" make -j$(nproc) -f Makefile.centos build-minimal
       - name: Install Pytest
         run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting

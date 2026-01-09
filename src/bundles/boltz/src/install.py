@@ -322,6 +322,6 @@ def register_boltz_install_command(logger):
         keyword = [('download_model_weights_and_ccd', BoolArg),
                    ('branch', StringArg)],
         synopsis = 'Install Boltz from PyPi in a virtual environment',
-        url = 'help:boltz_help.html'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html#install'
     )
     register('boltz install', desc, boltz_install, logger=logger)

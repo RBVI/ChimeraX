@@ -9,17 +9,24 @@ REMOTE_HOST = plato.cgl.ucsf.edu:
 REMOTE_DIR = $(REMOTE_HOST)/usr/local/src/PyQt6
 
 # QT_VERSION is overriden by Makefile
-BASE_VERSION = 6.9
-QT_MINOR_VERSION = 2
-PYQT_MINOR_VERSION = 1
+BASE_VERSION = 6.10
+QT_MINOR_VERSION = 1
+PYQT_MINOR_VERSION = 2
 ifeq ($(OS),Linux)
 PYQT_REVISION =
 else
 PYQT_REVISION =
 endif
 PYQTWE_MINOR_VERSION = 0
+ifeq ($(OS),Linux)
+ifneq ($(OSARCH),LinuxArm64)
+PYQTWE_REVISION = 1
+else
 PYQTWE_REVISION =
-
+endif
+else
+PYQTWE_REVISION =
+endif
 QT_VERSION = $(BASE_VERSION).$(QT_MINOR_VERSION)
 ifeq (,$(PYQT_MINOR_VERSION))
 PYQT_VERSION = $(QT_VERSION)
@@ -47,7 +54,7 @@ BIN_PLATFORM = linux
 ifeq ($(OSARCH),LinuxArm64)
 WHEEL_PLATFORM = manylinux_2_39_aarch64
 else
-WHEEL_PLATFORM = manylinux_2_28_x86_64
+WHEEL_PLATFORM = manylinux_2_34_x86_64
 endif
 WE_WHEEL_PLATFORM = $(WHEEL_PLATFORM)
 MISSING_QTWEBENGINE_DICT = PyQt6/Qt6/libexec/qtwebengine_dictionaries

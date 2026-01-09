@@ -356,11 +356,8 @@ def boltz_server_start(session,
     if host is None:
         host = _default_host()
 
-    from os.path import expanduser, exists, join
+    from os.path import expanduser, join
     jobs_directory = expanduser(jobs_directory)
-    if not exists(jobs_directory):
-        from os import mkdir
-        mkdir(jobs_directory)
 
     if boltz_exe is None:
         from .settings import _boltz_settings
@@ -476,13 +473,13 @@ def register_boltz_server_command(logger):
                    ('extra_options', StringArg),
                    ],
         synopsis = 'Start a Boltz prediction server',
-        url = 'help:boltz_help.html'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_server.html'
     )
     register('boltz server start', desc, boltz_server_start, logger=logger)
 
     desc = CmdDesc(
         synopsis = 'List active Boltz prediction server jobs',
-        url = 'help:boltz_help.html'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_server.html'
     )
     register('boltz server list', desc, boltz_server_list, logger=logger)
 
@@ -490,7 +487,7 @@ def register_boltz_server_command(logger):
         optional = [('run_directory', OpenFolderNameArg)],
         keyword = [('open', BoolArg)],
         synopsis = 'Fetch results for active Boltz prediction server jobs',
-        url = 'help:boltz_help.html'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_server.html'
     )
     register('boltz server fetch', desc, boltz_server_fetch, logger=logger)
 
@@ -523,6 +520,11 @@ def _start_server():
     device = 'cpu' if args.cpu else 'gpu'
     gpus = args.gpus.split(',') if args.gpus else None
     extra_options = args.extra_options.removeprefix('"').removesuffix('"').split() if args.extra_options else []
+
+    from os.path import exists
+    if not exists(args.jobs_directory):
+        from os import mkdir
+        mkdir(args.jobs_directory)
 
     start_server(args.jobs_directory, args.boltz_exe, args.host, args.port,
                  device = device, gpus = gpus, extra_options = extra_options)

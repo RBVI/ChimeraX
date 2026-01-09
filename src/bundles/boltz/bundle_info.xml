@@ -9,11 +9,6 @@
   <Synopsis>Predict structures using Boltz</Synopsis>
   <Description>Predict structures using Boltz</Description>
 
-  <DataFiles>
-    <DataFile>docs/boltz_help.html</DataFile>
-    <DataFile>docs/images/*.png</DataFile>
-  </DataFiles>
-
   <Categories>
     <Category name="Structure Prediction"/>
   </Categories>

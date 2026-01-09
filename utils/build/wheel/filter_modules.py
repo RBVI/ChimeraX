@@ -32,6 +32,7 @@ module_blacklist = set(
         "chimerax.ui",  # tries to import Qt
         "chimerax.vive",  # GUI only bundle
         "chimerax.kvfinder",  # tries to import an optional dependency at the top level
+        "chimerax.lighting_gui",  # GUI tool, needs Qt
     ]
 )
 fine_blacklist = set(

@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,19 +9,16 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
+--><head><meta charset="utf-8">
 <title>Web Services Used by UCSF ChimeraX</title>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<link rel="stylesheet" type="text/css" href="user/userdocs.css" />
+
+<link rel="stylesheet" type="text/css" href="user/userdocs.css">
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="https://www.rbvi.ucsf.edu/chimerax/">
-<img width="50px" src="user/ChimeraX-home-icon.svg" alt="ChimeraX home icon"
-title="ChimeraX Home" class="clRighticon"/></a>
+<img width="50px" src="user/ChimeraX-home-icon.svg" alt="ChimeraX home icon" title="ChimeraX Home" class="clRighticon"></a>
 
 <h2>Web Services Used by UCSF ChimeraX</h2>
 <p>
@@ -31,26 +26,25 @@ Web services accessed by ChimeraX fall into two general categories:
 </p>
 <ul>
 <li><a href="#comp">Computational Services</a>
-<li><a href="#data">Data Retrieval Services</a>
-</ul>
+</li><li><a href="#data">Data Retrieval Services</a>
+</li></ul>
 
 <h3><a href="#top" class="nounder">&bull;</a>
 <a name="comp">Computational Services</a></h3>
 <blockquote>
 <dt><a name="alphafold"><b>AlphaFold</b></a>
-<dd>
+</dt><dd>
 The <a href="user/tools/alphafold.html"><b>AlphaFold</b></a> tool
 <b>Predict</b> option and the command
 <a href="user/commands/alphafold.html#predict"><b>alphafold predict</b></a>
 use <a href="https://colab.research.google.com/signup" target="_blank">Google
 Colab</a> to run <b>ColabFold</b>, an open-source, optimized version of
-<a href="https://en.wikipedia.org/wiki/AlphaFold#AlphaFold_2,_2020"
-target="_blank">AlphaFold 2</a>. Users will need to have a Google account
+<a href="https://en.wikipedia.org/wiki/AlphaFold#AlphaFold_2,_2020" target="_blank">AlphaFold 2</a>. Users will need to have a Google account
 and to sign into it via a browser.
 <br><br>
 
-<dt><a name="blast"><b>BLAST Protein</b></a>
-<dd>
+</dd><dt><a name="blast"><b>BLAST Protein</b></a>
+</dt><dd>
 The <a href="user/tools/blastprotein.html"><b>Blast Protein</b></a> tool
 performs protein sequence searches using a
 <a href="https://blast.ncbi.nlm.nih.gov/" target="_blank">BLAST</a>
@@ -63,8 +57,8 @@ the <a href="user/tools/foldseek.html"><b>Foldseek</b></a> tool and the
 blast</b></a> command.
 <br><br>
 
-<dt><a name="clustalomega"><b>Clustal Omega</b></a>
-<dd>
+</dd><dt><a name="clustalomega"><b>Clustal Omega</b></a>
+</dt><dd>
 Multiple sequence alignment with
 <a href="http://www.clustal.org/omega/" target="_blank">Clustal Omega</a>
 can be performed using a web service hosted by the
@@ -76,29 +70,26 @@ or the
 context menu</a>.
 <br><br>
 
-<dt><a name="esmfold"><b>ESMFold</b></a>
-<dd>
-The <a href="https://esmatlas.com/about#about_this_website"
-target="_blank">ESM Metagenomic Atlas</a> provides a
-<a href="https://esmatlas.com/about#fold" 
-target="_blank">structure prediction server</a> used by the command
+</dd><dt><a name="esmfold"><b>ESMFold</b></a>
+</dt><dd>
+The <a href="https://esmatlas.com/about#about_this_website" target="_blank">ESM Metagenomic Atlas</a> provides a
+<a href="https://esmatlas.com/about#fold" target="_blank">structure prediction server</a> used by the command
 <a href="user/commands/esmfold.html#predict"><b>esmfold predict</b></a>.
 <br><br>
 
-<dt><a name="foldseek"><b>Foldseek</b></a>
-<dd>
+</dd><dt><a name="foldseek"><b>Foldseek</b></a>
+</dt><dd>
 The <a href="user/tools/foldseek.html"><b>Foldseek</b></a> tool and
 <a href="user/commands/foldseek.html"><b>foldseek</b></a> command 
 perform a fast 3D structure similarity search
-using the <a href="https://search.foldseek.com/search"
-target="_blank">Foldseek Search Service</a> provided by the
+using the <a href="https://search.foldseek.com/search" target="_blank">Foldseek Search Service</a> provided by the
 <a href="https://www.mpinat.mpg.de/soeding" target="_blank">S&ouml;ding</a>
 and <a href="https://steineggerlab.com/en/" target="_blank">Steinegger</a>
 groups.
 <br><br>
 
-<dt><a name="k-mer"><b>Fast Sequence Database Search</b></a>
-<dd>
+</dd><dt><a name="k-mer"><b>Fast Sequence Database Search</b></a>
+</dt><dd>
 A <a href="https://www.rbvi.ucsf.edu/chimerax/data/kmer-aug2022/kmer_search.html">K-mer sequence search</a>
 service hosted by the 
 <a href="https://www.rbvi.ucsf.edu/Overview/index.html" target="_blank">UCSF
@@ -111,8 +102,8 @@ This search algorithm is fast but low-sensitivity, as appropriate for
 searching large sequence databases for matches with very high % identity. 
 <br><br>
 
-<dt><a name="mmseqs2"><b>MMseqs2</b></a>
-<dd>
+</dd><dt><a name="mmseqs2"><b>MMseqs2</b></a>
+</dt><dd>
 <a href="user/tools/foldseek.html#notes">MMseqs2</a> is a very fast
 sequence similarity search method run by the
 <a href="user/tools/foldseek.html"><b>Foldseek</b></a> tool and the
@@ -121,8 +112,8 @@ command using the
 <a href="https://search.rcsb.org" target="_blank">RCSB web service</a>.
 <br><br>
 
-<dt><a name="modeller"><b>Modeller</b></a>
-<dd>
+</dd><dt><a name="modeller"><b>Modeller</b></a>
+</dt><dd>
 Two tools run
 <a href="https://www.salilab.org/modeller/" target="_blank">Modeller</a>
 <!-- either locally or -->
@@ -132,12 +123,12 @@ RBVI</a>:
 <ul>
 <li><a href="user/tools/modeller.html"><b>Modeller Comparative</b></a>
 performs comparative (homology) modeling
-<li><a href="user/tools/modelloops.html"><b>Model Loops</b></a>
+</li><li><a href="user/tools/modelloops.html"><b>Model Loops</b></a>
 performs untemplated modeling (loop remodeling and building missing segments)
-</ul>
+</li></ul>
 
-<dt><a name="muscle"><b>MUSCLE</b></a>
-<dd>
+</dd><dt><a name="muscle"><b>MUSCLE</b></a>
+</dt><dd>
 Multiple sequence alignment with
 <a href="https://drive5.com/muscle/" target="_blank">MUSCLE</a>
 can be performed using a web service hosted by the
@@ -149,20 +140,17 @@ or the
 context menu</a>.
 <br><br>
 
-<dt><a name="smiles"
-<a href="https://cactus.nci.nih.gov/translate/" target="_blank"><b>SMILES
+</dd><dt><a name="smiles" <a href="https://cactus.nci.nih.gov/translate/" target="_blank"><b>SMILES
 Translator</b></a>
-<dd>
+</dt><dd>
 The <a href="https://cactus.nci.nih.gov/translate/" target="_blank">SMILES
-translator</a> provided by the <a href="https://cactus.nci.nih.gov/"
-target="_blank">National Cancer Institute CADD group</a> is used to
+translator</a> provided by the <a href="https://cactus.nci.nih.gov/" target="_blank">National Cancer Institute CADD group</a> is used to
 generate 3D molecule structures specified by
-<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html"
-target="_blank">SMILES</a> string with the command
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html" target="_blank">SMILES</a> string with the command
 <a href="user/commands/open.html#fetch"><b>open</b></a> or in
 <a href="user/tools/buildstructure.html#start"><b>Build Structure</b></a>.
 
-</blockquote>
+</dd></blockquote>
 
 <h3><a href="#top" class="nounder">&bull;</a>
 <a name="data">Data Retrieval Services</a></h3>
@@ -172,36 +160,27 @@ Information can be retrieved from the following databases using the
 <a href="user/commands/open.html#fetch"><b>open</b></a> command:
 </p>
 <ul>
-<li><a href="https://www.rcsb.org/"
-target="_blank">RCSB Protein Data Bank</a>
+<li><a href="https://www.rcsb.org/" target="_blank">RCSB Protein Data Bank</a>
 &ndash; atomic structures, assemblies of atomic structures
-<li><a href="https://www.ebi.ac.uk/pdbe/"
-target="_blank">Protein Data Bank in Europe (PDBe)</a>
+</li><li><a href="https://www.ebi.ac.uk/pdbe/" target="_blank">Protein Data Bank in Europe (PDBe)</a>
 &ndash; atomic structures, assemblies of atomic structures,
 small-molecule connectivity and binding-site information
-<li><a href="https://pdbj.org/" target="_blank">Protein
+</li><li><a href="https://pdbj.org/" target="_blank">Protein
 Data Bank Japan (PDBj)</a>
 &ndash; atomic structures
-<li><a href="https://www.wwpdb.org/data/ccd"
-target="_blank">PDB Chemical Component Dictionary (CCD)</a>
+</li><li><a href="https://www.wwpdb.org/data/ccd" target="_blank">PDB Chemical Component Dictionary (CCD)</a>
 &ndash; idealized structures of PDB chemical components (residue types)
-<li><a href="https://www.ebi.ac.uk/pdbe/eds/"
-target="_blank">PDBe Electron Density Server (EDS)</a>
+</li><li><a href="https://www.ebi.ac.uk/pdbe/eds/" target="_blank">PDBe Electron Density Server (EDS)</a>
 &ndash; (2Fo-Fc) electron density maps 
 and (Fo-Fc) difference maps for some PDB entries
-<li><a href="https://www.ebi.ac.uk/pdbe/emdb/"
-target="_blank">Electron Microscopy Data Bank</a>
-&ndash; electron density maps (<a href="ftp://ftp.wwpdb.org/pub/emdb/README"
-target="_blank">ftp</a> from wwpdb.org to .edu/.gov hosts,
+</li><li><a href="https://www.ebi.ac.uk/pdbe/emdb/" target="_blank">Electron Microscopy Data Bank</a>
+&ndash; electron density maps (<a href="ftp://ftp.wwpdb.org/pub/emdb/README" target="_blank">ftp</a> from wwpdb.org to .edu/.gov hosts,
 Chinese mirror site to .cn hosts, otherwise from ebi.ac.uk)
-<li><a href="https://pdb-dev.wwpdb.org/"
-target="_blank">PDB-Dev</a>
+</li><li><a href="https://pdb-dev.wwpdb.org/" target="_blank">PDB-Dev</a>
 &ndash; integrative hybrid models
-<li><a href="https://alphafold.ebi.ac.uk/"
-target="_blank">AlphaFold Database</a>
+</li><li><a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold Database</a>
 &ndash; artificial intelligence-predicted protein structures
-<li><a href="https://www.science.org/doi/10.1126/science.adg7492"
-target="_blank">AlphaMissense</a>
+</li><li><a href="https://www.science.org/doi/10.1126/science.adg7492" target="_blank">AlphaMissense</a>
 &ndash; predicted pathogenicity scores of mutations for analysis
 with <a href="user/commands/mutationscores.html"><b>mutationscores</b></a>
 <!--
@@ -209,19 +188,17 @@ with <a href="user/commands/mutationscores.html"><b>mutationscores</b></a>
 target="_blank">cellPACK</a>
 &ndash; hierarchical models
 -->
-<li><a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d"
-target="_blank">PubChem3D</a>
+</li><li><a href="https://pubchemdocs.ncbi.nlm.nih.gov/pubchem3d" target="_blank">PubChem3D</a>
 &ndash; modeled atomic coordinates for most entries in
-<a href="https://pubchem.ncbi.nlm.nih.gov/"
-target="_blank">PubChem Compound</a>
-<li><a href="https://www.uniprot.org"
-target="_blank">UniProt</a>
+<a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank">PubChem Compound</a>
+</li><li><a href="https://www.uniprot.org" target="_blank">UniProt</a>
 &ndash; protein sequences, sequence feature annotations, predicted
 pathogenicity scores of variants
-</ul>
+</li></ul>
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 November 2024</address>
+
 </body></html>
