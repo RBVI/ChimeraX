@@ -84,7 +84,7 @@ wheel = [
   "mcp==1.18.0",
   "msgpack==1.1.1",
   "nibabel == 5.2.0",
-  "netCDF4==1.6.5",
+  "netCDF4==1.7.2",
   "networkx==3.3",
   "numpy==1.26.4",
   # if the OpenMM version changes, the patches in prereqs/pips need to be updated
