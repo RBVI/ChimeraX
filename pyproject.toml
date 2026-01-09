@@ -107,6 +107,8 @@ wheel = [
   "tcia_utils==1.5.1",
   "python-dateutil==2.9.0.post0",
   "requests==2.32.5",
+  # Macs download scipy wheels directly, adjust the names in prereqs/pips accordingly
+  # if you upgrade this
   "scipy==1.14.0",
   # let version float to latest for testing; "six==1.17.0",
   "sortedcontainers==2.4.0",
