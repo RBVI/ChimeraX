@@ -37,7 +37,7 @@ def start_server(runs_directory, boltz_exe, host = None, port = 30172,
             import traceback
             msg = f'Error: {str(e)}\n\n{traceback.format_exc()}'.encode('utf-8')
 
-        client_socket.send(msg)
+        client_socket.sendall(msg)
         client_socket.close()
 
         if returned_result:
@@ -329,9 +329,13 @@ def send_to_server(zip_data, host, port):
 
     import socket
     client_socket = socket.socket()  # Instantiate
-    client_socket.connect((host, port))  # Connect to the server
+    try:
+        client_socket.connect((host, port))  # Connect to the server
+    except socket.gaierror as e:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Invalid host "{host}"  {e}') 
 
-    client_socket.send(zip_data)
+    client_socket.sendall(zip_data)
     client_socket.shutdown(socket.SHUT_WR)
 
     response = read_socket_data(client_socket)

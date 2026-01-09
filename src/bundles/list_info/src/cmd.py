@@ -26,6 +26,7 @@ from chimerax.core.commands import CmdDesc, EmptyArg, EnumOf, Or, StringArg, Ato
 from chimerax.atomic import AtomsArg, ResiduesArg
 from .util import report_models, report_chains, report_polymers, report_residues
 from .util import report_residues, report_atoms, report_attr, report_distmat, output
+from .util import get_shown_info
 
 
 def info(session, models=None, *, return_json=False, save_file=None):
@@ -544,3 +545,115 @@ def _info_path_show(logger, save_file, append, which, version, what, *, info_dic
                 append=append)
             if info_dict is not None:
                 info_dict.setdefault(version, {})[attr_name] = attr_value
+
+
+def shown(session, models=None, *, return_json=True, save_file=None):
+    '''
+    Report what is currently displayed for each model.
+    
+    Only models that ARE visible are included in the output - hidden models
+    are omitted entirely. Absence from the output means that model is not visible.
+    This provides a concise view of the current visualization state.
+
+    A model is considered visible only if its own display is True AND all its
+    parent models are also visible (using the model.visible property).
+
+    The output includes atomspec strings that can be directly used in commands
+    like ``color``, ``hide``, ``show``, etc.
+
+    :param models: A list of models to report on. If None, reports on all models.
+    :param return_json: Whether to return a JSON result (default True).
+    :param save_file: Optional file to save the output to.
+
+    If :code:`return_json` is :code:`True`, the returned JSON will be a list of objects,
+    one per visible model.
+
+    Example JSON output for a structure with ribbons and some atoms displayed:
+
+    .. code-block:: json
+
+        {
+          "id": "#1",
+          "name": "1abc",
+          "type": "AtomicStructure",
+          "chains": [
+            {
+              "id": "A",
+              "polymer_type": "protein",
+              "atoms": {"spec": "#1/A:12,25,40-50"},
+              "ribbons": {"spec": "#1/A"}
+            }
+          ],
+          "ligands": [{"name": "ATP", "chain": "A", "number": 501, "spec": "#1/A:501"}],
+          "ions": [{"name": "MG", "chain": "A", "number": 502, "spec": "#1/A:502"}]
+        }
+
+    Hidden models do not appear in the output at all.
+    '''
+    display_info = get_shown_info(session, models)
+    
+    if return_json:
+        from chimerax.core.commands import JSONResult, ArrayJSONEncoder
+        import json
+        return JSONResult(ArrayJSONEncoder().encode(display_info), None)
+    
+    # Text output for non-JSON mode
+    # Use visible markers for indentation since the log window strips leading whitespace
+    lines = []
+    for i, model in enumerate(display_info):
+        # Add blank line between models (but not before the first one)
+        if i > 0:
+            lines.append('')
+        
+        lines.append(f"Model {model['id']} ({model['name']})")
+        mtype = model.get('type', 'Unknown')
+        
+        if mtype in ('AtomicStructure', 'Structure'):
+            for chain in model.get('chains', []):
+                lines.append(f"├─ Chain {chain['id']} ({chain.get('polymer_type', 'unknown')}):")
+                if 'atoms_shown' in chain:
+                    h_info = f" (H: {chain['hydrogens_shown']})" if 'hydrogens_shown' in chain else ''
+                    lines.append(f"│    atoms: {chain['atoms_shown']['spec']}{h_info}")
+                if 'ribbons_shown' in chain:
+                    lines.append(f"│    ribbons: {chain['ribbons_shown']['spec']}")
+            
+            for lig in model.get('ligands', []):
+                lines.append(f"├─ Ligand {lig['name']} ({lig['spec']}):")
+                if 'atoms_shown' in lig:
+                    h_info = f" (H: {lig['hydrogens_shown']})" if 'hydrogens_shown' in lig else ''
+                    lines.append(f"│    atoms: {lig['atoms_shown']['spec']}{h_info}")
+            
+            for ion in model.get('ions', []):
+                lines.append(f"├─ Ion: {ion['name']} ({ion['spec']})")
+            
+            if 'solvent' in model:
+                lines.append(f"├─ Solvent: {model['solvent']['spec']}")
+            
+            for surf in model.get('surfaces', []):
+                lines.append(f"├─ Surface {surf['id']}: {surf['spec']}")
+            
+            for pb in model.get('pseudobonds', []):
+                pb_line = f"├─ Pseudobonds '{pb['name']}'"
+                if 'count' in pb:
+                    pb_line += f" [{pb['count']}]"
+                lines.append(pb_line)
+        
+        elif mtype == 'Volume':
+            if 'surface_levels' in model:
+                lines.append(f"├─ Surface levels: {model['surface_levels']}")
+            if 'image_levels' in model:
+                lines.append(f"├─ Image levels: {model['image_levels']}")
+        
+        elif mtype == 'PseudobondGroup':
+            pbs = model.get('pseudobonds')
+            if pbs is not None:
+                lines.append(f"├─ Pseudobonds: {pbs}")
+    
+    msg = '\n'.join(lines)
+    output(session.logger, save_file, msg)
+
+
+shown_desc = CmdDesc(optional=[('models', ModelsArg)],
+                     keyword=[('return_json', BoolArg),
+                              ('save_file', SaveFileNameArg)],
+                     synopsis='List what is currently shown')

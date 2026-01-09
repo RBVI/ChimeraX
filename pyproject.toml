@@ -87,6 +87,7 @@ wheel = [
   "netCDF4==1.6.5",
   "networkx==3.3",
   "numpy==1.26.4",
+  # if the OpenMM version changes, the patches in prereqs/pips need to be updated
   "openmm==8.4.0 ; platform_machine != 'aarch64'",
   "openmm-cuda-12==8.4.0 ; ((sys_platform == 'win32') or (sys_platform == 'linux')) and (platform_machine != 'aarch64')",
   "packaging==25.0",
