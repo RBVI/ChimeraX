@@ -31,7 +31,7 @@ gui = [
   # sip handled in prereqs/PyQt
   #PySide6==6.10.0
   #shiboken6==6.10.0
-  # let version float to latest for testing; "qtconsole==5.7.0",
+  "qtconsole==5.7.0",
   "qtshim==1.2",
   # Used by the DICOM bundle for a double-ended QSlider"
   "superqt==0.7.6",
@@ -72,11 +72,11 @@ wheel = [
   "imagecodecs==2024.6.1",
   # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
   # try a newer version of jedi
-  # let version float to latest for testing; "ipykernel==6.30.1",
-  # let version float to latest for testing; "ipython==9.5.0",
+  "ipykernel==7.1.0",
+  "ipython==9.9.0",
   # the version of jedi that works with ipython
-  # let version float to latest for testing; "jedi==0.19.2",
-  # let version float to latest for testing; "jupyter-client==8.6.3",
+  "jedi==0.19.2",
+  "jupyter-client==8.8.0",
   "lxml==6.0.2",
   # lz4 4.4.4 has problems decompressing what it encoded, ticket #18140
   "lz4==4.3.2",
@@ -108,7 +108,7 @@ wheel = [
   "python-dateutil==2.9.0.post0",
   "requests==2.32.5",
   "scipy==1.14.0",
-  # let version float to latest for testing; "six==1.17.0",
+  "six==1.17.0",
   "sortedcontainers==2.4.0",
   "tables==3.10.2",
   "tifffile==2025.3.13",
