@@ -48,10 +48,10 @@ else
 ifeq ($(OS),Darwin)
 WHEEL_CFLAGS="-Wno-error=int-conversion"
 ifeq ($(OSARCH),DarwinArm64)
-SCIPY_WHEEL = $(subst ==,-,$(shell grep scipy $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_12_0_arm64.whl
+SCIPY_WHEEL = $(subst ==,-,$(shell grep '"scipy' $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_12_0_arm64.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
-SCIPY_WHEEL = $(subst ==,-,$(shell grep scipy $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_10_14_x86_64.whl
+SCIPY_WHEEL = $(subst ==,-,$(shell grep '"scipy' $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_10_9_x86_64.whl
 endif
 endif
 endif
@@ -117,7 +117,7 @@ app_requirements.txt: ../../pyproject.toml
 
 uv-install: $(PLATO_WHEELS)
 	uv pip install -r $(TOP)/pyproject.toml --all-extras
-	uvx pip download --platform=macosx_12_0_arm64 --no-deps $(shell grep scipy $(TOP)/pyproject.toml | sed 's/[\ #",]//g')
+	uvx pip download --platform=macosx_12_0_arm64 --no-deps $(shell grep '"scipy' $(TOP)/pyproject.toml | sed 's/[\ #",]//g')
 ifeq ($(OSARCH),DarwinArm64)
 	uv pip install ./$(SCIPY_WHEEL)
 endif
@@ -173,7 +173,7 @@ src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src
 
 $(SCIPY_WHEEL):
-	$(APP_PIP) download --platform=macosx_12_0_arm64 --no-deps $(shell grep scipy $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
+	$(APP_PIP) download --platform=macosx_12_0_arm64 --no-deps $(shell grep '"scipy' $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
 
 $(CYTHON_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cython/$(CYTHON_WHEEL)
