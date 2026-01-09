@@ -307,7 +307,10 @@ def predict_on_server(run_dir, host = None, port = 30172):
     return job_id
 
 def get_results(job_id, run_dir, host = None, port = 30172):
-    msg = send_to_server(f'status: {job_id}'.encode('utf-8'), host, port)
+    try:
+        msg = send_to_server(f'status: {job_id}'.encode('utf-8'), host, port)
+    except Exception as e:
+        msg = f'Error: {str(e)}'.encode('utf-8')
     if is_zip_data(msg):
         zip_result_path = f'{run_dir}_output.zip'
         with open(zip_result_path, 'wb') as f:
