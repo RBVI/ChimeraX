@@ -38,7 +38,7 @@ def start_server(runs_directory, boltz_exe, host = None, port = 30172,
             msg = f'Error: {str(e)}\n\n{traceback.format_exc()}'.encode('utf-8')
 
         client_socket.sendall(msg)
-        client_socket.shutdown()
+        client_socket.shutdown(socket.SHUT_RDWR)
         client_socket.close()
 
         if returned_result:
