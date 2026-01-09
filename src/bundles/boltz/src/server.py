@@ -38,6 +38,7 @@ def start_server(runs_directory, boltz_exe, host = None, port = 30172,
             msg = f'Error: {str(e)}\n\n{traceback.format_exc()}'.encode('utf-8')
 
         client_socket.sendall(msg)
+        client_socket.shutdown(socket.SHUT_RDWR)
         client_socket.close()
 
         if returned_result:
@@ -294,8 +295,10 @@ def predict_on_server(run_dir, host = None, port = 30172):
     if msg.startswith(b'Job id: '):
         job_id = msg[8:].decode('utf-8')
         print(f'Server {host}:{port} queued job {job_id}')
+    elif len(msg) == 0:
+        raise RuntimeError(f'Did not receive job id from server {host}:{port}')
     else:
-        raise RuntimeError(msg.decode('utf-8'))
+        raise RuntimeError(f'Server {host}:{port} did not return job id: {msg.decode("utf-8")}')
 
     from os.path import join
     with open(join(run_dir, 'server'), 'w') as f:
@@ -304,7 +307,10 @@ def predict_on_server(run_dir, host = None, port = 30172):
     return job_id
 
 def get_results(job_id, run_dir, host = None, port = 30172):
-    msg = send_to_server(f'status: {job_id}'.encode('utf-8'), host, port)
+    try:
+        msg = send_to_server(f'status: {job_id}'.encode('utf-8'), host, port)
+    except Exception as e:
+        msg = f'Error: {str(e)}'.encode('utf-8')
     if is_zip_data(msg):
         zip_result_path = f'{run_dir}_output.zip'
         with open(zip_result_path, 'wb') as f:
@@ -323,17 +329,20 @@ def _default_host():
     host = socket.gethostbyname(host)  # IP address
     return host
 
-def send_to_server(zip_data, host, port):
+def send_to_server(zip_data, host, port, timeout = 10.0):
     if host is None:
         host = _default_host()
 
     import socket
     client_socket = socket.socket()  # Instantiate
+    client_socket.settimeout(timeout)
     try:
         client_socket.connect((host, port))  # Connect to the server
     except socket.gaierror as e:
         from chimerax.core.errors import UserError
         raise UserError(f'Invalid host "{host}"  {e}') 
+    except TimeoutError as e:
+        raise RuntimeError(f'Connection to host "{host}" was not made within {timeout} seconds') 
 
     client_socket.sendall(zip_data)
     client_socket.shutdown(socket.SHUT_WR)

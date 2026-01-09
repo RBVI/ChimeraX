@@ -6,6 +6,41 @@ import pytest
 import json
 
 
+def _check_emdb_available():
+    """Check if EMDB FTP server is accessible.
+
+    Returns True if accessible, False otherwise.
+    Used to skip tests when EMDB servers are unreachable.
+    """
+    import socket
+    try:
+        # Try to connect to EMDB FTP server with a short timeout
+        sock = socket.create_connection(("ftp.ebi.ac.uk", 21), timeout=5)
+        sock.close()
+        return True
+    except (socket.timeout, socket.error, OSError):
+        return False
+
+
+# Check EMDB availability once at module load time to avoid repeated network checks
+_emdb_available = None
+
+
+def emdb_available():
+    """Lazily check EMDB availability (cached result)."""
+    global _emdb_available
+    if _emdb_available is None:
+        _emdb_available = _check_emdb_available()
+    return _emdb_available
+
+
+# Marker for tests that require EMDB access
+requires_emdb = pytest.mark.skipif(
+    not emdb_available(),
+    reason="EMDB FTP server not accessible"
+)
+
+
 # Commands to set up test structures
 setup_structure = [
     "open 3ptb autostyle false",  # Trypsin with benzamidine ligand (~220 residues)
@@ -601,10 +636,11 @@ def test_shown_ligand_hydrogen_visibility(test_production_session):
     run(test_production_session, "close")
 
 
+@requires_emdb
 def test_shown_volume_with_surfaces(test_production_session):
     """Test that volume surfaces are reported as separate child models."""
     from chimerax.core.commands import run
-    
+
     # Create a simple test volume
     run(test_production_session, "open emdb:1080")  # Small cryo-EM map
     
@@ -646,10 +682,11 @@ def test_shown_volume_with_surfaces(test_production_session):
     run(test_production_session, "close")
 
 
+@requires_emdb
 def test_shown_volume_child_model_ids(test_production_session):
     """Test that VolumeSurface models have correct parent-child IDs."""
     from chimerax.core.commands import run
-    
+
     # Create a test volume with surfaces
     run(test_production_session, "open emdb:1080")
     run(test_production_session, "volume #1 level 2.0 level 4.0")
@@ -667,10 +704,11 @@ def test_shown_volume_child_model_ids(test_production_session):
     run(test_production_session, "close")
 
 
+@requires_emdb
 def test_shown_volume_hidden_surface(test_production_session):
     """Test that hidden VolumeSurface models don't appear in output."""
     from chimerax.core.commands import run
-    
+
     # Create a volume with surfaces
     run(test_production_session, "open emdb:1080")
     run(test_production_session, "volume #1 level 2.0 level 4.0")
