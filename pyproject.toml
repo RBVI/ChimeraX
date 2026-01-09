@@ -103,7 +103,7 @@ wheel = [
   "pycollada==0.8",
   "pydicom==2.4.4",
   "pynrrd==1.0.0",
-  "pyopenxr==1.1.4501",
+  "pyopenxr==1.1.4601",
   "tcia_utils==1.5.1",
   "python-dateutil==2.9.0.post0",
   "requests==2.32.5",
