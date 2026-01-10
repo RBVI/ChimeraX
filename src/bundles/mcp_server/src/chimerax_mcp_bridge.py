@@ -1018,10 +1018,11 @@ async def run_command(command: str, session_id: Optional[int] = None) -> str:
     return format_chimerax_response(result, context)
 
 @mcp.tool()
-async def open_structure(identifier: str, format: str = "auto-detect", session_id: Optional[int] = None) -> str:
+async def open_structure(identifier: str, format: str = "auto-detect", fetch_emdb_map: bool = False, session_id: Optional[int] = None) -> str:
     """Open a molecular structure file or fetch from PDB
 
-    Hint:
+    Hints:
+    - If your user wants to look at both a structure and the density map, set fetch_emdb_map=True
     - After opening a structure and before showing any objects of this new model, you should
     first run the get_shown() tool to get the current display state of the model because ChimeraX
     uses different default representations depending on model features (e.g. number of atoms, chains, etc.)
@@ -1030,16 +1031,29 @@ async def open_structure(identifier: str, format: str = "auto-detect", session_i
     Args:
         identifier: PDB ID (e.g., '1gcn') or file path to open
         format: File format if needed (pdb, cif, etc.), defaults to auto-detect
+        fetch_emdb_map: If True, also fetch the corresponding EMDB map (only works with pdb/cif formats)
         session_id: ChimeraX session port (defaults to primary session)
     """
+    # Validate fetch_emdb_map compatibility with format
+    if fetch_emdb_map:
+        valid_formats = ["auto-detect", "pdb", "cif", "mmcif"]
+        if format not in valid_formats:
+            return f"Error: fetch_emdb_map=True only works with PDB or mmCIF formats. Specified format '{format}' is not compatible. Valid formats: {', '.join(valid_formats)}"
+    
     if format != "auto-detect":
         command = f"open {identifier} format {format}"
     else:
         command = f"open {identifier}"
+    
+    # Add fetchEmdbMap option if requested
+    if fetch_emdb_map:
+        command += " fetchEmdbMap true"
 
     result = await run_chimerax_command(command, session_id)
     session_info = f" in session {session_id}" if session_id else ""
     context = f"Opened structure: {identifier}{session_info}"
+    if fetch_emdb_map:
+        context += " (with EMDB map)"
     
     return format_chimerax_response(result, context)
 
