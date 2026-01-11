@@ -45,9 +45,9 @@ gui = [
   "docutils==0.21.2",
   "Jinja2==3.1.6",
   "Pygments==2.18.0",
-  "Sphinx==8.2.3",
+  "Sphinx==9.1.0",
   "sphinxcontrib-blockdiag==3.0.0",
-  "sphinx_autodoc_typehints==3.2.0",
+  "sphinx_autodoc_typehints==3.6.2",
   #
   # Windows
   #
@@ -120,9 +120,6 @@ wheel = [
   "docutils==0.21.2",
   "Jinja2==3.1.6",
   "Pygments==2.18.0",
-  "Sphinx==9.1.0",
-  "sphinxcontrib-blockdiag==3.0.0",
-  "sphinx_autodoc_typehints==3.6.2",
   #
   # Windows
   #
