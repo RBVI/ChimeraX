@@ -987,13 +987,15 @@ async def run_command(command: str, session_id: Optional[int] = None) -> str:
     
     When constructing commands that specify objects (models, chains, residues, atoms):
     - Use get_atomspec_guide() to learn the correct atomspec syntax
-    - Common atomspecs: #1 (model), #1/A (chain), #1/A:100 (residue), @ca (atom type), HC (nonpolar hydrogens), #1/A & ligand (ligands in chain A of model 1)
+    - Common atomspecs: #1 (model), #1/A (chain), #1/A:100 (residue), @ca (atom type), HC (nonpolar hydrogens), #1/A & ligand (ligands in chain A of model 1), `ligand | (ligand :< 5)` (ligand and residues within 5 Å of ligand), `#1/A:100 :< 6` (residues within 6 Å of residue 100 in chain A of model 1)
     
     To see a list of all commands, use the list_commands() tool.
     For command syntax help, use get_command_documentation(command_name).
 
     Frequently-used commands:
     - volume #2 step 1 sdLevel 5.0 transparency 0.5 - display map #2 with step size 1, surface level 5.0 standard deviations (sigma), transparency 50%
+    - log metadata #1 - show metadata for model #1, including the corresponding map EMDB ID for atomic models from the PDB
+    - measure mapvalue #2 atoms :DRG - measure the values of map #2 at atoms of residue DRG (use this to pick an isocontour level when showing a map surface or mesh)
 
     Args:
         command: ChimeraX command to execute (e.g., 'open 1gcn', 'color #1/A red')
@@ -1017,7 +1019,7 @@ async def run_command(command: str, session_id: Optional[int] = None) -> str:
     
     return format_chimerax_response(result, context)
 
-@mcp.tool()
+#@mcp.tool()
 async def open_structure(identifier: str, format: str = "auto-detect", fetch_emdb_map: bool = False, session_id: Optional[int] = None) -> str:
     """Open a molecular structure file or fetch from PDB
 
