@@ -47,7 +47,7 @@ gui = [
   "Pygments==2.18.0",
   "Sphinx==9.0.4",
   "sphinxcontrib-blockdiag==3.0.0",
-  "sphinx_autodoc_typehints==3.6.2",
+  "sphinx_autodoc_typehints==3.6.1",
   #
   # Windows
   #
