@@ -84,12 +84,7 @@ class BundleBuilder:
         # times which can remove/create the same directories.
         # So we need to flush the cache before each run.
         self._make_setup_arguments()
-        import distutils.dir_util
-
-        try:
-            distutils.dir_util._path_created.clear()
-        except AttributeError:
-            pass
+        self._clear_distutils_cache()
         # Copy additional files into package source tree
         self._copy_extrafiles(self.extrafiles)
         # Build C libraries and executables
@@ -132,12 +127,7 @@ class BundleBuilder:
         # times which can remove/create the same directories.
         # So we need to flush the cache before each run.
         self._make_setup_arguments()
-        import distutils.dir_util
-
-        try:
-            distutils.dir_util._path_created.clear()
-        except AttributeError:
-            pass
+        self._clear_distutils_cache()
         # Copy additional files into package source tree
         self._copy_extrafiles(self.extrafiles)
         # Build C libraries and executables
@@ -216,6 +206,35 @@ class BundleBuilder:
         import shutil
 
         shutil.rmtree(path, ignore_errors=True)
+
+    @staticmethod
+    def _clear_distutils_cache():
+        """Clear distutils/setuptools directory creation cache.
+
+        Modern setuptools vendors its own distutils at setuptools._distutils,
+        which uses a SkipRepeatAbsolutePaths class to cache created directories.
+        Older versions used a _path_created dict. We try to clear both.
+        """
+        # Clear modern setuptools cache (SkipRepeatAbsolutePaths)
+        # The cache is a set instance stored as a class attribute
+        try:
+            from setuptools._distutils import dir_util as st_dir_util
+            cache_class = getattr(st_dir_util, 'SkipRepeatAbsolutePaths', None)
+            if cache_class is not None:
+                instance = getattr(cache_class, 'instance', None)
+                if instance is not None:
+                    # Directly clear the set (SkipRepeatAbsolutePaths extends set)
+                    set.clear(instance)
+        except Exception:
+            pass
+        # Clear legacy distutils cache (_path_created dict)
+        try:
+            import distutils.dir_util
+            cache = getattr(distutils.dir_util, '_path_created', None)
+            if cache is not None:
+                cache.clear()
+        except Exception:
+            pass
 
     _mac_platforms = ["mac", "macos", "darwin"]
     _windows_platforms = ["windows", "win32"]
@@ -843,6 +862,9 @@ class BundleBuilder:
             traceback.print_exc()
             return None, False
         except SystemExit:
+            import traceback
+
+            traceback.print_exc()
             return None, False
         finally:
             sys.argv = save
