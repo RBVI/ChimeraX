@@ -202,6 +202,9 @@ class GridCanvas:
                 label.moveBy(start_label_rect.width() - end_label_rect.width(), 0)
                 self._update_scene_rects()
 
+    def choose_from_seq(self, seq):
+        pass
+
     def destroy(self):
         self._destroyed = True
         for handler in self.handlers:
