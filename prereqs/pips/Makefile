@@ -173,7 +173,12 @@ src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src
 
 $(SCIPY_WHEEL):
+ifeq ($(OSARCH),DarwinArm64)
 	$(APP_PIP) download --platform=macosx_12_0_arm64 --no-deps $(shell grep '"scipy' $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
+endif
+ifeq ($(OSARCH),DarwinIntel64)
+	$(APP_PIP) download --platform=macosx_10_9_x86_64 --no-deps $(shell grep '"scipy' $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
+endif
 
 $(CYTHON_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cython/$(CYTHON_WHEEL)
