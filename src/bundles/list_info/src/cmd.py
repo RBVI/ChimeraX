@@ -547,7 +547,7 @@ def _info_path_show(logger, save_file, append, which, version, what, *, info_dic
                 info_dict.setdefault(version, {})[attr_name] = attr_value
 
 
-def shown(session, models=None, *, return_json=True, save_file=None):
+def info_shown(session, models=None, *, return_json=False, save_file=None):
     '''
     Report what is currently displayed for each model.
     
@@ -654,6 +654,5 @@ def shown(session, models=None, *, return_json=True, save_file=None):
 
 
 shown_desc = CmdDesc(optional=[('models', ModelsArg)],
-                     keyword=[('return_json', BoolArg),
-                              ('save_file', SaveFileNameArg)],
+                     keyword=[('save_file', SaveFileNameArg)],
                      synopsis='List what is currently shown')
