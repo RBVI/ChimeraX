@@ -41,7 +41,7 @@ def fetch_uniprot(session, ident, ignore_cache=False, *, associate=None):
         session.logger.status("Fetch of %s cancelled" % ident)
         return
     from chimerax.atomic import Sequence
-    seq = Sequence(name=ident)
+    seq = Sequence(name=ident, is_reference=True)
     seq.extend(seq_string)
     seq.accession_id["UniProt"] = accession
     seq.set_features("UniProt", expand_features(features))
