@@ -6,38 +6,18 @@ import pytest
 import json
 
 
-def _check_emdb_available():
-    """Check if EMDB FTP server is accessible.
-
-    Returns True if accessible, False otherwise.
-    Used to skip tests when EMDB servers are unreachable.
-    """
-    import socket
-    try:
-        # Try to connect to EMDB FTP server with a short timeout
-        sock = socket.create_connection(("ftp.ebi.ac.uk", 21), timeout=5)
-        sock.close()
-        return True
-    except (socket.timeout, socket.error, OSError):
-        return False
+def _in_ci():
+    """Check if running in a CI environment."""
+    import os
+    # Common CI environment variables
+    ci_vars = ['CI', 'GITHUB_ACTIONS', 'GITLAB_CI', 'JENKINS_URL', 'TRAVIS']
+    return any(os.environ.get(var) for var in ci_vars)
 
 
-# Check EMDB availability once at module load time to avoid repeated network checks
-_emdb_available = None
-
-
-def emdb_available():
-    """Lazily check EMDB availability (cached result)."""
-    global _emdb_available
-    if _emdb_available is None:
-        _emdb_available = _check_emdb_available()
-    return _emdb_available
-
-
-# Marker for tests that require EMDB access
+# Marker for tests that require EMDB access - skip in CI due to unreliable FTP servers
 requires_emdb = pytest.mark.skipif(
-    not emdb_available(),
-    reason="EMDB FTP server not accessible"
+    _in_ci(),
+    reason="Skipping EMDB tests in CI (FTP servers are unreliable)"
 )
 
 
