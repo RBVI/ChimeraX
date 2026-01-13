@@ -47,6 +47,7 @@ class ActionThumbnailWidget(QWidget):
         self.action_name = action_name
         self.widget_size = size
         self.setFixedSize(size, size)
+        self.setToolTip(f"{action_name.capitalize()}; drag to timeline")
 
         border_radius = size // 2
         self.setStyleSheet(f"""
