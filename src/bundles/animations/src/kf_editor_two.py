@@ -2819,37 +2819,32 @@ class KeyframeEditorWidget(QWidget):
         self.scene_timeline_widget.timeline_controls.play_btn.setText("▶")
 
 
-class MovieRecordingDialog(QDialog):
-    """Dialog for movie recording options including resolution"""
+class MovieRecordingDialog:
+    """Dialog for movie recording options including resolution.
+
+    Wraps a SaveDialog and adds resolution options to its custom area.
+    """
 
     def __init__(self, session, parent=None):
-        super().__init__(parent)
+        from chimerax.ui.open_save import SaveDialog
         self.session = session
-        self.setWindowTitle("Record Animation")
-        self.setModal(True)
-        self.setup_ui()
+        self._dialog = SaveDialog(session, parent, "Record Animation")
+        self._dialog.setNameFilter("Video Files (*.mp4 *.mov *.avi *.wmv)")
+        self._dialog.setDefaultSuffix("mp4")
+        self._dialog.selectFile("animation.mp4")
+        self._setup_custom_area()
 
-    def setup_ui(self):
-        layout = QVBoxLayout(self)
+    def _setup_custom_area(self):
+        """Add resolution options to the SaveDialog's custom area."""
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QSpinBox, QWidget
 
-        # File selection
-        file_group = QGroupBox("Output File")
-        file_layout = QHBoxLayout(file_group)
+        options_area = self._dialog.custom_area
+        layout = QVBoxLayout(options_area)
 
-        self.file_path_edit = QLineEdit()
-        self.file_path_edit.setPlaceholderText("Choose output file...")
-        file_layout.addWidget(self.file_path_edit)
+        # Resolution label
+        layout.addWidget(QLabel("Recording Resolution:"))
 
-        browse_btn = QPushButton("Browse...")
-        browse_btn.clicked.connect(self.browse_file)
-        file_layout.addWidget(browse_btn)
-
-        layout.addWidget(file_group)
-
-        # Resolution selection
-        res_group = QGroupBox("Recording Resolution")
-        res_layout = QVBoxLayout(res_group)
-
+        # Resolution combo
         self.resolution_combo = QComboBox()
         self.resolution_combo.addItems([
             "Display Resolution (Current)",
@@ -2859,16 +2854,14 @@ class MovieRecordingDialog(QDialog):
             "480p SD (640×480)",
             "Custom..."
         ])
-
-        # Set default based on settings
         self._set_default_resolution()
-
-        self.resolution_combo.currentTextChanged.connect(self.on_resolution_changed)
-        res_layout.addWidget(self.resolution_combo)
+        self.resolution_combo.currentTextChanged.connect(self._on_resolution_changed)
+        layout.addWidget(self.resolution_combo)
 
         # Custom resolution inputs (initially hidden)
         self.custom_widget = QWidget()
         custom_layout = QHBoxLayout(self.custom_widget)
+        custom_layout.setContentsMargins(0, 0, 0, 0)
         custom_layout.addWidget(QLabel("Width:"))
         self.width_spin = QSpinBox()
         self.width_spin.setRange(100, 7680)
@@ -2880,32 +2873,15 @@ class MovieRecordingDialog(QDialog):
         self.height_spin.setValue(1080)
         custom_layout.addWidget(self.height_spin)
         self.custom_widget.hide()
-        res_layout.addWidget(self.custom_widget)
-
-        layout.addWidget(res_group)
-
-        # Buttons
-        button_layout = QHBoxLayout()
-        cancel_btn = QPushButton("Cancel")
-        cancel_btn.clicked.connect(self.reject)
-        button_layout.addWidget(cancel_btn)
-
-        self.record_btn = QPushButton("Start Recording")
-        self.record_btn.clicked.connect(self.accept)
-        self.record_btn.setStyleSheet("background-color: #f44336; color: white; font-weight: bold;")
-        button_layout.addWidget(self.record_btn)
-
-        layout.addWidget(QWidget())  # Spacer
-        layout.addLayout(button_layout)
+        layout.addWidget(self.custom_widget)
 
     def _set_default_resolution(self):
-        """Set the default resolution based on settings"""
+        """Set the default resolution based on settings."""
         try:
             from .settings import get_settings
             settings = get_settings(self.session)
             default_res = settings.recording_resolution
 
-            # Map settings values to combo box items
             if default_res == '4k':
                 self.resolution_combo.setCurrentText("4K UHD (3840×2160)")
             elif default_res == '1080p':
@@ -2913,27 +2889,23 @@ class MovieRecordingDialog(QDialog):
             elif default_res == 'custom':
                 self.resolution_combo.setCurrentText("Custom...")
             else:
-                # Default to 1080p if unknown setting
                 self.resolution_combo.setCurrentText("1080p Full HD (1920×1080)")
         except Exception:
-            # Fallback to 1080p if settings not available
             self.resolution_combo.setCurrentText("1080p Full HD (1920×1080)")
 
-    def browse_file(self):
-        from chimerax.ui.open_save import SaveDialog
-        save_dialog = SaveDialog(self.session, parent=self)
-        save_dialog.setNameFilter("Video Files (*.mp4 *.mov *.avi *.wmv)")
-        if save_dialog.exec():
-            file_path = save_dialog.selectedFiles()[0]
-            self.file_path_edit.setText(file_path)
-
-    def on_resolution_changed(self, text):
+    def _on_resolution_changed(self, text):
         self.custom_widget.setVisible("Custom" in text)
 
+    def exec(self):
+        """Show the dialog and return True if accepted."""
+        return self._dialog.exec()
+
     def get_save_path(self):
-        return self.file_path_edit.text()
+        """Return the selected file path."""
+        return self._dialog.get_path()
 
     def get_resolution(self):
+        """Return the selected resolution setting."""
         text = self.resolution_combo.currentText()
         if "Display Resolution" in text:
             return None

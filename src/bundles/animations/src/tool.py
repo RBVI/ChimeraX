@@ -71,7 +71,7 @@ class AnimationsTool(ToolInstance):
         self.handlers.append(add_handler(INSERT_TIME, lambda trigger_name, data: run(self.session, f"animations insertTime {data[0]} {data[1]}")))
         self.handlers.append(add_handler(REMOVE_TIME, lambda trigger_name, data: run(self.session, f"animations removeTime {data[0]} {data[1]}")))
 
-        self.tool_window.manage("bottom")
+        self.tool_window.manage("bottom", split="above")
 
     def build_ui(self):
         """

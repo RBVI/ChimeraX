@@ -60,7 +60,8 @@ def setup(app):
 def munge_autodoc():
     # Munge autodoc ClassDocumenter so that base classes do
     # not have full path
-    from sphinx.ext.autodoc import ClassDocumenter, Documenter, _
+    from sphinx.ext.autodoc import ClassDocumenter, Documenter
+    from sphinx.locale import _
     # Code below is copied from Sphinx 1.6.8, with the '~' inserted
     # for non-builtin classes
     def my_add_directive_header(self, sig):

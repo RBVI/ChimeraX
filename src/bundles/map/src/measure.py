@@ -123,7 +123,9 @@ def measure_map_values(session, map, atoms, attribute = 'mapvalue'):
             setattr(a, attribute, v)
 
     # Log status message
-    if len(outside) == 0:
+    if len(atoms) == 0:
+        msg = 'No atoms specified'
+    elif len(outside) == 0:
         msg = ('Interpolated map %s values at %d atom positions,'
                ' min %.4g, max %.4g, mean %.4g, SD %.4g' %
                (map.name_with_id(), len(atoms), values.min(), values.max(),

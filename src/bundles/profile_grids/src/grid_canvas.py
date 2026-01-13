@@ -20,6 +20,10 @@ class GridCanvas:
     TEXT_MARGIN = 2
     HOVER_MOVE_THRESHOLD = 10000
 
+    UNK_LABEL = '?'
+    GAP_LABEL = 'gap'
+    MISC_LABEL = 'misc'
+
     def __init__(self, parent, pg, alignment, grid_data, weights):
         from Qt.QtWidgets import QGraphicsView, QGraphicsScene, QGridLayout, QShortcut, QHBoxLayout, QLabel
         from Qt.QtWidgets import QRadioButton
@@ -32,7 +36,7 @@ class GridCanvas:
         self._destroyed = False
 
         import string
-        self.row_labels = list(string.ascii_uppercase) + ['?', 'gap', 'misc']
+        self.row_labels = list(string.ascii_uppercase) + [self.UNK_LABEL, self.GAP_LABEL, self.MISC_LABEL]
         import numpy
         self.empty_rows = numpy.where(~self.grid_data.any(axis=1))[0]
         self.existing_row_labels = [rl for i, rl in enumerate(self.row_labels) if i not in self.empty_rows]
@@ -201,6 +205,23 @@ class GridCanvas:
                 end_label_rect = label.sceneBoundingRect()
                 label.moveBy(start_label_rect.width() - end_label_rect.width(), 0)
                 self._update_scene_rects()
+
+    def choose_from_seq(self, seq):
+        import string
+        row_cols = []
+        label_to_row = { l:r for r,l in enumerate(self.existing_row_labels) }
+        num_existing_rows = len(label_to_row)
+        for col, char in enumerate(seq.characters):
+            if char.isascii() and char.isalpha():
+                row = label_to_row[char.upper()]
+            elif char == '?':
+                row = label_to_row[self.UNK_LABEL]
+            elif char in string.punctuation:
+                row = label_to_row[self.GAP_LABEL]
+            else:
+                row = label_to_row[self.MISC_LABEL]
+            row_cols.append((row, col))
+        self._choose_cells(row_cols)
 
     def destroy(self):
         self._destroyed = True
@@ -504,7 +525,9 @@ class GridCanvas:
         bbox = cell_text.boundingRect()
         cell_text.moveBy((width - bbox.width())/2, y_adjust + (height - bbox.height())/2)
 
-    def _choose_cell(self, row, col):
+    def _choose_cell(self, row, col, *, report=True):
+        if (row, col) in self.chosen_cells:
+            return
         from Qt.QtGui import QPen, QColor, QPolygonF
         from Qt.QtCore import QPointF
         pen = QPen(QColor(255, 147, 0))
@@ -518,11 +541,21 @@ class GridCanvas:
         bottom_y = top_y + height
         self.chosen_cells[(row, col)] = self.main_scene.addPolygon(QPolygonF([QPointF(x, y) for x,y in
             [(left_x, mid_y), (mid_x, top_y), (right_x, mid_y), (mid_x, bottom_y), (left_x, mid_y)]]), pen)
-        self._report_chosen_seqs()
+        if report:
+            self._report_chosen_seqs()
 
-    def _clear_chosen_cells(self):
+    def _choose_cells(self, row_cols, *, clear=True, report=True):
+        if clear:
+            self._clear_chosen_cells(report=False)
+        for row, col in row_cols:
+            self._choose_cell(row, col, report=False)
+        if report:
+            self._report_chosen_seqs()
+
+    def _clear_chosen_cells(self, *, report=True):
         self.chosen_cells.clear()
-        self._report_chosen_seqs()
+        if report:
+            self._report_chosen_seqs()
 
     def _clear_header_contents(self, header):
         header_group = self.header_groups[header]
@@ -592,8 +625,10 @@ class GridCanvas:
         if not self.chosen_cells:
             self.pg.status("")
             return
+        from chimerax.core.commands import plural_form
         seqs = self._get_chosen_seqs()
-        self.pg.status("%d sequences match chosen cells" % len(seqs))
+        self.pg.status("%d %s %s chosen cells" % (len(seqs), plural_form(seqs, "sequence"),
+            plural_form(seqs, "matches", plural="match")))
 
     def _residues_for_event(self, event):
         width, height = self.font_pixels
