@@ -1674,19 +1674,14 @@ class SceneTimelineWidget(QWidget):
 
     def on_add_scene_requested(self, time):
         """Handle add scene button pressed"""
-        # Create a new scene with auto-generated name and save current state
-        scene_name = self._generate_scene_name()
-        if scene_name:
-            # Save current state as a scene
-            from chimerax.core.commands import run
+        from chimerax.core.commands import run
 
-            run(self.session, f'scene save "{scene_name}"')
+        scene_name = str(self.session.scenes.num_saved_scenes + 1)
+        run(self.session, f'scene save "{scene_name}"')
 
-            # Add the scene to the timeline
-            self.timeline_scene.add_scene_marker(time, scene_name)
-            self.scene_added.emit(scene_name)
-
-            # print(f"Created scene '{scene_name}' at {time:.2f}s")
+        # Add the scene to the timeline
+        self.timeline_scene.add_scene_marker(time, scene_name)
+        self.scene_added.emit(scene_name)
 
     def on_duration_changed(self, new_duration):
         """Handle duration change from zoom buttons"""
@@ -1706,26 +1701,6 @@ class SceneTimelineWidget(QWidget):
         # Emit reset signal for parent to handle
         self.reset_requested.emit()
         # print("Timeline reset to 0.0s")
-
-    def _generate_scene_name(self):
-        """Generate a unique scene name"""
-        base_name = "Scene"
-        counter = 1
-
-        # Get existing scene names
-        existing_names = set()
-        if self.session and self.session.scenes:
-            existing_names = set(self.session.scenes.get_scene_names())
-
-        # Find an unused name
-        while True:
-            scene_name = f"{base_name} {counter}"
-            if scene_name not in existing_names:
-                return scene_name
-            counter += 1
-            # Safety limit to avoid infinite loop
-            if counter > 1000:
-                return None
 
     def apply_action(self, action_name):
         """Apply an action (Rock, Roll, etc.)"""
