@@ -80,18 +80,30 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
     from chimerax.addh import bond_with_H_length
     NH_len = CO_len = None
     filter = []
+    name_lookup = {}
     for r in structure.residues:
         c = r.chain
         try:
             mm_c = chains[c]
         except KeyError:
-            mm_c = chains[c] = top.addChain("singletons" if c is None else c)
+            mm_c = chains[c] = top.addChain("singletons" if c is None else c.chain_id)
         try:
             mm_r = residues[r]
         except KeyError:
             mm_r = residues[r] = top.addResidue(r.name, mm_c, r.number, r.insertion_code)
+        # Atom names within a residue must be unique [#19727]
+        atom_names = set()
+        name_lookup[r] = lookup = {}
         for a in r.atoms:
-            atoms[a] = top.addAtom(a.name, element.Element.getBySymbol(a.element.name), mm_r,
+            atom_name = a.name
+            if atom_name in atom_names:
+                i = 0
+                while a.name + str(i) in atom_names:
+                    i += 1
+                atom_name = a.name + str(i)
+            atom_names.add(atom_name)
+            lookup[atom_name] = a
+            atoms[a] = top.addAtom(atom_name, element.Element.getBySymbol(a.element.name), mm_r,
                                     a.serial_number)
             coords.append(Quantity(vec3.Vec3(*a.coord), angstrom))
             reordered_atoms.append(a)
@@ -153,7 +165,7 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
         template.name = "%s-%s-%s%s" % ("blank" if cx_res.chain_id.isspace() else cx_res.chain_id,
             cx_res.name, cx_res.number, cx_res.insertion_code)
         for omm_atom in template.atoms:
-            cx_atom = cx_res.find_atom(omm_atom.name)
+            cx_atom = name_lookup[cx_res][omm_atom.name]
             try:
                 if cx_atom.num_bonds == 0:
                     gaff_type = "tip3pfb_standard-" + cx_atom.element.name + (str(cx_atom.charge)
