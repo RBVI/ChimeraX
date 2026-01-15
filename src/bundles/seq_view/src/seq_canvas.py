@@ -502,9 +502,11 @@ class SeqCanvas:
                 if needs_update:
                     starts = set([chain.numbering_start for chain in self.alignment.match_maps[aseq].keys()])
                     starts.discard(None)
-                    if len(starts) == 1:
+                    if len(starts) == 1 and not aseq.is_reference:
                         aseq.numbering_start = starts.pop()
                         self.refresh(aseq, update_attrs=False)
+                    else:
+                        self.update_balloons(aseq)
 
     @property
     def consensus_capitalize_threshold(self):
@@ -1414,6 +1416,9 @@ class SeqCanvas:
         self._clustalXcache[offset] = consensusChars
         return consensusChars
         """
+
+    def update_balloons(self, seq):
+        self.lead_block.update_balloons(seq)
 
     def viewport_resized(self):
         self._resize_timer.stop()
@@ -2888,7 +2893,16 @@ class SeqBlock:
         self.treeNodeMap = {'active': active}
         self._layoutTree(treeInfo, treeInfo['tree'], callback,
                                 nodesShown)
+"""
+    def update_balloons(self, seq):
+        for line_index, line_item in enumerate(self.line_items[seq]):
+            if line_item is None:
+                continue
+            self._assoc_res_bind(line_item, seq, self.seq_offset + line_index)
+        if self.next_block:
+            self.next_block.update_balloons(seq)
 
+"""
     def updateNumberings(self):
         numbered_lines = [l for l in self.lines if line_numberingStart(l) is not None]
         for line in numbered_lines:
