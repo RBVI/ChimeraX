@@ -155,26 +155,47 @@ public:
             return col->positions;
         return ep->positions;
     }
+    std::string str(bool ref_counts=false, bool ptr_vals=false) const { // for debugging
+        std::string ret_val = is_column ? "Column " : "EndPoint ";
+        if (ref_counts) {
+            ret_val += "ref count: ";
+            ret_val += std::to_string(is_column ? col.use_count() : ep.use_count());
+        } else if (ptr_vals) {
+            ret_val += "ptr: ";
+            ret_val += std::to_string(is_column ? (long)col.get() : (long)ep.get());
+        } else {
+            ret_val += "value: ";
+            //ret_val += col->str() : ep->str());
+            ret_val += "<not yet implemented>";
+        }
+        return ret_val;
+    }
 };
 
 class Link
 {
+private:
+    std::vector<std::shared_ptr<EndPointOrColumn>> _info;
 public:
     // info is really a pair of end points or column + end point, but much easier to iterate through a vector
     // than a pair, so...
-    std::vector<std::shared_ptr<EndPointOrColumn>> info;
     double val;
     double penalty = 0.0;
     std::vector<std::shared_ptr<Link>> cross_links;
+    const std::vector<std::shared_ptr<EndPointOrColumn>>& info() { return _info; };
+    void update_info(std::shared_ptr<Column>& i1, std::shared_ptr<EndPointOrColumn>& i2) {
+        _info[0] = std::shared_ptr<EndPointOrColumn>(new EndPointOrColumn(i1));
+        _info[1] = i2;
+    }
 
     Link(std::shared_ptr<EndPoint>& e1, std::shared_ptr<EndPoint>& e2, double _val) {
-        info.emplace_back(new EndPointOrColumn(e1));
-        info.emplace_back(new EndPointOrColumn(e2));
+        _info.emplace_back(new EndPointOrColumn(e1));
+        _info.emplace_back(new EndPointOrColumn(e2));
         val = _val;
     }
     Link(std::shared_ptr<Column>& col, std::shared_ptr<EndPoint>& ep, double _val) {
-        info.emplace_back(new EndPointOrColumn(col));
-        info.emplace_back(new EndPointOrColumn(ep));
+        _info.emplace_back(new EndPointOrColumn(col));
+        _info.emplace_back(new EndPointOrColumn(ep));
         val = _val;
     }
 
@@ -184,14 +205,14 @@ public:
 void Link::evaluate(PrincipalAtomMap& pas, double dist_cutoff)
 {
     val = std::numeric_limits<double>::quiet_NaN();
-    for (auto seq_pos1: info[0]->positions()) {
+    for (auto seq_pos1: _info[0]->positions()) {
         auto s1 = seq_pos1.first;
         auto p1 = seq_pos1.second;
         //TODO: circular
         auto pa1 = pas[s1][p1];
         if (pa1 == nullptr)
             continue;
-        for (auto seq_pos2: info[1]->positions()) {
+        for (auto seq_pos2: _info[1]->positions()) {
             auto s2 = seq_pos2.first;
             auto p2 = seq_pos2.second;
             //TODO: circular
@@ -252,10 +273,10 @@ find_prune_crosslinks(
         l2_lists.push_back(LinkList(seq2_links.begin(), seq2_links.begin() + end));
     for (auto& link1: link_list) {
         // Original Chimera code directly accesses .pos, so must be an EndPoint...
-        auto i1 = link1->info[0]->ep->pos;
-        auto i2 = link1->info[1]->ep->pos;
+        auto i1 = link1->info()[0]->ep->pos;
+        auto i2 = link1->info()[1]->ep->pos;
         for (auto& link2: l2_lists[i2]) {
-            if (link2->info[0]->ep->pos <= i1)
+            if (link2->info()[0]->ep->pos <= i1)
                 continue;
             link1->cross_links.push_back(link2);
             link2->cross_links.push_back(link1);
@@ -278,9 +299,9 @@ find_prune_crosslinks(
         if (pen <= 0.0001)
             break;
         auto& link = *pos;
-        auto& l1_list = links1[link->info[0]->ep->pos];
+        auto& l1_list = links1[link->info()[0]->ep->pos];
         l1_list.erase(std::find(l1_list.begin(), l1_list.end(), link));
-        auto& l2_list = links2[link->info[1]->ep->pos];
+        auto& l2_list = links2[link->info()[1]->ep->pos];
         l2_list.erase(std::find(l2_list.begin(), l2_list.end(), link));
         for (auto& clink: link->cross_links)
             clink->penalty -= link->val;
@@ -674,11 +695,13 @@ std::cerr << "all links reduced to " << all_links.size() << "\n";
             break;
 
         std::pair<std::shared_ptr<EndPointOrColumn>, std::shared_ptr<EndPointOrColumn>>
-            key(link->info[0], link->info[1]);
+            key(link->info()[0], link->info()[1]);
+std::cerr << "link(0) count: " << key.first.use_count() << "; link(1) count: " << key.second.use_count() << "\n";
+std::cerr << "link(0): " << key.first->str(false, true) << "; link(1): " << key.second->str(false, true) << "\n";
         if (seen.find(key) != seen.end())
             continue;
         seen.insert(key);
-        for (auto ep_or_col: link->info) {
+        for (auto ep_or_col: link->info()) {
             for (auto seq_pos: ep_or_col->positions()) {
                 auto& link_list = pairings[seq_pos.first][seq_pos.second];
                 link_list.erase(std::find(link_list.begin(), link_list.end(), link));
@@ -686,7 +709,7 @@ std::cerr << "all links reduced to " << all_links.size() << "\n";
         }
 
         std::map<Chain*, Chain::SeqPos> check_info;
-        for (auto ep_or_col: link->info) {
+        for (auto ep_or_col: link->info()) {
             for (auto seq_pos: ep_or_col->positions())
                 check_info.insert(seq_pos);
         }
@@ -694,9 +717,9 @@ std::cerr << "all links reduced to " << all_links.size() << "\n";
         // Links between EndPoints will always be different sequences (I think),
         // but if one or both end are Columns, they might both involve the same sequence...
         bool okay = true;
-        for (auto seq_pos1: link->info[0]->positions()) {
+        for (auto seq_pos1: link->info()[0]->positions()) {
             auto seq1 = seq_pos1.first;
-            auto& positions2 = link->info[1]->positions();
+            auto& positions2 = link->info()[1]->positions();
             if (positions2.find(seq1) != positions2.end()) {
                 okay = false;
                 break;
@@ -733,21 +756,20 @@ std::cerr << "all links reduced to " << all_links.size() << "\n";
             }
         }
 
-        for (auto col_or_ep: link->info) {
+        for (auto col_or_ep: link->info()) {
             for (auto seq_pos: col_or_ep->positions()) {
                 auto seq = seq_pos.first;
                 auto pos = seq_pos.second;
                 for (auto l: pairings[seq][pos]) {
                     std::shared_ptr<EndPointOrColumn> base, connect;
-                    if (l->info[0]->contains(seq, pos)) {
-                        base = l->info[0];
-                        connect = l->info[1];
+                    if (l->info()[0]->contains(seq, pos)) {
+                        base = l->info()[0];
+                        connect = l->info()[1];
                     } else {
-                        connect = l->info[0];
-                        base = l->info[1];
+                        connect = l->info()[0];
+                        base = l->info()[1];
                     }
-                    *(l->info[0]) = col;
-                    *(l->info[1]) = *connect;
+                    l->update_info(col, connect);
                     l->evaluate(pas, dist_cutoff);
                     for (auto c_seq_pos: col->positions) {
                         auto cseq = c_seq_pos.first;
