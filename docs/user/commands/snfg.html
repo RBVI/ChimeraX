@@ -49,7 +49,6 @@ Varki A, Cummings RD, Aebi M, Packer NH, Seeberger PH, Esko JD, Stanley P, Hart 
 3D implementation of the symbol nomenclature for graphical representation of glycans.</a>
 Thieker DF, Hadden JA, Schulten K, Woods RJ.
 <i>Glycobiology.</i> 2016 Aug;26(8):786-7.
-<br><br>
 <table border="1" cellpadding="4" cellspacing="0" style="margin: 1em 0;">
 <tbody><tr>
   <th>Shape</th>
@@ -111,9 +110,16 @@ See also: <a href="nucleotides.html"><b>nucleotides</b></a>,
 the <a href="https://www.ncbi.nlm.nih.gov/glycans/snfg.html" 
 target="_blank">NCBI SNFG page</a>
 </p><p>
-The command <b>snfg show</b> shows 3D-SNFG representations of 
+The <b>snfg show</b> or <b>snfg</b> command displays 3D-SNFG representations of 
 glycans in the specified <b>structures</b> (atomic models),
-or all if none are specified.
+or all atomic models if none are specified.
+Common carbohydrate residues are identified by their PDB residue names
+(NAG, MAN, FUC, GAL, <i>etc.</i>) as per the
+<a href="https://www.wwpdb.org/data/ccd" 
+target="_blank">wwPDB Chemical Component Dictionary</a>.
+The 3D-SNFG shapes are placed at the centroid of the sugar ring,
+or if no ring is detected, at the residue center of mass.
+</p><p>
 The <b>size</b> option sets symbol diameter (default <b>4.0</b> &Aring;, 
 the approximate diameter of a monosaccharide ring).
 The <b>atoms</b> option controls whether to keep the current display
@@ -122,51 +128,25 @@ remain shown and those which are hidden remain hidden).
 Specifying <b>atoms false</b> hides the glycan atoms when the
 SNFG representations are shown. Either way, however, the
 glycan atoms can be subsequently <a href="show.html">hidden or shown</a>
-regardless of whether the 3D-SNFG representations are present.
+regardless of whether the 3D-SNFG symbols are present.
 </p><p>
 The command <b>snfg hide</b> removes 3D-SNFG representations from the 
-specified <b>structures</b> (atomic models), or all if none are specified.
+specified <b>structures</b> (atomic models), or all atomic models
+if none are specified.
 </p><p>
 Example commands:
 <blockquote><b>
 snfg
-</b></blockquote>
-&ndash; show SNFG symbols for glycans in all atomic structures
-<blockquote><b>
+<br>
+snfg atoms false
+<br>
+snfg hide
+<br>
 snfg structures #1
-</b></blockquote>
-&ndash; show SNFG symbols for glycans in model #1
-<blockquote><b>
+<br>
 snfg size 6
 </b></blockquote>
-&ndash; show larger (6-&Aring;) SNFG symbols
-<blockquote><b>
-snfg atoms false
-</b></blockquote>
-&ndash; show SNFG symbols only, hiding the sugar atoms
-<blockquote><b>
-snfg hide
-</b></blockquote>
-&ndash; remove all SNFG symbols
 </p>
-
-<!--
-<a name="notes"></a>
-<p class="nav">
-[<a href="#top">back to top: snfg</a>]
-</p>
--->
-<h4>Notes</h4>
-<p>
-Sugar residues are identified by their PDB residue names (e.g., NAG, MAN, FUC, GAL).
-The command recognizes common carbohydrate residue codes from the
-<a href="https://www.wwpdb.org/data/ccd" target="_blank">wwPDB Chemical Component Dictionary</a>.
-</p>
-<p>
-SNFG symbols are placed at the centroid of the sugar ring (pyranose or furanose).
-If no ring is detected, the symbol is placed at the residue center of mass.
-</p>
-
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /

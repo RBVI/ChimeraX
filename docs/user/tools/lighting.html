@@ -45,10 +45,10 @@ related to illumination:
 </li>
 </ul>
 <p>
-These settings are also adjustable with the
-<a href="../commands/lighting.html"><b>lighting</b></a> and
-and <a href="../commands/material.html"><b>material</b></a> commands.
-See also the <a href="graphics.html"><b>Graphics Toolbar</b></a>.
+These and additional related parameters can be adjusted with the
+commands <a href="../commands/lighting.html"><b>lighting</b></a>
+and <a href="../commands/material.html"><b>material</b></a>, as well as by 
+clicking icons in the <a href="graphics.html"><b>Graphics Toolbar</b></a>.
 </p><p>
 The <b>Lighting</b> tool
 can be opened from the <b>Depiction</b> section of the <b>Tools</b> menu
@@ -61,7 +61,57 @@ and manipulated like other panels (<a href="../window.html#panels">more...</a>).
 </p>
 <h3>Lighting</h3>
 <p>
+There are two directional lights, key and fill, plus ambient lighting.
+The <b><i>key light</i></b> is often the dominant source and can cast
+shadows; the first set of intensity, direction, and color values
+reported in the <a href="../tools/log.html"><b>Log</b></a> refer to this light.
+The <b><i>fill light</i></b> serves as a secondary directional source
+to improve the visibility of regions that would otherwise be dark.
+Regardless of whether <a href="#shadows">shadows</a> are on,
+the directional lights cause &ldquo;shading,&rdquo;
+where the brightness of an object varies based on the angle
+between the light direction and the surface normal.
+The key light also produces directionally dependent
+<a href="material.html">specular highlights</a>.
+The <b><i>ambient</i></b> lighting
+is an approximation to omnidirectional illumination.
+Shadows cast from multiple uniformly distributed directions can produce
+ambient shadowing, or &ldquo;ambient occlusion.&rdquo;
+</p><p>
+Choices for lighting <b>Preset</b></a>:
 </p>
+<ul>
+<li><b>default</b> or <b>simple</b>
+<a href="graphics.html" title="Graphics Toolbar">
+<img class="icon" border="1" src="shortcut-icons/simplelight.png" alt="computer generated image"></a>
+&ndash; all three kinds of light, but no shadows
+(<a href="../commands/lighting.html#simple">details...</a>)
+</li><li><b>full</b>
+<a href="graphics.html" title="Graphics Toolbar">
+<img class="icon" border="1" src="shortcut-icons/fulllight.png" alt="computer generated image"></a>
+&ndash; all three kinds of light, key light with shadows,
+ambient lighting with shadowing from 64 directions
+(<a href="../commands/lighting.html#full">details...</a>)
+</li><li><b>soft</b>
+<a href="graphics.html" title="Graphics Toolbar">
+<img class="icon" border="1" src="shortcut-icons/softlight.png" alt="computer generated image"></a>
+&ndash; ambient lighting only, ambient shadowing from 64 directions
+(<a href="../commands/lighting.html#soft">details...</a>)
+</li><li><b>gentle</b>
+&ndash; same as <b>soft</b>, except tuned to emphasize larger indentations
+(<a href="../commands/lighting.html#gentle">details...</a>)
+</li><li><b>flat</b>
+<a href="graphics.html" title="Graphics Toolbar">
+<img class="icon" border="1" src="shortcut-icons/flat.png" alt="computer generated image"></a>
+&ndash; ambient lighting only, no shadows (<a href="../commands/lighting.html#flat">details...</a>)
+  <ul>
+  <li>this preset also turns silhouettes <b>on</b>;
+for silhouettes <b>off</b>, use
+<a href="graphics.html" title="Graphics Toolbar">
+<img class="icon" border="1" src="shortcut-icons/silhouette.png" alt="computer generated image"></a>
+or <a href="../commands/graphics.html#silhouettes"><b>graphics silhouettes false</b></a>
+  </li></ul>
+</li></ul>
 
 <a name="shininess"></a>
 <p class="nav">
