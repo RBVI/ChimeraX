@@ -2206,23 +2206,20 @@ class Histogram_Pane:
     # Detect dark mode and adjust colors for visibility
     dark_mode = self.dialog.session.ui.dark_mode()
     histogram_color = 'white' if dark_mode else 'black'
+    image_marker_pen_color = 'gray' if dark_mode else 'black'
 
     self.histogram = Histogram(gv, gs, color=histogram_color)
     self.histogram_shown = False
 
-    # Use gray surface level cursors with white borders in both modes for visual continuity
-    surface_marker_color = (0.5, 0.5, 0.5, 1)  # Gray cursor
-    surface_pen_color = 'white'  # White border
-
-    st = Markers(gv, gs, 'line', surface_marker_color, 0,
+    st = Markers(gv, gs, 'line', new_marker_color, 0,
                  self.selected_marker_cb, self.moved_marker_cb,
-                 pen_color=surface_pen_color)
+                 pen_color='white')
     self.surface_thresholds = st
 
     new_image_marker_color = saturate_rgba(new_marker_color)
     imt = Markers(gv, gs, 'box', new_image_marker_color, 1,
                   self.selected_marker_cb, self.moved_marker_cb,
-                  pen_color='white')
+                  pen_color=image_marker_pen_color)
     self.image_thresholds = imt
 
     gv.click_callbacks.append(self.select_data_cb)
@@ -2993,14 +2990,17 @@ class Histogram_Pane:
     # Detect new color scheme
     dark_mode = self.dialog.session.ui.dark_mode()
     histogram_color = 'white' if dark_mode else 'black'
+    image_marker_pen_color = 'gray' if dark_mode else 'black'
 
     # Update histogram color
     self.histogram.color = histogram_color
 
     # Update marker pen colors
-    surface_pen_color = 'white'
-    self.surface_thresholds.pen_color = surface_pen_color
-    self.image_thresholds.pen_color = surface_pen_color
+    self.surface_thresholds.pen_color = 'white'
+    self.image_thresholds.pen_color = image_marker_pen_color
+    # Unplot to clear existing graphics items so they get recreated with new pen
+    self.surface_thresholds.unplot_markers()
+    self.image_thresholds.unplot_markers()
 
     # Redraw histogram if it's currently shown
     if self.histogram_shown and self.histogram_data is not None:
