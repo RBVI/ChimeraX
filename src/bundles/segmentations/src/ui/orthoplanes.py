@@ -1831,6 +1831,10 @@ class SegmentationVolumePanel(Histogram_Pane):
         flayout.addWidget(h)
         h.contextMenuEvent = self.show_context_menu
 
+        # Listen for color scheme changes to update histogram colors
+        self._color_scheme_handler = dialog.session.ui.triggers.add_handler(
+            'color scheme changed', self._update_histogram_colors)
+
         # Create planes slider below histogram if requested.
         self._planes_slider_shown = False
         self._planes_slider_frame = None
