@@ -1468,6 +1468,8 @@ class Thresholds_Panel(PopupPanel):
   def delete(self):
       remove_volume_closed_callback(self.dialog.session, self._volume_close_handler)
       self._volume_close_handler = None
+      for hp in self.histogram_panes:
+        hp.close()
 
   # ---------------------------------------------------------------------------
   # Create histogram for data region if needed.
