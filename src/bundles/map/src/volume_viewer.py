@@ -2207,7 +2207,7 @@ class Histogram_Pane:
 
     # Detect dark mode and adjust colors for visibility
     dark_mode = self.dialog.session.ui.dark_mode()
-    histogram_color = 'white' if dark_mode else 'black'
+    histogram_color = 'gray' if dark_mode else 'black'
     image_marker_pen_color = 'gray' if dark_mode else 'black'
 
     self.histogram = Histogram(gv, gs, color=histogram_color)
@@ -2991,7 +2991,7 @@ class Histogram_Pane:
 
     # Detect new color scheme
     dark_mode = self.dialog.session.ui.dark_mode()
-    histogram_color = 'white' if dark_mode else 'black'
+    histogram_color = 'gray' if dark_mode else 'black'
     image_marker_pen_color = 'gray' if dark_mode else 'black'
 
     # Update histogram color
