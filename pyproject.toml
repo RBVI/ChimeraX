@@ -69,7 +69,7 @@ wheel = [
   "grako==3.16.5",
   "html2text==2025.4.15",
   "ihm==2.2",
-  "imagecodecs==2024.6.1",
+  "imagecodecs==2025.3.30",
   # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
   # try a newer version of jedi
   "ipykernel==7.1.0",
