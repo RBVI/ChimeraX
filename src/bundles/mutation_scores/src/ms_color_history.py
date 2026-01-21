@@ -117,7 +117,12 @@ class MutationColorHistory(StateManager):
         self._ignore_color_command = True
         run(self._session, cmd_color)
         self._ignore_color_command = False
-        
+
+    def remove_attribute(self, attribute_name):
+        acp = self._attribute_coloring_parameters
+        if attribute_name in acp:
+            del acp[attribute_name]
+
     # ---------------------------------------------------------------------------
     # Session save and restore.
     #
@@ -170,7 +175,9 @@ class MutationColorHistoryPanel(ToolInstance):
         self._update_list()
 
         from chimerax.ui.widgets import button_row
-        f, buttons = button_row(parent, [('Adjust colors', self._adjust_colors)],
+        f, buttons = button_row(parent,
+                                [('Adjust colors', self._adjust_colors),
+                                 ('Delete', self._delete_attribute)],
                                 spacing = 5, button_list = True)
         layout.addWidget(f)
                 
@@ -196,9 +203,12 @@ class MutationColorHistoryPanel(ToolInstance):
     def _attribute_clicked(self, item):
         attr_name = item.text()
         self._mutation_color_history.color_by_attribute(attr_name)
-        
+
+    def _selected_attribute_names(self):
+        return [item.text() for item in self._attribute_list.selectedItems()]
+    
     def _adjust_colors(self):
-        attr_names = [item.text() for item in self._attribute_list.selectedItems()]
+        attr_names = self._selected_attribute_names()
         if len(attr_names) != 1:
             self.session.logger.error('Select exactly one attribute name in the list then press the "Adjust colors" button to show the Render by Attribute panel for adjusting the colors and color levels.')
             return
@@ -223,6 +233,23 @@ class MutationColorHistoryPanel(ToolInstance):
         from .ms_scatter_plot import _show_render_by_attribute_panel
         _show_render_by_attribute_panel(self.session, mset, attribute_name,
                                         palette = palette, no_value_color = no_value_color)
+
+    def _delete_attribute(self):
+        attr_names = self._selected_attribute_names()
+        if len(attr_names) == 0:
+            self.session.logger.error('Select an attribute name in the list then press the Delete button.')
+            return
+            
+        mch = self._mutation_color_history
+        for attribute_name in attr_names:
+            mset = mch.mutation_set_for_attribute(attribute_name)
+            if mset is None:
+                self.session.logger.error(f'No mutation set has an attribute "{attribute_name}".')
+            else:
+                mset.remove_computed_values(attribute_name)
+                mch.remove_attribute(attribute_name)
+
+        self._update_list()
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg
