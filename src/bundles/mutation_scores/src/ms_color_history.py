@@ -217,7 +217,8 @@ class MutationColorHistoryPanel(ToolInstance):
                 palette.append((float(thresh), color))
         else:
             palette = None
-        no_value_color = options.get('noValueColor')
+        from chimerax.core.colors import Color
+        no_value_color = Color(options.get('noValueColor')).uint8x4()
 
         from .ms_scatter_plot import _show_render_by_attribute_panel
         _show_render_by_attribute_panel(self.session, mset, attribute_name,

@@ -781,7 +781,7 @@ def _show_render_by_attribute_panel(session, mutation_set, attribute_name,
         timer = session.ui.timer(1, _set_render_by_attribute_palette)
         rba_gui._set_palette_timer = timer  # Keep timer from being deleted
 
-    if no_value_color:
+    if no_value_color is not None:
         rba_gui.color_no_value.setChecked(True)
         rba_gui.no_value_color.color = no_value_color
     
