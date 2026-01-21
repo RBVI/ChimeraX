@@ -1,0 +1,191 @@
+<html lang="en"><!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
+<title>Tool: Lighting</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
+
+<!--
+<table class="clRight">
+<tbody><tr><td>
+<a href="worms.png" title="click to enlarge...">
+<img class="outline" src="worms.png" alt="1pho B-factor worms/coloring" width="250px"></a></td></tr>
+</tbody></table>
+-->
+
+<h3><a href="../index.html#tools">Tool</a>: Lighting</h3>
+<p>
+The <b>Lighting</b> tool allows interactively adjusting several settings
+related to illumination, with sections:
+</p>
+<ul>
+<li><a href="#lighting"><b>Lighting</b></a> 
+&ndash; key, fill, and ambient light settings
+</li>
+<li><a href="#shininess"><b>Shininess</b></a>
+&ndash; material properties of lighted objects
+</li>
+<li><a href="#depthcue"><b>Depth Cue</b></a>
+&ndash; near-far shading of the scene
+</li>
+</ul>
+<p>
+These and additional related parameters can be adjusted with the
+commands <a href="../commands/lighting.html"><b>lighting</b></a>
+and <a href="../commands/material.html"><b>material</b></a>, as well as by 
+clicking icons in the <a href="graphics.html"><b>Graphics Toolbar</b></a>.
+</p><p>
+The <b>Lighting</b> tool
+can be opened from the <b>Depiction</b> section of the <b>Tools</b> menu
+and manipulated like other panels (<a href="../window.html#panels">more...</a>).
+</p>
+
+<a name="lighting"></a>
+<p class="nav">
+[<a href="#top">back to top: Lighting</a>]
+</p>
+<h3>Lighting</h3>
+<p>
+The ChimeraX scene can have two directional lights, key and fill, 
+plus ambient lighting.
+The <b><i>key light</i></b> is often the dominant source and can cast
+shadows; the first set of intensity, direction, and color values
+reported in the <a href="../tools/log.html"><b>Log</b></a> refer to this light.
+The <b><i>fill light</i></b> serves as a secondary directional source
+to improve the visibility of regions that would otherwise be dark.
+Regardless of whether <a href="#shadows">shadows</a> are on,
+the directional lights cause &ldquo;shading,&rdquo;
+where the brightness of an object varies based on the angle
+between the light direction and the surface normal.
+The key light also produces directionally dependent
+<a href="material.html">specular highlights</a>.
+The <b><i>ambient</i></b> lighting
+is an approximation to omnidirectional illumination.
+Shadows cast from multiple uniformly distributed directions can produce
+ambient shadowing, or &ldquo;ambient occlusion.&rdquo; See also:
+<a href="../commands/lighting.html"><b>lighting</b></a>
+</p><p>
+Choices for lighting <b>Preset</b></a>:
+</p>
+<ul>
+<li><b>simple</b>
+<a href="graphics.html" title="Graphics Toolbar">
+<img class="icon" border="1" src="shortcut-icons/simplelight.png" alt="computer generated image"></a>
+&ndash; all three kinds of light, but no shadows
+(<a href="../commands/lighting.html#simple">details...</a>)
+</li><li><b>full</b>
+<a href="graphics.html" title="Graphics Toolbar">
+<img class="icon" border="1" src="shortcut-icons/fulllight.png" alt="computer generated image"></a>
+&ndash; all three kinds of light, key light with shadows,
+ambient lighting with shadowing from 64 directions
+(<a href="../commands/lighting.html#full">details...</a>)
+</li><li><b>soft</b>
+<a href="graphics.html" title="Graphics Toolbar">
+<img class="icon" border="1" src="shortcut-icons/softlight.png" alt="computer generated image"></a>
+&ndash; ambient lighting only, ambient shadowing from 64 directions
+(<a href="../commands/lighting.html#soft">details...</a>)
+</li><li><b>gentle</b>
+&ndash; same as <b>soft</b>, except tuned to emphasize larger indentations
+(<a href="../commands/lighting.html#gentle">details...</a>)
+</li><li><b>flat</b>
+<a href="graphics.html" title="Graphics Toolbar">
+<img class="icon" border="1" src="shortcut-icons/flat.png" alt="computer generated image"></a>
+&ndash; ambient lighting only, no shadows (<a href="../commands/lighting.html#flat">details...</a>)
+  <ul>
+  <li>this preset also turns silhouettes <b>on</b>;
+for silhouettes <b>off</b>, use
+<a href="graphics.html" title="Graphics Toolbar">
+<img class="icon" border="1" src="shortcut-icons/silhouette.png" alt="computer generated image"></a>
+or <a href="../commands/graphics.html#silhouettes"><b>graphics silhouettes false</b></a>
+  </li></ul>
+</li></ul>
+Other settings:
+<ul class="none">
+<li><b>Key intensity</b> &ndash; key light intensity
+(adjust value with slider)</li>
+<li><b>Key color</b> 
+(a color well; click to adjust with the system color editor)</li>
+<li><b>Fill intensity</b> &ndash; fill light intensity
+(adjust value with slider)</li>
+<li><b>Fill color</b>
+(a color well; click to adjust with the system color editor)</li>
+<li><b>Ambient intensity</b> &ndash; ambient light intensity
+(adjust value with slider)</li>
+<li><b>Ambient color</b>
+(a color well; click to adjust with the system color editor)</li>
+</ul>
+<p>
+The directional lights can be moved by dragging the
+color-coded solid arrows on the sphere:
+<b style="color:#FFC832">orange</b>: <b>key</b>,
+<b style="color:#6496FF">blue</b>: <b>fill</b>.
+The directions can be reset by choosing the 
+<a href="../commands/lighting.html#simple"><b>simple</b></a> preset.
+</p>
+
+<a name="shininess"></a>
+<p class="nav">
+[<a href="#top">back to top: Lighting</a>]
+</p>
+<h3>Shininess</h3>
+<p>
+The <b>Shininess</b> section of the <a href="top"><b>Lighting</b></a> tool
+adjusts certain material properties. See also:
+<a href="../commands/material.html"><b>material</b></a>
+</p>
+<ul class="none">
+<li><b>Sharpness</b> &ndash; specular exponent, which controls the spread
+of specular highlights (range 0.0-128.0, default <b>30.0</b>; 
+adjust value with slider)</li>
+<li><b>Reflectivity</b> &ndash; the fraction of directional light that is
+reflected diffusely, equally in all directions
+(default <b>0.8</b>; adjust value with slider)</li>
+</ul>
+
+<a name="depthcue"></a>
+<p class="nav">
+[<a href="#top">back to top: Lighting</a>]
+</p>
+<h3>Depth Cue</h3>
+<p>
+The <b>Depth Cue</b> section of the <a href="top"><b>Lighting</b></a> tool
+adjusts near-far shading. See also:
+<a href="../commands/lighting.html#options"><b>lighting</b> options</a>,
+<a href="../commands/clip.html"><b>clip</b></a>
+</p>
+<ul class="none">
+<li><b>Enabled</b>
+&ndash; whether to use depth-cueing, near-far shading of the scene</li>
+<li><b>Start</b>
+&ndash; the start (nearby end) of the linear depth-cueing ramp, 
+expressed as a position relative to the near (0.0) and
+far (1.0) global clipping planes, which are shown/manipulable in the
+<a href="sideview.html"><b>Side&nbsp;View</b></a></li>
+<li><b>End</b>
+&ndash; the far end of the linear depth-cueing ramp, 
+expressed as a position relative to the near (0.0) and
+far (1.0) global clipping planes, which are shown/manipulable in the
+<a href="sideview.html"><b>Side&nbsp;View</b></a></li>
+<li><b>Color</b> &ndash; depth-cueing color
+(a color well; click to adjust with the system color editor)</li>
+</ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+January 2026</address>
+
+</body></html>
