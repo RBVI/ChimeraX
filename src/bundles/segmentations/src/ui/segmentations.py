@@ -114,6 +114,12 @@ class SegmentationToolControlsDialog(QDialog):
             'color scheme changed', self._on_color_scheme_changed
         )
 
+    def cleanup(self):
+        """Remove trigger handlers before the dialog is destroyed."""
+        if self._color_scheme_handler is not None:
+            self.session.ui.triggers.remove_handler(self._color_scheme_handler)
+            self._color_scheme_handler = None
+
     def _load_images(self):
         """Load and prepare images based on current color scheme"""
         self.right_hand_image = QImage(
@@ -881,6 +887,7 @@ class SegmentationTool(ToolInstance):
             self._reset_3d_mouse_modes()
         if self.hand_modes_changed:
             self._reset_vr_hand_modes()
+        self.controls_dialog.cleanup()
         super().delete()
 
     def _set_3d_mouse_modes(self):

@@ -138,8 +138,6 @@ class DICOM:
                         "Pydicom could not read invalid or non-DICOM file %s; skipping."
                         % f
                     )
-        for d in dirs:
-            dfiles.extend(self._find_dicom_files_in_directory_recursively(d))
         return dfiles
 
     def dicom_patients(self, files) -> list["Patient"]:

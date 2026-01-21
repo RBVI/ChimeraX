@@ -100,6 +100,9 @@ class ProfileGridsTool(ToolInstance):
 
     def fill_context_menu(self, menu, x, y):
         from Qt.QtGui import QAction
+        choose_seq_menu = menu.addMenu("Choose Cells For Sequence")
+        choose_seq_menu.aboutToShow.connect(lambda *, s=self, m=choose_seq_menu:
+            s._fill_choose_menu(m, "", s.alignment.seqs))
         cell_menu = menu.addMenu("Chosen Cells")
         action = QAction("Change in Prevalence...", cell_menu)
         action.triggered.connect(lambda *args, f=self.grid_canvas.prevalence_from_cells: f())
@@ -121,163 +124,6 @@ class ProfileGridsTool(ToolInstance):
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(self.show_settings)
         menu.addAction(settings_action)
-
-        return
-        from Qt.QtGui import QAction
-        file_menu = menu.addMenu("File")
-        save_as_menu = file_menu.addMenu("Save As")
-        from chimerax.core.commands import run, StringArg
-        align_arg = "%s " % self.alignment if len(self.session.alignments.alignments) > 1 else ""
-        fmts = [fmt for fmt in self.session.save_command.save_data_formats if fmt.category == "Sequence"]
-        fmts.sort(key=lambda fmt: fmt.synopsis.casefold())
-        for fmt in fmts:
-            action = QAction(fmt.synopsis, save_as_menu)
-            action.triggered.connect(lambda *args, fmt=fmt:
-                run(self.session, "save browse format %s alignment %s"
-                % (fmt.nicknames[0], StringArg.unparse(self.alignment.ident))))
-            save_as_menu.addAction(action)
-        scf_action = QAction("Load Sequence Coloring File...", file_menu)
-        scf_action.triggered.connect(lambda: self.load_scf_file(None))
-        file_menu.addAction(scf_action)
-
-        edit_menu = menu.addMenu("Edit")
-        copy_action = QAction("Copy Sequence...", edit_menu)
-        copy_action.triggered.connect(self.show_copy_sequence_dialog)
-        edit_menu.addAction(copy_action)
-        from chimerax.seqalign.cmd import alignment_program_name_args
-        prog_to_arg = {}
-        for arg, prog in alignment_program_name_args.items():
-            prog_to_arg[prog] = arg
-        for prog in sorted(prog_to_arg.keys()):
-            prog_menu = edit_menu.addMenu("Realign Sequences with %s" % prog)
-            for menu_text, cmd_text in [("new", ""), ("this", " replace true")]:
-                realign_action = QAction("in %s window" % menu_text, prog_menu)
-                realign_action.triggered.connect(lambda *args, arg=prog_to_arg[prog],
-                    unparse=StringArg.unparse, cmd_text=cmd_text: run(self.session,
-                    "seq align %s program %s%s" % (unparse(self.alignment.ident), unparse(arg), cmd_text)))
-                prog_menu.addAction(realign_action)
-
-        structure_menu = menu.addMenu("Structure")
-        assoc_action = QAction("Associations...", structure_menu)
-        assoc_action.triggered.connect(self.show_associations)
-        from chimerax.atomic import AtomicStructure
-        for m in self.session.models:
-            if isinstance(m, AtomicStructure):
-                break
-        else:
-            assoc_action.setEnabled(False)
-        structure_menu.addAction(assoc_action)
-
-        headers_menu = menu.addMenu("Headers")
-        headers = self.alignment.headers
-        headers.sort(key=lambda hdr: hdr.ident.casefold())
-        from chimerax.core.commands import run
-        for hdr in headers:
-            action = QAction(hdr.name, headers_menu)
-            action.setCheckable(True)
-            action.setChecked(hdr.shown)
-            if not hdr.relevant:
-                action.setEnabled(False)
-            action.triggered.connect(lambda *, action=action, hdr=hdr, align_arg=align_arg, self=self: run(
-                self.session, "seq header %s%s %s" % (align_arg, hdr.ident, "show" if action.isChecked() else "hide")))
-            headers_menu.addAction(action)
-        headers_menu.addSeparator()
-        hdr_save_menu = headers_menu.addMenu("Save")
-        for hdr in headers:
-            if not hdr.relevant:
-                continue
-            action = QAction(hdr.name, hdr_save_menu)
-            action.triggered.connect(lambda *, hdr=hdr, align_arg=align_arg, self=self: run(
-                self.session, "seq header %s%s save browse" % (align_arg, hdr.ident)))
-            hdr_save_menu.addAction(action)
-
-        numberings_menu = menu.addMenu("Numberings")
-        action = QAction("Overall", numberings_menu)
-        action.setCheckable(True)
-        action.setChecked(self.grid_canvas.show_ruler)
-        action.triggered.connect(lambda*, sc=self.grid_canvas, action=action:
-            setattr(sc, "show_ruler", action.isChecked()))
-        numberings_menu.addAction(action)
-        refseq_menu = numberings_menu.addMenu("Reference Sequence")
-        action = QAction("No Reference Sequence", refseq_menu)
-        action.setCheckable(True)
-        action.setChecked(self.alignment.reference_seq is None)
-        action.triggered.connect(lambda*, align_arg=align_arg, action=action, self=self:
-            run(self.session, "seq ref " + align_arg) if action.isChecked() else None)
-        refseq_menu.addAction(action)
-        for seq in self.alignment.seqs:
-            action = QAction(seq.name, refseq_menu)
-            action.setCheckable(True)
-            action.setChecked(self.alignment.reference_seq is seq)
-            action.triggered.connect(lambda*, seq_arg=StringArg.unparse(align_arg + ':' + seq.name),
-                action=action: run(self.session, "seq ref " + seq_arg) if action.isChecked() else None)
-            refseq_menu.addAction(action)
-        numberings_menu.addSeparator()
-        action = QAction("Left Sequence", numberings_menu)
-        action.setCheckable(True)
-        action.setChecked(self.grid_canvas.show_left_numbering)
-        action.triggered.connect(lambda*, sc=self.grid_canvas, action=action:
-            setattr(sc, "show_left_numbering", action.isChecked()))
-        numberings_menu.addAction(action)
-        action = QAction("Right Sequence", numberings_menu)
-        action.setCheckable(True)
-        action.setChecked(self.grid_canvas.show_right_numbering)
-        action.triggered.connect(lambda*, sc=self.grid_canvas, action=action:
-            setattr(sc, "show_right_numbering", action.isChecked()))
-        numberings_menu.addAction(action)
-
-        tools_menu = menu.addMenu("Tools")
-        comp_model_action = QAction("Modeller Comparative Modeling...", tools_menu)
-        comp_model_action.triggered.connect(lambda: run(self.session,
-            "ui tool show 'Modeller Comparative'"))
-        if not self.alignment.associations:
-            comp_model_action.setEnabled(False)
-        tools_menu.addAction(comp_model_action)
-        loops_model_action = QAction("Model Loops...", tools_menu)
-        loops_model_action.triggered.connect(lambda: run(self.session,
-            "ui tool show 'Model Loops'"))
-        if not self.alignment.associations:
-            loops_model_action.setEnabled(False)
-        tools_menu.addAction(loops_model_action)
-        if len(self.alignment.seqs) == 1:
-            from chimerax.blastprotein import BlastProteinTool
-            blast_action = QAction("Blast Protein...", tools_menu)
-            blast_action.triggered.connect(
-                lambda: BlastProteinTool(self.session, sequences = StringArg.unparse("%s:1" % self.alignment.ident))
-            )
-            tools_menu.addAction(blast_action)
-        else:
-            from chimerax.blastprotein import BlastProteinTool
-            blast_menu = tools_menu.addMenu("Blast Protein")
-            for i, seq in enumerate(self.alignment.seqs):
-                blast_action = QAction(seq.name, blast_menu)
-                blast_action.triggered.connect(lambda *args, chars=seq.ungapped():
-                    BlastProteinTool(self.session, sequences=StringArg.unparse(chars)))
-                blast_menu.addAction(blast_action)
-        if len(self.alignment.seqs) > 1:
-            identity_action = QAction("Percent Identity...", menu)
-            identity_action.triggered.connect(self.show_percent_identity_dialog)
-            tools_menu.addAction(identity_action)
-
-
-        # Whenever Region Browser and UniProt Annotations happen, the thought is to
-        # put them in an "Annotations" menu (rather than "Info"); for now with only
-        # sequence features available, use "Features"
-        feature_seqs = [ seq for seq in self.alignment.seqs if seq.features(fetch=False) ]
-        if feature_seqs:
-            if len(self.alignment.seqs) == 1:
-                action = QAction("Sequence Features...", menu)
-                action.triggered.connect(lambda *args, seq=feature_seqs[0], show=self.show_feature_browser:
-                    show(seq))
-                menu.addAction(action)
-            else:
-                features_menu = menu.addMenu("Sequence Features")
-                from .grid_canvas import _seq_name as seq_name
-                for seq in feature_seqs:
-                    action = QAction(seq_name(seq), features_menu)
-                    action.triggered.connect(lambda *args, seq=seq, show=self.show_feature_browser:
-                        show(seq))
-                    features_menu.addAction(action)
 
     def show_settings(self):
         if not hasattr(self, "settings_tool"):
@@ -305,3 +151,40 @@ class ProfileGridsTool(ToolInstance):
             'grid canvas': self.grid_canvas.state()
         }
         return data
+
+    def _fill_choose_menu(self, menu, prefix, seqs):
+        menu.clear()
+        target_menu_size = 10
+        if len(seqs) <= 1.5 * target_menu_size:
+            for seq in sorted(seqs, key=lambda seq: seq.name.lower()):
+                action = menu.addAction(seq.name)
+                action.triggered.connect(lambda *args, gc=self.grid_canvas, seq=seq: gc.choose_from_seq(seq))
+            return
+        prev_boxes = None
+        num_chars = 1
+        prefix_len = len(prefix)
+        while True:
+            boxes = {}
+            for seq in seqs:
+                boxes.setdefault(seq.name[prefix_len:prefix_len+num_chars], []).append(seq)
+            if prev_boxes is None:
+                prev_boxes = boxes
+                num_chars += 1
+                continue
+            if abs(len(prev_boxes) - target_menu_size) < abs(len(boxes) - target_menu_size):
+                best_boxes = prev_boxes
+                break
+            prev_boxes = boxes
+            num_chars += 1
+
+        for addition in sorted(list(best_boxes.keys()), key=lambda add: add.lower()):
+            box = best_boxes[addition]
+            if len(box) == 1:
+                seq = box[0]
+                action = menu.addAction(seq.name)
+                action.triggered.connect(lambda *args, gc=self.grid_canvas, seq=seq:
+                    gc.choose_from_seq(seq))
+            else:
+                submenu = menu.addMenu(prefix + addition + '...')
+                submenu.aboutToShow.connect(lambda *, s=self, m=submenu, prefix=prefix+addition, seqs=box:
+                    s._fill_choose_menu(m, prefix, seqs))

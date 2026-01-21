@@ -531,6 +531,18 @@ class SceneScrollArea(QScrollArea):
 
         super().mousePressEvent(event)
 
+    def keyPressEvent(self, event):
+        """Handle key presses for scene deletion."""
+        if event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace:
+            if self.highlighted_scene:
+                scene_name = self.highlighted_scene.get_name()
+                run(self.session, f"scene delete {scene_name}")
+            # Accept the event regardless to prevent forwarding to command line
+            event.accept()
+            return
+        else:
+            super().keyPressEvent(event)
+
     def _reorder_from_drop_pos(self, scene_name, drop_pos):
         drop_x, drop_y = drop_pos.x(), drop_pos.y()
         row_items = []

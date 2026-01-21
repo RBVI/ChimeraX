@@ -812,10 +812,15 @@ class Sequence(State):
 
     chimerax_exiting = False
 
-    def __init__(self, seq_pointer=None, *, name="sequence", characters=""):
+    def __init__(self, seq_pointer=None, *, name="sequence", characters="", is_reference=False):
+        """'is_reference' indicates a full reference sequence that should not be renumbered
+           as chains are associated/disassociated from it.  If the numbering should not start
+           at 1, set 'numbering_start' after creation.
+        """
         self.attrs = {} # miscellaneous attributes
         self.markups = {} # per-residue (strings or lists)
-        self.numbering_start = None
+        self.is_reference = is_reference
+        self.numbering_start = 1 if is_reference else None
         self._features = {}
         self.accession_id = {}
         from chimerax.core.triggerset import TriggerSet
@@ -983,6 +988,7 @@ class Sequence(State):
         self.characters = data['characters']
         self.attrs = data.get('attrs', {})
         self.markups = data.get('markups', {})
+        self.is_reference = data.get('is_reference', False)
         self.numbering_start = data.get('numbering_start', None)
         self._features = data.get('features', {})
         self.accession_id = data.get('accession_id', {})
@@ -1008,7 +1014,7 @@ class Sequence(State):
         data = { 'name': self.name, 'characters': self.characters, 'attrs': self.attrs,
             'markups': self.markups, 'numbering_start': self.numbering_start,
             'custom attrs': self.custom_attrs, 'features': self._features,
-            'accession_id': self.accession_id }
+            'accession_id': self.accession_id, 'is_reference': self.is_reference }
         return data
 
     def ungapped(self):

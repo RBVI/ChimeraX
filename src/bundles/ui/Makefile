@@ -9,7 +9,7 @@ CLEAN_ALWAYS += src/about.html src/*/__pycache__
 
 build uv-wheel uv-install wheel install app-install:	src/about.html $(DATAFILES)
 
-src/about.html:	src/about.html.in
+src/about.html:	src/about.html.in $(TOP)/copyright.txt
 	sed -e '/===/d' \
 		-e 's,https:.*html,<a href="&">&</a>.,' \
 		$(TOP)/copyright.txt | \
