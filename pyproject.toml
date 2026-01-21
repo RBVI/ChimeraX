@@ -92,7 +92,7 @@ wheel = [
   "openmm-cuda-12==8.4.0 ; ((sys_platform == 'win32') or (sys_platform == 'linux')) and (platform_machine != 'aarch64')",
   "packaging==25.0",
   # as per Tristan's request in ticket #3055"
-  "ParmEd==4.2.2",
+  "ParmEd==4.3.0",
   "pep517==0.13.1",
   # optional package to prevent warning in Python shell [#16571]
   "pickleshare==0.7.5",
