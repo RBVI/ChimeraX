@@ -28,10 +28,9 @@ or derivations thereof.
 -->
 
 <h3><a href="../index.html#tools">Tool</a>: Lighting</h3>
-<h3> * page under construction* </h3>
 <p>
 The <b>Lighting</b> tool allows interactively adjusting several settings
-related to illumination:
+related to illumination, with sections:
 </p>
 <ul>
 <li><a href="#lighting"><b>Lighting</b></a> 
@@ -61,7 +60,8 @@ and manipulated like other panels (<a href="../window.html#panels">more...</a>).
 </p>
 <h3>Lighting</h3>
 <p>
-There are two directional lights, key and fill, plus ambient lighting.
+The ChimeraX scene can have two directional lights, key and fill, 
+plus ambient lighting.
 The <b><i>key light</i></b> is often the dominant source and can cast
 shadows; the first set of intensity, direction, and color values
 reported in the <a href="../tools/log.html"><b>Log</b></a> refer to this light.
@@ -76,12 +76,13 @@ The key light also produces directionally dependent
 The <b><i>ambient</i></b> lighting
 is an approximation to omnidirectional illumination.
 Shadows cast from multiple uniformly distributed directions can produce
-ambient shadowing, or &ldquo;ambient occlusion.&rdquo;
+ambient shadowing, or &ldquo;ambient occlusion.&rdquo; See also:
+<a href="../commands/lighting.html"><b>lighting</b></a>
 </p><p>
 Choices for lighting <b>Preset</b></a>:
 </p>
 <ul>
-<li><b>default</b> or <b>simple</b>
+<li><b>simple</b>
 <a href="graphics.html" title="Graphics Toolbar">
 <img class="icon" border="1" src="shortcut-icons/simplelight.png" alt="computer generated image"></a>
 &ndash; all three kinds of light, but no shadows
@@ -112,6 +113,29 @@ for silhouettes <b>off</b>, use
 or <a href="../commands/graphics.html#silhouettes"><b>graphics silhouettes false</b></a>
   </li></ul>
 </li></ul>
+Other settings:
+<ul class="none">
+<li><b>Key intensity</b> &ndash; key light intensity
+(adjust value with slider)</li>
+<li><b>Key color</b> 
+(a color well; click to adjust with the system color editor)</li>
+<li><b>Fill intensity</b> &ndash; fill light intensity
+(adjust value with slider)</li>
+<li><b>Fill color</b>
+(a color well; click to adjust with the system color editor)</li>
+<li><b>Ambient intensity</b> &ndash; ambient light intensity
+(adjust value with slider)</li>
+<li><b>Ambient color</b>
+(a color well; click to adjust with the system color editor)</li>
+</ul>
+<p>
+The directional lights can be moved by dragging the
+color-coded solid arrows on the sphere:
+<b style="color:#FFC832">orange</b>: <b>key</b>,
+<b style="color:#6496FF">blue</b>: <b>fill</b>.
+The directions can be reset by choosing the 
+<a href="../commands/lighting.html#simple"><b>simple</b></a> preset.
+</p>
 
 <a name="shininess"></a>
 <p class="nav">
@@ -119,7 +143,18 @@ or <a href="../commands/graphics.html#silhouettes"><b>graphics silhouettes false
 </p>
 <h3>Shininess</h3>
 <p>
+The <b>Shininess</b> section of the <a href="top"><b>Lighting</b></a> tool
+adjusts certain material properties. See also:
+<a href="../commands/material.html"><b>material</b></a>
 </p>
+<ul class="none">
+<li><b>Sharpness</b> &ndash; specular exponent, which controls the spread
+of specular highlights (range 0.0-128.0, default <b>30.0</b>; 
+adjust value with slider)</li>
+<li><b>Reflectivity</b> &ndash; the fraction of directional light that is
+reflected diffusely, equally in all directions
+(default <b>0.8</b>; adjust value with slider)</li>
+</ul>
 
 <a name="depthcue"></a>
 <p class="nav">
@@ -127,7 +162,27 @@ or <a href="../commands/graphics.html#silhouettes"><b>graphics silhouettes false
 </p>
 <h3>Depth Cue</h3>
 <p>
+The <b>Depth Cue</b> section of the <a href="top"><b>Lighting</b></a> tool
+adjusts near-far shading. See also:
+<a href="../commands/lighting.html#options"><b>lighting</b> options</a>,
+<a href="../commands/clip.html"><b>clip</b></a>
 </p>
+<ul class="none">
+<li><b>Enabled</b>
+&ndash; whether to use depth-cueing, near-far shading of the scene</li>
+<li><b>Start</b>
+&ndash; the start (nearby end) of the linear depth-cueing ramp, 
+expressed as a position relative to the near (0.0) and
+far (1.0) global clipping planes, which are shown/manipulable in the
+<a href="sideview.html"><b>Side&nbsp;View</b></a></li>
+<li><b>End</b>
+&ndash; the far end of the linear depth-cueing ramp, 
+expressed as a position relative to the near (0.0) and
+far (1.0) global clipping planes, which are shown/manipulable in the
+<a href="sideview.html"><b>Side&nbsp;View</b></a></li>
+<li><b>Color</b> &ndash; depth-cueing color
+(a color well; click to adjust with the system color editor)</li>
+</ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
