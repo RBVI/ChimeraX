@@ -113,7 +113,7 @@ wheel = [
   "six==1.17.0",
   "sortedcontainers==2.4.0",
   "tables==3.10.2",
-  "tifffile==2025.3.13",
+  "tifffile==2025.3.30",
   "webcolors==24.11.1",
   "wheel-filename==1.4.2",
   "blockdiag==3.0.0",
