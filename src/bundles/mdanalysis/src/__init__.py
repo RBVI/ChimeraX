@@ -2,7 +2,7 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-class _MDCrdsBundleAPI(BundleAPI):
+class _MDAnalysisBundleAPI(BundleAPI):
     
     from chimerax.atomic import StructureArg
 
@@ -182,4 +182,4 @@ class _MDCrdsBundleAPI(BundleAPI):
             
         raise ValueError("Unknown plotting type: %s" % name)
 
-bundle_api = _MDCrdsBundleAPI()
+bundle_api = _MDAnalysisBundleAPI()
