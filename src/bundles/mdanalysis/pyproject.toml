@@ -3,7 +3,7 @@ requires = ["ChimeraX-BundleBuilder>=1.4.0", "ChimeraX-Core ~=1.0"]
 build-backend = "chimerax.bundle_builder.cx_pep517"
 
 [project]
-name = "ChimeraX-MDcrds"
+name = "ChimeraX-MDAnalysis"
 version = "3.0.0"
 license = { text = "Free for non-commercial use" }
 authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
