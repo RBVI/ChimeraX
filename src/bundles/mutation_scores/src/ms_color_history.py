@@ -118,6 +118,13 @@ class MutationColorHistory(StateManager):
         run(self._session, cmd_color)
         self._ignore_color_command = False
 
+    def rename_attribute(self, attribute_name, new_name):
+        acp = self._attribute_coloring_parameters
+        if attribute_name in acp:
+            options = acp[attribute_name]
+            del acp[attribute_name]
+            acp[new_name] = options
+
     def remove_attribute(self, attribute_name):
         acp = self._attribute_coloring_parameters
         if attribute_name in acp:
@@ -174,12 +181,16 @@ class MutationColorHistoryPanel(ToolInstance):
         layout.addWidget(lw)
         self._update_list()
 
-        from chimerax.ui.widgets import button_row
-        f, buttons = button_row(parent,
-                                [('Adjust colors', self._adjust_colors),
-                                 ('Delete', self._delete_attribute)],
-                                spacing = 5, button_list = True)
-        layout.addWidget(f)
+        from chimerax.ui.widgets import EntriesRow
+        br = EntriesRow(parent,
+                        ('Adjust colors', self._adjust_colors),
+                        ('Delete', self._delete_attribute),
+                        ('Rename', self._rename_attribute),
+                        '',
+                        spacing = 5)
+        self._rename_entry = re = br.values[0]
+        re.pixel_width = 300
+        layout.addWidget(br.frame)
                 
         tw.manage(placement="side")
 
@@ -203,6 +214,7 @@ class MutationColorHistoryPanel(ToolInstance):
     def _attribute_clicked(self, item):
         attr_name = item.text()
         self._mutation_color_history.color_by_attribute(attr_name)
+        self._rename_entry.value = attr_name
 
     def _selected_attribute_names(self):
         return [item.text() for item in self._attribute_list.selectedItems()]
@@ -250,6 +262,48 @@ class MutationColorHistoryPanel(ToolInstance):
                 mch.remove_attribute(attribute_name)
 
         self._update_list()
+
+    def _rename_attribute(self):
+        attr_names = self._selected_attribute_names()
+        if len(attr_names) == 0:
+            self.session.logger.error('Select an attribute name in the list, edit the name, then press the Rename button.')
+            return
+            
+        mch = self._mutation_color_history
+        
+        attribute_name = attr_names[0]
+        mset = mch.mutation_set_for_attribute(attribute_name)
+        if mset is None:
+            self.session.logger.error(f'No mutation set has an attribute "{attribute_name}".')
+            return
+
+        new_name = self._rename_entry.value.strip()
+        if not new_name:
+            self.session.logger.error(f'New name is blank.')
+            return
+
+        if new_name == attribute_name:
+            return
+        
+        mset.rename_computed_values(attribute_name, new_name)
+        mch.rename_attribute(attribute_name, new_name)
+        _rename_residue_attribute(mset.associated_chains(), attribute_name, new_name)
+
+        self._update_list()
+
+def _rename_residue_attribute(chains, attribute_name, new_name):
+    count = 0
+    for chain in chains:
+        for r in chain.residues:
+            if hasattr(r, attribute_name):
+                rvalue = getattr(r, attribute_name)
+                delattr(r, attribute_name)
+                setattr(r, new_name, rvalue)
+                count += 1
+    if count > 0:
+        session = chain.structure.session
+        from chimerax.atomic import Residue
+        Residue.register_attr(session, new_name, "Deep Mutational Scan", attr_type=float)
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg
