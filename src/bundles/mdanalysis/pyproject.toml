@@ -1,0 +1,200 @@
+[build-system]
+requires = ["ChimeraX-BundleBuilder>=1.4.0", "ChimeraX-Core ~=1.0"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-MDcrds"
+version = "2.17.2"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
+description = "Molecular dynamics support"
+dependencies = [
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-Atomic ~=1.22",
+  "ChimeraX-DataFormats ~=1.0",
+  "ChimeraX-OpenCommand ~=1.0",
+  "ChimeraX-SaveCommand ~=1.0",
+  "ChimeraX-UI ~=1.47",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """This bundle provides parsers for various molecular dynamics file formats."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+module-name-override = "md_crds"
+categories = ["Molecular Dynamics"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.package-data]
+"src/dcd/MDToolsMarch97/data" = ["*"]
+
+[tool.chimerax.extra-files.platform.linux]
+"src/lib/" = ["gromacs/xdrfile-1.1.4/src/.libs/libxdrfile.so.4"]
+
+[tool.chimerax.extra-files.platform.mac]
+"src/lib/" = ["gromacs/xdrfile-1.1.4/src/.libs/libxdrfile.4.dylib"]
+
+[tool.chimerax.manager."MD plotting"]
+autostart = false
+
+[[tool.chimerax.provider."data formats"]]
+name = "Gromacs full-precision coordinates"
+category = "Molecular trajectory"
+nicknames = "trr"
+suffixes = ".trr"
+encoding = "utf-8"
+synopsis = "Gromacs trr format"
+reference-url = "https://manual.gromacs.org/documentation/current/reference-manual/file-formats.html#trr"
+
+[[tool.chimerax.provider."data formats"]]
+name = "Gromacs compressed coordinates"
+category = "Molecular trajectory"
+nicknames = "xtc"
+suffixes = ".xtc"
+encoding = "utf-8"
+synopsis = "Gromacs xtc format"
+reference-url = "https://manual.gromacs.org/documentation/current/reference-manual/file-formats.html#xtc"
+
+[[tool.chimerax.provider."data formats"]]
+name = "DCD coordinates"
+category = "Molecular trajectory"
+nicknames = "dcd"
+suffixes = ".dcd"
+encoding = "utf-8"
+synopsis = "DCD trajectory format"
+
+[[tool.chimerax.provider."data formats"]]
+name = "Amber netCDF coordinates"
+category = "Molecular trajectory"
+nicknames = "amber"
+suffixes = ".nc"
+synopsis = "Amber netCDF format"
+
+[[tool.chimerax.provider."data formats"]]
+name = "Gromos87 coordinates"
+category = "Molecular structure"
+encoding = "utf-8"
+nicknames = "gro"
+suffixes = ".gro"
+synopsis = "Gromos87 structure"
+reference-url = "https://gromos.net"
+
+[[tool.chimerax.provider."data formats"]]
+name = "Protein structure file"
+category = "Molecular structure"
+encoding = "utf-8"
+nicknames = "psf"
+suffixes = ".psf"
+synopsis = "PSF"
+
+[[tool.chimerax.provider."data formats"]]
+name = "LAMMPS coordinates"
+category = "Molecular structure"
+nicknames = "data"
+suffixes = ".data"
+default-for = ".data"
+encoding = "utf-8"
+synopsis = "LAMMPS data format"
+reference-url = "https://docs.lammps.org/write_data.html"
+
+[[tool.chimerax.provider."data formats"]]
+name = "LAMMPS trajectory"
+category = "Molecular trajectory"
+nicknames = "dump"
+suffixes = ".dump"
+default-for = ".dump"
+encoding = "utf-8"
+synopsis = "LAMMPS dump format"
+reference-url = "https://docs.lammps.org/dump.html"
+
+[[tool.chimerax.provider."open command"]]
+name = "trr"
+want-path = true
+
+[[tool.chimerax.provider."open command"]]
+name = "xtc"
+want-path = true
+
+[[tool.chimerax.provider."open command"]]
+name = "dcd"
+want-path = true
+
+[[tool.chimerax.provider."open command"]]
+name = "amber"
+want-path = true
+
+[[tool.chimerax.provider."open command"]]
+name = "gro"
+
+[[tool.chimerax.provider."open command"]]
+name = "psf"
+want-path = true
+
+[[tool.chimerax.provider."open command"]]
+name = "data"
+want-path = false
+
+[[tool.chimerax.provider."open command"]]
+name = "dump"
+want-path = false
+
+[[tool.chimerax.provider."save command"]]
+name = "dcd"
+
+[[tool.chimerax.provider."MD plotting"]]
+name = "distance"
+num-atoms = "2"
+text-format = "distance"
+
+[[tool.chimerax.provider."MD plotting"]]
+name = "angle"
+num-atoms = "3"
+text-format = "angle"
+min-val = "0"
+max-val = "180"
+
+[[tool.chimerax.provider."MD plotting"]]
+name = "torsion"
+num-atoms = "4"
+text-format = "angle"
+min-val = "-180"
+max-val = "180"
+
+[[tool.chimerax.provider."MD plotting"]]
+name = "surface"
+ui-name = "SASA"
+num-atoms = "0"
+text-format = "%.1f"
+exclude = "solution=true,ligands=true,metals=alkali"
+
+[[tool.chimerax.provider."MD plotting"]]
+name = "rmsd"
+ui-name = "RMSD"
+num-atoms = "0"
+text-format = "%.2f"
+need-ref-frame = true
+exclude = "solution=true,hydrogens=true,ligands=false,metals=alkali"
+
+[[tool.chimerax.provider."MD plotting"]]
+name = "hbonds"
+ui-name = "H-Bonds"
+num-atoms = "0"
+text-format = "%d"
+
+[tool.chimerax.extension._gromacs]
+sources = ["gromacs/gromacs.cpp"]
+include-dirs = ["gromacs/xdrfile-1.1.4/include", "src/include"]
+include-modules = ["chimerax.core", "numpy", "chimerax.arrays"]
+library-modules = ["chimerax.core", "chimerax.arrays"]
+library-dirs = ["src/lib", "gromacs/xdrfile-1.1.4/src/.libs/"]
+libraries = ["xdrfile", "arrays"]
+
+[tool.chimerax.extension._gromacs.darwin]
+extra-link-args = ["-Wl,-rpath,@rpath"]
