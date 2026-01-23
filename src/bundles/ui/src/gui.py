@@ -162,6 +162,16 @@ class UI(QApplication):
             self.screenAdded.connect(self._screen_added)
             self.screenRemoved.connect(self._screen_removed)
 
+        if platform != 'darwin':
+            # As of Qt 6.9, non-Mac color choosers do not remember custom colors,
+            # so save/restore them
+            from Qt.QtWidgets import QColorDialog
+            from Qt.QtGui import QColor
+            saved_colors = self.settings.editor_custom_colors
+            for slot, custom_rgba in enumerate(saved_colors[:
+                    min(len(saved_colors), QColorDialog.customCount())]):
+                QColorDialog.setCustomColor(slot, QColor(*custom_rgba))
+
     def _set_linux_palette(self, new_scheme):
         # On Linux, the standard dark palette is lacking. Input fields are hard
         # distinguish, and radio buttons locations aren't visible
@@ -517,6 +527,12 @@ class UI(QApplication):
         from sys import platform
         if platform == 'darwin':
             return	# Avoid Mac Qt 6.8.2 crash on exit.  ChimeraX bug #17265
+        from Qt.QtWidgets import QColorDialog
+        custom_colors = []
+        for slot in range(QColorDialog.customCount()):
+            qc = QColorDialog.customColor(slot)
+            custom_colors.append((qc.red(), qc.green(), qc.blue(), qc.alpha()))
+        self.settings.editor_custom_colors = custom_colors
         QApplication.quit()
 
     def thread_safe(self, func, *args, post_event=False, **kw):
