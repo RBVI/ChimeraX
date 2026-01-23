@@ -25,3 +25,8 @@ div.bodywrapper {
   margin: unset;
   display: unset;
 }
+
+/* Code comments */
+span.cm {
+  color: #397989 /* default #408090 has 4.3:1 contrast ratio; this has 4.8:1 */
+}
