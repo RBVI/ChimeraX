@@ -2827,6 +2827,8 @@ class _Qt:
         #
         if shown:
             self.dock_widget.show()
+            # deiconify if necessary
+            self.dock_widget.showNormal()
             #ensure it's on top
             self.dock_widget.raise_()
             self.dock_widget.activateWindow()
