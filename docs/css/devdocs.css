@@ -35,3 +35,8 @@ span.cm {
 span.si {
   color: #2E527A; /* Personally I think this is worse but some robot disagrees */
 }
+
+/* Imported package names */
+span.nn {
+  color: #0D7BAB; /* A bit darker blue */
+}
