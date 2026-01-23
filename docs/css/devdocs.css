@@ -28,5 +28,10 @@ div.bodywrapper {
 
 /* Code comments */
 span.cm {
-  color: #397989 /* default #408090 has 4.3:1 contrast ratio; this has 4.8:1 */
+  color: #397989; /* default #408090 has 4.3:1 contrast ratio; this has 4.8:1 */
+}
+
+/* Python string interpolation */
+span.si {
+  color: #2E527A; /* Personally I think this is worse but some robot disagrees */
 }
