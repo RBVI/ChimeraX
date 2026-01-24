@@ -28,15 +28,20 @@ div.bodywrapper {
 
 /* Code comments */
 span.cm {
-  color: #397989; /* default #408090 has 4.3:1 contrast ratio; this has 4.8:1 */
+  color: #397989 !important; /* default #408090 has 4.3:1 contrast ratio; this has 4.8:1 */
 }
+
+span.c1 {
+  color: #397989 !important; /* default #408090 has 4.3:1 contrast ratio; this has 4.8:1 */
+}
+
 
 /* Python string interpolation */
 span.si {
-  color: #2E527A; /* Personally I think this is worse but some robot disagrees */
+  color: #2E527A !important; /* Personally I think this is worse but some robot disagrees */
 }
 
 /* Imported package names */
 span.nn {
-  color: #0D7BAB; /* A bit darker blue */
+  color: #0D7BAB !important; /* A bit darker blue */
 }
