@@ -59,6 +59,7 @@ class AtomProximityTool(ToolInstance):
         run(self.session, " ".join(self.gui.get_command()))
         self.session.logger.status("You can hide/close %s with the Model Panel" % self.gui.prox_words,
             secondary=True, color="blue", blank_after=15)
+        self.gui.show_attrs_if_applicable()
 
 class ClashesTool(AtomProximityTool):
     def __init__(self, *args, **kw):
