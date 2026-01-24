@@ -1,3 +1,4 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -102,7 +103,7 @@ def show_map_stats(session):
 # -----------------------------------------------------------------------------
 # Interpolate map values at atom positions and assign an atom attribute.
 #
-def measure_map_values(session, map, atoms, attribute = 'mapvalue'):
+def measure_map_values(session, map, atoms, attribute = 'mapvalue', *, show_tool = None):
 
     # Get atom positions in volume coordinate system.
     points = atoms.scene_coords
@@ -143,19 +144,26 @@ def measure_map_values(session, map, atoms, attribute = 'mapvalue'):
         msg = 'All %d atoms oustide map %s bounds' % (len(atoms), map.name_with_id())
     session.logger.status(msg, log=True)
 
+    if session.ui.is_gui:
+        if show_tool is True or (show_tool is None and not session.in_script):
+            from chimerax.core.commands import run
+            kw = { 'models': atoms.structures, 'target': 'atoms', 'tab': 'render', 'attr_name': attribute }
+            run(session, 'ui tool show "Render/Select by Attribute"').configure(**kw)
+
     return values, outside
 
 # -----------------------------------------------------------------------------
 #
 def register_measure_mapvalues_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, StringArg
+    from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg
     from .mapargs import MapArg
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(
         required = [('map', MapArg)],
         keyword = [('atoms', AtomsArg),
-                   ('attribute', StringArg)],
+                   ('attribute', StringArg),
+                   ('show_tool', BoolArg)],
         required_arguments = ['atoms'],
         synopsis = 'Report map statistics'
     )

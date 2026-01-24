@@ -25,15 +25,15 @@ from chimerax.core.errors import UserError
 
 match_modes = ["any", "non-zero", "1-to-1"]
 
-def cmd_defattr(session, structures, file_name, *, log=False):
+def cmd_defattr(session, structures, file_name, *, log=False, show_tool=None):
     session.logger.warning("The 'defattr' command is deprecated."
         "  Just use the 'open' command with your .defattr file.")
     try:
-        defattr(session, file_name, log=log, restriction=structures)
+        defattr(session, file_name, log=log, restriction=structures, show_tool=show_tool)
     except SyntaxError as e:
         raise UserError(str(e))
 
-def defattr(session, data, *, log=False, restriction=None, file_name=None, summary=True):
+def defattr(session, data, *, log=False, restriction=None, file_name=None, summary=True, show_tool=None):
     """define attributes on objects
 
     Parameters
@@ -285,6 +285,13 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None, summa
             session.logger.info("Assigned attribute '%s' to %d %s using match mode: %s" % (attr_name,
                 num_assignments, (recipient if num_assignments != 1 else recipient[:-1]), match_mode))
 
+        if session.ui.is_gui:
+            if show_tool is True or (show_tool is None and not session.in_script) \
+            and recipient in ['atoms', 'residues', 'chains', 'structures']:
+                from chimerax.core.commands import run
+                kw = { 'models': restriction, 'target': recipient, 'tab': 'render', 'attr_name': attr_name }
+                run(session, 'ui tool show "Render/Select by Attribute"').configure(**kw)
+
 def parse_attribute_name(session, attr_name, *, allowable_types=None):
     from chimerax.atomic import Atom, Residue, Chain, Structure
     from chimerax.core.attributes import MANAGER_NAME, type_attrs
@@ -428,6 +435,6 @@ def register_command(logger):
     from chimerax.atomic import StructuresArg
     desc = CmdDesc(required=[('structures', Or(StructuresArg, EmptyArg)),
                             ('file_name', OpenFileNameArg),],
-                   keyword=[('log', BoolArg)],
+                   keyword=[('log', BoolArg), ('show_tool', BoolArg)],
                    synopsis="define attributes in bulk")
     register('defattr', desc, cmd_defattr, logger=logger)

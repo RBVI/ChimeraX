@@ -111,7 +111,8 @@ class StdCommandsAPI(BundleAPI):
                     from chimerax.atomic import StructuresArg
                     return {
                         'log': BoolArg,
-                        'models': StructuresArg
+                        'models': StructuresArg,
+                        'show_tool': BoolArg
                     }
         else:
             from chimerax.save_command import SaverInfo
