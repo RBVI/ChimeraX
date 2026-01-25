@@ -6,7 +6,7 @@ def read_structure(session, path, file_name, format_name=None, *, auto_style=Tru
     Handles PSF, GRO, LAMMPS Data, etc.
     """
     from chimerax.core.errors import UserError
-    from .util import universe_to_atomic_structure, prep_coords
+    from .utils import universe_to_atomic_structure, prep_coords
     import MDAnalysis as mda
     import os
 
@@ -35,8 +35,11 @@ def read_structure(session, path, file_name, format_name=None, *, auto_style=Tru
             
         # LAMMPS Data specific: MDA needs atom_style usually, but defaults to 'full'
         # If it fails, we might need to retry, but let's assume standard for now.
+        
+        session.logger.info(f"*** ok 2\npath {path}\nfile_name {file_name}\ncoords {coords}\n")
+        session.logger.info(f"*** load_args {load_args}\nkwargs {kwargs}\n")
             
-        u = mda.Universe(*load_args, **kwargs)
+        u = mda.Universe(path, coords, topology_format='PSF', format='LAMMPSDUMP', in_memory=True)
         
     except ImportError:
         raise UserError("MDAnalysis is not installed. Please run 'pip install MDAnalysis' to use this bundle.")
@@ -59,7 +62,7 @@ def read_structure(session, path, file_name, format_name=None, *, auto_style=Tru
     # If the file itself has coords (GRO), we have one frame.
     # PSF has 0 frames unless linked with coords.
     
-    msg = f"Imported {s.num_atoms} atoms."
+    msg = f"Imported {s.num_atoms} atoms, {len(u.trajectory)} frames."
     if u.trajectory.n_frames > 0:
         msg += f" Loaded frame 0 from {u.trajectory.filename}."
 
