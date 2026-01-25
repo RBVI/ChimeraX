@@ -4,7 +4,7 @@ build-backend = "chimerax.bundle_builder.cx_pep517"
 
 [project]
 name = "ChimeraX-MDAnalysis"
-version = "3.0.0"
+version = "1.0.0"
 license = { text = "Free for non-commercial use" }
 authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
 description = "Molecular dynamics support using MDAnalysis"
@@ -29,7 +29,7 @@ Home = "https://www.rbvi.ucsf.edu/chimerax/"
 [tool.chimerax]
 min-session-version = 1
 max-session-version = 1
-module-name-override = "md_crds"
+module-name-override = "mdanalysis"
 categories = ["Molecular Dynamics"]
 classifiers = ["Development Status :: 4 - Beta"]
 
