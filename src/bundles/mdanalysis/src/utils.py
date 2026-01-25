@@ -91,6 +91,8 @@ def universe_to_atomic_structure(session, u, name, auto_style=True):
     elements = []
     has_elements = hasattr(u.atoms, 'elements') and not all(e == '' for e in u.atoms.elements)
     
+    session.logger.info(f"*** ok 3\n")
+
     for atom in u.atoms:
         if has_elements and atom.element:
             try:
@@ -116,6 +118,9 @@ def universe_to_atomic_structure(session, u, name, auto_style=True):
     from chimerax.atomic import next_chain_id
     current_chain_id = "A"
     
+    session.logger.info(f"*** ok 4\n")
+
+    
     for seg in u.segments:
         # If segment has a segid, try to use it as chain ID if it's short, else generate
         segid = seg.segid.strip()
@@ -136,10 +141,15 @@ def universe_to_atomic_structure(session, u, name, auto_style=True):
                 a.serial_number = atom.id if hasattr(atom, 'id') else atom.index + 1
                 mda_to_cx[atom.index] = a
 
+    session.logger.info(f"*** ok 5\n")
+
     # Set coordinates for the initial frame
     if u.trajectory.n_frames > 0:
-        pos = u.atoms.positions
+        pos = u.atoms.positions.astype(np.float64)
         s.atoms.coords = pos
+        
+    session.logger.info(f"*** ok 6\n")
+
 
     # Add bonds
     # MDA bonds are (atom1, atom2) tuples (or Bond objects)
@@ -152,5 +162,10 @@ def universe_to_atomic_structure(session, u, name, auto_style=True):
             except KeyError:
                 pass # Should not happen if topology is consistent
 
+    session.logger.info(f"*** ok 7\n")
+
     s.connect_structure()
+    
+    session.logger.info(f"*** ok 8\n")
+
     return s
