@@ -289,7 +289,8 @@ def defattr(session, data, *, log=False, restriction=None, file_name=None, summa
             if show_tool is True or (show_tool is None and not session.in_script) \
             and recipient in ['atoms', 'residues', 'chains', 'structures']:
                 from chimerax.core.commands import run
-                kw = { 'models': restriction, 'target': recipient, 'tab': 'render', 'attr_name': attr_name }
+                kw = { 'models': restriction, 'target': recipient,
+                    'tab': ('render' if attr_type == float else 'select'), 'attr_name': attr_name }
                 run(session, 'ui tool show "Render/Select by Attribute"').configure(**kw)
 
 def parse_attribute_name(session, attr_name, *, allowable_types=None):
