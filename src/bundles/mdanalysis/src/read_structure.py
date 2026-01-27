@@ -1,14 +1,17 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
+from chimerax.core.errors import UserError
+from .utils import universe_to_atomic_structure, prep_coords
+import numpy as np
+import MDAnalysis as mda
+import os
+
 def read_structure(session, path, file_name, format_name=None, *, auto_style=True, coords=None, **kw):
     """
     Unified structure reader using MDAnalysis.
     Handles PSF, GRO, LAMMPS Data, etc.
     """
-    from chimerax.core.errors import UserError
-    from .utils import universe_to_atomic_structure, prep_coords
-    import MDAnalysis as mda
-    import os
+
 
     # If an external coordinate file is provided (e.g. PSF + DCD)
     if coords:
@@ -35,11 +38,8 @@ def read_structure(session, path, file_name, format_name=None, *, auto_style=Tru
             
         # LAMMPS Data specific: MDA needs atom_style usually, but defaults to 'full'
         # If it fails, we might need to retry, but let's assume standard for now.
-        
-        session.logger.info(f"*** ok 2\npath {path}\nfile_name {file_name}\ncoords {coords}\n")
-        session.logger.info(f"*** load_args {load_args}\nkwargs {kwargs}\n")
             
-        u = mda.Universe(path, coords, topology_format='PSF', format='LAMMPSDUMP', in_memory=True)
+        universe = mda.Universe(path, coords, topology_format='PSF', format='LAMMPSDUMP', dt=1.0, in_memory=False)
         
     except ImportError:
         raise UserError("MDAnalysis is not installed. Please run 'pip install MDAnalysis' to use this bundle.")
@@ -54,7 +54,7 @@ def read_structure(session, path, file_name, format_name=None, *, auto_style=Tru
     # Convert to ChimeraX structure
     try:
         name = os.path.basename(file_name)
-        s = universe_to_atomic_structure(session, u, name, auto_style=auto_style)
+        model = universe_to_atomic_structure(session, universe, name, auto_style=auto_style)
     except Exception as e:
          raise UserError(f"Failed to convert MDAnalysis topology to ChimeraX structure: {e}")
 
@@ -62,8 +62,14 @@ def read_structure(session, path, file_name, format_name=None, *, auto_style=Tru
     # If the file itself has coords (GRO), we have one frame.
     # PSF has 0 frames unless linked with coords.
     
-    msg = f"Imported {s.num_atoms} atoms, {len(u.trajectory)} frames."
-    if u.trajectory.n_frames > 0:
-        msg += f" Loaded frame 0 from {u.trajectory.filename}."
+    msg = f"Imported {model.num_atoms} atoms, {len(universe.trajectory)} frames."
+    if len(universe.trajectory) > 0:
+        #msg += f" Loaded frame 0 from {u.trajectory.filename}."
+        
+        for timestep in universe.trajectory:
+            #session.logger.info(f"*** frame {timestep.frame} |positions| {len(timestep.positions)}")
+            #session.logger.info(f"*** #{timestep.frame} {timestep.positions[:3]}")
+            model.add_coordset(id=timestep.frame, xyz=timestep.positions.astype(np.float64))
 
-    return [s], msg
+
+    return [model], msg
