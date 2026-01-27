@@ -91,8 +91,6 @@ def universe_to_atomic_structure(session, u, name, auto_style=True):
     elements = []
     has_elements = hasattr(u.atoms, 'elements') and not all(e == '' for e in u.atoms.elements)
     
-    session.logger.info(f"*** ok 3\n")
-
     for atom in u.atoms:
         if has_elements and atom.element:
             try:
@@ -114,58 +112,63 @@ def universe_to_atomic_structure(session, u, name, auto_style=True):
     
     crd = tinyarray.array((0.0, 0.0, 0.0)) # Placeholder, coords set later
     mda_to_cx = {}
-
-    from chimerax.atomic import next_chain_id
-    current_chain_id = "A"
     
-    session.logger.info(f"*** ok 4\n")
-
+    res_index = 0
+    res_order = {}
     
-    for seg in u.segments:
-        # If segment has a segid, try to use it as chain ID if it's short, else generate
-        segid = seg.segid.strip()
-        if len(segid) == 1 and segid.isalnum():
-            chain_id = segid
-        else:
-            chain_id = current_chain_id
-            current_chain_id = next_chain_id(current_chain_id)
-
+    sorted_segments = sorted(u.segments, key=lambda seg: seg.residues[0].atoms[0].index)
+    
+    session.logger.info(f"*** sorted_segments {sorted_segments}")
+    
+    for seg in sorted_segments:
         for res in seg.residues:
             # Create ChimeraX residue
             # res.resname, res.resid
-            r = s.new_residue(res.resname, chain_id, res.resid)
-            
+            r = s.new_residue(res.resname, seg.segid, res.resid)
+            res_order[r] = res_index
+            res_index += 1
             for atom in res.atoms:
-                el = elements[atom.index] # atom.index is global 0-based index
-                a = add_atom(atom.name, el, r, crd)
-                a.serial_number = atom.id if hasattr(atom, 'id') else atom.index + 1
-                mda_to_cx[atom.index] = a
+                sn = atom.id+1 if hasattr(atom, 'id') else atom.index + 1
 
-    session.logger.info(f"*** ok 5\n")
+                session.logger.info(f"*** {seg.segid} {res.resname}{res.resid} index {atom.index} sn {sn} name {atom.name}")
+
+                el = elements[atom.index] # atom.index is global 0-based index
+
+                a = add_atom(name=atom.name, element=el, residue=r, loc=crd, serial_number=sn)
+                mda_to_cx[atom.index] = a
+                
 
     # Set coordinates for the initial frame
-    if u.trajectory.n_frames > 0:
-        pos = u.atoms.positions.astype(np.float64)
-        s.atoms.coords = pos
-        
-    session.logger.info(f"*** ok 6\n")
-
+    #if u.trajectory.n_frames > 0:
+    #    pos = u.atoms.positions.astype(np.float64)
+    #    s.atoms.coords = pos
 
     # Add bonds
     # MDA bonds are (atom1, atom2) tuples (or Bond objects)
     if hasattr(u, 'bonds') and len(u.bonds) > 0:
         # Convert bonds to index pairs to avoid object overhead loop
+        session.logger.info(f"*** ok 2")
         bonds_indices = u.bonds.to_indices()
+        session.logger.info(f"*** ok 3")
+
         for i1, i2 in bonds_indices:
             try:
+                #session.logger.info(f"*** mda_to_cx[{i1}] {mda_to_cx[i1]} mda_to_cx[{i2}] {mda_to_cx[i2]}")
                 add_bond(mda_to_cx[i1], mda_to_cx[i2])
             except KeyError:
                 pass # Should not happen if topology is consistent
 
-    session.logger.info(f"*** ok 7\n")
-
-    s.connect_structure()
+    """
+    from chimerax.atomic import next_chain_id
+    chain_id = 'A'
+    res_groups = [grp.unique_residues for grp in s.bonded_groups()]
+    multi_res_groups = [grp for grp in res_groups if len(grp) > 1]
+    for grp in sorted(multi_res_groups, key=lambda grp: res_order[grp[0]]):
+        for r in grp:
+            r.chain_id = chain_id
+        chain_id = next_chain_id(chain_id)
+    """
     
-    session.logger.info(f"*** ok 8\n")
-
+    #s.connect_structure()
+    
     return s
