@@ -101,9 +101,23 @@ def show_map_stats(session):
     run_on_maps('measure mapstats %s')(session)
 
 # -----------------------------------------------------------------------------
+# If actually invoked as a command rather than a direct API call, possibly show
+# the Render By Attribute tool...
+#
+def cmd_measure_map_values(session, map, atoms, attribute = 'mapvalue', show_tool=True):
+
+    ret_vals = measure_map_values(session, map, atoms, attribute)
+    if session.ui.is_gui:
+        if show_tool is True and not session.in_script:
+            from chimerax.core.commands import run
+            kw = { 'models': atoms.structures, 'target': 'atoms', 'tab': 'render', 'attr_name': attribute }
+            run(session, 'ui tool show "Render/Select by Attribute"', log=False).configure(**kw)
+    return ret_vals
+
+# -----------------------------------------------------------------------------
 # Interpolate map values at atom positions and assign an atom attribute.
 #
-def measure_map_values(session, map, atoms, attribute = 'mapvalue', *, show_tool = None):
+def measure_map_values(session, map, atoms, attribute = 'mapvalue'):
 
     # Get atom positions in volume coordinate system.
     points = atoms.scene_coords
@@ -144,12 +158,6 @@ def measure_map_values(session, map, atoms, attribute = 'mapvalue', *, show_tool
         msg = 'All %d atoms oustide map %s bounds' % (len(atoms), map.name_with_id())
     session.logger.status(msg, log=True)
 
-    if session.ui.is_gui:
-        if show_tool is True or (show_tool is None and not session.in_script):
-            from chimerax.core.commands import run
-            kw = { 'models': atoms.structures, 'target': 'atoms', 'tab': 'render', 'attr_name': attribute }
-            run(session, 'ui tool show "Render/Select by Attribute"').configure(**kw)
-
     return values, outside
 
 # -----------------------------------------------------------------------------
@@ -167,4 +175,4 @@ def register_measure_mapvalues_command(logger):
         required_arguments = ['atoms'],
         synopsis = 'Report map statistics'
     )
-    register('measure mapvalues', desc, measure_map_values, logger=logger)
+    register('measure mapvalues', desc, cmd_measure_map_values, logger=logger)

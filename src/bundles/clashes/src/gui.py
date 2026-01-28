@@ -657,7 +657,7 @@ class AtomProximityGUI(QWidget):
             if combo_val is not None:
                 from chimerax.core.commands import run
                 kw = { 'target': 'atoms', 'tab': 'render', 'attr_name': combo_val }
-                run(self.session, 'ui tool show "Render/Select by Attribute"').configure(**kw)
+                run(self.session, 'ui tool show "Render/Select by Attribute"', log=False).configure(**kw)
 
     def _checking_change(self, ok_now_checked):
         from chimerax.core.commands import run

@@ -98,6 +98,8 @@ class StdCommandsAPI(BundleAPI):
                     from .defattr import defattr
                     if 'models' in kw:
                         kw['restriction'] = kw.pop('models')
+                    if 'show_tool' not in kw:
+                        kw['show_tool'] = True
                     try:
                         defattr(session, data, file_name=file_name, **kw)
                     except SyntaxError as e:
