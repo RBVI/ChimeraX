@@ -24,6 +24,8 @@
 
 import traceback
 
+import numpy as np
+
 from chimerax.atomic import AtomicStructure
 from chimerax.io import open_input
 from .util import determine_element_from_mass, prep_coords
@@ -140,8 +142,6 @@ def read_dump(session, path, model):
     tokens = stream.readline().split()
     print("LAMMPS dump format: ", tokens[2:])
     index_id = tokens.index('id')-2
-    index_type = tokens.index('type')-2
-    index_mol = tokens.index('mol')-2
     index_x = tokens.index('x')-2
     index_y = tokens.index('y')-2
     index_z = tokens.index('z')-2
@@ -152,24 +152,27 @@ def read_dump(session, path, model):
 
     while not done:
 
-      coords_list.append([])
+        session.logger.status(f"LAMMPS dump: {i}")
+        tmp = np.empty((num_atoms, 4), dtype=np.float64)
 
-      for j in range(num_atoms):
-        # FIXME: handle dump format other than id type mol x y z
-        tokens = stream.readline().split()
-        id = int(tokens[index_id])
-        type = int(tokens[index_type])
-        mol = int(tokens[index_mol])
-        x,y,z = float(tokens[index_x]),float(tokens[index_y]),float(tokens[index_z])
-        coords_list[i].append([id,x,y,z])
+        for j in range(num_atoms):
+            tokens = stream.readline().split()
+            tmp[j, 0] = int(tokens[index_id])
+            tmp[j, 1] = float(tokens[index_x])
+            tmp[j, 2] = float(tokens[index_y])
+            tmp[j, 3] = float(tokens[index_z])
 
-      coords_list[i].sort(key=lambda atom:atom[0])
-      i += 1
-      if stream.readline():
-        for j in range(8): stream.readline()
-      else:
-        done = True
+        idx = np.argsort(tmp[:, 0])
+        tmp[:] = tmp[idx]
+        coords_list.append(tmp[:, 1:4])
+        i += 1
 
-    coords = array(coords_list, dtype=float64)[:,:,1:]
+        if stream.readline():
+            for _ in range(8):
+                stream.readline()
+        else:
+            done = True
+
+    coords = np.array(coords_list, dtype=np.float64)
     stream.close()
     return num_atoms, coords
