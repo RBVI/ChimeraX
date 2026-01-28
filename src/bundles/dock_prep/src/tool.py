@@ -74,6 +74,9 @@ class DockPrepTool(ToolInstance):
         self.del_alt_locs_button = QCheckBox("Delete non-current alternate locations")
         self.del_alt_locs_button.setChecked(settings.del_alt_locs)
         layout.addWidget(self.del_alt_locs_button, alignment=Qt.AlignLeft)
+        self.del_missing_backbone_button = QCheckBox("Delete polymeric residues with incomplete backbones")
+        self.del_missing_backbone_button.setChecked(settings.del_missing_backbone)
+        layout.addWidget(self.del_missing_backbone_button, alignment=Qt.AlignLeft)
         self.standardize_button = QCheckBox('"Standardize" certain residue types:')
         self.standardize_button.setChecked(bool(settings.standardize_residues))
         layout.addWidget(self.standardize_button)
@@ -150,6 +153,7 @@ class DockPrepTool(ToolInstance):
             'del_solvent': self.del_solvent_button.isChecked(),
             'del_ions': self.del_ions_button.isChecked(),
             'del_alt_locs': self.del_alt_locs_button.isChecked(),
+            'del_missing_backbone': self.del_missing_backbone_button.isChecked(),
             'standardize_residues': standardizable_residues if self.standardize_button.isChecked() else [],
             'complete_side_chains': sc_val,
             'ah': self.add_hyds_button.isChecked(),

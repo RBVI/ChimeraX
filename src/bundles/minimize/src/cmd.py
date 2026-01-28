@@ -27,6 +27,8 @@ from chimerax.add_charge import ChargeMethodArg
 
 def cmd_minimize(session, structure, *, dock_prep=True, live_updates=True, log_energy=False,
         max_steps=None, **kw):
+    if 'del_missing_backbone' not in kw:
+        kw['del_missing_backbone'] = True
     if structure is None:
         from chimerax.atomic import all_atomic_structures
         available = all_atomic_structures(session)
