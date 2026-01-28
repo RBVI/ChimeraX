@@ -38,7 +38,7 @@ MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png \
 		$(TOP)/src/bundles/pick_blobs/src/pickblobs.png \
 		$(TOP)/src/bundles/map_eraser/src/eraser.png \
 		$(TOP)/src/bundles/tape_measure/src/tape.png \
-		$(TOP)/src/bundles/viewdock/src/nextdocking.png
+		$(TOP)/src/bundles/viewdock/src/icons/nextdocking.png
 MICONDIR = $(DOCDIR)/mouse-icons
 SCICONDIR = $(TOP)/src/bundles/shortcuts/src/icons
 SHORTCUTICONS = $(SCICONDIR)/*.png $(SCICONDIR)/*.svg
