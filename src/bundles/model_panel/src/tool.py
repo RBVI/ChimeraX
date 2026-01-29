@@ -348,8 +348,10 @@ class ModelPanel(ToolInstance):
             self.tree.resizeColumnToContents(i)
         self.tree.blockSignals(False)
         self.simply_changed_models = set()
-        name_width = self.tree.sizeHintForColumn(self.NAME_COLUMN)
-        self.tree.setColumnWidth(self.NAME_COLUMN, min(max(200, name_width), 400))
+        if not update:
+            # prevent columns from resizing on hide/show etc. [#9973]
+            name_width = self.tree.sizeHintForColumn(self.NAME_COLUMN)
+            self.tree.setColumnWidth(self.NAME_COLUMN, min(max(200, name_width), 400))
 
         self._frame_drawn_handler = None
         from chimerax.core.triggerset import DEREGISTER
