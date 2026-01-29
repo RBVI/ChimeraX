@@ -52,7 +52,7 @@ jobs:
           # GitHub Actions couldn't contact Plato.
           max_attempts: 1000
           timeout_seconds: 60
-          command: ./utils/ci/nightly_logs.sh ${{ secrets.PREBUILT_CACHE_SECRET }} ${{ github.run_id }} ${{ steps.get_job_id.outputs.job_id }} centos-8 ${{ inputs.release_type }}
+          command: ./utils/ci/nightly_logs.sh ${{ secrets.PREBUILT_CACHE_SECRET }} ${{ github.run_id }} ${{ steps.get_job_id.outputs.job_id }} centos-9 ${{ inputs.release_type }}
       - run: MAKEOPTS="-j$(nproc)" BUILD_TYPE="${{ inputs.release_type }}" make -j$(nproc) -f Makefile.centos install-rbvi
       - name: Install Pytest
         run: USE_COVERAGE=1 make pytest-install
@@ -84,7 +84,7 @@ jobs:
         with:
           max_attempts: 1000
           timeout_minutes: 60
-          command: curl -v -X POST -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "platform=centos-8" -F "build_type=${{ inputs.release_type }}" -F "outcome=$TEST_OUTCOME" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/confirm_tests.py
+          command: curl -v -X POST -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "platform=centos-9" -F "build_type=${{ inputs.release_type }}" -F "outcome=$TEST_OUTCOME" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/confirm_tests.py
       - name: Build the Rocky 9 package
         run: make -f Makefile.centos ${{ inputs.release_type }}-package
       - run: mv rpmbuild/RPMS/x86_64/ucsf-chimerax*.rpm ./chimerax.rpm
@@ -100,7 +100,7 @@ jobs:
         with:
           max_attempts: 1000
           timeout_minutes: 60
-          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$COMMIT_HASH" -F "date=$COMMIT_DATE" -F "platform=centos-8" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax.rpm" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$COMMIT_HASH" -F "date=$COMMIT_DATE" -F "platform=centos-9" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax.rpm" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
       - name: Put release version in the environment
         if: ${{ inputs.release_type == 'candidate' || inputs.release_type == 'production' }}
         run: |
@@ -112,14 +112,14 @@ jobs:
         with:
           max_attempts: 1000
           timeout_minutes: 60
-          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "version=$BUILD_VERSION" -F "commit=$COMMIT_HASH" -F "date=$COMMIT_DATE" -F "platform=centos-8" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax.rpm" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "version=$BUILD_VERSION" -F "commit=$COMMIT_HASH" -F "date=$COMMIT_DATE" -F "platform=centos-9" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/chimerax.rpm" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
       - name: Upload ChimeraX (Production)
         uses: nick-fields/retry@v3
         if: ${{ inputs.release_type == 'production' }}
         with:
           max_attempts: 1000
           timeout_minutes: 60
-          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "version=$BUILD_VERSION" -F "commit=$COMMIT_HASH" -F "date=$COMMIT_DATE" -F "platform=centos-8" -F "build_type=production" -F "file=@$GITHUB_WORKSPACE/chimerax.rpm" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "version=$BUILD_VERSION" -F "commit=$COMMIT_HASH" -F "date=$COMMIT_DATE" -F "platform=centos-9" -F "build_type=production" -F "file=@$GITHUB_WORKSPACE/chimerax.rpm" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
       - name: Tar the docs directory
         if: ${{ inputs.release_type == 'daily' }}
         run: |

@@ -67,6 +67,10 @@ class MutationSet(State):
         return self._computed_scores.get(score_name)
     def set_computed_values(self, score_name, score_values):
         self._computed_scores[score_name] = score_values
+    def rename_computed_values(self, score_name, new_score_name):
+        score_values = self.computed_values(score_name)
+        self.set_computed_values(new_score_name, score_values)
+        self.remove_computed_values(score_name)
     def remove_computed_values(self, score_name):
         if score_name in self._computed_scores:
             del self._computed_scores[score_name]

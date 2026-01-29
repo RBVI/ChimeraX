@@ -127,21 +127,26 @@ def cmd_kvfinder(session, structures=None, *, box_atoms=None, box_extent=None, b
         from chimerax.core.colors import distinguish_from
         for i in range(num_cavities):
             cav_s = Structure(session, name="cavity %d" % (i+1), auto_style=False, log_info=False)
-            r = cav_s.new_residue("CAV", "cavity", 1)
+            try:
+                r = cav_s.new_residue("CAV", "cavity", 1)
+                rgb = distinguish_from(used_colors, num_candidates=5, seed=71428)
+                used_colors.append(rgb)
+                model_lookup[i+2] = (cav_s, r, rgb + (1.0,))
+                # map 'KXX"-indexed volume/area to usable indices
+                k_index = pyKVFinder.grid._get_cavity_name(i)
+                cav_s.kvfinder_area = k_area[k_index]
+                cav_s.kvfinder_volume = k_volume[k_index]
+                cav_s.kvfinder_max_depth = max_depth[k_index]
+                cav_s.kvfinder_average_depth = avg_depth[k_index]
+                contacting[cav_s] = contacting[k_index]
+                non_backbone_contacting[cav_s] = non_backbone_contacting[k_index]
+                del contacting[k_index]
+                del non_backbone_contacting[k_index]
+            except BaseException:
+                cav_s.delete()
+                session.models.remove([cavity_group])
+                raise
             cavity_group.add([cav_s])
-            rgb = distinguish_from(used_colors, num_candidates=5, seed=71428)
-            used_colors.append(rgb)
-            model_lookup[i+2] = (cav_s, r, rgb + (1.0,))
-            # map 'KXX"-indexed volume/area to usable indices
-            k_index = pyKVFinder.grid._get_cavity_name(i)
-            cav_s.kvfinder_area = k_area[k_index]
-            cav_s.kvfinder_volume = k_volume[k_index]
-            cav_s.kvfinder_max_depth = max_depth[k_index]
-            cav_s.kvfinder_average_depth = avg_depth[k_index]
-            contacting[cav_s] = contacting[k_index]
-            non_backbone_contacting[cav_s] = non_backbone_contacting[k_index]
-            del contacting[k_index]
-            del non_backbone_contacting[k_index]
         origin, *args = vertices
         assert (nx, ny, nz) == cavity_matrix.shape
         # Using the explicit triple loop instead of more numpy-like code, because AFAICT the

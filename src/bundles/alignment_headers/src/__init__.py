@@ -21,7 +21,7 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "3.6.1"
+__version__ = "3.6.2"
 
 import os
 
@@ -37,6 +37,8 @@ class _AlignmentHdrsAPI(BundleAPI):
 
     @classmethod
     def get_class(cls, class_name):
+        if class_name == "FixedHeaderSequence":
+            return FixedHeaderSequence
         import importlib
         hdr_mod = importlib.import_module(".%s" % class_name.lower(), cls.__module__)
         return getattr(hdr_mod, class_name)

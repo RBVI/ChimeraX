@@ -103,6 +103,7 @@ class Mol2Parser:
         self.structures = []
         self._lineno = 0
         self._line = ""
+        self._prelude_lines = []
         self._reset_structure()
         while self._read_section():
             pass
@@ -182,12 +183,6 @@ class Mol2Parser:
             called "viewdockx_data". When this function is called with an old ViewDockX session, it will still register a
             new docking data attribute called "viewdock_data". This bundle will NOT support reference to the old
             "viewdockx_data" attribute.
-
-            Old ViewDockX sessions also registered the "charge" and "mol2_type" attributes to atoms. This function will
-            not re-register these attributes due to the workings of chimerax.core.attributes.register_attr. However,
-            since these attrs are registered with the same name and data types in ViewDock (this bundle), they can still
-            be accessed normally. In this scenario, the only difference is the attributes will still appear to be
-            registered by ViewDockX (this bundl's predecessor).
         """
 
         try:
@@ -201,9 +196,13 @@ class Mol2Parser:
             s = SC(self.session, auto_style=self.auto_style)
             s.name = self._molecule.mol_name
             SC.register_attr(self.session, "viewdock_data", "ViewDock")
-            from chimerax.atomic import Atom
+            from chimerax.atomic import Atom, AtomicStructure, Bond
             Atom.register_attr(self.session, "charge", "ViewDock", attr_type=float)
             Atom.register_attr(self.session, "mol2_type", "ViewDock", attr_type=str)
+            Bond.register_attr(self.session, "mol2_type", "ViewDock", attr_type=str)
+            AtomicStructure.register_attr(self.session, "mol2_type", "ViewDock", attr_type=str)
+            AtomicStructure.register_attr(self.session, "mol2_comment", "ViewDock", attr_type=str)
+            AtomicStructure.register_attr(self.session, "mol2_comments", "ViewDock", attr_type=list)
             s.viewdock_data = self._data
             if self._molecule.charge_type:
                 s.charge_model = self._molecule.charge_type
@@ -211,6 +210,8 @@ class Mol2Parser:
                 s.mol2_type = self._molecule.mol_type
             if self._molecule.mol_comment:
                 s.mol2_comment = self._molecule.mol_comment
+            if self._prelude_lines:
+                s.mol2_comments = self._prelude_lines
             # Create residues
             substid2residue = {}
             for subst_data in self._substs:
@@ -262,7 +263,8 @@ class Mol2Parser:
                 except KeyError:
                     self.session.logger.warning("bad atom index in bond")
                 else:
-                    s.new_bond(origin, target)
+                    b = s.new_bond(origin, target)
+                    b.mol2_type = bond_data.bond_type
             # Add missing-structure pseudobonds
             for i, r in enumerate(s.residues[:-1]):
                 if r.polymer_type == r.PT_NONE:
@@ -321,6 +323,7 @@ class Mol2Parser:
         while self._line:
             if self._line[0] != '#':
                 break
+            self._prelude_lines.append(self._line)
             non_hash = 0
             try:
                 while self._line[non_hash] == '#':

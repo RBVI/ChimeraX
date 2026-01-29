@@ -60,6 +60,28 @@ def prep(session, state, callback, memo_type, memo_name, structures, keywords):
         for s in structures:
             s.delete_alt_locs()
 
+    if active_settings['del_missing_backbone']:
+        session.logger.status("Deleting residues with incomplete backbones", log=True)
+        from chimerax.atomic import Residue
+        for s in structures:
+            for c in s.chains:
+                if c.polymer_type == Residue.PT_AMINO:
+                    min_backbone_names = Residue.aa_min_backbone_names
+                else:
+                    min_backbone_names = Residue.na_min_backbone_names
+                for r in c.existing_residues:
+                    try:
+                        if not r.is_missing_heavy_template_atoms():
+                            continue
+                    except RuntimeError as e:
+                        if "No residue template found" in str(e):
+                            continue
+                    for bb_name in min_backbone_names:
+                        if not r.find_atom(bb_name):
+                            session.logger.info("%s is missing heavy backbone atoms; deleting" % r)
+                            s.delete_residue(r)
+                            break
+
     std_res = active_settings['standardize_residues']
     if std_res:
         from chimerax.atomic.struct_edit import standardize_residues

@@ -392,6 +392,17 @@ def make_json_friendly(val):
     if val is None or isinstance(val, (bool, int, float, str)):
         return val
     
+    # Handle NumPy scalars/arrays returned by some commands (e.g., mapvalues)
+    try:
+        import numpy as np
+        if isinstance(val, np.generic):
+            return val.item()
+        if isinstance(val, np.ndarray):
+            return val.tolist()
+    except Exception:
+        # Fall back to other handlers if numpy is unavailable or unexpected errors occur
+        pass
+    
     # Check for Objects first (before _stringables)
     from chimerax.core.objects import Objects
     if isinstance(val, Objects):

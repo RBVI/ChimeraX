@@ -1799,6 +1799,9 @@ Choices are:
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.launch_ligand_fit)
+        default_button = bbox.button(qbbox.Ok)
+        default_button.setDefault(True)
+        self.resolution_entry.returnPressed.connect(default_button.click)
         bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_ligand_fit(apply=True))
         bbox.rejected.connect(self.delete)
         if self.help:
@@ -1882,12 +1885,10 @@ Choices are:
                 return tool_user_error("Residue number must be an integer")
             existing_r = receptor.find_residue(chain_id, res_num)
             if existing_r is not None:
-                from Qt.QtWidgets import QInputDialog
                 choices = ([] if existing_r.neighbors else ["Replace existing residue (%s)" % existing_r]) \
                     + ["Use next available number", "Return to input/launcher dialog" ]
-                choice, okayed = QInputDialog.getItem(self.tool_window.ui_area, "Duplicate Residue Number",
-                    "Residue %d in chain %s already exists; choose an action:" % (res_num, chain_id),
-                    choices, 0, False)
+                choice, okayed = ResnumConflictDialog(res_num, chain_id, choices,
+                    parent=self.tool_window.ui_area).run()
                 if not okayed:
                     if not apply:
                         self.display(False)
@@ -2072,6 +2073,43 @@ class LaunchLigandFitSettings(Settings):
         'extent_type': LaunchLigandFitTool.EXTENT_LENGTH,
         'extent_value': 1.1,
     }
+
+class ResnumConflictDialog(QDialog):
+    def __init__(self, res_num, chain_id, choices, *, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Duplicate Residue Number")
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QRadioButton
+        layout = QVBoxLayout()
+        layout.setSpacing(0)
+        self.setLayout(layout)
+        preface_layout = QHBoxLayout()
+        layout.addLayout(preface_layout)
+        preface_layout.addStretch(1)
+        preface_layout.addWidget(QLabel(
+            "Residue %d in chain %s already exists; choose an action:" % (res_num, chain_id)))
+        preface_layout.addStretch(1)
+        self.choice_buttons = []
+        for choice in choices:
+            choice_button = QRadioButton(choice)
+            self.choice_buttons.append(choice_button)
+            layout.addWidget(choice_button, alignment=Qt.AlignLeft)
+        self.choice_buttons[0].setChecked(True)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        bbox = qbbox(qbbox.Ok | qbbox.Cancel)
+        bbox.accepted.connect(lambda dlg=self: dlg.done(dlg.Accepted))
+        bbox.rejected.connect(lambda dlg=self: dlg.done(dlg.Rejected))
+        layout.addWidget(bbox)
+
+    def run(self):
+        okayed = self.exec()
+        if okayed:
+            for cb in self.choice_buttons:
+                if cb.isChecked():
+                    return cb.text(), okayed
+            else:
+                raise AssertionError("No choice checked")
+        return None, okayed
 
 def _run_emplace_local_command(session, structure, maps, resolution, prefitted, center, show_sharpened_map,
         apply_symmetry):

@@ -141,7 +141,12 @@ Placing the cursor over a plotted point (circle)
 reports the specific mutation and its score values at the bottom of the panel.
 </p><p>
 Clicking <b>Color structures</b> colors any 
-associated structures <b>using</b> a score chosen from the menu.
+associated structures <b>using</b> a score chosen from the menu, optionally
+normalized by linear least-squares fitting to a <b>subtract fit</b> score
+and subtracting the linear values 
+(if the <b>subtract fit</b> score is not set to <b>none</b>;
+<a href="#subtractFit">details...</a>).
+</p><p>
 There are typically several different <b>mutations</b> at the same 
 residue position, whereas a single value per position is needed for coloring.
 This single value per position can be calculated based on
@@ -181,9 +186,12 @@ white and blue thresholds set to values min(score) and
 Clicking <b>Adjust colors</b> shows the 
 <a href="../tools/render.html"><b>Render by Attribute</b></a> tool
 for interactively moving the thresholds and/or changing their colors.
-<b>Previous colorings</b> shows a table of previous colorings of the
-structures by mutation score, from which they can be chosen and reapplied
-with minimal effort.
+</p><p>
+<b>Previous colorings</b> shows a &ldquo;Mutation Coloring History&rdquo; table 
+listing the previous colorings and allowing them to be chosen and reapplied
+with minimal effort. Below this table are buttons to <b>Rename</b> or 
+<b>Delete</b> a chosen coloring, or to <b>Adjust colors</b> for that
+coloring with <a href="../tools/render.html"><b>Render by Attribute</b></a>.
 </p><p>
 Clicking the scatter plot raises a context menu; entries that refer to
 a specific mutant only appear when the click is on a circle, and some entries 
@@ -321,6 +329,7 @@ can be shown with <a href="color.html#byattribute">coloring</a> and
 used in <a href="../selection.html">selection</a> and
 and <a href="atomspec.html#attributes">command-line specification</a>.
 </p><p>
+<a name="subtractFit"></a>
 The <b>subtractFit</b> option performs a linear least-squares fit of the 
 <i>from-score</i> to the <i>sub-score</i> and subtracts the linear values 
 from the <i>from-score</i> values. 
@@ -568,6 +577,6 @@ with <a href="#list"><b>mutationscores list</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2025</address>
+January 2026</address>
 
 </body></html>

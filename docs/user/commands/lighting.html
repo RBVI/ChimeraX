@@ -38,7 +38,9 @@ Related <a href="#model">per-model settings</a> can be adjusted with
 the <b>lighting model</b> command.
 The <a href="material.html"><b>material</b></a> command sets
 material properties for light reflection and whether mesh surfaces and 
-transparent objects cast shadows.
+transparent objects cast shadows. 
+The <a href="../tools/lighting.html"><b>Lighting</b></a> tool is
+a graphical interface for adjusting some of these parameters.
 See also: 
 <a href="preset.html"><b>preset</b></a>,
 <a href="graphics.html"><b>graphics</b></a>,
@@ -196,7 +198,7 @@ Set ambient-light color (<b>white</b> in <b>simple</b> lighting).
 <a name="depthCue"></a>
 <b>depthCue</b> &nbsp;true | false
 <br>
-Whether to use depth-cueing, front-to-back shading of the scene
+Whether to use depth-cueing, near-far shading of the scene
 (<b>true</b> in <b>simple</b> lighting).
 See also <a href="#model">per-model settings</a>.
 </blockquote>
@@ -375,13 +377,8 @@ Multishadows: 0 (max 1024, depth map size 1024, depth bias 0.01)
 ambient lighting with shadowing from 64 directions
 (8 in <a href="../vr.html">VR</a>):
 <blockquote><pre>Intensity: 0.7
-Direction: 0.577,-0.577,-0.577
-Color: 100,100,100
 Fill intensity: 0.3
-Fill direction: -0.2,-0.2,-0.959
-Fill color: 100,100,100
 Ambient intensity: 0.8
-Ambient color: 100,100,100
 Depth cue: 1, start 0.5, end 1, color 0,0,0
 Shadow: True (depth map size 2048, depth bias 0.005)
 Multishadows: 64 (max 1024, depth map size 1024, depth bias 0.01)
@@ -395,13 +392,8 @@ Multishadows: 64 (max 1024, depth map size 1024, depth bias 0.01)
 &ndash; ambient lighting only, ambient shadowing from 64 directions
 (8 in <a href="../vr.html">VR</a>):
 <blockquote><pre>Intensity: 0
-Direction: 0.577,-0.577,-0.577
-Color: 100,100,100
 Fill intensity: 0
-Fill direction: -0.2,-0.2,-0.959
-Fill color: 100,100,100
 Ambient intensity: 1.5
-Ambient color: 100,100,100
 Depth cue: 1, start 0.5, end 1, color 0,0,0
 Shadow: False (depth map size 2048, depth bias 0.005)
 Multishadows: 64 (max 1024, depth map size 1024, depth bias 0.01)
@@ -414,13 +406,8 @@ Multishadows: 64 (max 1024, depth map size 1024, depth bias 0.01)
 with <a href="#msMapSize"><b>msMapSize</b></a> <b>128</b> instead of 1024 and
 <a href="#msDepthBias"><b>msDepthBias</b></a> <b>0.05</b> instead of 0.01
 <blockquote><pre>Intensity: 0
-Direction: 0.577,-0.577,-0.577
-Color: 100,100,100
 Fill intensity: 0
-Fill direction: -0.2,-0.2,-0.959
-Fill color: 100,100,100
 Ambient intensity: 1.5
-Ambient color: 100,100,100
 Depth cue: 1, start 0.5, end 1, color 0,0,0
 Shadow: False (depth map size 2048, depth bias 0.005)
 Multishadows: 64 (max 1024, depth map size 128, depth bias 0.05)
@@ -437,13 +424,8 @@ for silhouettes <b>off</b>, use
 <img class="icon" border="1" src="../tools/shortcut-icons/silhouette.png" alt="computer generated image"></a>
 or <a href="graphics.html#silhouettes"><b>graphics silhouettes false</b></a>):
 <blockquote><pre>Intensity: 0
-Direction: 0.577,-0.577,-0.577
-Color: 100,100,100
 Fill intensity: 0
-Fill direction: -0.2,-0.2,-0.959
-Fill color: 100,100,100
 Ambient intensity: 1.45
-Ambient color: 100,100,100
 Depth cue: 1, start 0.5, end 1, color 0,0,0
 Shadow: False (depth map size 2048, depth bias 0.005)
 Multishadows: 0 (max 1024, depth map size 1024, depth bias 0.01)
@@ -451,6 +433,6 @@ Multishadows: 0 (max 1024, depth map size 1024, depth bias 0.01)
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2022</address>
+January 2026</address>
 
 </body></html>

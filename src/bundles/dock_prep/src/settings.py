@@ -24,13 +24,14 @@
 
 from chimerax.atomic.struct_edit import standardizable_residues as std_res
 defaults = {
-    "standardize_residues": std_res,
-    "del_solvent": True,
-	"del_ions": True,
-    "del_alt_locs": True,
-    "complete_side_chains": True,
-    "ah": True,
     "ac": True,
+    "ah": True,
+    "complete_side_chains": True,
+    "del_alt_locs": True,
+    "del_missing_backbone": False,
+	"del_ions": True,
+    "del_solvent": True,
+    "standardize_residues": std_res,
     "write_mol2": True,
 }
 
