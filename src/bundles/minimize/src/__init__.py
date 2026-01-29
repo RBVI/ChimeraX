@@ -32,5 +32,9 @@ class _MinimizeBundle(BundleAPI):
         from . import cmd
         cmd.register_command(logger)
 
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .tool import MinimizeTool
+        return MinimizeTool(session, tool_name)
 
 bundle_api = _MinimizeBundle()

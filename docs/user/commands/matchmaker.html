@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: matchmaker, mmaker</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: matchmaker, mmaker</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -92,7 +87,7 @@ the final RMSD over all residue pairs (columns in the sequence alignment)
 will be reported along with the RMSD over the pruned set of pairs.
 </p><p>
 <a name="examples">Examples</a>:
-<blockquote>
+</p><blockquote>
 <b>match #2 to #1 bring #3</b>
 </blockquote>
 &ndash; superimpose model 2 onto model 1 using default settings,
@@ -179,15 +174,15 @@ to construct the reference-match alignment:
  with the highest <a href="#scoring">alignment score</a>;
 <i>matchstruct</i> and <i>refstruct</i> 
 should each specify a model or part of a model
-<li><b>bs</b> &ndash; use the chain in the match model that gives the best 
+</li><li><b>bs</b> &ndash; use the chain in the match model that gives the best 
 <a href="#scoring">alignment score</a> with a specific chain in the reference model;
 <i>matchstruct</i> should specify a model or part of a model, and
 <i>refstruct</i> should specify a chain
-<li><b>ss</b> &ndash; pair specific chain(s) in the match model with
+</li><li><b>ss</b> &ndash; pair specific chain(s) in the match model with
 specific chain(s) in the reference model; 
 <i>matchstruct</i> and <i>refstruct</i> 
 should specify equal numbers of chains
-</ul>
+</li></ul>
 </blockquote>
 <blockquote>
 <a name="show"><b>showAlignment</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
@@ -204,7 +199,7 @@ An RMSD <a href="../tools/sequenceviewer.html#headers">header</a>
 is automatically shown above the sequences, with histogram bar heights
 representing the spatial variation among residues associated with a column.
   <blockquote>
-<table cellpadding="10px"><tr>
+<table cellpadding="10px"><tbody><tr>
 <td class="shaded">
 Successful superposition only requires the sequence alignment to be partly
 correct, as incorrect portions tend to be excluded from the fit during
@@ -230,7 +225,7 @@ to specified residues, the remaining residues of matched chains
 will still appear in the alignment, but merely as a convenient 
 compact representation; how they are aligned is not meaningful.
 </p>
-</td></tr></table>
+</td></tr></tbody></table>
   </blockquote>
 </blockquote>
 <blockquote>
@@ -277,14 +272,14 @@ For each chain-chain pair, send additional information to the
   <li><b>Sequences:</b> 
   followed by the pairwise sequence alignment, <i>i.e.</i>, two lines,
   each containing a sequence name and (gapped) sequence
-  <li><b>Residues:</b> 
+  </li><li><b>Residues:</b> 
   followed by two lines, each a comma-separated list of the structure residues 
   associated with the nongap positions of the corresponding sequence;
   missing structure residues are reported as <b>None</b>
-  <li><b>Residue usage in match (1=used, 0=unused):</b> 
+  </li><li><b>Residue usage in match (1=used, 0=unused):</b> 
   followed by two lines, each a comma-separated list of zeros and ones,
   indicating which structure residues were used in the final fit
-  </ul>
+  </li></ul>
 </blockquote>
 
 <a name="scoring"></a>
@@ -302,8 +297,8 @@ To display the resulting sequence alignment(s), see <a href="#show">above</a>.
 <br>The sequence <i>alignment-algorithm</i> can be:
 <ul>
 <li> <b>nw</b> (or <b>needle</b>; default) &ndash; Needleman-Wunsch, global
-<li> <b>sw</b> (or <b>smith</b>) &ndash; Smith-Waterman, local
-</ul>
+</li><li> <b>sw</b> (or <b>smith</b>) &ndash; Smith-Waterman, local
+</li></ul>
 </blockquote>
 <blockquote>
   <a name="matrix"><b>matrix</b> &nbsp;<i>similarity-matrix</i></a>
@@ -465,4 +460,5 @@ that existed before the <b>matchmaker</b> command was used.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 March 2025</address>
+
 </body></html>

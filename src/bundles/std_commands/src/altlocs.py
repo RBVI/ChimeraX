@@ -343,7 +343,8 @@ class _StructureAltlocManager(StateManager):
         for old_a in source_atoms:
             use_alt_loc = alt_loc in old_a.alt_locs
             coord = old_a.get_alt_loc_coord(alt_loc) if use_alt_loc else old_a.coord
-            new_a = add_atom(old_a.name, old_a.element, dest_s.residues[0], coord, alt_loc=alt_loc)
+            new_a = add_atom(old_a.name, old_a.element, dest_s.residues[0], coord, alt_loc=alt_loc,
+                occupancy=old_a.get_alt_loc_occupancy(alt_loc) if use_alt_loc else old_a.occupancy)
             new_atoms.append(new_a)
             new_a.draw_mode = Atom.STICK_STYLE
             atom_map[old_a] = new_a

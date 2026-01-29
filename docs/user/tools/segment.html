@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Segment Map</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Segment Map</h3>
 
@@ -33,8 +28,7 @@ with one or more <b><i>segmentation regions</i></b>
 shown in different colors.
 Along with the <a href="fitsegments.html"><b>Fit to Segments</b></a> tool,
 <b>Segment Map</b> is part of the 
-<a href="https://cryoem-ncmi.slac.stanford.edu/resources/software/segger"
-target="_blank">Segger package</a> described in:
+<a href="https://cryoem-ncmi.slac.stanford.edu/resources/software/segger" target="_blank">Segger package</a> described in:
 </p>
 <blockquote>
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/20338243" target="_blank">
@@ -68,10 +62,8 @@ See also:
 <a href="../commands/volume.html#mask"><b>volume mask</b></a>,
 <a href="../commands/segmentation.html"><b>segmentation</b></a>,
 <a href="../formats/sff.html">EMDB segmentation file format (SFF)</a>,
-<a href="https://cryoem-ncmi.slac.stanford.edu/resources/software/segger"
-target="_blank">Segger website</a>,
-<a href="https://www.cgl.ucsf.edu/chimera/data/segger-howto-jun2010/segger.html"
-target="_blank">Chimera-Segger how-to</a> (2010)
+<a href="https://cryoem-ncmi.slac.stanford.edu/resources/software/segger" target="_blank">Segger website</a>,
+<a href="https://www.cgl.ucsf.edu/chimera/data/segger-howto-jun2010/segger.html" target="_blank">Chimera-Segger how-to</a> (2010)
 </p>
 
 <a name="method"></a>
@@ -96,10 +88,10 @@ Segger provides various ways to combine regions after the initial segmentation:
 (smoothing the data), done by default;
 however, smoothing the data <i>before</i> segmentation
 may be necessary, as discussed <a href="#preprocessing">below</a>
-<li>interactive grouping <a href="#byhand">by manual selection</a>
-<li>interactive grouping <a href="#byconnectivity">by connectivity</a>
-<li>interactive grouping using fitted atomic models
-</ul>
+</li><li>interactive grouping <a href="#byhand">by manual selection</a>
+</li><li>interactive grouping <a href="#byconnectivity">by connectivity</a>
+</li><li>interactive grouping using fitted atomic models
+</li></ul>
 
 <a name="preprocessing"></a>
 <p class="nav">
@@ -182,12 +174,12 @@ and grouping, so that different intermediate stages can be accessed
 by clicking <b>Ungroup</b> multiple times. If regions are selected,
 <b>Ungroup</b> will backtrack to the previous stage of grouping for
 the selected region(s).
-<li>If no segmentation regions are selected,
+</li><li>If no segmentation regions are selected,
 <b>Group</b> traverses the stages in the opposite direction as <b>Ungroup</b>,
 or performs further grouping.
 If regions are selected,
 <b>Group</b> will combine the selected regions into a single group.
-</ul>
+</li></ul>
 <p>
 Segmentation region <a href="../selection.html">selection</a>, showing/hiding,
 and other manipulations can also be performed with the
@@ -231,7 +223,7 @@ and reduce their number by about a factor of 4.
 If <a href="#response">response time</a> after segmentation is slow, try
 decreasing <i>maxreg</i> and/or increasing <i>triangle-size</i>.
 <br><br>
-<li><b>Keep regions having at least [<i>minsize</i>] voxels, 
+</li><li><b>Keep regions having at least [<i>minsize</i>] voxels, 
 [<i>mincontact</i>] contact voxels</b>
 &ndash; throw out regions containing fewer than <i>minsize</i> voxels 
 (default <b>1</b>) or having fewer than
@@ -239,7 +231,7 @@ decreasing <i>maxreg</i> and/or increasing <i>triangle-size</i>.
 These apply only to the initial segmentation, not after smoothing.
 The default settings retain all regions.
 <br><br>
-<li><b>Group by smoothing [<i>N</i>] steps of size [<i>M</i>],
+</li><li><b>Group by smoothing [<i>N</i>] steps of size [<i>M</i>],
 stop at [<i>minreg</i>] regions</b>
 &ndash; whether to group by smoothing right after watershed segmentation
 (when the <b>Segment</b> button is clicked),
@@ -270,9 +262,9 @@ After the automatic rounds have completed, clicking <b>Group</b>
 executes the minimum number of additional rounds needed to
 change the grouping further. 
 </p>
-<li><a name="byconnectivity"></a>
+</li><li><a name="byconnectivity"></a>
 <b>Group by connectivity [<i>N</i>] steps, stop at [<i>minreg</i>] regions</b>
-&nbsp;<b>&#9744; only visible</b>
+&nbsp;<b>☐ only visible</b>
 &ndash; whether to group watershed regions based on density connections,
 and if so, whether to use only the visible regions.
 If the density map has not been segmented already, watershed
@@ -288,58 +280,58 @@ If grouping has already been performed,
 some ungrouping may be needed before using the connectivity method, 
 as it will not group watershed regions together if they are already 
 in different groups. 
-</ul>
+</li></ul>
 <p>
 <a name="shortcuts"></a>
-<p class="nav">
+</p><p class="nav">
 [<a href="#top">back to top: Segment Map</a>]
 </p>
 <b>Shortcuts Options</b>:
-</p>
+<p></p>
 <ul>
 <li><b><a href="../selection.html">Select</a> regions</b>:
   <ul>
   <li><b>All</b>
-  <li><b>Over Sel. Atoms</b> &ndash; those overlapping
+  </li><li><b>Over Sel. Atoms</b> &ndash; those overlapping
   <a href="../selection.html">selected</a> atoms
-  <li><b>Invert</b> &ndash; invert selection
-  <li><b>Not-Grp</b> &ndash; those not containing any subregions
-  <li><b>Grouped</b> &ndash; those comprising &ge; 2 subregions
-  </ul>
-<li><b>Selected regions</b>: 
+  </li><li><b>Invert</b> &ndash; invert selection
+  </li><li><b>Not-Grp</b> &ndash; those not containing any subregions
+  </li><li><b>Grouped</b> &ndash; those comprising &ge; 2 subregions
+  </li></ul>
+</li><li><b>Selected regions</b>: 
 (act on <a href="../selection.html">selected</a> regions)
   <ul>
   <li><b>Hide</b>
-  <li><b>Show</b>
-  <li><b>Delete</b>
-  <li><b>Tr.</b> &ndash; transparent surface
-  <li><b>Opaque</b> &ndash; opaque surface
-  <li><b>Mesh</b>
-  </ul>
-<li><b>Show regions</b>:
+  </li><li><b>Show</b>
+  </li><li><b>Delete</b>
+  </li><li><b>Tr.</b> &ndash; transparent surface
+  </li><li><b>Opaque</b> &ndash; opaque surface
+  </li><li><b>Mesh</b>
+  </li></ul>
+</li><li><b>Show regions</b>:
   <ul>
   <li><b>None</b>
-  <li><b>All</b> &ndash; all (but subject to the
+  </li><li><b>All</b> &ndash; all (but subject to the
   <a href="#options"><b>Display at most...</b></a> setting)
-  <li><b>Only Sel.</b> &ndash; 
+  </li><li><b>Only Sel.</b> &ndash; 
   <a href="../selection.html">selected</a> regions
-  <li><b>Adj.</b> &ndash; regions adjacent to any 
+  </li><li><b>Adj.</b> &ndash; regions adjacent to any 
   <a href="../selection.html">selected</a> regions
-  <li><b>Not-Grp</b> &ndash; those not containing any subregions
-  <li><b>Grouped</b> &ndash; those comprising &ge; 2 subregions
-  </ul>
-<li><b>Other tools</b>:
+  </li><li><b>Not-Grp</b> &ndash; those not containing any subregions
+  </li><li><b>Grouped</b> &ndash; those comprising &ge; 2 subregions
+  </li></ul>
+</li><li><b>Other tools</b>:
   <ul>
   <li><b>Fit</b> &ndash; <a href="fitsegments.html"><b>Fit to Segments</b></a>
   <br><font color="brown">&ndash; not implemented &ndash;
-  <li><b>Extract</b> &ndash; detailed options for extracting densities within
+  </font></li><li><font color="brown"><b>Extract</b> &ndash; detailed options for extracting densities within
   the <a href="../selection.html">selected</a> regions
-  <li><b>iSeg</b> &ndash; radial/icosahedral segmentation
-  <li><b>ProMod</b> &ndash; probabilistic modeling of multiple conformations
-  <li><b>ModelZ</b> &ndash; assess how well structural features are resolved
+  </font></li><li><font color="brown"><b>iSeg</b> &ndash; radial/icosahedral segmentation
+  </font></li><li><font color="brown"><b>ProMod</b> &ndash; probabilistic modeling of multiple conformations
+  </font></li><li><font color="brown"><b>ModelZ</b> &ndash; assess how well structural features are resolved
   </font>
-  </ul>
-</ul>
+  </li></ul>
+</li></ul>
 
 <!--
 <a name="attributes"></a>
@@ -455,87 +447,87 @@ unless stated otherwise.
 <ul>
 <li><b>Open segmentation...</b> 
 open a previously saved Segger segmentation file
-<li><b>Save segmentation</b> 
+</li><li><b>Save segmentation</b> 
 &ndash; save the segmentation to a Segger file, 
 name/location previously specified
-<li><b>Save segmentation as...</b>
+</li><li><b>Save segmentation as...</b>
 save the segmentation to a Segger file, 
 specify name/location 
-<li><b>Save selected regions to .mrc file...</b>
+</li><li><b>Save selected regions to .mrc file...</b>
 save density map masked by the 
 <a href="../selection.html">selected</a> segmentation regions
 to an MRC file 
 (map dimensions set to the minimal box containing the regions)
-<li><b>Save all regions to .mrc file...</b>
+</li><li><b>Save all regions to .mrc file...</b>
 save density map masked by all segmentation regions collectively
 as an MRC file
 (map dimensions set to the minimal box containing the regions)
-<li><b>Save each region to .mrc file...</b>
+</li><li><b>Save each region to .mrc file...</b>
 save density map masked by each
 <a href="../selection.html">selected</a> segmentation region
 as a separate MRC file
 (map dimensions set to the minimal box containing the corresponding region);
 if no regions are selected, all are used
-<li><b>Close segmentation</b>
+</li><li><b>Close segmentation</b>
 &ndash; close the current segmentation model
-<li><b>Close all segmentations except displayed</b>
+</li><li><b>Close all segmentations except displayed</b>
 &ndash; close all hidden segmentation models
-<li><b>Close all segmentations</b>
+</li><li><b>Close all segmentations</b>
 &ndash; close all segmentation models
-<li><b>Associate Selected</b>
+</li><li><b>Associate Selected</b>
 &ndash; associate the <a href="#currseg">current segmentation</a>
 with the map currently <a href="#chosenmap">chosen</a> in the dialog
 (useful when the map has been opened separately or from a different
 location than expected by the session with the segmentation results)
-</ul>
+</li></ul>
 
 <a name="menu-regions">
 <h4>Regions</h4></a>
 <ul>
 <li><b>Show all</b>
 &ndash; show all segmentation regions at the current level of grouping
-<li><b>Show only selected</b>
+</li><li><b>Show only selected</b>
 &ndash; show the <a href="../selection.html">selected</a> 
 segmentation regions, hide all others
-<li><b>Show adjacent</b>
+</li><li><b>Show adjacent</b>
 &ndash; show regions in contact with the
 <a href="../selection.html">selected</a> regions
-<li><b>Show grouping</b>
+</li><li><b>Show grouping</b>
 &ndash; show the watershed regions within groups 
 rather than the larger group surfaces;
 affects the <a href="../selection.html">selected</a>
 regions, or if none are selected, all regions; does not change the
 groupings, only how they are shown
-<li><b>Unshow grouping</b>
+</li><li><b>Unshow grouping</b>
 &ndash; show the larger group surfaces rather than the watershed regions;
 affects the <a href="../selection.html">selected</a>
 regions, or if none are selected, all regions
-<li><b>Hide</b>
+</li><li><b>Hide</b>
 &ndash; undisplay the <a href="../selection.html">selected</a>
 regions, or if none are selected, all regions
-<li><b>Make transparent</b>
+</li><li><b>Make transparent</b>
 &ndash; make 55% transparent the <a href="../selection.html">selected</a>
 regions, or if none are selected, all regions
-<li><b>Make opaque</b>
+</li><li><b>Make opaque</b>
 &ndash; make opaque (0% transparent) the
 <a href="../selection.html">selected</a>
 regions, or if none are selected, all regions
-<li><b>Color density map</b>
+</li><li><b>Color density map</b>
 &ndash; color the density map display to match all regions
 (subsequently changing the <a href="volumeviewer.html#threshold">threshold</a>
 will erase the coloring for <a href="volumeviewer.html">volume displays</a>
 in the <b>surface</b> or <b>mesh</b> style)
-<li><b>Select groups</b>
+</li><li><b>Select groups</b>
 &ndash; <a href="../selection.html">select</a>
 all regions composed of grouped watershed regions
-<li><b>Select boundary regions</b>
+</li><li><b>Select boundary regions</b>
 &ndash; <a href="../selection.html">select</a>
 regions that contain at least one grid point within three voxels
 of the edge of the density map
-<li><b>Invert selection</b>
+</li><li><b>Invert selection</b>
 &ndash; deselect the <a href="../selection.html">selected</a> regions
 and <i>vice versa</i>
-<li><b>Regions overlapping current selection</b>
+</li><li><b>Regions overlapping current selection</b>
 &ndash; <a href="../selection.html">select</a>
 any regions that overlap well with the currently
 <a href="../selection.html">selected</a> atoms, deselect the atoms
@@ -549,51 +541,51 @@ any regions that overlap well with the currently
 and grouping</a> needed to produce further grouping
 (equivalent to clicking the <b>Group</b> button with nothing selected)
 -->
-<li><b>Delete selected regions</b>
+</li><li><b>Delete selected regions</b>
 &ndash; delete the <a href="../selection.html">selected</a> regions
 (cannot be undone)
-<li><b>Delete all except selected</b>
+</li><li><b>Delete all except selected</b>
 &ndash; delete all regions except those which are 
 <a href="../selection.html">selected</a> (cannot be undone)
-<li><b>Enclosed volume</b>
+</li><li><b>Enclosed volume</b>
 &ndash; report the approximate total volume enclosed by the
 <a href="../selection.html">selected</a> regions
 (number of grid points and &Aring;<sup>3</sup> value obtained by multiplying
 the number of grid points by the voxel volume); more precise measurements
 can be obtained with <a href="measureblobs.html"><b>Measure
 and Color Blobs</b></a>
-<li><b>Mean and SD</b>
+</li><li><b>Mean and SD</b>
 &ndash; report density map mean and standard deviation within each
 <a href="../selection.html">selected</a> region
 of the <a href="#currseg">current segmentation</a>, which could be 
 based on a binned version of the <a href="#chosenmap">chosen map</a> 
 <font color="brown">
-<li><b>Extract densities...</b>
+</font></li><li><font color="brown"><b>Extract densities...</b>
 not yet implemented</font>
 <!--
 bring up a dialog with detailed options for extracting densities within
 the <a href="../selection.html">selected</a> regions
 -->
-<li><b>Subtract selected from map</b>
+</li><li><b>Subtract selected from map</b>
 &ndash; inverse-mask the density map with the
 <a href="../selection.html">selected</a> regions
 (create a new map: set the density values inside the regions to zero,
 copy values elsewhere, maintain original map dimensions)
-<li><b>Show axes for selected</b>
+</li><li><b>Show axes for selected</b>
 &ndash; show principal axes of inertia as arrows for each
 <a href="../selection.html">selected</a> region
-<li><b>Hide all axes</b>
+</li><li><b>Hide all axes</b>
 &ndash; remove all principal axes arrows
 <font color="brown">
-<li><b>Attributes table...</b>
+</font></li><li><font color="brown"><b>Attributes table...</b>
 not yet implemented</font>
 <!--
 show table of <a href="#attributes">region attributes</a>
 -->
-<li><b>How many sub-regions</b>
+</li><li><b>How many sub-regions</b>
 &ndash; report number of subregions that have been grouped into the
 <a href="../selection.html">selected</a> region(s)
-</ul>
+</li></ul>
 
 <a name="response"></a>
 <p class="nav">
@@ -617,4 +609,5 @@ Clearing a selection when it is not needed improves performance.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 July 2023</address>
+
 </body></html>

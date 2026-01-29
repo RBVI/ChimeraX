@@ -244,6 +244,7 @@ def ui_tool_show(session, tool_name, _show=True):
             return bi.start_tool(session, name)
         elif len(tools) > 1:
             from chimerax.core.errors import UserError
+            from chimerax.core.commands import commas
             raise UserError('Multiple installed tools found: %s' %
                             commas((repr(t[1]) for t in tools), 'and'))
 

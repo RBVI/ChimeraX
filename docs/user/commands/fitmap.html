@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: fitmap</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: fitmap</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -34,7 +29,7 @@ class="clRighticon" title="User Guide Index"/></a>
 The <b>fitmap</b> command performs rigid-body local optimization(s)
 to fit an atomic model or map into a map. 
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
-<img class="icon" border=1 src="../tools/shortcut-icons/fitmap.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/fitmap.png" alt="computer generated image"></a>
 The maps usually represent electron density, but other types of
 <a href="../tools/volumeviewer.html">volume data</a> can also be used.
 Some of its features are implemented as
@@ -51,8 +46,7 @@ See also:
 <a href="measure.html#correlation"><b>measure correlation</b></a>,
 <a href="measure.html#rotation"><b>measure rotation</b></a>,
 <a href="save.html#afterfitting">saving maps after fitting</a>,
-and <a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/"
-target="_blank">ChimeraX videos</a>: 
+and <a href="https://www.rbvi.ucsf.edu/chimerax/docs/videos/" target="_blank">ChimeraX videos</a>: 
 <a href="https://youtu.be/v3jI43YJQMg" target="_blank">fitting and applying
 symmetry</a>,
 <a href="https://youtu.be/Asp2Sg-AN-g" target="_blank">fitting an
@@ -75,13 +69,12 @@ this usually involves interactive manipulation with
 <a href="../commands/ui.html#mousemode">mouse modes</a> that move
 only the <a href="../selection.html">selected</a> model(s)
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="../tools/mouse-icons/move_h2o.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/move_h2o.png" alt="computer generated image"></a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="../tools/mouse-icons/rotate_h2o.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/rotate_h2o.png" alt="computer generated image"></a>
 or the model that was clicked
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" 
-border=1 src="../tools/mouse-icons/move_picked_model.png"></a>.
+<img class="icon" border="1" src="../tools/mouse-icons/move_picked_model.png" alt="computer generated image"></a>.
 See <a href="ui.html#selective">selective manipulation</a>.
 </p><p>
 Only the current <a href="../tools/volumeviewer.html#region">display region</a>
@@ -114,9 +107,9 @@ The following advanced modes are mutually exclusive:
 </p>
 <ul>
 <li><a href="#global">global search</a> with random initial placement
-<li><a href="#sequence">sequential fitting</a> of multiple different structures
-<li><a href="#symmetric">symmetric fitting</a> of copies of the same structure
-</ul>
+</li><li><a href="#sequence">sequential fitting</a> of multiple different structures
+</li><li><a href="#symmetric">symmetric fitting</a> of copies of the same structure
+</li></ul>
 
 <a name="options"></a>
 <p class="nav">
@@ -174,30 +167,30 @@ The other possibilities are <b>correlation</b> about zero
 (default during <a href="#symmetric">symmetric fitting</a>)
 and <b>cam</b> (correlation about the mean):
 <blockquote>
-<table cellspacing="0" cellpadding="0">
-<tr><td></td><td valign="bottom">
+<a name="corrzero"></a><table cellspacing="0" cellpadding="0">
+<tbody><tr><td></td><td valign="bottom">
 &lt;<b>u</b>,<b>v</b>&gt;
 </td></tr>
-<a name="corrzero"></a>
+
 <tr><td><b><i>correlation</i></b> =&nbsp;&nbsp;</td>
 <td height="1"><hr></td></tr>
 <tr><td></td><td valign="top">
 |&nbsp;<b>u</b>&nbsp;||&nbsp;<b>v</b>&nbsp;|
 </td></tr>
-</table>
+</tbody></table>
 </blockquote>
 <blockquote>
-<table cellspacing="0" cellpadding="0">
-<tr><td></td><td valign="bottom">
+<a name="corrmean"></a><table cellspacing="0" cellpadding="0">
+<tbody><tr><td></td><td valign="bottom">
 &lt;<b>u</b>&ndash;<b>u</b><sub>ave</sub>,<b>v</b>&ndash;<b>v</b><sub>ave</sub>&gt;
 </td></tr>
-<a name="corrmean"></a>
+
 <tr><td><b><i>cam</i></b> =&nbsp;&nbsp;</td>
 <td height="1"><hr></td></tr>
 <tr><td></td><td valign="top">
 |<b>u</b>&ndash;<b>u</b><sub>ave</sub>||<b>v</b>&ndash;<b>v</b><sub>ave</sub>|
 </td></tr>
-</table>
+</tbody></table>
 </blockquote>
 where <b>u</b><sub>ave</sub> is a vector with all components equal to the
 average of the components of <b>u</b> and <b>v</b><sub>ave</sub> is
@@ -292,7 +285,7 @@ Whether to show results in the <a href="#fitlist"><b>Fit List</b></a>
 otherwise default <b>false</b>).
 </blockquote>
 <blockquote>
-  <a name="logFits"><b>logFits</b> &nbsp;&nbsp<i>logfile</i></a>
+  <a name="logFits"><b>logFits</b> &nbsp;&nbsp;<i>logfile</i></a>
   <br>
 Write a space-delimited csv file of the rotation, translation and fit metrics 
 for each fit found. The <i>logfile</i> is the output file pathname,
@@ -416,9 +409,9 @@ The search radius can be restricted further with the
 The <a href="#envelope"><b>envelope</b></a> setting determines whether all
 nonzero-valued fit map grid points or only those above the contour level 
 (default) are used to calculate the center.
-<li><b>r</b> &ndash; random rotations starting from the current position
-<li><b>sr</b> (default) &ndash; both shifts and rotations
-</ul>
+</li><li><b>r</b> &ndash; random rotations starting from the current position
+</li><li><b>sr</b> (default) &ndash; both shifts and rotations
+</li></ul>
 This option does not affect what movements are allowed during 
 local optimization, which are instead set by
 <a href="#shift"><b>shift</b></a> and <a href="#rotate"><b>rotate</b></a>.
@@ -466,10 +459,10 @@ nonzero-valued fit map grid points or only those above the contour level
 </blockquote>
 
 <a name="fitlist">
-<p class="nav">
-[<a href="#top">back to top: fitmap</a>]
+</a><p class="nav"><a name="fitlist">
+[</a><a href="#top">back to top: fitmap</a>]
 </p>
-<h3>Fit List</h3></a>
+<h3>Fit List</h3>
 <p>
 The <b>Fit List</b>
 (see the <a href="#listFits"><b>listFits</b></a> option)
@@ -484,13 +477,13 @@ The <b>Fit List</b> is included in saved
 <a href="save.html#session">sessions</a>.
 -->
 Columns:
-<ul>
+</p><ul>
 <li><b>Corr</b>
 &ndash; <a href="#fitmaps">map-in-map</a> fitting metric: correlation about zero
-<li><b>Ave</b>
+</li><li><b>Ave</b>
 &ndash; <a href="#fitatoms">atoms-in-map</a> fitting metric:
 average map value at fit atom positions
-<li><b>Inside</b>
+</li><li><b>Inside</b>
 &ndash; what proportion of fit atoms 
 (<a href="#fitatoms">atoms-in-map</a> fitting)
 or fit map grid points
@@ -507,10 +500,10 @@ see <a href="#fitlist-options"><b>Fit List</b> options</a>
 (applies only to <a href="#fitmaps">map-in-map</a> fitting 
 when the reference map has symmetry information)
 -->
-<li><b>Molecule</b> &ndash; fit model
-<li><b>Map</b> &ndash; reference model
-<li><b>Hits</b> &ndash; number of fits in the uniqueness cluster
-</ul>
+</li><li><b>Molecule</b> &ndash; fit model
+</li><li><b>Map</b> &ndash; reference model
+</li><li><b>Hits</b> &ndash; number of fits in the uniqueness cluster
+</li></ul>
 <!--
 <p>
 Clicking <a name="fitlist-options"><b>Options</b></a> 
@@ -536,13 +529,13 @@ Buttons:
 <ul>
 <li><b>Place Copy</b> &ndash; if atoms were specified as the fit structure,
 open a copy for each <a href="#choosefit">chosen fit</a> as a new model
-<li><b>Save PDB</b> &ndash; if atoms were specified as the fit structure, 
+</li><li><b>Save PDB</b> &ndash; if atoms were specified as the fit structure, 
 save each <a href="#choosefit">chosen fit</a> as a PDB file
-<li><b>Delete</b> 
+</li><li><b>Delete</b> 
 &ndash; remove each <a href="#choosefit">chosen fit</a> from the list
-<li><b>Clear List</b> &ndash; remove all fits
-</ul>
-</p>
+</li><li><b>Clear List</b> &ndash; remove all fits
+</li></ul>
+<p></p>
 
 <a name="notes"></a>
 <p class="nav">
@@ -579,4 +572,5 @@ whichever comes first.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 April 2024</address>
+
 </body></html>

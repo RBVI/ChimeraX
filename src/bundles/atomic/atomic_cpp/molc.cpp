@@ -651,8 +651,15 @@ extern "C" EXPORT void atom_delete(void *atoms, size_t n)
         for (size_t i = 0; i != n; ++i)
             matoms[a[i]->structure()].push_back(a[i]);
 
-        for (auto ma: matoms)
+        for (auto ma: matoms) {
+            // Deleting all the atoms of a parent model can cause
+            // child models to be destroyed before this loop gets
+            // to them (e.g. parent model of Find Cavities);
+            // guard against that
+            if (ma.first->py_instance(false) == Py_None)
+                continue;
             ma.first->delete_atoms(ma.second);
+        }
     } catch (...) {
         molc_error();
     }

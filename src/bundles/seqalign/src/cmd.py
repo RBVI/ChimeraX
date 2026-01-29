@@ -473,7 +473,7 @@ def ensure_unique_seq_names(seqs, *, structure_name_limit=0):
             renamed_seqs.append(seq)
             continue
         renamed_seq = StructureSeq(chain_id=seq.chain_id, structure=struct, polymer_type=seq.polymer_type)
-        renamed_seq.name = f"{struct} {seq.name}" if include_struct_name else f"{seq.atomspec}"
+        renamed_seq.name = f"{struct} {seq.name}" if include_struct_name else f"{seq.name}"
         renamed_seq.bulk_set(seq.residues, seq.characters, fire_triggers=False)
         renamed_seqs.append(renamed_seq)
 

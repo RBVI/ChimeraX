@@ -80,10 +80,11 @@ class OpenPredictedAlignedError(ToolInstance):
         layout.addStretch(1)    # Extra space at end
 
         # Set initial menu entry to a predicted model
-        amod = [m for m in session.models.list(type = AtomicStructure) if self.is_predicted_model(m)]
+        amod = [m for m in session.models.list(type = AtomicStructure)
+                if self.is_predicted_model(m)]
         if amod:
             self._structure_menu.value = amod[-1]
-            self._guess_pae_file_or_database_id()
+        self._guess_pae_file_or_database_id()
 
         tw.manage(placement=None)	# Start floating
 
@@ -1547,7 +1548,7 @@ def _guess_pae_associated_structure(session, pae_path):
     from chimerax.atomic import AtomicStructure
     from os.path import dirname
     structs = [m for m in session.models.list(type = AtomicStructure)
-               if hasattr(m, 'filename') and dirname(m.filename) == dirname(pae_path)]
+               if hasattr(m, 'filename') and m.filename is not None and dirname(m.filename) == dirname(pae_path)]
     return structs[0] if len(structs) == 1 else None
 
 # -----------------------------------------------------------------------------

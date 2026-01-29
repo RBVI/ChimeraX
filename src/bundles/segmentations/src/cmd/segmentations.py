@@ -15,7 +15,6 @@ from chimerax.core.commands import (
     OnOffArg,
 )
 from chimerax.core.errors import UserError
-from chimerax.ui.cmd import ui_tool_show
 from chimerax.map import Volume
 
 from chimerax.segmentations.dicom_segmentations import (
@@ -24,19 +23,9 @@ from chimerax.segmentations.dicom_segmentations import (
 )
 
 from chimerax.segmentations.segmentation import Segmentation, segment_volume
-from chimerax.segmentations.ui.segmentation_mouse_mode import (
-    save_mouse_bindings,
-    restore_mouse_bindings,
-    save_hand_bindings,
-    restore_hand_bindings,
-)
 from chimerax.segmentations.settings import get_settings
 from chimerax.segmentations.types import Axis
 from chimerax.segmentations.segmentation_tracker import get_tracker
-from chimerax.segmentations.ui.segmentation_mouse_mode import (
-    mouse_bindings_saved,
-    hand_bindings_saved,
-)
 
 import chimerax.segmentations.triggers
 from chimerax.segmentations.triggers import Trigger
@@ -126,6 +115,14 @@ def segmentations(
         else:
             raise UserError("Can't operate on a non-segmentation")
     else:
+        from chimerax.segmentations.ui.segmentation_mouse_mode import (
+            save_mouse_bindings,
+            restore_mouse_bindings,
+            save_hand_bindings,
+            restore_hand_bindings,
+            mouse_bindings_saved,
+            hand_bindings_saved,
+        )
         if mouseModes is not None:
             if mouseModes and not mouse_bindings_saved():
                 save_mouse_bindings(session)
@@ -231,6 +228,7 @@ def segment_in_circle(
 
 
 def open_segmentation_tool(session):
+    from chimerax.ui.cmd import ui_tool_show
     ui_tool_show(session, "segmentations")
 
 

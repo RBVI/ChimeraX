@@ -539,9 +539,35 @@ def report_errors(log):
                 print("   ", issue["severity"], issue["path"])
 
 
-def staple_notarization_to_dmg(defaults):
+def staple_notarization_to_dmg(defaults, max_tries=10, initial_delay=10):
+    # Apple's notarization ticket may not be immediately available after
+    # notarization completes. Retry with exponential backoff.
     cmd = ["/usr/bin/xcrun", "stapler", "staple", "-v", defaults.dmg_path]
-    cp = _execute(defaults, cmd, f"staple ticket to {defaults.dmg_path}")
+
+    delay = initial_delay
+    for attempt in range(1, max_tries + 1):
+        if attempt > 1:
+            print(f"Waiting {delay}s for notarization ticket to propagate...")
+            time.sleep(delay)
+
+        cp = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if cp.returncode == 0:
+            if defaults.verbose > 0:
+                print(f"staple ticket to {defaults.dmg_path} succeeded")
+            if defaults.verbose > 1:
+                _show_output(cp)
+            break
+
+        print(f"Staple attempt {attempt}/{max_tries} failed")
+        if defaults.verbose > 1:
+            _show_output(cp)
+        delay = min(delay * 2, 120)  # Cap at 2 minutes
+    else:
+        print(f"staple ticket to {defaults.dmg_path} failed after {max_tries} attempts:")
+        _show_output(cp)
+        raise SystemExit(1)
+
+    # Validate the stapled ticket
     cmd = ["/usr/bin/xcrun", "stapler", "validate", "-v", defaults.dmg_path]
     cp = _execute(defaults, cmd, f"validate ticket for {defaults.dmg_path}")
 

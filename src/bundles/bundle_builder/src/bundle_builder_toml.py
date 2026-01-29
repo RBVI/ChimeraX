@@ -175,9 +175,10 @@ def read_toml(file):
 
 
 class Bundle:
-    def __init__(self, logger, bundle_info):
+    def __init__(self, logger, bundle_info, bundle_path=None):
         self.logger = logger
         self.bundle_info = bundle_info
+        self._bundle_path = bundle_path
         project_data = bundle_info["project"]
         # If you use something with an automated TOML linter it's never going to shut up
         # about how additional properties are illegal, so accept 'tool.chimerax' as well
@@ -261,7 +262,7 @@ class Bundle:
             # Check that the version is valid and let the error propagate up if one is thrown
             self.version = str(Version(project_data["version"]))
 
-        self.path = os.getcwd()
+        self.path = self._bundle_path if self._bundle_path else os.getcwd()
         build_dir = os.path.join(self.path, "build")
         # Ensure a clean environment between builds, even when not using build isolation
         shutil.rmtree(build_dir, ignore_errors=True)
@@ -551,14 +552,46 @@ class Bundle:
         dist_info_name = name.replace("-", "_")
         return bundle_base_name, module_name, dist_info_name
 
+    @staticmethod
+    def _clear_distutils_cache():
+        """Clear distutils/setuptools directory creation cache.
+
+        Modern setuptools vendors its own distutils at setuptools._distutils,
+        which uses a SkipRepeatAbsolutePaths class to cache created directories.
+        Older versions used a _path_created dict. We try to clear both.
+        """
+        # Clear modern setuptools cache (SkipRepeatAbsolutePaths)
+        # The cache is a set instance stored as a class attribute
+        try:
+            from setuptools._distutils import dir_util as st_dir_util
+            cache_class = getattr(st_dir_util, 'SkipRepeatAbsolutePaths', None)
+            if cache_class is not None:
+                instance = getattr(cache_class, 'instance', None)
+                if instance is not None:
+                    # Directly clear the set (SkipRepeatAbsolutePaths extends set)
+                    set.clear(instance)
+        except Exception:
+            pass
+        # Clear legacy distutils cache (_path_created dict)
+        try:
+            import distutils.dir_util
+            cache = getattr(distutils.dir_util, '_path_created', None)
+            if cache is not None:
+                cache.clear()
+        except Exception:
+            pass
+
     @classmethod
     def from_toml_file(cls, logger, toml_file):
-        return cls(logger, read_toml(toml_file))
+        abs_toml_file = os.path.abspath(toml_file)
+        bundle_path = os.path.dirname(abs_toml_file)
+        return cls(logger, read_toml(abs_toml_file), bundle_path=bundle_path)
 
     @classmethod
     def from_path(cls, logger, bundle_path):
-        toml_file = os.path.join(os.path.abspath(bundle_path), "pyproject.toml")
-        return cls(logger, read_toml(toml_file))
+        abs_bundle_path = os.path.abspath(bundle_path)
+        toml_file = os.path.join(abs_bundle_path, "pyproject.toml")
+        return cls(logger, read_toml(toml_file), bundle_path=abs_bundle_path)
 
     def make_wheel(self, debug=False, release=False):
         self.build_wheel(debug=debug, release=release)
@@ -702,7 +735,7 @@ class Bundle:
                 for entry in globbed_items:
                     destination = os.path.join(path, os.path.basename(entry))
                     if os.path.isdir(entry):
-                        shutil.copytree(entry, destination)
+                        shutil.copytree(entry, destination, dirs_exist_ok=True)
                     else:
                         shutil.copy2(entry, destination)
 
@@ -802,10 +835,7 @@ class Bundle:
         # for a single setup() run.  We want to run setup() multiple
         # times which can remove/create the same directories.
         # So we need to flush the cache before each run.
-        try:
-            distutils.dir_util._path_created.clear()
-        except AttributeError:
-            pass
+        self._clear_distutils_cache()
         # Copy additional files into package source tree
         self._copy_extrafiles()
         if build_exts:
@@ -1061,11 +1091,33 @@ class _CompiledCode:
                 extra_link_args.extend(["-framework", fw])
         elif sys.platform == "win32":
             libraries = []
+            # Try to find the actual library file in library_dirs
+            # Check for both "Foo.lib" and "libFoo.lib" patterns
             for lib in self.libraries:
+                found = False
                 if lib.lower().endswith(".lib"):
                     # Strip the .lib since suffixes are handled automatically
-                    libraries.append(lib[:-4])
+                    tentative_name = lib[:-4]
                 else:
+                    tentative_name = lib
+                for lib_dir in self.library_dirs:
+                    if os.path.exists(lib_dir):
+                        # First try without "lib" prefix (e.g., OpenMM.lib)
+                        if os.path.exists(
+                            os.path.join(lib_dir, f"{tentative_name}.lib")
+                        ):
+                            libraries.append(lib)
+                            found = True
+                            break
+                        # Then try with "lib" prefix (e.g., libOpenMM.lib)
+                        if os.path.exists(
+                            os.path.join(lib_dir, f"lib{tentative_name}.lib")
+                        ):
+                            libraries.append(f"lib{lib}")
+                            found = True
+                            break
+                if not found:
+                    # Fall back to old behavior: prepend "lib"
                     libraries.append("lib" + lib)
             cpp_flags = []
             if not any([flag.startswith("/std:") for flag in self.compile_arguments]):

@@ -1468,6 +1468,8 @@ class Thresholds_Panel(PopupPanel):
   def delete(self):
       remove_volume_closed_callback(self.dialog.session, self._volume_close_handler)
       self._volume_close_handler = None
+      for hp in self.histogram_panes:
+        hp.close()
 
   # ---------------------------------------------------------------------------
   # Create histogram for data region if needed.
@@ -1827,6 +1829,10 @@ class Histogram_Pane:
     h = self.make_histogram(f, histogram_height, new_marker_color = (1,1,1,1))
     flayout.addWidget(h)
     h.contextMenuEvent = self.show_context_menu
+
+    # Listen for color scheme changes to update histogram colors
+    self._color_scheme_handler = dialog.session.ui.triggers.add_handler(
+        'color scheme changed', self._update_histogram_colors)
 
     # Create planes slider below histogram if requested.
     self._planes_slider_shown = False
@@ -2198,16 +2204,24 @@ class Histogram_Pane:
 #                       highlightthickness = 0)
 
     from .histogram import Histogram, Markers
-    self.histogram = Histogram(gv, gs)
+
+    # Detect dark mode and adjust colors for visibility
+    dark_mode = self.dialog.session.ui.dark_mode()
+    histogram_color = 'gray' if dark_mode else 'black'
+    image_marker_pen_color = 'gray' if dark_mode else 'black'
+
+    self.histogram = Histogram(gv, gs, color=histogram_color)
     self.histogram_shown = False
 
     st = Markers(gv, gs, 'line', new_marker_color, 0,
-                 self.selected_marker_cb, self.moved_marker_cb)
+                 self.selected_marker_cb, self.moved_marker_cb,
+                 pen_color='white')
     self.surface_thresholds = st
 
     new_image_marker_color = saturate_rgba(new_marker_color)
     imt = Markers(gv, gs, 'box', new_image_marker_color, 1,
-                  self.selected_marker_cb, self.moved_marker_cb)
+                  self.selected_marker_cb, self.moved_marker_cb,
+                  pen_color=image_marker_pen_color)
     self.image_thresholds = imt
 
     gv.click_callbacks.append(self.select_data_cb)
@@ -2948,6 +2962,11 @@ class Histogram_Pane:
       tset.deleteHandler(tname, h)
     self.shown_handlers = []
 
+    # Remove color scheme change handler
+    if hasattr(self, '_color_scheme_handler'):
+      self.dialog.session.ui.triggers.remove_handler(self._color_scheme_handler)
+      self._color_scheme_handler = None
+
     self.dialog = None
     self.volume = None
     self.histogram_data = None
@@ -2960,6 +2979,40 @@ class Histogram_Pane:
     self.canvas = None
     self.scene = None
     self.histogram = None
+
+  # ---------------------------------------------------------------------------
+  # Update histogram colors when color scheme changes
+  #
+  def _update_histogram_colors(self, trigger_name, trigger_data):
+
+    # Check if histogram still exists
+    if self.histogram is None or self.dialog is None:
+      return
+
+    # Detect new color scheme
+    dark_mode = self.dialog.session.ui.dark_mode()
+    histogram_color = 'gray' if dark_mode else 'black'
+    image_marker_pen_color = 'gray' if dark_mode else 'black'
+
+    # Update histogram color
+    self.histogram.color = histogram_color
+
+    # Update marker pen colors
+    self.surface_thresholds.pen_color = 'white'
+    self.image_thresholds.pen_color = image_marker_pen_color
+    # Unplot to clear existing graphics items so they get recreated with new pen
+    self.surface_thresholds.unplot_markers()
+    self.image_thresholds.unplot_markers()
+
+    # Redraw histogram if it's currently shown
+    if self.histogram_shown and self.histogram_data is not None:
+      # Get histogram heights from the statistics data
+      bins = self.histogram_bins()
+      counts = self.histogram_data.bin_counts(bins)
+      from numpy import log
+      self.histogram.show_data(log(counts + 1))
+      self.surface_thresholds.update_plot()
+      self.image_thresholds.update_plot()
 
 # -----------------------------------------------------------------------------
 #

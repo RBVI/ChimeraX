@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,85 +9,87 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: 2dlabels</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: 2dlabels</h3>
 
 <table class="clRight">
-<tr><td>
+<tbody><tr><td>
 <a href="prc.png" title="click to enlarge...">
-<img class="outline" src="prc.png" alt="2D labels example" 
-width="300px"></a></td></tr>
+<img class="outline" src="prc.png" alt="2D labels example" width="300px"></a></td></tr>
 <tr><td align="center"><font size="-1">
-<a href="https://www.rbvi.ucsf.edu/chimerax/gallery.html"
-target="_blank">Get this session...</a></font></td></tr>
-</table>
+<a href="https://www.rbvi.ucsf.edu/chimerax/gallery_samples/prc.cxs" target="_blank">Get this session...</a></font></td></tr>
+</tbody></table>
 
 <p>
 The <b>2dlabels</b> command adds text, <a href="symbols.html">symbols</a>,
 and straight arrows to the display for presentation-quality images and movies.
-These 2D labels exist in the X,Y plane of the screen and do not move 
-along with the 3D scene, but can be repositioned by 
-dragging with the <b>move label</b> 
-<span class="nowrap"><a href="ui.html#mousemode">mouse mode</a>
-<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="../tools/mouse-icons/movelabel.png"></a>.</span>
-A 2D arrow can be dragged at either end.
-2D labels (including arrows) can also be faded in and out or repositioned 
-over a specified number of frames for animation purposes. 
+These 2D labels exist in the X,Y plane of the screen and do not move along 
+with the 3D scene, but can be repositioned by dragging 
+(at either end, if an arrow) using:
 </p>
 <ul>
-<li><a href="#create"><b>2dlabels</b></a>
-&ndash; <a href="#create">create</a> or <a href="#change">change</a> a
-text label (which may include <a href="symbols.html">symbols</a>)
-<li><a href="#acreate"><b>2dlabels arrow</b></a>
-&ndash; <a href="#acreate">create</a> or <a href="#achange">change</a> an arrow
-<li><a href="#delete"><b>2dlabels delete</b></a>
-&ndash; remove text labels and arrows
-<li><a name="listfonts"></a>
-<b>2dlabels listfonts</b> 
-&ndash; list the available font names in the 
-<a href="../tools/log.html"><b>Log</b></a>
-</ul>
+<li>the <b>Use mouse...</b> option in the
+<a href="../tools/2dlabels.html"><b>2D Labels and Arrows</b></a>
+graphical interface
+</li><li>the <b>move label</b> 
+<span class="nowrap"><a href="ui.html#mousemode">mouse mode</a>
+<a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
+<img class="icon" border="1" src="../tools/mouse-icons/movelabel.png" alt="computer generated image"></a>.</span>
+</li></ul>
 <p>
 For &ldquo;3D&rdquo; labels that move along with the associated atoms,
 see the <a href="label.html"><b>label</b></a> command.
 The <b>move label</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="../tools/mouse-icons/movelabel.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/movelabel.png" alt="computer generated image"></a>
 works for both 2D labels and 3D labels.
 Dragging a 2D label echoes the corresponding command with X and Y positions 
 to the <a href="../tools/log.html"><b>Log</b></a>, which may be useful 
 for <a href="usageconventions.html#cxc-files">scripting</a>.
+</p><p>
 2D labels are models that can be acted on by general commands such as 
 <a href="close.html"><b>close</b></a>,
 <a href="show.html"><b>show/hide</b></a>, and
 <a href="color.html"><b>color</b></a>.
+They are saved in <a href="scenes.html">scenes</a> and
+<a href="save.html#session">sessions</a>,
+and can be faded in and out or repositioned gradually
+over a specified number of frames for animation purposes.
 See also:
-<a href="save.html"><b>save</b></a>,
-<a href="movie.html"><b>movie</b></a>,
-<a href="scalebar.html"><b>scalebar</b></a>,
+<a href="scenes.html"><b>scenes</b></a>,
 <a href="key.html"><b>key</b></a>,
+<a href="scalebar.html"><b>scalebar</b></a>,
 <a href="../images.html">making images</a>,
 <a href="../movies.html">making movies</a>
-</p><p>
+</p><ul>
+<li><a href="#create"><b>2dlabels</b></a>
+&ndash; <a href="#create">create</a> or <a href="#change">change</a> a
+text label (which may include <a href="symbols.html">symbols</a>)
+</li><li><a href="#acreate"><b>2dlabels arrow</b></a>
+&ndash; <a href="#acreate">create</a> or <a href="#achange">change</a> an arrow
+</li><li><a href="#delete"><b>2dlabels delete</b></a>
+&ndash; remove text labels and arrows
+</li><li><a name="listfonts"></a>
+<b>2dlabels listfonts</b> 
+&ndash; list the available font names in the 
+<a href="../tools/log.html"><b>Log</b></a>
+</li></ul>
+<p></p><p>
 Example command script:
 </p>
 <blockquote><b>
 <a href="open.html">open</a> 1bfp; <a href="turn">turn</a> z 90; <a href="turn">turn</a> y 10
 <br>
-<a href="preset.html">preset</a> pub;
+<a href="preset.html">preset</a> publication 1;
 <a href="windowsize.html">windowsize</a> 600 400
 <br>
 2dlab text 'Blue Fluorescent Protein' color light sea green size 26 x .03 y .92;
@@ -104,8 +104,7 @@ Example command script:
 2dlab #2 text 'Fading...' vis f frames 100; 2d arrow #3 vis f frames 100; <a href="wait.html">wait</a> 100
 </b></blockquote>
 <p>
-See also the <a href="https://www.rbvi.ucsf.edu/chimerax/gallery.html#switch"
-target="_blank">G-Protein Switch Regions</a> example image and script.
+See also the <a href="https://www.rbvi.ucsf.edu/chimerax/gallery.html#switch" target="_blank">G-Protein Switch Regions</a> example image and script.
 </p>
 
 <a name="create"></a>
@@ -142,9 +141,9 @@ character codes or character names, as in the following examples:
  <ul class="none">
  <li><b>text 'the \u03b1 subunit'</b> &nbsp;&nbsp;
  gives &nbsp;&nbsp; <b>the &alpha; subunit</b>
- <li><b>text 'reactants \N{RIGHTWARDS ARROW} products'</b> &nbsp;&nbsp;
+ </li><li><b>text 'reactants \N{RIGHTWARDS ARROW} products'</b> &nbsp;&nbsp;
  gives &nbsp;&nbsp; <b>reactants &rarr; products</b>
- </ul>
+ </li></ul>
 Spaces and quotation marks can be included by enclosing the 
 entire <i>label-contents</i> in single or double quotation marks.
 <!-- ticket #766
@@ -181,10 +180,10 @@ can be listed with <a href="#listfonts"><b>2dlabels listfonts</b></a>.
 Font names with spaces must be enclosed in quotation marks.
 In addition, the font can be designated as <b>italic</b> and/or <b>bold</b>.
 The <b>visibility</b> option specifies whether the label should be displayed.
-</blockquote>
+
 
 <a name="change"></a>
-<p class="nav">
+</p><p class="nav">
 [<a href="#top">back to top: 2dlabels</a>]
 </p>
 <h3>Changing a 2D Label</h3>
@@ -317,5 +316,6 @@ Alternatively, the models can be closed with the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2022</address>
-</body></html> 
+October 2025</address>
+ 
+</body></html>

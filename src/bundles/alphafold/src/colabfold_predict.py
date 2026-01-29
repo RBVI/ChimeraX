@@ -244,8 +244,8 @@ pip install --no-warn-conflicts "colabfold[alphafold-minus-jax] @ git+https://gi
 pip install --upgrade dm-haiku
 # patch for jax > 0.3.25
 # sed -i 's/weights = jax.nn.softmax(logits)/logits=jnp.clip(logits,-1e8,1e8);weights=jax.nn.softmax(logits)/g' /usr/local/lib/python{python_version}/dist-packages/alphafold/model/modules.py
-# pip uninstall jax jaxlib -y
-# pip install "jax[cuda]==0.3.25" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+pip uninstall jax jaxlib -y
+pip install "jax[cuda]==0.5.2" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 # Biopython 1.82 removes SCOPData required by AlphaFold.
 # pip install biopython==1.81
 # hack to fix Colab TensorFlow error Aug 14, 2025
@@ -273,6 +273,8 @@ touch CONDA_READY
 set -e
 # Avoid updating conda since it can break openmm install. ChimeraX bug #9265.
 conda config --set auto_update_conda false
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 conda install -y -q -c conda-forge -c bioconda kalign2=2.04 hhsuite=3.3.0 python={python_version} 2>&1 1>/dev/null
 touch HH_READY
 '''
@@ -283,6 +285,8 @@ touch HH_READY
     cmds = f'''  
 # setup openmm for amber refinement
 set -e
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 conda install -y -q -c conda-forge openmm=8.2.0 python={python_version} pdbfixer 2>&1 1>/dev/null
 # Make colab python find conda openmm and pdbfixer
 ln -s /usr/local/lib/python{python_version}/site-packages/simtk .

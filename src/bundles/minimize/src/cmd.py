@@ -27,6 +27,8 @@ from chimerax.add_charge import ChargeMethodArg
 
 def cmd_minimize(session, structure, *, dock_prep=True, live_updates=True, log_energy=False,
         max_steps=None, **kw):
+    if 'del_missing_backbone' not in kw:
+        kw['del_missing_backbone'] = True
     if structure is None:
         from chimerax.atomic import all_atomic_structures
         available = all_atomic_structures(session)
@@ -46,8 +48,9 @@ def cmd_minimize(session, structure, *, dock_prep=True, live_updates=True, log_e
 
 def _minimize(session, structure, live_updates, log_energy, max_steps):
     from openmm.app import Topology, ForceField, element, HBonds, Simulation
-    from openmm.unit import angstrom, nanometer, kelvin, picosecond, picoseconds, Quantity
+    from openmm.unit import angstrom, nanometer, Quantity
     from openmm import LangevinIntegrator, LocalEnergyMinimizer, vec3, Context, MinimizationReporter
+    from openmm import OpenMMException, Platform
     #from openmmtools.integrators import GradientDescentMinimizationIntegrator
     import numpy
     top = Topology()
@@ -79,18 +82,30 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
     from chimerax.addh import bond_with_H_length
     NH_len = CO_len = None
     filter = []
+    name_lookup = {}
     for r in structure.residues:
         c = r.chain
         try:
             mm_c = chains[c]
         except KeyError:
-            mm_c = chains[c] = top.addChain("singletons" if c is None else c)
+            mm_c = chains[c] = top.addChain("singletons" if c is None else c.chain_id)
         try:
             mm_r = residues[r]
         except KeyError:
             mm_r = residues[r] = top.addResidue(r.name, mm_c, r.number, r.insertion_code)
+        # Atom names within a residue must be unique [#19727]
+        atom_names = set()
+        name_lookup[r] = lookup = {}
         for a in r.atoms:
-            atoms[a] = top.addAtom(a.name, element.Element.getBySymbol(a.element.name), mm_r,
+            atom_name = a.name
+            if atom_name in atom_names:
+                i = 0
+                while a.name + str(i) in atom_names:
+                    i += 1
+                atom_name = a.name + str(i)
+            atom_names.add(atom_name)
+            lookup[atom_name] = a
+            atoms[a] = top.addAtom(atom_name, element.Element.getBySymbol(a.element.name), mm_r,
                                     a.serial_number)
             coords.append(Quantity(vec3.Vec3(*a.coord), angstrom))
             reordered_atoms.append(a)
@@ -152,36 +167,30 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
         template.name = "%s-%s-%s%s" % ("blank" if cx_res.chain_id.isspace() else cx_res.chain_id,
             cx_res.name, cx_res.number, cx_res.insertion_code)
         for omm_atom in template.atoms:
-            cx_atom = cx_res.find_atom(omm_atom.name)
-            if cx_atom.num_bonds == 0:
-                gaff_type = "tip3pfb_standard-" + cx_atom.element.name + (str(cx_atom.charge)
-                    if abs(cx_atom.charge) > 1 else "") + ('+' if cx_atom.charge > 0 else '-')
-            else:
-                gaff_type = cx_atom.gaff_type
+            cx_atom = name_lookup[cx_res][omm_atom.name]
+            try:
+                if cx_atom.num_bonds == 0:
+                    gaff_type = "tip3pfb_standard-" + cx_atom.element.name + (str(cx_atom.charge)
+                        if abs(cx_atom.charge) > 1 else "") + ('+' if cx_atom.charge > 0 else '-')
+                else:
+                    gaff_type = cx_atom.gaff_type
 
-            #if adjust_gaff_type:
-            #    gaff_type = 'DNA-' + gaff_type
-            omm_atom.type = gaff_type
-            omm_atom.parameters['charge'] = cx_atom.charge
-        for omm_res in no_tmpl_omm_residues:
-            omm_res.name = template.name
+                #if adjust_gaff_type:
+                #    gaff_type = 'DNA-' + gaff_type
+                omm_atom.type = gaff_type
+                omm_atom.parameters['charge'] = cx_atom.charge
+            except AttributeError as e:
+                if 'gaff_type' in str(e) or 'charge' in str(e):
+                    raise UserError("AMBER/GAFF types and partial charges must be assigned to atoms"
+                        " in the structure before minimization.  Use the Add Charge tool or the"
+                        " addcharge command to do that.")
+                else:
+                    raise
+        omm_res.name = template.name
 
         forcefield.registerResidueTemplate(template)
-    try:
-        system = forcefield.createSystem(top, nonbondedCutoff=1*nanometer, constraints=HBonds)
-    except ValueError as e:
-        err_text = str(e)
-        if err_text.startswith("No template"):
-            left_paren = err_text.find('(')
-            right_paren = err_text.find(')')
-            if left_paren >= 0 and right_paren > left_paren:
-                raise LimitationError("Support for minimizing structures with non-standard residues"
-                    " (such as %s) not yet implemented.  If such residues are not crucial for your"
-                    " analysis, consider deleting them and then minimizing."
-                    % err_text[left_paren+1:right_paren])
-        raise
-    integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 0.004*picoseconds)
-    #integrator = GradientDescentMinimizationIntegrator()
+    system = forcefield.createSystem(top, nonbondedCutoff=1*nanometer, constraints=HBonds)
+    integrator = make_integrator()
     from chimerax.atomic import Atoms
     cx_atoms = Atoms(reordered_atoms)
     session.logger.status("Starting minimization")
@@ -213,7 +222,16 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
     #simulation.minimizeEnergy(reporter=Reporter(cx_atoms))
     #final_crds = numpy.array([q.value_in_unit(angstrom)
     #    for q in simulation.context.getState(getPositions=True).getPositions()])
-    context = Context(system, integrator)
+    try:
+        context = Context(system, integrator)
+    except OpenMMException as e:
+        if "Error compiling kernel" in str(e):
+            session.logger.warning("Using GPU for minimization failed, falling back to using CPU")
+            # Avoid OpenMM complaining about the integrator already being bound to a context
+            integrator = make_integrator()
+            context = Context(system, integrator, Platform.getPlatformByName('CPU'))
+        else:
+            raise
     context.setPositions(Quantity(coords))
     LocalEnergyMinimizer.minimize(context, reporter=Reporter(cx_atoms))
     final_crds = numpy.array([q.value_in_unit(angstrom)
@@ -221,6 +239,11 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
     final_crds = numpy.reshape(final_crds, (-1,3))
     cx_atoms.coords = final_crds[filter]
     session.logger.status("Minimization complete")
+
+def make_integrator():
+    from openmm import LangevinIntegrator
+    from openmm.unit import kelvin, picosecond, picoseconds
+    return LangevinIntegrator(300*kelvin, 1/picosecond, 0.004*picoseconds)
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, EnumOf, BoolArg, PositiveIntArg

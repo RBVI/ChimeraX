@@ -951,6 +951,11 @@ def new_hydrogen(parent_atom, h_num, total_hydrogens, naming_schema, pos, parent
             parent_pos = parent_atom._addh_coord
         if metal_clash(metal_pos, pos, parent_pos, parent_atom, parent_type_info):
             return
+        from chimerax.geometry import distance
+        if parent_atom.element.name == "S" and metal not in parent_atom.neighbors \
+                and distance(parent_pos, metal_pos) < _metal_dist:
+            parent_atom.idatm_type = "S3-"
+            return
     # determine added H color before actually adding it...
     h_color = determine_h_color(parent_atom)
     new_h = add_atom(_h_name(parent_atom, h_num, total_hydrogens, naming_schema), "H",

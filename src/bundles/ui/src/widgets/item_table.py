@@ -487,10 +487,9 @@ class ItemTable(QTableView):
             header_justification, balloon, icon, self._session, editable, validator, sort_func,
             show_tooltips, data_color, is_html)
 
+        c.display = display
         if self._column_control_info:
             self._add_column_control_entry(c)
-        if display != c.display:
-            self.update_column(c, display=display)
         if not self._table_model:
             # not yet launch()ed
             self._columns.append(c)
@@ -504,6 +503,9 @@ class ItemTable(QTableView):
                 num_existing, num_existing + len(self._pending_columns)-1)
             self._columns.extend(self._pending_columns)
             self._table_model.endInsertColumns()
+            for pc in self._pending_columns:
+                if not pc.display:
+                    self.hideColumn(self._columns.index(pc))
             self._pending_columns = []
             self.resizeColumnsToContents()
             self.resizeRowsToContents()
@@ -548,8 +550,11 @@ class ItemTable(QTableView):
         while True:
             for i, datum in enumerate(self._data):
                 if datum not in new_data_set:
-                    self._table_model.beginRemoveRows(QModelIndex(), i, i)
-                    self._data = self._data[:i] + self._data[i+1:]
+                    start = end = i
+                    while end+1 < len(self._data) and self._data[end+1] not in new_data_set:
+                        end += 1
+                    self._table_model.beginRemoveRows(QModelIndex(), start, end)
+                    self._data = self._data[:start] + self._data[end+1:]
                     self._table_model.endRemoveRows()
                     break
             else:

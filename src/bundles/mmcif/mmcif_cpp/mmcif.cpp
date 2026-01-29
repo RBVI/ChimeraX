@@ -23,7 +23,6 @@
  * copies, of the software or any revisions or derivations thereof.
  * === UCSF ChimeraX Copyright ===
  */
-#define PY_SSIZE_T_CLEAN
 #include "_mmcif.h"
 #include "mmcif.h"
 #include <atomstruct/AtomicStructure.h>

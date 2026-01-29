@@ -32,20 +32,24 @@ def read_coords(session, file_name, model, format_name, *, replace=True, start=1
         except ValueError as e:
             if "allocate enough memory" in str(e):
                 raise LimitationError(e)
+            if "return code 12" in str(e):
+                raise LimitationError("The Gromacs coordinate-reading library cannot handle"
+                    " file or folder names with unusual characters.  Ensure your file name"
+                    " contains only simple ASCII characters, as well as all containing folder names.")
             raise
     if format_name == "xtc":
         from ._gromacs import read_xtc_file
         session.logger.status("Reading Gromacs xtc coordinates", blank_after=0)
-        num_atoms, coords_list = read_gromacs_file(read_xtc_file, file_name)
-        coords = array(coords_list, dtype=float64)
+        coords = read_gromacs_file(read_xtc_file, file_name)
         coords *= 10.0
+        num_atoms = coords.shape[1]
         session.logger.status("Finished reading Gromacs xtc coordinates")
     elif format_name == "trr":
         from ._gromacs import read_trr_file
         session.logger.status("Reading Gromacs trr coordinates", blank_after=0)
-        num_atoms, coords_list = read_gromacs_file(read_trr_file, file_name)
-        coords = array(coords_list, dtype=float64)
+        coords = read_gromacs_file(read_trr_file, file_name)
         coords *= 10.0
+        num_atoms = coords.shape[1]
         session.logger.status("Finished reading Gromacs trr coordinates")
     elif format_name == "dcd":
         from .dcd.MDToolsMarch97.md_DCD import DCD

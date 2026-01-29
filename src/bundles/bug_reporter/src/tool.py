@@ -22,7 +22,7 @@ BUG_SELECTOR = "/chimerax/cgi-bin/chimerax_bug_report.py"
 #
 class BugReporter(ToolInstance):
 
-    def __init__(self, session, tool_name, is_known_crash = False):
+    def __init__(self, session, tool_name, is_known_crash=False):
         import locale
 
         self._ses = session
@@ -51,7 +51,12 @@ class BugReporter(ToolInstance):
 
         row = 1
 
-        intro = '''
+        warn = ''
+        no_email = (self.settings.email_address.strip() == '')
+        if no_email and ignoring_newer_versions():
+            warn = 'Bugs in older ChimeraX versions will not be evaluted unless an email address is provided.'
+
+        intro = f'''
         <center><h1>Report a Bug</h1></center>
         <p>Thank you for using our feedback system.
       Feedback is greatly appreciated and plays a crucial role
@@ -59,7 +64,7 @@ class BugReporter(ToolInstance):
       <p><b>Note</b>:
           We do not automatically collect any personal information or the data
           you were working with when the problem occurred.  Providing your e-mail address is optional,
-          but will allow us to inform you of a fix or to ask questions, if needed.
+          but will allow us to inform you of a fix or to ask questions, if needed. {warn}
           Attaching data may also be helpful.  However, any information or data
           you wish to keep confidential should be sent separately (not using this form).</p>
         '''
@@ -203,7 +208,7 @@ class BugReporter(ToolInstance):
     def hide(self):
         self.tool_window.shown = False
 
-    def set_description(self, text, minimum_height = None):
+    def set_description(self, text, minimum_height=None):
         self.description.setText(text)
         if minimum_height is not None:
             self.description.setMinimumHeight(minimum_height)
@@ -278,8 +283,11 @@ class BugReporter(ToolInstance):
 
         # Report success or error.
         from http import HTTPStatus
-        if errcode == HTTPStatus.OK:
-            self.report_success()
+        if errcode in (HTTPStatus.OK, HTTPStatus.CONFLICT):
+            if errcode == HTTPStatus.OK:
+                self.report_success()
+            else:
+                self.report_conflict(body)
             self.cancel_button.setText("Close")
             self.submit_button.deleteLater()  # Prevent second submission
             s = self.settings
@@ -327,6 +335,21 @@ class BugReporter(ToolInstance):
             " then you will be contacted with a report status.")
         self.result.setText(thanks)
 
+    def report_conflict(self, html: bytes):
+        from chimerax.core.colors import scheme_color
+        color = scheme_color('warning')
+        begin_h3 = html.find(b'<h3>')
+        end_h3 = html.find(b'</h3>')
+        if begin_h3 != end_h3 != -1:
+            html = b''.join([
+                html[0: begin_h3 + 4],
+                bytes(f"<font color='{color}'>", encoding='utf-8'),
+                html[begin_h3 + 4: end_h3],
+                b"</font>",
+                html[end_h3:]
+            ])
+        self.result.setText(html.decode('utf-8', errors='replace'))
+
     def report_failure(self, reason=None):
         from chimerax.core.colors import scheme_color
         color = scheme_color("error")
@@ -368,7 +391,7 @@ class BugReporter(ToolInstance):
             "is failed remote display.  Remote display techologies with 3D OpenGL graphics often don't work, "
             "and we are not able to advise on how to fix remote display.</font>")
         self.result.setText(thanks)
-        
+
     def cancel(self):
         self.delete()
 
@@ -395,10 +418,33 @@ class BugReporter(ToolInstance):
         return values
 
 
-def show_bug_reporter(session, is_known_crash = False):
+def ignoring_newer_versions():
+    from chimerax.core.core_settings import settings
+    ignore_versions = settings.ignore_update
+    if not ignore_versions:
+        return False
+    from chimerax.core import version
+    cur_version = version_tuple(version)
+    for iversion in ignore_versions:
+        if version_tuple(iversion) > cur_version:
+            return True
+    return False
+
+
+def version_tuple(version):
+    vtuple = []
+    for part in version.split('.'):
+        try:
+            vtuple.append(int(part))
+        except:
+            vtuple.append(part)
+    return vtuple
+
+
+def show_bug_reporter(session, is_known_crash=False):
     from Qt.QtCore import QTimer
     tool_name = 'Bug Reporter'
-    tool = BugReporter(session, tool_name, is_known_crash = is_known_crash)
+    tool = BugReporter(session, tool_name, is_known_crash=is_known_crash)
     # make sure bug report is active and description has focus
     QTimer.singleShot(
         0, lambda *args, tool=tool:

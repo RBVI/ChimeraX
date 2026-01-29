@@ -17,11 +17,12 @@
 #
 class Histogram:
 
-  def __init__(self, canvas, scene):
+  def __init__(self, canvas, scene, color='black'):
 
     self.canvas = canvas
     self.scene = scene
     self.graphics_items = []
+    self.color = color
 
   # ---------------------------------------------------------------------------
   # Use QGraphicsScene coordinate ranges 0 to 1 in x and y.
@@ -40,11 +41,15 @@ class Histogram:
     max_height = max(heights)
     if max_height == 0:
       return            # No data was binned.
+
+    from Qt.QtGui import QPen, QColor
+    pen = QPen(QColor(self.color))
+
     self.graphics_items = items = []
     for b in range(bins):
       x = w * (b / bins)
       y = h * (heights[b] / max_height)
-      item = s.addLine(x, h, x, h-y)
+      item = s.addLine(x, h, x, h-y, pen=pen)
       items.append(item)
 #      c.tag_lower(id)                           # keep bars below marker lines
 
@@ -63,7 +68,8 @@ class Histogram:
 class Markers:
 
   def __init__(self, canvas, scene, marker_type, new_marker_color,
-               connect_markers, selected_marker_callback, moved_marker_callback):
+               connect_markers, selected_marker_callback, moved_marker_callback,
+               pen_color='black'):
 
     self.canvas = canvas
     sr = scene.sceneRect()
@@ -74,6 +80,7 @@ class Markers:
     self.new_marker_color = new_marker_color
     self.extend_left = False
     self.extend_right = True
+    self.pen_color = pen_color
 
     self.connect_markers = connect_markers
     self.connect_color = 'yellow'
@@ -117,7 +124,7 @@ class Markers:
 
     from Qt.QtGui import QPen, QColor, QBrush
     from Qt.QtCore import Qt
-    p = QPen(QColor('black'))
+    p = QPen(QColor(self.pen_color))
     b = QBrush()
 
     for m in self.markers:

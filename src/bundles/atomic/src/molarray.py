@@ -122,7 +122,7 @@ class Collection(State):
             # presume iterable of objects of the object_class
             try:
                 pointers = numpy.array([i._c_pointer.value for i in items], cptr)
-            except Exception:
+            except TypeError:
                 t = str(type(items))
                 if isinstance(items, numpy.ndarray):
                     t += ' type %s' % str(items.dtype)
@@ -135,6 +135,8 @@ class Collection(State):
 
     def __eq__(self, items):
         if not isinstance(items, Collection):
+            if isinstance(items, self._object_class):
+                return self._pointers == items._c_pointer.value
             return False
         import numpy
         return numpy.array_equal(items._pointers, self._pointers)

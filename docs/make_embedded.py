@@ -211,14 +211,18 @@ def ffmpeg_licenses():
     """Get ffpmeg licences"""
     import markdown
     license_file = pathlib.Path('..', 'prereqs', 'ffmpeg', 'LICENSE.md')
+    header = '<html lang="en"><head><title>FFmpeg License</title></head><body>\n'
+    footer = '</body></html>'
     try:
         with open(license_file, 'r', encoding='utf-8') as f:
             license = f.read()
         html = markdown.markdown(license)
     except FileNotFoundError:
-        html = "<html><body>ffmpeg licenses not found</body</html>"
+        html = "FFmpeg licenses not found"
     with open('licenses/ffmpeg-LICENSE.html', 'w', encoding='utf-8') as f:
+        f.write(header)
         f.write(html)
+        f.write(footer)
 
 
 def write_embedded():

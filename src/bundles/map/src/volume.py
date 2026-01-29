@@ -144,6 +144,29 @@ class Volume(Model):
 
   # ---------------------------------------------------------------------------
   #
+  def string(self, style=None):
+    '''Return a human-readable string for this volume model.
+    
+    Parameters
+    ----------
+    style : str or None
+        If "command" or starts with "command", returns just the atomspec (e.g., "#1").
+        Otherwise, returns the name and atomspec (e.g., "myvolume #1").
+    
+    Returns
+    -------
+    str
+        A string representation of this volume model.
+    '''
+    id = '#' + self.id_string
+    if style is not None and (style == "command" or style.startswith("command")):
+      return id
+    if not self.name:
+      return id
+    return '%s %s' % (self.name, id)
+
+  # ---------------------------------------------------------------------------
+  #
   def info_string(self):
 
     px,py,pz = self.data.step
@@ -1852,6 +1875,14 @@ class Volume(Model):
   def take_snapshot(self, session, flags):
     from .session import state_from_map, grid_data_state
     from chimerax.core.state import State
+
+    # For scene snapshots, return simplified data
+    if flags & State.SCENE:
+      from .session import state_from_map
+      scene_data = state_from_map(self)
+      return scene_data
+
+    # For full snapshots, include everything
     include_maps = bool(flags & State.INCLUDE_MAPS)
     data = {
       'model state': Model.take_snapshot(self, session, flags),
@@ -1876,6 +1907,69 @@ class Volume(Model):
     v._drawings_need_update()
     show_volume_dialog(session)
     return v
+
+  # ---------------------------------------------------------------------------
+  # Scene interface implementation
+  #
+  def restore_scene(self, scene_data):
+    '''
+    Restore volume to state from scene_data (obtained from take_snapshot() with State.SCENE flag)
+    '''
+    # Handle volume-specific scene properties using existing session code
+    from .session import set_map_state
+    set_map_state(scene_data, self, notify=True)
+    self._drawings_need_update()
+
+  def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+    '''
+    Interpolate volume state between two scene snapshots.
+
+    Args:
+        scene1_data: Scene data from first scene (from take_snapshot with State.SCENE)
+        scene2_data: Scene data from second scene (from take_snapshot with State.SCENE)
+        fraction: Interpolation fraction (0.0 = scene1, 1.0 = scene2)
+        switchover: If True, use threshold behavior for non-interpolable attributes
+    '''
+    # Start by restoring scene1 as base state
+    from .session import set_map_state
+    set_map_state(scene1_data, self, notify=True)
+
+    # Get volume states from both scenes
+    volume_state1 = scene1_data.get('volume state', scene1_data)
+    volume_state2 = scene2_data.get('volume state', scene2_data)
+
+    # Interpolate volume region (the main feature)
+    region1 = volume_state1.get('region')
+    region2 = volume_state2.get('region')
+
+    if region1 and region2 and region1 != region2:
+        # Extract region parameters
+        ijk_min1, ijk_max1, ijk_step1 = region1
+        ijk_min2, ijk_max2, ijk_step2 = region2
+
+        # Interpolate region bounds
+        ijk_min_interp = [
+            int(round(min1 + fraction * (min2 - min1)))
+            for min1, min2 in zip(ijk_min1, ijk_min2)
+        ]
+        ijk_max_interp = [
+            int(round(max1 + fraction * (max2 - max1)))
+            for max1, max2 in zip(ijk_max1, ijk_max2)
+        ]
+
+        # For step size, use threshold behavior since interpolating steps is problematic
+        ijk_step_interp = ijk_step2 if (switchover or fraction >= 0.5) else ijk_step1
+
+        # Apply the interpolated region
+        self.new_region(ijk_min_interp, ijk_max_interp, ijk_step_interp,
+                       adjust_step=False, adjust_voxel_limit=False)
+
+        # Make sure volume updates its rendering
+        self._drawings_need_update()
+    elif region1 != region2:
+        # One or both regions missing - use threshold behavior
+        if switchover or fraction >= 0.5:
+            set_map_state(volume_state2, self, notify=True)
 
 # -----------------------------------------------------------------------------
 #
@@ -2342,6 +2436,14 @@ class VolumeSurface(Surface):
     }
     if self.vertex_colors is not None and self.auto_recolor_vertices is None:
       data['vertex_colors'] = self.vertex_colors
+
+    from chimerax.core.state import State
+    if flags & State.SCENE:
+      if self.auto_recolor_vertices is not None and isinstance(self.auto_recolor_vertices, State):
+        data['auto_recolor_vertices'] = self.auto_recolor_vertices
+      if self.auto_remask_triangles is not None and isinstance(self.auto_remask_triangles, State):
+        data['auto_remask_triangles'] = self.auto_remask_triangles
+
     return data
 
   @staticmethod
@@ -2361,6 +2463,30 @@ class VolumeSurface(Surface):
       if len(s.vertices) == len(vc):
         s.vertex_colors = vc
     return s
+
+  def restore_scene(self, data):
+    for attr in ['level', 'rgba', 'show_mesh']:
+      setattr(self, attr, data[attr])
+    Model.restore_scene(self, data['model state'])
+
+    if 'vertex_colors' in data:
+      # Compute surface and set vertex colors.
+      self.update_surface(self.volume.rendering_options)
+      vc = data['vertex_colors']
+      if len(self.vertices) == len(vc):
+        self.vertex_colors = vc
+
+    self.auto_recolor_vertices = recolor = data.get('auto_recolor_vertices')
+    if recolor:
+      self.update_surface(self.volume.rendering_options)  # Avoid recoloring twice
+      recolor()
+
+    self.auto_remask_triangles = remask = data.get('auto_remask_triangles')
+    if remask:
+      self.update_surface(self.volume.rendering_options)  # Avoid remasking twice
+      remask()
+    else:
+      self.triangle_mask = None
 
 # -----------------------------------------------------------------------------
 #

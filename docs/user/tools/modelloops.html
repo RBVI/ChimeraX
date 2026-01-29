@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Model Loops</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Model Loops</h3>
 <p>
@@ -60,16 +55,16 @@ Comparative protein modelling by satisfaction of spatial restraints.</a>
 </blockquote>
 <p>
 The following are required for each chain to be modeled:
-<ol>
+</p><ol>
 <li>The atomic structure of at least part of the protein, open in ChimeraX.
 <br><br>
-<li>A sequence that includes the segments to be filled in or refined, open
+</li><li>A sequence that includes the segments to be filled in or refined, open
 in the <a href="sequenceviewer.html"><b>Sequence Viewer</b></a>
 (as a single sequence or within a multiple sequence alignment) and
 <a href="../tools/sequenceviewer.html#association">associated</a>
 with the protein structure.
 <blockquote>
-<table cellpadding="10px"><tr>
+<table cellpadding="10px"><tbody><tr>
 <td class="shaded">
 The target sequence can be taken from the structure metadata
 (and shown for a specific chain using the menu:
@@ -87,13 +82,12 @@ will be used to model those segments.
 Accuracy can be quite high for shorter loops, but falls off rapidly with length
 (&gt;50% poor predictions for segments with 10+ residues including the
 <a href="#adjacentFlexible">flexible positions</a>, see Table 1 in 
-<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2144714/"
-target="_blank">Fiser <i>et al.</i></a>, <i>Protein Sci.</i> 
+<a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2144714/" target="_blank">Fiser <i>et al.</i></a>, <i>Protein Sci.</i> 
 <b>9</b>(9):1753 (2000)).
-</td></tr></table>
+</td></tr></tbody></table>
 </blockquote>
 <blockquote>
-<table cellpadding="10px"><tr>
+<table cellpadding="10px"><tbody><tr>
 <td class="shaded">
 Modeling multiple different chains in a complex
 requires a separate sequence alignment for each unique chain. 
@@ -106,16 +100,14 @@ with another alignment containing the target &beta; sequence.
 To instead model only one &alpha;&beta; dimer within the tetramer, 
 the other two structure chains should be
 <a href="sequenceviewer.html#association">dissociated</a> from the sequences.
-</td></tr></table>
+</td></tr></tbody></table>
 </blockquote>
-<li><a name="key"></a>
+</li><li><a name="key"></a>
 A Modeller <b><i>license key</i></b>.
-Academic users can <a href="https://www.salilab.org/modeller/registration.html"
-target="_blank">register</a> free of charge to receive a license key.
+Academic users can <a href="https://www.salilab.org/modeller/registration.html" target="_blank">register</a> free of charge to receive a license key.
 Commercial entities and government research labs, please see
-<a href="https://www.salilab.org/modeller/accelrys.html"
-target="_blank">Modeller licensing</a>.
-</ol>
+<a href="https://www.salilab.org/modeller/accelrys.html" target="_blank">Modeller licensing</a>.
+</li></ol>
 
 <a name="input"></a>
 <p class="nav">
@@ -139,43 +131,42 @@ the name of the target sequence should be selected from the pull-down menu.
 <ul>
 <li><b>Number of models</b> (initial default <b>5</b>, maximum 1000)
 &ndash; number of models to create
-<li><b>Model</b> &ndash; which parts of the protein sequence to build or refine:
+</li><li><b>Model</b> &ndash; which parts of the protein sequence to build or refine:
   <ul>
   <li><b>all missing structure</b> (initial default)
 &ndash; all missing segments of the structure relative to the
 <a href="../tools/sequenceviewer.html#association">associated</a> sequence
-  <li><b>internal missing structure</b>
+  </li><li><b>internal missing structure</b>
 &ndash; all non-terminal missing segments of the structure relative to the
 <a href="../tools/sequenceviewer.html#association">associated</a> sequence
-  <li><b>active sequence-viewer region</b>
+  </li><li><b>active sequence-viewer region</b>
 &ndash; the current <a href="sequenceviewer.html#active">active region</a>
 within the
 <a href="../tools/sequenceviewer.html#association">associated</a> sequence
-  </ul>
+  </li></ul>
 <a name="adjacentFlexible"></a>
-<li><b>Adjacent flexible residues</b> (initial default <b>1</b>)
+</li><li><b>Adjacent flexible residues</b> (initial default <b>1</b>)
 &ndash; how many additional residues next to each end of the missing segment or
 specified region to remodel relative to the input structure.
 If the residues designated as flexible are different types in the sequence
 than in the structure, the residue types in the sequence will be used.
-<li><b>Computation location</b>
+</li><li><b>Computation location</b>
   <ul>
   <li><b>web service</b> (initial default) 
 &ndash; run the Modeller web service hosted by the
-<a href="https://rbvi.cgl.ucsf.edu/Overview/index.html" 
-target="_blank">UCSF RBVI</a>; the user must provide:
+<a href="https://rbvi.cgl.ucsf.edu/Overview/index.html" target="_blank">UCSF RBVI</a>; the user must provide:
     <ul>
     <li><b>Modeller license key</b> &ndash; see <a href="#key">above</a>
-    </ul>
-  <li><b>local machine</b> 
+    </li></ul>
+  </li><li><b>local machine</b> 
 &ndash; run a local installation of Modeller; 
 the user must install Modeller version 10 or newer, then provide:
     <ul>
-    <li><b>Executable location</b></a> 
+    <li><b>Executable location</b> 
 &ndash; the pathname of the Modeller executable
-    </ul>
-  </ul>
-</ul>
+    </li></ul>
+  </li></ul>
+</li></ul>
 <p>
 <b>Advanced</b> settings:
 </p>
@@ -186,11 +177,11 @@ the user must install Modeller version 10 or newer, then provide:
 model appearance or to confirm that the alignment is reasonable.
 This mode does not randomize the starting structure (generates only a
 single model) and performs very little optimization of the target function.
-<li><b>Protocol</b> &ndash; which loop-modeling protocol to use:
+</li><li><b>Protocol</b> &ndash; which loop-modeling protocol to use:
   <ul>
   <li><b>standard</b> (initial default)
 &ndash; evaluate conformations by the sum of all restraints
-  <li><b>DOPE</b>
+  </li><li><b>DOPE</b>
 &ndash; Discrete Optimized Protein Energy score (DOPE, see
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/17075131" target="_blank">Shen
 and Sali</a>, <i>Protein Sci</i> <b>15</b>:2507 (2006)) with Lennard-Jones
@@ -199,12 +190,12 @@ generally gives higher-quality results than the standard protocol,
 but is more computationally
 expensive and more prone to calculation failure, potentially
 resulting in fewer models than requested.
-  <li><b>DOPE-HR</b> &ndash; the same as DOPE, except with higher precision
-  </ul>
-<li><b>Temporary folder location (optional)</b>
+  </li><li><b>DOPE-HR</b> &ndash; the same as DOPE, except with higher precision
+  </li></ul>
+</li><li><b>Temporary folder location (optional)</b>
 &ndash; use the specified location for temporary files; 
 otherwise, a location will be generated automatically
-</ul>
+</li></ul>
 <p>
 <b>Model Loops</b> settings including the 
 <a href="#key">license key</a> are automatically saved in the
@@ -223,4 +214,5 @@ is the same as described for
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 May 2025</address>
+
 </body></html>

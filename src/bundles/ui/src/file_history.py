@@ -17,6 +17,8 @@ class FileHistory:
             no_hist_text=None, **kw):
         self.thumbnail_size = thumbnail_size	# Pixels
         self.filename_size = filename_size	# Characters
+        show_full = session.ui.settings.file_history_show_full_filenames
+        self._show_full_filenames = show_full
         self._default_image = None
         self._default_image_format = None
         self.session = session
@@ -54,7 +56,9 @@ class FileHistory:
             # Work-around code saves html to temp file.  Still limit html to < 50 Mbytes for performance.
             hbytes, max_bytes = 0, 50000000
             for fi, f in enumerate(reversed(files)):
-                name = limit_string(f.short_name(), self.filename_size)
+                name = f.short_name()
+                if not self._show_full_filenames:
+                    name = limit_string(name, self.filename_size)
                 descrip = f.path if f.database is None else '%s %s' % (f.database.upper(), f.path)
                 from urllib import parse
                 cmd = parse.quote(f.open_command())
@@ -94,6 +98,10 @@ class FileHistory:
         # TODO: Only update if window shown.
         self.update_html()
 
+    def show_full_file_names(self, show):
+        self._show_full_filenames = show
+        self.update_html()
+
 def limit_string(s, n):
     if len(s) > n:
         return s[:n//2] + '...' + s[-(n//2):]
@@ -116,10 +124,19 @@ class HistoryWindow(ChimeraXHtmlView):
         if cm is None:
             from Qt.QtWidgets import QMenu
             cm = self.context_menu = QMenu(self)
+            self._show_full_file_names = a = cm.addAction("Show full file names")
+            a.setCheckable(True)
+            a.triggered.connect(self._show_full_file_name_changed)
             cm.addAction("Remove deleted files", self.remove_missing_files)
             cm.addAction("Clear file history", self.clear_file_history)
+        show_full = self.session.ui.settings.file_history_show_full_filenames
+        self._show_full_file_names.setChecked(show_full)
         cm.popup(event.globalPos())
 
+    def _show_full_file_name_changed(self, show):
+        self.session.ui.settings.file_history_show_full_filenames = show
+        self.session.ui.main_window.fh.show_full_file_names(show)
+        
     def remove_missing_files(self):
         from chimerax.core.filehistory import file_history
         file_history(self.session).remove_missing_files()

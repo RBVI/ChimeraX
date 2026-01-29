@@ -366,8 +366,11 @@ def _realpath(path):
 #
 def grid_paths(g):
 
-  if isinstance(g.path, str):
-    gpaths = [g.path]
+  gpath = g.path
+  if gpath == '':
+    gpath = getattr(g, 'source_path', '')
+  if isinstance(gpath, str):
+    gpaths = [gpath]
   else:
-    gpaths = g.path
+    gpaths = gpath
   return gpaths

@@ -97,6 +97,8 @@ AtomicStructure::_compute_structure_cats() const
             continue;
         if (grp_size != root->residue()->atoms().size())
             continue;
+        if (grp_size == 1 && (root->element().is_metal() || root->element().is_halogen()))
+            continue;
 
         // potential solvent
         solvents[root->residue()->name().c_str()].push_back(root);

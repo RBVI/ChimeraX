@@ -356,6 +356,123 @@ class RenderByAttrTool(ToolInstance):
 
         tw.manage(placement=None)
 
+    def configure(self, *, models=None, target=None, tab=None, attr_name=None, level_info=None,
+            render_type=None):
+        '''Configure the Render By Attribute interface programmatically.
+
+           All the arguments are optional.  Any argument not specified will retain the current value.
+
+           'models' should be a list models that the rendering/selection will apply to.
+
+           'target' is one of the names from the target menu.  It is an extensible list, but the
+           default values provided by the atomic bundle are: atoms, residues, chains, and structures.
+
+           'tab' is "render" or "select".
+
+           'attr_name' is the name of the attribute whose values will be shown in the histogram.
+
+           'level_info' is where to place markers on the histogram and, if rendering, their color
+           or radius value as appropriate.  So for rendering, level_info is a series of (attribute-value,
+           color-or-radius) tuples, and for selecting it's just a two-tuple/list of attribute values.
+
+           'render_type' controls what sub-tab is shown for rendering.  It is one of
+           RenderByAttrTool.RENDER_COLORS, RENDER_RADII, or RENDER_WORMS.
+        '''
+        from chimerax.core.commands import commas
+        if models is not None:
+            self.model_list.value = models
+
+        if target is not None:
+            menu = self.target_menu_button.menu()
+            for action in menu.actions():
+                if action.text().lower() == target.lower():
+                    action.trigger()
+                    break
+            else:
+                raise ValueError("No target named '%s'; target names are: %s" % (target,
+                    commas([act.text() for act in menu.actions()], "and")))
+
+        if tab is not None:
+            tab_widget = self.mode_widget
+            for index in range(tab_widget.count()):
+                if tab_widget.tabText(index).lower() == tab.lower():
+                    tab_widget.setCurrentIndex(index)
+                    break
+            else:
+                raise ValueError("No mode tab named '%s'; tab names are: %s" % (tab,
+                    commas([tab_widget.tabText(i) for i in range(tab_widget.count())], "and")))
+
+        if attr_name is not None:
+            menu = (self.render_attr_menu_button
+                if self.mode_widget.tabText(self.mode_widget.currentIndex()) == "Render"
+                else self.select_attr_menu_button).menu()
+            menu.aboutToShow.emit()
+            for action in menu.actions():
+                if action.text() == attr_name:
+                    action.trigger()
+                    break
+            else:
+                raise ValueError("No attribute named '%s'; attribute names are: %s" % (attr_name,
+                    commas([act.text() for act in menu.actions()], "and")))
+
+        if render_type is not None:
+            tab_widget = self.render_type_widget
+            for index in range(tab_widget.count()):
+                if tab_widget.tabText(index).lower() == render_type.lower():
+                    tab_widget.setCurrentIndex(index)
+                    break
+            else:
+                raise ValueError("No render tab named '%s'; tab names are: %s" % (tab,
+                    commas([tab_widget.tabText(i) for i in range(tab_widget.count())], "and")))
+
+        if level_info is not None:
+            rendering = self.mode_widget.tabText(self.mode_widget.currentIndex()) == "Render"
+            if rendering:
+                render_type = self.render_type_widget.tabText(self.render_type_widget.currentIndex())
+                if render_type == self.RENDER_COLORS:
+                    markers = self.render_color_markers
+                elif render_type == self.RENDER_RADII:
+                    markers = self.render_radius_markers
+                else:
+                    markers = self.render_worm_markers
+            else:
+                markers = self.select_markers
+            while len(markers) > 0:
+                markers.pop()
+            coord_type = markers.coord_type
+            markers.coord_type = "absolute"
+            min_val = max_val = None
+            for info in level_info:
+                if rendering:
+                    if render_type == self.RENDER_COLORS:
+                        level, color = info
+                        arg = ((level, 0.0), color)
+                    else:
+                        level, radius = info
+                        arg = ((level, 0.0), None)
+                else:
+                    level = info
+                    arg = ((level, 0.0), None)
+                if min_val is None or level < min_val:
+                    min_val = level
+                elif max_val is None or level > max_val:
+                    max_val = level
+                marker = markers.append(arg)
+                if rendering and render_type != self.RENDER_COLORS:
+                    marker.radius = radius
+            histogram = self.render_histogram if rendering else self.select_histogram
+            cur_min, cur_max, data = histogram.data_source
+            set_data = False
+            if min_val < cur_min:
+                cur_min = min_val
+                set_data = True
+            if max_val > cur_max:
+                cur_max = max_val
+                set_data = True
+            if set_data:
+                histogram.data_source = (cur_min, cur_max, data)
+            markers.coord_type = coord_type
+
     @property
     def default_render_color_markers(self):
         return self._clone_markers(self._default_render_color_markers)

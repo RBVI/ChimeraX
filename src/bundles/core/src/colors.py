@@ -348,10 +348,11 @@ class Colormap(State):
     def linear_range(self, min_value, max_value):
         import numpy
         v = numpy.linspace(min_value, max_value, len(self.colors))
-        cmap = Colormap(v, self.colors,
-                        self.color_above_value_range,
-                        self.color_below_value_range,
-                        self.color_no_value)
+        if min_value < max_value:
+            above_color, below_color = self.color_above_value_range, self.color_below_value_range
+        else:
+            above_color, below_color = self.color_below_value_range, self.color_above_value_range
+        cmap = Colormap(v, self.colors, above_color, below_color, self.color_no_value)
         return cmap
 
     def rescale_range(self, value0, value1, from_range = None):
@@ -366,10 +367,11 @@ class Colormap(State):
         v -= cur0
         v *= (value1 - value0) / (cur1 - cur0)
         v += value0
-        cmap = Colormap(v, self.colors,
-                        self.color_above_value_range,
-                        self.color_below_value_range,
-                        self.color_no_value)
+        if value0 < value1:
+            above_color, below_color = self.color_above_value_range, self.color_below_value_range
+        else:
+            above_color, below_color = self.color_below_value_range, self.color_above_value_range
+        cmap = Colormap(v, self.colors, above_color, below_color, self.color_no_value)
         return cmap
 
     def reversed(self):

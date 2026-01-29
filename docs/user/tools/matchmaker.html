@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Matchmaker</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Matchmaker</h3>
 <p>
@@ -73,9 +68,9 @@ It contains three tabbed sections, explained in detail below:
 </p>
 <ul>
 <li><a href="#pairing"><b>Chain pairing</b></a>
-<li><a href="#alignment"><b>Alignment</b></a>
-<li><a href="#fitting"><b>Fitting</b></a>
-</ul>
+</li><li><a href="#alignment"><b>Alignment</b></a>
+</li><li><a href="#fitting"><b>Fitting</b></a>
+</li></ul>
 <p>
 The following three buttons relate to the
 <a href="../preferences.html">preferences</a>, and there is a
@@ -84,15 +79,15 @@ or only the one that is currently shown:
 </p>
 <ul>
 <li><b>Save</b> saves the current <b>Matchmaker</b> parameters as preferences
-<li><b>Reset</b> resets the dialog to the factory default
+</li><li><b>Reset</b> resets the dialog to the factory default
 parameter settings without changing any preferences
-<li><b>Restore</b> populates the dialog with the last saved preferences
-</ul>
+</li><li><b>Restore</b> populates the dialog with the last saved preferences
+</li></ul>
 Clicking <b>OK</b> or <b>Apply</b> will start the calculations
 with or without closing the dialog, respectively.
 <b>Close</b> simply closes the dialog, while <b>Help</b> opens
 this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
-</p><p>
+<p></p><p>
 Sequence alignment scores, parameter values, and root-mean-square deviations
 (RMSD values) will be reported in the <a href="log.html"><b>Log</b></a>
 (see also <a href="#verbose">verbose logging</a>).
@@ -117,13 +112,13 @@ are available in the top section of the dialog.
 should be chosen.  For each structure to be matched, the
 reference-match pair of chains with the highest
 <a href="#scoring">sequence alignment score</a> will be used.
-<li><b>Specific chain in reference structure
+</li><li><b>Specific chain in reference structure
 and best-aligning chain in match structure</b>
 &ndash; One reference chain and one or more structures to match 
 should be chosen. For each structure to be matched,
 the chain that aligns to the reference chain with the highest
 <a href="#scoring">sequence alignment score</a> will be used.
-<li><b>Specific chain(s) in reference structure
+</li><li><b>Specific chain(s) in reference structure
 with specific chain(s) in match structure</b>
 &ndash; One or more reference chains should be chosen from the list.
 For each reference chain chosen, one chain to be matched should
@@ -134,10 +129,10 @@ in separate steps (by choosing the chain to match and then clicking
 reference chains simultaneously, and chains from the same structure
 (atomic model)
 cannot simultaneously serve as a reference chain and a chain to match.
-</ul>
+</li></ul>
 <p>
 <a name="restrict"></a>
-<b>Also restrict to selection</b></a> allows ignoring
+<b>Also restrict to selection</b> allows ignoring
 residues of the reference and/or match structures that are not
 <a href="../selection.html">selected</a>.
 In general, restriction should only be used in specific cases
@@ -175,7 +170,7 @@ border:solid orangered 1px;padding:1px 3px">
 An RMSD <a href="sequenceviewer.html#headers">header</a> is automatically
 shown above the sequences, with bar heights
 representing the spatial variation among residues associated with a column.
-</p><p>
+<p></p><p>
 *These sequence alignments are a by-product of superposition,
 and may not be entirely correct.
 Successful superposition only requires these alignments to be partly
@@ -192,16 +187,16 @@ but merely as a convenient compact representation; how they are aligned
 is not meaningful.
 </p>
 <a name="algorithm"></a>
-<li><b>Sequence alignment algorithm</b>:
+</li><li><b>Sequence alignment algorithm</b>:
   <ul>
   <li><b>Needleman-Wunsch</b> (initial default) &ndash; global
-  <li><b>Smith-Waterman</b> &ndash; local
-  </ul>
-</ul>
+  </li><li><b>Smith-Waterman</b> &ndash; local
+  </li></ul>
+</li></ul>
 <p>
 <a name="scoring"></a>
 Sequence alignment scores may include contributions from residue similarity,
-secondary structure, and gap penalties.</a>
+secondary structure, and gap penalties.
 </p>
 <ul>
 <li><b>Matrix</b> (initial default <b>BLOSUM-62</b>) 
@@ -211,13 +206,13 @@ If an amino acid matrix is chosen, only peptide sequences
 will be aligned; if a nucleic acid matrix is chosen, only
 nucleic acid sequences will be aligned.  An error message will appear
 if there are no reference-match pairs of the appropriate type.
-<li><b>Gap opening penalty</b> (initial default <b>12</b>)
+</li><li><b>Gap opening penalty</b> (initial default <b>12</b>)
 &ndash; if <a href="#useSS">secondary structure scoring</a> is <b>on</b>,
 this parameter is ignored and the
 <a href="#SS-specific">secondary-structure-specific</a>
 gap-opening penalties are used instead
-<li><b>Gap extension penalty</b> (initial default <b>1</b>)
-<li><a name="useSS"><b>Include secondary structure score</b></a>
+</li><li><b>Gap extension penalty</b> (initial default <b>1</b>)
+</li><li><a name="useSS"><b>Include secondary structure score</b></a>
 (initial default <b>on</b>)
 &ndash; whether to include a secondary structure term in the score,
 with additional parameters:
@@ -228,15 +223,15 @@ with additional parameters:
 <a href="../commands/dssp.html"><b>dssp</b></a> algorithm; may improve 
 superposition by generating consistent assignments, as pre-existing 
 assignments may reflect the use of different criteria on different structures
-  <li><b>Overwrite previous assignments</b> (initial default <b>off</b>)
+  </li><li><b>Overwrite previous assignments</b> (initial default <b>off</b>)
 &ndash; whether to overwrite pre-existing secondary structure assignments
 with the newly computed ones. Otherwise, the new assignments are used only
 temporarily for superposition purposes.
-  <li><b>Secondary structure weighting</b> (initial default <b>0.30</b>)
+  </li><li><b>Secondary structure weighting</b> (initial default <b>0.30</b>)
 &ndash; fractional weight <i>f</i> of the secondary structure contribution 
 to the overall score, with (1 &ndash; <i>f</i>) used to weight the 
 residue similarity contribution. For example, a value of means:
-</p>
+<p></p>
 <blockquote>
 total score = 0.30(secondary structure score) + 0.70(residue similarity score)
 &ndash; gap penalties
@@ -252,8 +247,8 @@ The values in the secondary-structure <b>Scoring matrix</b>
 (for all pairwise combinations of <b>H</b> helix, <b>S</b> strand, and
 <b>O</b> other) and the secondary-structure-specific gap opening penalties
 (<b>Intra-helix</b>, <b>Intra-strand</b>, and <b>Any other</b>) can be adjusted.
-  </ul>
-</ul>
+  </p></li></ul>
+</li></ul>
 
 <a name="fitting"></a>
 <p class="nav">
@@ -265,7 +260,7 @@ Fitting uses one point per residue: CA atoms in amino acids and
 C4' atoms in nucleic acids. If a nucleic acid residue lacks a C4' atom
 (some lower-resolution structures are P traces),
 its P atom will be paired with the P atom of the aligned residue.
-<ul>
+</p><ul>
 <li>
 <a name="iterate"><b>Iterate by pruning long atom pairs</b></a>
 (initial default <b>on</b>)
@@ -284,39 +279,40 @@ is the lesser number of pairs.
 Iteration tends to exclude sequence-aligned but conformationally dissimilar
 regions such as flexible loops, allowing a tighter fit of the
 best-matching "core" regions.
-<li><a name="itercut"><b>Iteration cutoff distance</b></a>
+</li><li><a name="itercut"><b>Iteration cutoff distance</b></a>
 (initial default <b>2.0</b> &Aring;)
-<li><a name="verbose"><b>Verbose logging</b></a> (initial default <b>off</b>)
+</li><li><a name="verbose"><b>Verbose logging</b></a> (initial default <b>off</b>)
 &ndash; whether to send additional information to the 
   <a href="log.html"><b>Log</b></a> for each chain-chain pair:
   <ul>
   <li><b>Sequences:</b>
   followed by the pairwise sequence alignment, <i>i.e.</i>, two lines,
   each containing a sequence name and (gapped) sequence
-  <li><b>Residues:</b>
+  </li><li><b>Residues:</b>
   followed by two lines, each a comma-separated list of the structure residues
   associated with the nongap positions of the corresponding sequence;
   missing structure residues are reported as <b>None</b>
-  <li><b>Residue usage in match (1=used, 0=unused):</b>
+  </li><li><b>Residue usage in match (1=used, 0=unused):</b>
   followed by two lines, each a comma-separated list of zeros and ones,
   indicating which structure residues were used in the final fit
-  </ul>
-<li><a name="matrix"><b>Log transformation matrix</b></a>
+  </li></ul>
+</li><li><a name="matrix"><b>Log transformation matrix</b></a>
 (initial default <b>off</b>) 
 &ndash; whether to show the final-fit transformation matrix (or matrices)
 in the <a href="log.html"><b>Log</b></a>
-<li><a name="parms"><b>Log parameter values</b></a>
+</li><li><a name="parms"><b>Log parameter values</b></a>
 (initial default <b>on</b>)
 &ndash; whether to report the run parameters in the
 <a href="../tools/log.html"><b>Log</b></a>
-<li><a name="bring"></a>
+</li><li><a name="bring"></a>
 <b>If one model being matched, also move these models along with it</b>
 &ndash; if only one match model is designated in the top section
 of the dialog, one or more additional models to move along with it 
 can be chosen from the model list
-</ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 March 2025</address>
+
 </body></html>

@@ -30,10 +30,18 @@ def fetch_uniprot_variants(session, uniprot_id, identifier = None,
 
        https://www.ebi.ac.uk/proteins/api/variation/Q9UNQ0
     '''
+    from chimerax.atomic import is_uniprot_id
+    if not is_uniprot_id(uniprot_id):
+        from chimerax.core.errors import UserError
+        raise UserError(f'Invalid UniProt id {uniprot_id}')
     if '_' in uniprot_id:
         # Convert uniprot name to accession code.
-        from chimerax.uniprot import map_uniprot_ident
-        uid = map_uniprot_ident(uniprot_id, return_value = 'entry')
+        from chimerax.uniprot import map_uniprot_ident, InvalidAccessionError
+        try:
+            uid = map_uniprot_ident(uniprot_id, return_value = 'entry')
+        except InvalidAccessionError as e:
+            from chimerax.core.errors import UserError
+            raise UserError(str(e))
     else:
         uid = uniprot_id
 

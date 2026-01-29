@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: label</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: label</h3>
 
@@ -47,13 +42,13 @@ items in 3D. These &ldquo;3D&rdquo; (although flat in appearance)
 labels can be of multiple colors and sizes. 
 A label is automatically hidden, however, when the corresponding item is hidden.
 Subcommands include: 
-<ul>
+</p><ul>
 <li><a href="#listfonts"><b>label listfonts</b></a>
 &ndash; list possible fonts in the <a href="../tools/log.html"><b>Log</b></a>
-<li><a href="#missing"><b>label missing</b></a>
+</li><li><a href="#missing"><b>label missing</b></a>
 &ndash; label missing-segment <a href="../pseudobonds.html">pseudobonds</a>
 with the number of missing residues
-</ul>
+</li></ul>
 <p>
 See also: 
 <a href="#settings">label settings</a>,
@@ -67,24 +62,24 @@ The type of items to label can be indicated with one of the following
 </p>
 <ul>
 <li><b>atoms</b> &ndash; atom name
-<li><b>residues</b> &ndash; residue name and number
-<li><b>models</b> &ndash; model name
-<li><b>bonds</b> &ndash; bond length
-<li><b>pseudobonds</b>
+</li><li><b>residues</b> &ndash; residue name and number
+</li><li><b>models</b> &ndash; model name
+</li><li><b>bonds</b> &ndash; bond length
+</li><li><b>pseudobonds</b>
 &ndash; <a href="../pseudobonds.html">pseudobond</a> length (&Aring;)
-</ul>
+</li></ul>
 <p>
 Adding <i>new</i> labels with the <b>label</b> command requires a
 non-blank <a href="atomspec.html"><i>atom-spec</i></a>, although the
 word <b>all</b> can be used to indicate all applicable 3D data.
 For <b>label</b> with a non-blank <a href="atomspec.html"><i>atom-spec</i></a>,
 the default <i>level</i> of labels to add (or change) is:
-<ul>
+</p><ul>
 <li><b>residues</b> if atoms are specified
-<li><b>pseudobonds</b> if <a href="../pseudobonds.html">pseudobonds</a>
+</li><li><b>pseudobonds</b> if <a href="../pseudobonds.html">pseudobonds</a>
 are specified
-<li>otherwise <b>models</b>
-</ul>
+</li><li>otherwise <b>models</b>
+</li></ul>
 <p>
 Model-label examples:
 </p>
@@ -106,18 +101,18 @@ The command <b>~label</b> is the same as <b>label delete</b>.
 3D labels can also be added/deleted by clicking in the graphics window
 with the <b>label</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="../tools/mouse-icons/label.png"></a>.
+<img class="icon" border="1" src="../tools/mouse-icons/label.png" alt="computer generated image"></a>.
 To add text and symbols at any X,Y position in the window
 for presentation-quality images and movies,
 see the <a href="2dlabels.html"><b>2dlabels</b></a> command instead.
 Both kinds of labels can be repositioned with the <b>move label</b> 
 <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="../tools/mouse-icons/movelabel.png"></a>.
-<p>
+<img class="icon" border="1" src="../tools/mouse-icons/movelabel.png" alt="computer generated image"></a>.
+</p><p>
 
 <a name="options"></a>
-<p class="nav">
+</p><p class="nav">
 [<a href="#top">back to top: label</a>]
 </p>
 <h3>Label Options</h3>
@@ -133,11 +128,11 @@ Specify label contents, which can be an arbitrary string or information
 on the labeled items. The <b>default</b> information is:
 <ul>
 <li>for <b>atoms</b>, atom name
-<li>for <b>residues</b> (default), residue name, number,
+</li><li>for <b>residues</b> (default), residue name, number,
 and insertion code (if any)
-<li>for <b>models</b>, model name
-<li>for <b>bonds</b> or <b>pseudobonds</b>, length 
-</ul>
+</li><li>for <b>models</b>, model name
+</li><li>for <b>bonds</b> or <b>pseudobonds</b>, length 
+</li></ul>
 For other <a href="../attributes.html">attributes</a> of the items,
 see <a href="#attribute">below</a>.
 Arbitrary <i>label-contents</i> can include 
@@ -153,7 +148,7 @@ Carriage returns are indicated with <b>\n</b>.
 Since arbitrary text might also start with the letter &ldquo;d&rdquo;
 the entire word <b>default</b> (without truncation) must be given
 to return to default label contents.
-</p>
+<p></p>
 </blockquote>
 
 <blockquote>
@@ -166,10 +161,9 @@ The <b>attribute</b> option shows the values of a single attribute with
 default formatting, whereas the <b>text</b> option
 can be used to combine the attribute with arbitrary text, 
 label with more than one attribute at a time, and/or include
-<a href="https://docs.python.org/3/library/string.html#formatstrings"
-target="_blank">python format specifications</a>.
+<a href="https://docs.python.org/3/library/string.html#formatstrings" target="_blank">python format specifications</a>.
 Examples:
-</p>
+<p></p>
  <blockquote><b>
 label ligand atoms attribute idatm_type
 </b>&nbsp;&nbsp;&ndash;&nbsp;same as&nbsp;&ndash;&nbsp;&nbsp;<b>
@@ -263,11 +257,11 @@ The default offset is:
 <ul>
 <li><b>(<i>radius</i> + 0.2),0,0.5</b>
 for atoms, bonds, and <a href="../pseudobonds.html">pseudobonds</a>
-<li><b>0,0,0</b> for residues
-<li><b>&ndash;0.25(<i>radius</i>),&ndash;<i>radius</i>,0</b> for models,
+</li><li><b>0,0,0</b> for residues
+</li><li><b>&ndash;0.25(<i>radius</i>),&ndash;<i>radius</i>,0</b> for models,
 where the radius of a model is half the length of its bounding box 
 (largest of X, Y, Z dimensions)
-</ul>
+</li></ul>
 </blockquote>
 
 <blockquote>
@@ -379,4 +373,5 @@ those with <a href="#height">fixed heights</a> always face the viewer.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 February 2025</address>
-</body></html> 
+ 
+</body></html>
