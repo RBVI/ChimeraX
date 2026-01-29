@@ -74,7 +74,7 @@ class DockPrepTool(ToolInstance):
         self.del_alt_locs_button = QCheckBox("Delete non-current alternate locations")
         self.del_alt_locs_button.setChecked(settings.del_alt_locs)
         layout.addWidget(self.del_alt_locs_button, alignment=Qt.AlignLeft)
-        self.del_missing_backbone_button = QCheckBox("Delete polymeric residues with incomplete backbones")
+        self.del_missing_backbone_button = QCheckBox("Delete residues with incomplete backbones")
         self.del_missing_backbone_button.setChecked(settings.del_missing_backbone)
         layout.addWidget(self.del_missing_backbone_button, alignment=Qt.AlignLeft)
         self.standardize_button = QCheckBox('"Standardize" certain residue types:')

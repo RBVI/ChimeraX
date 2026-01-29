@@ -9,6 +9,7 @@ def start_server(runs_directory, boltz_exe, host = None, port = 30172,
     server_socket.bind((host, port))
 
     server_socket.listen()
+    log(f'Boltz server listening at {host}, port {port}')
 
     prediction_queue = create_prediction_queue(gpus)
     
