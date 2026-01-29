@@ -1347,8 +1347,9 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
             "While the '%s' mouse mode (below) is active, you can move the ligand with the right mouse"
             " to place its center where you want the search focused.  The ligand must be selected"
             " (green outline) to be moved.  Once satified with the search focus, switch to the '%s'"
-            " mouse mode to use the right mouse to adjust the bounds of the search area.  You can switch"
-            " between centering/focusing and bounds adjustment as needed.  When satisified with the search"
+            " mouse mode to use the right mouse to adjust the bounds of the search area.  Drag the"
+            " <i>faces</i> of the box to adjust the bounds.  You can switch"
+            " between centering/focusing and bounds adjustment as needed.  When satisfied with the search"
             " area, click the '%s' button to fit the ligand." % (self.move_text, self.bounds_text,
                 self.search_button_label)
         )
@@ -1886,7 +1887,7 @@ Choices are:
             existing_r = receptor.find_residue(chain_id, res_num)
             if existing_r is not None:
                 choices = ([] if existing_r.neighbors else ["Replace existing residue (%s)" % existing_r]) \
-                    + ["Use next available number", "Return to input/launcher dialog" ]
+                    + ["Use next available number", "Return to Fit Ligand dialog" ]
                 choice, okayed = ResnumConflictDialog(res_num, chain_id, choices,
                     parent=self.tool_window.ui_area).run()
                 if not okayed:
@@ -2096,7 +2097,7 @@ class ResnumConflictDialog(QDialog):
         self.choice_buttons[0].setChecked(True)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
-        bbox = qbbox(qbbox.Ok | qbbox.Cancel)
+        bbox = qbbox(qbbox.Ok)
         bbox.accepted.connect(lambda dlg=self: dlg.done(dlg.Accepted))
         bbox.rejected.connect(lambda dlg=self: dlg.done(dlg.Rejected))
         layout.addWidget(bbox)
