@@ -1539,6 +1539,10 @@ class PickBlobDialog(QDialog):
             self.show()
             from chimerax.ui import tool_user_error
             return tool_user_error("No volume blob picked")
+        if self._inverted_map is not None:
+            from chimerax.core.commands import run
+            run(self.session, f"close {self._inverted_map.atomspec}")
+            # _check_still_valid callback should set _inverted_map to None
         if self.verify_center:
             VerifyLFCenterDialog(self.session, center, *self.non_center_args)
         else:
