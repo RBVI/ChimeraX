@@ -1481,7 +1481,8 @@ class PickBlobDialog(QDialog):
         hide_density_layout.addStretch(1)
         self.hide_density = QCheckBox("Hide density within ")
         self.hide_density.setChecked(False)
-        self.hide_density.toggled.connect(self._hide_density)
+        # 'clicked' instead of 'toggled' so that _models_removed_cb can set state without callback
+        self.hide_density.clicked.connect(self._hide_density)
         hide_density_layout.addWidget(self.hide_density)
         self.hide_dist = QDoubleSpinBox()
         self.hide_dist.setRange(0.5, 5.0)
@@ -1507,6 +1508,7 @@ class PickBlobDialog(QDialog):
         self.new_marker_handler = get_triggers().add_handler('changes', self._new_marker_check)
         self._current_marker = None
         self._creating_markers = False
+        self._inverted_map = None
 
         self.show()
 
@@ -1517,6 +1519,10 @@ class PickBlobDialog(QDialog):
         self.mouse_handler.remove()
         self.remove_models_handler.remove()
         self.new_marker_handler.remove()
+        if self._inverted_map is not None:
+            from chimerax.core.commands import run
+            # The "wait 1" is to prevent closing a model while a REMOVE_MODELS trigger might be resolving
+            run(self.session, f"wait 1; close {self._inverted_map.atomspec}")
         return super().closeEvent(event)
 
     def launch(self):
@@ -1540,17 +1546,26 @@ class PickBlobDialog(QDialog):
         self.close()
 
     def _check_still_valid(self, trig_name, removed_models):
+        inverted_removed = self._inverted_map in removed_models
         for rm in removed_models:
             if rm in self.check_models:
                 self.close()
                 break
+        else:
+            if inverted_removed:
+                self._inverted_map = None
+                self.hide_density.setChecked(False)
+                from chimerax.core.commands import run
+                run(self.session, f"show {self.map.atomspec}")
 
     def _hide_density(self, hide):
         from chimerax.core.commands import run
+        if self._inverted_map is None:
+            self._inverted_map = run(self.session, f"volume zone {self.map.atomspec} near #!{self.receptor.id_string} range {self.hide_dist.value()} invert true newMap true")
         if hide:
-            run(self.session, f"surface zone {self.map.atomspec} near #!{self.receptor.id_string} distance {self.hide_dist.value()}; surface invert {self.map.atomspec}")
+            run(self.session, f"show {self._inverted_map.atomspec}; hide {self.map.atomspec}")
         else:
-            run(self.session, f"surface unzone {self.map.atomspec}")
+            run(self.session, f"hide {self._inverted_map.atomspec}; show {self.map.atomspec}")
 
     def _mouse_mode_changed(self, trig_name, trig_data):
         button, modifiers, mode = trig_data
