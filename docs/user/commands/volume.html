@@ -53,7 +53,7 @@ Volume data can be opened with the command
 and saved to a file with <a href="save.html"><b>save</b></a>.
 By default, a data set will be displayed automatically if it does not exceed
 a certain size, and the initial display may be as an isosurface or as a
-single plane (<a href="#sampling">details...</a>).
+single plane (<a href="#sampling">initial display details...</a>).
 Many settings for newly opened data, including the size limits
 controlling these behaviors, can be customized with the
 <a href="#defaultvalues"><b>volume defaultvalues</b></a> command.
@@ -192,28 +192,28 @@ here grouped into categories:
 <h3 class="usage"><b>General Display Options</b> &nbsp;&nbsp;&nbsp;
 (Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <b>show</b>
   <br>Display the volume model.
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border="1" src="../tools/shortcut-icons/showmap.png" alt="computer generated image"></a>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <b>hide</b>
   <br>Undisplay the volume model.
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
 <img class="icon" border="1" src="../tools/shortcut-icons/hidemap.png" alt="computer generated image"></a>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <b>toggle</b>  
   <br>
   Of the specified volume models,
   show those that are hidden and hide those that are shown.
 </blockquote>
 <blockquote>
-<a href="#top" class="nounder">&bull;</a>
+<a href="#top" aria-label="volume top" class="nounder">&bull;</a>
 <a name="style"><b>style</b> &nbsp;surface | mesh | image</a>
 <br>Designate the style of display:
 the <b>surface</b> and <b>mesh</b> modes show isosurfaces (contour surfaces), 
@@ -227,14 +227,14 @@ with varying intensity and opacity.
 <img class="icon" border="1" src="../tools/shortcut-icons/mapimage.png" alt="computer generated image"></a>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="close"><b>close</b></a> &nbsp;surface | image
 <br>
 Close submodels with display style <b>surface</b>
 (including both surface and mesh) or <b>image</b>.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="pickable"><b>pickable</b></a> &nbsp;true | false
 <br>
 Whether a volume model should be <a href="../selection.html">selectable</a>
@@ -252,7 +252,7 @@ any previous assignments for that style.
 See also: <a href="#dispsurf">surface and mesh display options</a>,
 <a href="#dispsolid">image display options</a>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="level"><b>level</b> &nbsp;<i>threshold-level</i></a>&nbsp;
   <br>Place a <b><i>threshold</i></b>
   for mapping data values to the display. Can be given multiple times
@@ -284,10 +284,10 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
   in the graphics window.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="rmsLevel"><b>rmsLevel</b> &nbsp;<i>threshold-level</i></a>&nbsp;
   <br>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="sdLevel"><b>sdLevel</b> &nbsp;<i>threshold-level</i></a>&nbsp;
   <br>
   Same as <a href="#level"><b>level</b></a>, except with <i>threshold-level</i>
@@ -300,7 +300,7 @@ See also: <a href="#dispsurf">surface and mesh display options</a>,
 <a href="measure.html#mapstats"><b>measure mapstats</b></a>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="color"></a>
   <b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;
   <br>Assign <a href="#level">threshold</a> color.
@@ -326,7 +326,7 @@ only the ordering of each type of specification (levels or colors)
 is significant. If multiple colors are specified for multiple pre-existing
 levels, they are paired in order of increasing level value.
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="initialColors"></a>
   <b>initialColors</b> &nbsp;<i>color-list</i>
   <br>
@@ -342,14 +342,14 @@ The factory defaults are <img src="mapcolors.png" alt="computer generated image"
 See also: <a href="colortables.html#map">initial colors</a>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="brightness"><b>brightness</b> &nbsp;<i>value</i></a>&nbsp;
   <br>Brightness scales the intensity of the <a href="#color">color</a> 
   (default <b>1.0</b>). A value greater than 1.0 may be used, but the RGB color 
   components multiplied by the value are clamped to the range 0.0&ndash;1.0.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="transparency"><b>transparency</b> &nbsp;<i>value</i></a>&nbsp;
   <br>Transparency values range from 0.0 (fully opaque) 
   to 1.0 (fully transparent).
@@ -365,13 +365,13 @@ See also: <a href="colortables.html#map">initial colors</a>
   (as a fraction of the dataset's shortest dimension, 
   range 0.0&ndash;1.0, default <b>0.5</b>) 
   that gives the transparency indicated by threshold
-  height on the histogram (<a href="#soliddetails">details...</a>).
+  height on the histogram (<a href="#soliddetails">image display details...</a>).
   By default, more transparent voxels are made dimmer
   (see <a href="#dimvox"><b>dimTransparentVoxels</b></a>).
   </li></ul>
 </blockquote>
 <blockquote>
-<a href="#top" class="nounder">&bull;</a>
+<a href="#top" aria-label="volume top" class="nounder">&bull;</a>
 <a name="change"></a><b>change</b> &nbsp;surface | image
 <br>
 The <b>change</b> option is only needed to change settings of a
@@ -388,7 +388,7 @@ the setting applies to whichever style is currently shown.
 <p></p>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="encloseVolume"><b>encloseVolume</b> &nbsp;<i>volume</i></a>
   <br>Automatically set <b>surface</b> or <b>mesh</b>
   <a href="#level">threshold level</a> to enclose
@@ -414,7 +414,7 @@ the setting applies to whichever style is currently shown.
 <a href="measure.html#volume"><b>measure volume</b></a>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="fastEncloseVolume"><b>fastEncloseVolume</b> &nbsp;<i>volume</i></a>
   <br>Automatically set <b>surface</b> or <b>mesh</b>
   <a href="#level">threshold level</a> to enclose
@@ -438,7 +438,7 @@ the setting applies to whichever style is currently shown.
 <a href="measure.html#volume"><b>measure volume</b></a>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="outline"><b>showOutlineBox</b> &nbsp;true | <b>false</b></a>
   <br>Outline the bounding box of the 
   current <a href="../tools/volumeviewer.html#region">display region</a>.
@@ -446,21 +446,21 @@ the setting applies to whichever style is currently shown.
   <img class="icon" border="1" src="../tools/shortcut-icons/outlinebox.png" alt="computer generated image"></a>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <b>outlineBoxRgb</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
   <br>Assign a color to the <a href="#outline">outline box</a>
   (default <b>white</b>). Any transparency in the color will be ignored.
 </blockquote>
 <!-- currently not available, ticket #1315
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
  <b>outlineBoxLinewidth</b> &nbsp;<i>width</i>
  <br>Set pixel linewidth of the <a href="#outline">outline box</a>.
  The <i>width</i> must be a positive integer (default <b>1</b>).
 </blockquote>
 -->
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="calculateSurfaces"></a>
   <b>calculateSurfaces</b> &nbsp;true | <b>false</b>
 <br>
@@ -481,7 +481,7 @@ See: <a href="usageconventions.html#cxc-files">ChimeraX command files</a>
 <h3 class="usage"><b>Sampling and Size Options</b> &nbsp;&nbsp;&nbsp;
 (Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <b>step</b> &nbsp;<i>N</i> | <i>Nx,Ny,Nz</i>
   <br>Step values indicate sampling density; a step of 1 
   means all data points are used to generate the display, 
@@ -499,13 +499,13 @@ See also:
 <img class="icon" border="1" src="../tools/shortcut-icons/step2.png" alt="computer generated image"></a>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="autostep"><b>limitVoxelCount</b> &nbsp;<b>true</b> | false</a>
   <br>Automatically adjust <a href="#sampling">step size</a> so that no more
   than the <a href="#voxmax">specified voxel limit</a> is displayed.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="voxmax"><b>voxelLimit</b> &nbsp;<i>limit</i></a>
   <br>Set the maximum number of Mvoxels to be displayed (default <b>1.0</b>)
   when <a href="#autostep"><b>limitVoxelCount</b></a> is set to true.
@@ -514,33 +514,33 @@ The remaining options in this section are global and apply to all volume models,
 regardless of which are specified:
 <!-- but are not (yet) saved in preferences -->
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="dispopen"><b>showOnOpen</b> &nbsp;<b>true</b> | false</a>
   <br>Automatically display a data set when it is opened if it does not
-  exceed a <a href="#dispsize">specified size</a>.
+  exceed a <a href="#dispsize">specified data size</a>.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="dispsize"><b>voxelLimitForOpen</b> &nbsp;<i>size</i></a> 
   <br>Set the data size limit in Mvoxels below which data should be
   automatically displayed when opened (default <b>256.0</b>) when
   <a href="#dispopen"><b>showOnOpen</b></a> is set to true.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="dispplane"><b>showPlane</b> &nbsp;<b>true</b> | false</a>
   <br>Initially display just a single plane (normal to the Z axis) 
-  of a data set if it exceeds a <a href="#planesize">specified size</a>.
+  of a data set if it exceeds a <a href="#planesize">specified plane size</a>.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="planesize"><b>voxelLimitForPlane</b> &nbsp;<i>size</i></a>
   <br>Set the data size limit in Mvoxels above which a single plane of
   the data should be initially displayed (default <b>256.0</b>) when
   <a href="#dispplane"><b>showPlane</b></a> is set to true.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <b>dataCacheSize</b> &nbsp;<i>size</i>
   <br>Set how much memory in Mb should be dedicated to volume data 
   (default is half the physical memory in the computer). 
@@ -559,7 +559,7 @@ regardless of which are specified:
 <h3 class="usage"><b>Dimension and Scale Options</b> &nbsp;&nbsp;&nbsp;
 (Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <b>region</b> &nbsp;all | <i>i1,j1,k1,i2,j2,k2</i>
   <br>Show the full data set (specified with <b>all</b>)
   or the data region with grid indices 
@@ -577,19 +577,19 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
 </blockquote>
 <!-- not supported
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="name"><b>nameRegion</b> &nbsp;<i>name</i></a>
   <br>Assign <i>name</i> to the currently displayed region.
 </blockquote>
 -->
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="origin"><b>origin</b> &nbsp;<i>x,y,z</i></a>
   <br>Place the grid origin at coordinates <i>x,y,z</i> (numbers separated
   by commas but not spaces).
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="originIndex"><b>originIndex</b> &nbsp;<i>i,j,k</i></a>
   <br>Place the coordinate origin (0,0,0)
    at grid indices <i>i,j,k</i> (numbers separated by commas but not spaces).
@@ -597,7 +597,7 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
    required to coincide with a grid point or even to fall within the grid.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <b>voxelSize</b> &nbsp;<i>S</i> | <i>Sx,Sy,Sz</i>
   <br>Voxel size indicates the scale of the data set, the spacing of
   points in units of distance.  If a single number is supplied, it is
@@ -609,7 +609,7 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
 </blockquote>
 
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="symmetry"><b>symmetry</b> &nbsp;<i>sym-type</i></a>
   <br>Assign the specified symmetry to the volume data set.
   This information is retained in files <a href="save.html">saved</a> 
@@ -725,7 +725,7 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
   </li></ul>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="axis"></a><b>axis</b>
   &nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>
   <br>
@@ -734,7 +734,7 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
   
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="center"></a><b>center</b> 
   &nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>
   <br>
@@ -744,7 +744,7 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
   This option is overridden by <a href="#centerIndex"><b>centerIndex</b></a>.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="centerIndex"><b>centerIndex</b>
   [&nbsp;<i>i</i>&nbsp;|&nbsp;<i>i,j,k</i>&nbsp;]</a>
   <br>
@@ -756,7 +756,7 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
   This option overrides <a href="#center"><b>center</b></a>.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="coordinateSystem"></a><b>coordinateSystem</b> 
   &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
   <br>
@@ -764,7 +764,7 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
   <a href="#axis">axis</a> and <a href="#center">center</a> of symmetry.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="dump"><b>dumpHeader</b> &nbsp;true | <b>false</b></a>
   <br>Whether to write the file header contents (if any) of a map read from 
   MRC or CCP4 format to the <a href="../tools/log.html"><b>Log</b></a>.
@@ -778,7 +778,7 @@ the <b>crop volume</b> <a href="ui.html#mousemode">mouse mode</a>
 (Usage:&nbsp;<a href="#top"><b>volume</b></a>&nbsp;&nbsp;<i>model-spec</i>&nbsp;&nbsp;<i>options</i>)</h3>
 See also: <a href="ui.html#view"><b>ui view</b></a>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <b>planes</b> &nbsp;<i>axis</i>[,<i>start</i>[,<i>end</i>[,<i>increment</i>[,<i>depth</i>]]]]
   <br>Sequentially display slabs <i>depth</i> planes thick along the
   specified data <i>axis</i> (<b>x</b>,<b>y</b>, or <b>z</b>) starting from
@@ -817,7 +817,7 @@ and data value in a pop-up balloon.
 </p>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="expandSinglePlane"><b>expandSinglePlane</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false</a>
   <br>
   Expand a single-plane display
@@ -825,7 +825,7 @@ and data value in a pop-up balloon.
   This option does not apply to <a href="#orthoplanes">orthogonal planes</a>.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="orthoplanes"><b>orthoplanes</b></a>
   &nbsp;xyz&nbsp;|&nbsp;xy&nbsp;|&nbsp;yz&nbsp;|&nbsp;xz&nbsp;|&nbsp;off
   [&nbsp;<b>positionPlanes</b>&nbsp;&nbsp;<i>i,j,k</i>&nbsp;]
@@ -851,7 +851,7 @@ and data value in a pop-up balloon.
 <img class="icon" border="1" src="../tools/mouse-icons/moveplanes.png" alt="computer generated image"></a>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="boxfaces"><b>boxFaces</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false</a>
   <br>Show data values on the six box faces of the
   current <a href="../tools/volumeviewer.html#region">display region</a>.
@@ -878,23 +878,23 @@ both depict isosurfaces. See also: <a href="marker.html#fromMesh"><b>marker
 fromMesh</b>
 </a></p>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="smoothing"><b>surfaceSmoothing</b> &nbsp;true | <b>false</b></a>
   <br>Whether to smooth surface and mesh displays.
   Smoothing entails moving each vertex
   a <a href="#smoothfact">specified fraction</a> 
   of the way toward the average position of its neighbors
-  a <a href="#smoothiter">specified number</a> of times.
+  during each of a <a href="#smoothiter">specified number of iterations</a>.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="smoothiter"><b>smoothingIterations</b> &nbsp;<i>N</i></a>
   <br>How many iterations of smoothing to perform (default <b>2</b>)
   when <a href="#smoothing"><b>surfaceSmoothing</b></a> is set to true.
   Each vertex is moved once per iteration.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="smoothfact"><b>smoothingFactor</b> &nbsp;<i>f</i></a>
   <br>How far to move each vertex 
   when <a href="#smoothing"><b>surfaceSmoothing</b></a> is set to true.
@@ -904,11 +904,11 @@ fromMesh</b>
   connected to it by triangle edges.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="subdivide"><b>subdivideSurface</b> &nbsp;true | <b>false</b></a>
   <br>Whether to subdivide each triangle in surface and mesh displays
-  into four smaller triangles a
-  <a href="#sublevels">specified number</a> of times.
+  into four smaller triangles
+  during each of a <a href="#sublevels">specified number of cycles</a>.
   A triangle is subdivided by connecting the midpoints of its edges.
   Subdivision can help to produce smoother surfaces 
   when combined with the <a href="#smoothing"><b>surfaceSmoothing</b></a> 
@@ -916,7 +916,7 @@ fromMesh</b>
   spacing using <a href="#resample"><b>volume resample</b></a>.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="sublevels"><b>subdivisionLevels</b> &nbsp;<i>j</i></a>
   <br>How many times to subdivide triangles when
   <a href="#subdivide"><b>subdivideSurface</b></a> is set to true.
@@ -925,7 +925,7 @@ fromMesh</b>
   (default <b>1</b>).
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <b>squareMesh</b> &nbsp;<b>true</b> | false
   <br>Display only a subset of the lines in the triangular mesh.  
   Lines in the square mesh show the intersection of the 
@@ -933,14 +933,14 @@ fromMesh</b>
 </blockquote>
 <!-- currently not available, ticket #1315
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
  <b>lineThickness</b> &nbsp;<i>width</i>
  <br>Set pixel linewidth used in mesh displays. The <i>width</i>
  must be a positive integer (default <b>1</b>).
 </blockquote>
 -->
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="meshLighting"><b>meshLighting</b> &nbsp;<b>true</b> | false</a>
   <br>Make the inside of a mesh-enclosed volume dimmer than the outside
   by varying the brightness according to the angle
@@ -954,7 +954,7 @@ fromMesh</b>
 See also: <a href="material.html"><b>material</b></a>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="two-sided"><b>twoSidedLighting</b> &nbsp;<b>true</b> | false</a>
   <br>Light both sides of surface displays.
   Otherwise, only the outside of a surface-enclosed volume will be lit
@@ -965,7 +965,7 @@ See also: <a href="material.html"><b>material</b></a>
   brightness is maximal when the normal is parallel to the line of sight.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="flipNormals"><b>flipNormals</b> &nbsp;<b>true</b> | false</a>
   <br>Affects surface displays when 
   <a href="#two-sided"><b>twoSidedLighting</b></a> is set to false,
@@ -983,7 +983,7 @@ See also: <a href="material.html"><b>material</b></a>
   values is always treated as the outside.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="capFaces"><b>capFaces</b> &nbsp;<b>true</b> | false</a>
   <br>Cover the faces of the volume data box where high values would be exposed.
 </blockquote>
@@ -1000,7 +1000,7 @@ See also: <a href="material.html"><b>material</b></a>
   The following options apply to this style.
 </p>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="imageMode"></a>
   <b>imageMode</b> &nbsp;<i>mode</i> 
 <br>
@@ -1061,7 +1061,7 @@ along X, Y, or Z (whichever is least),
 and spacing equal to the smallest of the X, Y, or Z spacing of the data grid.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="backingColor"></a>
   <b>backingColor</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;
   <br>
@@ -1072,7 +1072,7 @@ when the <a href="set.html#bgColor">background color</a>
 is white or some other light color.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="cmode"></a>
   <b>colorMode</b> &nbsp;<i>cmode</i>
   <br>Specify color pixel format (OpenGL texture format).
@@ -1090,7 +1090,7 @@ is white or some other light color.
   See also: <a href="graphics.html#quality"><b>graphics quality</b></a>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="pmode"></a>
   <b>projectionMode</b> &nbsp;<i>pmode</i>
   <br>Specify projection mode to adjust the memory-efficiency of display.
@@ -1130,7 +1130,7 @@ See also:
 <img class="icon" border="1" src="../tools/shortcut-icons/raycasting.svg" alt="computer generated image"></a>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="planeSpacing"></a>
   <b>planeSpacing</b> &nbsp;<i>spacing</i>
   <br>
@@ -1144,7 +1144,7 @@ with possible values:
   </li></ul>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="rayStep"></a>
   <b>rayStep</b> &nbsp;<i>fraction</i>
   <br>
@@ -1154,7 +1154,7 @@ samples along each ray, expressed as a <i>fraction</i> of the ray length
 In other words, 1/<i>fraction</i> is the number of samples along each ray.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="dimvox"><b>dimTransparentVoxels</b> &nbsp;<b>true</b> | false</a>
 <br>
 If <b>true</b> (default),
@@ -1164,7 +1164,7 @@ makes a volume appear brighter because less light is blocked.
 The <a href="#appearance"><b>appearance</b></a> option also adjusts this setting.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="colormapExtendRight"></a>
   <b>colormapExtendRight</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
   <br>
@@ -1176,7 +1176,7 @@ from the rightmost threshold to the maximum data value
 at the far right of the histogram (default <b>true</b>).
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="colormapExtendLeft"></a>
   <b>colormapExtendLeft</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
   <br>
@@ -1188,7 +1188,7 @@ from the leftmost threshold to the minimum data value
 at the far left of the histogram (default <b>false</b>).
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="colormapOnGpu"></a>
   <b>colormapOnGpu</b> &nbsp;true&nbsp;|&nbsp;false
 <br>
@@ -1202,7 +1202,7 @@ Colormapping with the GPU may also give a better, less noisy appearance because
 the data values rather than the resulting color values are interpolated.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="colormapSize"></a>
   <b>colormapSize</b> &nbsp;<i>N</i>
 <br>
@@ -1213,7 +1213,7 @@ is ignored and sizes 256 and 65536 are used instead
 so that each data value has its own color.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="fullRegionOnGpu"></a>
   <b>fullRegionOnGpu</b> &nbsp;true&nbsp;|&nbsp;false
 <br>
@@ -1228,7 +1228,7 @@ otherwise, updating colors for the full region even when only a smaller region
 is shown may slow performance significantly.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="blendOnGpu"></a>
   <b>blendOnGpu</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
 <br>
@@ -1238,7 +1238,7 @@ should be done on the GPU (if true) or CPU (if <b>false</b>; default).
 Color blending on the GPU is about an order of magnitude faster.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="maximumintensity">
   <b>maximumIntensityProjection</b> &nbsp;true | <b>false</b></a>
   <br>At each pixel, display the the most intense color value 
@@ -1252,7 +1252,7 @@ Color blending on the GPU is about an order of magnitude faster.
   color components under the same pixel actually come from different spots.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="btcorr"></a>
   <b>btCorrection</b> &nbsp;true | <b>false</b>
   <br>Correct brightness and transparency for the viewing angle.
@@ -1266,7 +1266,7 @@ Color blending on the GPU is about an order of magnitude faster.
   The brightness correction remedies this, but doubles rendering time.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <b>minimalTextureMemory</b> &nbsp;true | <b>false</b>
   <br>Reuse a single 2D texture for image displays 
   (in <a href="#pmode">projection modes</a> other than 3d)
@@ -1276,7 +1276,7 @@ Color blending on the GPU is about an order of magnitude faster.
   but can degrade interactive response.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <b>linearInterpolation</b> &nbsp;<b>true</b> | false
   <br>Linearly interpolate brightness and transparency
   between voxels in image displays.
@@ -1284,7 +1284,7 @@ Color blending on the GPU is about an order of magnitude faster.
   but speed up rendering, depending on the graphics hardware.
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="appearance"></a>
   <b>appearance</b> &nbsp;<i>preset-name</i>
 <br>
@@ -1354,16 +1354,16 @@ and analysis:
 </li></ul>
 </blockquote>
 <blockquote>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <a name="nameAppearance"></a>
   <b>nameAppearance</b> &nbsp;<i>preset-name</i>
   <br>
-  <a href="#top" class="nounder">&bull;</a>
+  <a href="#top" aria-label="volume top" class="nounder">&bull;</a>
   <b>nameForget</b> &nbsp;<i>preset-name</i>
 <br>
 Save (or forget a previously saved) preset for
 the <b>image</b> <a href="#style">display style</a>,
-including <a href="#general">threshold</a> levels and colors,
+including <a href="#level">threshold</a> levels and colors,
 <a href="#brightness"><b>brightness</b></a>,
 <a href="#transparency"><b>transparency</b></a>, and
 <a href="#dimvox"><b>dimTransparentVoxels</b></a> settings.
@@ -1587,7 +1587,7 @@ and/or above a specified maximum
 &ndash; limit the display to a zone around specified atoms,
 or make a new map with values of zero at grid points within or beyond the zone
 </li></ul>
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="add"><b>volume add</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>scaleFactors</b>&nbsp;&nbsp;<i>f1,f2,...</i>&nbsp;|&nbsp;fromlevels&nbsp;]
 [&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
@@ -1613,7 +1613,7 @@ for each map (default <b>1.0</b>), specified by either:
 <li>as many values as input maps, separated by commas but not spaces
 </li><li>the word <b>fromlevels</b>, meaning to scale each map by 1/<i>level</i>, 
 where <i>level</i> is the highest surface
-<a href="#general">threshold</a> (contour level) of that map;
+<a href="#level">threshold</a> (contour level) of that map;
 each map must have a surface with nonzero highest threshold level
 </li></ul>
 <p>
@@ -1624,7 +1624,7 @@ If <i>gridmap</i> is not specified, it defaults to the first in
 The input maps are resampled on the grid by trilinear interpolation,
 and the resulting values summed for each grid point.
 Note resampling causes some loss in resolution
-(<a href="#notes">details...</a>).
+(<a href="#notes">resampling details...</a>).
 <a name="gridmap-related">Further options related to <i>gridmap</i></a>:
   </p><ul>
   <li><b>spacing</b> &ndash; use a finer or coarser grid spacing;
@@ -1633,7 +1633,7 @@ Note resampling causes some loss in resolution
   (separated by commas but not spaces), they
   are used along the X, Y, and Z axes, respectively. 
   Using a finer grid reduces the loss of resolution from resampling
-  (<a href="#notes">details...</a>).
+  (<a href="#notes">resampling details...</a>).
   </li><li><b>boundingGrid</b>
   &ndash; whether to adjust (extend or shrink) the grid of <i>gridmap</i>
   to bound the input maps (default <b>true</b> when adding maps
@@ -1671,7 +1671,7 @@ fail for lack of memory.  The whole new map must fit in memory.
 </p>
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="bin"><b>volume bin</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>binSize</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>N<sub>x</sub>,N<sub>y</sub>,N<sub>z</sub></i>&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
@@ -1685,7 +1685,7 @@ grid points in each dimension can be specified by supplying three integers
 <i>N<sub>x</sub>,N<sub>y</sub>,N<sub>z</sub></i> separated by commas only.
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="boxes"><b>volume boxes</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 <b>centers</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>size</b>&nbsp;&nbsp;<i>d</i>&nbsp;|&nbsp;<b>isize</b>&nbsp;&nbsp;<i>n</i>&nbsp;]
@@ -1710,7 +1710,7 @@ Marker/atom size can be changed with the
 <a href="size.html"><b>size</b></a> command.
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="copy"><b>volume copy</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>valueType</b>&nbsp;&nbsp;<i>value-type</i>&nbsp;]
 [&nbsp;<a href="#vop-options"><b>subregion</b></a>&nbsp;&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
@@ -1729,7 +1729,7 @@ See also: <a href="combine.html"><b>combine</b></a>,
 <a href="mcopy.html"><b>mcopy</b></a>
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="cover"><b>volume cover</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>atomBox</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;[&nbsp;<b>pad</b>&nbsp;&nbsp;<i>d</i>&nbsp;]]
 [&nbsp;<b>box</b>&nbsp;&nbsp;<i>x1,y1,z1,x2,y2,z2</i>&nbsp;]&nbsp;[&nbsp;<b>x</b>&nbsp;&nbsp;<i>x1,x2</i>&nbsp;]&nbsp;[&nbsp;<b>y</b>&nbsp;&nbsp;<i>y1,y2</i>&nbsp;]&nbsp;[&nbsp;<b>z</b>&nbsp;&nbsp;<i>z1,z2</i>&nbsp;]
@@ -1771,7 +1771,7 @@ or automatically with
 <a href="measure.html#symmetry"><b>measure symmetry</b></a>.
 <p>
 Values from symmetry copies are determined by trilinear interpolation
-(with potential loss in resolution, see <a href="#notes">details</a>).
+(with potential loss in resolution, see <a href="#notes">resampling details</a>).
 Where symmetries and periodicity give multiple copies of the input map
 overlapping a grid point, the average value will be assigned.
 The maximum difference between values from different copies at a grid point
@@ -1795,7 +1795,7 @@ inherent in computer calculations.
 </p>
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="erase"><b>volume erase</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 <b>center</b> &nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;
 <b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;
@@ -1821,7 +1821,7 @@ See <a href="../tools/maperaser.html"><b>Map Eraser</b></a>
 for placing the sphere interactively.
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="falloff"><b>volume falloff</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>iterations</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
@@ -1835,7 +1835,7 @@ thus assigned a new value at each iteration.
 Thanks to Greg Pintilie for the initial implementation.
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="flatten"><b>volume flatten</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>method</b>&nbsp;&nbsp;<b>multiply</b>&nbsp;|&nbsp;divide&nbsp;]
 [&nbsp;<b>fitregion</b>&nbsp;&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;|&nbsp;<b>all</b>&nbsp;]
@@ -1862,7 +1862,7 @@ or a subregion specified by grid indices
 Grid indices must be integers separated by commas but not spaces.
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="flip"><b>volume flip</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>axis</b>&nbsp;&nbsp;x&nbsp;|&nbsp;y&nbsp;|&nbsp;<b>z</b>&nbsp;|&nbsp;xy&nbsp;|&nbsp;yz&nbsp;|&nbsp;xyz&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
@@ -1871,7 +1871,7 @@ Reverse data planes along a specified <b>axis</b> (default <b>z</b>,
 reversing the order of the Z planes).
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="fourier"><b>volume fourier</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>phase</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
@@ -1882,7 +1882,7 @@ magnitude map; if <b>phase</b> is true, generate a map of phase
 values (&ndash;&pi; to &pi;) instead.
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="gaussian"><b>volume gaussian</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>sDev</b>&nbsp;&nbsp;<i>&sigma;</i>&nbsp;|&nbsp;<i>&sigma;<font size="-1">x</font>,&sigma;<font size="-1">y</font>,&sigma;<font size="-1">z</font>&nbsp;</i>]
 [&nbsp;<b>bfactor</b>&nbsp;&nbsp;<i>B</i>&nbsp;]
@@ -1928,7 +1928,7 @@ See also:
 </p>
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="laplacian"><b>volume laplacian</b></a> &nbsp;<i>volume-spec</i>
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
@@ -1941,7 +1941,7 @@ Finite differences v(i-1)-2*v(i)+v(i+1) along each axis are used,
 and voxels at the edge of the box are set to zero.
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="localCorrelation"><b>volume localCorrelation</b></a>
 &nbsp;<i>map</i> &nbsp;<i>othermap</i>&nbsp;
 [&nbsp;<b>windowSize</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
@@ -1954,7 +1954,7 @@ to the box center.  The sliding box is based on the grid
 of the first map, and <i>N</i> = <b>5</b> grid units by default.
 If the grids of the two input maps do not coincide, the values of
 the second map will be interpolated
-(with potential loss in resolution, see <a href="#notes">details</a>).
+(with potential loss in resolution, see <a href="#notes">resampling details</a>).
 The <b>subtractMean</b> option specifies whether to subtract the mean
 of the values in the window from each value in the window
 before calculating the correlation.
@@ -1962,7 +1962,7 @@ The output map will be <i>N</i>&ndash;1 smaller in each dimension than
 the first map.
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="mask"><b>volume mask</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 <b>surfaces</b> &nbsp;<i>surface-spec</i>&nbsp;
 [&nbsp;<b>fullMap</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -1975,7 +1975,7 @@ the first map.
 [&nbsp;<b>fillOverlap</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#vop-options"><b>modelId</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 <blockquote>
-Mask a map to a surface (<a href="#masking">details...</a>). 
+Mask a map to a surface (<a href="#masking">masking details...</a>). 
 The <b>fullMap</b> option indicates making the new
 map dimensions the same as the full dimensions of the original map, even if 
 only a subregion is being displayed; otherwise (default), the new map
@@ -2032,7 +2032,7 @@ See also:
 </p>
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="maximum"><b>volume maximum</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>scaleFactors</b>&nbsp;&nbsp;<i>f1,f2,...</i>&nbsp;|&nbsp;fromlevels&nbsp;]
 [&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
@@ -2048,7 +2048,7 @@ Set each value to the maximum at that point in two or more input maps.
 See <a href="#add"><b>volume add</b></a> for descriptions of the options.
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="median"><b>volume median</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>binSize</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>N<sub>x</sub>,N<sub>y</sub>,N<sub>z</sub></i>&nbsp;]
 [&nbsp;<b>iterations</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
@@ -2068,7 +2068,7 @@ The <b>iterations</b> option indicates how many cycles of smoothing to
 perform (default <b>1</b>).
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="minimum"><b>volume minimum</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>scaleFactors</b>&nbsp;&nbsp;<i>f1,f2,...</i>&nbsp;|&nbsp;fromlevels&nbsp;]
 [&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
@@ -2084,7 +2084,7 @@ Set each value to the minimum at that point in two or more input maps.
 See <a href="#add"><b>volume add</b></a> for descriptions of the options.
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="morph"><b>volume morph</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>start</b>&nbsp;&nbsp;<i>start-fraction</i>&nbsp;]
 [&nbsp;<b>playStep</b>&nbsp;&nbsp;<i>increment</i>&nbsp;]
@@ -2117,9 +2117,9 @@ If the number of frames and step increment are more than needed to reach
 the <b>playRange</b> bounds (default is the entire range: <b>0.0,1.0</b>),
 the morph display will &ldquo;bounce&rdquo; back and forth.
 The <b>scaleFactors</b> keyword specifies a multiplier for each map
-(<a href="#scaleFactors">details...</a>).
+(<a href="#scaleFactors">scale factor details...</a>).
 The <b>constantVolume</b> option specifies adjusting the
-<a href="#general">threshold</a> (contour level)
+<a href="#level">threshold</a> (contour level)
 automatically to keep the enclosed volume constant.
 The <b>addMode</b> option specifies treating the second map as a delta
 to be added to the first instead of linearly interpolating between the two.
@@ -2127,7 +2127,7 @@ It is not recommended for inputs of &gt;2 maps.
 The <b>hideOriginalMaps</b> option specifies hiding the input maps.
 The <b>interpolateColors</b> option
 only applies when the maps have the same number of
-<a href="#general">thresholds</a>
+<a href="#level">thresholds</a>
 (contour levels for surface/mesh display,
 coloring control nodes for image display).
 </p><p>
@@ -2178,7 +2178,7 @@ See also:
 </p>
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="multiply"><b>volume multiply</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>scaleFactors</b>&nbsp;&nbsp;<i>f1,f2,...</i>&nbsp;|&nbsp;fromlevels&nbsp;]
 [&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
@@ -2196,7 +2196,7 @@ See <a href="#add"><b>volume add</b></a> for descriptions of the options.
 See also: <a href="#mask"><b>volume mask</b></a>
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="new"><b>volume new</b></a> [&nbsp;<i>map-name</i>&nbsp;]
 [&nbsp;<b>size</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>gridSpacing</b>&nbsp;&nbsp;<i>s</i>&nbsp;|&nbsp;<i>sx,sy,sz</i>&nbsp;]
@@ -2225,7 +2225,7 @@ or 32- or 64-bit floating-point (<b>float32</b> or <b>float64</b>).
 See also: <a href="#onesmask"><b>volume onesmask</b></a>
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="cutoctant"><b>volume ~octant</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<b>iCenter</b>&nbsp;<i>i,j,k</i>&nbsp;]
 [&nbsp;<b>fillValue</b>&nbsp;&nbsp;<i>value</i>&nbsp;]
@@ -2246,7 +2246,7 @@ for example, large negative values produce flatter surfaces where an
 octant has been cut away from a map of positive values.
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="octant"><b>volume octant</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>center</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;|&nbsp;<b>iCenter</b>&nbsp;<i>i,j,k</i>&nbsp;]
 [&nbsp;<b>fillValue</b>&nbsp;&nbsp;<i>value</i>&nbsp;]
@@ -2256,7 +2256,7 @@ Erase values outside the positive octant. Options are as described for
 <a href="#cutoctant"><b>volume ~octant</b></a> above.
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="onesmask"><b>volume onesmask</b></a> &nbsp;<i>surface-spec</i>&nbsp;
 [&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
 [&nbsp;<b>fullMap</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
@@ -2273,7 +2273,7 @@ Erase values outside the positive octant. Options are as described for
 [&nbsp;<a href="#vop-options"><b>modelId</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 <blockquote>
 Create a map with values of 1 bounded by a surface 
-(<a href="#masking">details...</a>).
+(<a href="#masking">masking details...</a>).
 The <b>onGrid</b> option allows creating the new map on the grid
 of another map specified by model number, <i>gridmap</i>, using either
 its full extents (<b>fullMap true</b>, default) or the smallest 
@@ -2305,7 +2305,7 @@ The remaining options are the same as described for
 <a href="shape.html"><b>shape</b></a>
 </p></blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="permuteAxes"><b>volume permuteAxes</b></a>
 &nbsp;<i>volume-spec</i>&nbsp;
 &nbsp;<i>axis-order</i>&nbsp;
@@ -2316,7 +2316,7 @@ any of the 6 ordered combinations of <b>x</b>, <b>y</b>, and <b>z</b>.
 The original order is <b>xyz</b>.
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="ridges"><b>volume ridges</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>level</b>&nbsp;&nbsp;<i>minimum</i>&nbsp;]
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
@@ -2330,7 +2330,7 @@ in the new map. The <b>level</b> keyword indicates a
 <i>minimum</i> value in the original map below which to
 automatically set the new value to 0, essentially ignoring those points
 in the skeletonization. The default <i>minimum</i> is the lowest display
-<a href="#general">threshold</a>
+<a href="#level">threshold</a>
 (contour level) in the original map.
 Viewing the new skeleton map with a threshold
 of 6-10 highlights ridgelike features in the original map.
@@ -2343,7 +2343,7 @@ target="_top"><b>Volume Tracer</b></a>
 -->
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="resample"><b>volume resample</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>onGrid</b>&nbsp;&nbsp;<i>gridmap</i>&nbsp;]
 [&nbsp;<b>spacing</b>&nbsp;&nbsp;<i>S</i>&nbsp;|&nbsp;<i>Sx,Sy,Sz</i>&nbsp;]
@@ -2355,7 +2355,7 @@ target="_top"><b>Volume Tracer</b></a>
 &nbsp;<a href="#vop-options"><i>new-map-options</i></a>
 <blockquote>
 Resample values to a different grid using trilinear interpolation.
-Resampling causes some loss in resolution (<a href="#notes">details...</a>).
+Resampling causes some loss in resolution (<a href="#notes">resampling details...</a>).
 One or both of the following options must be supplied:
 <ul>
 <li>use the grid of another map specified with <b>onGrid</b>,
@@ -2366,7 +2366,7 @@ used along all three axes; if three values are supplied
 (separated by commas but not spaces), they
 are used along the X, Y, and Z axes, respectively. 
 Using a finer grid reduces the loss of resolution from resampling
-(<a href="#notes">details...</a>).
+(<a href="#notes">resampling details...</a>).
 </li></ul>
 <p>
 The other arguments are as described
@@ -2374,7 +2374,7 @@ The other arguments are as described
 </p>
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="scale">
 <b>volume scale</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>shift</b>&nbsp;&nbsp;<i>constant</i>&nbsp;]
@@ -2411,7 +2411,7 @@ options of <b>volume</b></a>,
 </p>
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="sharpen"><b>volume sharpen</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>sDev</b>&nbsp;&nbsp;<i>&sigma;</i>&nbsp;|&nbsp;<i>&sigma;<font size="-1">x</font>,&sigma;<font size="-1">y</font>,&sigma;<font size="-1">z</font>&nbsp;</i>]
 [&nbsp;<b>bfactor</b>&nbsp;&nbsp;<i>B</i>&nbsp;]
@@ -2444,7 +2444,7 @@ See also:
 </p>
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="splitbyzone">
 <b>volume splitbyzone</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 <blockquote>
@@ -2458,7 +2458,7 @@ named by appending &ldquo;split&rdquo; to the name of the original map.
 See also: <a href="../tools/segment.html"><b>Segment Map</b></a>
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="subtract"><b>volume subtract</b></a>
 &nbsp;<i>map</i> &nbsp;<i>othermap</i>&nbsp;
 [&nbsp;<b>scaleFactors</b>&nbsp;&nbsp;<i>f1,f2</i>&nbsp;|&nbsp;fromlevels&nbsp;]
@@ -2481,7 +2481,7 @@ The <b>scaleFactors</b> option specifies multipliers for the two maps, either:
 separated by a comma but not a space
 </li><li>the word <b>fromlevels</b>, meaning to scale each map by 1/<i>level</i>, 
 where <i>level</i> is the highest surface
-<a href="#general">threshold</a> (contour level) of that map;
+<a href="#level">threshold</a> (contour level) of that map;
 each map must have a surface with nonzero highest threshold level
 </li></ul>
 <p>
@@ -2497,7 +2497,7 @@ If <i>gridmap</i> is not specified, it defaults to <i>map</i>.
 The input maps are resampled on the grid by trilinear interpolation,
 and the resulting values subtracted for each grid point.
 Note resampling causes some loss in resolution
-(<a href="#notes">details...</a>).
+(<a href="#notes">resampling details...</a>).
 </p><p>
 The remaining arguments are as described
 <a href="#gridmap-related">above</a> for <a href="#add"><b>volume add</b></a>,
@@ -2514,7 +2514,7 @@ the <a href="fitmap.html#subtractMaps"><b>subtractMaps</b> option of
 </p>
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="threshold"><b>volume threshold</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>minimum</b>&nbsp;&nbsp;<i>min</i>&nbsp;]
 [&nbsp;<b>set</b>&nbsp;&nbsp;<i>newmin</i>&nbsp;]
@@ -2529,7 +2529,7 @@ replace all values that are above a <b>maximum</b> value (<i>max</i>)
 with <i>newmax</i> (default equal to <i>max</i>).
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="tile"><b>volume tile</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>axis</b>&nbsp;&nbsp;x&nbsp;|&nbsp;y&nbsp;|&nbsp;<b>z</b>&nbsp;]
 [&nbsp;<b>pstep</b>&nbsp;&nbsp;<i>n</i>&nbsp;]
@@ -2565,7 +2565,7 @@ data set has the same origin and orientation of axes as the original volume,
 and grid size 1 along the specified axis.
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="unbend"><b>volume unbend</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 <b>path</b>&nbsp;&nbsp;<i>path-spec</i>&nbsp;
 [&nbsp;<b>yaxis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
@@ -2592,7 +2592,7 @@ A cubic spline is placed through the path points and the input
 volume is interpolated on planes perpendicular to the splined path.
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="unroll"><b>volume unroll</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 [&nbsp;<b>center</b>&nbsp;&nbsp;<a href="pointspec.html#point"><i>point-spec</i></a>&nbsp;]
 [&nbsp;<b>axis</b>&nbsp;&nbsp;<a href="pointspec.html#vector"><i>vector-spec</i></a>&nbsp;]
@@ -2630,14 +2630,14 @@ the number of grid divisions along each axis is chosen to give spacing
 as close as possible to the requested value without being smaller.
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="unzone"><b>volume unzone</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 <blockquote>
 Show the full extent of a map that was previously limited to a zone using
 <a href="#zone"><b>volume zone</b></a> with option <b>newMap</b> <b>false</b>.
 </blockquote>
 
-<a href="#vop" class="nounder">&bull;</a>
+<a href="#vop" aria-label="volume operations" class="nounder">&bull;</a>
 <a name="zone"><b>volume zone</b></a> &nbsp;<i>volume-spec</i>&nbsp;
 <b>nearAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>range</b>&nbsp;&nbsp;<i>r</i>&nbsp;]
@@ -2771,7 +2771,7 @@ on the histogram. A lower position indicates more transparency:
 </p><blockquote>
 <b>T<sub>histogram</sub></b> = 1 &ndash; vertical position
 </blockquote>
-The <a href="#general"><b>volume</b></a> command 
+The <a href="#top"><b>volume</b></a> command 
 <a href="#transparency">transparency</a> option gives the slab thickness 
 (expressed as a fraction of dataset thickness along its shortest dimension)
 for which the transparency or fraction of light transmitted matches 
@@ -2842,6 +2842,6 @@ the original volume, if any.
 </p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2025</address>
+January 2026</address>
 
 </body></html>

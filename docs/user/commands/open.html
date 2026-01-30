@@ -267,7 +267,7 @@ with the <a href="#pae"><b>structure</b></a> option</td>
 </td><td align="center" class="text">
 ChimeraX-specific format containing the results of searching 
 structure databases for similar proteins
-(<a href="../formats/sms.html">details...</a>)</td>
+(<a href="../formats/sms.html">sms details...</a>)</td>
 </tr><tr>
 <td colspan="4" align="center" class="shaded">
 <a name="trajectory"></a>
@@ -512,7 +512,7 @@ courtesy of Ralf Schmidt and Michael Schatz, Image Science Software)</td>
 <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper" target="_blank"><b>Clipper</b> bundle</a> from the
 <a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">ChimeraX Toolshed</a>
 and specifying a corresponding atomic model
-(<a href="#clipper">details...</a>)
+(<a href="#clipper">Clipper details...</a>)
 </td>
 <td align="center"><b>mtz</b></td>
 <td align="center">.mtz</td>
@@ -581,7 +581,7 @@ Signal 3D time series</td>
 <td align="center">.storm
 <br><a href="#compressed">+&nbsp;compressed</a></td>
 <td align="center">super-resolution microscopy data
-(<a href="../formats/storm.html">details...</a>)</td>
+(<a href="../formats/storm.html">STORM details...</a>)</td>
 </tr><tr>
 <td align="center"><a href="https://www.biochem.mpg.de/6348566/tom_e" target="_blank">TOM toolbox</a> map</td>
 <td align="center"><b>tom_em</b></td>
@@ -685,7 +685,7 @@ PolyData</td>
 <td align="center">lines, polygons
 [documentation
 <a href="https://vtk.org/VTK/img/file-formats.pdf" target="_blank">PDF</a>]
-<br>(<a href="../formats/vtk.html">details</a> on ChimeraX VTK export)</td>
+<br>(<a href="../formats/vtk.html">VTK export details...</a>)</td>
 </tr><tr>
 <td align="center">
 <a href="https://www.fileformat.info/format/wavefrontobj/egff.htm" target="_blank">Wavefront OBJ</a></td>
@@ -799,7 +799,7 @@ assignment file</a></td>
 <td align="center">.defattr</td>
 <td align="center">
 <a href="../attributes.html">attribute</a> assignments
-<br>(<a href="#defattr">details...</a>)</td>
+<br>(<a href="#defattr">defattr details...</a>)</td>
 </tr><tr>
 <td align="center"><a href="../formats/mutationcsv.html">mutation
 scores file</a></td>
@@ -807,7 +807,7 @@ scores file</a></td>
 <td align="center">.csv</td>
 <td align="center">
 assay scores from deep mutational scanning
-(<a href="../formats/mutationcsv.html">details...</a>);
+(<a href="../formats/mutationcsv.html">format details...</a>);
 corresponding structure chains can be specified with the
 <a href="#chains"><b>chains</b></a> option</td>
 </tr><tr>
@@ -816,7 +816,7 @@ corresponding structure chains can be specified with the
 <td align="center">.jpg
 <br>(other image types .tif, .png, <i>etc.</i>
 accepted if specified as <b>format photo</b>;
-<a href="#photo">details...</a>)
+<a href="#photo">photo details...</a>)
 </td>
 <td align="center">2D image;
 <br>see also <a href="#image-stacks">image stack</a></td> 
@@ -881,7 +881,7 @@ The file format can be indicated with either the <i>filename</i> suffix or
 the <b>format</b> option
 (where <a href="#file-table"><i>format-name</i></a> can be truncated).
 Certain formats can be read when compressed (.gz, .bz2, or .xz, see
-<a href="#compressed">details</a>).
+<a href="#compressed">compression details</a>).
 </p><p>
 Giving <a href="usageconventions.html#browse"><b>browse</b></a> as the 
 <i>filename</i> brings up a dialog for browsing the filesystem interactively.
@@ -1060,7 +1060,7 @@ in a single command (as described above) are automatically grouped,
 in that changing the display style, step size, or plane for one channel
 in <a href="../tools/volumeviewer.html"><b>Volume Viewer</b></a>
 changes it for all of the channels in the group
-(<a href="../tools/volumeviewer.html#multichannel">details...</a>).
+(<a href="../tools/volumeviewer.html#multichannel">multichannel details...</a>).
 The <b>channel</b> option allows manually assigning a channel to a map
 so that it can be saved along with other data in a
 single (multichannel) <a href="save.html#chimap">Chimera map</a> file.
@@ -1442,8 +1442,8 @@ When multiple maps with the same grid dimensions are opened
 in a single command (multiple files specified with wild cards or globbing, 
 or a single multi-map file), this option can be used to enforce 
 loading them as a <a href="../trajectories.html#vseries">volume series</a>
-for playback with 
-<a href="vseries.html"><b>vseries</b></a> or the associated slider
+for playback with the
+<a href="vseries.html"><b>vseries</b> command</a> or the associated slider
 (if <b>true</b>), or as independent models (if <b>false</b>).
 If the option is not used, 3D TIFF images and
 <a href="save.html#chimap">Chimera map</a> files containing five or more
@@ -1588,7 +1588,7 @@ frames will be appended at the end of the existing ones unless
 <a href="#replace"><b>replace true</b></a> is used to indicate replacing
 them instead.
 The <b>structureModel</b> option is also needed to open local MTZ files
-(<a href="#clipper">details...</a>).
+(<a href="#clipper">Clipper details...</a>).
 </blockquote>
 <blockquote>
 <a name="replace"></a>
@@ -2043,7 +2043,7 @@ are stored locally as described <a href="#ignoreCache">below</a>.
 [&nbsp;<a href="#fetch-table"><i>source1</i></a>:]<i>identifier</i>&nbsp;
 [[&nbsp;<a href="#fetch-table"><i>source2</i></a>:]<i>identifier2</i>...&nbsp;]
 [&nbsp;<b>fromDatabase</b>&nbsp;&nbsp;<a href="#fetch-table"><i>source</i></a>&nbsp;]
-[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#fetch-table"><i>format-name</i></a>&nbsp;]
+[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#fetch-table"><i>fetch-format-name</i></a>&nbsp;]
 [&nbsp;<a href="#maxModels"><b>maxModels</b></a>&nbsp;&nbsp;<i>M</i>&nbsp;]
 [&nbsp;<a href="#coordsets"><b>coordsets</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -2097,9 +2097,10 @@ and possibly numbers are recommended.
 The <b>colorConfidence</b> option (default <b>true</b>) applies only to 
 <b>alphafold</b> or <b>esmfold</b>
 fetch and specifies whether to color the predicted structures
-by a confidence value (<a href="#colorConfidence">details...</a>).
+by a confidence value (<a href="#colorConfidence">coloring details...</a>).
 The <b>alignTo</b> and <b>trim</b> options also apply only to 
-<b>alphafold</b> or <b>esmfold</b> fetch (<a href="#alignTo">details...</a>).
+<b>alphafold</b> or <b>esmfold</b> fetch (<a href="#alignTo">alignment
+details...</a>).
 See also: <a href="alphafold.html"><b>alphafold</b></a>,
 <a href="esmfold.html"><b>esmfold</b></a>
 </p>
@@ -2170,7 +2171,7 @@ specified by PDB identifier</td>
 <a href="https://cxtoolshed.rbvi.ucsf.edu/apps/chimeraxclipper" target="_blank"><b>Clipper</b> bundle</a> from the
 <a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">ChimeraX Toolshed</a>
 and specifying the corresponding atomic model
-(<a href="#clipper">details...</a>)
+(<a href="#clipper">Clipper details...</a>)
 </td>
 </tr><tr>
 <td align="center">
@@ -2276,7 +2277,7 @@ accession code PDBDEV_00000001 can be opened with command:
 <td align="center">theoretical protein structure modeled by
 <a href="https://www.nature.com/articles/s41586-021-03819-2" target="_blank">AlphaFold</a> and specified by
 <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
-name or accession number (<a href="alphafold.html#fetch">details...</a>);
+name or accession number (<a href="alphafold.html#fetch">alphafold fetch details...</a>);
 any of the <a href="alphafold.html#fetch"><b>alphafold fetch</b></a>
 options can be used</td>
 <td align="center"><b>mmcif</b></td>
@@ -2285,7 +2286,7 @@ options can be used</td>
 <td align="center"><b>alphafold_pae</b></td>
 <td align="center"><a href="#pae">AlphaFold predicted aligned error</a> (PAE) 
 specified by <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
-name or accession number (<a href="alphafold.html#fetch">details...</a>)
+name or accession number (<a href="alphafold.html#fetch">alphafold fetch details...</a>)
 and associated with the corresponding AlphaFold model using the 
 <a href="#pae"><b>structure</b></a> option</td>
 <td align="center"><b>pae</b></td>
@@ -2307,7 +2308,7 @@ file-reading support courtesy of Gerardo Tauriello)</td>
 <td align="center">theoretical protein structure modeled by
 <a href="https://pubmed.ncbi.nlm.nih.gov/36927031/" target="_blank">ESMFold</a>
 (Evolutionary Scale Modeling) and specified by its MGnify identifier
-(<a href="esmfold.html#fetch">details...</a>)</td>
+(<a href="esmfold.html#fetch">esmfold fetch details...</a>)</td>
 <td align="center"><b>pdb</b></td>
 </tr><tr>
 <td align="center"><a href="http://www.crystallography.net/cod/" target="_blank">Crystallography Open Database</a></td>
