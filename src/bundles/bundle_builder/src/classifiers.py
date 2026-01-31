@@ -76,7 +76,7 @@ class Tool(ChimeraXClassifier):
         if isinstance(self.categories, str):
             return f"ChimeraX :: Tool :: {self.name} :: {self.categories} :: {self.description}"
         else:
-            return f'ChimeraX :: Tool :: {self.name} :: {", ".join(self.categories)} :: {self.description}'
+            return f"ChimeraX :: Tool :: {self.name} :: {', '.join(self.categories)} :: {self.description}"
 
 
 class Command(ChimeraXClassifier):
@@ -87,7 +87,7 @@ class Command(ChimeraXClassifier):
         if isinstance(self.categories, str):
             return f"ChimeraX :: Command :: {self.name} :: {self.categories} :: {self.description}"
         else:
-            return f'ChimeraX :: Command :: {self.name} :: {", ".join(self.categories)} :: {self.description}'
+            return f"ChimeraX :: Command :: {self.name} :: {', '.join(self.categories)} :: {self.description}"
 
 
 class Selector(ChimeraXClassifier):
@@ -95,10 +95,12 @@ class Selector(ChimeraXClassifier):
         super().__init__(selector_name, attrs)
 
     def __str__(self):
-        disp = self.attrs.get('display', '')
+        disp = self.attrs.get("display", "")
         disp = str(disp).lower()
         if disp:
-            return f"ChimeraX :: Selector :: {self.name} :: {self.description} :: {disp}"
+            return (
+                f"ChimeraX :: Selector :: {self.name} :: {self.description} :: {disp}"
+            )
         return f"ChimeraX :: Selector :: {self.name} :: {self.description}"
 
 
@@ -112,7 +114,7 @@ class Manager(ChimeraXClassifier):
             for key, val in self.default_attrs.items():
                 if key not in attrs:
                     attrs[key] = val
-            attrs['guiOnly'] = attrs.pop('gui-only', False)
+            attrs["guiOnly"] = attrs.pop("gui-only", False)
         super().__init__(name, attrs)
 
     def __str__(self):
@@ -223,7 +225,6 @@ class Preset(Provider):
 
 
 class ToolbarTab(Provider):
-
     def __init__(self, tab_name, attrs):
         attrs["tab"] = tab_name
         name = "tab-" + tab_name.lower().replace(" ", "-")
@@ -271,6 +272,7 @@ class Initialization:
         return (
             f"ChimeraX :: InitAfter :: {self.type_} :: {separator.join(self.bundles)}"
         )
+
 
 class IncludeDirectory:
     def __init__(self, path):

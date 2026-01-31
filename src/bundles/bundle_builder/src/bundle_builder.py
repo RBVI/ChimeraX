@@ -219,9 +219,10 @@ class BundleBuilder:
         # The cache is a set instance stored as a class attribute
         try:
             from setuptools._distutils import dir_util as st_dir_util
-            cache_class = getattr(st_dir_util, 'SkipRepeatAbsolutePaths', None)
+
+            cache_class = getattr(st_dir_util, "SkipRepeatAbsolutePaths", None)
             if cache_class is not None:
-                instance = getattr(cache_class, 'instance', None)
+                instance = getattr(cache_class, "instance", None)
                 if instance is not None:
                     # Directly clear the set (SkipRepeatAbsolutePaths extends set)
                     set.clear(instance)
@@ -230,7 +231,8 @@ class BundleBuilder:
         # Clear legacy distutils cache (_path_created dict)
         try:
             import distutils.dir_util
-            cache = getattr(distutils.dir_util, '_path_created', None)
+
+            cache = getattr(distutils.dir_util, "_path_created", None)
             if cache is not None:
                 cache.clear()
         except Exception:
@@ -1044,17 +1046,27 @@ class _CompiledCode:
             return None, None
         inc = bundle.include_dir()
         lib = bundle.library_dir()
-        if not inc and not lib:
+        if not inc:
             try:
                 import importlib
 
                 mod = importlib.import_module(bundle.package_name)
                 inc = mod.get_include()
+            # This code does not distinguish between build dependencies and
+            # regular dependencies, so must gracefully fail either way
+            except (AttributeError, ModuleNotFoundError):
+                return inc, None
+        if not lib:
+            try:
+                import importlib
+
+                mod = importlib.import_module(bundle.package_name)
                 lib = mod.get_lib()
             # This code does not distinguish between build dependencies and
             # regular dependencies, so must gracefully fail either way
             except (AttributeError, ModuleNotFoundError):
-                return None, None
+                return None, lib
+
         return inc, lib
 
     def compile_objects(self, logger, dependencies, static, debug):
