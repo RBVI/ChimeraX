@@ -516,7 +516,8 @@ class PlaneViewer(QWindow):
         v.update_drawings()
         v.allow_style_changes = False
         # Add our new volume to the volume menu with our custom widget
-        self._add_axis_to_volume_viewer(volume_viewer[0], v)
+        if volume_viewer:
+            self._add_axis_to_volume_viewer(volume_viewer[0], v)
 
         self.main_view.camera.redraw_needed = True
         for d in v._child_drawings:
@@ -1663,6 +1664,8 @@ class PlaneViewer(QWindow):
                 volume_viewer.thresholds_panel.close_histogram_pane(hptable[volume])
 
     def _add_axis_to_volume_viewer(self, volume_viewer, volume):
+        if not volume_viewer:
+            return
         v = volume
         tp = volume_viewer.thresholds_panel
         hptable = tp.histogram_table
