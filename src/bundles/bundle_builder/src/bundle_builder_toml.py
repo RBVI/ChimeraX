@@ -725,7 +725,7 @@ class Bundle:
         for entry in all_metadata:
             self.classifiers.extend([str(entry)])
         if self.c_libraries:
-            self.classifiers.append(LibraryDirectory("lib"))
+            self.classifiers.append(str(LibraryDirectory("lib")))
         self.setup_arguments["classifiers"] = self.classifiers
         self.setup_arguments["package_dir"], self.setup_arguments["packages"] = (
             self._make_package_arguments()
