@@ -86,7 +86,7 @@ from setuptools.build_meta import (
 
 # TODO: Verify
 # Always import this because it changes the behavior of setuptools
-from numpy import get_include as get_numpy_include_dirs
+from numpy import get_include as get_numpy_include_dirs  # noqa
 
 cpu_count = os.cpu_count()
 
@@ -119,7 +119,7 @@ except:
 # default STARTUPINFO class is replaced before calling
 # setuptools.setup() and reset after it returns.
 
-import subprocess
+import subprocess  # noqa
 
 try:
     from subprocess import STARTUPINFO
@@ -136,8 +136,8 @@ else:
             self.dwFlags |= _winapi.STARTF_USESHOWWINDOW
 
 
-from .metadata_templates import metadata_preamble, pure_wheel_platforms
-from .classifiers import (
+from .metadata_templates import metadata_preamble, pure_wheel_platforms  # noqa
+from .classifiers import (  # noqa
     Tool,
     Command,
     Selector,
@@ -152,6 +152,8 @@ from .classifiers import (
     ToolbarButton,
     Preset,
     Initialization,
+    IncludeDirectory,
+    LibraryDirectory,
 )
 
 # Python version was 3.7 in ChimeraX 1.0
@@ -564,9 +566,10 @@ class Bundle:
         # The cache is a set instance stored as a class attribute
         try:
             from setuptools._distutils import dir_util as st_dir_util
-            cache_class = getattr(st_dir_util, 'SkipRepeatAbsolutePaths', None)
+
+            cache_class = getattr(st_dir_util, "SkipRepeatAbsolutePaths", None)
             if cache_class is not None:
-                instance = getattr(cache_class, 'instance', None)
+                instance = getattr(cache_class, "instance", None)
                 if instance is not None:
                     # Directly clear the set (SkipRepeatAbsolutePaths extends set)
                     set.clear(instance)
@@ -575,7 +578,8 @@ class Bundle:
         # Clear legacy distutils cache (_path_created dict)
         try:
             import distutils.dir_util
-            cache = getattr(distutils.dir_util, '_path_created', None)
+
+            cache = getattr(distutils.dir_util, "_path_created", None)
             if cache is not None:
                 cache.clear()
         except Exception:
@@ -720,6 +724,8 @@ class Bundle:
         )
         for entry in all_metadata:
             self.classifiers.extend([str(entry)])
+        if self.c_libraries:
+            self.classifiers.append(LibraryDirectory("lib"))
         self.setup_arguments["classifiers"] = self.classifiers
         self.setup_arguments["package_dir"], self.setup_arguments["packages"] = (
             self._make_package_arguments()

@@ -272,6 +272,21 @@ class Initialization:
             f"ChimeraX :: InitAfter :: {self.type_} :: {separator.join(self.bundles)}"
         )
 
+class IncludeDirectory:
+    def __init__(self, path):
+        self.path = path
+
+    def __str__(self):
+        return f"ChimeraX :: IncludeDir :: {self.path}"
+
+
+class LibraryDirectory:
+    def __init__(self, path):
+        self.path = path
+
+    def __str__(self):
+        return f"ChimeraX :: LibraryDir :: {self.path}"
+
 
 def quote_if_necessary(s, additional_special_map={}):
     """quote a string
