@@ -291,7 +291,7 @@ model positions</a></td>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>save</b> &nbsp;<i>filename</i>
-[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#imgformats"><i>format-name</i></a>&nbsp;]
+[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#imgformats"><i>img-format-name</i></a>&nbsp;]
 [[&nbsp;<b>width</b>&nbsp;&nbsp;<i>w</i>&nbsp;][&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]&nbsp;|&nbsp;<b>pixelSize</b>&nbsp;&nbsp;<i>p</i>&nbsp;]
 [&nbsp;<b>supersample</b>&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>quality</b>&nbsp;<i>M</i>&nbsp;]
@@ -372,7 +372,7 @@ interpreted correctly by Adobe Photoshop.)
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>save</b> &nbsp;<i>filename</i>
-[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#sesformat"><i>format-name</i></a>&nbsp;]
+[&nbsp;<b>format</b>&nbsp;&nbsp;session&nbsp;]
 [&nbsp;<b>includeMaps</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>compress</b>&nbsp;&nbsp;gzip&nbsp;|&nbsp;<b>lz4</b>&nbsp;|&nbsp;none&nbsp;]
 </blockquote>
@@ -462,7 +462,7 @@ but compression is recognized automatically when the file is read.
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>save</b> &nbsp;<i>filename</i>
 [&nbsp;<b>baseIndex</b>&nbsp;<i>M</i>&nbsp;]
-[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#mapformats"><i>format-name</i></a>&nbsp;]
+[&nbsp;<b>format</b>&nbsp;&nbsp;<a href="#mapformats"><i>map-format-name</i></a>&nbsp;]
 [&nbsp;<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
 [&nbsp;<b>step</b>&nbsp;&nbsp;<i>N</i>&nbsp;|&nbsp;<i>Nx,Ny,Nz</i>&nbsp;]
 [&nbsp;<b>region</b>&nbsp;&nbsp;all&nbsp;|&nbsp;<i>i1,j1,k1,i2,j2,k2</i>&nbsp;]
@@ -721,10 +721,10 @@ to indicate substitution with model name and/or model number, respectively,
 as needed to save multiple atomic models to multiple files with a 
 single command. See also: <a href="getcrd.html"><b>getcrd</b></a>,
 <a href="view.html"><b>view</b></a>, <a href="#update-sequence">adding full
-sequence information
-</a></p>
-<blockquote><a href="#update-sequence">
-<b>models</b> &nbsp;</a><a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+sequence information</a>
+</p>
+<blockquote>
+<b>models</b> &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
 <br>
 Write only the specified models, otherwise all atomic models.
 The <b>models</b> keyword can be omitted if
@@ -991,8 +991,8 @@ Options:
 <b>matchMode</b>&nbsp;&nbsp;any&nbsp;|&nbsp;non-zero&nbsp;|&nbsp;<b>1-to-1</b>
 <br>
 What to write as the <b>match mode</b> in the file; this only matters if 
-the file will be used to assign values with 
-<a href="open.html#defattr"><b>open</b></a>.
+the file will be used to assign values with the
+<a href="open.html#defattr"><b>open</b> command</a>.
 </blockquote>
 <blockquote>
 <b>modelIds</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
@@ -1237,6 +1237,6 @@ that the scene is opaque.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2025</address>
+January 2026</address>
 
 </body></html>
