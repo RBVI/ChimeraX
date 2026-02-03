@@ -64,6 +64,7 @@ def fill_context_menu(menu, parent_tool_window, structure):
     plot_action = menu.addAction("Plot")
     from .plot_gui import _show_plot_dialog
     plot_action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure: _show_plot_dialog(tw, s))
+    return # Ooops, prematurely pushed to develop, so disable until actually ready...
     cluster_action = menu.addAction("Cluster Frames")
     from .cluster_gui import _show_cluster_launcher
     cluster_action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure:
