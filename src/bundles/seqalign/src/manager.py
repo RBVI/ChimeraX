@@ -196,9 +196,9 @@ class AlignmentsManager(StateManager, ProviderManager):
 
         Returns the created Alignment
         """
+        from .settings import settings
         if self.session.ui.is_gui and identify_as is not False:
             viewer_text = viewer
-            from .settings import settings
             if len(seqs) >= settings.large_align_threshold:
                 attr = 'large_align_viewer'
                 type_text = "alignment"
