@@ -84,7 +84,8 @@ def register_settings_options(session):
         (IntOption, {'min': 2}), "Automatically associating chains to large alignments can be very slow.\n"
         "So, for better performance only auto-associate to alignments with fewer\n"
         "than this many sequences.  You can still use the alignment context menu\n"
-        "to manually associate chains as desired.")
+        "to manually associate chains as desired.  Changing this setting will not\n"
+        "affect currently open alignments.")
     for setting, setting_info in settings_info.items():
         opt_name, opt_class, balloon = setting_info
         if isinstance(opt_class, tuple):
