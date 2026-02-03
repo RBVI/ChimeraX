@@ -1,3 +1,4 @@
+# vim: set expandtab shiftwidth=4 softtabstop=4:
 # === UCSF ChimeraX Copyright ===
 # Copyright 2016 Regents of the University of California.
 # All rights reserved.  This software provided pursuant to a
@@ -100,6 +101,20 @@ def show_map_stats(session):
     run_on_maps('measure mapstats %s')(session)
 
 # -----------------------------------------------------------------------------
+# If actually invoked as a command rather than a direct API call, possibly show
+# the Render By Attribute tool...
+#
+def cmd_measure_map_values(session, map, atoms, attribute = 'mapvalue', show_tool=True):
+
+    ret_vals = measure_map_values(session, map, atoms, attribute)
+    if session.ui.is_gui:
+        if show_tool is True and not session.in_script:
+            from chimerax.core.commands import run
+            kw = { 'models': atoms.structures, 'target': 'atoms', 'tab': 'render', 'attr_name': attribute }
+            run(session, 'ui tool show "Render/Select by Attribute"', log=False).configure(**kw)
+    return ret_vals
+
+# -----------------------------------------------------------------------------
 # Interpolate map values at atom positions and assign an atom attribute.
 #
 def measure_map_values(session, map, atoms, attribute = 'mapvalue'):
@@ -149,14 +164,15 @@ def measure_map_values(session, map, atoms, attribute = 'mapvalue'):
 #
 def register_measure_mapvalues_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, StringArg
+    from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg
     from .mapargs import MapArg
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(
         required = [('map', MapArg)],
         keyword = [('atoms', AtomsArg),
-                   ('attribute', StringArg)],
+                   ('attribute', StringArg),
+                   ('show_tool', BoolArg)],
         required_arguments = ['atoms'],
         synopsis = 'Report map statistics'
     )
-    register('measure mapvalues', desc, measure_map_values, logger=logger)
+    register('measure mapvalues', desc, cmd_measure_map_values, logger=logger)

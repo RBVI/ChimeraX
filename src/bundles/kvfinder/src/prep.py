@@ -87,7 +87,7 @@ def prep_input(structure, include_atoms, origin, extent, show_box, box_name, pro
                     ".".join([str(x) for x in session.models.next_id(structure)]), box_name))
 
         from pyKVFinder.grid import _get_vertices_from_box, _get_sincos, _get_dimensions
-        from _pyKVFinder import _filter_pdb
+        from pyKVFinder._pyKVFinder import _filter_pdb
         import os
 
         # Extract xyzr from atomic

@@ -44,7 +44,7 @@ for representing different sugars with geometric shapes and colors:
 Symbol Nomenclature for Graphical Representations of Glycans.</a>
 Varki A, Cummings RD, Aebi M, Packer NH, Seeberger PH, Esko JD, Stanley P, Hart G, Darvill A, Kinoshita T, Prestegard JJ, Schnaar RL, Freeze HH, Marth JD, Bertozzi CR, Etzler ME, Frank M, Vliegenthart JF, Lütteke T, Perez S, Bolton E, Rudd P, Paulson J, Kanehisa M, Toukach P, Aoki-Kinoshita KF, Dell A, Narimatsu H, York W, Taniguchi N, Kornfeld S.
 <i>Glycobiology.</i> 2015 Dec;25(12):1323-4.
-<br><br>
+<br>
 <a href="https://academic.oup.com/glycob/article/26/8/786/2389072" target="_top">
 3D implementation of the symbol nomenclature for graphical representation of glycans.</a>
 Thieker DF, Hadden JA, Schulten K, Woods RJ.
@@ -100,6 +100,10 @@ Colors indicate stereochemistry within each shape class:
 blue (Glc-type), green (Man-type), yellow (Gal-type),
 orange (Gul-type), pink (Alt-type), purple (All-type),
 light blue (Tal-type), brown (Ido-type), red (Fuc/Sia).
+Common carbohydrate residues are identified by their PDB residue names
+(NAG, MAN, FUC, GAL, <i>etc.</i>) as per the
+<a href="https://www.wwpdb.org/data/ccd" 
+target="_blank">wwPDB Chemical Component Dictionary</a>.
 </blockquote>
 <p>
 See also: <a href="nucleotides.html"><b>nucleotides</b></a>,
@@ -113,23 +117,21 @@ target="_blank">NCBI SNFG page</a>
 The <b>snfg show</b> or <b>snfg</b> command displays 3D-SNFG representations of 
 glycans in the specified <b>structures</b> (atomic models),
 or all atomic models if none are specified.
-Common carbohydrate residues are identified by their PDB residue names
-(NAG, MAN, FUC, GAL, <i>etc.</i>) as per the
-<a href="https://www.wwpdb.org/data/ccd" 
-target="_blank">wwPDB Chemical Component Dictionary</a>.
 The 3D-SNFG shapes are placed at the centroid of the sugar ring,
 or if no ring is detected, at the residue center of mass.
-</p><p>
-The <b>size</b> option sets symbol diameter (default <b>4.0</b> &Aring;, 
-the approximate diameter of a monosaccharide ring).
-The <b>atoms</b> option controls whether to keep the current display
+</p>
+<ul>
+<li>The <b>size</b> option sets symbol diameter (default <b>4.0</b> &Aring;, 
+the approximate diameter of a monosaccharide ring).</li>
+<li>The <b>atoms</b> option controls whether to keep the current display
 states of the glycan atoms (default <b>true</b>, those which are shown
 remain shown and those which are hidden remain hidden).
 Specifying <b>atoms false</b> hides the glycan atoms when the
 SNFG representations are shown. Either way, however, the
 glycan atoms can be subsequently <a href="show.html">hidden or shown</a>
-regardless of whether the 3D-SNFG symbols are present.
-</p><p>
+regardless of whether the 3D-SNFG symbols are present.</li>
+</ul>
+<p>
 The command <b>snfg hide</b> removes 3D-SNFG representations from the 
 specified <b>structures</b> (atomic models), or all atomic models
 if none are specified.

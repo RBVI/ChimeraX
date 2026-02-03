@@ -106,17 +106,24 @@ class MutationScatterPlot(Graph):
         controls = EntriesRow(frame,
                               ('Color structures', self._color_structures),
                               'using', ('score1', 'score2'),  # Will be replaced when menu posted
-                              'mutations', ('all', 'drag box'),
-                              'value', ('mean', 'count', 'sum absolute', 'sum', 'min', 'median', 'max', 'stddev'))
+                              'subtract fit', ('none', 'score1'))
         controls2 = EntriesRow(frame,        
                                '            ',
-                               'palette', ('blue to red', 'red to blue', 'white to red', 'white to blue'),
+                               'mutations', ('all', 'drag box'),
+                               'value', ('mean', 'count', 'sum absolute', 'sum', 'min', 'median', 'max', 'stddev'),
+                               'palette', ('blue to red', 'red to blue', 'white to red', 'white to blue'))
+        controls3 = EntriesRow(frame,
+                               '            ',
                                ('Adjust colors', self._show_render_by_attribute_gui),
                                ('Previous colorings', self._show_color_history_gui))
-        self._color_score_menu, self._color_which_menu, self._color_score_type_menu = controls.values
-        self._color_palette_menu = controls2.values[0]
+        self._color_score_menu, self._subtract_fit_menu = controls.values
+        self._color_which_menu, self._color_score_type_menu, self._color_palette_menu = controls2.values
+
         smenu = self._color_score_menu.widget.menu()
         smenu.aboutToShow.connect(lambda *,menu=smenu: self._menu_about_to_show(menu))
+        sfmenu = self._subtract_fit_menu.widget.menu()
+        sfmenu.aboutToShow.connect(lambda *,menu=sfmenu: self._menu_about_to_show(menu))
+
         from .ms_color_history import _mutation_color_history
         _mutation_color_history(self.session, create = True)  # Start tracking mutation residue coloring
         return frame
@@ -138,6 +145,8 @@ class MutationScatterPlot(Graph):
             for ms_name in mutation_scores_list(self.session):
                 menu.addAction(ms_name)
         else:
+            if menu is self._subtract_fit_menu.widget.menu():
+                menu.addAction('none')
             from .ms_data import mutation_scores
             ms_name = self._mutation_set_menu.value
             mset = mutation_scores(self.session, ms_name)
@@ -599,6 +608,7 @@ class MutationScatterPlot(Graph):
         score_type = self._color_score_type_menu.value # 'mean', 'sum absolute', 'sum'
         score_type = score_type.replace(" ", "_")
         palette = self._color_palette_menu.value # 'white to red', 'white to blue'
+        subtract_fit_name = self._subtract_fit_menu.value
 
         from .ms_data import mutation_all_scores, mutation_scores
         mutation_set_name = self._mutation_set_menu.value
@@ -609,12 +619,14 @@ class MutationScatterPlot(Graph):
         if ranges is None:
             which = 'all'
 
-        attr_name = self._attribute_name(score_name, range_name, score_type)
+        attr_name = self._attribute_name(score_name, range_name, score_type, subtract_fit_name)
         self._last_define_attr_name = attr_name
 
         cmd_score = f'mutationscores define {attr_name} from {score_name} combine {score_type}'
         if ranges:
             cmd_score += f' ranges "{ranges}"'
+        if subtract_fit_name != 'none':
+            cmd_score += f' subtractFit {subtract_fit_name}'
         if len(mutation_all_scores(session)) > 1:
             cmd_score += f' mutationSet {mutation_set_name}'
         rvalues = self._run_command(cmd_score)
@@ -644,14 +656,15 @@ class MutationScatterPlot(Graph):
             range_name = f'{score1}_{"%.3g"%min1}_{"%.3g"%max1}_{score2}_{"%.3g"%min2}_{"%.3g"%max2}'
         return ranges, range_name
     
-    def _attribute_name(self, score_name, range_name, score_type):
+    def _attribute_name(self, score_name, range_name, score_type, subtract_fit_name):
+        subtract_fit = '' if subtract_fit_name == 'none' else f'_subtract_fit_{subtract_fit_name}'
         if range_name:
             if range_name.startswith(score_name):
-                attr_name = f'{range_name}_{score_type}'
+                attr_name = f'{range_name}{subtract_fit}_{score_type}'
             else:
-                attr_name = f'{score_name}_{range_name}_{score_type}'
+                attr_name = f'{score_name}_{range_name}{subtract_fit}_{score_type}'
         else:
-            attr_name = f'{score_name}_{score_type}'
+            attr_name = f'{score_name}{subtract_fit}_{score_type}'
         return attr_name
 
     def _palette_specifier(self, palette, min_score, max_score, which):
@@ -781,7 +794,7 @@ def _show_render_by_attribute_panel(session, mutation_set, attribute_name,
         timer = session.ui.timer(1, _set_render_by_attribute_palette)
         rba_gui._set_palette_timer = timer  # Keep timer from being deleted
 
-    if no_value_color:
+    if no_value_color is not None:
         rba_gui.color_no_value.setChecked(True)
         rba_gui.no_value_color.color = no_value_color
     

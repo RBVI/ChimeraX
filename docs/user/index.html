@@ -18,18 +18,6 @@ div.expanded {visibility:visible; display: block}
 div.collapsed {visibility:hidden; display: none}
 @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }
 </style>
-<script>
-function toggle(id, image) {
-	div = document.getElementById(id);
-	if (div.className == "expanded") {
-		div.className = "collapsed";
-		image.src="triangler.png";
-	} else {
-	div.className = "expanded";
-	image.src="triangled.png";
-	}
-}
-</script>
 </head><body>
 
 <a name="top"></a>
@@ -47,11 +35,9 @@ In ChimeraX, menu: <b>Help... User Guide</b> shows this page in the
 <a href="tools/helpviewer.html">ChimeraX browser</a>.
 </p>
 
-<ul class="none">
-<li><a name="general" href="#glist"></a>
-<img onclick="toggle('glist', this);" src="triangled.png" width="10" height="10/" alt="computer generated image">&nbsp;<b>General</b></li>
-<div id="glist" class="expanded">
-<ul>
+<details id="general" open="true" style="margin-left: 2.5em;">
+  <summary><b>General</b></summary>
+<ul type="circle" style="margin-top: 0; margin-bottom: 0;">
 <li><a href="../index.html">Documentation Index</a></li>
 <li><a href="../quickstart/index.html">Quick Start Guide</a>
 and <a href="https://www.rbvi.ucsf.edu/chimerax/tutorials.html">Tutorials</a></li>
@@ -62,8 +48,8 @@ and <a href="https://www.rbvi.ucsf.edu/chimerax/tutorials.html">Tutorials</a></l
 and <a href="commands/save.html#formats"><b>save</b></a></li>
 <li>Manipulation: see 
 <a href="commands/ui.html#mousemode"><b>mousemode</b></a>
-and <a href="commands/ui.html#selective">selective manipulation</a></li><a href="commands/ui.html#selective">
-</a><li><a href="commands/ui.html#selective"></a><a href="selection.html">Selection</a></li>
+and <a href="commands/ui.html#selective">selective manipulation</a></li>
+<li><a href="selection.html">Selection</a></li>
 <li><a href="measurements.html">Measurements</a></li>
 <li><a href="images.html">Making Images</a></li>
 <li><a href="movies.html">Making Movies</a></li>
@@ -72,32 +58,31 @@ and <a href="commands/ui.html#selective">selective manipulation</a></li><a href=
 <li><a href="../credits.html">Citing ChimeraX</a></li>
 <li><a href="general.html">More...</a></li>
 </ul>
-</div>
+</details>
 
-<li><a name="tools" href="#tlist"></a>
-<img onclick="toggle('tlist', this);" src="triangled.png" width="10" height="10/" alt="computer generated image">&nbsp;<b>Tools</b></li>
-<div id="tlist" class="expanded">
-<ul>
+<details id="tools" open="true" style="margin-left: 2.5em;">
+  <summary><b>Tools</b></summary>
+<ul type="circle" style="margin-top: 0; margin-bottom: 0;">
 <li><a href="tools/2dlabels.html"><b>2D Labels and Arrows</b></a></li>
 <li><a href="tools/addcharges.html"><b>Add Charges</b></a></li>
 <li><a href="tools/addhydrogens.html"><b>Add Hydrogens</b></a></li>
 <li><a href="tools/alphafold.html"><b>AlphaFold</b></a>
 &ndash; get protein structures predicted by
-<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a> 
-artificial intelligence</li>
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold AI</a></li>
 <li><a href="tools/alphafold.html#pae"><b>AlphaFold Error Plot</b></a>
 &ndash; plot 
 <a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a>
 estimated residue-residue distance errors</li>
 <li><a href="tools/altlocexplorer.html"><b>Altloc Explorer</b></a></li>
 <li><a href="tools/angles.html"><b>Angles/Torsions</b></a></li>
+<li><a href="tools/animations.html"><b>Animations</b></a>
+&ndash; timeline-based graphical interface for creating movies</li>
 <li><a href="tools/axesplanes.html"><b>Axes/Planes/Centroids</b></a></li>
 <li><a href="tools/basicactions.html"><b>Basic Actions</b></a></li>
 <li><a href="tools/blastprotein.html"><b>Blast Protein</b></a></li>
 <li><a href="tools/boltz.html"><b>Boltz</b></a>
 &ndash; structure prediction with
-<a href="https://github.com/jwohlwend/boltz" target="_blank">Boltz</a>
-artificial intelligence</li>
+<a href="https://github.com/jwohlwend/boltz" target="_blank">Boltz AI</a></li>
 <li><a href="tools/boltz.html#history"><b>Boltz History</b></a></li>
 <li><a href="tools/buildstructure.html"><b>Build Structure</b></a>
 &ndash; build atomic structures, adjust bonds and torsions,
@@ -157,15 +142,14 @@ min, max, mean, standard deviation, root-mean-square deviation from zero</li>
 <li><a href="tools/modelloops.html"><b>Model Loops</b></a>
 &ndash; interface to building missing segments or refining existing parts
 of a protein structure with
-<a href="https://www.salilab.org/modeller/" target="_blank">Modeller</a></li>
+<a href="https://www.salilab.org/modeller/" target="_blank">Modeller software</a></li>
 <li><a href="tools/modelpanel.html"><b>Model Panel</b></a></li>
 <li><a href="tools/modeller.html"><b>Modeller Comparative</b></a>
 &ndash; interface to comparative modeling with
-<a href="https://www.salilab.org/modeller/" target="_blank">Modeller</a></li>
+<a href="https://www.salilab.org/modeller/" target="_blank">Modeller software</a></li>
 <li><a href="tools/orthopick.html"><b>Orthopick</b></a>
 &ndash; settings for the
-<a href="commands/ui.html#mousemode">mouse mode</a> named
-<a href="commands/ui.html#orthopick"><b>orthopick</b></a></li>
+<a href="commands/ui.html#orthopick"><b>orthopick</b> mouse mode</a></li>
 <li><a href="tools/orthoplanes.html"><b>Orthoplanes</b></a></li>
 <li><a href="tools/profilegrid.html"><b>Profile Grid</b></a>
 &ndash; view a multiple sequence alignment as a condensed grid</li>
@@ -213,12 +197,11 @@ optionally structure-associated</li>
 <li><a href="tools/volumeviewer.html"><b>Volume Viewer</b></a>
 &ndash; view maps (density, microscopy, 3D imaging, <i>etc.</i>)</li>
 </ul>
-</div>
+</details>
 
-<li><a name="commands" href="#clist"></a>
-<img onclick="toggle('clist', this);" src="triangled.png" width="10" height="10/" alt="computer generated image">&nbsp;<b>Commands</b></li>
-<div id="clist" class="expanded">
-<ul>
+<details id="commands" open="true" style="margin-left: 2.5em;">
+  <summary><b>Commands</b></summary>
+<ul type="circle" style="margin-top: 0; margin-bottom: 0;">
 <li><a href="commands/usageconventions.html">Usage Conventions</a>
   <ul>
   <li><a href="commands/atomspec.html">Target Specification</a></li>
@@ -238,8 +221,7 @@ and straight arrows to the display for presentation images and movies</li>
 &ndash; superimpose sets of atoms</li>
 <li><a href="commands/alphafold.html"><b>alphafold</b></a>
 &ndash; get protein structures predicted by
-<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold</a> 
-artificial intelligence</li>
+<a href="https://alphafold.ebi.ac.uk/" target="_blank">AlphaFold AI</a></li>
 <li><a href="commands/altlocs.html"><b>altlocs</b></a>
 &ndash; list and manage atomic alternate locations</li>
 <li><a href="commands/angle.html"><b>angle</b></a>
@@ -250,8 +232,7 @@ artificial intelligence</li>
 &ndash; search for similar protein sequences</li>
 <li><a href="commands/boltz.html"><b>boltz</b></a>
 &ndash; structure prediction with
-<a href="https://github.com/jwohlwend/boltz" target="_blank">Boltz</a>
-artificial intelligence</li>
+<a href="https://github.com/jwohlwend/boltz" target="_blank">Boltz AI</a></li>
 <li><a href="commands/bond.html"><b>bond</b></a>
 &ndash; add or delete covalent bonds</li>
 <li><a href="commands/build.html"><b>build</b></a>
@@ -353,7 +334,7 @@ bonds, <a href="pseudobonds.html">pseudobonds</a></li>
 &ndash; report or adjust lights and shadows</li>
 <li><a href="commands/log.html"><b>log</b></a>
 &ndash; clear, save to file, and other actions related to the 
-<a href="tools/log.html"><b>Log</b></a></li>
+<a href="tools/log.html"><b>Log</b> tool</a></li>
 <li><a href="commands/marker.html"><b>marker</b></a>
 &ndash; create, change, delete
 <a href="markers.html">markers and links</a></li>
@@ -385,7 +366,7 @@ the <a href="https://modelarchive.org/" target="_blank">ModelArchive</a>
 database</li>
 <li><a href="commands/modeller.html"><b>modeller</b></a>
 &ndash; comparative modeling, loop modeling, and model evaluation with 
-<a href="https://www.salilab.org/modeller/" target="_blank">Modeller</a></li>
+<a href="https://www.salilab.org/modeller/" target="_blank">Modeller software</a></li>
 <li><a href="commands/molmap.html"><b>molmap</b></a>
 &ndash; create a density map from atomic coordinates</li>
 <li><a href="commands/morph.html"><b>morph</b></a>
@@ -456,7 +437,7 @@ or other data to a file</li>
 &ndash; show an existing segmentation as surfaces or with coloring</li>
 <li><a href="commands/segmentations.html"><b>segmentations</b></a>
 &ndash; functions associated with the
-<a href="tools/segmentations.html"><b>Segmentations</b></a> tool</li>
+<a href="tools/segmentations.html"><b>Segmentations</b> tool</a></li>
 <li><a href="commands/select.html"><b>select</b></a>
 &ndash; select items (models or their parts) for subsequent operations</li>
 <li><a href="commands/sequence.html"><b>sequence</b></a>
@@ -506,8 +487,8 @@ and <a href="pseudobonds.html">pseudobonds</a></li>
 &ndash; spread models out into a plane</li>
 <li><a href="commands/toolshed.html"><b>toolshed</b></a>
 &ndash; install/update ChimeraX bundles from the
-<a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">Toolshed</a> 
-(web repository)</li>
+<a href="https://cxtoolshed.rbvi.ucsf.edu/" target="_blank">Toolshed
+web repository</a></li>
 <li><a href="commands/topography.html"><b>topography</b></a>
 &ndash; plot values in a volume data plane as heights in a surface</li>
 <li><a href="commands/torsion.html"><b>torsion</b></a>
@@ -552,8 +533,7 @@ set camera and model positions with matrices</li>
 <li><a href="commands/zoom.html"><b>zoom</b></a>
 &ndash; change the apparent size of the view</li>
  </ul>
-</div>
-</ul>
+</details>
 
 <hr>
 <p align="center">

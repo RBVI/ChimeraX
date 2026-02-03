@@ -155,7 +155,7 @@ class AlignmentsManager(StateManager, ProviderManager):
         return names
 
     def new_alignment(self, seqs, identify_as, attrs=None, markups=None, auto_destroy=None,
-            viewer=True, auto_associate=True, name=None, intrinsic=False, **kw):
+            viewer=True, auto_associate=True, name=None, intrinsic=False, limit_auto_assoc=True, **kw):
         """Create new alignment from 'seqs'
 
         Parameters
@@ -189,12 +189,16 @@ class AlignmentsManager(StateManager, ProviderManager):
         intrinsic : boolean
             If True, then the alignment is treated as "coupled" to the structures associated with
             it in that if all associations are removed then the alignment is destroyed.
+        limit_auto_assoc: boolean or integer
+            Only relevant if auto_associate is also True.  If limit_auto_assoc is True or an integer,
+            for performance reasons turn off automatic association for alignments with the given
+            number of sequences or more (integer) or a user-given preference amount (True, default 10000).
 
         Returns the created Alignment
         """
+        from .settings import settings
         if self.session.ui.is_gui and identify_as is not False:
             viewer_text = viewer
-            from .settings import settings
             if len(seqs) >= settings.large_align_threshold:
                 attr = 'large_align_viewer'
                 type_text = "alignment"
@@ -255,6 +259,12 @@ class AlignmentsManager(StateManager, ProviderManager):
             description = name
         if identify_as:
             self.session.logger.info("Alignment identifier is %s" % identify_as)
+        if auto_associate is True and limit_auto_assoc is not False:
+            limit = settings.auto_assoc_cutoff if limit_auto_assoc is True else limit_auto_assoc
+            if len(seqs) >= limit:
+                self.session.logger.warning("Auto-association of chains turned off due to size of alignment."
+                    " This behavior can be changed in the Sequence section of the ChimeraX preferences.")
+                auto_associate = False
         alignment = Alignment(self.session, seqs, identify_as, attrs, markups, auto_destroy,
             auto_associate, description, intrinsic, **kw)
         if identify_as:

@@ -27,19 +27,19 @@ different sets of items:
 <ul class="none">
 <li><a href="#simple"><b>Simple Coloring</b></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border="1" src="../tools/shortcut-icons/colorbyelement.png" alt="computer generated image"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/colorbyelement.png" alt="color by element icon"></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border="1" src="../tools/shortcut-icons/colorbychain.png" alt="computer generated image"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/colorbychain.png" alt="color by chain icon"></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border="1" src="../tools/shortcut-icons/polymer.png" alt="computer generated image"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/polymer.png" alt="color by polymer icon"></a>
 <a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
-<img class="icon" border="1" src="../tools/nuc-icons/nuc-color.png" alt="computer generated image"></a>
+<img class="icon" border="1" src="../tools/nuc-icons/nuc-color.png" alt="color by nucleotide icon"></a>
 &ndash; atomic models,
 <a href="../tools/volumeviewer.html">volume data</a> (maps),
 <a href="2dlabels.html">2D labels</a>
 </li><li><a href="#sequential"><b>Sequential Coloring (Rainbow)</b></a> 
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border="1" src="../tools/shortcut-icons/rainbow.png" alt="computer generated image"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/rainbow.png" alt="rainbow coloring icon"></a>
 &ndash; atomic models
 </li><li><a href="#modify"><b>Color Modification</b></a>
 &ndash; lightening, hue shift, <i>etc.</i> for atomic models
@@ -48,11 +48,11 @@ different sets of items:
 or <a href="key.html"><b>key</b></a> command):
   <ul>
   <li><a href="#byattribute"><b>Attribute</b></a>
-  &ndash; color by <a href="../attributes.html">attribute</a> values of atoms,
+  &ndash; color by <a href="../attributes.html">attribute values</a> of atoms,
    residues, or structures (atomic models);
     <a href="#byattribute"><b>color bfactor</b></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border="1" src="../tools/shortcut-icons/bfactor.png" alt="computer generated image"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/bfactor.png" alt="color bfactor icon"></a>
   </li><li><a href="#map"><b>Map</b></a> (sample, electrostatic, gradient)
   &ndash; surfaces, molecular and nonmolecular
   </li><li><a href="#distance"><b>Distance</b></a> (radial, cylindrical, height)
@@ -60,7 +60,7 @@ or <a href="key.html"><b>key</b></a> command):
   </li></ul>
 </li><li><a href="#zone"><b>Coloring by Zone</b></a>
 <a href="../tools/densitymaps.html" title="Map Toolbar...">
-<img class="icon" border="1" src="../tools/shortcut-icons/colorzone.png" alt="computer generated image"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/colorzone.png" alt="color zone icon"></a>
 &ndash; color surfaces to match nearby atoms
 or <a href="../markers.html">markers</a>
 </li><li><a href="#single"><b>Removing Coloring by Value or Zone</b></a>
@@ -71,9 +71,9 @@ or <a href="../markers.html">markers</a>
 See also: <a href="transparency.html"><b>transparency</b></a>,
 <a href="coulombic.html"><b>coulombic</b></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border="1" src="../tools/shortcut-icons/esp.png" alt="computer generated image"></a>,
+<img class="icon" border="1" src="../tools/shortcut-icons/esp.png" alt="color by ESP icon"></a>,
 <a href="mlp.html"><b>mlp</b></a>
-<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img class="icon" border="1" src="../tools/shortcut-icons/hydrophobicity.png" alt="computer generated image"></a>,
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img class="icon" border="1" src="../tools/shortcut-icons/hydrophobicity.png" alt="color by MLP icon"></a>,
 <a href="measure.html#convexity"><b>measure convexity</b></a>,
 <a href="surface.html"><b>surface</b></a>,
 <a href="volume.html"><b>volume</b></a>,
@@ -114,7 +114,7 @@ the <a href="../tools/log.html"><b>Log</b></a>
 &nbsp;<a href="#colorname"><i>colorname</i></a>&nbsp;
 [&nbsp;<i>what</i>&nbsp;|&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 [&nbsp;<b>halfbond</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<a href="#transparency" aria-label="transparency in simple coloring"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 </blockquote>
 <p>
 Simple coloring applies to atomic models, including
@@ -128,7 +128,7 @@ The <a name="colorname"><i>colorname</i></a> can be:
 hexadecimal color code, or component values
 </li><li><a name="byelement"><b>byelement</b> or <b>byatom</b></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border="1" src="../tools/shortcut-icons/colorbyelement.png" alt="computer generated image"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/colorbyelement.png" alt="color by element icon"></a>
 &ndash; a <a href="colortables.html#element">color-by-element scheme</a>;
 only applies to atomic representations and per-atom patches of 
 molecular surfaces
@@ -141,16 +141,16 @@ molecular surfaces
 of the corresponding residues
 </li><li><a name="bynucleotide"><b>bynucleotide</b></a> 
 <a href="../tools/nucdisplay.html" title="Nucleotides Toolbar...">
-<img class="icon" border="1" src="../tools/nuc-icons/nuc-color.png" alt="computer generated image"></a>
+<img class="icon" border="1" src="../tools/nuc-icons/nuc-color.png" alt="color by nucleotide icon"></a>
 &ndash; a built-in scheme 
 <a href="colortables.html#residue">by nucleotide base type</a>
 </li><li><a name="bychain"><b>bychain</b></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border="1" src="../tools/shortcut-icons/colorbychain.png" alt="computer generated image"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/colorbychain.png" alt="color by chain icon"></a>
 &ndash; a built-in scheme <a href="colortables.html#autocolors">by chain ID</a>
 </li><li><a name="bypolymer"></a><b>byidentity</b> or <b>bypolymer</b>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border="1" src="../tools/shortcut-icons/polymer.png" alt="computer generated image"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/polymer.png" alt="color by polymer icon"></a>
 &ndash; a random color per unique biopolymer chain (macromolecular entity);
 the chain sequence is used to initialize the random number
 generator for choosing red, green, and blue color components,
@@ -291,14 +291,14 @@ Color map #4:
 [&nbsp;<i>level</i>&nbsp;]
 [&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 [&nbsp;<a href="#palette-options"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
-[&nbsp;<a href="#rainbow-transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<a href="#rainbow-transparency" aria-label="transparency in sequential coloring"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 <br>&ndash; or &ndash;<br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>rainbow</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<i>level</i>&nbsp;]
 [&nbsp;<a href="#target"><b>target</b></a>&nbsp;&nbsp;<i>string</i>&nbsp;]
 [&nbsp;<a href="#palette-options"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
-[&nbsp;<a href="#rainbow-transparency"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<a href="#rainbow-transparency" aria-label="transparency in sequential coloring"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 </blockquote>
 <p>
 The <b>color sequential</b> command (synonym <b>rainbow</b>)
@@ -307,7 +307,7 @@ to atomic models at the specified <i>level</i>:
 </p><ul>
 <li><b>residues</b> (default)
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border="1" src="../tools/shortcut-icons/rainbow.png" alt="computer generated image"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/rainbow.png" alt="rainbow coloring icon"></a>
 &ndash; a different color for each residue in a biopolymer chain;
 other residues such as 
 <a href="atomspec.html#builtin"><b>ligand</b></a> are not affected
@@ -454,7 +454,7 @@ Example image and script:
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>average</b>&nbsp;&nbsp;residues&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
-[&nbsp;<a href="#transparency-bfactor"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<a href="#transparency-bfactor" aria-label="transparency in coloring by value"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 [&nbsp;<b>noValueColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 </blockquote>
 <p>
@@ -500,8 +500,8 @@ with <a href="#palette-options">palette options</a>
 </tr></tbody></table> over the full range).
 </p><p>
 <a name="transparency-bfactor"></a>
-Transparency (alpha &lt; 1) can be inherent in the colors of the
-<a href="#palette">palette</a>, or the separate
+Transparency (alpha &lt; 1) can be inherent in the
+<a href="#palette">palette colors</a>, or the separate
 <b>transparency</b> option can be used to specify it as a <i>percent</i>,
 where 0% is completely opaque and 100% is completely transparent.
 If both, the <b>transparency</b> option wins out.
@@ -528,7 +528,7 @@ they should be colored by the average per residue.
 </p><p>
 The command <b>color bfactor</b>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border="1" src="../tools/shortcut-icons/bfactor.png" alt="computer generated image"></a>&nbsp;
+<img class="icon" border="1" src="../tools/shortcut-icons/bfactor.png" alt="color bfactor icon"></a>&nbsp;
 is shorthand for <b>color byattribute bfactor</b>.
 For example, to color chain A atoms by B-factor 
 and cartoons by the average B-factor per residue, 
@@ -589,9 +589,9 @@ to make the cap match the nearby atoms.
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;|&nbsp;<i>start,end,increment</i>&nbsp;]
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
-[&nbsp;<a href="#palette"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
+[&nbsp;<a href="#palette-options"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
 [&nbsp;<b>range</b>&nbsp;&nbsp;<i>low</i>,<i>high</i>&nbsp;|&nbsp;full&nbsp;]
-[&nbsp;<a href="#transparency-bfactor"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<a href="#transparency-bfactor" aria-label="transparency in coloring by value"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 [&nbsp;<b>outsideColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 </blockquote>
 <p>
@@ -604,8 +604,7 @@ Surface coloring by map value is also implemented in the
 <a href="../tools/surfacecolor.html"><b>Surface Color</b></a> tool.
 The color-to-value mapping is specified
 with <a href="#palette-options">palette options</a>,
-where the <a href="#palette"><b>palette</b></a> 
-default is <b>red-white-blue</b>
+where the <a href="#palette">default palette</a> is <b>red-white-blue</b>
 <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td bgcolor="red" width="10px" title="red"></td>
 <td bgcolor="white" width="10px" title="white"></td>
@@ -629,12 +628,12 @@ For coloring by segmentation region,
 see <a href="segmentation.html"><b>segmentation</b></a>.
 The <a href="coulombic.html"><b>coulombic</b></a>
 <a href="../tools/moldisplay.html" title="Molecule Display Toolbar...">
-<img class="icon" border="1" src="../tools/shortcut-icons/esp.png" alt="computer generated image"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/esp.png" alt="color by ESP icon"></a>
 command colors molecular surfaces
 by Coulombic electrostatic potential without requiring an input map.
 See also: 
 <a href="mlp.html"><b>mlp</b></a>
-<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img class="icon" border="1" src="../tools/shortcut-icons/hydrophobicity.png" alt="computer generated image"></a>,
+<a href="../tools/moldisplay.html" title="Molecule Display Toolbar..."><img class="icon" border="1" src="../tools/shortcut-icons/hydrophobicity.png" alt="color by MLP icon"></a>,
 <a href="surface.html#cap"><b>surface cap</b></a>,
 <a href="clip.html#model">per-model clipping</a>,
 the <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
@@ -730,7 +729,7 @@ Same as previous except use royal blue instead of blue:
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
-[&nbsp;<a href="#transparency-bfactor"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<a href="#transparency-bfactor" aria-label="transparency in coloring by value"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 <br><br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>color</b> (&nbsp;<b>cylindrical</b>&nbsp;|&nbsp;<b>height</b>&nbsp;)
@@ -741,7 +740,7 @@ Same as previous except use royal blue instead of blue:
 [&nbsp;<b>key</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 &nbsp;<a href="#palette-options"><i>palette-options</i></a>&nbsp;
-[&nbsp;<a href="#transparency-bfactor"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
+[&nbsp;<a href="#transparency-bfactor" aria-label="transparency in coloring by value"><b>transparency</b></a>&nbsp;&nbsp;<i>percent</i>&nbsp;]
 </blockquote>
 <p>
 Coloring by distance applies to surfaces only,
@@ -809,7 +808,7 @@ Coloring by <b>zone</b> to match nearby atoms or
 The <b>distance</b> <i>cutoff</i> is specified in physical units,
 typically &Aring; (default <b>2.0</b>).
 The corresponding <a href="../tools/densitymaps.html"><b>Map</b></a> icon
-<img class="icon" border="1" src="../tools/shortcut-icons/colorzone.png" alt="computer generated image">
+<img class="icon" border="1" src="../tools/shortcut-icons/colorzone.png" alt="color zone icon">
 uses a <b>distance</b> value six times the grid spacing of the map.
 The graphical implementation,
 <a href="../tools/colorzone.html"><b>Color Zone</b></a>,
@@ -1177,7 +1176,7 @@ Alternatively, <i>low</i> and <i>high</i> values separated by a comma only
 can be supplied.
 Values beyond the range will be colored to match the nearest end
 of the range. Giving the range in <i>high</i>,<i>low</i> order is the
-same as reversing the <a href="#palette">palette</a>.
+same as reversing the <a href="#palette">specified palette</a>.
 When multiple models are colored in a single command,
 the <b>full</b> range is determined separately for each model.
 Specifying a range overrides the values in a palette defined as value,color 
@@ -1258,6 +1257,6 @@ See also: <a href="palette.html#list"><b>palette list</b></a>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2025</address>
+January 2026</address>
 
 </body></html>

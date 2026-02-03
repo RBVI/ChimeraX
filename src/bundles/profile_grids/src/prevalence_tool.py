@@ -193,9 +193,14 @@ class PrevalenceTool:
         if do_chosen_color:
             rgb8 = chosen_color[:3]
             brush = QBrush(QColor(*rgb8))
+            text_rgb = contrast_with([c/255.0 for c in rgb8])
+            text_brush = QBrush(QColor(*[round(c*255) for c in text_rgb]))
             for row, col in self.grid.chosen_cells.keys():
                 rect = self.grid.cell_rects[row][1][col]
                 rect.setBrush(brush)
+                text_info = self.grid.cell_text_infos.get((row,col), None)
+                if text_info is not None:
+                    text_info[0].setBrush(text_brush)
 
         do_unchosen_color = self.do_color_unchosen_box.isChecked()
         unchosen_color = self.unchosen_color_button.color

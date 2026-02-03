@@ -102,7 +102,7 @@ class ProfileGridsTool(ToolInstance):
         from Qt.QtGui import QAction
         choose_seq_menu = menu.addMenu("Choose Cells For Sequence")
         choose_seq_menu.aboutToShow.connect(lambda *, s=self, m=choose_seq_menu:
-            s._fill_choose_menu(m, "", s.alignment.seqs))
+            s._menu_of_seqs(m, "", s.alignment.seqs, self.grid_canvas.choose_from_seq))
         cell_menu = menu.addMenu("Chosen Cells")
         action = QAction("Change in Prevalence...", cell_menu)
         action.triggered.connect(lambda *args, f=self.grid_canvas.prevalence_from_cells: f())
@@ -119,7 +119,11 @@ class ProfileGridsTool(ToolInstance):
             lambda action, f=self.grid_canvas.alignment_from_cells: f(action.text().lower()))
         cell_menu.setEnabled(bool(self.grid_canvas.chosen_cells))
 
-        self.alignment.add_headers_menu_entry(menu)
+        headers_menu = self.alignment.add_headers_menu_entry(menu)
+        hdr_seq_menu = headers_menu.addMenu("Individual Sequence As Header")
+        hdr_seq_menu.aboutToShow.connect(lambda *, s=self, m=hdr_seq_menu:
+            s._menu_of_seqs(m, "", s.alignment.seqs,
+            lambda seq, *, aln=s.alignment: aln.add_fixed_header(seq.name, seq.characters)))
 
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(self.show_settings)
@@ -152,13 +156,13 @@ class ProfileGridsTool(ToolInstance):
         }
         return data
 
-    def _fill_choose_menu(self, menu, prefix, seqs):
+    def _menu_of_seqs(self, menu, prefix, seqs, seq_func):
         menu.clear()
         target_menu_size = 10
         if len(seqs) <= 1.5 * target_menu_size:
             for seq in sorted(seqs, key=lambda seq: seq.name.lower()):
                 action = menu.addAction(seq.name)
-                action.triggered.connect(lambda *args, gc=self.grid_canvas, seq=seq: gc.choose_from_seq(seq))
+                action.triggered.connect(lambda *args, f=seq_func, seq=seq: f(seq))
             return
         prev_boxes = None
         num_chars = 1
@@ -182,9 +186,8 @@ class ProfileGridsTool(ToolInstance):
             if len(box) == 1:
                 seq = box[0]
                 action = menu.addAction(seq.name)
-                action.triggered.connect(lambda *args, gc=self.grid_canvas, seq=seq:
-                    gc.choose_from_seq(seq))
+                action.triggered.connect(lambda *args, f=seq_func, seq=seq: f(seq))
             else:
                 submenu = menu.addMenu(prefix + addition + '...')
                 submenu.aboutToShow.connect(lambda *, s=self, m=submenu, prefix=prefix+addition, seqs=box:
-                    s._fill_choose_menu(m, prefix, seqs))
+                    s._menu_of_seqs(m, prefix, seqs, seq_func))

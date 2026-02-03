@@ -21,30 +21,25 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-__version__ = "3.6.2"
 
-import os
+# -----------------------------------------------------------------------------
+#
+from chimerax.core.settings import Settings
 
-def get_bin() -> str:
-    return os.path.join(os.path.dirname(__file__), "bin")
+class _OpenFoldSettings(Settings):
+    EXPLICIT_SAVE = {
+        'openfold_results_location': '~/Desktop/openfold/[name]',
+        'openfold_install_location': '',
+        'device': 'default',	# default, cpu, or gpu
+        'samples': 1,		# Number of predicted structures
+        'use_msa_cache': True,
+    }
 
-from .header_sequence import HeaderSequence, FixedHeaderSequence, DynamicHeaderSequence, \
-    DynamicStructureHeaderSequence, position_color_to_qcolor
-
-from chimerax.core.toolshed import BundleAPI
-
-class _AlignmentHdrsAPI(BundleAPI):
-
-    @classmethod
-    def get_class(cls, class_name):
-        if class_name == "FixedHeaderSequence":
-            return FixedHeaderSequence
-        import importlib
-        hdr_mod = importlib.import_module(".%s" % class_name.lower(), cls.__module__)
-        return getattr(hdr_mod, class_name)
-
-    @classmethod
-    def run_provider(cls, session, name, mgr, **kw):
-        return cls.get_class(name)
-
-bundle_api = _AlignmentHdrsAPI()
+# -----------------------------------------------------------------------------
+#
+def _openfold_settings(session):
+    settings = getattr(session, '_openfold_settings', None)
+    if settings is None:
+        settings = _OpenFoldSettings(session, "openfold")
+        session._openfold_settings = settings
+    return settings

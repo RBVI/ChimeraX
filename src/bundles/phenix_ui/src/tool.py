@@ -1347,8 +1347,9 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
             "While the '%s' mouse mode (below) is active, you can move the ligand with the right mouse"
             " to place its center where you want the search focused.  The ligand must be selected"
             " (green outline) to be moved.  Once satified with the search focus, switch to the '%s'"
-            " mouse mode to use the right mouse to adjust the bounds of the search area.  You can switch"
-            " between centering/focusing and bounds adjustment as needed.  When satisified with the search"
+            " mouse mode to use the right mouse to adjust the bounds of the search area.  Drag the"
+            " <i>faces</i> of the box to adjust the bounds.  You can switch"
+            " between centering/focusing and bounds adjustment as needed.  When satisfied with the search"
             " area, click the '%s' button to fit the ligand." % (self.move_text, self.bounds_text,
                 self.search_button_label)
         )
@@ -1480,7 +1481,8 @@ class PickBlobDialog(QDialog):
         hide_density_layout.addStretch(1)
         self.hide_density = QCheckBox("Hide density within ")
         self.hide_density.setChecked(False)
-        self.hide_density.toggled.connect(self._hide_density)
+        # 'clicked' instead of 'toggled' so that _models_removed_cb can set state without callback
+        self.hide_density.clicked.connect(self._hide_density)
         hide_density_layout.addWidget(self.hide_density)
         self.hide_dist = QDoubleSpinBox()
         self.hide_dist.setRange(0.5, 5.0)
@@ -1506,6 +1508,7 @@ class PickBlobDialog(QDialog):
         self.new_marker_handler = get_triggers().add_handler('changes', self._new_marker_check)
         self._current_marker = None
         self._creating_markers = False
+        self._inverted_map = None
 
         self.show()
 
@@ -1516,6 +1519,10 @@ class PickBlobDialog(QDialog):
         self.mouse_handler.remove()
         self.remove_models_handler.remove()
         self.new_marker_handler.remove()
+        if self._inverted_map is not None:
+            from chimerax.core.commands import run
+            # The "wait 1" is to prevent closing a model while a REMOVE_MODELS trigger might be resolving
+            run(self.session, f"wait 1; close {self._inverted_map.atomspec}")
         return super().closeEvent(event)
 
     def launch(self):
@@ -1532,6 +1539,10 @@ class PickBlobDialog(QDialog):
             self.show()
             from chimerax.ui import tool_user_error
             return tool_user_error("No volume blob picked")
+        if self._inverted_map is not None:
+            from chimerax.core.commands import run
+            run(self.session, f"close {self._inverted_map.atomspec}")
+            # _check_still_valid callback should set _inverted_map to None
         if self.verify_center:
             VerifyLFCenterDialog(self.session, center, *self.non_center_args)
         else:
@@ -1539,17 +1550,26 @@ class PickBlobDialog(QDialog):
         self.close()
 
     def _check_still_valid(self, trig_name, removed_models):
+        inverted_removed = self._inverted_map in removed_models
         for rm in removed_models:
             if rm in self.check_models:
                 self.close()
                 break
+        else:
+            if inverted_removed:
+                self._inverted_map = None
+                self.hide_density.setChecked(False)
+                from chimerax.core.commands import run
+                run(self.session, f"show {self.map.atomspec}")
 
     def _hide_density(self, hide):
         from chimerax.core.commands import run
+        if self._inverted_map is None:
+            self._inverted_map = run(self.session, f"volume zone {self.map.atomspec} near #!{self.receptor.id_string} range {self.hide_dist.value()} invert true newMap true")
         if hide:
-            run(self.session, f"surface zone {self.map.atomspec} near #!{self.receptor.id_string} distance {self.hide_dist.value()}; surface invert {self.map.atomspec}")
+            run(self.session, f"show {self._inverted_map.atomspec}; hide {self.map.atomspec}")
         else:
-            run(self.session, f"surface unzone {self.map.atomspec}")
+            run(self.session, f"hide {self._inverted_map.atomspec}; show {self.map.atomspec}")
 
     def _mouse_mode_changed(self, trig_name, trig_data):
         button, modifiers, mode = trig_data
@@ -1799,6 +1819,9 @@ Choices are:
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.launch_ligand_fit)
+        default_button = bbox.button(qbbox.Ok)
+        default_button.setDefault(True)
+        self.resolution_entry.returnPressed.connect(default_button.click)
         bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_ligand_fit(apply=True))
         bbox.rejected.connect(self.delete)
         if self.help:
@@ -1882,12 +1905,10 @@ Choices are:
                 return tool_user_error("Residue number must be an integer")
             existing_r = receptor.find_residue(chain_id, res_num)
             if existing_r is not None:
-                from Qt.QtWidgets import QInputDialog
                 choices = ([] if existing_r.neighbors else ["Replace existing residue (%s)" % existing_r]) \
-                    + ["Use next available number", "Return to input/launcher dialog" ]
-                choice, okayed = QInputDialog.getItem(self.tool_window.ui_area, "Duplicate Residue Number",
-                    "Residue %d in chain %s already exists; choose an action:" % (res_num, chain_id),
-                    choices, 0, False)
+                    + ["Use next available number", "Return to Fit Ligand dialog" ]
+                choice, okayed = ResnumConflictDialog(res_num, chain_id, choices,
+                    parent=self.tool_window.ui_area).run()
                 if not okayed:
                     if not apply:
                         self.display(False)
@@ -2072,6 +2093,43 @@ class LaunchLigandFitSettings(Settings):
         'extent_type': LaunchLigandFitTool.EXTENT_LENGTH,
         'extent_value': 1.1,
     }
+
+class ResnumConflictDialog(QDialog):
+    def __init__(self, res_num, chain_id, choices, *, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Duplicate Residue Number")
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QRadioButton
+        layout = QVBoxLayout()
+        layout.setSpacing(0)
+        self.setLayout(layout)
+        preface_layout = QHBoxLayout()
+        layout.addLayout(preface_layout)
+        preface_layout.addStretch(1)
+        preface_layout.addWidget(QLabel(
+            "Residue %d in chain %s already exists; choose an action:" % (res_num, chain_id)))
+        preface_layout.addStretch(1)
+        self.choice_buttons = []
+        for choice in choices:
+            choice_button = QRadioButton(choice)
+            self.choice_buttons.append(choice_button)
+            layout.addWidget(choice_button, alignment=Qt.AlignLeft)
+        self.choice_buttons[0].setChecked(True)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        bbox = qbbox(qbbox.Ok)
+        bbox.accepted.connect(lambda dlg=self: dlg.done(dlg.Accepted))
+        bbox.rejected.connect(lambda dlg=self: dlg.done(dlg.Rejected))
+        layout.addWidget(bbox)
+
+    def run(self):
+        okayed = self.exec()
+        if okayed:
+            for cb in self.choice_buttons:
+                if cb.isChecked():
+                    return cb.text(), okayed
+            else:
+                raise AssertionError("No choice checked")
+        return None, okayed
 
 def _run_emplace_local_command(session, structure, maps, resolution, prefitted, center, show_sharpened_map,
         apply_symmetry):

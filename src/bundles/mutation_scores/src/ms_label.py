@@ -92,7 +92,7 @@ def _set_residue_label_image(residue, rgba):
     lm.update_labels()
 
 def label_rgba(title, mutation_colors, no_data_color):
-    amino_acids = 'PRKHDEFWYNQCSTILVMGA'
+    amino_acids = 'HRKDEFWYNQILCSTVMAGP'
     colors = [mutation_colors.get(r, no_data_color) for r in amino_acids]
     from Qt.QtGui import QImage, QPainter, QFont, QColor, QBrush, QPen
     wc,hc = 40,40	# Cell size in pixels

@@ -19,14 +19,6 @@ or derivations thereof.
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
-<!--
-<table class="clRight">
-<tbody><tr><td>
-<a href="worms.png" title="click to enlarge...">
-<img class="outline" src="worms.png" alt="1pho B-factor worms/coloring" width="250px"></a></td></tr>
-</tbody></table>
--->
-
 <h3><a href="../index.html#tools">Tool</a>: Lighting</h3>
 <p>
 The <b>Lighting</b> tool allows interactively adjusting several settings
@@ -64,15 +56,15 @@ The ChimeraX scene can have two directional lights, key and fill,
 plus ambient lighting.
 The <b><i>key light</i></b> is often the dominant source and can cast
 shadows; the first set of intensity, direction, and color values
-reported in the <a href="../tools/log.html"><b>Log</b></a> refer to this light.
+reported in the <a href="log.html"><b>Log</b></a> refer to this light.
 The <b><i>fill light</i></b> serves as a secondary directional source
 to improve the visibility of regions that would otherwise be dark.
-Regardless of whether <a href="#shadows">shadows</a> are on,
+Regardless of whether <a href="../commands/lighting.html#shadows">shadows</a> are on,
 the directional lights cause &ldquo;shading,&rdquo;
 where the brightness of an object varies based on the angle
 between the light direction and the surface normal.
 The key light also produces directionally dependent
-<a href="material.html">specular highlights</a>.
+<a href="../commands/material.html">specular highlights</a>.
 The <b><i>ambient</i></b> lighting
 is an approximation to omnidirectional illumination.
 Shadows cast from multiple uniformly distributed directions can produce
@@ -131,8 +123,10 @@ Other settings:
 <p>
 The directional lights can be moved by dragging the
 color-coded solid arrows on the sphere:
-<b style="color:#FFC832">orange</b>: <b>key</b>,
-<b style="color:#6496FF">blue</b>: <b>fill</b>.
+<b style="padding:3px;background:black;color:#FFC832">&nbsp;orange&nbsp;</b>
+for key light,
+<b style="padding:3px;background:black;color:#6496FF">&nbsp;blue&nbsp;</b>
+for fill light.
 The directions can be reset by choosing the 
 <a href="../commands/lighting.html#simple"><b>simple</b></a> preset.
 </p>
