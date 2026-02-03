@@ -33,7 +33,8 @@ class _AlignmentsSettings(Settings):
         'large_align_threshold': 300,
         'small_align_viewer': fallbacks['small_align_viewer'],
         'assoc_error_rate': 10,
-        'iterate': 2.0
+        'iterate': 2.0,
+        'auto_assoc_cutoff': 10000,
     }
 
 settings = None
@@ -78,6 +79,12 @@ def register_settings_options(session):
         "Default tool to use to show small (< %d sequences) alignments" % settings.large_align_threshold)
     settings_info['seq_viewer'] = ("Single sequence viewer", viewer_option("sequence", "seq_viewer"),
         "Default tool to use to show a single sequence")
+    settings_info['auto_assoc_cutoff'] = (
+        "Auto-associate if fewer than this many sequences",
+        (IntOption, {'min': 2}), "Automatically associating chains to large alignments can be very slow.\n"
+        "So, for better performance only auto-associate to alignments with fewer\n"
+        "than this many sequences.  You can still use the alignment context menu\n"
+        "to manually associate chains as desired.")
     for setting, setting_info in settings_info.items():
         opt_name, opt_class, balloon = setting_info
         if isinstance(opt_class, tuple):
