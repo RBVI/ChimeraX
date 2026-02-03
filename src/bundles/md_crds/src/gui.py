@@ -64,6 +64,20 @@ def fill_context_menu(menu, parent_tool_window, structure):
     plot_action = menu.addAction("Plot")
     plot_action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure: _show_plot_dialog(tw, s))
 
+def get_session_info(main_tool_window):
+    return None # until clustering finished, which significantly rearchitects the analysis code
+    inst = main_tool_window.tool_instance
+    inst_windows = _md_tool_windows.setdefault(inst, {})
+    info = {}
+    import importlib
+    for import_name, win_inst_info in inst_windows.items():
+        mod = importlib.import_module("." + import_name)
+        info[import_name] = mod.get_session_info(win_inst_info)
+    return info
+
+def restore_session_info(main_tool_window, info):
+    pass
+
 class PlotDialog:
     exclude_interface_text = {
         "solution": "solvent and non-metal ions",
