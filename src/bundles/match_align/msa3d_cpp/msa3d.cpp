@@ -707,12 +707,14 @@ std::cerr << "link(0): " << key.first->str(false, true) << "; link(1): " << key.
                 link_list.erase(std::find(link_list.begin(), link_list.end(), link));
             }
         }
+std::cerr << "waypoint 1\n";
 
         std::map<Chain*, Chain::SeqPos> check_info;
         for (auto ep_or_col: link->info()) {
             for (auto seq_pos: ep_or_col->positions())
                 check_info.insert(seq_pos);
         }
+std::cerr << "waypoint 2\n";
 
         // Links between EndPoints will always be different sequences (I think),
         // but if one or both end are Columns, they might both involve the same sequence...
@@ -725,6 +727,7 @@ std::cerr << "link(0): " << key.first->str(false, true) << "; link(1): " << key.
                 break;
             }
         }
+std::cerr << "waypoint 3\n";
 
 
         if (!okay || !_check(check_info, partial_order, chains))
@@ -755,6 +758,7 @@ std::cerr << "link(0): " << key.first->str(false, true) << "; link(1): " << key.
                 cols[ncol] += 1;
             }
         }
+std::cerr << "waypoint 4\n";
 
         for (auto col_or_ep: link->info()) {
             for (auto seq_pos: col_or_ep->positions()) {
@@ -786,16 +790,23 @@ std::cerr << "link(0): " << key.first->str(false, true) << "; link(1): " << key.
                     auto seq_cols = columns[seq];
                     auto opos = seq_cols[col_or_ep->col];
                     auto po = partial_order[seq];
+std::cerr << "create new_po\n";
                     auto new_po = decltype(po)(po.begin(), po.begin()+opos);
+std::cerr << "create new_po_back with po length " << po.size() << " and opos " << opos << "\n";
                     auto new_po_back = decltype(po)(po.begin()+opos+1, po.end());
+std::cerr << "insert into new_po\n";
                     new_po.insert(new_po.end(), new_po_back.begin(), new_po_back.end());
+std::cerr << "insert into partial_order\n";
                     partial_order[seq] = new_po;
+std::cerr << "adjusting seq_cols\n";
                     for (auto pcol: new_po_back)
                         seq_cols[pcol] -= 1;
                     seq_cols.erase(col_or_ep->col);
+std::cerr << "adjusted seq_cols\n";
                 }
             }
         }
+std::cerr << "waypoint 5\n";
     }
 std::cerr << partial_order.size() << " entries in partial_order\n";
         
