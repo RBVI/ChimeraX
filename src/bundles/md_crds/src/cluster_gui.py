@@ -22,7 +22,6 @@ from chimerax.core.errors import UserError
 from .gui import _md_tool_windows
 
 class ClusterLauncher:
-
     def __init__(self, launcher_window, structure):
         self.tool_window = tw = launcher_window
         #tw.help = "help:user/commands/coordset.html#slider"
@@ -104,14 +103,85 @@ class ClusterLauncher:
             cmd += " excludeMetals " + metal
         run(self.session, cmd)
 
-def _show_cluster_launcher(main_tool_window, structure):
+def show_cluster_launcher(main_tool_window, structure):
     inst = main_tool_window.tool_instance
-    inst_windows = _md_tool_windows.setdefault(inst, {})
+    inst_window_info = _md_tool_windows.setdefault(inst, {})
     try:
-        cluster_launcher = inst_windows["cluster launcher"]
+        cluster_launcher = inst_window_info["cluster launcher"]
     except KeyError:
-        cluster_launcher = inst_windows["cluster launcher"] = ClusterLauncher(
+        cluster_launcher = inst_window_info["cluster launcher"] = ClusterLauncher(
             main_tool_window.create_child_window("Get Clustering Parameters"), structure)
 
     cluster_launcher.tool_window.shown = True
 
+class TableEntry:
+    def __init__(self, clustering, results_dialog):
+        self.clustering = clustering
+        self.rgba = None
+        self.results_dialog = results_dialog
+
+    @property
+    def num_frames(self):
+        return len(self.clustering.frames)
+
+    @property
+    def representative(self):
+        return self.clustering.representative
+
+    @property
+    def rgba8(self):
+        return [round(c*255.0) for c in self.rgba]
+
+    @rgba8.setter
+    def rgba8(self, rgba8):
+        rgba = [c/255.0 for c in rgba8]
+        if self._rgba is None:
+            self._rgba = rgba
+        else:
+            self._rgba = rgba
+            self.results_dialog._update_plot()
+
+class ClusterResults:
+    def __init__(self, results_window, structure, clusterings):
+        self.tool_window = tw = results_window
+        #tw.help = "help:user/commands/coordset.html#slider"
+        def cleanup(lcd=self):
+            inst = lcd.tool_window.tool_instance
+            _md_tool_windows[inst]["cluster results"].remove(self)
+            delattr(lcd.tool_window, 'cleanup')
+        tw.cleanup = cleanup
+        self.session = structure.session
+        self.structure = structure
+        from Qt.QtWidgets import QVBoxLayout
+        layout = QHBoxLayout()
+        layout.setSpacing(0)
+        tw.ui_area.setLayout(layout)
+        table_data = []
+        table_rgbas = []
+        from chimerax.core.colors import distinguish_from
+        for clustering in clusterings:
+            entry = TableEntry(clustering, self)
+            entry.rgba = distinguish_from([(1.0,1.0,1.0,1.0)] + table_rgbas)
+            table_rgbas.append(entry.rgba)
+            table_data.append(entry)
+        from chimerax.ui.widgets import ItemTable
+        table = ItemTable()
+        table.add_column("Color", "rgba8", format=table.COL_FORMAT_OPAQUE_COLOR, title_display=False)
+        members_col = table.add_column("Members", "num_frames")
+        table.add_column("Representative Frame", "representative")
+        table.data = table_data
+        table.launch()
+        table.sort_by(members_col, table.SORT_DESCENDING)
+        table.resizeRowsToContents()
+        table.resizeColumnsToContents()
+        layout.addWidget(table)
+        #TODO: the plot and status bar / button box
+
+        tw.manage(None)
+
+def show_cluster_results(main_tool_window, structure, clusterings):
+    inst = main_tool_window.tool_instance
+    inst_window_info = _md_tool_windows.setdefault(inst, {})
+    results_dialogs = inst_window_info.setdefault("cluster results", [])
+    results_dialogs.append(
+        ClusterResults(main_tool_window.create_child_window("Clustering Results"), structure, clusterings))

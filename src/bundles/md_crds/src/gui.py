@@ -62,12 +62,12 @@ def fill_context_menu(menu, parent_tool_window, structure):
 
     from Qt.QtGui import QAction
     plot_action = menu.addAction("Plot")
-    from .plot_gui import _show_plot_dialog
-    plot_action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure: _show_plot_dialog(tw, s))
+    from .plot_gui import show_plot_dialog
+    plot_action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure: show_plot_dialog(tw, s))
     cluster_action = menu.addAction("Cluster Frames")
-    from .cluster_gui import _show_cluster_launcher
+    from .cluster_gui import show_cluster_launcher
     cluster_action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure:
-        _show_cluster_launcher(tw, s))
+        show_cluster_launcher(tw, s))
 
 _md_tool_windows = {}
 
