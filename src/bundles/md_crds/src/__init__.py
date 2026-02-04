@@ -29,6 +29,11 @@ class _MDCrdsBundleAPI(BundleAPI):
     from chimerax.atomic import StructureArg
 
     @staticmethod
+    def register_command(command_name, logger):
+        from . import cmd
+        cmd.register_command(logger)
+
+    @staticmethod
     def run_provider(session, name, mgr, **kw):
         if mgr == session.open_command:
             from chimerax.open_command import OpenerInfo

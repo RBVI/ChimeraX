@@ -1,0 +1,39 @@
+<BundleInfo name="ChimeraX-OpenFold" version="1.0"
+	    package="chimerax.openfold"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>Predict structures using OpenFold 3</Synopsis>
+  <Description>Predict structures using OpenFold 3</Description>
+
+  <Categories>
+    <Category name="Structure Prediction"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=1.0"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="OpenFold ligands" synopsis="OpenFold ligand binding predictions table"
+	      category="Structure Prediction" suffixes=".oflig" nicknames="oflig" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="OpenFold ligands" want_path="true" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: openfold predict :: Structure Prediction :: Predict a structure using OpenFold 3</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: openfold install :: Structure Prediction :: Install OpenFold 3</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: openfold ligandtable :: Structure Prediction :: Show table of OpenFold 3 ligand prediction results</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: OpenFold :: Structure Prediction :: Predict structures using OpenFold 3</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: OpenFold History :: Structure Prediction :: Table of previously run OpenFold predictions</ChimeraXClassifier>
+  </Classifiers>
+
+</BundleInfo>
