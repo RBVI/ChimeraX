@@ -218,7 +218,13 @@ labels regardless of model size).  The chain limit can be adjusted temporarily
 </p>
 <h3>Sequences</h3>
 <ul>
-<li><b>Large alignment has &ge; this many sequences [<i>N</i>]</b>
+<li><b>Auto-associate if fewer than this many sequences [<i>N</i>]</b>
+&ndash; size threshold for comparing each sequence in the alignment to 
+the sequences of open structures for purposes of 
+<a href="tools/sequenceviewer.html#association">association</a>
+(initial default <b>10,000</b>); performing the comparison for a large
+number of sequences may be slow
+</li><li><b>Large alignment has &ge; this many sequences [<i>N</i>]</b>
 &ndash; size threshold for deciding which viewer to use for sequence alignments 
 (initial default <b>300</b> sequences); can be overridden with the
 <a href="commands/open.html"><b>open</b></a> command
@@ -477,6 +483,6 @@ Examples include:
 </li></ul>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2025</address>
+February 2026</address>
  
 </body></html>
