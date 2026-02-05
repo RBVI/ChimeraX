@@ -11,10 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from Qt.QtWidgets import QFrame, QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QPushButton, QMenu, \
-    QSizePolicy, QWidget, QStackedWidget, QGridLayout, QLineEdit
-from Qt.QtGui import QIntValidator
-from Qt.QtCore import Qt
+from Qt.QtWidgets import QVBoxLayout, QLabel, QHBoxLayout, QGraphicsView, QGraphicsScene
+from Qt.QtGui import QBrush, QColor, QPen, QPolygonF
+from Qt.QtCore import Qt, QPointF
 
 from chimerax.core.commands import plural_of
 from chimerax.core.errors import UserError
@@ -142,6 +141,8 @@ class TableEntry:
             self.results_dialog._update_plot()
 
 class ClusterResults:
+    scene_pixel_height = 100
+    scene_aspect = 4.0
     def __init__(self, results_window, structure, clusterings):
         self.tool_window = tw = results_window
         #tw.help = "help:user/commands/coordset.html#slider"
@@ -152,8 +153,7 @@ class ClusterResults:
         tw.cleanup = cleanup
         self.session = structure.session
         self.structure = structure
-        from Qt.QtWidgets import QVBoxLayout
-        layout = QHBoxLayout()
+        layout = QVBoxLayout()
         layout.setSpacing(0)
         tw.ui_area.setLayout(layout)
         table_data = []
@@ -165,23 +165,85 @@ class ClusterResults:
             table_rgbas.append(entry.rgba)
             table_data.append(entry)
         from chimerax.ui.widgets import ItemTable
-        table = ItemTable()
-        table.add_column("Color", "rgba8", format=table.COL_FORMAT_OPAQUE_COLOR, title_display=False)
+        class ShortTable(ItemTable):
+            def sizeHint(self):
+                sh = super().sizeHint()
+                h = sh.height()
+                if h > 500:
+                    sh.setHeight(sh.height() // 2)
+                return sh
+        self.table = table = ShortTable()
+        # Putting color first makes the rows about twice as high as needed (and column titles bold!)
         members_col = table.add_column("Members", "num_frames")
+        table.add_column("Color", "rgba8", format=table.COL_FORMAT_OPAQUE_COLOR, title_display=False)
         table.add_column("Representative Frame", "representative")
         table.data = table_data
         table.launch()
         table.sort_by(members_col, table.SORT_DESCENDING)
-        table.resizeRowsToContents()
-        table.resizeColumnsToContents()
-        layout.addWidget(table)
-        #TODO: the plot and status bar / button box
+        table.selection_changed.connect(self._update_scene)
+        layout.addWidget(table, alignment=Qt.AlignHCenter, stretch=1)
+
+        self.scene = QGraphicsScene()
+        class ResizingView(QGraphicsView):
+            def resizeEvent(self, event, *,
+                    _height=self.scene_pixel_height, _width=self.scene_aspect*self.scene_pixel_height):
+                super().resizeEvent(event)
+                self.fitInView(0.0, 0.0, _width, _height)
+        self.view = ResizingView(self.scene)
+        self._setup_scene()
+        #TODO: scene update and status bar / button box
+        self._update_scene()
+        layout.addWidget(self.view)
 
         tw.manage(None)
+
+    def _setup_scene(self):
+        # Have to allow for the fact that the clustering may not involve all frames of the trajectory
+        scene_width = self.scene_pixel_height * self.scene_aspect
+        scene_height = self.scene_pixel_height
+        self.scene.setSceneRect(0.0, 0.0, scene_width, scene_height)
+        fns = []
+        for row in self.table.data:
+            fns.extend(row.clustering.frames)
+        fns.sort()
+        fn_index = { fn: i for i, fn in enumerate(fns) }
+        unit_x = scene_width / len(fns)
+        to_x = lambda fn: unit_x * fn_index[fn]
+        pen = QPen(Qt.NoPen)
+        for row in self.table.data:
+            row.rects = rects = []
+            first_fn = last_fn = None
+            brush = QBrush(QColor(*row.rgba8))
+            for fn in row.clustering.frames:
+                if first_fn is None:
+                    first_fn = last_fn = fn
+                elif fn == last_fn + 1:
+                    last_fn = fn
+                else:
+                    rects.append(self.scene.addRect(to_x(first_fn), scene_height / 2.0,
+                        to_x(last_fn) - to_x(first_fn) + unit_x, scene_height, brush=brush, pen=pen))
+                    first_fn = last_fn = fn
+            if first_fn is not None:
+                rects.append(self.scene.addRect(to_x(first_fn), scene_height / 2.0,
+                    to_x(fn) - to_x(first_fn) + unit_x, scene_height, brush=brush, pen=pen))
+
+        self.scene_text = self.scene.addSimpleText("Choose in above table to show cluster")
+        text_rect = self.scene_text.boundingRect()
+        cx, cy = text_rect.x() + text_rect.width()/2, text_rect.y() + text_rect.height()/2
+        self.scene_text.moveBy(scene_width/2 - cx, scene_height/4 - cy)
+
+        self.indicator = self.scene.addPolygon(QPolygonF([QPointF(*args) for args in [
+            (0.0, 0.0), (11.5, 0.0), (5.75, 10.0)
+            ]]))
+        self.indicator.setZValue(1.0)
+
+    def _update_scene(self, *args):
+        pass
 
 def show_cluster_results(main_tool_window, structure, clusterings):
     inst = main_tool_window.tool_instance
     inst_window_info = _md_tool_windows.setdefault(inst, {})
     results_dialogs = inst_window_info.setdefault("cluster results", [])
     results_dialogs.append(
-        ClusterResults(main_tool_window.create_child_window("Clustering Results"), structure, clusterings))
+        ClusterResults(main_tool_window.create_child_window("Clustering Results", statusbar=True),
+            structure, clusterings))
