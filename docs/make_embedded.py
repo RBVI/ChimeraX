@@ -25,7 +25,7 @@ import subprocess
 
 FFMPEG_DOC = """
 <p>
-<dt><a href="https://ffmpeg.org/" target="_blank"> FFmpeg </a> version VERSION
+<dt><a href="https://ffmpeg.org/" target="_blank"> FFmpeg version VERSION</a>
 <dd>&ldquo;A complete, cross-platform solution to record, convert and stream audio and video.&rdquo;
 <br>
 License: <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU General Public License v3</a><br>
@@ -175,7 +175,7 @@ def print_pkgs(infos, out):
     print('.', file=out)
     print('<dl>', file=out)
     for info, id in zip(infos, ids):
-        print(f'<dt><a href="{escape(info["homepage"])}" id="{id}" target="_blank">{escape(info["name"])}</a> version {escape(info["version"])}', file=out)
+        print(f'<dt><a href="{escape(info["homepage"])}" id="{id}" target="_blank">{escape(info["name"])} version {escape(info["version"])}</a>', file=out)
         print(f'<dd>Synopsis: {escape(info["summary"])}<br>', file=out)
         license = info['license']
         if license:
