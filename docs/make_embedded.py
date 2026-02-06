@@ -176,18 +176,18 @@ def print_pkgs(infos, out):
     print('<dl>', file=out)
     for info, id in zip(infos, ids):
         print(f'<dt><a href="{escape(info["homepage"])}" id="{id}" target="_blank">{escape(info["name"])}</a> version {escape(info["version"])}', file=out)
-        print(f'<dd>{escape(info["summary"])}<br>', file=out)
+        print(f'<dd>Synopsis: {escape(info["summary"])}<br>', file=out)
         license = info['license']
         if license:
             lf = info['license-file']
-            if not lf:
-                print(f'License type: {escape(license)}', file=out)
-            else:
+            print(f'License type: {escape(license)}<br>', file=out)
+            if lf:
                 fn = f'licenses/{id}-{os.path.basename(lf)}'
                 if not os.path.splitext(fn)[1]:
                     fn += '.txt'
                 shutil.copyfile(lf, fn)
-                print(f'License type: <a href="{fn}">{escape(license)}</a>', file=out)
+                link_text = f"{info['name']} license"
+                print(f'License: <a href="{fn}">{escape(link_text)}</a>', file=out)
     print('</dl>', file=out)
 
 
