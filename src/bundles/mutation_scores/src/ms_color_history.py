@@ -176,7 +176,7 @@ class MutationColorHistoryPanel(ToolInstance):
         lw = QListWidget(parent)
         self._attribute_list = lw
         lw.setSortingEnabled(True)
-        lw.setSelectionMode(lw.SingleSelection)
+        lw.setSelectionMode(lw.ExtendedSelection)
         lw.itemClicked.connect(self._attribute_clicked)
         layout.addWidget(lw)
         self._update_list()
@@ -184,12 +184,13 @@ class MutationColorHistoryPanel(ToolInstance):
         from chimerax.ui.widgets import EntriesRow
         br = EntriesRow(parent,
                         ('Adjust colors', self._adjust_colors),
-                        ('Delete', self._delete_attribute),
                         ('Rename', self._rename_attribute),
                         '',
+                        ('Save .csv', self._save_csv),
+                        ('Delete', self._delete_attribute),
                         spacing = 5)
         self._rename_entry = re = br.values[0]
-        re.pixel_width = 300
+        re.pixel_width = 200
         layout.addWidget(br.frame)
                 
         tw.manage(placement="side")
@@ -263,6 +264,60 @@ class MutationColorHistoryPanel(ToolInstance):
 
         self._update_list()
 
+    def _save_csv(self, *, value_format = '%.4g'):
+        attribute_names = self._selected_attribute_names()
+        if len(attribute_names) == 0:
+            self.session.logger.error('Select an attribute name in the list then press the Save button.')
+            return
+
+        text, dir = self._residue_scores_csv(attribute_names, value_format = value_format)
+        
+        from Qt.QtWidgets import QFileDialog
+        parent = self.tool_window.ui_area
+        path, ftype  = QFileDialog.getSaveFileName(parent,
+                                                   caption = 'Save Residue Scores',
+                                                   directory = dir,
+                                                   filter = 'Comma separated values (.csv)')
+        if path:
+            with open(path, 'w') as f:
+                f.write(text)
+
+    def _residue_scores_csv(self, attribute_names, value_format = '%.4g'):
+        res = set()
+        values = []
+        mch = self._mutation_color_history
+        for attribute_name in attribute_names:
+            mset = mch.mutation_set_for_attribute(attribute_name)
+            if mset is None:
+                self.session.logger.error(f'No mutation set has an attribute "{attribute_name}".')
+                continue
+
+            scores = mset.computed_values(attribute_name)
+            res.update(scores.residue_numbers_and_types())
+            values.append((attribute_name, scores.values_by_residue_number))
+ 
+        res_num_and_type = list(res)
+        res_num_and_type.sort()
+        header = ','.join(['#residue number', 'residue type'] + [attr for attr, scores in values])
+        lines = [header]
+        for rnum, rtype in res_num_and_type:
+            row = [str(rnum), rtype]
+            for attr_name, scores in values:
+                score = ''
+                if rnum in scores:
+                    rscores = scores[rnum]
+                    if len(rscores) == 1:
+                        from_aa, to_aa, value = rscores[0]
+                        score = value_format % value
+                row.append(score)
+            lines.append(','.join(row))
+        text = '\n'.join(lines)
+
+        from os.path import dirname
+        dir = dirname(mset.path) if mset else None
+
+        return text, dir
+    
     def _rename_attribute(self):
         attr_names = self._selected_attribute_names()
         if len(attr_names) == 0:
