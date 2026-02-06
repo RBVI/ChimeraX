@@ -325,6 +325,7 @@ bool
 _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::shared_ptr<Column>>>& order,
     std::vector<Chain*>& chains)
 {
+std::cerr << "_check 0\n";
     std::map<Chain*, std::vector<Chain::SeqPos>> equiv;
     std::vector<Chain::SeqPos> null_init = { INT_MAX, INT_MAX, INT_MAX };
     for (auto chain: chains)
@@ -337,7 +338,7 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
         pos_vec[0] = pos - 1;
         pos_vec[1] = pos;
         pos_vec[2] = pos + 1;
-        auto seq_cols = order[seq];
+        auto& seq_cols = order[seq];
         if (seq_cols.empty())
             continue;
         auto num_cols = seq_cols.size();
@@ -373,20 +374,25 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
         }
         todo.emplace_back(std::vector<std::shared_ptr<Column>>(seq_cols.begin() + j, seq_cols.end()), 1);
     }
+std::cerr << "_check 1\n";
     while (todo.size() > 0) {
         auto& cols_rel = todo.back();
         auto cols = cols_rel.first;
         auto rel = cols_rel.second;
         todo.pop_back();
+std::cerr << "_check 1.1\n";
         for (auto col: cols) {
+std::cerr << "_check 1.1.1\n";
             for (auto& cseq_cpos: col->positions) {
+std::cerr << "_check 1.1.1.1\n";
                 auto cseq = cseq_cpos.first;
                 auto cpos = cseq_cpos.second;
-                auto eqseq = equiv[cseq];
+                auto& eqseq = equiv[cseq];
                 auto eq = eqseq[rel+1];
                 if (eq != INT_MAX && (cpos < eq ? -1 : (cpos > eq ? 1 : 0)) == rel)
                     continue;
-                auto seq_cols = order[cseq];
+                auto& seq_cols = order[cseq];
+std::cerr << "_check 1.1.1.2\n";
                 if (rel == 0) {
                     auto num_seq_cols = seq_cols.size();
                     decltype(num_seq_cols) i, j;
@@ -431,12 +437,16 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
                     }
                     continue;
                 }
-                auto test = equiv[cseq][1];
+std::cerr << "_check 1.1.1.3\n";
+                auto& cseq_equiv = equiv[cseq];
+                auto test = cseq_equiv[1];
                 if (test == INT_MAX)
-                    test = equiv[cseq][1-rel];
+                    test = cseq_equiv[1-rel];
                 if (test != INT_MAX && (cpos < test ? -1 : (cpos > test ? 1 : 0)) != rel)
                     return false;
+std::cerr << "_check 1.1.1.4\n";
                 if (rel < 0) {
+std::cerr << "_check 1.1.1.4.1\n";
                     auto num_seq_cols = seq_cols.size();
                     decltype(num_seq_cols) i, j;
                     if (eq == INT_MAX)
@@ -453,6 +463,7 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
                         if (!broke)
                             i = num_seq_cols;
                     }
+std::cerr << "_check 1.1.1.4.2\n";
                     bool broke = false;
                     for (j = i; j < num_seq_cols; ++j) {
                         auto ccol = seq_cols[j];
@@ -463,16 +474,23 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
                     }
                     if (!broke)
                         j = num_seq_cols;
-                    equiv[cseq][rel+1] = cpos;
+std::cerr << "_check 1.1.1.4.3\n";
+                    cseq_equiv[rel+1] = cpos;
+std::cerr << "_check 1.1.1.4.3.1\n";
                     if (j > 1) {
+std::cerr << "_check 1.1.1.4.3.2, i: " << i << "; j: " << j << "\n";
                         auto td_list = std::vector<std::shared_ptr<Column>>(seq_cols.begin() + i,
                             seq_cols.begin() + j);
+std::cerr << "_check 1.1.1.4.3.3\n";
                         td_list.erase(std::find(td_list.begin(), td_list.end(), col));
+std::cerr << "_check 1.1.1.4.3.4\n";
                         if (!td_list.empty())
                             todo.emplace_back(td_list, rel);
+std::cerr << "_check 1.1.1.4.3.5\n";
                     }
-
+std::cerr << "_check 1.1.1.4.4\n";
                 } else {
+std::cerr << "_check 1.1.1.4.5\n";
                     int num_seq_cols = seq_cols.size();
                     decltype(num_seq_cols) i, j;
                     if (eq == INT_MAX)
@@ -499,7 +517,7 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
                         }
                         if (!broke)
                             j = 0;
-                        equiv[cseq][rel+1] = cpos;
+                        cseq_equiv[rel+1] = cpos;
                         if (j < i+1) {
                             auto td_list = std::vector<std::shared_ptr<Column>>(seq_cols.begin()+j,
                                 seq_cols.begin()+i+1);
@@ -508,10 +526,15 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
                                 todo.emplace_back(td_list, rel);
                         }
                     }
+std::cerr << "_check 1.1.1.4.6\n";
                 }
+std::cerr << "_check 1.1.1.5\n";
             }
+std::cerr << "_check 1.1.2\n";
         }
+std::cerr << "_check 1.2\n";
     }
+std::cerr << "_check 2\n";
     return true;
 }
 
@@ -667,6 +690,9 @@ std::cerr << all_links.size() << " all links\n";
         if (all_links.size() % 100 == 0)
             logger::status(py_logger, status_prefix,
                     "Forming columns (", all_links.size(), " links to check)");
+for (auto seq_po: partial_order) {
+    std::cerr << "po for " << seq_po.first->description() << ": " << seq_po.second.size() << "; columns: " << columns[seq_po.first].size() << "\n";
+}
         auto back_val = all_links.back()->val;
         for (auto link: all_links) {
             if (link->val > back_val) {
@@ -737,7 +763,7 @@ std::cerr << "waypoint 3\n";
         for (auto seq_pos: check_info) {
             auto seq = seq_pos.first;
             auto pos = seq_pos.second;
-            auto po = partial_order[seq];
+            auto& po = partial_order[seq];
             auto num_po = po.size();
             decltype(num_po) i;
             bool broke = false;
@@ -751,7 +777,7 @@ std::cerr << "waypoint 3\n";
             if (!broke)
                 i = num_po;
             po.insert(po.begin()+i, col);
-            auto cols = columns[seq];
+            auto& cols = columns[seq];
             cols[col] = i;
             for (auto ncol_i = po.begin()+i+1; ncol_i != po.end(); ++ncol_i) {
                 auto ncol = *ncol_i;
@@ -787,22 +813,22 @@ std::cerr << "waypoint 4\n";
             if (col_or_ep->is_column) {
                 for (auto seq_pos: col_or_ep->positions()) {
                     auto seq = seq_pos.first;
-                    auto seq_cols = columns[seq];
+                    auto& seq_cols = columns[seq];
                     auto opos = seq_cols[col_or_ep->col];
                     auto po = partial_order[seq];
-std::cerr << "create new_po\n";
+//std::cerr << "create new_po\n";
                     auto new_po = decltype(po)(po.begin(), po.begin()+opos);
-std::cerr << "create new_po_back with po length " << po.size() << " and opos " << opos << "\n";
+//std::cerr << "create new_po_back with po length " << po.size() << " and opos " << opos << "\n";
                     auto new_po_back = decltype(po)(po.begin()+opos+1, po.end());
-std::cerr << "insert into new_po\n";
+//std::cerr << "insert into new_po\n";
                     new_po.insert(new_po.end(), new_po_back.begin(), new_po_back.end());
-std::cerr << "insert into partial_order\n";
+//std::cerr << "insert into partial_order\n";
                     partial_order[seq] = new_po;
-std::cerr << "adjusting seq_cols\n";
+//std::cerr << "adjusting seq_cols\n";
                     for (auto pcol: new_po_back)
                         seq_cols[pcol] -= 1;
                     seq_cols.erase(col_or_ep->col);
-std::cerr << "adjusted seq_cols\n";
+//std::cerr << "adjusted seq_cols\n";
                 }
             }
         }
