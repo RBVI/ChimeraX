@@ -487,7 +487,7 @@ class LightingGUI(ToolInstance):
         self._sync_preview()
 
     def _on_sharpness_released(self):
-        run(self.session, f"material specularExponent {self.sharpness.value()}")
+        run(self.session, f"material exponent {self.sharpness.value()}")
 
     def _on_reflectivity_changed(self, value):
         reflectivity = value / self.reflectivity.scale
