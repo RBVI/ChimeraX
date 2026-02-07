@@ -715,9 +715,9 @@ class OpenFoldRun:
         if self._seed is not None and self._seed != 42:
             command.append(f'--seed={self._seed}')
 
-        '''
-        command.extend(['--accelerator', self.device])
+        command.extend(['--device', self.device])
 
+        '''
         use_kernels = self._use_kernels
         if self._use_kernels is None:
             from sys import platform
