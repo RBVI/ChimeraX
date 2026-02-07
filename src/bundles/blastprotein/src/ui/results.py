@@ -91,6 +91,7 @@ class BlastProteinResults(ToolInstance):
         self._sequences: Dict[int, Match] = kw.pop("sequences", None)
         self._table_session_data = kw.pop("table_session_data", None)
         self.tool_window = None
+        self._managed = False
         self.model_removed_handler = self.session.triggers.add_handler(
             REMOVE_MODELS,
             lambda *args: self._on_model_removed_from_session(*args),
@@ -460,7 +461,15 @@ class BlastProteinResults(ToolInstance):
 
     def _on_report_hits_signal(self, items):
         if items:
-            self.tool_window.manage("side")
+            # Tabify with an existing blast results panel if one is
+            # already managed, otherwise dock on the side.
+            existing = [inst for inst in _instance_map.values()
+                        if inst is not self and inst._managed]
+            if existing:
+                self.tool_window.manage(existing[0].tool_window)
+            else:
+                self.tool_window.manage("side")
+            self._managed = True
             try:
                 items = sorted(items, key=lambda i: i["e-value"])
                 for index, item in enumerate(items):
