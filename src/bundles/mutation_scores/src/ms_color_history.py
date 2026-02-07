@@ -219,7 +219,11 @@ class MutationColorHistoryPanel(ToolInstance):
 
     def _selected_attribute_names(self):
         return [item.text() for item in self._attribute_list.selectedItems()]
-    
+
+    def _all_attribute_names(self):
+        al = self._attribute_list
+        return [al.item(i).text() for i in range(al.count())]
+
     def _adjust_colors(self):
         attr_names = self._selected_attribute_names()
         if len(attr_names) != 1:
@@ -267,8 +271,7 @@ class MutationColorHistoryPanel(ToolInstance):
     def _save_csv(self, *, value_format = '%.4g'):
         attribute_names = self._selected_attribute_names()
         if len(attribute_names) == 0:
-            self.session.logger.error('Select an attribute name in the list then press the Save button.')
-            return
+            attribute_names = self._all_attribute_names()
 
         text, dir = self._residue_scores_csv(attribute_names, value_format = value_format)
         
