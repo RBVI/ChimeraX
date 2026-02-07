@@ -99,6 +99,10 @@ class BlastProteinResults(ToolInstance):
 
         self._build_ui()
 
+    def delete(self):
+        _instance_map.pop(self._instance_name, None)
+        super().delete()
+
     def _on_model_removed_from_session(self, _, models):
         db = AvailableDBsDict[self.params.database]
         if db.name in ["alphafold", "esmfold"]:
