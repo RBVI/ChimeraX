@@ -78,6 +78,8 @@ See also:
 &ndash; define a new score based on existing scores
 </li><li><a href="#undefine"><b>mutationscores undefine</b></a>
 &ndash; remove a previously defined score
+</li><li><a href="#color"><b>mutationscores color</b></a>
+&ndash; reapply a previous coloring by mutation score to associated structure(s)
 </li><li><a href="#histogram"><b>mutationscores histogram</b></a>
 &ndash; show a histogram of score values
 </li><li><a href="#label"><b>mutationscores label</b></a>
@@ -167,32 +169,43 @@ drawn on the plot, and can be computed as one of:
 Choices of <b>palette</b> for coloring by mutation scores include:
 </p>
 <ul>
-<li><b>blue to red</b> &ndash; for signed values, with
-blue, white, another white, and red thresholds set to values
-0.66*min(score), 0.33*min(score), 0.33*max(score), 0.66*max(score),
-where min and max are taken across all residues being colored
-</li><li><b>red to blue</b> &ndash; for signed values, with
-red, white, another white, and blue thresholds set to values
-0.66*min(score), 0.33*min(score), 0.33*max(score), 0.66*max(score) 
-</li><li><b>white to red</b> &ndash; for unsigned values
-(all positive or all negative), with
-white and red thresholds set to values min(score) and 
-[min(score) + 0.66*(max(score) &ndash; min(score))]
-</li><li><b>white to blue</b> &ndash; for unsigned values, with
-white and blue thresholds set to values min(score) and 
-[min(score) + 0.66*(max(score) &ndash; min(score))]
+<li><b>blue to red</b>
+&ndash; with blue, white, another white, and red thresholds
+</li><li><b>red to blue</b>
+&ndash; with red, white, another white, and blue thresholds
+</li><li><b>blue to white</b>
+&ndash; with blue and white thresholds
+</li><li><b>red to white</b>
+&ndash; with red and white thresholds
+</li><li><b>white to blue</b>
+&ndash; with white and blue thresholds
+</li><li><b>white to red</b>
+&ndash; with white and red thresholds
 </li></ul>
 <p>
+The colors are in low &rarr; high value order in the names above, and
+the thresholds are placed to span four standard deviations centered on the mean.
+</p>
 Clicking <b>Adjust colors</b> shows the 
 <a href="../tools/render.html"><b>Render by Attribute</b></a> tool
 for interactively moving the thresholds and/or changing their colors.
 </p><p>
+<a name="previous-colorings"></a>
 <b>Previous colorings</b> shows a &ldquo;Mutation Coloring History&rdquo; table 
-listing the previous colorings and allowing them to be chosen and reapplied
-with minimal effort. Below this table are buttons to <b>Rename</b> or 
-<b>Delete</b> a chosen coloring, or to <b>Adjust colors</b> for that
-coloring with <a href="../tools/render.html"><b>Render by Attribute</b></a>.
-</p><p>
+allowing previous colorings to be chosen and easily reapplied
+(see also <a href="#color"><b>mutationscores color</b></a>).
+There are buttons below the table to:
+</p>
+<ul>
+<li><b>Rename</b> a chosen coloring
+</li><li><b>Delete</b> one or more chosen colorings
+</li><li><b>Adjust colors</b> for that coloring with 
+<a href="../tools/render.html"><b>Render by Attribute</b></a>
+</li><li><b>Save</b> one or more chosen scores (if none are chosen, all)
+to a .csv file with columns: 
+residue number, residue type, score1-name, score2-name, ...
+</ul>
+<p>
 Clicking the scatter plot raises a context menu; entries that refer to
 a specific mutant only appear when the click is on a circle, and some entries 
 only appear if there is an <a href="#associated">associated structure</a>:
@@ -342,6 +355,22 @@ A limitation of this simplistic normalization, however, is that the variation
 in response might not be a linear function of the quantity of 
 surface-expressed protein.
 </p></blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="color"></a>
+<b>mutationscores color</b>&nbsp;&nbsp;<i>attribute-name</i>
+<blockquote>
+Reapply a previously defined coloring by mutation score
+to the <a href="#associated">associated structure(s)</a>.
+A mutation-score <a href="../attributes.html">attribute</a> must have been 
+created with <a href="#define"><b>mutationscores define</b></a>
+(which assigns an <i>attribute-name</i> same as the score name) and
+coloring by that attribute previously applied using the
+<a href="../tools/render.html"><b>Render by Attribute</b></a> tool or the
+<a href="color.html#byattribute"><b>color byattribute</b></a> command.
+See also: <a href="#previous-colorings">Mutation Coloring History</a>
+in the <a href="#scatterplot">scatter plot</a>
+</blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="histogram"></a>
@@ -577,6 +606,6 @@ with <a href="#list"><b>mutationscores list</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2026</address>
+February 2026</address>
 
 </body></html>
