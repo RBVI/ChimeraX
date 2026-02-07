@@ -38,7 +38,7 @@ def make_universal(
             _copy(ipath, upath, whole_tree=True)
         elif same_file(apath, ipath):
             _copy(apath, upath)
-        elif is_executable(apath):
+        elif is_lipoable(apath):
             lipo_files(apath, ipath, upath, warn)
         else:
             if warn:
@@ -145,8 +145,23 @@ def is_executable(path):
     return file_type in need_lipo
 
 
+def is_static_library(path):
+    """Static archives (.a) are ar archives that lipo can handle directly."""
+    if not isfile(path) or not path.endswith(".a"):
+        return False
+    try:
+        with open(path, "rb") as f:
+            return f.read(8) == b"!<arch>\n"
+    except OSError:
+        return False
+
+
+def is_lipoable(path):
+    return is_executable(path) or is_static_library(path)
+
+
 def lipo_files(arm_path, intel_path, universal_path, warn):
-    if not is_executable(intel_path) and warn:
+    if not is_lipoable(intel_path) and warn:
         log_mismatch(f"Not executable {intel_path}")
         _copy(arm_path, universal_path)
         return
@@ -275,7 +290,6 @@ def has_suffix(path, suffixes):
 omit = [
     "_CodeSignature",
     "debugpy",
-    ".a",
     "libtcl8.6.dylib",  # Causes notarization failure. Not used.
     "libtk8.6.dylib",  # Causes notarization failure. Not used.
     #    "libHoloPlayCore.dylib",  # 0.1.0 has no ARM symbols (looking_glass)
