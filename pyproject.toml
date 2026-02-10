@@ -48,6 +48,7 @@ gui = [
   "Sphinx==9.0.4",
   "sphinxcontrib-blockdiag==3.0.0",
   "sphinx_autodoc_typehints==3.6.1",
+  "pydata-sphinx-theme",
   #
   # Windows
   #
