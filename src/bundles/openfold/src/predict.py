@@ -597,6 +597,14 @@ class OpenFoldRun:
             # certifi root certificates.
             import certifi
             env["SSL_CERT_FILE"] = certifi.where()
+        elif platform == 'linux':
+            # Torch needs ninja to be in the path to compile CUDA code.
+            # ninja is in the openfold virtual environment bin directory.
+            from os.path import dirname
+            bin_dir = dirname(command[0])
+            from os import environ
+            exe_path = environ.get('PATH', '')
+            env = {'PATH': f'{bin_dir}:{exe_path}'}
         else:
             env = None
 
