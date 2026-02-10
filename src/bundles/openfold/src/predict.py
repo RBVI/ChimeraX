@@ -433,7 +433,7 @@ class OpenFoldRun:
         self._server_host = server_host # Host name, e.g. minsky.cgl.ucsf.edu
         self._server_port = server_port # Port number
         self._use_kernels = use_kernels	# whether to use cuequivariance module for triangle attention
-        self._precision = precision	# "32", "bf16-mixed", "16", "bf16-true"
+        self._precision = precision	# "32-true", "bf16-mixed", "16-true", "bf16-true"
         self._seed = seed		# Random seed for computation
         self._open = open		# Whether to open predictions when openfold finishes.
 
@@ -725,6 +725,9 @@ class OpenFoldRun:
 
         command.extend(['--device', self.device])
 
+        if self._precision is not None:
+            command.extend(['--precision', self._precision])
+
         '''
         use_kernels = self._use_kernels
         if self._use_kernels is None:
@@ -732,9 +735,6 @@ class OpenFoldRun:
             use_kernels = (self.device == 'gpu' and platform == 'linux')
         if not use_kernels:
             command.append('--no_kernels')
-
-        if self._precision is not None:
-            command.extend(['--precision', self._precision])
             
         if self._recycles != 3:
             command.extend(['--recycling_steps', str(self._recycles)])
@@ -1537,7 +1537,7 @@ def register_openfold_predict_command(logger):
                    ('server_host', StringArg),
                    ('server_port', IntArg),
                    ('kernels', BoolArg),
-                   ('precision', EnumOf(['32', 'bf16-mixed', '16', 'bf16-true'])),
+                   ('precision', EnumOf(['32-true', 'bf16-mixed', '16-true', 'bf16-true'])),
                    ('samples', IntArg),
                    ('recycles', IntArg),
                    ('seed', IntArg),
