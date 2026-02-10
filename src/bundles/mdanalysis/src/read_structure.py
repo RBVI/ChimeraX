@@ -38,9 +38,11 @@ def read_structure(session, path, file_name, format_name=None, *, auto_style=Tru
             
         # LAMMPS Data specific: MDA needs atom_style usually, but defaults to 'full'
         # If it fails, we might need to retry, but let's assume standard for now.
-            
-        universe = mda.Universe(path, coords, topology_format='PSF', format='LAMMPSDUMP', dt=1.0, in_memory=False)
         
+        session.logger.status(f"*** ok 1")
+        universe = mda.Universe(path, coords, topology_format='PSF', format='LAMMPSDUMP', dt=1.0, in_memory=False)
+        session.logger.status(f"*** ok 2")
+
     except ImportError:
         raise UserError("MDAnalysis is not installed. Please run 'pip install MDAnalysis' to use this bundle.")
     except Exception as e:
@@ -55,6 +57,8 @@ def read_structure(session, path, file_name, format_name=None, *, auto_style=Tru
     try:
         name = os.path.basename(file_name)
         model = universe_to_atomic_structure(session, universe, name, auto_style=auto_style)
+        session.logger.status(f"*** ok 3")
+
     except Exception as e:
          raise UserError(f"Failed to convert MDAnalysis topology to ChimeraX structure: {e}")
 
@@ -69,8 +73,8 @@ def read_structure(session, path, file_name, format_name=None, *, auto_style=Tru
         for timestep in universe.trajectory:
             #session.logger.info(f"*** frame {timestep.frame} |positions| {len(timestep.positions)}")
             #session.logger.info(f"*** #{timestep.frame} {timestep.positions[:3]}")
+            session.logger.status(f"*** timestep {timestep.frame}")
             model.add_coordset(id=timestep.frame, xyz=timestep.positions.astype(np.float64))
-
 
     return [model], msg
 
@@ -194,7 +198,7 @@ def universe_to_atomic_structure(session, u, name, auto_style=True):
     sorted_segments = sorted(u.segments, key=lambda seg: seg.residues[0].atoms[0].index)
     
     session.logger.info(f"*** sorted_segments {sorted_segments}")
-    
+        
     for seg in sorted_segments:
         for res in seg.residues:
             # Create ChimeraX residue
