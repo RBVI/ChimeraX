@@ -169,7 +169,7 @@ def run_openfold(directory, openfold_exe, device = 'gpu', gpu_id = None, extra_o
         # Torch needs ninja to be in the path to compile CUDA code.
         # ninja is in the openfold virtual environment bin directory.
         from os.path import dirname
-        bin_dir = dirname(command[0])
+        bin_dir = dirname(openfold_exe)
         from os import environ
         exe_path = environ.get('PATH', '')
         env['PATH'] = f'{bin_dir}:{exe_path}'
