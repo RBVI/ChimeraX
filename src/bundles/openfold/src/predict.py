@@ -251,12 +251,12 @@ class OpenFoldPrediction:
             self.name = default_name
         return self.name + '.json'
 
-    def input(self, msa_cache_directory = None, msa_directory = None):
+    def input(self, msa_cache_directory = None, copy_msa_to_directory = None):
 
         # Create yaml for polymers
         msa_files = self._msa_cache_files(msa_cache_directory)
-        if msa_directory:
-            msa_files = self._copy_msa_files(msa_files, msa_directory)
+        if msa_files and copy_msa_to_directory:
+            msa_files = self._copy_msa_files(msa_files, copy_msa_to_directory)
 
         components = []
         for mc in self._molecular_components:
@@ -289,7 +289,7 @@ class OpenFoldPrediction:
 
         input = { f"{self.name}": { "chains": components }}
 
-        msa_dir = msa_files.directory if msa_files else '.'
+        msa_dir = msa_files.directory if msa_files and copy_msa_to_directory is None else '.'
         msa_path_yaml = f'''msa_computation_settings:
   msa_output_directory: {msa_dir}/colabfold_msas
   cleanup_msa_dir: False
@@ -487,10 +487,10 @@ class OpenFoldRun:
             self.name = basename(dir)
 
         msa_cache_dir = self._msa_cache_dir if self._use_msa_cache else None
-        msa_directory = (self._run_directory if self._use_server else None)
+        copy_msa_to_directory = (self._run_directory if self._use_server else None)
         queries = {}
         for p in self._predictions:
-            query, msa_path_yaml = p.input(msa_cache_dir, msa_directory)
+            query, msa_path_yaml = p.input(msa_cache_dir, copy_msa_to_directory)
             queries.update(query)
         input = {'queries' : queries}
         import json
