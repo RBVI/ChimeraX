@@ -251,12 +251,12 @@ class OpenFoldPrediction:
             self.name = default_name
         return self.name + '.json'
 
-    def input(self, msa_cache_directory = None, msa_directory = None, msa_relative_to_path = None):
+    def input(self, msa_cache_directory = None, msa_directory = None):
 
         # Create yaml for polymers
         msa_files = self._msa_cache_files(msa_cache_directory)
         if msa_directory:
-            msa_files = self._copy_msa_files(msa_files, msa_directory, msa_relative_to_path)
+            msa_files = self._copy_msa_files(msa_files, msa_directory)
 
         components = []
         for mc in self._molecular_components:
@@ -311,17 +311,20 @@ template_preprocessor_settings:
 
         return msa_cache_files
 
-    def _copy_msa_files(self, msa_files, msa_directory, msa_relative_to_path):
+    def _copy_msa_files(self, msa_files, msa_directory):
         # Copy MSA files to run directory so they are sent to server.
-        from shutil import copy2
-        for path in set(msa_files.values()):
-            copy2(path, msa_directory)
-        from os.path import join, basename, relpath
-        copied_msa_files = {seq:join(msa_directory, basename(msa_path)) for seq, msa_path in msa_files.items()}
-        if msa_relative_to_path:
-            copied_msa_files = {seq:relpath(msa_path, msa_relative_to_path)
-                                for seq, msa_path in copied_msa_files.items()}
-        return copied_msa_files
+        from shutil import copytree
+        from os.path import join, relpath
+        for subdir in ('colabfold_msas', 'colabfold_templates'):
+            copytree(join(msa_files.directory, subdir), join(msa_directory, subdir))
+
+        for seq_paths in msa_files.paths.values():
+            rel_paths = {name: (relpath(path, msa_files.directory) if path and name != 'template_ids' else path)
+                         for name, path in seq_paths.items()}
+            seq_paths.update(rel_paths)
+
+        msa_files.directory = msa_directory
+        return msa_files
     
     @property
     def using_cached_msa(self):
@@ -484,10 +487,10 @@ class OpenFoldRun:
             self.name = basename(dir)
 
         msa_cache_dir = self._msa_cache_dir if self._use_msa_cache else None
-        msa_directory = msa_relative_to_path = (self._run_directory if self._use_server else None)
+        msa_directory = (self._run_directory if self._use_server else None)
         queries = {}
         for p in self._predictions:
-            query, msa_path_yaml = p.input(msa_cache_dir, msa_directory, msa_relative_to_path)
+            query, msa_path_yaml = p.input(msa_cache_dir, msa_directory)
             queries.update(query)
         input = {'queries' : queries}
         import json
@@ -705,7 +708,8 @@ class OpenFoldRun:
         command = [openfold_exe, 'predict']
 
         # Input file
-        command.append(f'--query_json={self._input_path}')
+        from os.path import basename
+        command.append(f'--query_json={basename(self._input_path)}')
 
         # Save MSAs and templates in the prediction directory or read from cache
         command.append('--runner_yaml=msa_path.yaml')
@@ -723,7 +727,7 @@ class OpenFoldRun:
         if self._seed is not None and self._seed != 42:
             command.append(f'--seed={self._seed}')
 
-        command.extend(['--device', self.device])
+        command.append(f'--device={self.device}')
 
         if self._precision is not None:
             command.extend(['--precision', self._precision])

@@ -32,6 +32,9 @@
     <ChimeraXClassifier>Command :: openfold predict :: Structure Prediction :: Predict a structure using OpenFold 3</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: openfold install :: Structure Prediction :: Install OpenFold 3</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: openfold ligandtable :: Structure Prediction :: Show table of OpenFold 3 ligand prediction results</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: openfold server start :: Structure Prediction :: Start a server that runs OpenFold predictions</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: openfold server list :: Structure Prediction :: List active OpenFold prediction server jobs</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: openfold server fetch :: Structure Prediction :: Fetch active OpenFold prediction server jobs</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: OpenFold :: Structure Prediction :: Predict structures using OpenFold 3</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: OpenFold History :: Structure Prediction :: Table of previously run OpenFold predictions</ChimeraXClassifier>
   </Classifiers>
