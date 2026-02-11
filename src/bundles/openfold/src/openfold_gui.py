@@ -535,14 +535,12 @@ class OpenFoldPredictionGUI(ToolInstance):
             options.append('useMsaCache false')
         if self._device.value != 'default':
             options.append(f'device {self._device.value}')
-        '''
         if self._use_server.value:
             options.append('useServer true')
             host, port = self._server_host.value, self._server_port.value
             if host.strip():
                 options.append(f'serverHost {host}')
             options.append(f'serverPort {port}')
-        '''
         if self._samples.value != 1:
             options.append(f'samples {self._samples.value}')
         from .settings import _openfold_settings
@@ -617,10 +615,8 @@ class OpenFoldPredictionGUI(ToolInstance):
         self._max_memory_use = None
         self.session.triggers.add_handler('new frame', self._report_progress)
 
-        '''
         if not self._openfold_run._use_server:
             self._show_stop_button(True)
-        '''
 
     # ---------------------------------------------------------------------------
     #
@@ -748,14 +744,12 @@ class OpenFoldPredictionGUI(ToolInstance):
         dev.value = settings.device
 
         # Server configuration
-        '''
-        sr = EntriesRow(f, False, 'Use server ', '', ' port', 30172)
+        sr = EntriesRow(f, False, 'Use server ', '', ' port', 30173)
         self._use_server, self._server_host, self._server_port = us,sh,sp = sr.values
         us.value = settings.use_server
         sh.pixel_width = 150
         sh.value = settings.server_host
         sp.value = settings.server_port
-        '''
         
         # OpenFold install location
         id = EntriesRow(f, 'OpenFold install location', '',
@@ -806,6 +800,9 @@ class OpenFoldPredictionGUI(ToolInstance):
             settings.samples = self._samples.value
             settings.device = self._device.value
             settings.use_msa_cache = self._use_msa_cache.value
+            settings.use_server = self._use_server.value
+            settings.server_host = self._server_host.value
+            settings.server_port = self._server_port.value
         settings.openfold_install_location = self._install_directory.value
         settings.save()
         

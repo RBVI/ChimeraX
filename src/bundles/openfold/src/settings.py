@@ -33,6 +33,12 @@ class _OpenFoldSettings(Settings):
         'device': 'default',	# default, cpu, or gpu
         'samples': 1,		# Number of predicted structures
         'use_msa_cache': True,
+        'use_server': False,
+        'server_host': '',
+        'server_port': 30173,
+    }
+    AUTO_SAVE = {
+        'active_server_jobs': [],  # Directories of openfold runs sent to server
     }
 
 # -----------------------------------------------------------------------------
