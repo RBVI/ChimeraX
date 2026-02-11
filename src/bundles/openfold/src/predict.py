@@ -290,13 +290,16 @@ class OpenFoldPrediction:
         input = { f"{self.name}": { "chains": components }}
 
         msa_dir = msa_files.directory if msa_files and copy_msa_to_directory is None else '.'
+        from os.path import join
+        msas_dir = _posix_path(join(msa_dir, 'colabfold_msas'))
+        templates_dir = _posix_path(join(msa_dir, 'colabfold_templates'))
         msa_path_yaml = f'''msa_computation_settings:
-  msa_output_directory: {msa_dir}/colabfold_msas
+  msa_output_directory: {msas_dir}
   cleanup_msa_dir: False
   save_mappings: True 
 
 template_preprocessor_settings:
-  output_directory: {msa_dir}/colabfold_templates
+  output_directory: {templates_dir}
 '''
         return input, msa_path_yaml
 
@@ -319,7 +322,8 @@ template_preprocessor_settings:
             copytree(join(msa_files.directory, subdir), join(msa_directory, subdir))
 
         for seq_paths in msa_files.paths.values():
-            rel_paths = {name: (relpath(path, msa_files.directory) if path and name != 'template_ids' else path)
+            rel_paths = {name: (_posix_path(relpath(path, msa_files.directory))
+                                if path and name != 'template_ids' else path)
                          for name, path in seq_paths.items()}
             seq_paths.update(rel_paths)
 
@@ -1277,7 +1281,7 @@ class MSACacheFiles:
         for seq, id in seq_ids.items():
             unpaired_path = join(msa_directory, 'main', id + '.npz')
             if exists(unpaired_path):
-                msa_paths[seq]['unpaired'] = unpaired_path
+                msa_paths[seq]['unpaired'] = _posix_path(unpaired_path)
 
         # Find paired MSAs
         complex_ids_path = join(msa_directory, 'mappings', 'query_name_to_complex_id.json')
@@ -1289,19 +1293,31 @@ class MSACacheFiles:
                 for seq, id in seq_ids.items():
                     paired_path = join(msa_directory, 'paired', complex_id, id + '.npz')
                     if exists(paired_path):
-                        msa_paths[seq]['paired'] = paired_path
+                        msa_paths[seq]['paired'] = _posix_path(paired_path)
 
         # Find template alignment files
         for seq, id in seq_ids.items():
             template_path = join(template_directory, 'template_cache', id + '.npz')
             if exists(template_path):
-                msa_paths[seq]['templates'] = template_path
+                msa_paths[seq]['templates'] = _posix_path(template_path)
                 import numpy
                 with numpy.load(template_path) as data:
                     msa_paths[seq]['template_ids'] = tuple(data.files)
 
         return msa_paths
-
+    
+# ------------------------------------------------------------------------------
+#
+def _posix_path(path):
+    '''
+    Convert Windows backslash path separator to posix forward slash
+    so that paths used on a prediction on a remote server work.
+    '''
+    from sys import platform
+    if platform == 'win32':
+        return path.replace('\\', '/')
+    return path
+    
 # ------------------------------------------------------------------------------
 #
 def _add_to_msa_cache(dir_name, protein_seqs, msa_directory, template_directory, msa_cache_dir):
