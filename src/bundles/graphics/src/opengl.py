@@ -1214,6 +1214,17 @@ class Render:
                 offscreen_outline = True
         self.outline.offscreen_outline_needed = offscreen_outline
 
+        # On Wayland with Nvidia graphics drag select with mouse hangs when
+        # trying to draw the green outline rectangle or sometimes does not draw
+        # the rectangle.  ChimeraX ticket #19830.
+        self.broken_front_buffer_rendering = False
+        if sys.platform == 'linux':
+            from os import environ
+            if 'WAYLAND_DISPLAY' in environ:
+                rname = self.opengl_renderer()
+                if rname.startswith('NVIDIA'):
+                    self.broken_front_buffer_rendering = True
+                
     def pixel_scale(self):
         return self._opengl_context.pixel_scale()
 
