@@ -102,7 +102,7 @@ See also:
 <h3>Getting Models from the AlphaFold Database</h3>
 <blockquote>
 <a href="usageconventions.html"><b>Usage</b></a>:
-<b>alphafold fetch</b> &nbsp;<i>uniprot-id</i>&nbsp;
+<b>alphafold fetch</b> &nbsp;<i>fetch-id</i>&nbsp;
 <span class="nowrap">[&nbsp;<a href="#alignTo"><b>alignTo</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;[&nbsp;<a href="#trim"><b>trim</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]]</span>
 [&nbsp;<a href="#colorConfidence"><b>colorConfidence</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<a href="#ignoreCache"><b>ignoreCache</b></a>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -126,9 +126,20 @@ See also:
 </blockquote>
 <ul>
 <li>The <b>alphafold fetch</b> command retrieves the model (if available)
-for a specific UniProt name or accession number. It is equivalent to using the
+specified by any of the following types of <i>fetch-id</i>:
+  <ul>
+  <li>UniProt name (example: <b>IGS22_HUMAN</b>)
+  <li>UniProt accession number, potentially including an isoform number
+&ge;2 (examples: <b>P29474</b>, <b>Q8N9C0</b> for the 
+first isoform, <b>Q8N9C0-2</b> for the second isoform)
+  <li>AlphaFold database identifier starting with AF and
+including UniProt accession number, optional isoform number, 
+fragment number for large structures that were predicted in chunks, and 
+database version (examples: <b>AF-Q8N9C0-F1-v6</b>, <b>AF-Q8N9C0-2-F1-v6</b>)
+  </ul>
+Using <b>alphafold fetch</b> is equivalent to using the
 <b><a href="open.html#fetch">open</a></b> command to fetch
-<b>from alphafold</b>. Examples:
+<b>from alphafold</b>:
 <blockquote>
 <b>alphafold fetch p29474</b>
 <br>&ndash; OR &ndash; (equivalent)<br>
@@ -1189,6 +1200,6 @@ the hundreds of files that ColabFold produces.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2025</address>
+February 2026</address>
 
 </body></html>
