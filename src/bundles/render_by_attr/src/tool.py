@@ -248,6 +248,7 @@ class RenderByAttrTool(ToolInstance):
         self.mode_widget.addTab(render_tab, "Render")
 
         # wait until tab contents are completely filled before connecting these
+        self._config_info = None
         self.model_list.value_changed.connect(self._models_changed)
         self.render_type_widget.currentChanged.connect(self._render_mode_changed)
 
@@ -357,7 +358,7 @@ class RenderByAttrTool(ToolInstance):
         tw.manage(placement=None)
 
     def configure(self, *, models=None, target=None, tab=None, attr_name=None, level_info=None,
-            render_type=None):
+            no_value_info=None, render_type=None):
         '''Configure the Render By Attribute interface programmatically.
 
            All the arguments are optional.  Any argument not specified will retain the current value.
@@ -375,13 +376,26 @@ class RenderByAttrTool(ToolInstance):
            or radius value as appropriate.  So for rendering, level_info is a series of (attribute-value,
            color-or-radius) tuples, and for selecting it's just a two-tuple/list of attribute values.
 
+           'no_value_info' controls the settings for rendering items with no value.  It is a two-tuple/list
+           consisting of a boolean and a color or radius.  The boolean controls whether checkbox for
+           applying results for no-value items is checked (and is ignored if rendering worms, which
+           has no checkbox).
+
            'render_type' controls what sub-tab is shown for rendering.  It is one of
            RenderByAttrTool.RENDER_COLORS, RENDER_RADII, or RENDER_WORMS.
         '''
         from chimerax.core.commands import commas
+        finish_kw = { 'target': target, 'tab': tab, 'attr_name': attr_name, 'level_info': level_info,
+            'no_value_info': no_value_info, 'render_type': render_type, }
         if models is not None:
             self.model_list.value = models
+            # wait until the models-changed callback completes
+            self._config_info = finish_kw
+        else:
+            self._finish_config(**finish_kw)
 
+    def _finish_config(self, *, target=None, tab=None, attr_name=None, level_info=None,
+            no_value_info=None, render_type=None):
         if target is not None:
             menu = self.target_menu_button.menu()
             for action in menu.actions():
@@ -424,6 +438,18 @@ class RenderByAttrTool(ToolInstance):
             else:
                 raise ValueError("No render tab named '%s'; tab names are: %s" % (tab,
                     commas([tab_widget.tabText(i) for i in range(tab_widget.count())], "and")))
+
+        if no_value_info is not None:
+            check_box, value = no_value_info
+            render_type = self.render_type_widget.tabText(self.render_type_widget.currentIndex())
+            if render_type == self.RENDER_COLORS:
+                self.color_no_value.setChecked(check_box)
+                self.no_value_color.color = value
+            elif render_type == self.RENDER_RADII:
+                self.radii_affect_nv.value = check_box
+                self.radii_nv_radius.value = value
+            else:
+                self.worm_nv_radius.value = value
 
         if level_info is not None:
             rendering = self.mode_widget.tabText(self.mode_widget.currentIndex()) == "Render"
@@ -737,6 +763,9 @@ class RenderByAttrTool(ToolInstance):
             self._new_render_attr()
             self._new_select_attr()
         self._update_deworm_button()
+        if self._config_info is not None:
+            self._finish_config(**self._config_info)
+            self._config_info = None
 
     def _new_render_attr(self, attr_name_info=None):
         enabled = True
