@@ -25,10 +25,9 @@
 def openfold_predict(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
                   protein = [], dna = [], rna = [],
                   ligand_ccd = [], ligand_smiles = [], for_each_smiles_ligand = [],
-                  name = None, results_directory = None,
-                  device = None, use_server = False, server_host = None, server_port = None,
-                  kernels = None, precision = None,
-                  samples = 1, recycles = 3, seed = 42,
+                  name = None, samples = 1, seed = 42, results_directory = None,
+                  device = None, precision = None,
+                  use_server = False, server_host = None, server_port = None,
                   msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/OpenFoldMSA',
                   open = True, install_location = None, wait = None):
 
@@ -70,11 +69,11 @@ def openfold_predict(session, sequences = [], ligands = None, exclude_ligands = 
         predictions = _each_ligand_predictions(for_each_ligand, molecular_components, align_to)
             
     br = OpenFoldRun(session, predictions, name = name, run_directory = results_directory,
-                  samples = samples, recycles = recycles, seed = seed,
-                  device = device, use_server = use_server, server_host = server_host, server_port = server_port,
-                  use_kernels = kernels, precision = precision,
-                  msa_only = msa_only, use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
-                  open = open, wait = wait)
+                     samples = samples, seed = seed,
+                     device = device, precision = precision,
+                     use_server = use_server, server_host = server_host, server_port = server_port,
+                     msa_only = msa_only, use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
+                     open = open, wait = wait)
 
     msa_run = _msa_run(session, name, molecular_components, msa_cache_dir, wait) if for_each_ligand else None
     if msa_run is None:
@@ -419,9 +418,9 @@ class OpenFoldMolecule:
 #
 class OpenFoldRun:
     def __init__(self, session, structures, name = None, run_directory = None,
-                 samples = 1, recycles = 3, seed = 42,
-                 device = 'default', use_server = False, server_host = None, server_port = None,
-                 use_kernels = None, precision = None,
+                 samples = 1, seed = 42,
+                 device = 'default', precision = None,
+                 use_server = False, server_host = None, server_port = None,
                  msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/OpenFoldMSA',
                  open = True, wait = False):
 
@@ -429,7 +428,6 @@ class OpenFoldRun:
         self._predictions = [structures] if isinstance(structures, OpenFoldPrediction) else structures
         self.name = name
         self._samples = samples		# Number of predicted structures
-        self._recycles = recycles	# Number of openfold recycling steps
         self._device = device		# gpu, cpu or default, or None (uses settings value)
         self._use_server = use_server	# True or False
         if use_server:
@@ -439,7 +437,6 @@ class OpenFoldRun:
                 server_port = self._settings.server_port
         self._server_host = server_host # Host name, e.g. minsky.cgl.ucsf.edu
         self._server_port = server_port # Port number
-        self._use_kernels = use_kernels	# whether to use cuequivariance module for triangle attention
         self._precision = precision	# "32-true", "bf16-mixed", "16-true", "bf16-true"
         self._seed = seed		# Random seed for computation
         self._open = open		# Whether to open predictions when openfold finishes.
@@ -735,18 +732,6 @@ class OpenFoldRun:
 
         if self._precision is not None:
             command.extend(['--precision', self._precision])
-
-        '''
-        use_kernels = self._use_kernels
-        if self._use_kernels is None:
-            from sys import platform
-            use_kernels = (self.device == 'gpu' and platform == 'linux')
-        if not use_kernels:
-            command.append('--no_kernels')
-            
-        if self._recycles != 3:
-            command.extend(['--recycling_steps', str(self._recycles)])
-        '''
 
         return command
 
@@ -1138,7 +1123,7 @@ def _chain_names(chains):
 
 # ------------------------------------------------------------------------------
 #
-def openfold_ligand_table(session, run_directory, include_smiles = True, align_to = None):
+def openfold_ligand_table(session, run_directory, align_to = None):
     '''Show a table of OpenFold ligand binding prediction results.'''
     from os.path import join, basename, exists
     from os import listdir
@@ -1551,16 +1536,14 @@ def register_openfold_predict_command(logger):
                    ('ligand_smiles', LigandsArg),
                    ('for_each_smiles_ligand', NamedLigandsArg),
                    ('name', StringArg),
+                   ('samples', IntArg),
+                   ('seed', IntArg),
                    ('results_directory', SaveFolderNameArg),
                    ('device', EnumOf(['default', 'cpu', 'gpu'])),
+                   ('precision', EnumOf(['32-true', 'bf16-mixed', '16-true', 'bf16-true'])),
                    ('use_server', BoolArg),
                    ('server_host', StringArg),
                    ('server_port', IntArg),
-                   ('kernels', BoolArg),
-                   ('precision', EnumOf(['32-true', 'bf16-mixed', '16-true', 'bf16-true'])),
-                   ('samples', IntArg),
-                   ('recycles', IntArg),
-                   ('seed', IntArg),
                    ('use_msa_cache', BoolArg),
                    ('msa_only', BoolArg),
                    ('open', BoolArg),
@@ -1573,8 +1556,7 @@ def register_openfold_predict_command(logger):
 
     desc = CmdDesc(
         required = [('run_directory', OpenFolderNameArg),],
-        keyword = [('include_smiles', BoolArg),
-                   ('align_to', AtomicStructureArg),],
+        keyword = [('align_to', AtomicStructureArg)],
         synopsis = 'Show table of OpenFold ligand binding prediction results',
         url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold_help.html#ligandtablecommand'
     )
