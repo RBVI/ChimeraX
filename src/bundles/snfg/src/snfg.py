@@ -31,6 +31,7 @@ sugar ring centroids, following the SNFG standard.
 
 import numpy as np
 from chimerax.core.models import Model, Surface
+from chimerax.atomic import AtomicShapeDrawing, AtomicShapeInfo
 from chimerax.surface import calculate_vertex_normals
 
 from .definitions import (
@@ -39,46 +40,245 @@ from .definitions import (
 from .shapes import get_shape_geometry
 
 
-class SNFGDrawing(Surface):
-    """A surface model representing an SNFG symbol for a single sugar residue."""
+class SNFGShapesDrawing(AtomicShapeDrawing):
+    """Drawing containing all SNFG glycan symbols with selection support.
 
-    SESSION_SAVE_DRAWING = True
+    Each glycan symbol is stored as a shape with associated residue atoms,
+    enabling bidirectional selection: clicking a symbol selects its atoms,
+    and selecting atoms highlights the symbol.
+    """
 
-    def __init__(self, session, residue, shape_type, color_name, size=DEFAULT_SIZE):
-        name = f"SNFG {residue.name}"
-        super().__init__(name, session)
+    SESSION_VERSION = 1
 
-        self.residue = residue
-        self.shape_type = shape_type
-        self.color_name = color_name
+    def __init__(self, name="SNFG shapes"):
+        super().__init__(name)
+        self._residue_to_shape_index = {}  # residue → shape index
+        self._shape_residues = []  # ordered list parallel to self._shapes
+        self._shape_centroids = []  # centroids for connection drawing
 
-        # Get geometry (shapes are centered at origin with Y as primary axis)
+    def add_residue_shape(self, residue, shape_type, color_name, size=DEFAULT_SIZE):
+        """Add a glycan symbol shape for a residue.
+
+        Parameters
+        ----------
+        residue : Residue
+            The carbohydrate residue to visualize.
+        shape_type : str
+            SNFG shape type (sphere, cube, diamond, etc.).
+        color_name : str
+            SNFG color name.
+        size : float
+            Size of the symbol in Angstroms.
+
+        Returns
+        -------
+        int or None
+            Shape index, or None if residue has no ring centroid.
+        """
+        if residue in self._residue_to_shape_index:
+            return self._residue_to_shape_index[residue]
+
+        # Get geometry (shapes are centered at origin)
         vertices, triangles = get_shape_geometry(shape_type, size)
 
-        # Get ring centroid and linkage direction
+        # Get ring centroid
         centroid = _ring_centroid(residue)
-        self.centroid = centroid
+        if centroid is None:
+            return None
 
-        if centroid is not None:
-            # Find direction to linked sugar for orientation
+        # Get ring plane normal and linkage direction for orientation
+        ring_normal = _ring_plane_normal(residue)
+        linkage_dir = _find_linkage_direction(residue, centroid)
+
+        # Compute rotation to align shape with ring plane
+        rotation = _compute_shape_rotation(shape_type, ring_normal, linkage_dir)
+        if rotation is not None:
+            vertices = np.dot(vertices, rotation.T)
+
+        # Translate to centroid
+        vertices = vertices + centroid
+
+        # Calculate normals
+        normals = calculate_vertex_normals(vertices, triangles)
+
+        # Get color
+        rgb = COLORS.get(color_name, (190, 190, 190))
+        color = np.array((*rgb, 255), dtype=np.uint8)
+
+        # Description for picking tooltip
+        description = f"SNFG {residue.name} ({residue})"
+
+        # Add shape with residue's atoms for selection support
+        shape_index = len(self._shapes)
+        self.add_shape(vertices, normals, triangles, color,
+                      atoms=residue.atoms, description=description)
+
+        # Track residue → shape mapping
+        self._residue_to_shape_index[residue] = shape_index
+        self._shape_residues.append(residue)
+        self._shape_centroids.append(centroid)
+
+        return shape_index
+
+    def add_residues_batch(self, residue_info_list):
+        """Add multiple residue shapes efficiently.
+
+        Parameters
+        ----------
+        residue_info_list : list of (residue, shape_type, color_name, size) tuples
+
+        Returns
+        -------
+        int
+            Number of shapes added.
+        """
+        shape_infos = []
+        new_residues = []
+        new_centroids = []
+
+        for residue, shape_type, color_name, size in residue_info_list:
+            if residue in self._residue_to_shape_index:
+                continue
+
+            # Get geometry
+            vertices, triangles = get_shape_geometry(shape_type, size)
+
+            # Get ring centroid
+            centroid = _ring_centroid(residue)
+            if centroid is None:
+                continue
+
+            # Get ring plane normal and linkage direction for orientation
+            ring_normal = _ring_plane_normal(residue)
             linkage_dir = _find_linkage_direction(residue, centroid)
 
-            if linkage_dir is not None:
-                # Rotate shape so Y axis points along linkage direction
-                rotation = _rotation_to_align_y(linkage_dir)
+            # Compute rotation to align shape with ring plane
+            rotation = _compute_shape_rotation(shape_type, ring_normal, linkage_dir)
+            if rotation is not None:
                 vertices = np.dot(vertices, rotation.T)
 
             # Translate to centroid
             vertices = vertices + centroid
 
-        normals = calculate_vertex_normals(vertices, triangles)
-        self.set_geometry(vertices, normals, triangles)
+            # Calculate normals
+            normals = calculate_vertex_normals(vertices, triangles)
 
-        # Set color
-        rgb = COLORS.get(color_name, (190, 190, 190))
-        self.color = (*rgb, 255)
+            # Get color
+            rgb = COLORS.get(color_name, (190, 190, 190))
+            color = np.array((*rgb, 255), dtype=np.uint8)
 
-        self.clip_cap = True
+            # Description for picking tooltip
+            description = f"SNFG {residue.name} ({residue})"
+
+            shape_infos.append(AtomicShapeInfo(
+                vertices, normals, triangles, color,
+                atoms=residue.atoms, description=description
+            ))
+            new_residues.append(residue)
+            new_centroids.append(centroid)
+
+        if not shape_infos:
+            return 0
+
+        # Record shape indices before adding
+        start_index = len(self._shapes)
+
+        # add_shapes() requires empty geometry, so use it only when empty
+        # Otherwise fall back to individual add_shape() calls
+        if self.vertices is None:
+            # Batch add all shapes (more efficient)
+            self.add_shapes(shape_infos)
+        else:
+            # Add shapes one at a time to existing geometry
+            for info in shape_infos:
+                self.add_shape(info.vertices, info.normals, info.triangles,
+                              info.color, atoms=info.atoms,
+                              description=info.description)
+
+        # Update residue tracking
+        for i, residue in enumerate(new_residues):
+            self._residue_to_shape_index[residue] = start_index + i
+        self._shape_residues.extend(new_residues)
+        self._shape_centroids.extend(new_centroids)
+
+        return len(shape_infos)
+
+    def has_residue(self, residue):
+        """Check if a residue has a shape."""
+        return residue in self._residue_to_shape_index
+
+    def get_centroid(self, residue):
+        """Get the centroid for a residue's shape."""
+        if residue not in self._residue_to_shape_index:
+            return None
+        shape_idx = self._residue_to_shape_index[residue]
+        return self._shape_centroids[shape_idx]
+
+    def residues(self):
+        """Return iterator over residues with shapes."""
+        return iter(self._shape_residues)
+
+    def clear_shapes(self):
+        """Remove all shapes."""
+        # Clear geometry
+        self.set_geometry(None, None, None)
+        self.vertex_colors = None
+        self._shapes.clear()
+        self._selected_shapes.clear()
+        self.highlighted_triangles_mask = None
+
+        # Clear residue tracking
+        self._residue_to_shape_index.clear()
+        self._shape_residues.clear()
+        self._shape_centroids.clear()
+
+    def _add_selected_shape(self, shape):
+        """Override to also select intra-residue bonds."""
+        super()._add_selected_shape(shape)
+        # Also select bonds within the residue
+        if shape.atoms:
+            shape.atoms.intra_bonds.selected = True
+
+    def _add_selected_shapes(self, shapes):
+        """Override to also select intra-residue bonds."""
+        super()._add_selected_shapes(shapes)
+        # Also select bonds within each residue
+        for s in shapes:
+            if s.atoms:
+                s.atoms.intra_bonds.selected = True
+
+    def _remove_selected_shape(self, shape):
+        """Override to also deselect intra-residue bonds."""
+        super()._remove_selected_shape(shape)
+        if shape.atoms:
+            shape.atoms.intra_bonds.selected = False
+
+    def _remove_selected_shapes(self, shapes):
+        """Override to also deselect intra-residue bonds."""
+        super()._remove_selected_shapes(shapes)
+        for s in shapes:
+            if s.atoms:
+                s.atoms.intra_bonds.selected = False
+
+    def take_snapshot(self, session, flags):
+        """Save session state."""
+        data = super().take_snapshot(session, flags)
+        data['snfg_version'] = SNFGShapesDrawing.SESSION_VERSION
+        data['shape_residues'] = self._shape_residues
+        data['shape_centroids'] = self._shape_centroids
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        """Restore from session."""
+        d = super().restore_snapshot(session, data)
+        d._shape_residues = data.get('shape_residues', [])
+        d._shape_centroids = data.get('shape_centroids', [])
+        # Rebuild residue → shape index mapping
+        d._residue_to_shape_index = {
+            res: i for i, res in enumerate(d._shape_residues)
+        }
+        return d
 
 
 class SNFGConnectionsDrawing(Surface):
@@ -93,35 +293,60 @@ class SNFGModel(Model):
     """Container model for all SNFG drawings associated with a structure."""
 
     def __init__(self, session, structure):
-        super().__init__(f"SNFG symbols", session)
+        super().__init__("SNFG symbols", session)
         self.structure = structure
-        self._residue_to_drawing = {}
         self._hidden_residues = set()  # Track which residues we hid
         self._connections_drawing = None
 
+        # Create the shapes drawing for all glycan symbols
+        self._shapes_drawing = SNFGShapesDrawing()
+        self.add([self._shapes_drawing])
+
     def add_residue(self, residue, shape_type, color_name, size=DEFAULT_SIZE):
         """Add an SNFG symbol for a residue."""
-        if residue in self._residue_to_drawing:
-            return self._residue_to_drawing[residue]
+        return self._shapes_drawing.add_residue_shape(
+            residue, shape_type, color_name, size
+        )
 
-        drawing = SNFGDrawing(self.session, residue, shape_type, color_name, size)
-        self.add([drawing])
-        self._residue_to_drawing[residue] = drawing
-        return drawing
+    def add_residues_batch(self, residue_info_list):
+        """Add multiple SNFG symbols efficiently.
+
+        Parameters
+        ----------
+        residue_info_list : list of (residue, shape_type, color_name, size) tuples
+        """
+        return self._shapes_drawing.add_residues_batch(residue_info_list)
 
     def remove_residue(self, residue):
-        """Remove the SNFG symbol for a residue."""
-        if residue in self._residue_to_drawing:
-            drawing = self._residue_to_drawing.pop(residue)
-            drawing.delete()
+        """Remove the SNFG symbol for a residue.
+
+        Note: This requires rebuilding all shapes. For bulk removal,
+        consider clearing and re-adding instead.
+        """
+        if not self._shapes_drawing.has_residue(residue):
+            return
+
+        # Collect info for all residues except the one to remove
+        residues_to_keep = []
+        for r in self._shapes_drawing.residues():
+            if r != residue and not r.deleted:
+                symbol = identify_sugar(r)
+                if symbol:
+                    shape_type, color_name = symbol
+                    residues_to_keep.append((r, shape_type, color_name, DEFAULT_SIZE))
+
+        # Clear and rebuild
+        self._shapes_drawing.clear_shapes()
+        if residues_to_keep:
+            self._shapes_drawing.add_residues_batch(residues_to_keep)
 
     def has_residue(self, residue):
         """Check if a residue has an SNFG symbol."""
-        return residue in self._residue_to_drawing
+        return self._shapes_drawing.has_residue(residue)
 
     def hide_atoms(self):
         """Hide atoms for all residues with SNFG symbols."""
-        for residue in self._residue_to_drawing:
+        for residue in self._shapes_drawing.residues():
             if residue.deleted:
                 continue
             atoms = residue.atoms
@@ -148,13 +373,13 @@ class SNFGModel(Model):
 
         # Find connections between sugar residues
         connections = []
-        sugar_residues = set(self._residue_to_drawing.keys())
+        sugar_residues = set(self._shapes_drawing.residues())
 
         for residue in sugar_residues:
             if residue.deleted:
                 continue
-            drawing = self._residue_to_drawing[residue]
-            if drawing.centroid is None:
+            centroid = self._shapes_drawing.get_centroid(residue)
+            if centroid is None:
                 continue
 
             # Look for bonds to atoms in other sugar residues
@@ -162,11 +387,11 @@ class SNFGModel(Model):
                 for neighbor in atom.neighbors:
                     other_res = neighbor.residue
                     if other_res != residue and other_res in sugar_residues:
-                        other_drawing = self._residue_to_drawing[other_res]
-                        if other_drawing.centroid is not None:
+                        other_centroid = self._shapes_drawing.get_centroid(other_res)
+                        if other_centroid is not None:
                             # Add connection (use frozenset to avoid duplicates)
                             pair = frozenset([residue, other_res])
-                            conn = (drawing.centroid, other_drawing.centroid)
+                            conn = (centroid, other_centroid)
                             connections.append((pair, conn))
 
         # Remove duplicates
@@ -271,14 +496,13 @@ def _cylinder_connections(connections, radius=0.2, divisions=8):
     return np.vstack(all_vertices).astype(np.float32), np.array(all_triangles, dtype=np.int32)
 
 
-def _ring_centroid(residue):
+def _find_ring(residue):
     """
-    Calculate the centroid of the sugar ring in a residue.
+    Find the sugar ring in a residue.
 
     Looks for pyranose (6-membered) or furanose (5-membered) rings.
-    Returns the centroid as a numpy array, or None if no ring found.
+    Returns the ring object, or None if no ring found.
     """
-    # Try to find rings in the residue
     atoms = residue.atoms
     if len(atoms) == 0:
         return None
@@ -298,19 +522,54 @@ def _ring_centroid(residue):
             pass
 
     if not rings:
-        # Fall back to residue center
-        coords = atoms.coords
-        if len(coords) > 0:
-            return np.mean(coords, axis=0)
         return None
 
     # Use the first suitable ring (prefer 6-membered pyranose)
     pyranose_rings = [r for r in rings if r.size == 6]
-    ring = pyranose_rings[0] if pyranose_rings else rings[0]
+    return pyranose_rings[0] if pyranose_rings else rings[0]
 
-    # Calculate centroid
-    ring_coords = ring.atoms.coords
-    return np.mean(ring_coords, axis=0)
+
+def _ring_centroid(residue):
+    """
+    Calculate the centroid of the sugar ring in a residue.
+
+    Looks for pyranose (6-membered) or furanose (5-membered) rings.
+    Returns the centroid as a numpy array, or None if no ring found.
+    """
+    ring = _find_ring(residue)
+    if ring is not None:
+        return np.mean(ring.atoms.coords, axis=0)
+
+    # Fall back to residue center
+    atoms = residue.atoms
+    if len(atoms) > 0:
+        return np.mean(atoms.coords, axis=0)
+    return None
+
+
+def _ring_plane_normal(residue):
+    """
+    Calculate the normal vector of the sugar ring plane.
+
+    Uses SVD to find the best-fit plane through the ring atoms.
+    Returns a unit normal vector, or None if no ring found.
+    """
+    ring = _find_ring(residue)
+    if ring is None:
+        return None
+
+    coords = ring.atoms.coords
+    centroid = np.mean(coords, axis=0)
+
+    # Center the coordinates
+    centered = coords - centroid
+
+    # Use SVD to find the plane normal
+    # The normal is the eigenvector corresponding to the smallest singular value
+    _, _, vh = np.linalg.svd(centered)
+    normal = vh[2]  # Last row is the normal to the best-fit plane
+
+    return normal / np.linalg.norm(normal)
 
 
 def _find_linkage_direction(residue, centroid):
@@ -349,58 +608,147 @@ def _find_linkage_direction(residue, centroid):
     return direction / length
 
 
-def _rotation_to_align_y(target_direction):
+def _rotation_to_align_axis(source_axis, target_direction):
     """
-    Compute a rotation matrix that aligns the Y axis with the target direction.
+    Compute a rotation matrix that aligns source_axis with target_direction.
 
     Parameters
     ----------
+    source_axis : ndarray
+        Unit vector for the source axis (e.g., [0, 0, 1] for Z).
     target_direction : ndarray
-        Unit vector for the desired Y axis direction.
+        Unit vector for the desired direction.
 
     Returns
     -------
     rotation : ndarray
         3x3 rotation matrix.
     """
+    source = np.asarray(source_axis, dtype=np.float64)
+    source = source / np.linalg.norm(source)
     target = np.asarray(target_direction, dtype=np.float64)
     target = target / np.linalg.norm(target)
 
-    y_axis = np.array([0.0, 1.0, 0.0])
-
     # Check if already aligned (or anti-aligned)
-    dot = np.dot(y_axis, target)
+    dot = np.dot(source, target)
 
     if dot > 0.9999:
         # Already aligned
         return np.eye(3)
     elif dot < -0.9999:
-        # Opposite direction - rotate 180 degrees around X or Z
-        return np.array([
-            [1, 0, 0],
-            [0, -1, 0],
-            [0, 0, -1]
-        ], dtype=np.float64)
+        # Opposite direction - find any perpendicular axis to rotate around
+        if abs(source[0]) < 0.9:
+            perp = np.cross(source, np.array([1, 0, 0]))
+        else:
+            perp = np.cross(source, np.array([0, 1, 0]))
+        perp = perp / np.linalg.norm(perp)
+        # 180 degree rotation around perp
+        K = np.array([
+            [0, -perp[2], perp[1]],
+            [perp[2], 0, -perp[0]],
+            [-perp[1], perp[0], 0]
+        ])
+        return np.eye(3) + 2 * np.dot(K, K)
 
     # General case: use Rodrigues' rotation formula
-    # Rotation axis is cross product of y_axis and target
-    axis = np.cross(y_axis, target)
+    axis = np.cross(source, target)
     axis = axis / np.linalg.norm(axis)
-
-    # Rotation angle
     angle = np.arccos(np.clip(dot, -1.0, 1.0))
 
-    # Rodrigues' formula: R = I + sin(a)*K + (1-cos(a))*K^2
-    # where K is the skew-symmetric cross-product matrix of the axis
     K = np.array([
         [0, -axis[2], axis[1]],
         [axis[2], 0, -axis[0]],
         [-axis[1], axis[0], 0]
     ])
 
-    rotation = np.eye(3) + np.sin(angle) * K + (1 - np.cos(angle)) * np.dot(K, K)
+    return np.eye(3) + np.sin(angle) * K + (1 - np.cos(angle)) * np.dot(K, K)
 
-    return rotation
+
+def _rotation_to_align_y(target_direction):
+    """
+    Compute a rotation matrix that aligns the Y axis with the target direction.
+    """
+    return _rotation_to_align_axis(np.array([0, 1, 0]), target_direction)
+
+
+def _rotation_to_align_z(target_direction):
+    """
+    Compute a rotation matrix that aligns the Z axis with the target direction.
+    """
+    return _rotation_to_align_axis(np.array([0, 0, 1]), target_direction)
+
+
+def _compute_shape_rotation(shape_type, ring_normal, linkage_dir):
+    """
+    Compute the rotation matrix for a shape to align with the ring plane.
+
+    Parameters
+    ----------
+    shape_type : str
+        The SNFG shape type.
+    ring_normal : ndarray or None
+        Normal vector to the sugar ring plane.
+    linkage_dir : ndarray or None
+        Direction toward the linked sugar.
+
+    Returns
+    -------
+    rotation : ndarray or None
+        3x3 rotation matrix, or None if no rotation needed.
+    """
+    from .definitions import (STAR, HEXAGON, PENTAGON, FLAT_DIAMOND, RECTANGLE,
+                               CONE, DIVIDED_CONE, DIAMOND)
+
+    # Flat shapes have their face perpendicular to Z axis
+    flat_shapes = {STAR, HEXAGON, PENTAGON, FLAT_DIAMOND, RECTANGLE}
+
+    # Vertical shapes have their primary axis along Y
+    vertical_shapes = {CONE, DIVIDED_CONE, DIAMOND}
+
+    if shape_type in flat_shapes:
+        # Align Z axis with ring plane normal so the flat face lies on the ring
+        if ring_normal is not None:
+            rotation = _rotation_to_align_z(ring_normal)
+
+            # Optionally rotate around Z to orient toward linkage
+            if linkage_dir is not None:
+                # Project linkage direction onto the ring plane
+                linkage_in_plane = linkage_dir - np.dot(linkage_dir, ring_normal) * ring_normal
+                if np.linalg.norm(linkage_in_plane) > 0.01:
+                    linkage_in_plane = linkage_in_plane / np.linalg.norm(linkage_in_plane)
+
+                    # After the first rotation, Z is aligned with ring_normal
+                    # We want to rotate around Z to point Y toward linkage_in_plane
+                    # Transform linkage_in_plane to the rotated coordinate system
+                    linkage_local = np.dot(rotation.T, linkage_in_plane)
+
+                    # Calculate angle to rotate around Z to align Y with linkage
+                    angle = np.arctan2(linkage_local[0], linkage_local[1])
+
+                    # Rotation around Z axis
+                    c, s = np.cos(-angle), np.sin(-angle)
+                    rot_z = np.array([
+                        [c, -s, 0],
+                        [s, c, 0],
+                        [0, 0, 1]
+                    ])
+                    rotation = np.dot(rotation, rot_z)
+
+            return rotation
+
+    elif shape_type in vertical_shapes:
+        # For vertical shapes, align Y with ring normal (standing up from ring)
+        if ring_normal is not None:
+            return _rotation_to_align_y(ring_normal)
+        elif linkage_dir is not None:
+            return _rotation_to_align_y(linkage_dir)
+
+    else:
+        # For spheres and other shapes, use linkage direction if available
+        if linkage_dir is not None:
+            return _rotation_to_align_y(linkage_dir)
+
+    return None
 
 
 def identify_sugar(residue):
@@ -496,18 +844,24 @@ def show_snfg(session, structures=None, size=DEFAULT_SIZE, replace=True,
         if replace:
             # Restore any previously hidden atoms before clearing
             snfg_model.show_atoms()
-            # Remove existing drawings
-            for drawing in list(snfg_model.child_drawings()):
-                drawing.delete()
-            snfg_model._residue_to_drawing.clear()
-            snfg_model._connections_drawing = None
+            # Clear existing shapes
+            snfg_model._shapes_drawing.clear_shapes()
+            # Remove connections drawing
+            if snfg_model._connections_drawing is not None:
+                snfg_model._connections_drawing.delete()
+                snfg_model._connections_drawing = None
 
         sugars = find_sugar_residues([structure])
 
+        # Collect residues to add (filter out those already present)
+        residue_info = []
         for residue, shape_type, color_name in sugars:
             if not snfg_model.has_residue(residue):
-                snfg_model.add_residue(residue, shape_type, color_name, size)
-                total_shown += 1
+                residue_info.append((residue, shape_type, color_name, size))
+
+        # Batch add all residues for efficiency
+        if residue_info:
+            total_shown += snfg_model.add_residues_batch(residue_info)
 
         # Hide or show atoms based on parameter
         if show_atoms:
@@ -539,7 +893,7 @@ def hide_snfg(session, structures=None):
     for structure in structures:
         snfg_model = get_snfg_model(session, structure, create=False)
         if snfg_model is not None:
-            total_hidden += len(snfg_model._residue_to_drawing)
+            total_hidden += len(snfg_model._shapes_drawing._shape_residues)
             # Restore atom visibility before deleting
             snfg_model.show_atoms()
             snfg_model.delete()
