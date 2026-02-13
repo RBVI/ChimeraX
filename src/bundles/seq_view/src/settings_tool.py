@@ -66,7 +66,7 @@ class SettingsTool:
         from Qt.QtCore import Qt
         for hdr in self.sv.alignment.headers:
             container, header_panel = settings_panel.add_option_group("Headers",
-                group_label=hdr.ident.replace('_', ' ').title(), group_alignment=Qt.AlignLeft,
+                group_label=getattr(hdr, 'settings_name', hdr.name), group_alignment=Qt.AlignLeft,
                 contents_margins=(0,2,10,0), sorting=hdr.option_sorting)
             layout = QVBoxLayout()
             container.setLayout(layout)

@@ -42,9 +42,6 @@ endif
 # keep in alphabetical order, dependencies go below
 
 SUBDIRS	+= ambertools pips
-ifndef USE_PYSIDE6
-SUBDIRS += PyQt
-endif
 SUBDIRS += Python
 
 # All needed subdirectories must be set by now.

@@ -4,7 +4,7 @@ def install_kalign():
     binaries = {
         ('Darwin', 'arm64'): ('kalign_darwin_arm64', 'kalign'),
         ('Darwin', 'x86_64'): ('kalign_darwin_x86_64', 'kalign'),
-        ('Windows', 'x86_64'): ('kalign_windows_x86_64', 'kalign.exe'),
+        ('Windows', 'AMD64'): ('kalign_windows_x86_64.exe', 'kalign.exe'),
         ('Linux', 'x86_64'): ('kalign_linux_x86_64', 'kalign'),
         ('Linux', 'aarch64'): ('kalign_linux_aarch64', 'kalign')}
 

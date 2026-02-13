@@ -29,7 +29,8 @@ from chimerax.core.settings import Settings
 class _AlphaFoldDatabaseSettings(Settings):
     EXPLICIT_SAVE = {
         'database_url': 'https://alphafold.ebi.ac.uk/files/AF-{uniprot_id}-F1-model_v{version}.cif',
-        'database_version': '4',
+        'database_url2': 'https://alphafold.ebi.ac.uk/files/AF-{uniprot_id}{isoform}-F{fragment}-model_v{version}.cif',
+        'database_version': '6',
         'last_update_time': 0.0,	# seconds since 1970 epoch
         'update_interval': 86400.0,	# seconds
         'update_url': 'https://www.rbvi.ucsf.edu/chimerax/data/status/alphafold_database3.json',
@@ -37,12 +38,16 @@ class _AlphaFoldDatabaseSettings(Settings):
 
 # -----------------------------------------------------------------------------
 #
-def alphafold_model_url(session, uniprot_id, database_version = None):
+def alphafold_model_url(session, uniprot_id, database_version = None, isoform = None, fragment = None):
     settings = _alphafold_database_settings(session)
-    url_template = settings.database_url
+    url_template = settings.database_url2
     if database_version is None:
         database_version = settings.database_version
-    url = url_template.format(uniprot_id = uniprot_id, version = database_version)
+    isoform_field = f'-{isoform}' if isoform else ''
+    if fragment is None:
+        fragment = '1'
+    url = url_template.format(uniprot_id = uniprot_id, isoform = isoform_field,
+                              fragment = fragment, version = database_version)
     return url
 
 # -----------------------------------------------------------------------------

@@ -43,6 +43,9 @@ class _OpenFoldBundle(BundleAPI):
         elif command_name == 'openfold install':
             from . import install
             install.register_openfold_install_command(logger)
+        elif command_name.startswith('openfold server'):
+            from . import server
+            server.register_openfold_server_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr, **kw):

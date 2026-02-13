@@ -111,7 +111,8 @@ class MutationScatterPlot(Graph):
                                '            ',
                                'mutations', ('all', 'drag box'),
                                'value', ('mean', 'count', 'sum absolute', 'sum', 'min', 'median', 'max', 'stddev'),
-                               'palette', ('blue to red', 'red to blue', 'white to red', 'white to blue'))
+                               'palette', ('blue to red', 'red to blue', 'white to red', 'red to white',
+                                           'white to blue', 'blue to white'))
         controls3 = EntriesRow(frame,
                                '            ',
                                ('Adjust colors', self._show_render_by_attribute_gui),
@@ -607,7 +608,7 @@ class MutationScatterPlot(Graph):
         which = self._color_which_menu.value # 'all' or 'drag box'
         score_type = self._color_score_type_menu.value # 'mean', 'sum absolute', 'sum'
         score_type = score_type.replace(" ", "_")
-        palette = self._color_palette_menu.value # 'white to red', 'white to blue'
+        palette = self._color_palette_menu.value # 'blue to red', ...
         subtract_fit_name = self._subtract_fit_menu.value
 
         from .ms_data import mutation_all_scores, mutation_scores
@@ -630,13 +631,13 @@ class MutationScatterPlot(Graph):
         if len(mutation_all_scores(session)) > 1:
             cmd_score += f' mutationSet {mutation_set_name}'
         rvalues = self._run_command(cmd_score)
-        min_score, max_score = rvalues.value_range()
+        values = [value for rnum, from_aa, to_aa, value in rvalues.all_values()]
 
         chains = scores.associated_chains()
         from chimerax.atomic import concise_chain_spec
         chain_spec = concise_chain_spec(chains)
 
-        palette_spec = self._palette_specifier(palette, min_score, max_score, which)
+        palette_spec = self._palette_specifier(palette, values)
 
         cmd_color = f'color byattribute r:{attr_name} {chain_spec} palette {palette_spec} noValueColor white'
         self._run_command(cmd_color)
@@ -667,33 +668,30 @@ class MutationScatterPlot(Graph):
             attr_name = f'{score_name}{subtract_fit}_{score_type}'
         return attr_name
 
-    def _palette_specifier(self, palette, min_score, max_score, which):
-        if palette in ('blue to red', 'red to blue'):
-            if min_score >= 0:
-                palette = 'white to red' if palette == 'blue to red' else 'white to blue'
-            elif max_score <= 0:
-                palette = 'white to blue' if palette == 'blue to red' else 'white to red'
-        if palette == 'white to red':
-            colors = ('white', '#ff7f7f', 'red')
-        elif palette == 'white to blue':
-            colors = ('white', '#7f7fff', 'blue')
-        elif palette == 'blue to red':
-            colors = ('blue', 'white', 'white', 'red')
-        elif palette == 'red to blue':
-            colors = ('red', 'white', 'white', 'blue')
-        if which == 'drag box' and min_score < 0 and abs(min_score) > abs(max_score):
-            min_score, max_score = max_score, min_score
-        if palette in ('blue to red', 'red to blue'):
-            thresholds = (0.66*min_score, 0.33*min_score, 0.33*max_score, 0.66*max_score)
-        else:
-            # Intended all positive or all negative scores with white closer to zero.
-            if abs(max_score) >= abs(min_score):
-                high_score = (min_score + 0.66*(max_score-min_score))
-                thresholds = (min_score, (min_score+high_score)/2, high_score)
-            else:
-                high_score = (max_score - 0.66*(max_score-min_score))
-                thresholds = (max_score, (min_score+high_score)/2, high_score)
-                
+    def _palette_specifier(self, palette, values):
+        palette_colors = {
+            'blue to red': ('blue', 'white', 'white', 'red'),
+            'red to blue': ('red', 'white', 'white', 'blue'),
+            'white to red': ('white', 'red'),
+            'red to white': ('red', 'white'),
+            'white to blue': ('white', 'blue'),
+            'blue to white': ('blue', 'white'),
+        }
+        colors = palette_colors[palette]
+        ncolors = len(colors)
+        from numpy import mean, std
+        m, sd = mean(values), std(values)
+        imid = (ncolors-1)/2
+        sd_range = 4    # Number of standard deviations from first color to last.
+        sd_step = sd * (sd_range / (ncolors-1))
+        thresholds = tuple((m + (i-imid)*sd_step) for i in range(ncolors))
+
+        '''
+        min_score, max_score = min(values), max(values)
+        step = (max_score - min_score) / (ncolors+1)
+        thresholds = tuple((min_score + (i+1)*step) for i in range(ncolors))
+        '''
+        
         self._last_color_palette = tuple(zip(thresholds, colors))
         palette_spec = ':'.join(f'{"%.3g"%thresh},{color}'for thresh, color in zip(thresholds, colors))
         return palette_spec
@@ -793,6 +791,21 @@ def _show_render_by_attribute_panel(session, mutation_set, attribute_name,
             rc_markers.coord_type = 'relative'
         timer = session.ui.timer(1, _set_render_by_attribute_palette)
         rba_gui._set_palette_timer = timer  # Keep timer from being deleted
+
+    if no_value_color is not None:
+        rba_gui.color_no_value.setChecked(True)
+        rba_gui.no_value_color.color = no_value_color
+
+def _show_render_by_attribute_panel_new(session, mutation_set, attribute_name,
+                                        palette = None, no_value_color = None):
+    from chimerax.core.commands import run
+    rba_gui = run(session, 'ui tool show "Render/Select by Attribute"')
+
+    chains = mutation_set.associated_chains()
+    models = list(set(chain.structure for chain in chains))
+        
+    rba_gui.configure(models = models, target = 'residues', tab = 'render', attr_name = attribute_name,
+                      level_info = palette, render_type = rba_gui.RENDER_COLORS)
 
     if no_value_color is not None:
         rba_gui.color_no_value.setChecked(True)

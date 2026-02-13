@@ -25,10 +25,9 @@
 def openfold_predict(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
                   protein = [], dna = [], rna = [],
                   ligand_ccd = [], ligand_smiles = [], for_each_smiles_ligand = [],
-                  name = None, results_directory = None,
-                  device = None, use_server = False, server_host = None, server_port = None,
-                  kernels = None, precision = None,
-                  samples = 1, recycles = 3, seed = 42,
+                  name = None, samples = 1, seed = 42, results_directory = None,
+                  device = None, precision = None,
+                  use_server = False, server_host = None, server_port = None,
                   msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/OpenFoldMSA',
                   open = True, install_location = None, wait = None):
 
@@ -70,11 +69,11 @@ def openfold_predict(session, sequences = [], ligands = None, exclude_ligands = 
         predictions = _each_ligand_predictions(for_each_ligand, molecular_components, align_to)
             
     br = OpenFoldRun(session, predictions, name = name, run_directory = results_directory,
-                  samples = samples, recycles = recycles, seed = seed,
-                  device = device, use_server = use_server, server_host = server_host, server_port = server_port,
-                  use_kernels = kernels, precision = precision,
-                  msa_only = msa_only, use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
-                  open = open, wait = wait)
+                     samples = samples, seed = seed,
+                     device = device, precision = precision,
+                     use_server = use_server, server_host = server_host, server_port = server_port,
+                     msa_only = msa_only, use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
+                     open = open, wait = wait)
 
     msa_run = _msa_run(session, name, molecular_components, msa_cache_dir, wait) if for_each_ligand else None
     if msa_run is None:
@@ -251,12 +250,12 @@ class OpenFoldPrediction:
             self.name = default_name
         return self.name + '.json'
 
-    def input(self, msa_cache_directory = None, msa_directory = None, msa_relative_to_path = None):
+    def input(self, msa_cache_directory = None, copy_msa_to_directory = None):
 
         # Create yaml for polymers
         msa_files = self._msa_cache_files(msa_cache_directory)
-        if msa_directory:
-            msa_files = self._copy_msa_files(msa_files, msa_directory, msa_relative_to_path)
+        if msa_files and copy_msa_to_directory:
+            msa_files = self._copy_msa_files(msa_files, copy_msa_to_directory)
 
         components = []
         for mc in self._molecular_components:
@@ -289,14 +288,17 @@ class OpenFoldPrediction:
 
         input = { f"{self.name}": { "chains": components }}
 
-        msa_dir = msa_files.directory if msa_files else '.'
+        msa_dir = msa_files.directory if msa_files and copy_msa_to_directory is None else '.'
+        from os.path import join
+        msas_dir = _posix_path(join(msa_dir, 'colabfold_msas'))
+        templates_dir = _posix_path(join(msa_dir, 'colabfold_templates'))
         msa_path_yaml = f'''msa_computation_settings:
-  msa_output_directory: {msa_dir}/colabfold_msas
+  msa_output_directory: {msas_dir}
   cleanup_msa_dir: False
   save_mappings: True 
 
 template_preprocessor_settings:
-  output_directory: {msa_dir}/colabfold_templates
+  output_directory: {templates_dir}
 '''
         return input, msa_path_yaml
 
@@ -311,17 +313,21 @@ template_preprocessor_settings:
 
         return msa_cache_files
 
-    def _copy_msa_files(self, msa_files, msa_directory, msa_relative_to_path):
+    def _copy_msa_files(self, msa_files, msa_directory):
         # Copy MSA files to run directory so they are sent to server.
-        from shutil import copy2
-        for path in set(msa_files.values()):
-            copy2(path, msa_directory)
-        from os.path import join, basename, relpath
-        copied_msa_files = {seq:join(msa_directory, basename(msa_path)) for seq, msa_path in msa_files.items()}
-        if msa_relative_to_path:
-            copied_msa_files = {seq:relpath(msa_path, msa_relative_to_path)
-                                for seq, msa_path in copied_msa_files.items()}
-        return copied_msa_files
+        from shutil import copytree
+        from os.path import join, relpath
+        for subdir in ('colabfold_msas', 'colabfold_templates'):
+            copytree(join(msa_files.directory, subdir), join(msa_directory, subdir))
+
+        for seq_paths in msa_files.paths.values():
+            rel_paths = {name: (_posix_path(relpath(path, msa_files.directory))
+                                if path and name != 'template_ids' else path)
+                         for name, path in seq_paths.items()}
+            seq_paths.update(rel_paths)
+
+        msa_files.directory = msa_directory
+        return msa_files
     
     @property
     def using_cached_msa(self):
@@ -412,9 +418,9 @@ class OpenFoldMolecule:
 #
 class OpenFoldRun:
     def __init__(self, session, structures, name = None, run_directory = None,
-                 samples = 1, recycles = 3, seed = 42,
-                 device = 'default', use_server = False, server_host = None, server_port = None,
-                 use_kernels = None, precision = None,
+                 samples = 1, seed = 42,
+                 device = 'default', precision = None,
+                 use_server = False, server_host = None, server_port = None,
                  msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/OpenFoldMSA',
                  open = True, wait = False):
 
@@ -422,7 +428,6 @@ class OpenFoldRun:
         self._predictions = [structures] if isinstance(structures, OpenFoldPrediction) else structures
         self.name = name
         self._samples = samples		# Number of predicted structures
-        self._recycles = recycles	# Number of openfold recycling steps
         self._device = device		# gpu, cpu or default, or None (uses settings value)
         self._use_server = use_server	# True or False
         if use_server:
@@ -432,8 +437,7 @@ class OpenFoldRun:
                 server_port = self._settings.server_port
         self._server_host = server_host # Host name, e.g. minsky.cgl.ucsf.edu
         self._server_port = server_port # Port number
-        self._use_kernels = use_kernels	# whether to use cuequivariance module for triangle attention
-        self._precision = precision	# "32", "bf16-mixed", "16", "bf16-true"
+        self._precision = precision	# "32-true", "bf16-mixed", "16-true", "bf16-true"
         self._seed = seed		# Random seed for computation
         self._open = open		# Whether to open predictions when openfold finishes.
 
@@ -484,10 +488,10 @@ class OpenFoldRun:
             self.name = basename(dir)
 
         msa_cache_dir = self._msa_cache_dir if self._use_msa_cache else None
-        msa_directory = msa_relative_to_path = (self._run_directory if self._use_server else None)
+        copy_msa_to_directory = (self._run_directory if self._use_server else None)
         queries = {}
         for p in self._predictions:
-            query, msa_path_yaml = p.input(msa_cache_dir, msa_directory, msa_relative_to_path)
+            query, msa_path_yaml = p.input(msa_cache_dir, copy_msa_to_directory)
             queries.update(query)
         input = {'queries' : queries}
         import json
@@ -597,6 +601,14 @@ class OpenFoldRun:
             # certifi root certificates.
             import certifi
             env["SSL_CERT_FILE"] = certifi.where()
+        elif platform == 'linux':
+            # Torch needs ninja to be in the path to compile CUDA code.
+            # ninja is in the openfold virtual environment bin directory.
+            from os.path import dirname
+            bin_dir = dirname(command[0])
+            from os import environ
+            exe_path = environ.get('PATH', '')
+            env = {'PATH': f'{bin_dir}:{exe_path}'}
         else:
             env = None
 
@@ -697,7 +709,8 @@ class OpenFoldRun:
         command = [openfold_exe, 'predict']
 
         # Input file
-        command.append(f'--query_json={self._input_path}')
+        from os.path import basename
+        command.append(f'--query_json={basename(self._input_path)}')
 
         # Save MSAs and templates in the prediction directory or read from cache
         command.append('--runner_yaml=msa_path.yaml')
@@ -715,22 +728,10 @@ class OpenFoldRun:
         if self._seed is not None and self._seed != 42:
             command.append(f'--seed={self._seed}')
 
-        '''
-        command.extend(['--accelerator', self.device])
-
-        use_kernels = self._use_kernels
-        if self._use_kernels is None:
-            from sys import platform
-            use_kernels = (self.device == 'gpu' and platform == 'linux')
-        if not use_kernels:
-            command.append('--no_kernels')
+        command.append(f'--device={self.device}')
 
         if self._precision is not None:
             command.extend(['--precision', self._precision])
-            
-        if self._recycles != 3:
-            command.extend(['--recycling_steps', str(self._recycles)])
-        '''
 
         return command
 
@@ -1122,7 +1123,7 @@ def _chain_names(chains):
 
 # ------------------------------------------------------------------------------
 #
-def openfold_ligand_table(session, run_directory, include_smiles = True, align_to = None):
+def openfold_ligand_table(session, run_directory, align_to = None):
     '''Show a table of OpenFold ligand binding prediction results.'''
     from os.path import join, basename, exists
     from os import listdir
@@ -1265,7 +1266,7 @@ class MSACacheFiles:
         for seq, id in seq_ids.items():
             unpaired_path = join(msa_directory, 'main', id + '.npz')
             if exists(unpaired_path):
-                msa_paths[seq]['unpaired'] = unpaired_path
+                msa_paths[seq]['unpaired'] = _posix_path(unpaired_path)
 
         # Find paired MSAs
         complex_ids_path = join(msa_directory, 'mappings', 'query_name_to_complex_id.json')
@@ -1277,19 +1278,31 @@ class MSACacheFiles:
                 for seq, id in seq_ids.items():
                     paired_path = join(msa_directory, 'paired', complex_id, id + '.npz')
                     if exists(paired_path):
-                        msa_paths[seq]['paired'] = paired_path
+                        msa_paths[seq]['paired'] = _posix_path(paired_path)
 
         # Find template alignment files
         for seq, id in seq_ids.items():
             template_path = join(template_directory, 'template_cache', id + '.npz')
             if exists(template_path):
-                msa_paths[seq]['templates'] = template_path
+                msa_paths[seq]['templates'] = _posix_path(template_path)
                 import numpy
                 with numpy.load(template_path) as data:
                     msa_paths[seq]['template_ids'] = tuple(data.files)
 
         return msa_paths
-
+    
+# ------------------------------------------------------------------------------
+#
+def _posix_path(path):
+    '''
+    Convert Windows backslash path separator to posix forward slash
+    so that paths used on a prediction on a remote server work.
+    '''
+    from sys import platform
+    if platform == 'win32':
+        return path.replace('\\', '/')
+    return path
+    
 # ------------------------------------------------------------------------------
 #
 def _add_to_msa_cache(dir_name, protein_seqs, msa_directory, template_directory, msa_cache_dir):
@@ -1523,16 +1536,14 @@ def register_openfold_predict_command(logger):
                    ('ligand_smiles', LigandsArg),
                    ('for_each_smiles_ligand', NamedLigandsArg),
                    ('name', StringArg),
+                   ('samples', IntArg),
+                   ('seed', IntArg),
                    ('results_directory', SaveFolderNameArg),
                    ('device', EnumOf(['default', 'cpu', 'gpu'])),
+                   ('precision', EnumOf(['32-true', 'bf16-mixed', '16-true', 'bf16-true'])),
                    ('use_server', BoolArg),
                    ('server_host', StringArg),
                    ('server_port', IntArg),
-                   ('kernels', BoolArg),
-                   ('precision', EnumOf(['32', 'bf16-mixed', '16', 'bf16-true'])),
-                   ('samples', IntArg),
-                   ('recycles', IntArg),
-                   ('seed', IntArg),
                    ('use_msa_cache', BoolArg),
                    ('msa_only', BoolArg),
                    ('open', BoolArg),
@@ -1545,8 +1556,7 @@ def register_openfold_predict_command(logger):
 
     desc = CmdDesc(
         required = [('run_directory', OpenFolderNameArg),],
-        keyword = [('include_smiles', BoolArg),
-                   ('align_to', AtomicStructureArg),],
+        keyword = [('align_to', AtomicStructureArg)],
         synopsis = 'Show table of OpenFold ligand binding prediction results',
         url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold_help.html#ligandtablecommand'
     )
