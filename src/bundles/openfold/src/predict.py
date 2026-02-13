@@ -798,11 +798,19 @@ class OpenFoldRun:
         if len(new_lines) == 0:
             return
 
-        if len(self._predictions) > 1:
-            # Report ligand being docked in status messages.
-            detail_func = lambda text: text[25:].strip()
-        else:
-            detail_func = lambda text: ''
+        def structure_inference_detail(text, num_predictions = len(self._predictions)):
+            # "Started inference for 9gui on rank N step M"
+            end = text.find(') on rank ')
+            msg = text[22:end] + f' of {num_predictions})'
+            return msg
+
+        def creating_features_detail(text):
+            # "Creating features for 9gui"
+            return text[18:].rstrip()
+
+        def confidence_detail(text):
+            # "Computing confidence scores for 9gui"
+            return text[28:].rstrip()
             
         stages = [('Loading weights', 'loading weights'),
                   ('Finished loading weights', ''),
@@ -814,13 +822,13 @@ class OpenFoldRun:
                   ('RUNNING', 'sequence search running'),
                   ('COMPLETE', 'sequence search finished'),
                   ('Preprocessing templates', 'processing templates'),
-                  ('Finished preprocessing templates', ''),
-                  ('Creating features', 'creating neural net input'),
+                  ('Finished preprocessing PDB templates', ''),
+                  ('Creating features', ('creating neural net input', creating_features_detail)),
                   ('Finished creating features', ''),
-                  ('Started inference', 'structure inference'),
-                  ('Computing confidence scores', 'computing confidence'),
+                  ('Started inference', ('structure inference', structure_inference_detail)),
+                  ('Computing confidence scores', ('computing confidence', confidence_detail)),
                   ('Finished computing confidence scores', ''),
-                  ('Beginning structure inference ', ('structure inference', detail_func)),
+                  ('Beginning prediction inference ', 'structure inference'),
                   ('Finished prediction inference ', ''),
                   ]
         found_stage = None
