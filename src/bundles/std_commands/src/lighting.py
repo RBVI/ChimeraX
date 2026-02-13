@@ -223,6 +223,9 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     v.update_lighting = True
     v.redraw_needed = True
 
+    from chimerax.core.core_triggers import LIGHTING_CHANGED
+    session.triggers.activate_trigger(LIGHTING_CHANGED, preset)
+
 def lighting_model(session, models, depth_cue = None, shadows = None, multi_shadow = None,
                    directional = None):
     '''

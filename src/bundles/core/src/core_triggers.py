@@ -40,6 +40,7 @@ END_RESTORE_SESSION = "end restore session"
 END_SAVE_SESSION = "end save session"
 FRAME_DRAWN = "frame drawn"
 GRAPHICS_UPDATE = "graphics update"
+LIGHTING_CHANGED = "lighting changed"
 NEW_FRAME = "new frame"
 SHAPE_CHANGED = "shape changed"
 
@@ -54,6 +55,7 @@ trigger_info = {
     END_SAVE_SESSION: False,
     FRAME_DRAWN: True,
     GRAPHICS_UPDATE: True,
+    LIGHTING_CHANGED: False,
     NEW_FRAME: True,
     SHAPE_CHANGED: False,
 }

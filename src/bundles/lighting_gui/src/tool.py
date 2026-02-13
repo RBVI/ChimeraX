@@ -196,6 +196,7 @@ class LabeledSlider(QWidget):
 
     def setValue(self, val):
         self.slider.setValue(int(val * self.scale))
+        self.value_label.setText(f"{val:.{self.decimals}f}")
 
     def valueChanged(self):
         """Return the valueChanged signal from the internal slider."""
@@ -249,6 +250,12 @@ class LightingGUI(ToolInstance):
 
         # Sync UI with current state
         self._sync_from_session()
+
+        # Listen for lighting/material command changes
+        from chimerax.core.core_triggers import LIGHTING_CHANGED
+        self._lighting_handler = session.triggers.add_handler(
+            LIGHTING_CHANGED, self._on_lighting_changed
+        )
 
         self.tool_window.manage()
 
@@ -355,6 +362,18 @@ class LightingGUI(ToolInstance):
         layout.addRow("Color:", self.depth_cue_color)
 
         return tab
+
+    def _on_lighting_changed(self, trigger_name, preset):
+        if preset is not None:
+            self.preset_combo.blockSignals(True)
+            # The lighting command uses "default" as an alias for "simple"
+            if preset == "default":
+                preset = "simple"
+            idx = self.preset_combo.findText(preset)
+            if idx >= 0:
+                self.preset_combo.setCurrentIndex(idx)
+            self.preset_combo.blockSignals(False)
+        self._sync_from_session()
 
     def _sync_from_session(self):
         """Sync UI controls with current session lighting/material state."""
@@ -525,6 +544,8 @@ class LightingGUI(ToolInstance):
         run(self.session, f"lighting depthCueColor {color[0]},{color[1]},{color[2]}")
 
     def delete(self):
+        from chimerax.core.core_triggers import LIGHTING_CHANGED
+        self.session.triggers.remove_handler(self._lighting_handler)
         self.preview_widget.close()
         super().delete()
 
