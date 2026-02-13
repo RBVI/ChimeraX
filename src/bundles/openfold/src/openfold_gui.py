@@ -1086,7 +1086,8 @@ from chimerax.core.tools import ToolInstance
 class LigandPredictionsTable(ToolInstance):
     def __init__(self, session, query_path, rows = None, align_to = None):
         self._query_path = query_path	# Path to prediction query json file.
-        self._opened = [] if align_to is None else [align_to]
+        self._opened = []
+        self._align_to = align_to
         ToolInstance.__init__(self, session, 'OpenFold Ligand Predictions')
 
         from chimerax.ui import MainToolWindow
@@ -1222,16 +1223,24 @@ class LigandPredictionsTable(ToolInstance):
         qpaths = [quote_path_if_necessary(path) for path in paths]
         cmd = 'open ' + ' '.join(qpaths)
         models = run(self.session, cmd)
+        self._opened.extend(models)
 
         # Align models
-        self._opened = [m for m in self._opened if not m.deleted]
-        malign = models if self._opened else models[1:]
-        self._opened.extend(models)
-        if len(self._opened) > 1:
-            model_spec = concise_model_spec(self.session, malign)
-            first_model_spec = concise_model_spec(self.session, self._opened[:1])
-            cmd = f'mm {model_spec} to {first_model_spec} logParameters false'
-            run(self.session, cmd)
+        if models:
+            self._opened = [m for m in self._opened if not m.deleted]
+            if self._align_to and (self._align_to.deleted or self._align_to.structure is None):
+                self._align_to = None
+            if self._align_to:
+                align_to = self._align_to
+            elif len(self._opened) > 1:
+                align_to = self._opened[0]
+            else:
+                align_to = None
+            if align_to:
+                malign = models[1:] if align_to == models[0] else models
+                models_spec = concise_model_spec(self.session, malign, allow_empty_spec = False)
+                cmd = f'mm {models_spec} to {align_to.atomspec} logParameters false'
+                run(self.session, cmd)
 
         return models
 

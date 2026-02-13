@@ -44,7 +44,7 @@ def openfold_predict(session, sequences = [], ligands = None, exclude_ligands = 
         wait = False if session.ui.is_gui else True
 
     polymer_components, modeled_chains, unmodeled_chains = _polymer_components(sequences, protein, dna, rna)
-    align_to = modeled_chains[0].structure if modeled_chains else None
+    align_to = modeled_chains[0] if modeled_chains else None
     used_chain_ids = set(sum((pc.chain_ids for pc in polymer_components), []))
     ligand_components, covalent_ligands = _ligand_components(ligands, exclude_ligands.split(','),
                                                              ligand_ccd, ligand_smiles, used_chain_ids)
@@ -243,7 +243,7 @@ class OpenFoldPrediction:
     def __init__(self, name, molecular_components, align_to = None):
         self.name = name
         self._molecular_components = molecular_components  # List of OpenFoldMolecule
-        self._align_to = align_to	                   # AtomicStructure to align prediction to.
+        self._align_to = align_to	                   # Chain align prediction to.
 
     def json_filename(self, default_name = 'input'):
         if self.name is None:
@@ -391,7 +391,7 @@ template_preprocessor_settings:
         models = run(session, f'open {path_arg} logInfo false')
 
         # Align prediction to input model
-        if align and self._align_to and not self._align_to.deleted:
+        if align and self._align_to and not self._align_to.deleted and not self._align_to.structure is None:
             aspec = self._align_to.atomspec
             for model in models:
                 run(session, f'matchmaker {model.atomspec} to {aspec} logParameters false', log = False)
@@ -1531,7 +1531,7 @@ class RepeatSequencesArg(Annotation):
 #
 def register_openfold_predict_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, SaveFolderNameArg, BoolArg, EnumOf, IntArg, OpenFolderNameArg
-    from chimerax.atomic import SequencesArg, ResiduesArg, AtomicStructureArg
+    from chimerax.atomic import SequencesArg, ResiduesArg, ChainArg
 
     desc = CmdDesc(
         optional = [('sequences', SequencesArg)],
@@ -1564,7 +1564,7 @@ def register_openfold_predict_command(logger):
 
     desc = CmdDesc(
         required = [('run_directory', OpenFolderNameArg),],
-        keyword = [('align_to', AtomicStructureArg)],
+        keyword = [('align_to', ChainArg)],
         synopsis = 'Show table of OpenFold ligand binding prediction results',
         url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold_help.html#ligandtablecommand'
     )
