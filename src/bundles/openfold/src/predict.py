@@ -918,6 +918,8 @@ class OpenFoldRun:
         st = self._stage_times
         sut = st.get('starting OpenFold', 0)
         parts.append(f'start openfold {"%.0f" % sut} sec')
+        nnt = st.get('initializing neural net', 0)
+        parts.append(f'initialize neural net {"%.0f" % nnt} sec')
         wait_t = st.get('sequence server busy... waiting', 0)
         seq_t = (st.get('submitting sequence search', 0)
                  + wait_t
@@ -927,8 +929,6 @@ class OpenFoldRun:
         if wait_t > 0:
             sst += f' (waiting {"%.0f" % wait_t} sec, running {"%.0f" % (seq_t-wait_t)} sec)'
         parts.append(sst)
-        lwt = st.get('loading weights', 0)
-        parts.append(f'load weights {"%.0f" % lwt} sec')
         sit = st.get('structure inference', 0)
         parts.append(f'structure inference {"%.0f" % sit} sec')
 
