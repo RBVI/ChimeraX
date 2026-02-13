@@ -134,11 +134,13 @@ class TableEntry:
     @rgba8.setter
     def rgba8(self, rgba8):
         rgba = [c/255.0 for c in rgba8]
-        if self._rgba is None:
-            self._rgba = rgba
+        if self.rgba is None:
+            self.rgba = rgba
         else:
-            self._rgba = rgba
-            self.results_dialog._update_plot()
+            self.rgba = rgba
+            brush = QBrush(QColor(*rgba8))
+            for rect in self.rects:
+                rect.setBrush(brush)
 
 class ClusterResults:
     scene_pixel_height = 100
