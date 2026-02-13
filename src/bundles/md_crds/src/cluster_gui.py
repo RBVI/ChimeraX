@@ -147,12 +147,17 @@ class ClusterResults:
         self.tool_window = tw = results_window
         #tw.help = "help:user/commands/coordset.html#slider"
         def cleanup(lcd=self):
+            for handler in lcd.handlers:
+                handler.remove()
+            lcd.handlers.clear()
             inst = lcd.tool_window.tool_instance
             _md_tool_windows[inst]["cluster results"].remove(self)
             delattr(lcd.tool_window, 'cleanup')
         tw.cleanup = cleanup
+        tw.cleanup = cleanup
         self.session = structure.session
         self.structure = structure
+        self.handlers = [structure.triggers.add_handler('changes', self._changes_cb)]
         layout = QVBoxLayout()
         layout.setSpacing(0)
         tw.ui_area.setLayout(layout)
@@ -192,10 +197,15 @@ class ClusterResults:
         self.view = ResizingView(self.scene)
         self._setup_scene()
         #TODO: scene update and status bar / button box
-        self._update_scene()
+        self._update_indicator()
         layout.addWidget(self.view)
 
         tw.manage(None)
+
+    def _changes_cb(self, trig_name, data):
+        s, changes = data
+        if 'active_coordset changed' in changes.structure_reasons():
+            self._update_indicator()
 
     def _setup_scene(self):
         # Have to allow for the fact that the clustering may not involve all frames of the trajectory
@@ -206,8 +216,8 @@ class ClusterResults:
         for row in self.table.data:
             fns.extend(row.clustering.frames)
         fns.sort()
-        fn_index = { fn: i for i, fn in enumerate(fns) }
-        unit_x = scene_width / len(fns)
+        self.fn_index = fn_index = { fn: i for i, fn in enumerate(fns) }
+        self.unit_x = unit_x = scene_width / len(fns)
         to_x = lambda fn: unit_x * fn_index[fn]
         pen = QPen(Qt.NoPen)
         for row in self.table.data:
@@ -237,8 +247,34 @@ class ClusterResults:
             ]]))
         self.indicator.setZValue(1.0)
 
+    def _update_indicator(self, *args):
+        fn = self.structure.active_coordset_id
+        if fn not in self.fn_index:
+            self.indicator.hide()
+            return
+        self.indicator.show()
+        fn_x = self.unit_x * (self.fn_index[fn] + 0.5)
+        self.indicator.moveBy(fn_x - (self.indicator.pos().x() + 5.75), 0.0)
+
     def _update_scene(self, *args):
-        pass
+        sel_rows = set(self.table.selected)
+        if sel_rows:
+            self.scene_text.hide()
+        else:
+            self.scene_text.show()
+        scene_height = self.scene_pixel_height
+        for row in self.table.data:
+            if row in sel_rows:
+                y = 0.0
+                height = scene_height
+            else:
+                y = scene_height / 2.0
+                height = scene_height / 2.0
+            for rect_item in row.rects:
+                rect = rect_item.rect()
+                rect_item.setRect(rect.x(), y, rect.width(), height)
+        if len(sel_rows) == 1:
+           self.structure.active_coordset_id = sel_rows.pop().representative
 
 def show_cluster_results(main_tool_window, structure, clusterings):
     inst = main_tool_window.tool_instance
