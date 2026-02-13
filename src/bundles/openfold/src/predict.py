@@ -215,8 +215,8 @@ def _msa_run(session, name, molecular_components, msa_cache_dir, wait):
         if not msa_cache_files:
             msa_name = f'{name}_msa' if name else 'msa'
             prediction = OpenFoldPrediction(msa_name, proteins)
-            br = OpenFoldRun(session, prediction, msa_only = True, msa_cache_dir = msa_cache_dir,
-                          wait = wait)
+            br = OpenFoldRun(session, prediction, name = msa_name,
+                             msa_only = True, msa_cache_dir = msa_cache_dir, wait = wait)
             return br
     return None
 
