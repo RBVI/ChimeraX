@@ -800,8 +800,14 @@ class OpenFoldRun:
 
         def structure_inference_detail(text, num_predictions = len(self._predictions)):
             # "Started inference for 9gui on rank N step M"
-            end = text.find(') on rank ')
-            msg = text[22:end] + f' of {num_predictions})'
+            if num_predictions == 1:
+                # Don't add number of predictions.
+                end = text.find(' (')
+                msg = text[22:end]
+            else:
+                # Add number of predictions.
+                end = text.find(') on rank ')
+                msg = text[22:end] + f' of {num_predictions})'
             return msg
 
         def creating_features_detail(text):
