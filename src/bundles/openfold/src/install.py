@@ -23,7 +23,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def openfold_install(session, directory = None, download_model_weights = True,
-                  branch = 'main', wait = None):
+                  branch = 'chimerax_openfold', wait = None):
     if directory is None:
         from os.path import expanduser
         directory = expanduser('~/openfold3')
