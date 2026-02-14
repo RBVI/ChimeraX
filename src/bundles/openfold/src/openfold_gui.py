@@ -28,7 +28,7 @@
 #
 from chimerax.core.tools import ToolInstance
 class OpenFoldPredictionGUI(ToolInstance):
-#    help = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold_help.html'
+    help = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold.html'
 
     def __init__(self, session, tool_name):
 
@@ -818,7 +818,8 @@ class OpenFoldPredictionGUI(ToolInstance):
                    f' OpenFold and its required packages will be installed in folder {openfold_dir} (1 GByte)'
                    f'  and its model parameters (2 GBytes) will be installed in {param_dir}')
         from chimerax.ui.ask import ask
-        answer = ask(self.session, message, title = 'Install OpenFold', help_url = 'help:user/tools/openfold.html')
+        answer = ask(self.session, message, title = 'Install OpenFold',
+                     help_url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold_help.html#install')
         if answer == 'yes':
             self._show_installing_openfold()
             from chimerax.core.commands import run, quote_path_if_necessary

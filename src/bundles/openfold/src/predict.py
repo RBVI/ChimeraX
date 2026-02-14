@@ -1564,7 +1564,7 @@ def register_openfold_predict_command(logger):
                    ('install_location', SaveFolderNameArg),
                    ('wait', BoolArg)],
         synopsis = 'Predict a structure with OpenFold',
-        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold_help.html'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold.html'
     )
     register('openfold predict', desc, openfold_predict, logger=logger)
 
@@ -1572,7 +1572,7 @@ def register_openfold_predict_command(logger):
         required = [('run_directory', OpenFolderNameArg),],
         keyword = [('align_to', ChainArg)],
         synopsis = 'Show table of OpenFold ligand binding prediction results',
-        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold_help.html#ligandtablecommand'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold.html#ligandtablecommand'
     )
     register('openfold ligandtable', desc, openfold_ligand_table, logger=logger)
 

@@ -352,6 +352,6 @@ def register_openfold_install_command(logger):
         keyword = [('download_model_weights', BoolArg),
                    ('branch', StringArg)],
         synopsis = 'Install OpenFold from PyPi in a virtual environment',
-        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold_help.html#install'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold.html#install'
     )
     register('openfold install', desc, openfold_install, logger=logger)
