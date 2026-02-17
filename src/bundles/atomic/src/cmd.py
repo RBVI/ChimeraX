@@ -40,9 +40,10 @@ def chirality_cmd(session, atoms):
     if not centers:
         raise UserError("There are no possible stereo centers in the specified atoms")
     chiralities = [chirality(atom) for atom in centers]
-    for atom, ch in zip(centers, chiralities):
+    ch_info = zip(centers, chiralities)
+    for atom, ch in ch_info:
         session.logger.info("%s is %s" % (atom, "not chiral" if not ch else ch))
-    return chiralities
+    return dict(ch_info)
 
 def log_chains(session, structures=None):
     if structures is None:
