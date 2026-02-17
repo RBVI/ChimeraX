@@ -63,8 +63,8 @@ class _OpenFoldBundle(BundleAPI):
                         return [], msg
                     @property
                     def open_args(self):
-                        from chimerax.atomic import AtomicStructureArg
-                        return { 'align_to': AtomicStructureArg, }
+                        from chimerax.atomic import ChainArg
+                        return { 'align_to': ChainArg }
                 return OpenFoldLigandsInfo()
 
     # Make class name to class for session restore

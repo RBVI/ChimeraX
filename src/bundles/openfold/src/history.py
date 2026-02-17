@@ -27,7 +27,7 @@
 #
 from chimerax.core.tools import ToolInstance
 class OpenFoldHistoryPanel(ToolInstance):
-    help = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold_help.html#history'
+    help = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold.html#history'
 
     def __init__(self, session, tool_name = 'OpenFold History', predictions_directory = None):
 

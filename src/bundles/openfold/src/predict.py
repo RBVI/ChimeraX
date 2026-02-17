@@ -44,7 +44,7 @@ def openfold_predict(session, sequences = [], ligands = None, exclude_ligands = 
         wait = False if session.ui.is_gui else True
 
     polymer_components, modeled_chains, unmodeled_chains = _polymer_components(sequences, protein, dna, rna)
-    align_to = modeled_chains[0].structure if modeled_chains else None
+    align_to = modeled_chains[0] if modeled_chains else None
     used_chain_ids = set(sum((pc.chain_ids for pc in polymer_components), []))
     ligand_components, covalent_ligands = _ligand_components(ligands, exclude_ligands.split(','),
                                                              ligand_ccd, ligand_smiles, used_chain_ids)
@@ -215,8 +215,8 @@ def _msa_run(session, name, molecular_components, msa_cache_dir, wait):
         if not msa_cache_files:
             msa_name = f'{name}_msa' if name else 'msa'
             prediction = OpenFoldPrediction(msa_name, proteins)
-            br = OpenFoldRun(session, prediction, msa_only = True, msa_cache_dir = msa_cache_dir,
-                          wait = wait)
+            br = OpenFoldRun(session, prediction, name = msa_name,
+                             msa_only = True, msa_cache_dir = msa_cache_dir, wait = wait)
             return br
     return None
 
@@ -243,7 +243,7 @@ class OpenFoldPrediction:
     def __init__(self, name, molecular_components, align_to = None):
         self.name = name
         self._molecular_components = molecular_components  # List of OpenFoldMolecule
-        self._align_to = align_to	                   # AtomicStructure to align prediction to.
+        self._align_to = align_to	                   # Chain align prediction to.
 
     def json_filename(self, default_name = 'input'):
         if self.name is None:
@@ -391,7 +391,7 @@ template_preprocessor_settings:
         models = run(session, f'open {path_arg} logInfo false')
 
         # Align prediction to input model
-        if align and self._align_to and not self._align_to.deleted:
+        if align and self._align_to and not self._align_to.deleted and not self._align_to.structure is None:
             aspec = self._align_to.atomspec
             for model in models:
                 run(session, f'matchmaker {model.atomspec} to {aspec} logParameters false', log = False)
@@ -798,11 +798,25 @@ class OpenFoldRun:
         if len(new_lines) == 0:
             return
 
-        if len(self._predictions) > 1:
-            # Report ligand being docked in status messages.
-            detail_func = lambda text: text[25:].strip()
-        else:
-            detail_func = lambda text: ''
+        def structure_inference_detail(text, num_predictions = len(self._predictions)):
+            # "Started inference for 9gui on rank N step M"
+            if num_predictions == 1:
+                # Don't add number of predictions.
+                end = text.find(' (')
+                msg = text[22:end]
+            else:
+                # Add number of predictions.
+                end = text.find(') on rank ')
+                msg = text[22:end] + f' of {num_predictions})'
+            return msg
+
+        def creating_features_detail(text):
+            # "Creating features for 9gui"
+            return text[18:].rstrip()
+
+        def confidence_detail(text):
+            # "Computing confidence scores for 9gui"
+            return text[28:].rstrip()
             
         stages = [('Loading weights', 'loading weights'),
                   ('Finished loading weights', ''),
@@ -814,13 +828,13 @@ class OpenFoldRun:
                   ('RUNNING', 'sequence search running'),
                   ('COMPLETE', 'sequence search finished'),
                   ('Preprocessing templates', 'processing templates'),
-                  ('Finished preprocessing templates', ''),
-                  ('Creating features', 'creating neural net input'),
+                  ('Finished preprocessing PDB templates', ''),
+                  ('Creating features', ('creating neural net input', creating_features_detail)),
                   ('Finished creating features', ''),
-                  ('Started inference', 'structure inference'),
-                  ('Computing confidence scores', 'computing confidence'),
+                  ('Started inference', ('structure inference', structure_inference_detail)),
+                  ('Computing confidence scores', ('computing confidence', confidence_detail)),
                   ('Finished computing confidence scores', ''),
-                  ('Beginning structure inference ', ('structure inference', detail_func)),
+                  ('Beginning prediction inference ', 'structure inference'),
                   ('Finished prediction inference ', ''),
                   ]
         found_stage = None
@@ -910,6 +924,8 @@ class OpenFoldRun:
         st = self._stage_times
         sut = st.get('starting OpenFold', 0)
         parts.append(f'start openfold {"%.0f" % sut} sec')
+        nnt = st.get('initializing neural net', 0)
+        parts.append(f'initialize neural net {"%.0f" % nnt} sec')
         wait_t = st.get('sequence server busy... waiting', 0)
         seq_t = (st.get('submitting sequence search', 0)
                  + wait_t
@@ -919,8 +935,6 @@ class OpenFoldRun:
         if wait_t > 0:
             sst += f' (waiting {"%.0f" % wait_t} sec, running {"%.0f" % (seq_t-wait_t)} sec)'
         parts.append(sst)
-        lwt = st.get('loading weights', 0)
-        parts.append(f'load weights {"%.0f" % lwt} sec')
         sit = st.get('structure inference', 0)
         parts.append(f'structure inference {"%.0f" % sit} sec')
 
@@ -1523,7 +1537,7 @@ class RepeatSequencesArg(Annotation):
 #
 def register_openfold_predict_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, SaveFolderNameArg, BoolArg, EnumOf, IntArg, OpenFolderNameArg
-    from chimerax.atomic import SequencesArg, ResiduesArg, AtomicStructureArg
+    from chimerax.atomic import SequencesArg, ResiduesArg, ChainArg
 
     desc = CmdDesc(
         optional = [('sequences', SequencesArg)],
@@ -1550,15 +1564,15 @@ def register_openfold_predict_command(logger):
                    ('install_location', SaveFolderNameArg),
                    ('wait', BoolArg)],
         synopsis = 'Predict a structure with OpenFold',
-        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold_help.html'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold.html'
     )
     register('openfold predict', desc, openfold_predict, logger=logger)
 
     desc = CmdDesc(
         required = [('run_directory', OpenFolderNameArg),],
-        keyword = [('align_to', AtomicStructureArg)],
+        keyword = [('align_to', ChainArg)],
         synopsis = 'Show table of OpenFold ligand binding prediction results',
-        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold_help.html#ligandtablecommand'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold.html#ligandtablecommand'
     )
     register('openfold ligandtable', desc, openfold_ligand_table, logger=logger)
 
