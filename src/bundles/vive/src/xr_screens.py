@@ -24,15 +24,25 @@ def setup_openxr_screen(openxr_system_name, openxr_camera):
 
 def _sony_spatial_reality_setup(openxr_camera):
     # Flatpanel Sony Spatial Reality display with eye tracking.
-    #   15.6" screen, 34 x 19 cm, tilted at 45 degree angle.
-    # TODO: Distinguish 27" from 15.6" display.  Might use OpenXR vendorId
+    #   15.6" screen, 34 x 19 cm, tilted at 45 degree angle, screen name "SR Display"
+    #   27" screen, 58 x 33 cm, screen name "SR Display GB"
+    screen = find_xr_screen(openxr_camera._session)
+    if screen is None or screen.model() == 'SR Display GB':
+        # 27" display
+        # Unknown why it needs a scale factor of 9.  Determined by Utz Ermel.
+        scale = 9
+        w,h = 0.58*scale, 0.33*scale
+    else:
+        w,h = 0.34, 0.19	# Screen size meters
+        
     from math import sqrt
     s2 = 1/sqrt(2)
-    w,h = 0.34, 0.19	# Screen size meters
     from numpy import array
     screen_center = array((0, s2*h/2, -s2*h/2))
     from chimerax.geometry import rotation
     screen_orientation = rotation((1,0,0), -45)	# View direction 45 degree down.
+    # Center model behind screen for more comfortable viewing.
+    model_center = screen_center + (h/4) * array((0, -s2, -s2))
 
     # Room size and center for view_all() positioning.
     c = openxr_camera
@@ -52,7 +62,7 @@ def _sony_spatial_reality_setup(openxr_camera):
     # current camera view direction.
     v = c._session.main_view
     c.fit_view_to_room(room_width = w,
-                       room_center = screen_center,
+                       room_center = model_center,
                        room_center_distance = 0.40,
                        screen_orientation = screen_orientation,
                        scene_center = v.center_of_rotation,
@@ -67,6 +77,7 @@ def _acer_spatial_labs_setup(openxr_camera):
     screen_center = array((0, 0, 0))
     from chimerax.geometry import identity
     screen_orientation = identity()
+    model_center = screen_center + h/4 * array((0,0,-1))
 
     # Room size and center for view_all() positioning.
     c = openxr_camera
@@ -86,7 +97,7 @@ def _acer_spatial_labs_setup(openxr_camera):
     # current camera view direction.
     v = c._session.main_view
     c.fit_view_to_room(room_width = w,
-                       room_center = screen_center,
+                       room_center = model_center,
                        room_center_distance = 0.40,
                        screen_orientation = screen_orientation,
                        scene_center = v.center_of_rotation,
@@ -104,12 +115,13 @@ def _enable_xr_mouse_modes(session, screen_model_name = None,
     '''
     screen = find_xr_screen(session, screen_model_name)
     if screen is None:
+        session.logger.warning('Could not enable mouse on OpenXR screen.')
         return False
     XRBackingWindow(session, screen, in_front = openxr_window_captures_events)
     session.logger.info(f'Enabled mouse on OpenXR screen "{screen.model()}"')
     return True
 
-xr_screen_model_names = ['ASV27-2P', '1ASV27-2P', 'DS1_156', 'SR Display']
+xr_screen_model_names = ['ASV27-2P', '1ASV27-2P', 'DS1_156', 'SR Display', 'SR Display GB']
 def find_xr_screen(session, screen_model_name = None):
     model_names = [screen_model_name] if screen_model_name else xr_screen_model_names
     screens = session.ui.screens()
@@ -117,7 +129,7 @@ def find_xr_screen(session, screen_model_name = None):
         if screen.model() in model_names:
             return screen
     found_names = [screen.model() for screen in screens]
-    msg = f'Could not find OpenXR screen {", ".join(model_names)} , only found {", ".join(found_names)}'
+    msg = f'Could not find OpenXR screen, found screens {", ".join(found_names)} which do not match any OpenXR screen names understood by ChimeraX: {", ".join(model_names)}.'
     session.logger.warning(msg)
     return None
 

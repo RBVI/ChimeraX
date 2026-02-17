@@ -65,11 +65,13 @@ def _ask_gui(session, question, buttons, default, info, title, help_url, show_ic
             msg.setDefaultButton(gb)
         but_to_text[gb] = b
     if help_url:
-        b = msg.addButton("Help", QMessageBox.HelpRole)
+        help_button = msg.addButton("Help", QMessageBox.HelpRole)
         from chimerax.core.commands import run
-        b.clicked.connect(lambda *, run=run, ses=session: run(ses, "help " + help_url))
+        help_button.clicked.connect(lambda *, run=run, ses=session: run(ses, "help " + help_url))
     msg.exec() if hasattr(msg, 'exec') else msg.exec_()
     clicked = msg.clickedButton()
+    if help_url and clicked == help_button:
+        return
     if clicked is None:
         from chimerax.core.errors import CancelOperation
         raise CancelOperation("'%s' dialog cancelled" % (title if title else question))

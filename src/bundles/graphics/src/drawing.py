@@ -1666,7 +1666,10 @@ def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
     p0 = identity()
     r.set_view_matrix(p0)
 
-    r.draw_front_buffer(True)
+    if r.broken_front_buffer_rendering:
+        r.swap_buffers()
+    else:
+        r.draw_front_buffer(True)
     r.enable_depth_test(False)
     r.enable_xor(True)
     rdc = r.disable_capabilities
@@ -1682,7 +1685,10 @@ def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
     r.enable_xor(False)
     r.enable_depth_test(True)
     r.draw_front_buffer(False)
-    r.flush()
+    if r.broken_front_buffer_rendering:
+        r.swap_buffers()
+    else:
+        r.flush()
 
     return d
 

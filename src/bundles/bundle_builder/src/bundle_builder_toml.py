@@ -61,7 +61,6 @@ if sys.version_info < (3, 11, 0):
     import tomli as tomllib
 else:
     import tomllib
-import traceback
 import unicodedata
 import warnings
 
@@ -86,7 +85,7 @@ from setuptools.build_meta import (
 
 # TODO: Verify
 # Always import this because it changes the behavior of setuptools
-from numpy import get_include as get_numpy_include_dirs
+from numpy import get_include as get_numpy_include_dirs  # noqa
 
 cpu_count = os.cpu_count()
 
@@ -119,7 +118,7 @@ except:
 # default STARTUPINFO class is replaced before calling
 # setuptools.setup() and reset after it returns.
 
-import subprocess
+import subprocess  # noqa
 
 try:
     from subprocess import STARTUPINFO
@@ -136,8 +135,8 @@ else:
             self.dwFlags |= _winapi.STARTF_USESHOWWINDOW
 
 
-from .metadata_templates import metadata_preamble, pure_wheel_platforms
-from .classifiers import (
+from .metadata_templates import metadata_preamble, pure_wheel_platforms  # noqa
+from .classifiers import (  # noqa
     Tool,
     Command,
     Selector,
@@ -152,6 +151,8 @@ from .classifiers import (
     ToolbarButton,
     Preset,
     Initialization,
+    IncludeDirectory,
+    LibraryDirectory,
 )
 
 # Python version was 3.7 in ChimeraX 1.0
@@ -564,9 +565,10 @@ class Bundle:
         # The cache is a set instance stored as a class attribute
         try:
             from setuptools._distutils import dir_util as st_dir_util
-            cache_class = getattr(st_dir_util, 'SkipRepeatAbsolutePaths', None)
+
+            cache_class = getattr(st_dir_util, "SkipRepeatAbsolutePaths", None)
             if cache_class is not None:
-                instance = getattr(cache_class, 'instance', None)
+                instance = getattr(cache_class, "instance", None)
                 if instance is not None:
                     # Directly clear the set (SkipRepeatAbsolutePaths extends set)
                     set.clear(instance)
@@ -575,7 +577,8 @@ class Bundle:
         # Clear legacy distutils cache (_path_created dict)
         try:
             import distutils.dir_util
-            cache = getattr(distutils.dir_util, '_path_created', None)
+
+            cache = getattr(distutils.dir_util, "_path_created", None)
             if cache is not None:
                 cache.clear()
         except Exception:
@@ -720,6 +723,8 @@ class Bundle:
         )
         for entry in all_metadata:
             self.classifiers.extend([str(entry)])
+        if self.c_libraries:
+            self.classifiers.append(str(LibraryDirectory("lib")))
         self.setup_arguments["classifiers"] = self.classifiers
         self.setup_arguments["package_dir"], self.setup_arguments["packages"] = (
             self._make_package_arguments()
@@ -819,9 +824,6 @@ class Bundle:
             with suppress_known_deprecation():
                 dist = setuptools.setup(**kw)
             return dist, True
-        except Exception:
-            traceback.print_exc()
-            return None, False
         except SystemExit:
             return None, False
         finally:
@@ -904,6 +906,8 @@ class Bundle:
         setup_args = ["--no-user-cfg", "build", f"-j{cpu_count}"]
         setup_args.extend(["bdist_wheel"])
         dist, built = self._run_setup(setup_args)
+        if not built:
+            raise RuntimeError(f"Failed to build wheel for {self.module_name}; see errors above")
         if not self.version:
             self.version = dist.get_version()
 
@@ -930,6 +934,8 @@ class Bundle:
         self._clear_distutils_dir_and_prep_srcdir()
         setup_args = ["sdist"]
         dist, built = self._run_setup(setup_args)
+        if not built:
+            raise RuntimeError(f"Failed to build sdist for {self.module_name}; see errors above")
         if not self.version:
             self.version = dist.get_version()
         sdist = self._check_output(type_="sdist")
@@ -944,6 +950,8 @@ class Bundle:
             if "editable_mode" in config_settings:
                 setup_args.extend(["--mode", config_settings["editable_mode"]])
         dist, built = self._run_setup(setup_args)
+        if not built:
+            raise RuntimeError(f"Failed to build editable wheel for {self.module_name}; see errors above")
         if not self.version:
             self.version = dist.get_version()
         wheel = self._check_output(type_="wheel")

@@ -33,7 +33,7 @@ or derivations thereof.
 <p>
 The <b>lighting</b> command controls global lighting parameters,
 through individual <a href="#options">options</a> and
-in convenient <a href="#preset">preset</a> combinations.
+in convenient <a href="#preset">lighting preset</a> combinations.
 Related <a href="#model">per-model settings</a> can be adjusted with
 the <b>lighting model</b> command.
 The <a href="material.html"><b>material</b></a> command sets
@@ -44,7 +44,7 @@ a graphical interface for adjusting some of these parameters.
 See also: 
 <a href="preset.html"><b>preset</b></a>,
 <a href="graphics.html"><b>graphics</b></a>,
-<a href="../tools/graphics.html"><b>Graphics</b></a> icons,
+<a href="../tools/graphics.html"><b>Graphics</b> icons</a>,
 <a href="../autostyle.html">automatic styling</a>
 </p><p>
 Given without arguments, <b>lighting</b> reports the current settings in the
@@ -316,7 +316,8 @@ If the setting is globally disabled, the per-model settings will not be evident.
 <b>depthCue</b> &nbsp;true | false
 <br>
 Whether depth-cueing should apply to the specified model(s) when
-depth-cueing is <a href="#depthCue">enabled globally</a>.
+depth-cueing is enabled globally with
+<a href="#depthCue"><b>lighting depthCue true</b></a>.
 </blockquote>
 <blockquote>
 <a name="model-directional"></a>
@@ -334,15 +335,17 @@ but depth-cueing may still apply.
 Whether the key light should cast shadows on the specified model(s).
 This will only have a visible effect when the key light is on
 (<a href="#intensity"><b>intensity</b></a> &gt; 0) and shadows are
-<a href="#shadows">enabled globally</a>.
+enabled globally with
+<a href="#shadows"><b>lighting shadows true</b></a>.
 </blockquote>
 <blockquote>
 <a name="model-multiShadow"></a>
 <b>multiShadow</b> &nbsp;true | false
 <br>
 Whether ambient shadowing should be shown on the specified model(s) 
-when ambient shadowing is <a href="#multiShadow">enabled globally</a>
-(number of directions <i>N</i> &gt; 0).
+when ambient shadowing is enabled globally with
+<a href="#multiShadow"><b>lighting multiShadow <i>N</i></b></a>
+(with number of directions <i>N</i> &gt; 0).
 </blockquote>
 
 <a name="preset-details"></a>

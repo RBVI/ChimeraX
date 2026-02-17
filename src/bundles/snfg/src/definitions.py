@@ -255,6 +255,12 @@ PDB_TO_SNFG = {
     # The GLYCAM naming uses 3-letter codes encoding: sugar type, ring form,
     # anomeric configuration, enantiomeric form, and linkage positions.
     # See: https://glycam.org/docs/forcefield/glycam-naming-2/
+    #
+    # Code format: [position][sugar][anomeric]
+    #   Position: 0=terminal, 2/3/4/6=single-linked
+    #   Multi-linked position letters:
+    #     Z=2,3  Y=2,4  X=2,6  W=3,4  V=3,6  U=4,6  Q=2,3,4
+    #   Anomeric: A=alpha, B=beta
     # ==========================================================================
 
     # GLYCAM Sialic acids (Neu5Ac)
@@ -272,12 +278,26 @@ PDB_TO_SNFG = {
     # GLYCAM N-acetylgalactosamine (GalNAc) - "V" codes
     '0VA': 'GalNAc',  # terminal alpha-GalNAc
     '0VB': 'GalNAc',  # terminal beta-GalNAc
+    '2VA': 'GalNAc',  # 2-linked alpha-GalNAc
+    '2VB': 'GalNAc',  # 2-linked beta-GalNAc
     '3VA': 'GalNAc',  # 3-linked alpha-GalNAc
     '3VB': 'GalNAc',  # 3-linked beta-GalNAc
     '4VA': 'GalNAc',  # 4-linked alpha-GalNAc
     '4VB': 'GalNAc',  # 4-linked beta-GalNAc
     '6VA': 'GalNAc',  # 6-linked alpha-GalNAc
     '6VB': 'GalNAc',  # 6-linked beta-GalNAc
+    'ZVA': 'GalNAc',  # 2,3-linked alpha-GalNAc
+    'ZVB': 'GalNAc',  # 2,3-linked beta-GalNAc
+    'YVA': 'GalNAc',  # 2,4-linked alpha-GalNAc
+    'YVB': 'GalNAc',  # 2,4-linked beta-GalNAc
+    'XVA': 'GalNAc',  # 2,6-linked alpha-GalNAc
+    'XVB': 'GalNAc',  # 2,6-linked beta-GalNAc
+    'WVA': 'GalNAc',  # 3,4-linked alpha-GalNAc
+    'WVB': 'GalNAc',  # 3,4-linked beta-GalNAc
+    'VVA': 'GalNAc',  # 3,6-linked alpha-GalNAc
+    'VVB': 'GalNAc',  # 3,6-linked beta-GalNAc
+    'UVA': 'GalNAc',  # 4,6-linked alpha-GalNAc
+    'UVB': 'GalNAc',  # 4,6-linked beta-GalNAc
 
     # GLYCAM Galactose - "L" codes
     '0LA': 'Gal',     # terminal alpha-Gal
@@ -292,14 +312,18 @@ PDB_TO_SNFG = {
     '6LB': 'Gal',     # 6-linked beta-Gal
     'ZLA': 'Gal',     # 2,3-linked alpha-Gal
     'ZLB': 'Gal',     # 2,3-linked beta-Gal
-    'YLA': 'Gal',     # 3,4-linked alpha-Gal
-    'YLB': 'Gal',     # 3,4-linked beta-Gal
+    'YLA': 'Gal',     # 2,4-linked alpha-Gal
+    'YLB': 'Gal',     # 2,4-linked beta-Gal
     'XLA': 'Gal',     # 2,6-linked alpha-Gal
     'XLB': 'Gal',     # 2,6-linked beta-Gal
-    'WLA': 'Gal',     # 3,6-linked alpha-Gal
-    'WLB': 'Gal',     # 3,6-linked beta-Gal
-    'VLA': 'Gal',     # 4,6-linked alpha-Gal
-    'VLB': 'Gal',     # 4,6-linked beta-Gal
+    'WLA': 'Gal',     # 3,4-linked alpha-Gal
+    'WLB': 'Gal',     # 3,4-linked beta-Gal
+    'VLA': 'Gal',     # 3,6-linked alpha-Gal
+    'VLB': 'Gal',     # 3,6-linked beta-Gal
+    'ULA': 'Gal',     # 4,6-linked alpha-Gal
+    'ULB': 'Gal',     # 4,6-linked beta-Gal
+    'QLA': 'Gal',     # 2,3,4-linked alpha-Gal
+    'QLB': 'Gal',     # 2,3,4-linked beta-Gal
 
     # GLYCAM N-acetylglucosamine (GlcNAc) - "Y" codes
     # Note: "Y" is the GLYCAM one-letter code for GlcNAc
@@ -307,22 +331,28 @@ PDB_TO_SNFG = {
     '0YB': 'GlcNAc',  # terminal beta-GlcNAc
     '1YA': 'GlcNAc',  # 1-linked alpha-GlcNAc
     '1YB': 'GlcNAc',  # 1-linked beta-GlcNAc
+    '2YA': 'GlcNAc',  # 2-linked alpha-GlcNAc
+    '2YB': 'GlcNAc',  # 2-linked beta-GlcNAc
     '3YA': 'GlcNAc',  # 3-linked alpha-GlcNAc
     '3YB': 'GlcNAc',  # 3-linked beta-GlcNAc
     '4YA': 'GlcNAc',  # 4-linked alpha-GlcNAc
     '4YB': 'GlcNAc',  # 4-linked beta-GlcNAc
     '6YA': 'GlcNAc',  # 6-linked alpha-GlcNAc
     '6YB': 'GlcNAc',  # 6-linked beta-GlcNAc
-    'WYA': 'GlcNAc',  # 3,6-linked alpha-GlcNAc
-    'WYB': 'GlcNAc',  # 3,6-linked beta-GlcNAc
-    'VYA': 'GlcNAc',  # 4,6-linked alpha-GlcNAc
-    'VYB': 'GlcNAc',  # 4,6-linked beta-GlcNAc
-    'UYA': 'GlcNAc',  # 3,4-linked alpha-GlcNAc
-    'UYB': 'GlcNAc',  # 3,4-linked beta-GlcNAc
-    'QYA': 'GlcNAc',  # 3,4,6-linked alpha-GlcNAc
-    'QYB': 'GlcNAc',  # 3,4,6-linked beta-GlcNAc
-    'YYA': 'GlcNAc',  # 2,4-linked alpha-GlcNAc (or other branching)
+    'ZYA': 'GlcNAc',  # 2,3-linked alpha-GlcNAc
+    'ZYB': 'GlcNAc',  # 2,3-linked beta-GlcNAc
+    'YYA': 'GlcNAc',  # 2,4-linked alpha-GlcNAc
     'YYB': 'GlcNAc',  # 2,4-linked beta-GlcNAc
+    'XYA': 'GlcNAc',  # 2,6-linked alpha-GlcNAc
+    'XYB': 'GlcNAc',  # 2,6-linked beta-GlcNAc
+    'WYA': 'GlcNAc',  # 3,4-linked alpha-GlcNAc
+    'WYB': 'GlcNAc',  # 3,4-linked beta-GlcNAc
+    'VYA': 'GlcNAc',  # 3,6-linked alpha-GlcNAc
+    'VYB': 'GlcNAc',  # 3,6-linked beta-GlcNAc
+    'UYA': 'GlcNAc',  # 4,6-linked alpha-GlcNAc
+    'UYB': 'GlcNAc',  # 4,6-linked beta-GlcNAc
+    'QYA': 'GlcNAc',  # 2,3,4-linked alpha-GlcNAc
+    'QYB': 'GlcNAc',  # 2,3,4-linked beta-GlcNAc
 
     # GLYCAM Glucose - "G" codes
     '0GA': 'Glc',     # terminal alpha-Glc
@@ -337,10 +367,20 @@ PDB_TO_SNFG = {
     '4GB': 'Glc',     # 4-linked beta-Glc
     '6GA': 'Glc',     # 6-linked alpha-Glc
     '6GB': 'Glc',     # 6-linked beta-Glc
-    'WGA': 'Glc',     # 3,6-linked alpha-Glc
-    'WGB': 'Glc',     # 3,6-linked beta-Glc
-    'VGA': 'Glc',     # 4,6-linked alpha-Glc
-    'VGB': 'Glc',     # 4,6-linked beta-Glc
+    'ZGA': 'Glc',     # 2,3-linked alpha-Glc
+    'ZGB': 'Glc',     # 2,3-linked beta-Glc
+    'YGA': 'Glc',     # 2,4-linked alpha-Glc
+    'YGB': 'Glc',     # 2,4-linked beta-Glc
+    'XGA': 'Glc',     # 2,6-linked alpha-Glc
+    'XGB': 'Glc',     # 2,6-linked beta-Glc
+    'WGA': 'Glc',     # 3,4-linked alpha-Glc
+    'WGB': 'Glc',     # 3,4-linked beta-Glc
+    'VGA': 'Glc',     # 3,6-linked alpha-Glc
+    'VGB': 'Glc',     # 3,6-linked beta-Glc
+    'UGA': 'Glc',     # 4,6-linked alpha-Glc
+    'UGB': 'Glc',     # 4,6-linked beta-Glc
+    'QGA': 'Glc',     # 2,3,4-linked alpha-Glc
+    'QGB': 'Glc',     # 2,3,4-linked beta-Glc
 
     # GLYCAM Mannose - "M" codes
     '0MA': 'Man',     # terminal alpha-Man
@@ -355,18 +395,18 @@ PDB_TO_SNFG = {
     '6MB': 'Man',     # 6-linked beta-Man
     'ZMA': 'Man',     # 2,3-linked alpha-Man
     'ZMB': 'Man',     # 2,3-linked beta-Man
-    'YMA': 'Man',     # 3,6-linked alpha-Man
-    'YMB': 'Man',     # 3,6-linked beta-Man
+    'YMA': 'Man',     # 2,4-linked alpha-Man
+    'YMB': 'Man',     # 2,4-linked beta-Man
     'XMA': 'Man',     # 2,6-linked alpha-Man
     'XMB': 'Man',     # 2,6-linked beta-Man
-    'WMA': 'Man',     # 3,6-linked alpha-Man (alternative)
-    'WMB': 'Man',     # 3,6-linked beta-Man
-    'VMA': 'Man',     # 4,6-linked alpha-Man (branched)
-    'VMB': 'Man',     # 4,6-linked beta-Man (branched)
-    'UMA': 'Man',     # 3,4-linked alpha-Man
-    'UMB': 'Man',     # 3,4-linked beta-Man
-    'QMA': 'Man',     # 3,4,6-linked alpha-Man
-    'QMB': 'Man',     # 3,4,6-linked beta-Man
+    'WMA': 'Man',     # 3,4-linked alpha-Man
+    'WMB': 'Man',     # 3,4-linked beta-Man
+    'VMA': 'Man',     # 3,6-linked alpha-Man
+    'VMB': 'Man',     # 3,6-linked beta-Man
+    'UMA': 'Man',     # 4,6-linked alpha-Man
+    'UMB': 'Man',     # 4,6-linked beta-Man
+    'QMA': 'Man',     # 2,3,4-linked alpha-Man
+    'QMB': 'Man',     # 2,3,4-linked beta-Man
 
     # GLYCAM Fucose - "F" codes
     '0FA': 'Fuc',     # terminal alpha-Fuc
@@ -377,6 +417,12 @@ PDB_TO_SNFG = {
     '3FB': 'Fuc',     # 3-linked beta-Fuc
     '4FA': 'Fuc',     # 4-linked alpha-Fuc
     '4FB': 'Fuc',     # 4-linked beta-Fuc
+    'ZFA': 'Fuc',     # 2,3-linked alpha-Fuc
+    'ZFB': 'Fuc',     # 2,3-linked beta-Fuc
+    'YFA': 'Fuc',     # 2,4-linked alpha-Fuc
+    'YFB': 'Fuc',     # 2,4-linked beta-Fuc
+    'WFA': 'Fuc',     # 3,4-linked alpha-Fuc
+    'WFB': 'Fuc',     # 3,4-linked beta-Fuc
 
     # GLYCAM Xylose - "X" codes
     '0XA': 'Xyl',     # terminal alpha-Xyl
@@ -387,6 +433,14 @@ PDB_TO_SNFG = {
     '3XB': 'Xyl',     # 3-linked beta-Xyl
     '4XA': 'Xyl',     # 4-linked alpha-Xyl
     '4XB': 'Xyl',     # 4-linked beta-Xyl
+    'ZXA': 'Xyl',     # 2,3-linked alpha-Xyl
+    'ZXB': 'Xyl',     # 2,3-linked beta-Xyl
+    'YXA': 'Xyl',     # 2,4-linked alpha-Xyl
+    'YXB': 'Xyl',     # 2,4-linked beta-Xyl
+    'WXA': 'Xyl',     # 3,4-linked alpha-Xyl
+    'WXB': 'Xyl',     # 3,4-linked beta-Xyl
+    'QXA': 'Xyl',     # 2,3,4-linked alpha-Xyl
+    'QXB': 'Xyl',     # 2,3,4-linked beta-Xyl
 
     # GLYCAM Glucuronic acid - "Z" codes (note: different from branching codes)
     '0ZA': 'GlcA',    # terminal alpha-GlcA

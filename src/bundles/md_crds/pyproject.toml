@@ -10,7 +10,7 @@ authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
 description = "Molecular dynamics support"
 dependencies = [
   "ChimeraX-Core ~=1.0",
-  "ChimeraX-Atomic ~=1.22",
+  "ChimeraX-Atomic ~=1.62",
   "ChimeraX-DataFormats ~=1.0",
   "ChimeraX-OpenCommand ~=1.0",
   "ChimeraX-SaveCommand ~=1.0",
@@ -198,3 +198,7 @@ libraries = ["xdrfile", "arrays"]
 
 [tool.chimerax.extension._gromacs.darwin]
 extra-link-args = ["-Wl,-rpath,@rpath"]
+
+[tool.chimerax.command."md cluster"]
+categories = ["MD/Ensemble Analysis"]
+description = "Cluster trajectory frames"
