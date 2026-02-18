@@ -21,11 +21,12 @@ try:
     from import_excludes import WHEEL_MODULE_EXCLUDES as module_blacklist
     from import_excludes import WHEEL_FINE_EXCLUDES as fine_blacklist
 except ImportError:
-    _two_up = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    # utils/build/wheel/ -> _two_up is utils/
-    sys.path.insert(0, _two_up)
-    # build/wheel/ (CI) -> _two_up is repo root, need utils/ under it
-    sys.path.insert(0, os.path.join(_two_up, "utils"))
+    _three_up = os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__))))
+    # utils/build/wheel/ -> _three_up is utils/
+    sys.path.insert(0, _three_up)
+    # build/wheel/ (CI) -> _three_up is repo root, need utils/ under it
+    sys.path.insert(0, os.path.join(_three_up, "utils"))
     from import_excludes import WHEEL_MODULE_EXCLUDES as module_blacklist
     from import_excludes import WHEEL_FINE_EXCLUDES as fine_blacklist
 

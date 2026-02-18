@@ -797,19 +797,20 @@ def _show_render_by_attribute_panel(session, mutation_set, attribute_name,
         rba_gui.no_value_color.color = no_value_color
 
 def _show_render_by_attribute_panel_new(session, mutation_set, attribute_name,
-                                        palette = None, no_value_color = None):
+                                    palette = None, no_value_color = None):
     from chimerax.core.commands import run
     rba_gui = run(session, 'ui tool show "Render/Select by Attribute"')
 
     chains = mutation_set.associated_chains()
     models = list(set(chain.structure for chain in chains))
-        
-    rba_gui.configure(models = models, target = 'residues', tab = 'render', attr_name = attribute_name,
-                      level_info = palette, render_type = rba_gui.RENDER_COLORS)
+    no_value_info = (True, no_value_color) if no_value_color is not None else None
 
-    if no_value_color is not None:
-        rba_gui.color_no_value.setChecked(True)
-        rba_gui.no_value_color.color = no_value_color
+    # TODO: Test when Eric fixes render gui not updating when gui already up and
+    #       specified models match the gui selected models.  ChimeraX ticket #19400
+    # 
+    rba_gui.configure(models = models, target = 'residues', tab = 'render', attr_name = attribute_name,
+                      level_info = palette, render_type = rba_gui.RENDER_COLORS,
+                      no_value_info = no_value_info)
     
 def _find_close_residues(residue, residues, distance):
     rxyz = residue.atoms.coords
