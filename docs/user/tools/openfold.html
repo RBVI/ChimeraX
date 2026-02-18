@@ -89,16 +89,14 @@ Clicking the <b>Install OpenFold</b> button on the tool dialog
 creates a Python virtual environment to install the
 <a href="https://github.com/RBVI/openfold-3" 
 target="_blank">ChimeraX OpenFold fork Github</a>.
-OpenFold uses Torch and other packages, and
-the total installation including <i>OpenFold</i> the trained neural 
-network weights, and the PDB Chemical Component Dictionary for defining
-residue types is about 3 GB and may take 10 minutes or 
+OpenFold uses Torch and other packages; 
+the total installation including OpenFold and the trained neural 
+network weights is about 3 GB and may take 10 minutes or 
 more to download and install, depending on network speed.
 OpenFold (current version OpenFold3-preview)
 is installed in ~/openfold3 in the user's home directory.
 This directory will be created, or if it already exists must be empty.
-The OpenFold network parameters and <a href="https://www.wwpdb.org/data/ccd" 
-target="_blank">Chemical Component Dictionary</a> are downloaded
+The OpenFold network parameters are downloaded
 to ~/.openfold3. Installation can also be done with the command
 <a href="../commands/openfold.html#install"><b>openfold install</b></a>.
 </p>
@@ -136,14 +134,14 @@ ipTM confidence scores, and SMILES strings.
 Clicking a column header sorts the table by the values in that column,
 and selecting one or more rows and clicking <b>Open</b> opens the 
 corresponding structure prediction(s).
-The results are written as a comma-separated values file (.bzlig), 
+The results are written as a comma-separated values file (.oflig), 
 and this file can be accessed later from the
 <a href="filehistory.html"><b>File History</b></a> to reshow the table.
 Another way to reshow the table is with the command
 <a href="../commands/openfold.html#ligandtable"><b>openfold ligandtable</b></a>,
 by specifying the directory in which OpenFold was run.
 The table's <a href="../window.html#context-menu">context menu</a> 
-includes an option to write the results as a .bzlig file.
+includes an option to write the results as a .oflig file.
   </blockquote>
 <p>
 The current set of components to model are listed in a table, with the polymer
@@ -213,7 +211,7 @@ Clicking <b>Predict</b> launches the calculation
 (see
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold.html#runtimes"
 target="_blank">OpenFold structure prediction in ChimeraX</a>
-for run times on various systems.
+for run times on various systems).
 The prediction is run in the background so that ChimeraX can be used 
 for other tasks. Clicking <b>Stop</b> halts a calculation in progress.
 When the prediction finishes, the resulting structure(s) are opened 
@@ -415,7 +413,7 @@ Clicking <b>Options</b> shows/hides the additional options:
 <li><b>Predictions directory</b> 
 &ndash; where to look for directories of previous OpenFold results 
 (the save location is set in the <a href="#options"><b>OpenFold</b> options</a>,
-initial default <b>~/Desktop</b>).
+initial default <b>~/Desktop/openfold</b>).
 Directories are identified as containing OpenFold predictions if they
 include a file named <b>command</b>, which is used by ChimeraX to store the
 openfold command with all its arguments used to run the prediction.
@@ -450,7 +448,10 @@ larger structures.
 </p><p>
 <b>Run time</b>. The computation time increases as the square of the number 
 of tokens, so a prediction with three times as many residue and ligand atoms 
-will take approximately nine times longer to run.
+will take approximately nine times longer to run. See
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold.html#runtimes"
+target="_blank">OpenFold structure prediction in ChimeraX</a>
+for run times on various systems.
 </p><p>
 <b>Nvidia GPU support on Windows</b>.
 Installing OpenFold will get a CUDA-enabled version of the torch 
