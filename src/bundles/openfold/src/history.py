@@ -253,10 +253,13 @@ class OpenFoldPredictionsTable(ItemTable):
         self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)  # Don't resize whole panel width
 
     def _prediction_rows(self, predictions_directory):
-        from os.path import join
-        from os import listdir
-        subdirs = [join(predictions_directory, dir) for dir in listdir(predictions_directory)]
-        rows = [PredictionDirectory(dir) for dir in subdirs if _is_prediction_directory(dir)]
+        from os.path import join, exists
+        if exists(predictions_directory):
+            from os import listdir
+            subdirs = [join(predictions_directory, dir) for dir in listdir(predictions_directory)]
+            rows = [PredictionDirectory(dir) for dir in subdirs if _is_prediction_directory(dir)]
+        else:
+            rows = []
         return rows
 
     def _update(self, predictions_directory):
