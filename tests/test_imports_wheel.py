@@ -12,12 +12,12 @@ import chimerax
 
 sys.path.append(
     os.path.join(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "utils", "build", "wheel"
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "utils"
     )
 )
 
-# in utils/wheel/filter_modules.py
-from filter_modules import module_blacklist, fine_blacklist
+from import_excludes import WHEEL_MODULE_EXCLUDES as module_blacklist
+from import_excludes import WHEEL_FINE_EXCLUDES as fine_blacklist
 
 
 modules = []

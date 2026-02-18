@@ -83,7 +83,6 @@ def branches_distinct(branches, visited):
             else:
                 check_double = wa_info.geometry == 3 and not wa.already_double
                 check_triple = wa_info.geometry == 2
-            check_double = wa_info.geometry == 3 and not wa.already_double
             for nb in wa.neighbors:
                 try:
                     bnb = BranchAtom.a_to_branch_a[nb]

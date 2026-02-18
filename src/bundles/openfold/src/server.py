@@ -476,13 +476,13 @@ def register_openfold_server_command(logger):
                    ('extra_options', StringArg),
                    ],
         synopsis = 'Start a OpenFold prediction server',
-        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-apr2025/openfold_server.html'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold_server.html'
     )
     register('openfold server start', desc, openfold_server_start, logger=logger)
 
     desc = CmdDesc(
         synopsis = 'List active OpenFold prediction server jobs',
-        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-apr2025/openfold_server.html'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold_server.html'
     )
     register('openfold server list', desc, openfold_server_list, logger=logger)
 
@@ -490,7 +490,7 @@ def register_openfold_server_command(logger):
         optional = [('run_directory', OpenFolderNameArg)],
         keyword = [('open', BoolArg)],
         synopsis = 'Fetch results for active OpenFold prediction server jobs',
-        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-apr2025/openfold_server.html'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold_server.html'
     )
     register('openfold server fetch', desc, openfold_server_fetch, logger=logger)
 
