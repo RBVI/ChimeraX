@@ -28,10 +28,19 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
         raise UserError("Specify only one chain per model")
 
     from .make_alignment import match_to_align
-    seqs = match_to_align(session, chains, dist_cutoff, column_criteria, gap_char, circular)
-    seqs.sort(key=lambda seq: seq.structure.id)
+    # C++ layer cannot instantiate StructureSeqs, so send in copies that will be modified
+    from copy import copy
+    aligned = [copy(chain) for chain in chains]
+    aligned.sort(key=lambda seq: seq.structure.id)
+    print("sending in:")
+    for aseq in aligned:
+        print("\t", aseq.name, aseq.characters)
+    match_to_align(session, aligned, dist_cutoff, column_criteria, gap_char, circular)
+    print("getting out:")
+    for aseq in aligned:
+        print("\t", aseq.name, aseq.characters)
     #TODO: lots
-    session.alignments.new_alignment(seqs, "Match->Align") # for testing
+    session.alignments.new_alignment(aligned, "Match->Align") # for testing
 
 def register_command(cmd_name, logger):
     from chimerax.core.commands import CmdDesc, register, NonNegativeFloatArg, EnumOf, CharacterArg, \

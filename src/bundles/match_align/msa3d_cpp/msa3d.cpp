@@ -36,7 +36,7 @@ using atomstruct::Sequence;
 using atomstruct::StructureSeq;
 using atomstruct::AtomSearchTree;
 
-typedef std::map<Chain*, std::vector<Atom*>> PrincipalAtomMap;
+typedef std::map<StructureSeq*, std::vector<Atom*>> PrincipalAtomMap;
 
 // for my personal sanity, define local min/max functions, so that I don't have to try to
 // figure out how to get references/pointers to template functions
@@ -49,12 +49,12 @@ namespace { // so these class declarations are not visible outside this file
 class Column
 {
 public:
-    std::map<Chain*, Chain::SeqPos> positions;
+    std::map<StructureSeq*, StructureSeq::SeqPos> positions;
 
     Column(decltype(positions) pos_info): positions(pos_info) {};
     Column(const std::shared_ptr<Column>& _col): positions(_col->positions) {};
 
-    bool  contains(Chain* seq, Chain::SeqPos pos) const {
+    bool  contains(StructureSeq* seq, StructureSeq::SeqPos pos) const {
         return positions.find(seq) != positions.end() && positions.at(seq) == pos;
     };
     double  participation(PrincipalAtomMap& pas, double dist_cutoff) const;
@@ -121,14 +121,14 @@ static int _num_endpoints = 0;
 class EndPoint
 {
 public:
-    Chain*  chain;
-    Chain::SeqPos  pos;
+    StructureSeq*  chain;
+    StructureSeq::SeqPos  pos;
     decltype(Column::positions) positions;
-    EndPoint(Chain* _chain, Chain::SeqPos _pos): chain(_chain), pos(_pos) { positions[_chain] = _pos;
+    EndPoint(StructureSeq* _chain, StructureSeq::SeqPos _pos): chain(_chain), pos(_pos) { positions[_chain] = _pos;
 _num_endpoints++;
     };
 
-    bool contains(Chain* _seq, Chain::SeqPos _pos) { return chain == _seq && pos == _pos; }
+    bool contains(StructureSeq* _seq, StructureSeq::SeqPos _pos) { return chain == _seq && pos == _pos; }
 };
 
 // Link.info can contain end points or columns...
@@ -145,7 +145,7 @@ public:
     void operator=(std::shared_ptr<EndPoint>& _ep) { ep = _ep; is_column = false; }
     void operator=(std::shared_ptr<Column>& _col) { col = _col; is_column = true; }
 
-    bool contains(Chain* _seq, Chain::SeqPos _pos) {
+    bool contains(StructureSeq* _seq, StructureSeq::SeqPos _pos) {
         if (is_column)
             return col->contains(_seq, _pos);
         return ep->contains(_seq, _pos);
@@ -235,10 +235,10 @@ class GapInfo
 {
 public:
     bool  in_gap;
-    Chain::SeqPos  pos;
+    StructureSeq::SeqPos  pos;
     unsigned int  num_gaps;
 
-    GapInfo(bool _in_gap, Chain::SeqPos _pos, unsigned int _num_gaps):
+    GapInfo(bool _in_gap, StructureSeq::SeqPos _pos, unsigned int _num_gaps):
         in_gap(_in_gap), pos(_pos), num_gaps(_num_gaps) {};
 };
 
@@ -256,8 +256,8 @@ public:
 static void
 find_prune_crosslinks(
     LinkList& all_links,
-    std::map<Chain*, std::vector<LinkList>>& pairings,
-    Chain* seq1, Chain* seq2,
+    std::map<StructureSeq*, std::vector<LinkList>>& pairings,
+    StructureSeq* seq1, StructureSeq* seq2,
     LinkList& link_list, std::vector<LinkList>& links1, std::vector<LinkList>& links2,
     std::string tag, const char* status_prefix, PyObject* py_logger)
 {
@@ -322,12 +322,12 @@ find_prune_crosslinks(
 }
 
 bool
-_check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::shared_ptr<Column>>>& order,
-    std::vector<Chain*>& chains)
+_check(std::map<StructureSeq*, StructureSeq::SeqPos>& info, std::map<StructureSeq*, std::vector<std::shared_ptr<Column>>>& order,
+    std::vector<StructureSeq*>& chains)
 {
-std::cerr << "_check 0\n";
-    std::map<Chain*, std::vector<Chain::SeqPos>> equiv;
-    std::vector<Chain::SeqPos> null_init = { INT_MAX, INT_MAX, INT_MAX };
+//std::cerr << "_check 0\n";
+    std::map<StructureSeq*, std::vector<StructureSeq::SeqPos>> equiv;
+    std::vector<StructureSeq::SeqPos> null_init = { INT_MAX, INT_MAX, INT_MAX };
     for (auto chain: chains)
         equiv[chain] = null_init;
     std::vector<std::pair<std::vector<std::shared_ptr<Column>>, int>> todo;
@@ -374,17 +374,17 @@ std::cerr << "_check 0\n";
         }
         todo.emplace_back(std::vector<std::shared_ptr<Column>>(seq_cols.begin() + j, seq_cols.end()), 1);
     }
-std::cerr << "_check 1\n";
+//std::cerr << "_check 1\n";
     while (todo.size() > 0) {
         auto& cols_rel = todo.back();
         auto cols = cols_rel.first;
         auto rel = cols_rel.second;
         todo.pop_back();
-std::cerr << "_check 1.1\n";
+//std::cerr << "_check 1.1\n";
         for (auto col: cols) {
-std::cerr << "_check 1.1.1\n";
+//std::cerr << "_check 1.1.1\n";
             for (auto& cseq_cpos: col->positions) {
-std::cerr << "_check 1.1.1.1\n";
+//std::cerr << "_check 1.1.1.1\n";
                 auto cseq = cseq_cpos.first;
                 auto cpos = cseq_cpos.second;
                 auto& eqseq = equiv[cseq];
@@ -392,7 +392,7 @@ std::cerr << "_check 1.1.1.1\n";
                 if (eq != INT_MAX && (cpos < eq ? -1 : (cpos > eq ? 1 : 0)) == rel)
                     continue;
                 auto& seq_cols = order[cseq];
-std::cerr << "_check 1.1.1.2\n";
+//std::cerr << "_check 1.1.1.2\n";
                 if (rel == 0) {
                     auto num_seq_cols = seq_cols.size();
                     decltype(num_seq_cols) i, j;
@@ -437,16 +437,16 @@ std::cerr << "_check 1.1.1.2\n";
                     }
                     continue;
                 }
-std::cerr << "_check 1.1.1.3\n";
+//std::cerr << "_check 1.1.1.3\n";
                 auto& cseq_equiv = equiv[cseq];
                 auto test = cseq_equiv[1];
                 if (test == INT_MAX)
                     test = cseq_equiv[1-rel];
                 if (test != INT_MAX && (cpos < test ? -1 : (cpos > test ? 1 : 0)) != rel)
                     return false;
-std::cerr << "_check 1.1.1.4\n";
+//std::cerr << "_check 1.1.1.4\n";
                 if (rel < 0) {
-std::cerr << "_check 1.1.1.4.1\n";
+//std::cerr << "_check 1.1.1.4.1\n";
                     auto num_seq_cols = seq_cols.size();
                     decltype(num_seq_cols) i, j;
                     if (eq == INT_MAX)
@@ -463,7 +463,7 @@ std::cerr << "_check 1.1.1.4.1\n";
                         if (!broke)
                             i = num_seq_cols;
                     }
-std::cerr << "_check 1.1.1.4.2\n";
+//std::cerr << "_check 1.1.1.4.2\n";
                     bool broke = false;
                     for (j = i; j < num_seq_cols; ++j) {
                         auto ccol = seq_cols[j];
@@ -474,23 +474,25 @@ std::cerr << "_check 1.1.1.4.2\n";
                     }
                     if (!broke)
                         j = num_seq_cols;
-std::cerr << "_check 1.1.1.4.3\n";
+//std::cerr << "_check 1.1.1.4.3\n";
                     cseq_equiv[rel+1] = cpos;
-std::cerr << "_check 1.1.1.4.3.1\n";
+//std::cerr << "_check 1.1.1.4.3.1\n";
                     if (j > 1) {
-std::cerr << "_check 1.1.1.4.3.2, i: " << i << "; j: " << j << "\n";
-                        auto td_list = std::vector<std::shared_ptr<Column>>(seq_cols.begin() + i,
-                            seq_cols.begin() + j);
-std::cerr << "_check 1.1.1.4.3.3\n";
-                        td_list.erase(std::find(td_list.begin(), td_list.end(), col));
-std::cerr << "_check 1.1.1.4.3.4\n";
-                        if (!td_list.empty())
-                            todo.emplace_back(td_list, rel);
-std::cerr << "_check 1.1.1.4.3.5\n";
+//std::cerr << "_check 1.1.1.4.3.2, i: " << i << "; j: " << j << "\n";
+                        if (i < j) {
+                            auto td_list = std::vector<std::shared_ptr<Column>>(seq_cols.begin() + i,
+                                seq_cols.begin() + j);
+//std::cerr << "_check 1.1.1.4.3.3\n";
+                            td_list.erase(std::find(td_list.begin(), td_list.end(), col));
+//std::cerr << "_check 1.1.1.4.3.4\n";
+                            if (!td_list.empty())
+                                todo.emplace_back(td_list, rel);
+                        }
+//std::cerr << "_check 1.1.1.4.3.5\n";
                     }
-std::cerr << "_check 1.1.1.4.4\n";
+//std::cerr << "_check 1.1.1.4.4\n";
                 } else {
-std::cerr << "_check 1.1.1.4.5\n";
+//std::cerr << "_check 1.1.1.4.5\n";
                     int num_seq_cols = seq_cols.size();
                     decltype(num_seq_cols) i, j;
                     if (eq == INT_MAX)
@@ -526,23 +528,23 @@ std::cerr << "_check 1.1.1.4.5\n";
                                 todo.emplace_back(td_list, rel);
                         }
                     }
-std::cerr << "_check 1.1.1.4.6\n";
+//std::cerr << "_check 1.1.1.4.6\n";
                 }
-std::cerr << "_check 1.1.1.5\n";
+//std::cerr << "_check 1.1.1.5\n";
             }
-std::cerr << "_check 1.1.2\n";
+//std::cerr << "_check 1.1.2\n";
         }
-std::cerr << "_check 1.2\n";
+//std::cerr << "_check 1.2\n";
     }
-std::cerr << "_check 2\n";
+//std::cerr << "_check 2\n";
     return true;
 }
 
-PyObject *
-multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char gap_char,
+PyObject*
+multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all, char gap_char,
     bool circular, const char* status_prefix, PyObject* py_logger, PyObject* error_class)
 {
-std::cerr << "dist cutoff: " << dist_cutoff << "  all: " << col_all << "\n";
+//std::cerr << "dist cutoff: " << dist_cutoff << "  all: " << col_all << "\n";
     // Create list of pairings between chains and prune to be monotonic
     if (circular) {
         PyErr_SetString(PyExc_NotImplementedError, "C++ multi_align cicular permutation support not implemented");
@@ -561,7 +563,7 @@ std::cerr << "dist cutoff: " << dist_cutoff << "  all: " << col_all << "\n";
     // penalty and keep pruning worst link until no links cross.
 
     PrincipalAtomMap pas;
-    std::map<Chain*, std::vector<LinkList>> pairings;
+    std::map<StructureSeq*, std::vector<LinkList>> pairings;
     logger::status(py_logger, status_prefix, "Finding residue principal atoms");
     for (auto chain: chains) {
         decltype(pas)::mapped_type seq_pas;
@@ -583,19 +585,19 @@ std::cerr << "dist cutoff: " << dist_cutoff << "  all: " << col_all << "\n";
         pas[chain] = seq_pas;
         pairings[chain] = pairing;
     }
-std::cerr << pairings.size() << " pairings\n";
-for (auto chain_links: pairings) std::cerr << chain_links.first->name() << " has " << chain_links.second.size() << " links\n";
+//std::cerr << pairings.size() << " pairings\n";
+//for (auto chain_links: pairings) std::cerr << chain_links.first->name() << " has " << chain_links.second.size() << " links\n";
 
     //TODO: circular permutation support
-    //std::map<std::pair<Chain*, Chain*>, std::pair<int, int>> circular_pairs;
-    //std::map<std::pair<Chain*, Chain*>, CircularLinkData> hold_data;
+    //std::map<std::pair<StructureSeq*, StructureSeq*>, std::pair<int, int>> circular_pairs;
+    //std::map<std::pair<StructureSeq*, StructureSeq*>, CircularLinkData> hold_data;
 
     LinkList all_links;
-    std::map<Chain*, AtomSearchTree*> trees;
+    std::map<StructureSeq*, AtomSearchTree*> trees;
     auto num_chains = chains.size();
     decltype(num_chains) loop_count = 0, loop_limit = (num_chains * (num_chains-1))/2;
-    std::map<Chain*, std::map<Atom*, decltype(num_chains)>> datas;
-int num_dist_okay = 0;
+    std::map<StructureSeq*, std::map<Atom*, decltype(num_chains)>> datas;
+//int num_dist_okay = 0;
     for (decltype(num_chains) i = 0; i < num_chains; ++i) {
         auto seq1 = chains[i];
         auto len1 = pairings[seq1].size();
@@ -647,7 +649,7 @@ int num_dist_okay = 0;
                     auto val = dist_cutoff - dist;
                     if (val <= 0.0)
                         continue;
-++num_dist_okay;
+////++num_dist_okay;
                     auto i2 = data[pa2];
                     auto end1 = std::shared_ptr<EndPoint>(new EndPoint(seq1, k));
                     auto end2 = std::shared_ptr<EndPoint>(new EndPoint(seq2, i2));
@@ -665,8 +667,8 @@ int num_dist_okay = 0;
             }
         }
     }
-std::cerr << num_dist_okay << " distances okay\n";
-std::cerr << _num_endpoints << " EndPoints created\n";
+//std::cerr << num_dist_okay << " distances okay\n";
+//std::cerr << _num_endpoints << " EndPoints created\n";
     for (auto chain_tree: trees) {
         delete chain_tree.second;
     }
@@ -675,24 +677,24 @@ std::cerr << _num_endpoints << " EndPoints created\n";
         //TODO
     }
 
-for (auto chain_lists: pairings) {
-    std::cerr << chain_lists.first->name() << "\n";
-    for (auto& link_list: chain_lists.second)
-        std:: cerr << "  " << link_list.size() << "\n";
-}
+//for (auto chain_lists: pairings) {
+//    std::cerr << chain_lists.first->name() << "\n";
+//    for (auto& link_list: chain_lists.second)
+//        std:: cerr << "  " << link_list.size() << "\n";
+//}
     // column collation
-    std::map<Chain*, std::map<std::shared_ptr<Column>, std::vector<int>::size_type>> columns;
-    std::map<Chain*, std::vector<std::shared_ptr<Column>>> partial_order;
-std::cerr << all_links.size() << " all links\n";
+    std::map<StructureSeq*, std::map<std::shared_ptr<Column>, std::vector<int>::size_type>> columns;
+    std::map<StructureSeq*, std::vector<std::shared_ptr<Column>>> partial_order;
+//std::cerr << all_links.size() << " all links\n";
 
     std::set<std::pair<std::shared_ptr<EndPointOrColumn>, std::shared_ptr<EndPointOrColumn>>> seen;
     while (all_links.size() > 0) {
         if (all_links.size() % 100 == 0)
             logger::status(py_logger, status_prefix,
                     "Forming columns (", all_links.size(), " links to check)");
-for (auto seq_po: partial_order) {
-    std::cerr << "po for " << seq_po.first->description() << ": " << seq_po.second.size() << "; columns: " << columns[seq_po.first].size() << "\n";
-}
+//for (auto seq_po: partial_order) {
+//    std::cerr << "po for " << seq_po.first->description() << ": " << seq_po.second.size() << "; columns: " << columns[seq_po.first].size() << "\n";
+//}
         auto back_val = all_links.back()->val;
         for (auto link: all_links) {
             if (link->val > back_val) {
@@ -716,14 +718,14 @@ for (auto seq_po: partial_order) {
         }
         auto link = all_links.back();
         all_links.pop_back();
-std::cerr << "all links reduced to " << all_links.size() << "\n";
+//std::cerr << "all links reduced to " << all_links.size() << "\n";
         if (link->val < 0)
             break;
 
         std::pair<std::shared_ptr<EndPointOrColumn>, std::shared_ptr<EndPointOrColumn>>
             key(link->info()[0], link->info()[1]);
-std::cerr << "link(0) count: " << key.first.use_count() << "; link(1) count: " << key.second.use_count() << "\n";
-std::cerr << "link(0): " << key.first->str(false, true) << "; link(1): " << key.second->str(false, true) << "\n";
+//std::cerr << "link(0) count: " << key.first.use_count() << "; link(1) count: " << key.second.use_count() << "\n";
+//std::cerr << "link(0): " << key.first->str(false, true) << "; link(1): " << key.second->str(false, true) << "\n";
         if (seen.find(key) != seen.end())
             continue;
         seen.insert(key);
@@ -733,14 +735,14 @@ std::cerr << "link(0): " << key.first->str(false, true) << "; link(1): " << key.
                 link_list.erase(std::find(link_list.begin(), link_list.end(), link));
             }
         }
-std::cerr << "waypoint 1\n";
+//std::cerr << "waypoint 1\n";
 
-        std::map<Chain*, Chain::SeqPos> check_info;
+        std::map<StructureSeq*, StructureSeq::SeqPos> check_info;
         for (auto ep_or_col: link->info()) {
             for (auto seq_pos: ep_or_col->positions())
                 check_info.insert(seq_pos);
         }
-std::cerr << "waypoint 2\n";
+//std::cerr << "waypoint 2\n";
 
         // Links between EndPoints will always be different sequences (I think),
         // but if one or both end are Columns, they might both involve the same sequence...
@@ -753,7 +755,7 @@ std::cerr << "waypoint 2\n";
                 break;
             }
         }
-std::cerr << "waypoint 3\n";
+//std::cerr << "waypoint 3\n";
 
 
         if (!okay || !_check(check_info, partial_order, chains))
@@ -784,7 +786,7 @@ std::cerr << "waypoint 3\n";
                 cols[ncol] += 1;
             }
         }
-std::cerr << "waypoint 4\n";
+//std::cerr << "waypoint 4\n";
 
         for (auto col_or_ep: link->info()) {
             for (auto seq_pos: col_or_ep->positions()) {
@@ -832,9 +834,9 @@ std::cerr << "waypoint 4\n";
                 }
             }
         }
-std::cerr << "waypoint 5\n";
+//std::cerr << "waypoint 5\n";
     }
-std::cerr << partial_order.size() << " entries in partial_order\n";
+//std::cerr << partial_order.size() << " entries in partial_order\n";
         
     logger::status(py_logger, status_prefix, "Collating columns");
 
@@ -843,7 +845,7 @@ std::cerr << partial_order.size() << " entries in partial_order\n";
     while (true) {
         // find an initial sequence column that can lead
         bool broke_po = false;
-        Chain* seq;
+        StructureSeq* seq;
         for (auto seq_cols: partial_order) {
             seq = seq_cols.first;
             auto cols = seq_cols.second;
@@ -918,24 +920,13 @@ std::cerr << partial_order.size() << " entries in partial_order\n";
     }
 
     // Make the clone in the C++ layer, so that it is easier/faster to access its functions
-    std::map<Chain*, StructureSeq*> cpp_clones;
-    std::map<Chain*, int> current;
+    std::map<StructureSeq*, StructureSeq*> cpp_clones;
+    std::map<StructureSeq*, int> current;
     std::map<StructureSeq*, Sequence::Contents> working_seqs;
     for (auto seq: chains) {
-        auto cpp_clone = seq->copy();
-        // clear() is private, so need to track assembled sequence characters separately
-        // (working_seqs map) and use bulk_set at the end to finish
-        cpp_clone->set_description(seq->description());
-        auto py_s = seq->structure()->py_instance(true);
-        auto py_struct_name = PyObject_Str(py_s);
-        Py_DECREF(py_s);
-        if (py_struct_name == nullptr) {
-            PyErr_SetString(error_class, "Could not access structure name");
-            return nullptr;
-        }
-        cpp_clone->set_name(PyUnicode_AsUTF8(py_struct_name));
-        cpp_clones[seq] = cpp_clone;
         current[seq] = -1;
+        // So that all the seqs are present for iteration
+        working_seqs[seq] = Sequence::Contents();
     }
 
     // For maximum benefit from the "column squeezing" step that follows, we
@@ -946,7 +937,7 @@ std::cerr << partial_order.size() << " entries in partial_order\n";
             new_ordered.push_back(col);
             continue;
         }
-        Chain* gap = nullptr;
+        StructureSeq* gap = nullptr;
         for (auto seq_pos: new_ordered.back()->positions) {
             auto seq = seq_pos.first;
             if (col->positions.find(seq) == col->positions.end())
@@ -1000,14 +991,14 @@ std::cerr << partial_order.size() << " entries in partial_order\n";
             continue;
         }
 
-        std::map<Chain*, std::shared_ptr<GapInfo>> gap_info;
+        std::map<StructureSeq*, std::shared_ptr<GapInfo>> gap_info;
         for (auto seq: chains) {
             // Couldn't figure out how to emplace() in a map where the second arg is a class
             // with constructor args, so...
             // (after more Googling, maybe:
             //    .emplace(seq, GapInfo{...args..})
             // or
-            //    .emplace<Chain*, GapInfo>(seq, {...args...})
+            //    .emplace<StructureSeq*, GapInfo>(seq, {...args...})
             if (l->positions.find(seq) != l->positions.end())
                 gap_info[seq] = std::shared_ptr<GapInfo>(new GapInfo(false, l->positions[seq], 0u));
             else
@@ -1165,25 +1156,39 @@ std::cerr << partial_order.size() << " entries in partial_order\n";
 
     logger::status(py_logger, status_prefix, "Composing alignment");
     for (auto col: ordered_columns) {
+bool debug = col == ordered_columns[0];
+if (debug) std::cerr << "Column\n";
         for (auto seq_offset: col->positions) {
             auto seq = seq_offset.first;
             auto offset = seq_offset.second;
             auto cur_pos = current[seq];
+if (debug) std::cerr << "\tseq " << ((long)seq % 1000) << ", offset: " << offset << ", cur_pos: " << cur_pos << "\n";
             auto diff = offset - cur_pos;
             if (diff < 2)
                 continue;
             //TODO: circular
             auto start_frag = cur_pos+1;
             decltype(start_frag) end_frag = offset;
-            for (auto ci = start_frag; ci <= end_frag; ++ci)
+if (debug) std::cerr << "\t\tInsert fragment ";
+            for (auto ci = start_frag; ci < end_frag; ++ci)
+{
+if (debug) std::cerr << seq->characters()[ci];
                 working_seqs[seq].push_back(seq->characters()[ci]);
+}
+if (debug) std::cerr << " in " << (long)seq % 1000 << "\n";
             Sequence::Contents gap(diff-1, gap_char);
-            for (auto wseq_chars: working_seqs) {
+            for (auto& wseq_chars: working_seqs) {
                 auto wseq = wseq_chars.first;
                 if (wseq == seq)
                     continue;
+if (debug) std::cerr << "\t\tInsert(1)  " << diff-1 << " gap characters in " << (long)wseq % 1000 << "\n";
                 auto& chars = wseq_chars.second;
                 chars.insert(chars.end(), gap.begin(), gap.end());
+if (debug) std::cerr << "\t\tResults in chars of: ";
+if (debug) for (auto c: chars) std::cerr << c;
+if (debug) std::cerr << "\n";
+if (debug) std::cerr << "\t\t\tand results in working_seqs[wseq] of: ";
+if (debug) for (auto c: working_seqs[wseq]) std::cerr << c; std::cerr << "\n";
             }
         }
         for (auto seq: chains) {
@@ -1191,11 +1196,16 @@ std::cerr << partial_order.size() << " entries in partial_order\n";
                 auto offset = col->positions[seq];
                 //TODO: circular
                 auto c = seq->characters()[offset];
+//std::cerr << "insert character " << c << " in " << (long)seq << "\n";
                 working_seqs[seq].push_back(c);
                 current[seq] = offset;
-            } else
+            } else 
+{
+//std::cerr << "Insert gap character in " << (long)seq << "\n";
                 working_seqs[seq].push_back(gap_char);
+}
         }
+if (debug) for (auto wseq_chars: working_seqs) { std::cerr << "\tworking " << (long)wseq_chars.first % 1000 << " chars: "; for (auto c: wseq_chars.second) std::cerr << c; std::cerr << '\n'; }
     }
 
     for (auto seq_offset: current) {
@@ -1214,30 +1224,24 @@ std::cerr << partial_order.size() << " entries in partial_order\n";
             if (wseq == seq)
                 chars.insert(chars.end(), frag.begin(), frag.end());
             else
+{
+//std::cerr << "Insert(2) " << gap.size() << " gap characters in " << (long)wseq << "\n";
                 chars.insert(chars.end(), gap.begin(), gap.end());
+}
         }
     }
 
     // Put the sequences in the clones
-    for (auto chain_clone: cpp_clones) {
-        auto chain = chain_clone.first;
-        auto& clone = chain_clone.second;
-        auto& clone_seq = working_seqs[clone];
-        auto& residues = chain->residues();
-        clone->bulk_set(residues, &clone_seq);
+    for (auto chain: chains) {
+        auto& aligned_seq = working_seqs[chain];
+std::cerr << "Setting " << (long)chain % 1000 << " sequence to: ";
+for (auto c: aligned_seq) std::cerr << c;
+std::cerr << "\n";
+        chain->bulk_set(chain->residues(), &aligned_seq);
     }
-
-    auto py_clones = PyList_New(cpp_clones.size());
-    if (py_clones == nullptr) {
-        PyErr_SetString(PyExc_AssertionError, "Could not make list for aligned sequences");
-        return nullptr;
-    }
-    Py_ssize_t li = 0;
-    for (auto chain_clone: cpp_clones)
-        PyList_SET_ITEM(py_clones, li++, chain_clone.second->py_instance(true));
 
     logger::status(py_logger, status_prefix, "Done");
-    return py_clones;
+    return Py_None;
 }
 
 static PyObject*
@@ -1254,7 +1258,7 @@ py_multi_align(PyObject*, PyObject* args)
         return NULL;
     char gap_char = (char)py_gap_char;
     if (!PySequence_Check(chain_ptrs_list)) {
-        PyErr_SetString(PyExc_TypeError, "First arg is not a sequence of Chain pointers");
+        PyErr_SetString(PyExc_TypeError, "First arg is not a sequence of StructureSeq pointers");
         return nullptr;
     }
     auto num_chains = PySequence_Size(chain_ptrs_list);
@@ -1263,7 +1267,7 @@ py_multi_align(PyObject*, PyObject* args)
             " two chains");
         return nullptr;
     }
-    std::vector<Chain*> chains;
+    std::vector<StructureSeq*> chains;
     for (decltype(num_chains) i = 0; i < num_chains; ++i) {
         PyObject* py_ptr = PySequence_GetItem(chain_ptrs_list, i);
         if (!PyLong_Check(py_ptr)) {
@@ -1272,10 +1276,10 @@ py_multi_align(PyObject*, PyObject* args)
             PyErr_SetString(PyExc_TypeError, err_msg.str().c_str());
             return nullptr;
         }
-        chains.push_back(static_cast<Chain*>(PyLong_AsVoidPtr(py_ptr)));
+        chains.push_back(static_cast<StructureSeq*>(PyLong_AsVoidPtr(py_ptr)));
     }
-    return multi_align(chains, dist_cutoff, (bool)col_all, gap_char, (bool)circular,
-        status_prefix, py_logger, error_class);
+    return multi_align(chains, dist_cutoff, (bool)col_all, gap_char, (bool)circular, status_prefix,
+        py_logger, error_class);
 }
 
 static struct PyMethodDef msa3d_methods[] =
