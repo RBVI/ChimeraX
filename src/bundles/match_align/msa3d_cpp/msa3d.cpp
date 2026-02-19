@@ -757,7 +757,6 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
         }
 //std::cerr << "waypoint 3\n";
 
-
         if (!okay || !_check(check_info, partial_order, chains))
             continue;
 

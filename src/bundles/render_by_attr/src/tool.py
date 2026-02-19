@@ -248,7 +248,6 @@ class RenderByAttrTool(ToolInstance):
         self.mode_widget.addTab(render_tab, "Render")
 
         # wait until tab contents are completely filled before connecting these
-        self._config_info = None
         self.model_list.value_changed.connect(self._models_changed)
         self.render_type_widget.currentChanged.connect(self._render_mode_changed)
 
@@ -355,6 +354,7 @@ class RenderByAttrTool(ToolInstance):
             bbox.button(qbbox.Help).setEnabled(False)
         overall_layout.addWidget(bbox)
 
+        self.model_list.ready_for_callback()
         tw.manage(placement=None)
 
     def configure(self, *, models=None, target=None, tab=None, attr_name=None, level_info=None,
@@ -385,17 +385,11 @@ class RenderByAttrTool(ToolInstance):
            RenderByAttrTool.RENDER_COLORS, RENDER_RADII, or RENDER_WORMS.
         '''
         from chimerax.core.commands import commas
-        finish_kw = { 'target': target, 'tab': tab, 'attr_name': attr_name, 'level_info': level_info,
-            'no_value_info': no_value_info, 'render_type': render_type, }
         if models is not None:
             self.model_list.value = models
-            # wait until the models-changed callback completes
-            self._config_info = finish_kw
-        else:
-            self._finish_config(**finish_kw)
+            # ensure the changes caused by model list changes happen now
+            self.model_list.ready_for_callback()
 
-    def _finish_config(self, *, target=None, tab=None, attr_name=None, level_info=None,
-            no_value_info=None, render_type=None):
         if target is not None:
             menu = self.target_menu_button.menu()
             for action in menu.actions():
@@ -763,9 +757,6 @@ class RenderByAttrTool(ToolInstance):
             self._new_render_attr()
             self._new_select_attr()
         self._update_deworm_button()
-        if self._config_info is not None:
-            self._finish_config(**self._config_info)
-            self._config_info = None
 
     def _new_render_attr(self, attr_name_info=None):
         enabled = True
