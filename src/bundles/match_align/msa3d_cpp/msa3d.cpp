@@ -261,7 +261,8 @@ find_prune_crosslinks(
     LinkList& link_list, std::vector<LinkList>& links1, std::vector<LinkList>& links2,
     std::string tag, const char* status_prefix, PyObject* py_logger)
 {
-    logger::status(py_logger, status_prefix, "Finding crosslinks ", tag);
+    if (status_prefix != nullptr)
+        logger::status(py_logger, status_prefix, "Finding crosslinks ", tag);
     std::vector<LinkList::size_type> ends;
     LinkList seq2_links;
     for (auto& links: links2) {
@@ -285,7 +286,8 @@ find_prune_crosslinks(
         }
     }
     
-    logger::status(py_logger, status_prefix, "Pruning crosslinks ", tag);
+    if (status_prefix != nullptr)
+        logger::status(py_logger, status_prefix, "Pruning crosslinks ", tag);
     while (link_list.size() > 0) {
         LinkList::iterator pos;
         decltype(Link::penalty) pen;
@@ -663,7 +665,7 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
                 //TODO
             } else {
                 find_prune_crosslinks(all_links, pairings, seq1, seq2, link_list, links1, links2, tag.str(),
-                    status_prefix, py_logger);
+                    nullptr, py_logger);
             }
         }
     }
@@ -1154,40 +1156,41 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
     }
 
     logger::status(py_logger, status_prefix, "Composing alignment");
+std::cerr << ordered_columns.size() << " ordered columns\n";
     for (auto col: ordered_columns) {
-bool debug = col == ordered_columns[0];
-if (debug) std::cerr << "Column\n";
+//bool debug = col == ordered_columns.back();
+//if (debug) std::cerr << "Column\n";
         for (auto seq_offset: col->positions) {
             auto seq = seq_offset.first;
             auto offset = seq_offset.second;
             auto cur_pos = current[seq];
-if (debug) std::cerr << "\tseq " << ((long)seq % 1000) << ", offset: " << offset << ", cur_pos: " << cur_pos << "\n";
+//if (debug) std::cerr << "\tseq " << ((long)seq % 1000) << ", offset: " << offset << ", cur_pos: " << cur_pos << "\n";
             auto diff = offset - cur_pos;
             if (diff < 2)
                 continue;
             //TODO: circular
             auto start_frag = cur_pos+1;
             decltype(start_frag) end_frag = offset;
-if (debug) std::cerr << "\t\tInsert fragment ";
+//if (debug) std::cerr << "\t\tInsert fragment ";
             for (auto ci = start_frag; ci < end_frag; ++ci)
 {
-if (debug) std::cerr << seq->characters()[ci];
+//if (debug) std::cerr << seq->characters()[ci];
                 working_seqs[seq].push_back(seq->characters()[ci]);
 }
-if (debug) std::cerr << " in " << (long)seq % 1000 << "\n";
+//if (debug) std::cerr << " in " << (long)seq % 1000 << "\n";
             Sequence::Contents gap(diff-1, gap_char);
             for (auto& wseq_chars: working_seqs) {
                 auto wseq = wseq_chars.first;
                 if (wseq == seq)
                     continue;
-if (debug) std::cerr << "\t\tInsert(1)  " << diff-1 << " gap characters in " << (long)wseq % 1000 << "\n";
+//if (debug) std::cerr << "\t\tInsert(1)  " << diff-1 << " gap characters in " << (long)wseq % 1000 << "\n";
                 auto& chars = wseq_chars.second;
                 chars.insert(chars.end(), gap.begin(), gap.end());
-if (debug) std::cerr << "\t\tResults in chars of: ";
-if (debug) for (auto c: chars) std::cerr << c;
-if (debug) std::cerr << "\n";
-if (debug) std::cerr << "\t\t\tand results in working_seqs[wseq] of: ";
-if (debug) for (auto c: working_seqs[wseq]) std::cerr << c; std::cerr << "\n";
+//if (debug) std::cerr << "\t\tResults in chars of: ";
+//if (debug) for (auto c: chars) std::cerr << c;
+//if (debug) std::cerr << "\n";
+//if (debug) std::cerr << "\t\t\tand results in working_seqs[wseq] of: ";
+//if (debug) { for (auto c: working_seqs[wseq]) std::cerr << c; std::cerr << "\n"; }
             }
         }
         for (auto seq: chains) {
@@ -1195,16 +1198,16 @@ if (debug) for (auto c: working_seqs[wseq]) std::cerr << c; std::cerr << "\n";
                 auto offset = col->positions[seq];
                 //TODO: circular
                 auto c = seq->characters()[offset];
-//std::cerr << "insert character " << c << " in " << (long)seq << "\n";
+//if (debug) std::cerr << "\tadd character " << c << " to " << (long)seq % 1000 << "\n";
                 working_seqs[seq].push_back(c);
                 current[seq] = offset;
             } else 
 {
-//std::cerr << "Insert gap character in " << (long)seq << "\n";
+//if (debug) std::cerr << "\tadd gap character to " << (long)seq % 1000 << "\n";
                 working_seqs[seq].push_back(gap_char);
 }
         }
-if (debug) for (auto wseq_chars: working_seqs) { std::cerr << "\tworking " << (long)wseq_chars.first % 1000 << " chars: "; for (auto c: wseq_chars.second) std::cerr << c; std::cerr << '\n'; }
+//if (debug) for (auto wseq_chars: working_seqs) { std::cerr << "\tworking " << (long)wseq_chars.first % 1000 << " chars: "; for (auto c: wseq_chars.second) std::cerr << c; std::cerr << '\n'; }
     }
 
     for (auto seq_offset: current) {
@@ -1217,7 +1220,7 @@ if (debug) for (auto wseq_chars: working_seqs) { std::cerr << "\tworking " << (l
         for (Sequence::Contents::size_type ci = offset+1; ci < seq->size(); ++ci)
             frag.push_back(seq->characters()[ci]);
         Sequence::Contents gap(frag.size(), gap_char);
-        for (auto wseq_chars: working_seqs) {
+        for (auto& wseq_chars: working_seqs) {
             auto wseq = wseq_chars.first;
             auto& chars = wseq_chars.second;
             if (wseq == seq)
