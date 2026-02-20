@@ -40,9 +40,9 @@ typedef std::map<StructureSeq*, std::vector<Atom*>> PrincipalAtomMap;
 
 // for my personal sanity, define local min/max functions, so that I don't have to try to
 // figure out how to get references/pointers to template functions
-static int min(int a, int b) { return std::min(a, b); }
-static int max(int a, int b) { return std::max(a, b); }
-static int (*val_func)(int, int);
+static float min(float a, float b) { return std::min(a, b); }
+static float max(float a, float b) { return std::max(a, b); }
+static float (*val_func)(float, float);
 
 namespace { // so these class declarations are not visible outside this file
 
@@ -53,6 +53,9 @@ public:
 
     Column(decltype(positions) pos_info): positions(pos_info) {};
     Column(const std::shared_ptr<Column>& _col): positions(_col->positions) {};
+    // disallow implicit copies
+    Column(const Column&) = delete;
+    Column& operator=(const Column&) = delete;
 
     bool  contains(StructureSeq* seq, StructureSeq::SeqPos pos) const {
         return positions.find(seq) != positions.end() && positions.at(seq) == pos;
@@ -107,7 +110,8 @@ double Column::value(PrincipalAtomMap& pas, double dist_cutoff) const
                 value = val;
                 val_set = true;
                 continue;
-            }
+            } 
+            value = (*val_func)(value, val);
             if (val_func == &min && value < 0.0)
                 break;
         }
@@ -198,6 +202,9 @@ public:
         _info.emplace_back(new EndPointOrColumn(ep));
         val = _val;
     }
+    // disallow implicit copies
+    Link(const Link&) = delete;
+    Link& operator=(const Link&) = delete;
 
     void evaluate(PrincipalAtomMap& pas, double dist_cutoff);
 };
@@ -240,6 +247,9 @@ public:
 
     GapInfo(bool _in_gap, StructureSeq::SeqPos _pos, unsigned int _num_gaps):
         in_gap(_in_gap), pos(_pos), num_gaps(_num_gaps) {};
+    // disallow implicit copies
+    GapInfo(const GapInfo&) = delete;
+    GapInfo& operator=(const GapInfo&) = delete;
 };
 
 } // end namespace
@@ -975,12 +985,18 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
     //   Squeeze
     decltype(ordered_columns)::size_type col_index = 0;
     while (col_index < ordered_columns.size() - 1) {
+if (col_index < 2) std::cerr << "Ordered columns (" << ordered_columns.size() << ")\n";
+if (col_index < 2) for (auto& col: ordered_columns) { for (auto& seq_pos: col->positions) { std::cerr << "\t" << (long)seq_pos.first % 1000 << "/" << seq_pos.second; } std::cerr << "\n"; }
         logger::status(py_logger, status_prefix,
             "Merging columns (", col_index, "/", ordered_columns.size()-1, ")");
-        auto l = ordered_columns[col_index];
-        auto r = ordered_columns[col_index+1];
+std::cerr << "col index: " << col_index << "\n";
+        auto& l = ordered_columns[col_index];
+        auto& r = ordered_columns[col_index+1];
+std::cerr << "l->positions: ";
+for (auto seq_pos: l->positions) std::cerr << "(" << (long)seq_pos.first % 1000 << ", " << seq_pos.second << ") ";
+std::cerr << "\n";
         bool squeezable = false;
-        for (auto seq_pos: r->positions) {
+        for (auto& seq_pos: r->positions) {
             auto seq = seq_pos.first;
             if (l->positions.find(seq) == l->positions.end()) {
                 squeezable = true;
@@ -1004,6 +1020,7 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
                 gap_info[seq] = std::shared_ptr<GapInfo>(new GapInfo(false, l->positions[seq], 0u));
             else
                 gap_info[seq] = std::shared_ptr<GapInfo>(new GapInfo(true, INT_MAX, 1u));
+std::cerr << "gap_info[" << (long)seq % 1000 << "]: " << gap_info[seq]->in_gap << " " << gap_info[seq]->pos << " " << gap_info[seq]->num_gaps << "\n";
         }
 
         squeezable = false;
@@ -1015,11 +1032,12 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
             // look for indeterminate residues first, so we can potentially
             // form a single-residue column to complete the squeeze
             bool indeterminates = false;
-            for (auto seq_rpos: r->positions) {
+            for (auto& seq_rpos: r->positions) {
                 auto seq = seq_rpos.first;
                 auto right_pos = seq_rpos.second;
-                auto gi = gap_info[seq];
+                auto& gi = gap_info[seq];
                 auto left_pos = gi->pos;
+std::cerr << "seq " << (long)seq % 1000 << " in gap: " << gi->in_gap << "  left/right pos: " << left_pos << " " << right_pos << "  num_gaps: " << gi->num_gaps << "\n";
                 if (gi->pos == INT_MAX || right_pos == left_pos + 1)
                     continue;
                 if (gi->num_gaps == 0) {
@@ -1027,11 +1045,11 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
                     continue;
                 }
                 bool broke_gaps = false;
-                for (auto chain_gi: gap_info) {
+                for (auto& chain_gi: gap_info) {
                     auto oseq = chain_gi.first;
                     if (oseq == seq)
                         continue;
-                    auto info = chain_gi.second;
+                    auto& info = chain_gi.second;
                     if (info->in_gap)
                         continue;
                     if (info->num_gaps != 0) {
@@ -1041,6 +1059,7 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
                 }
                 if (!broke_gaps) {
                     // squeezable
+std::cerr << "squeeze insert\n";
                     ordered_columns.insert(ordered_columns.begin() + col_index + rcols,
                         std::shared_ptr<Column>(new Column({{seq, left_pos}})));
                     redo = true;
@@ -1056,9 +1075,9 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
                 break;
 
             bool broke_gaps = false;
-            for (auto seq_info: gap_info) {
+            for (auto& seq_info: gap_info) {
                 auto seq = seq_info.first;
-                auto info = seq_info.second;
+                auto& info = seq_info.second;
                 auto in_gap = info->in_gap;
                 auto num_gaps = info->num_gaps;
                 if (r->positions.find(seq) != r->positions.end()) {
@@ -1082,23 +1101,27 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
             if (!broke_gaps) {
                 // check if squeeze criteria fulfilled
                 bool broke_squeeze = false;
-                for (auto seq_info: gap_info) {
-                    auto info = seq_info.second;
+                for (auto& seq_info: gap_info) {
+                    auto& info = seq_info.second;
+std::cerr << "info->num_gaps: " << info->num_gaps << "\n";
                     if (info->num_gaps == 0) {
                         broke_squeeze = true;
                         break;
                     }
                 }
                 if (!broke_squeeze) {
+std::cerr << "squeezable <- true\n";
                     squeezable = true;
                     break;
                 }
+std::cerr << "not squeezable\n";
                 l = r;
                 continue;
             }
             break;
         }
 
+std::cerr << "squeezable: " << squeezable << "  redo: " << redo << "\n";
         if (redo)
             continue;
 
@@ -1114,21 +1137,32 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
             replace_cols.emplace_back(*oi);
         bool broke_col_value = false;
         for (decltype(replace_cols)::size_type i = 0; i < replace_cols.size()-1; ++i) {
-            auto col = replace_cols[i];
-            auto rcol = replace_cols[i+1];
-            for (auto seq_pos: rcol->positions) {
+            auto& col = replace_cols[i];
+            auto& rcol = replace_cols[i+1];
+std::cerr << "col ";
+for (auto seq_pos: col->positions) std::cerr << (long)seq_pos.first % 1000 << " " << seq_pos.second << " ";
+std::cerr << "\n";
+std::cerr << "rcol ";
+for (auto seq_pos: rcol->positions) std::cerr << (long)seq_pos.first % 1000 << " " << seq_pos.second << " ";
+std::cerr << "\n";
+            auto rcol_positions = rcol->positions; // make copy so we can delete in the original
+            for (auto seq_pos: rcol_positions) {
                 auto seq = seq_pos.first;
+std::cerr << "\tseq " << ((long)seq % 1000) << " pos " << seq_pos.second << "\n";
                 if (col->positions.find(seq) != col->positions.end())
                     continue;
+std::cerr << "\t\tsqueeze!\n";
                 auto pos = seq_pos.second;
                 col->positions[seq] = pos;
                 rcol->positions.erase(seq);
             }
+std::cerr << "col->value: " << col->value(pas, dist_cutoff) << "\n";
             if (col->value(pas, dist_cutoff) < 0.0) {
                 broke_col_value = true;
                 break;
             }
         }
+std::cerr << "broke: " << broke_col_value << "\n";
         if (!broke_col_value) {
             if (!replace_cols.back()->positions.empty()) {
                 PyErr_SetString(PyExc_AssertionError, "Final replacement column not empty");
@@ -1143,16 +1177,21 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
                 nv += replace_cols[i]->participation(pas, dist_cutoff);
             if (ov >= nv) {
                 col_index += 1;
+std::cerr << "col index(1): " << col_index << "\n";
                 continue;
             }
+if (col_index < 2) std::cerr << "Replacement columns (" << replace_cols.size() << ")\n";
+if (col_index < 2) for (auto& col: replace_cols) { for (auto& seq_pos: col->positions) { std::cerr << "\t" << (long)seq_pos.first % 1000 << "/" << seq_pos.second; } std::cerr << "\n"; }
             for (decltype(rcols) i = 0; i < rcols; ++i)
                 ordered_columns[col_index + i] = replace_cols[i];
             ordered_columns.erase(ordered_columns.begin() + col_index + rcols);
             if (col_index > 0)
                 col_index -= 1;
+std::cerr << "col index(2): " << col_index << "\n";
             continue;
         }
         col_index += 1;
+std::cerr << "col index: " << col_index << "\n";
     }
 
     logger::status(py_logger, status_prefix, "Composing alignment");
@@ -1236,9 +1275,9 @@ std::cerr << ordered_columns.size() << " ordered columns\n";
     // Put the sequences in the clones
     for (auto chain: chains) {
         auto& aligned_seq = working_seqs[chain];
-std::cerr << "Setting " << (long)chain % 1000 << " sequence to: ";
-for (auto c: aligned_seq) std::cerr << c;
-std::cerr << "\n";
+//std::cerr << "Setting " << (long)chain % 1000 << " sequence to: ";
+//for (auto c: aligned_seq) std::cerr << c;
+//std::cerr << "\n";
         chain->bulk_set(chain->residues(), &aligned_seq);
     }
 
