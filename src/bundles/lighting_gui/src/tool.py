@@ -272,7 +272,7 @@ class LightingGUI(ToolInstance):
         self.preset_combo.addItems([mode.value for mode in LightingMode])
         self.preset_combo.setCurrentIndex(-1)
         self.preset_combo.currentTextChanged.connect(self._on_preset_changed)
-        layout.addRow("Preset:", self.preset_combo)
+        layout.addRow("Shadow preset:", self.preset_combo)
 
         # Key light intensity
         self.key_intensity = LabeledSlider(0, 1.5, 1.0, decimals=2)
