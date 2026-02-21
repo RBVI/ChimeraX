@@ -4,6 +4,7 @@ from chimerax.atomic import Element
 from chimerax.core.errors import UserError
 import numpy as np
 import MDAnalysis as mda
+import MDAnalysis.transformations as trans # Import transformations
 import os
 
 def read_structure(session, path, file_name, format_name=None, *, auto_style=True, coords=None, **kw):
@@ -40,7 +41,8 @@ def read_structure(session, path, file_name, format_name=None, *, auto_style=Tru
         # If it fails, we might need to retry, but let's assume standard for now.
         
         session.logger.status(f"*** ok 1")
-        universe = mda.Universe(path, coords, topology_format='PSF', format='LAMMPSDUMP', dt=1.0, in_memory=False)
+        universe = mda.Universe(path, coords, topology_format='PSF', format='LAMMPSDUMP', dt=1.0, in_memory=False, unwrap_images=False, additional_columns=['ix','iy','iz'])
+
         session.logger.status(f"*** ok 2")
 
     except ImportError:
@@ -56,7 +58,7 @@ def read_structure(session, path, file_name, format_name=None, *, auto_style=Tru
     # Convert to ChimeraX structure
     try:
         name = os.path.basename(file_name)
-        model = universe_to_atomic_structure(session, universe, name, auto_style=auto_style)
+        model, bonds_indices = universe_to_atomic_structure(session, universe, name, auto_style=auto_style)
         session.logger.status(f"*** ok 3")
 
     except Exception as e:
@@ -65,20 +67,28 @@ def read_structure(session, path, file_name, format_name=None, *, auto_style=Tru
     # If external coords were loaded via MDA, we have one frame. 
     # If the file itself has coords (GRO), we have one frame.
     # PSF has 0 frames unless linked with coords.
-    
+
     msg = f"Imported {model.num_atoms} atoms, {len(universe.trajectory)} frames."
     if len(universe.trajectory) > 0:
-        #msg += f" Loaded frame 0 from {u.trajectory.filename}."
-        
         for timestep in universe.trajectory:
-            #session.logger.info(f"*** frame {timestep.frame} |positions| {len(timestep.positions)}")
-            #session.logger.info(f"*** #{timestep.frame} {timestep.positions[:3]}")
+            # Extract coordinates as a fresh, editable float64 array
+            xyz = timestep.positions.astype(np.float64)
+
+            # --- THE ELEGANT LAMMPS FLAG FIX ---
+            # MDAnalysis stores custom columns exactly as they are named in the header.
+            # We natively apply the unwrapping: absolute_coord = wrapped_coord + (image_flag * box)
+            if 'ix' in timestep.data and 'iy' in timestep.data and 'iz' in timestep.data:
+                if timestep.dimensions is not None:
+                    box = timestep.dimensions[:3]
+                    xyz[:, 0] += timestep.data['ix'] * box[0]
+                    xyz[:, 1] += timestep.data['iy'] * box[1]
+                    xyz[:, 2] += timestep.data['iz'] * box[2]
+            # -----------------------------------
+
             session.logger.status(f"*** timestep {timestep.frame}")
-            model.add_coordset(id=timestep.frame, xyz=timestep.positions.astype(np.float64))
+            model.add_coordset(id=timestep.frame, xyz=xyz)
 
     return [model], msg
-
-# vim: set expandtab shiftwidth=4 softtabstop=4:
 
 
 def determine_element_from_mass(mass, *, consider_hydrogens=True):
@@ -191,13 +201,10 @@ def universe_to_atomic_structure(session, u, name, auto_style=True):
     
     crd = tinyarray.array((0.0, 0.0, 0.0)) # Placeholder, coords set later
     mda_to_cx = {}
-    
     res_index = 0
     res_order = {}
-    
     sorted_segments = sorted(u.segments, key=lambda seg: seg.residues[0].atoms[0].index)
-    
-    session.logger.info(f"*** sorted_segments {sorted_segments}")
+    #session.logger.info(f"*** sorted_segments {sorted_segments}")
         
     for seg in sorted_segments:
         for res in seg.residues:
@@ -208,25 +215,22 @@ def universe_to_atomic_structure(session, u, name, auto_style=True):
             res_index += 1
             for atom in res.atoms:
                 sn = atom.id+1 if hasattr(atom, 'id') else atom.index + 1
-
                 #session.logger.info(f"*** {seg.segid} {res.resname}{res.resid} index {atom.index} sn {sn} name {atom.name}")
-
                 el = elements[atom.index] # atom.index is global 0-based index
-
                 a = add_atom(name=atom.name, element=el, residue=r, loc=crd, serial_number=sn)
                 mda_to_cx[atom.index] = a
 
     # Add bonds
     # MDA bonds are (atom1, atom2) tuples (or Bond objects)
+    bonds_indices = [] # <-- ADD THIS INITIALIZATION
     if hasattr(u, 'bonds') and len(u.bonds) > 0:
         # Convert bonds to index pairs to avoid object overhead loop
         bonds_indices = u.bonds.to_indices()
-
         for i1, i2 in bonds_indices:
             try:
                 #session.logger.info(f"*** mda_to_cx[{i1}] {mda_to_cx[i1]} mda_to_cx[{i2}] {mda_to_cx[i2]}")
                 add_bond(mda_to_cx[i1], mda_to_cx[i2])
             except KeyError:
                 pass # Should not happen if topology is consistent
-    
-    return s
+
+    return s, bonds_indices
