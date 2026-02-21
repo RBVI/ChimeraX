@@ -511,6 +511,7 @@ class LightingGUI(ToolInstance):
 
     def _on_restore_defaults(self):
         run(self.session, "lighting default")
+        run(self.session, "material default")
         self._sync_from_session()
         self._detect_preset()
 
