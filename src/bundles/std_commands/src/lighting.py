@@ -134,7 +134,6 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     sil = v.silhouette
     if preset == 'default':
         lp.set_default_parameters(v.background_color)
-        sil.enabled = False
         sil.depth_jump = 0.03
     elif preset == 'simple':
         lp.shadows = False
