@@ -267,7 +267,9 @@ class LightingGUI(ToolInstance):
 
         # Preset dropdown
         self.preset_combo = QComboBox()
+        self.preset_combo.setPlaceholderText("--")
         self.preset_combo.addItems([mode.value for mode in LightingMode])
+        self.preset_combo.setCurrentIndex(-1)
         self.preset_combo.currentTextChanged.connect(self._on_preset_changed)
         layout.addRow("Preset:", self.preset_combo)
 
@@ -364,15 +366,14 @@ class LightingGUI(ToolInstance):
         return tab
 
     def _on_lighting_changed(self, trigger_name, preset):
+        self.preset_combo.blockSignals(True)
         if preset is not None:
-            self.preset_combo.blockSignals(True)
-            # The lighting command uses "default" as an alias for "simple"
-            if preset == "default":
-                preset = "simple"
             idx = self.preset_combo.findText(preset)
             if idx >= 0:
                 self.preset_combo.setCurrentIndex(idx)
-            self.preset_combo.blockSignals(False)
+        else:
+            self.preset_combo.setCurrentIndex(-1)
+        self.preset_combo.blockSignals(False)
         self._sync_from_session()
 
     def _sync_from_session(self):
@@ -448,6 +449,11 @@ class LightingGUI(ToolInstance):
         preview.view.update_lighting = True
         preview.render()
 
+    def _clear_preset(self):
+        """Deselect the preset combo to show '--' placeholder."""
+        self.preset_combo.blockSignals(True)
+        self.preset_combo.setCurrentIndex(-1)
+        self.preset_combo.blockSignals(False)
     # === Lighting callbacks ===
 
     def _on_preset_changed(self, preset):
@@ -455,6 +461,7 @@ class LightingGUI(ToolInstance):
         self._sync_from_session()
 
     def _on_key_intensity_changed(self, value):
+        self._clear_preset()
         intensity = value / self.key_intensity.scale
         self.session.main_view.lighting.key_light_intensity = intensity
         self.session.main_view.update_lighting = True
@@ -469,6 +476,7 @@ class LightingGUI(ToolInstance):
         self._sync_preview()
 
     def _on_fill_intensity_changed(self, value):
+        self._clear_preset()
         intensity = value / self.fill_intensity.scale
         self.session.main_view.lighting.fill_light_intensity = intensity
         self.session.main_view.update_lighting = True
@@ -483,6 +491,7 @@ class LightingGUI(ToolInstance):
         self._sync_preview()
 
     def _on_ambient_intensity_changed(self, value):
+        self._clear_preset()
         intensity = value / self.ambient_intensity.scale
         self.session.main_view.lighting.ambient_light_intensity = intensity
         self.session.main_view.update_lighting = True
