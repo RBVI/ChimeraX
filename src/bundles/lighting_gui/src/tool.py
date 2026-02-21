@@ -45,6 +45,7 @@ from Qt.QtWidgets import (
     QCheckBox,
     QTabWidget,
     QSizePolicy,
+    QPushButton,
 )
 
 from chimerax.core.tools import ToolInstance
@@ -231,7 +232,6 @@ class LightingGUI(ToolInstance):
         # Left side: tabbed controls
         self.tab_widget = QTabWidget()
         self.tab_widget.setMaximumWidth(280)
-        # self.tab_widget.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
 
         # Create tab contents
         lighting_tab = self._create_lighting_tab()
@@ -310,6 +310,10 @@ class LightingGUI(ToolInstance):
         self.ambient_color = ColorButton()
         self.ambient_color.color_changed.connect(self._on_ambient_color_changed)
         layout.addRow("Ambient color:", self.ambient_color)
+
+        restore_button = QPushButton("Restore Defaults")
+        restore_button.clicked.connect(self._on_restore_defaults)
+        layout.addRow(restore_button)
 
         return tab
 
@@ -504,6 +508,11 @@ class LightingGUI(ToolInstance):
     def _on_preset_changed(self, preset):
         run(self.session, f"lighting {preset}")
         self._sync_from_session()
+
+    def _on_restore_defaults(self):
+        run(self.session, "lighting default")
+        self._sync_from_session()
+        self._detect_preset()
 
     def _on_key_intensity_changed(self, value):
         self._clear_preset()
