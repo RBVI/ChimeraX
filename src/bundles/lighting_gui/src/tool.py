@@ -250,6 +250,7 @@ class LightingGUI(ToolInstance):
 
         # Sync UI with current state
         self._sync_from_session()
+        self._detect_preset()
 
         # Listen for lighting/material command changes
         from chimerax.core.core_triggers import LIGHTING_CHANGED
@@ -454,7 +455,51 @@ class LightingGUI(ToolInstance):
         self.preset_combo.blockSignals(True)
         self.preset_combo.setCurrentIndex(-1)
         self.preset_combo.blockSignals(False)
-    # === Lighting callbacks ===
+
+    def _detect_preset(self):
+        """Check if current lighting matches a known preset and select it."""
+        lp = self.session.main_view.lighting
+
+        def close(a, b, tol=0.01):
+            return abs(a - b) < tol
+
+        preset = None
+        if (not lp.shadows and lp.multishadow == 0
+                and close(lp.key_light_intensity, 1)
+                and close(lp.fill_light_intensity, 0.5)
+                and close(lp.ambient_light_intensity, 0.4)):
+            preset = 'simple'
+        elif (lp.shadows and lp.multishadow > 0
+                and close(lp.key_light_intensity, 0.7)
+                and close(lp.fill_light_intensity, 0.3)
+                and close(lp.ambient_light_intensity, 0.8)):
+            preset = 'full'
+        elif (not lp.shadows and lp.multishadow > 0
+                and close(lp.key_light_intensity, 0)
+                and close(lp.fill_light_intensity, 0)
+                and close(lp.ambient_light_intensity, 1.5)
+                and close(lp.multishadow_depth_bias, 0.01)
+                and lp.multishadow_map_size == 1024):
+            preset = 'soft'
+        elif (not lp.shadows and lp.multishadow > 0
+                and close(lp.key_light_intensity, 0)
+                and close(lp.fill_light_intensity, 0)
+                and close(lp.ambient_light_intensity, 1.5)
+                and close(lp.multishadow_depth_bias, 0.05)
+                and lp.multishadow_map_size == 128):
+            preset = 'gentle'
+        elif (not lp.shadows and lp.multishadow == 0
+                and close(lp.key_light_intensity, 0)
+                and close(lp.fill_light_intensity, 0)
+                and close(lp.ambient_light_intensity, 1.45)):
+            preset = 'flat'
+
+        if preset is not None:
+            self.preset_combo.blockSignals(True)
+            idx = self.preset_combo.findText(preset)
+            if idx >= 0:
+                self.preset_combo.setCurrentIndex(idx)
+            self.preset_combo.blockSignals(False)
 
     def _on_preset_changed(self, preset):
         run(self.session, f"lighting {preset}")
