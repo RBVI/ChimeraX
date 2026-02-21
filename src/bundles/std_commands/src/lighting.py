@@ -142,6 +142,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         lp.key_light_intensity = 1
         lp.fill_light_intensity = 0.5
         lp.ambient_light_intensity = 0.4
+        sil.enabled = False
         sil.depth_jump = 0.03
     elif preset == 'full':
         lp.shadows = True
@@ -151,6 +152,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         lp.ambient_light_intensity = 0.8
         lp.multishadow_depth_bias = 0.01
         lp.multishadow_map_size = 1024
+        sil.enabled = False
         sil.depth_jump = 0.03
     elif preset == 'soft':
         lp.shadows = False
@@ -160,6 +162,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         lp.ambient_light_intensity = 1.5
         lp.multishadow_depth_bias = 0.01
         lp.multishadow_map_size = 1024
+        sil.enabled = False
         sil.depth_jump = 0.03
     elif preset == 'gentle':
         lp.shadows = False
@@ -169,6 +172,7 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
         lp.ambient_light_intensity = 1.5
         lp.multishadow_depth_bias = 0.05
         lp.multishadow_map_size = 128
+        sil.enabled = False
         sil.depth_jump = 0.03
     elif preset == 'flat':
         lp.shadows = False
