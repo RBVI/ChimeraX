@@ -266,6 +266,10 @@ def seqalign_chain(session, chains, *, viewer=True):
             alignment.associate(chain, keep_intrinsic=True)
         alignment.resume_notify_observers()
 
+    if viewer is False:
+        for seq in alignment.seqs:
+            session.logger.info(seq.characters)
+
 def seqalign_associate(session, chains, target=None):
     if target is None:
         alignments = session.alignments.alignments
