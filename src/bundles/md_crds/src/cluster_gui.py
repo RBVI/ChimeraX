@@ -219,6 +219,7 @@ class ClusterResults:
             fns.extend(row.clustering.frames)
         fns.sort()
         self.fn_index = fn_index = { fn: i for i, fn in enumerate(fns) }
+        self.index_fn = { i: fn for fn, i in fn_index.items() }
         self.unit_x = unit_x = scene_width / len(fns)
         to_x = lambda fn: unit_x * fn_index[fn]
         pen = QPen(Qt.NoPen)
@@ -248,6 +249,16 @@ class ClusterResults:
             (0.0, 0.0), (11.5, 0.0), (5.75, 10.0)
             ]]))
         self.indicator.setZValue(1.0)
+
+        self.view.setMouseTracking(True)
+        self.scene.mouseMoveEvent = self._mouse_move_event
+
+    def _mouse_move_event(self, event):
+        scene_x = event.scenePos().x()
+        scene_width = self.scene_pixel_height * self.scene_aspect
+        import math
+        index = min(max(0, math.floor(scene_x / self.unit_x)), len(self.index_fn)-1)
+        self.tool_window.status("Frame %d" % self.index_fn[index])
 
     def _update_indicator(self, *args):
         fn = self.structure.active_coordset_id
