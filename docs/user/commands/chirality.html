@@ -23,15 +23,20 @@ or derivations thereof.
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>chirality</b>
 &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+[&nbsp;<b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 </h3>
 <p>
-The <b>chirality</b> command reports the R/S chirality of each 
-four-substituent atom in <a href="atomspec.html"><i>atom-spec</i></a>,
+The <b>chirality</b> command reports the R/S chirality of
+four-substituent atoms in <a href="atomspec.html"><i>atom-spec</i></a>,
 typically <i>sp</i><sup>3</sup>-hybridized carbons 
 (<a href="../atomtypes.html">atom type</a> C3)
 although other elements may occasionally qualify.
-Each is reported as R, S, or not chiral
+The chiral centers are reported as R or S
 in the <a href="../tools/log.html"><b>Log</b></a>.
+If <b>verbose true</b> is given, the nonchiral four-substituent atoms in
+<a href="atomspec.html"><i>atom-spec</i></a> will also be listed and reported
+as not chiral (default <b>false</b>, only chiral centers reported).
+</p><p>
 The current implementation includes only the simpler
 Cahn-Ingold-Prelog rules and will fail in complicated cases
 such as when one center's assignment depends on the chiralities of other
@@ -47,6 +52,6 @@ See also:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-August 2025</address>
+February 2026</address>
 
 </body></html>

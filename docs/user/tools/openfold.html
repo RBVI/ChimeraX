@@ -11,7 +11,7 @@ or derivations thereof.
 === UCSF ChimeraX Copyright ===
 --><head><meta charset="utf-8">
 <link rel="stylesheet" type="text/css" href="../userdocs.css">
-<title>Tool: Boltz</title>
+<title>Tool: OpenFold</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
@@ -19,47 +19,50 @@ or derivations thereof.
 <a href="../index.html">
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
-<h3><a href="../index.html#tools">Tool</a>: Boltz</h3>
+<h3><a href="../index.html#tools">Tool</a>: OpenFold</h3>
 <p>
-<a href="https://github.com/jwohlwend/boltz" target="_blank">Boltz</a>
+<a href="https://github.com/aqlaboratory/openfold-3"
+target="_blank">OpenFold</a>
 is an artificial-intelligence method for predicting biomolecular structures
 consisting of proteins, RNA, DNA, and other molecules such as ligands,
-cofactors, and drugs. 
-Inspired by AlphaFold 3, Boltz is fully open-source and freely available 
-for both academic and commercial use under the MIT license. See:
+cofactors, and drugs [<a href="https://openfold-3.readthedocs.io/en/latest/" 
+target="_blank">OpenFold3 documentation</a>].
+Based on AlphaFold 3, OpenFold 3 is fully open-source and freely available 
+for both academic and commercial use under the Apache 2.0 license.
+Any work that cites OpenFold 3 should also cite AlphaFold 3:
 </p>
 <blockquote>
-<a href="https://pubmed.ncbi.nlm.nih.gov/39605745/" target="_blank">
-Boltz-1 Democratizing Biomolecular Interaction Modeling.</a>
-Wohlwend J, Corso G, Passaro S, Reveiz M, Leidal K, Swiderski W, Portnoi T, Chinn I, Silterra J, Jaakkola T, Barzilay R.
-<i>bioRxiv</i> [Preprint]. 2024 Dec 27:2024.11.19.624167.
+<a href="https://www.nature.com/articles/s41586-024-07487-w" target="_blank">
+Accurate structure prediction of biomolecular interactions with AlphaFold 3.</a>
+Abramson J, Adler J, <i>et al.</i>
+<i>Nature.</i> 2024 Jun;630(8016):493-500.
 </blockquote>
 <p>
-The ChimeraX <b>Boltz</b> tool installs and runs 
-<a href="https://github.com/jwohlwend/boltz" target="_blank"><i>Boltz</i></a>
-(currently version 2.1.1)
+The ChimeraX <b>OpenFold</b> tool installs and runs 
+<a href="https://github.com/aqlaboratory/openfold-3"
+target="_blank">OpenFold</a> 
+(current version OpenFold3-preview)
 on the local machine. The prediction runs on Mac, Linux, and Windows 
 without requiring an Nvidia GPU, typically taking on the order of minutes, and
 is run in background so that ChimeraX can be used for other tasks.
 </p><p>
-The ChimeraX <b>Boltz</b> tool can be opened from the 
+The ChimeraX <b>OpenFold</b> tool can be opened from the 
 <b>Structure Prediction</b>
 section of the <b>Tools</b> menu and manipulated like other panels
 (<a href="../window.html#panels">more...</a>). It is also implemented
-as the <a href="../commands/boltz.html"><b>boltz</b></a> command.
+as the <a href="../commands/openfold.html"><b>openfold</b></a> command.
 </p><p>
-Boltz-predicted structures vary in confidence levels
+The predicted structures vary in confidence levels
 (see <a href="#confidence">coloring</a>)
 and should be interpreted with caution. 
 Residue-residue alignment errors for the modeled structures
 are shown in the <a href="#pae"><b>Error Plot</b></a>.
-See the 
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html" target="_blank">ChimeraX Boltz details</a> and
-video <a href="https://www.youtube.com/watch?v=377V9A_0ECc" target="_blank">
-Boltz structure prediction in ChimeraX</a>. 
+See 
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold.html"
+target="_blank">OpenFold structure prediction in ChimeraX</a>. 
 See also:
 <a href="alphafold.html"><b>AlphaFold</b></a>,
-<a href="openfold.html"><b>OpenFold</b></a>,
+<a href="boltz.html"><b>Boltz</b></a>,
 <a href="esmfold.html"><b>ESMFold</b></a>,
 <a href="modeller.html"><b>Modeller Comparative</b></a>,
 <a href="modelloops.html"><b>Model Loops</b></a>,
@@ -67,40 +70,40 @@ See also:
 </p>
 
 <blockquote>
-<a href="#installation"><b>Boltz Installation</b></a>
+<a href="#installation"><b>OpenFold Installation</b></a>
 <br><a href="#dialog"><b>Defining and Running a Prediction</b></a>
 <br><a href="#pae"><b>Error Plot</b></a>
-<br><a href="#history"><b>Boltz History</b></a>
+<br><a href="#history"><b>OpenFold History</b></a>
 <br><a href="#limitations"><b>Limitations</b></a>
 </blockquote>
 
 <a name="installation"></a>
 <p class="nav">
-[<a href="#top">back to top: Boltz</a>]
+[<a href="#top">back to top: OpenFold</a>]
 </p>
-<h3>Boltz Installation</h3>
+<h3>OpenFold Installation</h3>
 <p>
-<i>Boltz</i> installation only needs to be done once per computer,
+OpenFold installation only needs to be done once per computer,
 as long as the ChimeraX installation is not moved or deleted. 
-Clicking the <b>Install Boltz</b> button on the tool dialog
-creates a Python virtual environment to install
-<a href="https://pypi.org/project/boltz/" target="_blank">Boltz from PyPi</a>.
-Boltz uses Torch and other packages, and
-the total installation including <i>Boltz</i>, the trained neural 
-network weights, and the PDB Chemical Component Dictionary for defining 
-residue types is over 4 GB and may take 10 minutes or 
+Clicking the <b>Install OpenFold</b> button on the tool dialog
+creates a Python virtual environment to install the
+<a href="https://github.com/RBVI/openfold-3" 
+target="_blank">ChimeraX OpenFold fork Github</a>.
+OpenFold uses Torch and other packages; 
+the total installation including OpenFold and the trained neural 
+network weights is about 3 GB and may take 10 minutes or 
 more to download and install, depending on network speed.
-<i>Boltz</i> (currently version 2.1.1)
-is installed in ~/boltz2 in the user's home directory.
+OpenFold (current version OpenFold3-preview)
+is installed in ~/openfold3 in the user's home directory.
 This directory will be created, or if it already exists must be empty.
-The Boltz network parameters and <a href="https://www.wwpdb.org/data/ccd" target="_blank">Chemical Component Dictionary</a> are downloaded
-to ~/.boltz. Installation can also be done with the command
-<a href="../commands/boltz.html#install"><b>boltz install</b></a>.
+The OpenFold network parameters are downloaded
+to ~/.openfold3. Installation can also be done with the command
+<a href="../commands/openfold.html#install"><b>openfold install</b></a>.
 </p>
 
 <a name="dialog"></a>
 <p class="nav">
-[<a href="#top">back to top: Boltz</a>]
+[<a href="#top">back to top: OpenFold</a>]
 </p>
 <h3>Defining and Running a Prediction</h3>
 <p>
@@ -127,31 +130,26 @@ each line in the list should be of the form <i>name</i>,<i>SMILES</i>
 </li></ul>
   <blockquote>
 Batch prediction results will be shown in a table listing the ligand names,
-ipTM confidence scores, affinity scores (if predicted, see 
-<a href="#options">options</a>), binding probabilities, and SMILES strings.
-<!--
-ipTM = confidence, affinity = semiquantitative prediction of affinity
-trained on IC50 and Kd values, binding probability = trained on binary 
-classification of positive/negative binders
--->
+ipTM confidence scores, and SMILES strings.
 Clicking a column header sorts the table by the values in that column,
 and selecting one or more rows and clicking <b>Open</b> opens the 
 corresponding structure prediction(s).
-The results are written as a comma-separated values file (.bzlig), 
+The results are written as a comma-separated values file (.oflig), 
 and this file can be accessed later from the
 <a href="filehistory.html"><b>File History</b></a> to reshow the table.
 Another way to reshow the table is with the command
-<a href="../commands/boltz.html#ligandtable"><b>boltz ligandtable</b></a>,
-by specifying the directory in which Boltz was run.
+<a href="../commands/openfold.html#ligandtable"><b>openfold ligandtable</b></a>,
+by specifying the directory in which OpenFold was run.
 The table's <a href="../window.html#context-menu">context menu</a> 
-includes an option to write the results as a .bzlig file.
+includes an option to write the results as a .oflig file.
   </blockquote>
 <p>
 The current set of components to model are listed in a table, with the polymer
 residue count tallied underneath to help assess the size of the calculation
-(see the
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html" target="_blank">ChimeraX Boltz details</a> for guidelines on run times
-based on size and resources). 
+(see
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold.html#size"
+target="_blank">OpenFold structure prediction in ChimeraX</a>
+for guidelines on run times based on size and resources). 
 The <b>Clear</b> button can be used to clear the table contents to start over,
 and <b>Delete selected rows</b> to remove just the row(s) currently 
 highlighted in the table.
@@ -161,7 +159,7 @@ The <b>Options</b> button shows/hides additional options:
 </p>
 <ul>
 <li><b>Results directory</b>
-(initial default <b>~/Desktop/boltz_[name]</b> 
+(initial default <b>~/Desktop/openfold/[name]</b> 
 &ndash; the pathname (name and location) of a folder or directory
 in which to store prediction results, where <b>[name]</b> (if included)
 indicates substitution of the
@@ -173,28 +171,10 @@ brings up a file browser window for choosing a folder interactively.
 </li><li><b>Number of predicted structures</b> (initial default <b>1</b>)
 &ndash; how many predictions to generate; if more than one, they typically
 have only small variations
-</li><li><b>Predict ligand binding affinity for</b>
-  <ul>
-  <li><b>none</b> (initial default)
-  </li><li><b>last ligand</b> 
-&ndash; the last non-biopolymer listed in the table of components
-  </li><li><b><i>ligand-name</i></b> 
-&ndash; ligand CCD code or SMILES string as listed in the table of components
-  </li></ul>
-Boltz can predict the binding affinity in &micro;M for a single ligand. 
-It was trained using Kd, Ki, and IC50 affinity values, treating them as 
-equivalent, so the predicted affinity should be interpreted as a 
-qualitative affinity without a precise definition. 
-Only one affinity prediction is made even if the system contains
-multiple ligands, and the affinity cannot be predicted for
-ligands that occur in more than one copy.
-</li><li><b>Use steering potentials. May be more accurate, but slower.</b>
-(initial default <b>off</b>)
-&ndash; whether to use Boltz diffusion steering potentials
 </li><li><b>Use multiple sequence alignment cache</b> (initial default <b>on</b>)
 &ndash; whether to cache (and potentially reuse) the deep sequence alignments
 generated by the Colabfold server for protein chains.
-The alignment cache location is ~/Downloads/ChimeraX/BoltzMSA/
+The alignment cache location is ~/Downloads/ChimeraX/OpenFoldMSA/
 Reusing the alignment saves time when multiple predictions will be performed
 for the same protein or set of proteins but different small-molecule ligands.
 Because the alignments for different proteins in an assembly are paired
@@ -208,36 +188,38 @@ Mac M series GPU), or GPU if available (initial <b>default</b>),
 as it will be faster than the CPU
 </li><li><a name="server"></a>
 <b>Use server</b> [<i>server-hostname</i>] <b>port</b> [<i>port-number</i>]
-&ndash; whether to run Boltz on a server instead of on the local system,
+&ndash; whether to run OpenFold on a server instead of on the local system,
 and if so, using what hostname (or IP address) and port number.
-Running Boltz on a server (more powerful than the local machine)
+Running OpenFold on a server (more powerful than the local machine)
 allows for faster predictions and enables predicting larger structures.
-The Boltz server must have been set up already 
-(<a href="../commands/boltz.html#server">details...</a>).
+The OpenFold server must have been set up already 
+(<a href="../commands/openfold.html#server">details...</a>).
 A user can quit from ChimeraX while the server job is
 still running, then retrieve the results later
 (after restarting ChimeraX) using the 
-<a href="#history"><b>Boltz History</b></a>. 
-</li><li><b>Boltz install location</b> &ndash; the folder containing
-a virtual Python environment in which Boltz is installed
+<a href="#history"><b>OpenFold History</b></a>. 
+</li><li><b>OpenFold install location</b> &ndash; the folder containing
+a virtual Python environment in which OpenFold is installed
 </li></ul>
 <p>
 Clicking <b>Save default options</b> saves the current option settings as
 <a href="../preferences.html#other">user preferences</a>.
 More options are available as part of the 
-<a href="../commands/boltz.html"><b>boltz</b></a> command.
+<a href="../commands/openfold.html"><b>openfold</b></a> command.
 </p><p>
 Clicking <b>Predict</b> launches the calculation
-(see the
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html" target="_blank">ChimeraX Boltz details</a> for run times on various systems).
-The Boltz prediction is run in the background so that ChimeraX can be used 
+(see
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold.html#runtimes"
+target="_blank">OpenFold structure prediction in ChimeraX</a>
+for run times on various systems).
+The prediction is run in the background so that ChimeraX can be used 
 for other tasks. Clicking <b>Stop</b> halts a calculation in progress.
 When the prediction finishes, the resulting structure(s) are opened 
 automatically. Other buttons:
 </p>
 <ul>
 <li><b>Error plot</b> &ndash; show the <a href="#pae"><b>Error Plot</b></a>
-</li><li><b>History</b> &ndash; show the <a href="#history"><b>Boltz History</b></a>
+</li><li><b>History</b> &ndash; show the <a href="#history"><b>OpenFold History</b></a>
 </li><li><b>Help</b> &ndash; show documentation
 in the <a href="helpviewer.html"><b>Help Viewer</b></a>
 </li></ul>
@@ -324,17 +306,17 @@ true and predicted structures are aligned based on the other residue.
 
 <a name="pae"></a>
 </p><p class="nav">
-[<a href="#top">back to top: Boltz</a>]
+[<a href="#top">back to top: OpenFold</a>]
 </p>
 <h3>Error Plot</h3>
 <p>
 Besides the per-residue
-<a href="#confidence">pLDDT confidence measure</a>, Boltz gives
+<a href="#confidence">pLDDT confidence measure</a>, OpenFold gives
 for each pair of residues (X,Y) the expected position error
 at residue X if the predicted and true structures were aligned on residue Y.
 These residue-residue &ldquo;predicted aligned error&rdquo; (PAE) values
 can be shown in a plot by clicking the <b>Error plot</b> button
-on the <a href="#dialog"><b>Boltz</b> dialog</a>.
+on the <a href="#dialog"><b>OpenFold</b> dialog</a>.
 </p><p>
 When the mouse cursor is over the plot, the residue pair and PAE value at 
 its current position are reported in the bottom right corner of the window.
@@ -411,13 +393,13 @@ Error (&Aring;)</b>&rdquo;) would need to be created separately with
 
 <a name="history"></a>
 <p class="nav">
-[<a href="#top">back to top: Boltz</a>]
+[<a href="#top">back to top: OpenFold</a>]
 </p>
-<h3>Boltz History</h3>
+<h3>OpenFold History</h3>
 <p>
-The <b>Boltz History</b> can be opened by clicking the <b>History</b> button
-on the <a href="#dialog"><b>Boltz</b> dialog</a>, or by choosing 
-<b>Boltz History</b> from from the <b>Structure Prediction</b> section 
+The <b>OpenFold History</b> can be opened by clicking the <b>History</b> button
+on the <a href="#dialog"><b>OpenFold</b> dialog</a>, or by choosing 
+<b>OpenFold History</b> from from the <b>Structure Prediction</b> section 
 of the <b>Tools</b> menu. 
 Results of previous predictions can be opened by choosing row(s) in the table
 and clicking <b>Open structures</b>. 
@@ -429,12 +411,12 @@ Clicking <b>Options</b> shows/hides the additional options:
 </p>
 <ul>
 <li><b>Predictions directory</b> 
-&ndash; where to look for directories of previous Boltz results 
-(the save location is set in the <a href="#options"><b>Boltz</b> options</a>, 
-initial default <b>~/Desktop</b>).
-Directories are identified as containing Boltz predictions if they
+&ndash; where to look for directories of previous OpenFold results 
+(the save location is set in the <a href="#options"><b>OpenFold</b> options</a>,
+initial default <b>~/Desktop/openfold</b>).
+Directories are identified as containing OpenFold predictions if they
 include a file named <b>command</b>, which is used by ChimeraX to store the
-boltz command with all its arguments used to run the prediction.
+openfold command with all its arguments used to run the prediction.
 </li><li><b>Align opened structures</b>
 &ndash; whether to superimpose multiple structures from the same run
 with <a href="../commands/matchmaker.html"><b>matchmaker</b></a>, 
@@ -443,85 +425,71 @@ using the first structure as the reference
 
 <a name="limitations"></a>
 <p class="nav">
-[<a href="#top">back to top: Boltz</a>]
+[<a href="#top">back to top: OpenFold</a>]
 </p>
 <h3>Limitations</h3>
 <p>
 <b>Structure size</b>.
-Boltz uses a lot of memory, and the amount of available memory
+OpenFold uses a lot of memory, and the amount of available memory
 limits the size of structures that can be predicted.
-For a computer with 32 Gbytes, the size limit is roughly 1000 residues 
-plus ligand atoms (called "tokens"). Consumer Nvidia GPUs with 8 or 12 GB of
-memory (<i>e.g.</i> RTX 3070) only handle 300-500 residues before using 
-CPU memory on Windows, which slows the prediction 10-20 fold.
-On Linux, it will not use CPU memory. Consumer Nvidia GPUs with
-24 GB (RTX 3090 and RTX 4090) are able to predict 1000 tokens, or about 
-1400 with 16-bit floating point.
-Prediction size limits are perhaps the most important shortcoming of Boltz 
-compared to AlphaFold 3, which handles memory more efficiently and is able to
-predict 5000 tokens with 80GB of GPU memory, about twice the size that 
-Boltz can predict. A drawback of AlphaFold 3 is that it requires Linux and 
-an Nvidia GPU, in addition to various licensing restrictions. We hope that 
-in the future, Boltz will optimize memory use to allow predicting
+For a computer with 32 Gbytes, the size limit is roughly 1000 residues plus 
+ligand atoms (called "tokens"). Consumer Nvidia GPUs with 8 or 12 GB of
+memory (<i>e.g.</i>, RTX 3070) only handle 300-500 residues before using 
+CPU memory on Windows that slows the prediction speed by 10-20-fold.
+On Linux, it will not use CPU memory. Consumer Nvidia GPUs with 24 GB 
+(RTX 3090 and RTX 4090) are able to predict 1300 tokens.
+Prediction size limits are perhaps the most important shortcoming of 
+OpenFold compared to AlphaFold 3, which handles memory more efficiently 
+and is able to predict 5000 tokens with 80GB of GPU memory, about twice the 
+size that OpenFold can predict. A drawback of AlphaFold 3 is that it requires 
+Linux and an Nvidia GPU in addition to various licensing restrictions. 
+We hope that in the future OpenFold will optimize memory use to predict
 larger structures.
 </p><p>
-<b>Run time</b>.
-The computation time increases quadratically with the number of tokens, so a
-prediction with 3 times the number of residue and ligand atoms will take 
-approximately 9 times longer to run. For a table of the run times to predict
-assemblies of different sizes on various desktop and laptop computers, see the 
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html" target="_blank">ChimeraX Boltz details</a>.
+<b>Run time</b>. The computation time increases as the square of the number 
+of tokens, so a prediction with three times as many residue and ligand atoms 
+will take approximately nine times longer to run. See
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold.html#runtimes"
+target="_blank">OpenFold structure prediction in ChimeraX</a>
+for run times on various systems.
 </p><p>
 <b>Nvidia GPU support on Windows</b>.
-Installing Boltz will get a CUDA-enabled version of the torch machine 
-learning package if it detects Nvidia graphics.
-It decides if you have Nvidia graphics by seeing if the file
-C:/Windows/System32/nvidia-smi.exe exists.
-Otherwise it gets a cpu-only version of torch.
-If you install an Nvidia graphics driver after installing Boltz, 
-you will have to reinstall Boltz to get the CUDA version.
-The installed torch is for CUDA 12.6 or newer.
+Installing OpenFold will get a CUDA-enabled version of the torch 
+machine-learning package if it detects Nvidia graphics. It decides if you 
+have Nvidia graphics by seeing if the file C:/Windows/System32/nvidia-smi.exe
+exists. Otherwise it gets a CPU-only version of torch. If you install an 
+Nvidia graphics driver after installing OpenFold, you will have to reinstall
+OpenFold to get the CUDA version. The installed torch is for CUDA 12.6 or newer.
 If your computer has a version of CUDA older than 12.6 but newer than 11.8,
 you can run the following commands in a Windows Command Prompt to install 
-a CUDA 11.8 version of torch.
-For other CUDA versions, refer to the
-<a href="https://pytorch.org/get-started/locally/" target="_blank">Torch installation page</a>
-for the correct pip install command.
-</p><pre>  &gt; cd C:\Users\username\boltz\Scripts
-  &gt; pip.exe uninstall torch
-  &gt; pip.exe install torch --index-url https://download.pytorch.org/whl/cu118
-</pre>
-<p></p><p>
+a CUDA 11.8 version of torch. For other CUDA versions refer to the
+<a href="https://pytorch.org/get-started/locally/" target="_blank">Torch 
+installation page</a> for the correct pip install command.
+	<pre>	  &gt; cd C:\Users\username\openfold\Scripts
+	  &gt; pip.exe uninstall torch
+	  &gt; pip.exe install torch --index-url https://download.pytorch.org/whl/cu118</pre>
+</p><p>
 <b>Nvidia GPU support on Linux</b>.
-On Linux, the installed Boltz will work with CUDA 12.6 or newer if you have 
-Nvidia graphics. If you have an older system CUDA version it may still work,
-or you can refer to the <a href="https://pytorch.org/get-started/locally/" target="_blank">Torch installation page</a>
-for the correct pip install command and replace torch with the following 
-shell commands:
-</p><pre>  $ cd ~/boltz/bin
-  $ ./pip uninstall torch
-  $ ./pip install torch --index-url https://download.pytorch.org/whl/cu118
-</pre>
-<p></p><p>
-<b>No covalently linked ligands</b>.
-Although Boltz can predict covalently linked ligands,
-that capability is not yet available in the ChimeraX interface or command.
-Similarly, post-translational modifications such as phosphorylation 
-are not yet supported. 
+On Linux, the installed OpenFold will work with CUDA 12.6 or newer if you 
+have Nvidia graphics.  If you have an older system CUDA version it may still 
+work, or you can refer to the
+<a href="https://pytorch.org/get-started/locally/">Torch installation page</a>
+for the correct pip install command and replace torch with the following shell commands.
+	<pre>	  $ cd ~/openfold3/bin
+	  $ ./pip uninstall torch
+	  $ ./pip install torch --index-url https://download.pytorch.org/whl/cu118</pre>
 </p><p>
-<b>No chain identifiers assigned</b>.
-It can be helpful to assign chain identifiers (A,B,C...) to the
-different molecular components to match existing structures. Boltz is capable
-of this, but the ChimeraX user interface does not currently allow it.
+<b>No assigning chain identifiers</b>.
+It can be helpful to assign chain identifiers (A,B,C...) to the different 
+molecular components to match existing structures. OpenFold is capable of 
+this, but the ChimeraX user interface does not currently allow it.
 </p><p>
-<b>Multiple sequence alignments (MSAs)</b>.
-Boltz uses the Colabfold MSA server (https://api.colabfold.com)
-for computing deep sequence alignments. 
-This requires internet connectivity and is subject to outages if that server 
-(located in Korea currently) is down. By <a href="#options">default</a>,
-the sequence alignments are cached in ~/Downloads/ChimeraX/BoltzMSA so 
-that they can be reused for subsequent predictions with the same set of 
-polymers.
+<b>MSA sequence alignments</b>. OpenFold uses the Colabfold MSA server
+(https://api.colabfold.com) for computing deep sequence alignments.
+This requires internet connectivity and is subject to outages if that 
+server is down. The sequence alignments are cached in 
+~/Downloads/ChimeraX/OpenFoldMSA so subsequent predictions with the same
+set of protein sequences can reuse the sequence alignment.
 </p>
 
 <hr>
