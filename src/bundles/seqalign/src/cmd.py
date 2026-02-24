@@ -268,7 +268,7 @@ def seqalign_chain(session, chains, *, viewer=True):
 
     if viewer is False:
         for seq in alignment.seqs:
-            session.logger.info(seq.characters)
+            session.logger.info(f"{seq.name} {seq.characters}")
 
 def seqalign_associate(session, chains, target=None):
     if target is None:
