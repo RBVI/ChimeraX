@@ -73,11 +73,14 @@ ambient shadowing, or &ldquo;ambient occlusion.&rdquo;
 The <a name="preset"><i>preset</i></a> can be:
 </p>
 <ul>
-<li><b>default</b> or <b>simple</b>
+<li><b>simple</b>
 <a href="../tools/graphics.html" title="Graphics Toolbar">
 <img class="icon" border="1" src="../tools/shortcut-icons/simplelight.png" alt="computer generated image"></a>
 &ndash; all three kinds of light, but no shadows
 (<a href="#simple">details...</a>)
+</li><li><b>default</b>
+&ndash; same as <b>simple</b>, plus lighting colors and directions
+(<a href="#default">details...</a>)
 </li><li><b>full</b>
 <a href="../tools/graphics.html" title="Graphics Toolbar">
 <img class="icon" border="1" src="../tools/shortcut-icons/fulllight.png" alt="computer generated image"></a>
@@ -355,21 +358,27 @@ when ambient shadowing is enabled globally with
 <h3>Lighting Preset Details</h3>
 
 <a href="#preset" class="nounder">&bull;</a>
-<a name="simple"><b>default</b> or <b>simple</b></a>
+<a name="simple"><b>simple</b></a>
 <a href="../tools/graphics.html" title="Graphics Toolbar">
 <img class="icon" border="1" src="../tools/shortcut-icons/simplelight.png" alt="computer generated image"></a>
 &ndash; all three kinds of light, but no shadows:
 <blockquote><pre>Intensity: 1
-Direction: 0.577,-0.577,-0.577
-Color: 100,100,100
 Fill intensity: 0.5
-Fill direction: -0.2,-0.2,-0.959
-Fill color: 100,100,100
 Ambient intensity: 0.4
-Ambient color: 100,100,100
 Depth cue: 1, start 0.5, end 1, color 0,0,0
 Shadow: False (depth map size 2048, depth bias 0.005)
 Multishadows: 0 (max 1024, depth map size 1024, depth bias 0.01)
+</pre></blockquote>
+
+<a href="#preset" class="nounder">&bull;</a>
+<a name="default"><b>default</b></a> 
+&ndash; same as <a href="#simple"><b>simple</b></a>,
+plus lighting directions and colors:
+<blockquote><pre>Direction: 0.577,-0.577,-0.577
+Color: 100,100,100
+Fill direction: -0.2,-0.2,-0.959
+Fill color: 100,100,100
+Ambient color: 100,100,100
 </pre></blockquote>
 
 <a href="#preset" class="nounder">&bull;</a>
@@ -436,6 +445,6 @@ Multishadows: 0 (max 1024, depth map size 1024, depth bias 0.01)
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2026</address>
+February 2026</address>
 
 </body></html>
