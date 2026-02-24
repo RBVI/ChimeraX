@@ -188,7 +188,7 @@ else:
             if not table_sel:
                 raise UserError("Select a database from the database table")
             db_info = table_sel[0]
-            fetch_id = self.id_entry.text()
+            fetch_id = self.id_entry.text().strip()
             if not fetch_id:
                 raise UserError("Enter a %s ID in the entry field" % db_info.database)
             data_format = self.session.data_formats[db_info.format]
