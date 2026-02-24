@@ -166,9 +166,11 @@ class ClusterResults:
         table_data = []
         table_rgbas = []
         from chimerax.core.colors import distinguish_from
+        # color the same trajectory consistently...
+        seed = structure.num_coordsets * structure.num_residues + structure.num_atoms
         for clustering in clusterings:
             entry = TableEntry(clustering, self)
-            entry.rgba = distinguish_from([(1.0,1.0,1.0,1.0)] + table_rgbas)
+            entry.rgba = distinguish_from([(1.0,1.0,1.0,1.0)] + table_rgbas, seed=seed)
             table_rgbas.append(entry.rgba)
             table_data.append(entry)
         from chimerax.ui.widgets import ItemTable
@@ -252,13 +254,28 @@ class ClusterResults:
 
         self.view.setMouseTracking(True)
         self.scene.mouseMoveEvent = self._mouse_move_event
+        self.scene.mousePressEvent = self._mouse_press_event
 
     def _mouse_move_event(self, event):
         scene_x = event.scenePos().x()
         scene_width = self.scene_pixel_height * self.scene_aspect
         import math
         index = min(max(0, math.floor(scene_x / self.unit_x)), len(self.index_fn)-1)
-        self.tool_window.status("Frame %d" % self.index_fn[index])
+        fn = self.index_fn[index]
+        self.tool_window.status("Frame %d" % fn)
+        if event.buttons() == Qt.LeftButton:
+           self.structure.active_coordset_id = fn
+
+    def _mouse_press_event(self, event):
+        if event.buttons() & Qt.LeftButton == 0:
+            return
+        scene_x = event.scenePos().x()
+        scene_width = self.scene_pixel_height * self.scene_aspect
+        import math
+        index = min(max(0, math.floor(scene_x / self.unit_x)), len(self.index_fn)-1)
+        fn = self.index_fn[index]
+        self.tool_window.status("Frame %d" % fn)
+        self.structure.active_coordset_id = fn
 
     def _update_indicator(self, *args):
         fn = self.structure.active_coordset_id
