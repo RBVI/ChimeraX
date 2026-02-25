@@ -347,7 +347,7 @@ class TimelineSceneWidget(QWidget):
         self.current_time = 0.0
         self.drag_time = None  # Time position for drag preview
         self.setFixedHeight(120)  # Increased height for thumbnails
-        self.setStyleSheet("background-color: #2a2a2a; border: 1px solid #555;")
+        self.setStyleSheet("TimelineSceneWidget { background-color: #2a2a2a; border: 1px solid #555; }")
 
         # Enable drag and drop
         self.setAcceptDrops(True)
