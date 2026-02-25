@@ -2384,6 +2384,7 @@ class ToolWindow(StatusLogger):
                 from Qt.QtCore import QRect
                 geometry = QRect(*geom_info)
         resize_docked = False
+        expand_window = False
         place_floating = placement is None or (isinstance(placement, ToolWindow) and placement.floating)
         if not place_floating and ui._force_float_count > 0:
             place_floating = True
@@ -2396,10 +2397,38 @@ class ToolWindow(StatusLogger):
             graphics_width = overall_width - central_width
             if overall_width - self.ui_area.sizeHint().width() < graphics_width / 2:
                 resize_docked = True
+        if not place_floating and placement in ('bottom', 'top'):
+            # Expand the main window to accommodate the tool rather than
+            # shrinking the graphics view.
+            expand_height = self.ui_area.sizeHint().height()
+            if geometry is not None:
+                expand_height = geometry.height()
+            expand_window = True
+        else:
+            expand_window = False
+        if expand_window and expand_height > 0:
+            # Pre-expand the window before manage() so the space is available
+            # when the dock widget is added.
+            mw = ui.main_window
+            current_geom = mw.geometry()
+            screen_geom = mw.screen().availableGeometry()
+            desired_height = current_geom.height() + expand_height
+            max_height = min(desired_height, screen_geom.height())
+            # Move the window up if it would extend past the screen bottom
+            new_top = current_geom.top()
+            if new_top + max_height > screen_geom.bottom():
+                new_top = max(screen_geom.top(), screen_geom.bottom() - max_height)
+            if new_top != current_geom.top():
+                mw.move(current_geom.left(), new_top)
+            mw.resize(current_geom.width(), max_height)
         ui.main_window._about_to_manage(self, place_floating)
         self.__toolkit.manage(placement, allowed_areas, fixed_size, geometry, split)
         if resize_docked:
             ui.main_window.resizeDocks([self._dock_widget], [overall_width - central_width], Qt.Horizontal)
+        if expand_window and expand_height > 0:
+            # Pin the dock widget to its intended size so it doesn't absorb
+            # space from the central widget.
+            ui.main_window.resizeDocks([self._dock_widget], [expand_height], Qt.Vertical)
         if initially_hidden:
             self.shown = False
         else:
