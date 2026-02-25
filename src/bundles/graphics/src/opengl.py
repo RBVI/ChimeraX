@@ -549,7 +549,13 @@ class Render:
         return self._opengl_context
 
     def make_current(self):
-        return self._opengl_context.make_current()
+        status = self._opengl_context.make_current()
+        e = self.check_for_opengl_errors()
+        if e:
+            msg = f'Error after making OpenGL context current: {e}\nThis is a Qt window toolkit bug discussed at https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/19881#comment:5'
+            import sys
+            sys.stderr.write(msg)
+        return status
 
     def done_current(self):
         self._opengl_context.done_current()
