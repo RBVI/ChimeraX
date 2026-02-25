@@ -212,14 +212,15 @@ class ViewDockTool(ToolInstance):
         if len(sel) > 1:
             self.session.logger.warning("Multiple structures chosen in table")
             return
-        next_index = self.struct_table.data.index(sel[0]) + direction
+        sorted_data = self.struct_table.sorted_data
+        next_index = sorted_data.index(sel[0]) + direction
         if next_index < 0:
             self.session.logger.warning("Already at top of table")
             return
         if next_index >= len(self.struct_table.data):
             self.session.logger.warning("Already at bottom of table")
             return
-        self.struct_table.selected = [self.struct_table.data[next_index]]
+        self.struct_table.selected = [sorted_data[next_index]]
 
     def popup_callback(self, gui_class, popup_name, results_callback, **kwargs):
         """

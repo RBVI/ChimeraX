@@ -767,47 +767,10 @@ def _show_render_by_attribute_panel(session, mutation_set, attribute_name,
                                     palette = None, no_value_color = None):
     from chimerax.core.commands import run
     rba_gui = run(session, 'ui tool show "Render/Select by Attribute"')
-    rba_gui._new_target('residues')
-
-    # Set models
-    chains = mutation_set.associated_chains()
-    models = list(set(chain.structure for chain in chains))
-    rba_gui.model_list.set_value(models)
-
-    rba_gui._new_render_attr(attribute_name)
-
-    # Set histogram bars.
-    if palette:
-        # Need to delay the palette setting because the model_list change
-        # causes a delayed callback when the Qt event loop is next run
-        # that resets the palette to the defaults.
-        def _set_render_by_attribute_palette(rba_gui=rba_gui, palette=palette):
-            rc_markers = rba_gui.render_color_markers
-            while len(rc_markers) > 0:
-                rc_markers.pop()
-            rc_markers.coord_type = 'absolute'
-            for thresh, color in palette:
-                rc_markers.append(((thresh, 0.0), color))
-            rc_markers.coord_type = 'relative'
-        timer = session.ui.timer(1, _set_render_by_attribute_palette)
-        rba_gui._set_palette_timer = timer  # Keep timer from being deleted
-
-    if no_value_color is not None:
-        rba_gui.color_no_value.setChecked(True)
-        rba_gui.no_value_color.color = no_value_color
-
-def _show_render_by_attribute_panel_new(session, mutation_set, attribute_name,
-                                    palette = None, no_value_color = None):
-    from chimerax.core.commands import run
-    rba_gui = run(session, 'ui tool show "Render/Select by Attribute"')
 
     chains = mutation_set.associated_chains()
     models = list(set(chain.structure for chain in chains))
     no_value_info = (True, no_value_color) if no_value_color is not None else None
-
-    # TODO: Test when Eric fixes render gui not updating when gui already up and
-    #       specified models match the gui selected models.  ChimeraX ticket #19400
-    # 
     rba_gui.configure(models = models, target = 'residues', tab = 'render', attr_name = attribute_name,
                       level_info = palette, render_type = rba_gui.RENDER_COLORS,
                       no_value_info = no_value_info)
