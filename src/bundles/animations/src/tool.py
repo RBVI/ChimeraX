@@ -184,11 +184,38 @@ class AnimationsTool(ToolInstance):
         super().delete()
 
     def take_snapshot(self, session, flags):
+        scene_anim = self.kf_editor_widget.scene_animation
         return {
-            'version': 1
+            'version': 2,
+            'scene_animation': scene_anim.take_snapshot(session, flags),
         }
 
     @classmethod
     def restore_snapshot(class_obj, session, data):
         inst = class_obj(session, "Animations")
+        if data.get('version', 1) >= 2:
+            scene_anim_data = data.get('scene_animation')
+            if scene_anim_data:
+                inst._restore_scene_animation(scene_anim_data)
         return inst
+
+    def _restore_scene_animation(self, scene_anim_data):
+        """Restore scene animation state and repopulate the timeline widget."""
+        scene_anim = self.kf_editor_widget.scene_animation
+        scene_anim.restore_from_data(scene_anim_data)
+
+        # Repopulate the timeline widget from the restored scene animation
+        timeline = self.kf_editor_widget.scene_timeline_widget
+        timeline_scene = timeline.timeline_scene
+
+        # Set duration
+        timeline_scene.duration = scene_anim.duration
+        timeline.timeline_controls.set_duration(scene_anim.duration)
+
+        # Add scene markers
+        for time, scene_name, transition_data in scene_anim.scenes:
+            timeline_scene.add_scene_marker(time, scene_name, transition_data)
+
+        # Add action segments
+        timeline_scene.action_segments = list(scene_anim.action_segments)
+        timeline_scene.update()
