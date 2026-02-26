@@ -156,7 +156,6 @@ class ClusterResults:
             _md_tool_windows[inst]["cluster results"].remove(self)
             delattr(lcd.tool_window, 'cleanup')
         tw.cleanup = cleanup
-        tw.cleanup = cleanup
         self.session = structure.session
         self.structure = structure
         self.handlers = [structure.triggers.add_handler('changes', self._changes_cb)]
@@ -200,9 +199,23 @@ class ClusterResults:
                 self.fitInView(0.0, 0.0, _width, _height)
         self.view = ResizingView(self.scene)
         self._setup_scene()
-        #TODO: scene update and status bar / button box
         self._update_indicator()
         layout.addWidget(self.view)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        self.bbox = bbox = qbbox(qbbox.Save | qbbox.Close | qbbox.Help)
+        bbox.rejected.connect(tw.destroy)
+        bbox.accepted.connect(self._show_save_clustering_dialog)
+        #from chimerax.core.commands import run
+        #bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.tool_window.help))
+        bbox.button(qbbox.Help).setEnabled(False)
+        # Setting buttons' default and autoDefault properties to False doesn't seem to actually
+        # do anything on Mac, so use this horrible kludge
+        b = bbox.addButton("", qbbox.ActionRole)
+        b.setDefault(True)
+        b.hide()
+        # Put the buttons below the status bar
+        tw.ui_area.parent().layout().addWidget(bbox)
 
         tw.manage(None)
 
@@ -210,6 +223,17 @@ class ClusterResults:
         s, changes = data
         if 'active_coordset changed' in changes.structure_reasons():
             self._update_indicator()
+
+    def _show_save_clustering_dialog(self):
+        from Qt.QtWidgets import QFileDialog
+        fname = QFileDialog.getSaveFileName(self.tool_window.ui_area, "Save Clustering Information")[0]
+        if fname:
+            from chimerax.io import open_output
+            with open_output(fname, encoding='utf-8') as f:
+                print("# one cluster per line; first frame on each line is representative", file=f)
+                for entry in self.table.sorted_data:
+                    print(" ".join([str(entry.clustering.representative)] + [str(f)
+                        for f in entry.clustering.frames if f != entry.clustering.representative]), file=f)
 
     def _setup_scene(self):
         # Have to allow for the fact that the clustering may not involve all frames of the trajectory
