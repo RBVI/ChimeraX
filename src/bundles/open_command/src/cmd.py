@@ -52,6 +52,12 @@ def exists_locally(text, format):
         return True
     return False
 
+def uninstalled_error_info(mgr, data_format):
+    from chimerax.core import toolshed
+    bi = mgr.provider_info(data_format).bundle_info
+    return '<a href="%s">Install the %s bundle</a> to open "%s" format files.' % (
+        toolshed.get_toolshed().bundle_url(bi.name), bi.short_name, data_format.name)
+
 def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
     """If return_json is True, the returned JSON object has one name/value pair:
         (name) model specs
@@ -94,8 +100,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
                 except OpenerNotInstalledError as e:
                     from chimerax.core import toolshed
                     bi = mgr.provider_info(data_format).bundle_info
-                    more_log_info = '<a href="%s">Install the %s bundle</a> to open "%s" format files.' % (
-                        toolshed.get_toolshed().bundle_url(bi.name), bi.short_name, data_format.name)
+                    more_log_info = uninstalled_error_info(mgr, data_format)
                     raise LimitationError("%s; see log for more info" % e)
                 except NoOpenerError as e:
                     raise LimitationError(str(e))
@@ -129,7 +134,15 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
             session.logger.info(more_log_info, is_html=True)
         raise
     # Unlike run(), Command.run returns a list of results
-    models = Command(session, registry=registry).run(provider_cmd_text, log=log)[0]
+    try:
+        models = Command(session, registry=registry).run(provider_cmd_text, log=log)[0]
+    except OpenerNotInstalledError as e:
+        data_format = e.data_format
+        session.logger.error("Don't know how to open uninstalled format %s; see log for more info"
+            % data_format.name)
+        session.logger.info(uninstalled_error_info(mgr, data_format), is_html=True)
+        from chimerax.core.errors import CancelOperation
+        raise CancelOperation("Uninstalled format in list of files")
     if return_json:
         from chimerax.core.commands import JSONResult
         from json import JSONEncoder
@@ -156,6 +169,7 @@ def provider_open(session, names, center=None, format=None, from_database=None, 
     ungrouped_models = []
     statuses = []
     from chimerax.atomic import Structure
+    from .manager import OpenerNotInstalledError
     if homogeneous:
         data_format = formats.pop() if formats else None
         database_name, format = databases.pop() if databases else (None, format)
@@ -185,7 +199,10 @@ def provider_open(session, names, center=None, format=None, from_database=None, 
         else:
             opener_info = mgr.opener_info(data_format)
             if opener_info is None:
-                raise NotImplementedError("Don't know how to open uninstalled format %s" % data_format.name)
+                err = OpenerNotInstalledError("Don't know how to open uninstalled format %s"
+                    % data_format.name)
+                err.data_format = data_format
+                raise err
             in_file_history = opener_info.in_file_history
             provider_info = mgr.provider_info(data_format)
             if provider_info.batch:
@@ -250,8 +267,10 @@ def provider_open(session, names, center=None, format=None, from_database=None, 
         for fi in file_infos:
             opener_info = mgr.opener_info(fi.data_format)
             if opener_info is None:
-                raise NotImplementedError("Don't know how to fetch uninstalled format %s"
+                err = OpenerNotInstalledError("Don't know how to open uninstalled format %s"
                     % fi.data_format.name)
+                err.data_format = fi.data_format
+                raise err
             in_file_history = opener_info.in_file_history
             provider_info = mgr.provider_info(fi.data_format)
             if provider_info.want_path:
