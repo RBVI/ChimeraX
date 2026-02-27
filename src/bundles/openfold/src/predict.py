@@ -490,7 +490,9 @@ class OpenFoldRun:
         msa_cache_dir = self._msa_cache_dir if self._use_msa_cache else None
         copy_msa_to_directory = (self._run_directory if self._use_server else None)
         queries = {}
-        for p in self._predictions:
+        for i,p in enumerate(self._predictions):
+            if p.name is None:
+                p.name = f'query_{i+1}'
             query, msa_path_yaml = p.input(msa_cache_dir, copy_msa_to_directory)
             queries.update(query)
         input = {'queries' : queries}
