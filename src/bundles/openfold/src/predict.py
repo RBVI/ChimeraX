@@ -346,6 +346,13 @@ template_preprocessor_settings:
             return False
         return _add_to_msa_cache(self.name, protein_seqs, msa_directory, template_directory, cache_directory)
 
+    @property
+    def has_protein_sequences(self):
+        for mc in self._molecular_components:
+            if mc.type == 'protein':
+                return True
+        return False
+
     def _assembly_description(self):
         mol_comps = self._molecular_components
         pcomps = [mc for mc in mol_comps if mc.type == 'protein']
@@ -748,7 +755,7 @@ class OpenFoldRun:
     @property
     def _need_msa_server(self):
         for p in self._predictions:
-            if not p.using_cached_msa:
+            if p.has_protein_sequences and not p.using_cached_msa:
                 return True
         return False
     
@@ -761,11 +768,16 @@ class OpenFoldRun:
 
         if self._use_msa_server:
             msa_method = 'Using multiple sequence alignment server https://api.colabfold.com'
-        elif len(pred) == 1:
-            msa_method = f'Using cached multiple sequence alignment {pred[0].cached_msa_dir}'
         else:
-            msa_method = f'Using cached multiple sequence alignment'
-        log.info(msa_method)
+            msa_dirs = set(p.cached_msa_dir for p in pred if p.cached_msa_dir)
+            if len(msa_dirs) == 1:
+                msa_method = f'Using cached multiple sequence alignment {msa_dirs.pop()}'
+            elif len(msa_dirs) > 1:
+                msa_method = f'Using {len(msa_dirs)} cached multiple sequence alignments'
+            else:            
+                msa_method = None	# No sequences
+        if msa_method:
+            log.info(msa_method)
 
     def _monitor_openfold_output(self):
         p = self._process
@@ -1238,6 +1250,8 @@ def _torch_has_cuda(session):
 # ------------------------------------------------------------------------------
 #
 def _find_msa_cache_files(protein_seqs, msa_cache_dir):
+    if len(protein_seqs) == 0:
+        return None
     from os.path import exists, join, expanduser
     msa_cache_dir = expanduser(msa_cache_dir)
     index_path = join(msa_cache_dir, 'index')
@@ -1247,10 +1261,11 @@ def _find_msa_cache_files(protein_seqs, msa_cache_dir):
         index_lines = f.readlines()
     for line in index_lines:
         fields = line.strip().split(',')
-        msa_dir, msa_seqs = fields[0], fields[1:]
-        if msa_seqs == protein_seqs:
-            msa_dir = join(msa_cache_dir, msa_dir)
-            return MSACacheFiles(msa_seqs, msa_dir)
+        if len(fields) >= 2:
+            msa_dir, msa_seqs = fields[0], fields[1:]
+            if msa_seqs == protein_seqs:
+                msa_dir = join(msa_cache_dir, msa_dir)
+                return MSACacheFiles(msa_seqs, msa_dir)
     return None
 
 # ------------------------------------------------------------------------------
