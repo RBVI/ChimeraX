@@ -633,7 +633,7 @@ class SavePlotDialog(QFileDialog):
     def transparent_background(self):
         return self._transparent_checkbox.isChecked()
 
-def _show_plot_dialog(main_tool_window, structure):
+def show_plot_dialog(main_tool_window, structure):
     inst = main_tool_window.tool_instance
     inst_windows = _md_tool_windows.setdefault(inst, {})
     try:

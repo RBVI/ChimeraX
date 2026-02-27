@@ -24,7 +24,7 @@
 
 def cmd_cluster(session, atoms=None, *, start=None, step=None, end=None, exclude_solvent=True,
         exclude_hydrogens=True, exclude_ligands=False, exclude_metals="alkali", save_file=None,
-        show_tool=True):
+        show_tool=None):
     '''
     Cluster trajectory frames
     '''
@@ -35,6 +35,7 @@ def cmd_cluster(session, atoms=None, *, start=None, step=None, end=None, exclude
     from chimerax.core.errors import UserError
     if not atoms:
         raise UserError("No trajectory atoms specified")
+    results = []
     for traj, traj_atoms in atoms.by_structure:
         from numpy import logical_not, logical_and
         if exclude_solvent:
@@ -73,11 +74,17 @@ def cmd_cluster(session, atoms=None, *, start=None, step=None, end=None, exclude
             clusterings = cluster(traj, traj_atoms, frames, status=session.logger.status)
         except ClusterError as e:
             raise UserError(str(e))
+        results.append(clusterings)
         if save_file:
             from .cluster import save_clusterings
             save_clusterings(clusterings, save_file)
-        if show_tool and session.ui.is_gui:
-            print("Show tool now")
+        if show_tool is not False and session.ui.is_gui and not (session.in_script and show_tool is None):
+            from chimerax.std_commands.coordset_gui import CoordinateSetSlider as CSS
+            for tool in session.tools:
+                if isinstance(tool, CSS) and tool.structure == traj:
+                    from .cluster_gui import show_cluster_results
+                    show_cluster_results(tool.tool_window, traj, clusterings)
+    return results
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg
