@@ -331,24 +331,9 @@ class XRBackingWindow:
             raise RuntimeError(f'Event type is not mouse or wheel event {event}')
         return e
 
-    def _graphics_cursor_position(self):
-        from Qt.QtGui import QCursor
-        cp = QCursor.pos()
-        if self._session.ui.topLevelAt(cp) == self._widget:
-            p = self._widget.mapFromGlobal(cp)
-            x,y = self._backing_to_graphics_coordinates(p.x(), p.y())
-            return (int(x), int(y))
-        else:
-            mm = self._session.ui.mouse_modes
-            return mm._graphics_cursor_position_original()
-        return None
-
     def _check_for_mouse_hover(self, *args):
         if self._widget is None:
             return 'delete handler'
-        mm = self._session.ui.mouse_modes
-        if not hasattr(mm, 'mouse_paused'):
-            return 'delete handler'  # Not supported in this ChimeraX version
         from Qt.QtGui import QCursor
         cp = QCursor.pos()
         if self._session.ui.topLevelAt(cp) != self._widget:
@@ -356,6 +341,7 @@ class XRBackingWindow:
 
         bp = self._widget.mapFromGlobal(cp)
         x,y = self._backing_to_graphics_coordinates(bp.x(), bp.y())
+        mm = self._session.ui.mouse_modes
         paused, unpaused = mm.mouse_paused((int(x),int(y)))
         if not paused and not unpaused:
             return
