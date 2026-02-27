@@ -112,6 +112,14 @@ class PlotDialog:
     def plots(self):
         return [stack.widget(1) for stack in self._plot_stacks.values()] + list(self._scalar_plots.values())
 
+    def restore_session_info(self, info):
+        self.tool_window.shown = info['shown']
+        #TODO: restore table info
+        for index in range(0, self.plot_tabs.count()):
+            if self.plot_tabs.tabText(index) == info['tab']:
+                self.plot_tabs.setCurrentIndex(index)
+                break
+
     def save_plot(self, *args):
         provider_name = self.cur_provider
         plot = self.plot(provider_name)
@@ -130,6 +138,18 @@ class PlotDialog:
         table.write_values(header_vals=[cn for cn in table.column_names[3:]] +
             ["Frame %d" % cs_id for cs_id in sorted(self.structure.coordset_ids)],
             row_func=lambda datum, *, table=table: self._table_row_output(table, datum))
+
+    def session_info(self):
+        return {
+            'shown': self.tool_window.shown,
+            'structure': self.structure,
+            'tab': self.plot_tabs.tabText(self.plot_tabs.currentIndex()),
+            'table_data': {
+                provider: ([entry.session_info() for entry in table.data], table.session_info())
+                    for provider, table in self._tables.items()
+            },
+            'title': self.tool_window.ui_area.window().windowTitle(),
+        }
 
     def show_tab(self, provider_name):
         tab_name, tab_widget = self.tab_info[provider_name]
@@ -492,10 +512,13 @@ class PlotDialog:
         canvas.draw_idle()
 
 class TableEntry:
-    def __init__(self, plot_dialog, provider_name, atoms, *, ref_frame=None):
+    def __init__(self, plot_dialog, provider_name, atoms, *, ref_frame=None, from_session=False):
         self.plot_dialog = plot_dialog
         mgr = plot_dialog.mgr
         self.provider_name = provider_name
+        self.atoms = atoms
+        if from_session:
+            return
         from chimerax.core.colors import distinguish_from
         self.rgba = distinguish_from([(1.0,1.0,1.0,1.0)]
             + [datum.rgba for datum in plot_dialog._tables[provider_name].data])
@@ -504,7 +527,6 @@ class TableEntry:
         if ref_frame is not None:
             kw["ref_frame"] = ref_frame
         self._values = mgr.get_values(provider_name, structure=plot_dialog.structure, atoms=atoms, **kw)
-        self.atoms = atoms
         self._ref_frame = ref_frame
 
     @property
@@ -526,6 +548,15 @@ class TableEntry:
         self.rgba = [c/255.0 for c in rgba8]
         if self._shown:
             self.plot_dialog._update_plot(self.provider_name)
+
+    def session_info(self):
+        return {
+            'atoms': self.atoms,
+            'rgba': self.rgba,
+            'ref_frame': self._ref_frame,
+            'shown': self._shown,
+            'values': self._values,
+        }
 
     @property
     def shown(self):
@@ -644,3 +675,21 @@ def show_plot_dialog(main_tool_window, structure):
 
     plot_dialog.tool_window.shown = True
 
+def plot_session_info(main_tool_window):
+    inst = main_tool_window.tool_instance
+    inst_windows = _md_tool_windows.get(inst, {})
+    try:
+        plot_dialog = inst_windows["plot"]
+    except KeyError:
+        return None
+    return plot_dialog.session_info()
+
+def restore_plot_info(main_tool_window, info):
+    inst = main_tool_window.tool_instance
+    inst_windows = _md_tool_windows.setdefault(inst, {})
+    try:
+        plot_dialog = inst_windows["plot"]
+    except KeyError:
+        plot_dialog = inst_windows["plot"] = PlotDialog(
+            main_tool_window.create_child_window(info.pop('title')), info.pop('structure'))
+    plot_dialog.restore_session_info(info)
