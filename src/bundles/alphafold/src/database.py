@@ -39,7 +39,7 @@ class _AlphaFoldDatabaseSettings(Settings):
 #
 def alphafold_model_url(session, uniprot_id, database_version = None, isoform = None, fragment = None):
     settings = _alphafold_database_settings(session)
-    url_template = settings.database_url2
+    url_template = settings.database_url
     if database_version is None:
         database_version = settings.database_version
     isoform_field = f'-{isoform}' if isoform else ''
@@ -75,7 +75,7 @@ def default_database_version(session):
 def _alphafold_database_settings(session):
     settings = getattr(session, '_alphafold_database_settings', None)
     if settings is None:
-        settings = _AlphaFoldDatabaseSettings(session, "alphafold_database")
+        settings = _AlphaFoldDatabaseSettings(session, "alphafold_database", version='2')
         session._alphafold_database_settings = settings
     _check_for_database_update(session, settings)
     return settings
