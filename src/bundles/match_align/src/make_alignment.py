@@ -65,5 +65,5 @@ def match_to_align(session, chains, dist_cutoff, column_criteria, gap_char, circ
         return seqs
 
     from ._msa3d import multi_align
-    return multi_align([int(x) for x in chains.pointers], dist_cutoff, col_all, gap_char, circular,
+    return multi_align([x.cpp_pointer for x in chains], dist_cutoff, col_all, gap_char, circular,
         "", session.logger, UserError)

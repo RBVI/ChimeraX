@@ -579,7 +579,10 @@ class OpenXRCamera(Camera, StateManager):
 
     @property
     def is_vr_headset(self):
-        return self.openxr_system_name not in ('SonySRD System', 'SpatialLabs Display Driver')
+        name = self.openxr_system_name
+        if 'vrto3d' in name.lower():
+            return False
+        return name not in ('SonySRD System', 'SpatialLabs Display Driver')
 
     @property
     def active(self):

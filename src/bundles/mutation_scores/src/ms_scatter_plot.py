@@ -230,26 +230,28 @@ class MutationScatterPlot(Graph):
             default_color = rgba_to_rgba8((.8,.8,.8))
             node_colors = {node.description:rgba_to_rgba8(node.color) for node in self.nodes}
             colors = [node_colors.get(name, default_color) for name in point_names]
+            node_selected = {node.description:getattr(node, 'color_source', None) for node in self.nodes}
+            selected = [node_selected.get(name) for name in point_names]
             node_index = {node.description:i for i,node in enumerate(self.nodes)}
             index = [node_index.get(name, 0) for name in point_names]
             from numpy import argsort
             stack_order = argsort(index)
         else:
-            colors = stack_order = None
+            colors = selected = stack_order = None
 
-        self._set_nodes(xy, point_names=point_names, colors=colors, stack_order=stack_order,
+        self._set_nodes(xy, point_names=point_names, colors=colors, selected=selected, stack_order=stack_order,
                         title=title, x_label=x_score_name, y_label=y_score_name,
                         node_area = node_area, label_nodes = label_nodes, is_mutation_plot = is_mutation_plot)
 
         if color_synonymous:
             self._color_synonymous()
 
-    def _set_nodes(self, xy, point_names = None, colors = None, stack_order = None,
+    def _set_nodes(self, xy, point_names = None, colors = None, selected = None, stack_order = None,
                    title = '', x_label = '', y_label = '',
                    node_font_size = 5, node_area = 200, label_nodes = True, is_mutation_plot = True):
         self.is_mutation_plot = is_mutation_plot
         self.font_size = node_font_size	# Override graph default value of 12 points
-        self.nodes = self._make_nodes(xy, point_names=point_names, colors=colors,
+        self.nodes = self._make_nodes(xy, point_names=point_names, colors=colors, selected=selected,
                                       node_area=node_area, label_nodes=label_nodes)
         if stack_order is not None:
             self.nodes = [self.nodes[i] for i in stack_order]  # Last drawn nodes are on top
@@ -294,7 +296,8 @@ class MutationScatterPlot(Graph):
         # Don't require both plot axes to have the same scale
         pass
 
-    def _make_nodes(self, xy, point_names = None, colors = None, node_area = 200, label_nodes = True):
+    def _make_nodes(self, xy, point_names = None, colors = None, selected = None,
+                    node_area = 200, label_nodes = True):
         from chimerax.interfaces.graph import Node
         nodes = []
         for i, (x,y) in enumerate(xy):
@@ -307,6 +310,8 @@ class MutationScatterPlot(Graph):
             n.size = node_area
             if colors is not None:
                 n.color = tuple(r/255 for r in colors[i])
+            if selected is not None and selected[i]:
+                n.color_source = 'sel'
             nodes.append(n)
         return nodes
 

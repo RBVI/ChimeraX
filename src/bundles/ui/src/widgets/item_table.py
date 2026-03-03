@@ -99,6 +99,10 @@ class QCxTableModel(QAbstractTableModel):
         if role == Qt.SizeHintRole:
             if col.display_format == self._item_table.COL_FORMAT_BOOLEAN:
                 return QSize(25, 25)
+            elif col.display_format == self._item_table.color_formats:
+                # Still doesn't seem to help if the color column is first,
+                # but seems correct to have it anyway
+                return QSize(16, 16)
         return None
 
     def flags(self, index):
