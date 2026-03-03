@@ -983,7 +983,14 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
     //
     //   Squeeze
     decltype(ordered_columns)::size_type col_index = 0;
+int pass = 0;
+bool debug = false;
+auto num_prev = ordered_columns.size();
     while (col_index < ordered_columns.size() - 1) {
+pass += 1;
+debug = pass == 12;
+if (debug) std::cerr << "Pass " << pass << "; col_index " << col_index << ": " << num_prev << " -> " << ordered_columns.size() << "\n";
+num_prev = ordered_columns.size();
 //std::cerr << "col_index: " << col_index << "; first ordered column:\n";
 // { for (auto& seq_pos: ordered_columns[0]->positions) { std::cerr << "\t" << (long)seq_pos.first % 1000 << "/" << seq_pos.second; } std::cerr << "\n"; }
 //if (col_index < 2) std::cerr << "Ordered columns (" << ordered_columns.size() << ")\n";
@@ -1005,6 +1012,7 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
             }
         }
         if (!squeezable) {
+if (debug) std::cerr << "Increment 1\n";
             col_index += 1;
             continue;
         }
@@ -1034,11 +1042,13 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
             // form a single-residue column to complete the squeeze
             bool indeterminates = false;
 
+if (debug) std::cerr << "num positions: " << (*r)->positions.size() << "\n";
             for (auto& seq_rpos: (*r)->positions) {
                 auto seq = seq_rpos.first;
                 auto right_pos = seq_rpos.second;
                 auto& gi = gap_info[seq];
                 auto left_pos = gi->pos;
+if (debug) std::cerr << "left_pos: " << left_pos << "  right_pos: " << right_pos << "  num_gaps: " << gi->num_gaps << "\n";
 //std::cerr << "seq " << (long)seq % 1000 << " in gap: " << gi->in_gap << "  left/right pos: " << left_pos << " " << right_pos << "  num_gaps: " << gi->num_gaps << "\n";
                 if (gi->pos == INT_MAX || right_pos == left_pos + 1)
                     continue;
@@ -1052,8 +1062,10 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
                     if (oseq == seq)
                         continue;
                     auto& info = chain_gi.second;
+if (debug) std::cerr << "in_gap: " << info->in_gap << "\n";
                     if (info->in_gap)
                         continue;
+if (debug) std::cerr << "num_gaps: " << info->num_gaps << "\n";
                     if (info->num_gaps != 0) {
                         broke_gaps = true;
                         break;
@@ -1061,6 +1073,7 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
                 }
                 if (!broke_gaps) {
                     // squeezable
+if (debug) std::cerr << "ordered insert 1\n";
                     ordered_columns.insert(ordered_columns.begin() + col_index + rcols,
                         std::shared_ptr<Column>(new Column({{seq, left_pos}})));
                     redo = true;
@@ -1128,6 +1141,7 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
 
         if (!squeezable) {
             col_index += 1;
+if (debug) std::cerr << "Increment 2\n";
             continue;
         }
 
@@ -1178,17 +1192,21 @@ multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all
                 nv += replace_cols[i]->participation(pas, dist_cutoff);
             if (ov >= nv) {
                 col_index += 1;
+if (debug) std::cerr << "Increment 3\n";
 //std::cerr << "col index(1): " << col_index << "\n";
                 continue;
             }
 //if (col_index < 2) std::cerr << "Replacement columns (" << replace_cols.size() << ")\n";
 //if (col_index < 2) for (auto& col: replace_cols) { for (auto& seq_pos: col->positions) { std::cerr << "\t" << (long)seq_pos.first % 1000 << "/" << seq_pos.second; } std::cerr << "\n"; }
-std::cerr << "replacing!\n";
+if (debug) std::cerr << "replacing!\n";
             for (decltype(rcols) i = 0; i < rcols; ++i)
                 ordered_columns[col_index + i] = replace_cols[i];
             ordered_columns.erase(ordered_columns.begin() + col_index + rcols);
             if (col_index > 0)
+{
+if (debug) std::cerr << "Decrement\n";
                 col_index -= 1;
+}
 //std::cerr << "col index(2): " << col_index << "\n";
             continue;
         }

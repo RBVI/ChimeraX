@@ -30,8 +30,8 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
     from .make_alignment import match_to_align
     # C++ layer cannot instantiate StructureSeqs, so send in copies that will be modified
     from copy import copy
-    aligned = [copy(chain) for chain in chains]
-    aligned.sort(key=lambda seq: seq.structure.id)
+    ordered = sorted(chains, key=lambda seq: seq.structure.id)
+    aligned = [copy(chain) for chain in ordered]
     print("sending in:")
     for aseq in aligned:
         print("\t", aseq.name, aseq.characters)
@@ -40,7 +40,9 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
     for aseq in aligned:
         print("\t", aseq.name, aseq.characters)
     #TODO: lots
-    session.alignments.new_alignment(aligned, "Match->Align") # for testing
+    alignment = session.alignments.new_alignment(aligned, "Match->Align", auto_associate=False) # for testing
+    for orig, aligned in zip(ordered, aligned):
+        alignment.associate(orig, seq=aligned)
 
 def register_command(cmd_name, logger):
     from chimerax.core.commands import CmdDesc, register, NonNegativeFloatArg, EnumOf, CharacterArg, \
