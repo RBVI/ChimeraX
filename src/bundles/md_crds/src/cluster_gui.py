@@ -23,7 +23,7 @@ from .gui import _md_tool_windows
 class ClusterLauncher:
     def __init__(self, launcher_window, structure):
         self.tool_window = tw = launcher_window
-        #tw.help = "help:user/commands/coordset.html#slider"
+        tw.help = "help:user/commands/coordset.html#clustering"
         def cleanup(lcd=self):
             inst = lcd.tool_window.tool_instance
             from .gui import _remove_tool_window
@@ -69,7 +69,7 @@ class ClusterLauncher:
         bbox.rejected.connect(tw.destroy)
         if getattr(tw, 'help', None):
             from chimerax.core.commands import run
-            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + tw.help))
+            bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + tw.help))
         else:
             bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)
@@ -147,7 +147,7 @@ class ClusterResults:
     scene_aspect = 4.0
     def __init__(self, results_window, structure, clusterings):
         self.tool_window = tw = results_window
-        #tw.help = "help:user/commands/coordset.html#slider"
+        tw.help = "help:user/commands/coordset.html#clusterdialog"
         def cleanup(lcd=self):
             for handler in lcd.handlers:
                 handler.remove()
@@ -206,9 +206,9 @@ class ClusterResults:
         self.bbox = bbox = qbbox(qbbox.Save | qbbox.Close | qbbox.Help)
         bbox.rejected.connect(tw.destroy)
         bbox.accepted.connect(self._show_save_clustering_dialog)
-        #from chimerax.core.commands import run
-        #bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.tool_window.help))
-        bbox.button(qbbox.Help).setEnabled(False)
+        from chimerax.core.commands import run
+        bbox.helpRequested.connect(lambda *, run=run, ses=self.session:
+            run(ses, "help " + self.tool_window.help))
         # Setting buttons' default and autoDefault properties to False doesn't seem to actually
         # do anything on Mac, so use this horrible kludge
         b = bbox.addButton("", qbbox.ActionRole)
