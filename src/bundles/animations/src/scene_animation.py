@@ -943,6 +943,7 @@ class SceneAnimation(StateManager):
             "version": self.version,
             "duration": self.duration,
             "scenes": self.scenes,
+            "action_segments": self.action_segments,
             "current_time": self.current_time,
         }
 
@@ -954,6 +955,7 @@ class SceneAnimation(StateManager):
 
         self.duration = data.get("duration", self.DEFAULT_DURATION)
         self.scenes = data.get("scenes", [])
+        self.action_segments = data.get("action_segments", [])
         self.current_time = data.get("current_time", 0.0)
 
         # Validate that all scenes still exist

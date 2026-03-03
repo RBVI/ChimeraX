@@ -24,7 +24,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  blastprotein boltz bond_rot bug_reporter build_structure \
 	  bumps buttons cage_builder \
 	  cellpack centroids change_chains check_waters chem_group \
-	  clashes cmd_line color_actions \
+	  clashes cluster cmd_line color_actions \
 	  color_globe color_key connect_structure core_formats \
 	  coulombic crosslinks crystal crystal_contacts data_formats \
 	  dicom dist_monitor dock_prep dssp \
