@@ -36,11 +36,7 @@ See also:
 <blockquote><b>
 <a href="#playback">Playback via Command</a>
 <br>
-<a href="#slider">Coordset Slider</a>
-  <ul class="none">
-  <li><a href="#plotting">Plotting</a></li>
-  <li><a href="#clustering">Clustering</a></li>
-  </ul>
+<a href="#slider">Coordset Slider, Plotting, and Clustering</a> 
 <br>
 <a href="#ssnote">Recomputing Secondary Structure</a>
 <br>
@@ -305,6 +301,31 @@ and may take several minutes, depending on the size of the system
 and the number of frames.  The <b>Abort</b> button on the progress dialog
 allows terminating the calculation.  To decrease computational time,
 use a sparser sampling of frames and/or fewer atoms in the calculation.
+</p><p>
+<a name="clusterdialog"></a>
+<b>Trajectory clustering results</b>.
+The top part of the clustering result dialog
+lists the clusters, and for each, the number of <b>Members</b>
+(how many of the input frames belong to the cluster)
+and the frame number of the best representative.
+Different colors are used to show membership in the different clusters
+within the timeline plot in the bottom part of the dialog.
+Clicking the cluster color well allows changing its color interactively.
+</p><p>
+Clicking the line for a cluster in the top part of the dialog
+displays its representative frame in the main window
+and makes the bars for all of the members of that cluster taller
+on the timeline plot.
+The current frame is indicated with an inverted triangle on the plot,
+and the trajectory can be navigated by moving the triangle.
+Although more than one cluster can be chosen in the
+top part of the dialog, only one frame can be displayed at a time.
+</p>
+<p>
+<b>Save</b> allows writing the clustering information
+(membership and representatives) to a text file.
+<b>Close</b> dismisses the cluster dialog.
+<b>Help</b> opens this manual page in a browser window.
 </p>
 </li><li><b>Loop Playback</b> (initially on)
 &ndash; whether interactive playback should continue until explicitly paused 
