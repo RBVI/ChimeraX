@@ -266,8 +266,9 @@ Clustering options:
   &ndash; number of the first frame to include
   in clustering calculations; must be within the range originally loaded
   </li><li><b>Step size [<i>n</i>]</b>
-  &ndash; level of sampling within the indicated range
-   (every <i>n</i><sup>th</sup> frame will be used)
+  &ndash; level of sampling within the indicated range;
+   every <i>n</i><sup>th</sup> frame will be used (default 
+    <i>n</i> = 1 + [number of frames loaded]/300, rounded down to an integer)
   </li><li><b>Ending frame</b> (last frame loaded, by default)
   &ndash; number of the last frame to possibly include 
   (if not skipped by sampling); must be within the range originally loaded
@@ -291,19 +292,18 @@ or none (if <b>false</b>, thus including any metal ions)
 closing the dialog, respectively, whereas <b>Close</b> simply dismisses the
 dialog. <b>Help</b> opens this manual page in a browser window.
 </p><p>
+The calculation uses the 
+<a href="md.html#cluster"><b>md cluster</b></a> command.
 For each frame-to-frame comparison, the least-squares-fit RMSD between
 the indicated sets of atoms will be calculated, without applying any
-transformation. The calculations may require
-additional frames to be read (frames within the loaded range
-are not actually read until viewed or otherwise used)
-and may take several minutes, depending on the size of the system
-and the number of frames.  The <b>Abort</b> button on the progress dialog
-allows terminating the calculation.  To decrease computational time,
-use a sparser sampling of frames and/or fewer atoms in the calculation.
+transformation. The calculations may take several minutes, 
+depending on the size of the system and the number of frames.
+To decrease computational time, use a sparser sampling of frames 
+and/or fewer atoms in the calculation.
 </p><p>
 <a name="clusterdialog"></a>
-<b>Trajectory clustering results</b>.
-The top part of the clustering result dialog
+<b>Trajectory clustering results</b><br>
+The top part of the clustering results dialog
 lists the clusters, and for each, the number of <b>Members</b>
 (how many of the input frames belong to the cluster)
 and the frame number of the best representative.

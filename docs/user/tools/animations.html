@@ -20,9 +20,8 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Animations</h3>
-<h3>*&nbsp;in progress; 
-timeline contents are not saved in sessions, and
-many aspects do not transition smoothly&nbsp;*</h3>
+<h3>*&nbsp;in progress; smooth transitions have not been implemented
+for many aspects of a scene&nbsp;*</h3>
 <p>
 <b>Animations</b> is a timeline-based graphical interface for creating
 movies from a series of <a href="scenes.html">scenes</a> and other
@@ -104,7 +103,30 @@ places the scrubber at the beginning of the timeline.
 </p>
 <h4>Transitions between Scenes</h4>
 <p>
+The <a href="../window.html#context-menu">context menu</a> for a scene
+thumbnail on the timeline includes:
 </p>
+<ul>
+<li><b>Delete [name-of-scene] from Timeline</b>
+</li><li><b>Transition Type</b> &ndash; how to spread out any gradual changes
+over the interval between the scene and the one before it. 
+Transition type does not affect which aspects of a scene change gradually,
+only how the rate of change may vary. Transition types are indicated
+on the timeline with line shapes and labels below the scene thumbnails.
+  <ul>
+  <li><b>Linear</b> &ndash; constant rate of change
+  </li><li><b>Ease In (Sine)</b>
+  </li><li><b>Ease Out (Sine)</b>
+  </li><li><b>Ease In-Out (Sine)</b>
+  </li><li><b>Ease In (Quad)</b>
+  </li><li><b>Ease Out (Quad)</b>
+  </li><li><b>Ease In-Out (Quad)</b>
+  </li><li><b>Ease In (Cubic)</b>
+  </li><li><b>Ease Out (Cubic)</b>
+  </li><li><b>Ease In-Out (Cubic)</b>
+  </ul>
+</li><li><b>Fade Model</b> (checked or unchecked)
+</ul>
 
 <a name="recording"></a>
 <p class="nav">
