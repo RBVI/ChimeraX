@@ -768,6 +768,13 @@ class LightingPreviewWidget(QWindow):
         direction = rot_v.transform_vector(direction)
         direction = direction / np.linalg.norm(direction)
 
+        # Clamp so arrow stays visible in the preview. The camera looks
+        # down -Z, so light directions with Z near zero place the arrow
+        # at the equator where it goes off the edge of the preview window.
+        if direction[2] > -0.35:
+            direction[2] = -0.35
+            direction = direction / np.linalg.norm(direction)
+
         # Update lighting
         if self._dragging == "key":
             lp.key_light_direction = direction
