@@ -1,0 +1,131 @@
+<html lang="en"><!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
+<title>Command: md</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
+
+<h3><a href="../index.html#commands">Command</a>: md</h3>
+<a name="cluster"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>md cluster</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+<b>center</b> &nbsp;<a href="pointspec.html"><i>point-spec</i></a>&nbsp;
+[&nbsp;<b>start</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
+[&nbsp;<b>step</b>&nbsp;&nbsp;<i>n</i>&nbsp;]
+[&nbsp;<b>end</b>&nbsp;&nbsp;<i>M</i>&nbsp;]
+[&nbsp;<b>excludeSolvent</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>excludeHydrogens</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>excludeLigands</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>excludeMetals</b>&nbsp;&nbsp;<b>alkali</b>&nbsp;|&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>saveFile</b>&nbsp;&nbsp;<i>file</i>&nbsp;]
+[&nbsp;<b>showTool</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+</h3>
+<p>
+The <b>md cluster</b> command clusters the frames in a
+<a href="../trajectories.html">trajectory</a> based on pairwise best-fit
+root-mean-square deviations (RMSDs).
+A representative frame will be identified for each cluster.
+This command can be invoked from the 
+<a href="../window.html#context-menu">context menu</a> of the 
+<a href="coordset.html#slider"><b>coordset slider</b></a> graphical interface
+for <a href="../trajectories.html">trajectory</a> playback.
+</p>
+
+<a name="cluster-options"></a>
+<p class="nav">
+[<a href="#top">back to top: md</a>]
+</p>
+<h3>Clustering Options</h3>
+<blockquote>
+<a name="start"></a>
+<b>start</b>&nbsp;&nbsp;<i>N</i>
+<br>
+The number of the first frame to include in the calculation;
+must be within the range originally loaded. 
+The default is the first frame loaded.
+</blockquote>
+<blockquote>
+<a name="step"></a>
+<b>step</b>&nbsp;&nbsp;<i>n</i>
+<br>
+The level of sampling within the indicated range;
+every <i>n</i><sup>th</sup> frame will be used.
+The default <i>n</i> = 1 + 
+(number of frames loaded)/300, rounded down to an integer.
+</blockquote>
+<blockquote>
+<a name="end"></a>
+<b>end</b>&nbsp;&nbsp;<i>M</i>
+<br>
+The number of the last frame to possibly include (if not skipped 
+by sampling); must be within the range originally loaded.
+The default is the last frame loaded.
+</blockquote>
+<blockquote>
+<a name="excludeSolvent"></a>
+<b>excludeSolvent</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to exclude <a href="atomspec.html#surfcats">solvent</a> residues
+and non-metal monatomic ions (Cl<sup>&ndash;</sup>, Br<sup>&ndash;</sup>, 
+<i>etc.</i>; default <b>true</b>).
+</blockquote>
+<blockquote>
+<a name="excludeHydrogens"></a>
+<b>excludeHydrogens</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to exclude hydrogens from the calculation (default <b>true</b>).
+</blockquote>
+<blockquote>
+<a name="excludeLigands"></a>
+<b>excludeLigands</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to exclude <a href="atomspec.html#surfcats">ligand</a> residues
+(default <b>false</b>).
+</blockquote>
+<blockquote>
+<a name="excludeMetals"></a>
+<b>excludeMetals</b>&nbsp;&nbsp;<b>alkali</b>&nbsp;|&nbsp;true&nbsp;|&nbsp;false
+<br>
+Whether to ignore alkali metal ions (default, meaning to exclude Li<sup>+</sup>,
+Na<sup>+</sup>, K<sup>+</sup>, <i>etc.</i>), or all metal ions (if <b>true</b>),
+or none (if <b>false</b>, thus including any metal ions).
+</blockquote>
+<blockquote>
+<a name="saveFile"></a>
+<b>saveFile</b>&nbsp;&nbsp;<i>file</i>
+<br>
+Save clustering information (membership and representatives) to a text file,
+where <i>file</i> is the output file pathname,
+enclosed in quotation marks if it includes spaces,
+or the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+</blockquote>
+<blockquote>
+<a name="showTool"></a>
+<b>showTool</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
+<br>
+Whether to show the <a href="coordset.html#clusterdialog">clustering results
+dialog</a>. The default is <b>true</b> (show the tool) unless the
+<b>md cluster</b> command is executed from a script or in nogui mode.
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics /
+March 2026</address>
+
+</body></html>
