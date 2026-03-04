@@ -43,7 +43,6 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
     alignment = session.alignments.new_alignment(aligned, "Match->Align", auto_associate=False) # for testing
     for orig, aligned in zip(ordered, aligned):
         alignment.associate(orig, seq=aligned)
-    return alignment
 
 def register_command(cmd_name, logger):
     from chimerax.core.commands import CmdDesc, register, NonNegativeFloatArg, EnumOf, CharacterArg, \
