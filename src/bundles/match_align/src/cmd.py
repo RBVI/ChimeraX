@@ -40,7 +40,8 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
     for aseq in aligned:
         print("\t", aseq.name, aseq.characters)
     #TODO: lots
-    alignment = session.alignments.new_alignment(aligned, "Match->Align", auto_associate=False) # for testing
+    alignment = session.alignments.new_alignment(aligned, "Match->Align", auto_associate=False,
+        viewer=show_alignment) # for testing
     for orig, aligned in zip(ordered, aligned):
         alignment.associate(orig, seq=aligned)
     return alignment
