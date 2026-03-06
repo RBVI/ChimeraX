@@ -65,7 +65,14 @@ def read_swc(session, path):
     lines = f.readlines()
     f.close()
 
-    points = parse_swc_points(lines)
+    points, warnings = parse_swc_points(lines)
+    if warnings:
+        if len(points) == 0:
+            from chimerax.core.errors import UserError
+            raise UserError(warnings)
+        else:
+            session.logger.warning(warnings)
+
     i2m = {}
     from chimerax.markers import MarkerSet, create_link
     from os.path import basename
@@ -93,6 +100,7 @@ def read_swc(session, path):
 def parse_swc_points(lines):
 
     points = []
+    warnings = []
     for i, line in enumerate(lines):
         sline = line.strip()
         if sline.startswith('#'):
@@ -100,8 +108,7 @@ def parse_swc_points(lines):
         fields = sline.split()
         if len(fields) != 7:
             msg = 'Line %d does not have 7 fields: "%s"' % (i, line)
-            from replyobj import info
-            info(msg)
+            warnings.append(msg)
             continue
         try:
             n = int(fields[0])      # id
@@ -111,8 +118,7 @@ def parse_swc_points(lines):
             pid = int(fields[6])    # parent id, or -1 if no parent
         except ValueError:
             msg = 'Error parsing line %d: "%s"' % (i, line)
-            from replyobj import info
-            info(msg)
+            warnings.append(msg)
             continue
         if r == 0:
             continue    # Drop radius 0 points
@@ -120,4 +126,4 @@ def parse_swc_points(lines):
             continue    # Drop all but first soma point
         points.append((n,t,x,y,z,r,pid))
 
-    return points
+    return points, ''.join(warnings)
