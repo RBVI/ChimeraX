@@ -1170,8 +1170,13 @@ class RegionManager:
 
     def show_chimerax_selection(self):
         sv = self.seq_canvas.sv
+        sel_fill = sv.settings.sel_region_interior
+        sel_outline = sv.settings.sel_region_border
+        if is_dark_mode():
+            sel_fill = darken(sel_fill)
+            sel_outline = darken(sel_outline)
         sel_region = self.get_region("ChimeraX selection", create=True, read_only=True,
-            fill=sv.settings.sel_region_interior, outline=sv.settings.sel_region_border)
+            fill=sel_fill, outline=sel_outline)
         sel_region.clear()
 
         from chimerax.atomic import selected_residues
@@ -1261,13 +1266,14 @@ class RegionManager:
 
     def show_ss(self, show):
         """show actual secondary structure"""
+        prefix = "dark" if is_dark_mode() else "light"
         from chimerax.atomic import Sequence
         helix_reg = self.get_region(self.ACTUAL_HELICES_REG_NAME, create=show,
-                fill=Sequence.default_helix_fill_color,
-                outline=Sequence.default_helix_outline_color)
+                fill=getattr(Sequence, prefix + "_mode_helix_fill"),
+                outline=getattr(Sequence, prefix + "_mode_helix_outline"))
         strand_reg = self.get_region(self.ACTUAL_STRANDS_REG_NAME, create=show,
-                fill=Sequence.default_strand_fill_color,
-                outline=Sequence.default_strand_outline_color)
+                fill=getattr(Sequence, prefix + "_mode_strand_fill"),
+                outline=getattr(Sequence, prefix + "_mode_strand_outline"))
         if helix_reg:
             helix_reg.shown = show
         if strand_reg:
@@ -1775,8 +1781,13 @@ class RegionManager:
 
     def _sel_change_cb(self, _, changes):
         settings = self.seq_canvas.sv.settings
+        sel_fill = settings.sel_region_interior
+        sel_outline = settings.sel_region_border
+        if is_dark_mode():
+            sel_fill = darken(sel_fill)
+            sel_outline = darken(sel_outline)
         sel_region = self.get_region("ChimeraX selection", create=True, read_only=True,
-            fill=settings.sel_region_interior, outline=settings.sel_region_border)
+            fill=sel_fill, outline=sel_outline)
         if self._sel_change_from_self:
             sel_region.clear()
         else:
@@ -2151,6 +2162,17 @@ class ScfDialog(OpenModeless):
                 text="Color structures also",
                 variable=self.colorStructureVar).grid()
 """
+
+def darken(color):
+    if color is None:
+        return None
+    from chimerax.core.colors import Color
+    return [c*0.7 for c in Color(color).rgba]
+
+def is_dark_mode():
+    from chimerax.core.colors import ColorScheme, scheme_color
+    return scheme_color("Canvas", expand=True, scheme=ColorScheme.LIGHT) != scheme_color(
+        "Canvas", expand=True)
 
 def get_rgba(color_info):
     if isinstance(color_info, str):

@@ -960,6 +960,18 @@ class SequenceViewer(ToolInstance):
                         elif cur_partial_block:
                             cur_partial_block = None
 
+        def adjust_for_mode(colors):
+            from .region_browser import is_dark_mode
+            if not is_dark_mode():
+                return colors
+            from chimerax.core.colors import Color
+            rets = []
+            for color in colors:
+                if color is not None:
+                    color = [1.0 - c for c in Color(color).rgba[:3]]
+                rets.append(color)
+            return rets
+
         for shown, region_name_part, partial_blocks, full_blocks, fills, outlines in [
                 (self.settings.error_region_shown, self.ERROR_REGION_STRING, partial_error_blocks,
                     full_error_blocks, self.settings.error_region_interiors,
@@ -969,8 +981,8 @@ class SequenceViewer(ToolInstance):
                     self.settings.gap_region_borders)]:
             if not shown:
                 continue
-            full_fill, partial_fill = fills
-            full_outline, partial_outline = outlines
+            full_fill, partial_fill = adjust_for_mode(fills)
+            full_outline, partial_outline = adjust_for_mode(outlines)
             for region_name_start, blocks, fill, outline in [
                     (region_name_part, full_blocks, full_fill, full_outline),
                     ("partial " + region_name_part, partial_blocks, partial_fill, partial_outline)]:
