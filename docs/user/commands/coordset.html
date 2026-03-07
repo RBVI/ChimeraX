@@ -36,7 +36,7 @@ See also:
 <blockquote><b>
 <a href="#playback">Playback via Command</a>
 <br>
-<a href="#slider">Coordset Slider and Plotting</a>
+<a href="#slider">Coordset Slider, Plotting, and Clustering</a> 
 <br>
 <a href="#ssnote">Recomputing Secondary Structure</a>
 <br>
@@ -146,7 +146,7 @@ instead of abruptly wrapping.
 <p class="nav">
 [<a href="#top">back to top: coordset</a>]
 </p>
-<h3>Coordset Slider and Plotting</h3>
+<h3>Coordset Slider, Plotting, and Clustering</h3>
 <blockquote><a href="usageconventions.html"><b>Usage</b></a>:
 <b>coordset slider</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
@@ -254,8 +254,80 @@ which is somehow determined by
   comma- or tab-separated values file
   </li></ul>
 </blockquote>
-</li><li><b>Loop Playback</b> (initially on) &ndash; whether interactive playback 
-should continue until explicitly paused 
+<a name="clustering"></a>
+</li><li><b>Cluster Frames</b>
+&ndash; cluster the trajectory based on pairwise best-fit 
+root-mean-square deviations (RMSDs).
+A representative frame will be identified for each cluster.
+Clustering options:
+<br><br>
+  <ul>
+  <li><b>Starting frame</b> (first frame loaded, by default)
+  &ndash; number of the first frame to include
+  in clustering calculations; must be within the range originally loaded
+  </li><li><b>Step size [<i>n</i>]</b>
+  &ndash; level of sampling within the indicated range;
+   every <i>n</i><sup>th</sup> frame will be used (default 
+    <i>n</i> = 1 + [number of frames loaded]/300, rounded down to an integer)
+  </li><li><b>Ending frame</b> (last frame loaded, by default)
+  &ndash; number of the last frame to possibly include 
+  (if not skipped by sampling); must be within the range originally loaded
+  </li><li><b>Cluster based on current selection, if any</b>
+  (default <b>on</b>) &ndash; whether to limit calculations to only the
+  <a href="../selection.html">selected</a> atoms, when a selection exists
+<li><b>Ignore solvent and non-metal ions</b> (default <b>on</b>)
+&ndash; whether to omit <a href="atomspec.html#surfcats">solvent</a> residues
+and non-metal monatomic ions 
+(Cl<sup>&ndash;</sup>, Br<sup>&ndash;</sup>, <i>etc.</i>) 
+</li><li><b>Ignore hydrogens</b> (for calculating RMSDs; default <b>on</b>)
+</li><li><b>Ignore ligands</b> (default <b>off</b>)
+&ndash; whether to omit <a href="atomspec.html#surfcats">ligand</a> residues
+</li><li><b>Ignore metal ions</b> (<b>alkali</b>/true/false)
+&ndash; whether to ignore alkali metal ions (Li<sup>+</sup>, Na<sup>+</sup>,
+K<sup>+</sup>, <i>etc.</i>), or all metal ions (if <b>true</b>),
+or none (if <b>false</b>, thus including any metal ions)
+  </li></ul>
+<p>
+<b>OK</b> and <b>Apply</b> initiate the calculations with and without
+closing the dialog, respectively, whereas <b>Close</b> simply dismisses the
+dialog. <b>Help</b> opens this manual page in a browser window.
+</p><p>
+The calculation uses the 
+<a href="md.html#cluster"><b>md cluster</b></a> command.
+For each frame-to-frame comparison, the least-squares-fit RMSD between
+the indicated sets of atoms will be calculated, without applying any
+transformation. The calculations may take several minutes, 
+depending on the size of the system and the number of frames.
+To decrease computational time, use a sparser sampling of frames 
+and/or fewer atoms in the calculation.
+</p><p>
+<a name="clusterdialog"></a>
+<b>Trajectory clustering results</b><br>
+The top part of the clustering results dialog
+lists the clusters, and for each, the number of <b>Members</b>
+(how many of the input frames belong to the cluster)
+and the frame number of the best representative.
+Different colors are used to show membership in the different clusters
+within the timeline plot in the bottom part of the dialog.
+Clicking the cluster color well allows changing its color interactively.
+</p><p>
+Clicking the line for a cluster in the top part of the dialog
+displays its representative frame in the main window
+and makes the bars for all of the members of that cluster taller
+on the timeline plot.
+The current frame is indicated with an inverted triangle on the plot,
+and the trajectory can be navigated by moving the triangle.
+Although more than one cluster can be chosen in the
+top part of the dialog, only one frame can be displayed at a time.
+</p>
+<p>
+<b>Save</b> allows writing the clustering information
+(membership and representatives) to a text file.
+<b>Close</b> dismisses the cluster dialog.
+<b>Help</b> opens this manual page in a browser window.
+</p>
+</li><li><b>Loop Playback</b> (initially on)
+&ndash; whether interactive playback should continue until explicitly paused 
 </li><li><b>Bounce Playback</b> (only available when <b>Loop Playback</b> is on)
 &ndash; whether looping wraps from end to beginning so that playback is only 
 in the forward direction (initial setting, <b>Bounce Playback</b> off) 
@@ -318,6 +390,6 @@ applies in a particular situation.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-July 2025</address>
+March 2026</address>
 
 </body></html>

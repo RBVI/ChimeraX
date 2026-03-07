@@ -651,6 +651,14 @@ class AtomProximityGUI(QWidget):
         if self.show_values['checking_frequency']:
             self.ok_radio.setChecked(True)
 
+    def show_attrs_if_applicable(self):
+        if self.show_values['set_attrs'] and self.show_values['attr_name']:
+            combo_val = self.attr_name_option.value
+            if combo_val is not None:
+                from chimerax.core.commands import run
+                kw = { 'target': 'atoms', 'tab': 'render', 'attr_name': combo_val }
+                run(self.session, 'ui tool show "Render/Select by Attribute"', log=False).configure(**kw)
+
     def _checking_change(self, ok_now_checked):
         from chimerax.core.commands import run
         if ok_now_checked:

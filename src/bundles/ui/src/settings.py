@@ -31,6 +31,7 @@ class UI_Settings(Settings):
     }
 
     AUTO_SAVE = {
+        'editor_custom_colors': [],
         'last_window_size': None,
         'file_history_show_full_filenames': False,
     }

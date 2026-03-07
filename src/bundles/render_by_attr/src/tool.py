@@ -354,10 +354,11 @@ class RenderByAttrTool(ToolInstance):
             bbox.button(qbbox.Help).setEnabled(False)
         overall_layout.addWidget(bbox)
 
+        self.model_list.ready_for_callback()
         tw.manage(placement=None)
 
     def configure(self, *, models=None, target=None, tab=None, attr_name=None, level_info=None,
-            render_type=None):
+            no_value_info=None, render_type=None):
         '''Configure the Render By Attribute interface programmatically.
 
            All the arguments are optional.  Any argument not specified will retain the current value.
@@ -375,12 +376,19 @@ class RenderByAttrTool(ToolInstance):
            or radius value as appropriate.  So for rendering, level_info is a series of (attribute-value,
            color-or-radius) tuples, and for selecting it's just a two-tuple/list of attribute values.
 
+           'no_value_info' controls the settings for rendering items with no value.  It is a two-tuple/list
+           consisting of a boolean and a color or radius.  The boolean controls whether checkbox for
+           applying results for no-value items is checked (and is ignored if rendering worms, which
+           has no checkbox).
+
            'render_type' controls what sub-tab is shown for rendering.  It is one of
            RenderByAttrTool.RENDER_COLORS, RENDER_RADII, or RENDER_WORMS.
         '''
         from chimerax.core.commands import commas
         if models is not None:
             self.model_list.value = models
+            # ensure the changes caused by model list changes happen now
+            self.model_list.ready_for_callback()
 
         if target is not None:
             menu = self.target_menu_button.menu()
@@ -424,6 +432,18 @@ class RenderByAttrTool(ToolInstance):
             else:
                 raise ValueError("No render tab named '%s'; tab names are: %s" % (tab,
                     commas([tab_widget.tabText(i) for i in range(tab_widget.count())], "and")))
+
+        if no_value_info is not None:
+            check_box, value = no_value_info
+            render_type = self.render_type_widget.tabText(self.render_type_widget.currentIndex())
+            if render_type == self.RENDER_COLORS:
+                self.color_no_value.setChecked(check_box)
+                self.no_value_color.color = value
+            elif render_type == self.RENDER_RADII:
+                self.radii_affect_nv.value = check_box
+                self.radii_nv_radius.value = value
+            else:
+                self.worm_nv_radius.value = value
 
         if level_info is not None:
             rendering = self.mode_widget.tabText(self.mode_widget.currentIndex()) == "Render"

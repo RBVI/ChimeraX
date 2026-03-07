@@ -99,6 +99,10 @@ class QCxTableModel(QAbstractTableModel):
         if role == Qt.SizeHintRole:
             if col.display_format == self._item_table.COL_FORMAT_BOOLEAN:
                 return QSize(25, 25)
+            elif col.display_format == self._item_table.color_formats:
+                # Still doesn't seem to help if the color column is first,
+                # but seems correct to have it anyway
+                return QSize(16, 16)
         return None
 
     def flags(self, index):
@@ -370,12 +374,6 @@ class ItemTable(QTableView):
         self._highlighted = set()
         self.doubleClicked.connect(self.doubleclicked)
 
-    def doubleclicked(self, _) -> list:
-        self.get_selection.emit(self.selected)
-
-    def _toggle_columns_checkboxes(self):
-        self._col_checkbox_container.setVisible(not self._col_checkbox_container.isVisible())
-
     def add_column(self, title, data_fetch, *, format="%s", data_set=None, display=None, title_display=True,
             justification="center", balloon=None, font=None, refresh=True, color=None,
             header_justification=None, icon=None, editable=False, validator=None, sort_func=None,
@@ -579,6 +577,9 @@ class ItemTable(QTableView):
     def destroy(self):
         self._data = []
         super().destroy()
+
+    def doubleclicked(self, _) -> list:
+        self.get_selection.emit(self.selected)
 
     def edit_cell(self, col_info, datum):
         if isinstance(col_info, str):
@@ -899,6 +900,9 @@ class ItemTable(QTableView):
         for col in self._columns:
             display = display_defaults.get(col.title, fallback)
             self.update_column(col, display=display)
+
+    def _toggle_columns_checkboxes(self):
+        self._col_checkbox_container.setVisible(not self._col_checkbox_container.isVisible())
 
 class _ItemColumn:
     def __init__(self, title, data_fetch, display_format, data_set, title_display, justification, font,

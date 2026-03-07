@@ -27,6 +27,7 @@ or derivations thereof.
 [&nbsp;<b>delSolvent</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>delIons</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>delAltLocs</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>delMissingBackbone</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<a href="#completeSideChains"><b>completeSideChains</b></a>&nbsp;&nbsp;<i>method</i>&nbsp;]
 [&nbsp;<a href="#standardizeResidues"><b>standardizeResidues</b></a>&nbsp;&nbsp;<i>list</i>&nbsp;]
 [&nbsp;<a href="#ah"><b>ah</b></a>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
@@ -78,6 +79,12 @@ See also: <a href="delete.html"><b>delete</b></a>
 <br>
 Whether to delete all but the currently used alternate locations (default
 <b>true</b>). See also: <a href="altlocs.html#clean"><b>altlocs clean</b></a>
+</blockquote><blockquote>
+<b>delMissingBackbone</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+Whether to delete biopolymer residues (amino acids or nucleic acids in chains)
+missing any heavy backbone atoms (default <b>false</b>).
+</blockquote><blockquote>
 </blockquote><blockquote>
 <a name="completeSideChains"></a> 
 <b>completeSideChains</b>&nbsp;&nbsp;<i>method</i>
@@ -311,6 +318,6 @@ hydrogen addition will have no effect.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2025</address>
+January 2026</address>
 
 </body></html>

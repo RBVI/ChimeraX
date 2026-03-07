@@ -495,6 +495,7 @@ of each specified map. This command is also implemented as
 &nbsp;<a href="atomspec.html#othermodels"><i>volume-spec</i></a>&nbsp;
 <b>atoms</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>attribute</b> &nbsp;<i>attribute-name</i>&nbsp;]
+[&nbsp;<b>showTool</b> &nbsp;true&nbsp;|&nbsp;false&nbsp;]
 <blockquote>
 Calculate <a href="../tools/volumeviewer.html">volume data</a> (map)
 values at atom positions and assign them as an atom
@@ -502,10 +503,15 @@ values at atom positions and assign them as an atom
 The <i>attribute-name</i> should be enclosed in quotation marks 
 if it contains spaces; if no name is supplied, <b>mapvalue</b> will be used.
 Atoms that fall outside the map bounds are not assigned values.
-Assigning an attribute allows coloring the atoms by value
-with <a href="color.html#byattribute"><b>color byattribute</b></a>,
+Assigning an attribute allows coloring the atoms by value with
+with <a href="color.html#byattribute"><b>color byattribute</b></a>
+or <a href="../tools/render.html"><b>Render by Attribute</b></a>,
 specifying them by value <a href="atomspec.html#attributes">in the 
 command line</a>, <i>etc.</i>
+The <b>showTool</b> option specifies whether to open the
+<a href="../tools/render.html"><b>Render by Attribute</b></a> tool;
+the default is <b>true</b> (show the tool) unless the
+<b>measure mapvalues</b> command is executed from a script or in nogui mode.
 The new attribute is saved in <a href="save.html#session">session</a> files.
 </blockquote>
 
@@ -808,6 +814,6 @@ has the same axes and moments as the measured surface.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2025</address>
+January 2026</address>
 
 </body></html>

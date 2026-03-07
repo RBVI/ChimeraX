@@ -106,17 +106,25 @@ class MutationScatterPlot(Graph):
         controls = EntriesRow(frame,
                               ('Color structures', self._color_structures),
                               'using', ('score1', 'score2'),  # Will be replaced when menu posted
-                              'mutations', ('all', 'drag box'),
-                              'value', ('mean', 'count', 'sum absolute', 'sum', 'min', 'median', 'max', 'stddev'))
+                              'subtract fit', ('none', 'score1'))
         controls2 = EntriesRow(frame,        
                                '            ',
-                               'palette', ('blue to red', 'red to blue', 'white to red', 'white to blue'),
+                               'mutations', ('all', 'drag box'),
+                               'value', ('mean', 'count', 'sum absolute', 'sum', 'min', 'median', 'max', 'stddev'),
+                               'palette', ('blue to red', 'red to blue', 'white to red', 'red to white',
+                                           'white to blue', 'blue to white'))
+        controls3 = EntriesRow(frame,
+                               '            ',
                                ('Adjust colors', self._show_render_by_attribute_gui),
                                ('Previous colorings', self._show_color_history_gui))
-        self._color_score_menu, self._color_which_menu, self._color_score_type_menu = controls.values
-        self._color_palette_menu = controls2.values[0]
+        self._color_score_menu, self._subtract_fit_menu = controls.values
+        self._color_which_menu, self._color_score_type_menu, self._color_palette_menu = controls2.values
+
         smenu = self._color_score_menu.widget.menu()
         smenu.aboutToShow.connect(lambda *,menu=smenu: self._menu_about_to_show(menu))
+        sfmenu = self._subtract_fit_menu.widget.menu()
+        sfmenu.aboutToShow.connect(lambda *,menu=sfmenu: self._menu_about_to_show(menu))
+
         from .ms_color_history import _mutation_color_history
         _mutation_color_history(self.session, create = True)  # Start tracking mutation residue coloring
         return frame
@@ -138,6 +146,8 @@ class MutationScatterPlot(Graph):
             for ms_name in mutation_scores_list(self.session):
                 menu.addAction(ms_name)
         else:
+            if menu is self._subtract_fit_menu.widget.menu():
+                menu.addAction('none')
             from .ms_data import mutation_scores
             ms_name = self._mutation_set_menu.value
             mset = mutation_scores(self.session, ms_name)
@@ -220,26 +230,28 @@ class MutationScatterPlot(Graph):
             default_color = rgba_to_rgba8((.8,.8,.8))
             node_colors = {node.description:rgba_to_rgba8(node.color) for node in self.nodes}
             colors = [node_colors.get(name, default_color) for name in point_names]
+            node_selected = {node.description:getattr(node, 'color_source', None) for node in self.nodes}
+            selected = [node_selected.get(name) for name in point_names]
             node_index = {node.description:i for i,node in enumerate(self.nodes)}
             index = [node_index.get(name, 0) for name in point_names]
             from numpy import argsort
             stack_order = argsort(index)
         else:
-            colors = stack_order = None
+            colors = selected = stack_order = None
 
-        self._set_nodes(xy, point_names=point_names, colors=colors, stack_order=stack_order,
+        self._set_nodes(xy, point_names=point_names, colors=colors, selected=selected, stack_order=stack_order,
                         title=title, x_label=x_score_name, y_label=y_score_name,
                         node_area = node_area, label_nodes = label_nodes, is_mutation_plot = is_mutation_plot)
 
         if color_synonymous:
             self._color_synonymous()
 
-    def _set_nodes(self, xy, point_names = None, colors = None, stack_order = None,
+    def _set_nodes(self, xy, point_names = None, colors = None, selected = None, stack_order = None,
                    title = '', x_label = '', y_label = '',
                    node_font_size = 5, node_area = 200, label_nodes = True, is_mutation_plot = True):
         self.is_mutation_plot = is_mutation_plot
         self.font_size = node_font_size	# Override graph default value of 12 points
-        self.nodes = self._make_nodes(xy, point_names=point_names, colors=colors,
+        self.nodes = self._make_nodes(xy, point_names=point_names, colors=colors, selected=selected,
                                       node_area=node_area, label_nodes=label_nodes)
         if stack_order is not None:
             self.nodes = [self.nodes[i] for i in stack_order]  # Last drawn nodes are on top
@@ -284,7 +296,8 @@ class MutationScatterPlot(Graph):
         # Don't require both plot axes to have the same scale
         pass
 
-    def _make_nodes(self, xy, point_names = None, colors = None, node_area = 200, label_nodes = True):
+    def _make_nodes(self, xy, point_names = None, colors = None, selected = None,
+                    node_area = 200, label_nodes = True):
         from chimerax.interfaces.graph import Node
         nodes = []
         for i, (x,y) in enumerate(xy):
@@ -297,6 +310,8 @@ class MutationScatterPlot(Graph):
             n.size = node_area
             if colors is not None:
                 n.color = tuple(r/255 for r in colors[i])
+            if selected is not None and selected[i]:
+                n.color_source = 'sel'
             nodes.append(n)
         return nodes
 
@@ -598,7 +613,8 @@ class MutationScatterPlot(Graph):
         which = self._color_which_menu.value # 'all' or 'drag box'
         score_type = self._color_score_type_menu.value # 'mean', 'sum absolute', 'sum'
         score_type = score_type.replace(" ", "_")
-        palette = self._color_palette_menu.value # 'white to red', 'white to blue'
+        palette = self._color_palette_menu.value # 'blue to red', ...
+        subtract_fit_name = self._subtract_fit_menu.value
 
         from .ms_data import mutation_all_scores, mutation_scores
         mutation_set_name = self._mutation_set_menu.value
@@ -609,22 +625,24 @@ class MutationScatterPlot(Graph):
         if ranges is None:
             which = 'all'
 
-        attr_name = self._attribute_name(score_name, range_name, score_type)
+        attr_name = self._attribute_name(score_name, range_name, score_type, subtract_fit_name)
         self._last_define_attr_name = attr_name
 
         cmd_score = f'mutationscores define {attr_name} from {score_name} combine {score_type}'
         if ranges:
             cmd_score += f' ranges "{ranges}"'
+        if subtract_fit_name != 'none':
+            cmd_score += f' subtractFit {subtract_fit_name}'
         if len(mutation_all_scores(session)) > 1:
             cmd_score += f' mutationSet {mutation_set_name}'
         rvalues = self._run_command(cmd_score)
-        min_score, max_score = rvalues.value_range()
+        values = [value for rnum, from_aa, to_aa, value in rvalues.all_values()]
 
         chains = scores.associated_chains()
         from chimerax.atomic import concise_chain_spec
         chain_spec = concise_chain_spec(chains)
 
-        palette_spec = self._palette_specifier(palette, min_score, max_score, which)
+        palette_spec = self._palette_specifier(palette, values)
 
         cmd_color = f'color byattribute r:{attr_name} {chain_spec} palette {palette_spec} noValueColor white'
         self._run_command(cmd_color)
@@ -644,43 +662,41 @@ class MutationScatterPlot(Graph):
             range_name = f'{score1}_{"%.3g"%min1}_{"%.3g"%max1}_{score2}_{"%.3g"%min2}_{"%.3g"%max2}'
         return ranges, range_name
     
-    def _attribute_name(self, score_name, range_name, score_type):
+    def _attribute_name(self, score_name, range_name, score_type, subtract_fit_name):
+        subtract_fit = '' if subtract_fit_name == 'none' else f'_subtract_fit_{subtract_fit_name}'
         if range_name:
             if range_name.startswith(score_name):
-                attr_name = f'{range_name}_{score_type}'
+                attr_name = f'{range_name}{subtract_fit}_{score_type}'
             else:
-                attr_name = f'{score_name}_{range_name}_{score_type}'
+                attr_name = f'{score_name}_{range_name}{subtract_fit}_{score_type}'
         else:
-            attr_name = f'{score_name}_{score_type}'
+            attr_name = f'{score_name}{subtract_fit}_{score_type}'
         return attr_name
 
-    def _palette_specifier(self, palette, min_score, max_score, which):
-        if palette in ('blue to red', 'red to blue'):
-            if min_score >= 0:
-                palette = 'white to red' if palette == 'blue to red' else 'white to blue'
-            elif max_score <= 0:
-                palette = 'white to blue' if palette == 'blue to red' else 'white to red'
-        if palette == 'white to red':
-            colors = ('white', '#ff7f7f', 'red')
-        elif palette == 'white to blue':
-            colors = ('white', '#7f7fff', 'blue')
-        elif palette == 'blue to red':
-            colors = ('blue', 'white', 'white', 'red')
-        elif palette == 'red to blue':
-            colors = ('red', 'white', 'white', 'blue')
-        if which == 'drag box' and min_score < 0 and abs(min_score) > abs(max_score):
-            min_score, max_score = max_score, min_score
-        if palette in ('blue to red', 'red to blue'):
-            thresholds = (0.66*min_score, 0.33*min_score, 0.33*max_score, 0.66*max_score)
-        else:
-            # Intended all positive or all negative scores with white closer to zero.
-            if abs(max_score) >= abs(min_score):
-                high_score = (min_score + 0.66*(max_score-min_score))
-                thresholds = (min_score, (min_score+high_score)/2, high_score)
-            else:
-                high_score = (max_score - 0.66*(max_score-min_score))
-                thresholds = (max_score, (min_score+high_score)/2, high_score)
-                
+    def _palette_specifier(self, palette, values):
+        palette_colors = {
+            'blue to red': ('blue', 'white', 'white', 'red'),
+            'red to blue': ('red', 'white', 'white', 'blue'),
+            'white to red': ('white', 'red'),
+            'red to white': ('red', 'white'),
+            'white to blue': ('white', 'blue'),
+            'blue to white': ('blue', 'white'),
+        }
+        colors = palette_colors[palette]
+        ncolors = len(colors)
+        from numpy import mean, std
+        m, sd = mean(values), std(values)
+        imid = (ncolors-1)/2
+        sd_range = 4    # Number of standard deviations from first color to last.
+        sd_step = sd * (sd_range / (ncolors-1))
+        thresholds = tuple((m + (i-imid)*sd_step) for i in range(ncolors))
+
+        '''
+        min_score, max_score = min(values), max(values)
+        step = (max_score - min_score) / (ncolors+1)
+        thresholds = tuple((min_score + (i+1)*step) for i in range(ncolors))
+        '''
+        
         self._last_color_palette = tuple(zip(thresholds, colors))
         palette_spec = ':'.join(f'{"%.3g"%thresh},{color}'for thresh, color in zip(thresholds, colors))
         return palette_spec
@@ -756,34 +772,13 @@ def _show_render_by_attribute_panel(session, mutation_set, attribute_name,
                                     palette = None, no_value_color = None):
     from chimerax.core.commands import run
     rba_gui = run(session, 'ui tool show "Render/Select by Attribute"')
-    rba_gui._new_target('residues')
 
-    # Set models
     chains = mutation_set.associated_chains()
     models = list(set(chain.structure for chain in chains))
-    rba_gui.model_list.set_value(models)
-
-    rba_gui._new_render_attr(attribute_name)
-
-    # Set histogram bars.
-    if palette:
-        # Need to delay the palette setting because the model_list change
-        # causes a delayed callback when the Qt event loop is next run
-        # that resets the palette to the defaults.
-        def _set_render_by_attribute_palette(rba_gui=rba_gui, palette=palette):
-            rc_markers = rba_gui.render_color_markers
-            while len(rc_markers) > 0:
-                rc_markers.pop()
-            rc_markers.coord_type = 'absolute'
-            for thresh, color in palette:
-                rc_markers.append(((thresh, 0.0), color))
-            rc_markers.coord_type = 'relative'
-        timer = session.ui.timer(1, _set_render_by_attribute_palette)
-        rba_gui._set_palette_timer = timer  # Keep timer from being deleted
-
-    if no_value_color is not None:
-        rba_gui.color_no_value.setChecked(True)
-        rba_gui.no_value_color.color = no_value_color
+    no_value_info = (True, no_value_color) if no_value_color is not None else None
+    rba_gui.configure(models = models, target = 'residues', tab = 'render', attr_name = attribute_name,
+                      level_info = palette, render_type = rba_gui.RENDER_COLORS,
+                      no_value_info = no_value_info)
     
 def _find_close_residues(residue, residues, distance):
     rxyz = residue.atoms.coords

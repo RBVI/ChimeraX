@@ -117,7 +117,19 @@ class MutationColorHistory(StateManager):
         self._ignore_color_command = True
         run(self._session, cmd_color)
         self._ignore_color_command = False
-        
+
+    def rename_attribute(self, attribute_name, new_name):
+        acp = self._attribute_coloring_parameters
+        if attribute_name in acp:
+            options = acp[attribute_name]
+            del acp[attribute_name]
+            acp[new_name] = options
+
+    def remove_attribute(self, attribute_name):
+        acp = self._attribute_coloring_parameters
+        if attribute_name in acp:
+            del acp[attribute_name]
+
     # ---------------------------------------------------------------------------
     # Session save and restore.
     #
@@ -164,15 +176,22 @@ class MutationColorHistoryPanel(ToolInstance):
         lw = QListWidget(parent)
         self._attribute_list = lw
         lw.setSortingEnabled(True)
-        lw.setSelectionMode(lw.SingleSelection)
+        lw.setSelectionMode(lw.ExtendedSelection)
         lw.itemClicked.connect(self._attribute_clicked)
         layout.addWidget(lw)
         self._update_list()
 
-        from chimerax.ui.widgets import button_row
-        f, buttons = button_row(parent, [('Adjust colors', self._adjust_colors)],
-                                spacing = 5, button_list = True)
-        layout.addWidget(f)
+        from chimerax.ui.widgets import EntriesRow
+        br = EntriesRow(parent,
+                        ('Adjust colors', self._adjust_colors),
+                        ('Rename', self._rename_attribute),
+                        '',
+                        ('Save .csv', self._save_csv),
+                        ('Delete', self._delete_attribute),
+                        spacing = 5)
+        self._rename_entry = re = br.values[0]
+        re.pixel_width = 200
+        layout.addWidget(br.frame)
                 
         tw.manage(placement="side")
 
@@ -196,9 +215,17 @@ class MutationColorHistoryPanel(ToolInstance):
     def _attribute_clicked(self, item):
         attr_name = item.text()
         self._mutation_color_history.color_by_attribute(attr_name)
-        
+        self._rename_entry.value = attr_name
+
+    def _selected_attribute_names(self):
+        return [item.text() for item in self._attribute_list.selectedItems()]
+
+    def _all_attribute_names(self):
+        al = self._attribute_list
+        return [al.item(i).text() for i in range(al.count())]
+
     def _adjust_colors(self):
-        attr_names = [item.text() for item in self._attribute_list.selectedItems()]
+        attr_names = self._selected_attribute_names()
         if len(attr_names) != 1:
             self.session.logger.error('Select exactly one attribute name in the list then press the "Adjust colors" button to show the Render by Attribute panel for adjusting the colors and color levels.')
             return
@@ -223,6 +250,118 @@ class MutationColorHistoryPanel(ToolInstance):
         from .ms_scatter_plot import _show_render_by_attribute_panel
         _show_render_by_attribute_panel(self.session, mset, attribute_name,
                                         palette = palette, no_value_color = no_value_color)
+
+    def _delete_attribute(self):
+        attr_names = self._selected_attribute_names()
+        if len(attr_names) == 0:
+            self.session.logger.error('Select an attribute name in the list then press the Delete button.')
+            return
+            
+        mch = self._mutation_color_history
+        for attribute_name in attr_names:
+            mset = mch.mutation_set_for_attribute(attribute_name)
+            if mset is None:
+                self.session.logger.error(f'No mutation set has an attribute "{attribute_name}".')
+            else:
+                mset.remove_computed_values(attribute_name)
+                mch.remove_attribute(attribute_name)
+
+        self._update_list()
+
+    def _save_csv(self, *, value_format = '%.4g'):
+        attribute_names = self._selected_attribute_names()
+        if len(attribute_names) == 0:
+            attribute_names = self._all_attribute_names()
+
+        text, dir = self._residue_scores_csv(attribute_names, value_format = value_format)
+        
+        from Qt.QtWidgets import QFileDialog
+        parent = self.tool_window.ui_area
+        path, ftype  = QFileDialog.getSaveFileName(parent,
+                                                   caption = 'Save Residue Scores',
+                                                   directory = dir,
+                                                   filter = 'Comma separated values (.csv)')
+        if path:
+            with open(path, 'w') as f:
+                f.write(text)
+
+    def _residue_scores_csv(self, attribute_names, value_format = '%.4g'):
+        res = set()
+        values = []
+        mch = self._mutation_color_history
+        for attribute_name in attribute_names:
+            mset = mch.mutation_set_for_attribute(attribute_name)
+            if mset is None:
+                self.session.logger.error(f'No mutation set has an attribute "{attribute_name}".')
+                continue
+
+            scores = mset.computed_values(attribute_name)
+            res.update(scores.residue_numbers_and_types())
+            values.append((attribute_name, scores.values_by_residue_number))
+ 
+        res_num_and_type = list(res)
+        res_num_and_type.sort()
+        header = ','.join(['#residue number', 'residue type'] + [attr for attr, scores in values])
+        lines = [header]
+        for rnum, rtype in res_num_and_type:
+            row = [str(rnum), rtype]
+            for attr_name, scores in values:
+                score = ''
+                if rnum in scores:
+                    rscores = scores[rnum]
+                    if len(rscores) == 1:
+                        from_aa, to_aa, value = rscores[0]
+                        score = value_format % value
+                row.append(score)
+            lines.append(','.join(row))
+        text = '\n'.join(lines)
+
+        from os.path import dirname
+        dir = dirname(mset.path) if mset else None
+
+        return text, dir
+    
+    def _rename_attribute(self):
+        attr_names = self._selected_attribute_names()
+        if len(attr_names) == 0:
+            self.session.logger.error('Select an attribute name in the list, edit the name, then press the Rename button.')
+            return
+            
+        mch = self._mutation_color_history
+        
+        attribute_name = attr_names[0]
+        mset = mch.mutation_set_for_attribute(attribute_name)
+        if mset is None:
+            self.session.logger.error(f'No mutation set has an attribute "{attribute_name}".')
+            return
+
+        new_name = self._rename_entry.value.strip()
+        if not new_name:
+            self.session.logger.error(f'New name is blank.')
+            return
+
+        if new_name == attribute_name:
+            return
+        
+        mset.rename_computed_values(attribute_name, new_name)
+        mch.rename_attribute(attribute_name, new_name)
+        _rename_residue_attribute(mset.associated_chains(), attribute_name, new_name)
+
+        self._update_list()
+
+def _rename_residue_attribute(chains, attribute_name, new_name):
+    count = 0
+    for chain in chains:
+        for r in chain.residues:
+            if hasattr(r, attribute_name):
+                rvalue = getattr(r, attribute_name)
+                delattr(r, attribute_name)
+                setattr(r, new_name, rvalue)
+                count += 1
+    if count > 0:
+        session = chain.structure.session
+        from chimerax.atomic import Residue
+        Residue.register_attr(session, new_name, "Deep Mutational Scan", attr_type=float)
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg

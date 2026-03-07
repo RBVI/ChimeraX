@@ -45,6 +45,7 @@ from Qt.QtWidgets import (
     QCheckBox,
     QTabWidget,
     QSizePolicy,
+    QPushButton,
 )
 
 from chimerax.core.tools import ToolInstance
@@ -196,6 +197,7 @@ class LabeledSlider(QWidget):
 
     def setValue(self, val):
         self.slider.setValue(int(val * self.scale))
+        self.value_label.setText(f"{val:.{self.decimals}f}")
 
     def valueChanged(self):
         """Return the valueChanged signal from the internal slider."""
@@ -230,7 +232,6 @@ class LightingGUI(ToolInstance):
         # Left side: tabbed controls
         self.tab_widget = QTabWidget()
         self.tab_widget.setMaximumWidth(280)
-        # self.tab_widget.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
 
         # Create tab contents
         lighting_tab = self._create_lighting_tab()
@@ -249,6 +250,13 @@ class LightingGUI(ToolInstance):
 
         # Sync UI with current state
         self._sync_from_session()
+        self._detect_preset()
+
+        # Listen for lighting/material command changes
+        from chimerax.core.core_triggers import LIGHTING_CHANGED
+        self._lighting_handler = session.triggers.add_handler(
+            LIGHTING_CHANGED, self._on_lighting_changed
+        )
 
         self.tool_window.manage()
 
@@ -260,9 +268,11 @@ class LightingGUI(ToolInstance):
 
         # Preset dropdown
         self.preset_combo = QComboBox()
+        self.preset_combo.setPlaceholderText("--")
         self.preset_combo.addItems([mode.value for mode in LightingMode])
+        self.preset_combo.setCurrentIndex(-1)
         self.preset_combo.currentTextChanged.connect(self._on_preset_changed)
-        layout.addRow("Preset:", self.preset_combo)
+        layout.addRow("Shadow preset:", self.preset_combo)
 
         # Key light intensity
         self.key_intensity = LabeledSlider(0, 1.5, 1.0, decimals=2)
@@ -300,6 +310,14 @@ class LightingGUI(ToolInstance):
         self.ambient_color = ColorButton()
         self.ambient_color.color_changed.connect(self._on_ambient_color_changed)
         layout.addRow("Ambient color:", self.ambient_color)
+
+        self.silhouette_enabled = QCheckBox()
+        self.silhouette_enabled.stateChanged.connect(self._on_silhouette_enabled_changed)
+        layout.addRow("Silhouettes:", self.silhouette_enabled)
+
+        restore_button = QPushButton("Restore Defaults")
+        restore_button.clicked.connect(self._on_restore_defaults)
+        layout.addRow(restore_button)
 
         return tab
 
@@ -356,6 +374,17 @@ class LightingGUI(ToolInstance):
 
         return tab
 
+    def _on_lighting_changed(self, trigger_name, preset):
+        self.preset_combo.blockSignals(True)
+        if preset is not None:
+            idx = self.preset_combo.findText(preset)
+            if idx >= 0:
+                self.preset_combo.setCurrentIndex(idx)
+        else:
+            self.preset_combo.setCurrentIndex(-1)
+        self.preset_combo.blockSignals(False)
+        self._sync_from_session()
+
     def _sync_from_session(self):
         """Sync UI controls with current session lighting/material state."""
         v = self.session.main_view
@@ -379,6 +408,8 @@ class LightingGUI(ToolInstance):
         self.sharpness.setValue(mat.specular_exponent)
         self.reflectivity.setValue(mat.specular_reflectivity)
 
+        self.silhouette_enabled.setChecked(v.silhouette.enabled)
+
         # Depth cue
         self.depth_cue_enabled.setChecked(lp.depth_cue)
         self.depth_cue_start.setValue(lp.depth_cue_start)
@@ -397,6 +428,7 @@ class LightingGUI(ToolInstance):
         self.ambient_intensity.slider.blockSignals(block)
         self.sharpness.slider.blockSignals(block)
         self.reflectivity.slider.blockSignals(block)
+        self.silhouette_enabled.blockSignals(block)
         self.depth_cue_enabled.blockSignals(block)
         self.depth_cue_start.slider.blockSignals(block)
         self.depth_cue_end.slider.blockSignals(block)
@@ -429,13 +461,69 @@ class LightingGUI(ToolInstance):
         preview.view.update_lighting = True
         preview.render()
 
-    # === Lighting callbacks ===
+    def _clear_preset(self):
+        """Deselect the preset combo to show '--' placeholder."""
+        self.preset_combo.blockSignals(True)
+        self.preset_combo.setCurrentIndex(-1)
+        self.preset_combo.blockSignals(False)
+
+    def _detect_preset(self):
+        """Check if current lighting matches a known preset and select it."""
+        lp = self.session.main_view.lighting
+
+        def close(a, b, tol=0.01):
+            return abs(a - b) < tol
+
+        preset = None
+        if (not lp.shadows and lp.multishadow == 0
+                and close(lp.key_light_intensity, 1)
+                and close(lp.fill_light_intensity, 0.5)
+                and close(lp.ambient_light_intensity, 0.4)):
+            preset = 'simple'
+        elif (lp.shadows and lp.multishadow > 0
+                and close(lp.key_light_intensity, 0.7)
+                and close(lp.fill_light_intensity, 0.3)
+                and close(lp.ambient_light_intensity, 0.8)):
+            preset = 'full'
+        elif (not lp.shadows and lp.multishadow > 0
+                and close(lp.key_light_intensity, 0)
+                and close(lp.fill_light_intensity, 0)
+                and close(lp.ambient_light_intensity, 1.5)
+                and close(lp.multishadow_depth_bias, 0.01)
+                and lp.multishadow_map_size == 1024):
+            preset = 'soft'
+        elif (not lp.shadows and lp.multishadow > 0
+                and close(lp.key_light_intensity, 0)
+                and close(lp.fill_light_intensity, 0)
+                and close(lp.ambient_light_intensity, 1.5)
+                and close(lp.multishadow_depth_bias, 0.05)
+                and lp.multishadow_map_size == 128):
+            preset = 'gentle'
+        elif (not lp.shadows and lp.multishadow == 0
+                and close(lp.key_light_intensity, 0)
+                and close(lp.fill_light_intensity, 0)
+                and close(lp.ambient_light_intensity, 1.45)):
+            preset = 'flat'
+
+        if preset is not None:
+            self.preset_combo.blockSignals(True)
+            idx = self.preset_combo.findText(preset)
+            if idx >= 0:
+                self.preset_combo.setCurrentIndex(idx)
+            self.preset_combo.blockSignals(False)
 
     def _on_preset_changed(self, preset):
         run(self.session, f"lighting {preset}")
         self._sync_from_session()
 
+    def _on_restore_defaults(self):
+        run(self.session, "lighting default")
+        run(self.session, "material default")
+        self._sync_from_session()
+        self._detect_preset()
+
     def _on_key_intensity_changed(self, value):
+        self._clear_preset()
         intensity = value / self.key_intensity.scale
         self.session.main_view.lighting.key_light_intensity = intensity
         self.session.main_view.update_lighting = True
@@ -450,6 +538,7 @@ class LightingGUI(ToolInstance):
         self._sync_preview()
 
     def _on_fill_intensity_changed(self, value):
+        self._clear_preset()
         intensity = value / self.fill_intensity.scale
         self.session.main_view.lighting.fill_light_intensity = intensity
         self.session.main_view.update_lighting = True
@@ -464,6 +553,7 @@ class LightingGUI(ToolInstance):
         self._sync_preview()
 
     def _on_ambient_intensity_changed(self, value):
+        self._clear_preset()
         intensity = value / self.ambient_intensity.scale
         self.session.main_view.lighting.ambient_light_intensity = intensity
         self.session.main_view.update_lighting = True
@@ -487,7 +577,7 @@ class LightingGUI(ToolInstance):
         self._sync_preview()
 
     def _on_sharpness_released(self):
-        run(self.session, f"material specularExponent {self.sharpness.value()}")
+        run(self.session, f"material exponent {self.sharpness.value()}")
 
     def _on_reflectivity_changed(self, value):
         reflectivity = value / self.reflectivity.scale
@@ -498,6 +588,10 @@ class LightingGUI(ToolInstance):
 
     def _on_reflectivity_released(self):
         run(self.session, f"material reflectivity {self.reflectivity.value()}")
+
+    def _on_silhouette_enabled_changed(self, state):
+        enabled = state == Qt.CheckState.Checked.value
+        run(self.session, f"graphics silhouettes {'true' if enabled else 'false'}")
 
     # === Depth Cue callbacks ===
 
@@ -525,6 +619,8 @@ class LightingGUI(ToolInstance):
         run(self.session, f"lighting depthCueColor {color[0]},{color[1]},{color[2]}")
 
     def delete(self):
+        from chimerax.core.core_triggers import LIGHTING_CHANGED
+        self.session.triggers.remove_handler(self._lighting_handler)
         self.preview_widget.close()
         super().delete()
 
@@ -671,6 +767,13 @@ class LightingPreviewWidget(QWindow):
         direction = rot_h.transform_vector(direction)
         direction = rot_v.transform_vector(direction)
         direction = direction / np.linalg.norm(direction)
+
+        # Clamp so arrow stays visible in the preview. The camera looks
+        # down -Z, so light directions with Z near zero place the arrow
+        # at the equator where it goes off the edge of the preview window.
+        if direction[2] > -0.35:
+            direction[2] = -0.35
+            direction = direction / np.linalg.norm(direction)
 
         # Update lighting
         if self._dragging == "key":

@@ -549,7 +549,13 @@ class Render:
         return self._opengl_context
 
     def make_current(self):
-        return self._opengl_context.make_current()
+        status = self._opengl_context.make_current()
+        e = self.check_for_opengl_errors()
+        if e:
+            msg = f'Error after making OpenGL context current: {e}\nThis is a Qt window toolkit bug discussed at https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/19881#comment:5'
+            import sys
+            sys.stderr.write(msg)
+        return status
 
     def done_current(self):
         self._opengl_context.done_current()
@@ -1214,6 +1220,17 @@ class Render:
                 offscreen_outline = True
         self.outline.offscreen_outline_needed = offscreen_outline
 
+        # On Wayland with Nvidia graphics drag select with mouse hangs when
+        # trying to draw the green outline rectangle or sometimes does not draw
+        # the rectangle.  ChimeraX ticket #19830.
+        self.broken_front_buffer_rendering = False
+        if sys.platform == 'linux':
+            from os import environ
+            if 'WAYLAND_DISPLAY' in environ:
+                rname = self.opengl_renderer()
+                if rname.startswith('NVIDIA'):
+                    self.broken_front_buffer_rendering = True
+                
     def pixel_scale(self):
         return self._opengl_context.pixel_scale()
 

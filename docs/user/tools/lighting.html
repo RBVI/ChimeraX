@@ -71,7 +71,7 @@ Shadows cast from multiple uniformly distributed directions can produce
 ambient shadowing, or &ldquo;ambient occlusion.&rdquo; See also:
 <a href="../commands/lighting.html"><b>lighting</b></a>
 </p><p>
-Choices for lighting <b>Preset</b></a>:
+Choices for lighting <b>Shadow preset</b></a>:
 </p>
 <ul>
 <li><b>simple</b>
@@ -123,10 +123,15 @@ Other settings:
 <p>
 The directional lights can be moved by dragging the
 color-coded solid arrows on the sphere:
-<b style="color:#FFC832">orange</b>: <b>key</b>,
-<b style="color:#6496FF">blue</b>: <b>fill</b>.
-The directions can be reset by choosing the 
-<a href="../commands/lighting.html#simple"><b>simple</b></a> preset.
+<b style="padding:3px;background:black;color:#FFC832">&nbsp;orange&nbsp;</b>
+for key light,
+<b style="padding:3px;background:black;color:#6496FF">&nbsp;blue&nbsp;</b>
+for fill light.
+</p><p>
+Clicking <b>Restore Defaults</b> changes to the
+<a href="../commands/lighting.html#simple"><b>simple</b></a> preset
+and restores default lighting directions, colors,
+and <a href="#shininess">shininess</b></a> parameters.
 </p>
 
 <a name="shininess"></a>
@@ -145,7 +150,7 @@ of specular highlights (range 0.0-128.0, default <b>30.0</b>;
 adjust value with slider)</li>
 <li><b>Reflectivity</b> &ndash; the fraction of directional light that is
 reflected diffusely, equally in all directions
-(default <b>0.8</b>; adjust value with slider)</li>
+(default <b>0.3</b>; adjust value with slider)</li>
 </ul>
 
 <a name="depthcue"></a>
@@ -178,6 +183,6 @@ far (1.0) global clipping planes, which are shown/manipulable in the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2026</address>
+February 2026</address>
 
 </body></html>

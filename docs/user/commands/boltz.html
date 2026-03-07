@@ -48,6 +48,7 @@ video <a href="https://www.youtube.com/watch?v=377V9A_0ECc" target="_blank">
 Boltz structure prediction in ChimeraX</a>.
 See also:
 <a href="alphafold.html"><b>alphafold</b></a>,
+<a href="openfold.html"><b>openfold</b></a>,
 <a href="esmfold.html"><b>esmfold</b></a>,
 <a href="modeller.html"><b>modeller</b></a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/local-msa-sep2025/pp_screening.html" target="_blank">computational screening for protein-protein interactions</a>
@@ -70,6 +71,7 @@ See also:
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>boltz install</b> [&nbsp;<i>directory</i>&nbsp;]
 <span class="nowrap">[&nbsp;<b>downloadModelWeightsAndCcd</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]</span>
+<b>branch</b>&nbsp;&nbsp;<i>branch-name</i>
 </blockquote>
 <p>
 The <b>boltz install</b> command creates a Python virtual environment 
@@ -82,6 +84,13 @@ so that the ChimeraX <a href="../tools/boltz.html"><b>Boltz</b></a> interface
 can report the total number of tokens (residues plus ligand atoms) 
 in an assembly for judging whether the computer has enough memory 
 to make the requested prediction.
+</p><p>
+The install uses a fork of the Boltz repository 
+<a href="https://github.com/RBVI/boltz" 
+target="_blank">https://github.com/RBVI/boltz</a>.
+It uses git branch <b>chimerax_boltz22</b> of this fork unless the
+<b>branch</b> option is specified, in which case it installs the
+specified branch.
 </p><p>
 The ChimeraX Python executable is used to create the virtual environment.
 If the ChimeraX installation is moved or deleted, Boltz will need to be 
@@ -112,7 +121,7 @@ with CUDA 12.6 support is installed before boltz.
 [&nbsp;<b>ligands</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>residue-spec</i></a>&nbsp;&nbsp;[&nbsp;<b>excludeLigands</b>&nbsp;&nbsp;<i>CCD-names</i>&nbsp;]]
 [&nbsp;<b>ligandCcd</b>&nbsp;&nbsp;<i>CCD-names</i>&nbsp;]
 [&nbsp;<b>ligandSmiles</b>&nbsp;&nbsp;<i>SMILES-string</i>&nbsp;]
-[&nbsp;<b>affinity</b>&nbsp;&nbsp;<i>ligand-name</i>&nbsp;]
+[&nbsp;<b>affinity</b>&nbsp;&nbsp;<i>ligand-name</i>&nbsp;&nbsp;|&nbsp;each&nbsp;|&nbsp;<b>none</b>&nbsp;]
 [&nbsp;<b>name</b>&nbsp;&nbsp;<i>prediction-name</i>&nbsp;]
 [&nbsp;<b>resultsDirectory</b>&nbsp;&nbsp;<i>directory</i>&nbsp;]
 [&nbsp;<b>device</b>&nbsp;&nbsp;<b>default</b>&nbsp;|&nbsp;cpu&nbsp;|&nbsp;gpu&nbsp;]
@@ -178,18 +187,32 @@ CCD names with the <b>ligandCcd</b> option, or by a comma-separated list of
 The <b>ligandCcd</b> and <b>ligandSmiles</b> options can be used more than
 once in the same command.
 </p><p>
+<a name="batch"></a>
+<b>Batch predictions of different ligands with the same macromolecular
+chains</b>.<br>
+The <b>forEachSmilesLigand</b> option is for batch prediction of
+different small-molecule ligands in complex with the same set of
+biopolymeric components (protein and/or nucleic acid chains).
+The ligands are specified as a comma-separated list of names and SMILES strings.
+To predict the affinity for each ligand, use <b>affinity each</b>
+(see below).
+</p><p>
 <b>Calculation options</b>:
 </p>
 <ul>
-<li><b>affinity</b>&nbsp;&nbsp;<i>ligand-name</i>&nbsp;
+<li><b>affinity</b>&nbsp;&nbsp;<i>ligand-name</i>&nbsp;&nbsp;|&nbsp;each&nbsp;|&nbsp;<b>none</b>
 <br>
-&ndash; whether to predict the affinity of a ligand (if not specified,
-no affinity will be predicted).
-Boltz can predict the binding affinity in &micro;M for a single ligand.
-It was trained using Kd, Ki, and IC50 affinity values, treating them as
-equivalent, so the predicted affinity should be interpreted as a
-qualitative affinity without a precise definition.
-Only one affinity prediction is made even if the system contains
+&ndash; whether to predict ligand affinity (default <b>none</b>
+no affinity predicted).
+Boltz can predict the binding affinity in &micro;M for a single ligand
+per predicted complex. It was trained using Kd, Ki, and IC50 affinity values,
+treating them as equivalent, so the predicted affinity should be interpreted
+as a qualitative affinity without a precise definition.
+If the <b>forEachSmilesLigand</b> option (see <a href="#batch">above</a>)
+is used for batch prediction of different ligands in complex with the same 
+macromolecular components, <b>affinity each</b> can be specified to
+predict affinity for each of those ligands. Otherwise (a single predicted
+complex), only one affinity prediction is made even if the complex contains
 multiple ligands, and the affinity cannot be predicted for
 ligands that occur in more than one copy.
 The <i>ligand-name</i> is the same CCD code or SMILES string used to 
@@ -452,6 +475,6 @@ server process and force quit from it.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-December 2025</address>
+February 2026</address>
 
 </body></html>

@@ -377,7 +377,7 @@ and HEM residues in model 1
 The representation of a surface model can be <b>solid</b>,
 <b>mesh</b>, or <b>dot</b>.
 This applies to surface models in general, including
-<a href="../tools/volumeviewer.html">volume</a> isosurfaces,
+<a href="../tools/volumeviewer.html">volume data</a> isosurfaces,
 and always applies to the entire model.
 See also:
 <a href="#squaremesh"><b>surface squaremesh</b></a>,
@@ -397,7 +397,7 @@ See also:
 <a href="marker.html#fromMesh"><b>marker fromMesh</b></a>,
 <a href="volume.html#vop"><b>volume</b> operations</a>
 </p>
-<ul>
+<ul style="list-style-type:circle">
 <li><a href="#cap"><b>surface cap</b></a>
 &ndash; adjust capping of <a href="clip.html">clipped</a> surfaces
 </li><li><a href="#dust"><b>surface dust</b></a>
@@ -426,7 +426,7 @@ of its neighbors
 </li></ul>
 
 <a name="cap"></a>
-<a href="#top" class="nounder">&bull;</a>
+<a href="#sop" class="nounder">&#9675;</a>
 <b>surface cap</b> &nbsp;true&nbsp;|&nbsp;false&nbsp;
 [&nbsp;<b>offset</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
 [&nbsp;<b>subdivision</b>&nbsp;&nbsp;<i>s</i>&nbsp;]
@@ -455,14 +455,14 @@ See also:
 </blockquote>
 
 <a name="dust"></a>
-<a href="#sop" class="nounder">&bull;</a>
+<a href="#sop" class="nounder">&#9675;</a>
 <b>surface dust</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
 [&nbsp;<b>size</b>&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>metric</b>&nbsp;&nbsp;area&nbsp;|&nbsp;area&nbsp;rank&nbsp;|&nbsp;<b>size</b>&nbsp;|&nbsp;size&nbsp;rank&nbsp;|&nbsp;volume&nbsp;|&nbsp;volume&nbsp;rank&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <br>
-<a href="#sop" class="nounder">&bull;</a>
+<a href="#sop" class="nounder">&#9675;</a>
 <b>surface undust</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
 <blockquote>
@@ -506,7 +506,7 @@ See also: <a href="marker.html#connected"><b>marker connected</b></a>
 </p>
 </blockquote>
 
-<a href="#top" class="nounder">&bull;</a>
+<a href="#sop" class="nounder">&#9675;</a>
 <a name="hidefarblobs"></a>
 <b>surface hidefarblobs</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surf-model1</i></a>&nbsp;
@@ -548,7 +548,7 @@ See also:
 </blockquote>
 
 <a name="invertShown"></a>
-<a href="#sop" class="nounder">&bull;</a>
+<a href="#sop" class="nounder">&#9675;</a>
 <b>surface invertShown</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
 <blockquote>
@@ -560,7 +560,7 @@ the dust, allowing the density within to be
 </blockquote>
 
 <a name="showall"></a>
-<a href="#sop" class="nounder">&bull;</a>
+<a href="#sop" class="nounder">&#9675;</a>
 <b>surface showall</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
 <blockquote>
@@ -569,7 +569,7 @@ except where hidden by <a href="clip.html">clipping</a>.
 </blockquote>
 
 <a name="smooth"></a>
-<a href="#sop" class="nounder">&bull;</a>
+<a href="#sop" class="nounder">&#9675;</a>
 <b>surface smooth</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
 [&nbsp;<b>factor</b>&nbsp;&nbsp;<i>f</i>&nbsp;]
@@ -591,7 +591,7 @@ without shrinkage by using a smaller <b>gridSpacing</b> value.
 </blockquote>
 
 <a name="splitbycolor"></a>
-<a href="#sop" class="nounder">&bull;</a>
+<a href="#sop" class="nounder">&#9675;</a>
 <b>surface splitbycolor</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
 <blockquote>
@@ -608,7 +608,7 @@ using <a href="measure.html#area"><b>measure area</b></a> or
 </blockquote>
 
 <a name="squaremesh"></a>
-<a href="#sop" class="nounder">&bull;</a>
+<a href="#sop" class="nounder">&#9675;</a>
 <b>surface squaremesh</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
 <blockquote>
@@ -620,7 +620,7 @@ See also: <a href="#style"><b>surface style</b></a>
 </blockquote>
 
 <a name="transform"></a>
-<a href="#sop" class="nounder">&bull;</a>
+<a href="#sop" class="nounder">&#9675;</a>
 <b>surface transform</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
 [&nbsp;<b>scale</b>&nbsp;<i>s</i>&nbsp;]
@@ -647,7 +647,7 @@ By default, the coordinate system of the first specified surface is used.
 </blockquote>
 
 <a name="zone"></a>
-<a href="#sop" class="nounder">&bull;</a>
+<a href="#sop" class="nounder">&#9675;</a>
 <b>surface zone</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
   <b>nearAtoms</b>&nbsp;&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
@@ -656,7 +656,7 @@ By default, the coordinate system of the first specified surface is used.
   [&nbsp;<b>bondPointSpacing</b>&nbsp;<i>s</i>&nbsp;]
 [&nbsp;<b>update</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 <br>
-<a href="#sop" class="nounder">&bull;</a>
+<a href="#sop" class="nounder">&#9675;</a>
 <b>surface unzone</b>
 &nbsp;<a href="atomspec.html#othermodels"><i>surface-spec</i></a>&nbsp;
 <blockquote>
@@ -724,6 +724,6 @@ atomic center.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2024</address>
+January 2026</address>
 
 </body></html>

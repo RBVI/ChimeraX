@@ -316,8 +316,15 @@ class Structure(Model, StructureData):
                         except KeyError:
                             # one or both scenes don't have cs_id info
                             pass
-                    interp_val = (1-fraction) * scene1_data[attr_level][attr_name] \
-                        + fraction * scene2_data[attr_level][attr_name]
+                    try:
+                        interp_val = (1-fraction) * scene1_data[attr_level][attr_name] \
+                            + fraction * scene2_data[attr_level][attr_name]
+                    except KeyError:
+                        # Once scene only has a subset of the attributes of the other
+                        try:
+                            interp_val = scene1_data[attr_level][attr_name]
+                        except KeyError:
+                            interp_val = scene2_data[attr_level][attr_name]
                     if attr_name.endswith("colors"):
                         interp_val = array(rint(interp_val), dtype=uint8)
                 elif attr_name == "active_coordset_id":

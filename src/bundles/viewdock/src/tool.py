@@ -179,7 +179,12 @@ class ViewDockTool(ToolInstance):
         )
         self.top_buttons_layout.addWidget(self.clashes_button)
 
-        self.top_buttons_layout.addStretch(10)
+        self.top_buttons_layout.addStretch(5)
+        from chimerax.ui import shrink_font
+        self.num_listed_compounds = QLabel()
+        shrink_font(self.num_listed_compounds, 0.8)
+        self.top_buttons_layout.addWidget(self.num_listed_compounds)
+        self.top_buttons_layout.addStretch(5)
 
         save_area = QHBoxLayout()
         save_area.setSpacing(0)
@@ -207,14 +212,15 @@ class ViewDockTool(ToolInstance):
         if len(sel) > 1:
             self.session.logger.warning("Multiple structures chosen in table")
             return
-        next_index = self.struct_table.data.index(sel[0]) + direction
+        sorted_data = self.struct_table.sorted_data
+        next_index = sorted_data.index(sel[0]) + direction
         if next_index < 0:
             self.session.logger.warning("Already at top of table")
             return
         if next_index >= len(self.struct_table.data):
             self.session.logger.warning("Already at bottom of table")
             return
-        self.struct_table.selected = [self.struct_table.data[next_index]]
+        self.struct_table.selected = [sorted_data[next_index]]
 
     def popup_callback(self, gui_class, popup_name, results_callback, **kwargs):
         """
@@ -354,7 +360,7 @@ class ViewDockTool(ToolInstance):
             self.struct_table.add_column(self.display_key(key), lambda s, k=key: s.viewdock_data.get(k, ''))
 
         # Set the data for the table and launch it
-        self.struct_table.data = structures
+        self.set_table_data(structures)
         # table_state is False if coming from ViewDockX session
         self.struct_table.launch(session_info=(table_state if table_state else None))
         if not table_state:
@@ -485,7 +491,7 @@ class ViewDockTool(ToolInstance):
                     s.display = False
             self.update_table_for_hidden()
         else:
-            self.struct_table.data = self.table_structures
+            self.set_table_data(self.table_structures)
 
     def hotkeys_setup(self, *, hotkeys_on=None):
         ui_area = self.tool_window.ui_area
@@ -522,7 +528,7 @@ class ViewDockTool(ToolInstance):
 
     def update_table_for_hidden(self):
         sel = self.struct_table.selected
-        self.struct_table.data = self.table_structures
+        self.set_table_data(self.table_structures)
         if sel and not self.struct_table.selected and self.struct_table.data:
             for possible in self.vd_structures[self.vd_structures.index(sel[-1])+1:]:
                 if possible in self.struct_table.data:
@@ -719,7 +725,13 @@ class ViewDockTool(ToolInstance):
         if not self.vd_structures:
             self.delete()
         else:
-            self.struct_table.data = cur_structures
+            self.set_table_data(cur_structures)
+
+    def set_table_data(self, structures):
+        self.struct_table.data = structures
+        from chimerax.core.commands import plural_form
+        self.num_listed_compounds.setText("%d %s listed"
+            % (len(structures), plural_form(structures, "compound")))
 
     def set_visibility(self, structs, value):
         """

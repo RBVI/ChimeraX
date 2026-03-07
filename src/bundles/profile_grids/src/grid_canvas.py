@@ -221,7 +221,7 @@ class GridCanvas:
             else:
                 row = label_to_row[self.MISC_LABEL]
             row_cols.append((row, col))
-        self._choose_cells(row_cols)
+        self._choose_cells(row_cols, clear=True)
 
     def destroy(self):
         self._destroyed = True
@@ -357,14 +357,9 @@ class GridCanvas:
                 except KeyError:
                     pass # fall through to choosing the cell, below
                 else:
-                    item.hide()
-                    self.main_scene.removeItem(item)
                     self._unchoose_cell(row, col)
                     return
             else:
-                for item in self.chosen_cells.values():
-                    item.hide()
-                    self.main_scene.removeItem(item)
                 self._clear_chosen_cells()
             self._choose_cell(row, col)
 
@@ -553,6 +548,9 @@ class GridCanvas:
             self._report_chosen_seqs()
 
     def _clear_chosen_cells(self, *, report=True):
+        for item in self.chosen_cells.values():
+            item.hide()
+            self.main_scene.removeItem(item)
         self.chosen_cells.clear()
         if report:
             self._report_chosen_seqs()
@@ -656,7 +654,9 @@ class GridCanvas:
         return seqs
 
     def _unchoose_cell(self, row, col):
-        del self.chosen_cells[(row, col)]
+        item = self.chosen_cells.pop((row, col))
+        item.hide()
+        self.main_scene.removeItem(item)
         self._report_chosen_seqs()
 
     def _update_cell_texts(self):

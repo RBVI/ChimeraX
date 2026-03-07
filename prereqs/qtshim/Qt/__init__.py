@@ -125,7 +125,8 @@ if using_pyside6:
     def qt_image_bytes(qimage):
         return qimage.bits().tobytes()
 
-    qt_enum_from_int = lambda enum_class, val: val.value if isinstance(val, enum.Enum) else val
+    # PySide6 uses Python enums like PyQt6
+    qt_enum_from_int = lambda enum_class, val: val if isinstance(val, enum.Enum) else enum_class(val)
 
 def qt_have_web_engine():
     try:
