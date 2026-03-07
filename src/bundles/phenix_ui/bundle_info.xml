@@ -32,6 +32,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: phenix barbedWire :: Structure Prediction :: Categorize regions of an AlphaFold prediction</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: phenix douse :: Structure Editing :: Place waters in a map</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: phenix emplaceLocal :: Structure Editing :: Place model in map</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: phenix fitLoops :: Structure Editing :: Fill in missing structure guided by map</ChimeraXClassifier>
