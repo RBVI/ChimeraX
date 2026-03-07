@@ -97,11 +97,20 @@ class MutationScatterPlot(Graph):
                            'Y axis', ('score1', 'score2'),
                            'Mutations', ('set1', 'set2'))
         self._x_axis_menu, self._y_axis_menu, self._mutation_set_menu = menus.values
+        self._mutation_set_menu_label = menus.labels[2]
         for m in menus.values:
             menu = m.widget.menu()
             menu.aboutToShow.connect(lambda *,menu=menu: self._menu_about_to_show(menu))
             menu.triggered.connect(self._menu_selection_changed)
+        self._set_mutation_set_menu_visibility()
+        
         return menus.frame
+
+    def _set_mutation_set_menu_visibility(self):
+        from .ms_data import mutation_scores_list
+        visible = (len(mutation_scores_list(self.session)) > 1)
+        self._mutation_set_menu.widget.setVisible(visible)
+        self._mutation_set_menu_label.setVisible(visible)
 
     def _create_coloring_controls(self, parent):
         from chimerax.ui.widgets import column_frame, EntriesRow
@@ -192,6 +201,7 @@ class MutationScatterPlot(Graph):
         self._x_axis_menu.value = x_score_name
         self._y_axis_menu.value = y_score_name
         self._mutation_set_menu.value = self.mutation_set_name = mset.name
+        self._set_mutation_set_menu_visibility()
         self._color_score_menu.value = x_score_name
         
         points = []
