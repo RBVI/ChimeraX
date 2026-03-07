@@ -74,6 +74,9 @@ class MutationScatterPlot(Graph):
         self.figure.set_layout_engine(layout='constrained')  # Avoid clipping axis labels
 
         parent = self.tool_window.ui_area
+        from types import MethodType
+        from Qt.QtCore import QSize
+        parent.sizeHint = MethodType(lambda p: QSize(500,500), parent)	# Set initial size
         layout = parent.layout()
 
         # Add x-axis, y-axis and mutation set menus.
