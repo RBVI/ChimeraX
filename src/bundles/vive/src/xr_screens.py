@@ -12,9 +12,8 @@
 # === UCSF ChimeraX Copyright ===
 
 # -----------------------------------------------------------------------------
-# Routines to setup OpenXR 3D screens such as Sony Spatial Reality,
-# Acer SpatialLabs, or Samsung Odyssey 3D (via SteamVR vrto3d driver)
-# to handle the coordinate systems for these displays
+# Routines to setup OpenXR 3D screens such as Sony Spatial Reality
+# or Acer SpatialLabs to handle the coordinate systems for these displays
 # and mouse events and keyboard input.
 #
 def setup_openxr_screen(openxr_system_name, openxr_camera):
@@ -22,8 +21,6 @@ def setup_openxr_screen(openxr_system_name, openxr_camera):
         _sony_spatial_reality_setup(openxr_camera)
     elif openxr_system_name == 'SpatialLabs Display Driver':
         _acer_spatial_labs_setup(openxr_camera)
-    elif 'vrto3d' in openxr_system_name.lower():
-        _vrto3d_screen_setup(openxr_camera)
 
 def _sony_spatial_reality_setup(openxr_camera):
     # Flatpanel Sony Spatial Reality display with eye tracking.
@@ -108,46 +105,23 @@ def _acer_spatial_labs_setup(openxr_camera):
 
     _enable_xr_mouse_modes(c._session)
 
-def _vrto3d_screen_setup(openxr_camera):
-    # SteamVR vrto3d driver used with autostereo 3D displays such as
-    # Samsung Odyssey 3D (flat vertical panel with eye tracking).
-    # vrto3d emulates a VR headset via SteamVR so that OpenXR apps
-    # produce stereo output which vrto3d converts to SBS for the
-    # display's lenticular lens and eye tracking.
-    #
-    # Unlike Sony/Acer which use native OpenXR screen drivers,
-    # vrto3d goes through SteamVR which handles room positioning.
-    # We only need to enable mouse modes here -- no fit_view_to_room().
-    #
-    # direct_pick: vrto3d per-eye render is portrait (e.g. 1920x2160)
-    # while the screen is landscape. The standard coordinate mapping
-    # through the graphics pane loses accuracy due to aspect ratio
-    # mismatch. direct_pick maps backing window coordinates directly
-    # to the XR render texture, bypassing the graphics pane.
-    _enable_xr_mouse_modes(openxr_camera._session,
-                           openxr_window_captures_events = True,
-                           direct_pick = True)
-
 def _enable_xr_mouse_modes(session, screen_model_name = None,
-                           openxr_window_captures_events = False,
-                           direct_pick = False):
+                           openxr_window_captures_events = False):
     '''
-    Allow mouse modes to work with mouse on Acer, Sony, or Samsung 3D displays.
-    These displays create a fullscreen window. This mouse mode support
+    Allow mouse modes to work with mouse on Acer or Sony 3D displays.
+    Both these displays create a fullscreen window. This mouse mode support
     works by creating a backing full-screen Qt window which receives the
-    mouse events.
+     mouse events.
     '''
     screen = find_xr_screen(session, screen_model_name)
     if screen is None:
         session.logger.warning('Could not enable mouse on OpenXR screen.')
         return False
-    XRBackingWindow(session, screen, in_front = openxr_window_captures_events,
-                    direct_pick = direct_pick)
+    XRBackingWindow(session, screen, in_front = openxr_window_captures_events)
     session.logger.info(f'Enabled mouse on OpenXR screen "{screen.model()}"')
     return True
 
-xr_screen_model_names = ['ASV27-2P', '1ASV27-2P', 'DS1_156', 'SR Display', 'SR Display GB',
-                         'Odyssey G90XF', 'Odyssey G90XH']
+xr_screen_model_names = ['ASV27-2P', '1ASV27-2P', 'DS1_156', 'SR Display', 'SR Display GB']
 def find_xr_screen(session, screen_model_name = None):
     model_names = [screen_model_name] if screen_model_name else xr_screen_model_names
     screens = session.ui.screens()
@@ -165,11 +139,9 @@ class XRBackingWindow:
     and Sony Spatial Reality to capture mouse and keyboard events when
     mouse is on the 3D display.
     '''
-    def __init__(self, session, screen, in_front = False, hover_text = True,
-                 direct_pick = False):
+    def __init__(self, session, screen, in_front = False, hover_text = True):
         self._session = session
         self._screen = screen
-        self._direct_pick = direct_pick
 
         # Create fullscreen backing Qt window on openxr screen.
         from Qt.QtWidgets import QWidget
@@ -193,7 +165,7 @@ class XRBackingWindow:
         if hover_text:
             session.triggers.add_handler('graphics update',
                                          self._check_for_mouse_hover)
-
+        
     def _make_transparent_in_front(self, w):
         # On Sony Spatial Reality displays the full screen
         # window made by Sony OpenXR captures mouse events
@@ -247,10 +219,7 @@ class XRBackingWindow:
         graphics pane coordinates and dispatch it.
         '''
         p = event.position()
-        if self._direct_pick:
-            gx, gy = self._backing_to_render_coordinates(p.x(), p.y())
-        else:
-            gx, gy = self._backing_to_graphics_coordinates(p.x(), p.y())
+        gx, gy = self._backing_to_graphics_coordinates(p.x(), p.y())
         e = self._repositioned_event(event, gx, gy)
         mm = self._session.ui.mouse_modes
         mm._dispatch_mouse_event(e, action)
@@ -287,36 +256,6 @@ class XRBackingWindow:
             afx = fx
             afy = 0.5 + (1/af) * (fy - 0.5)
         gx, gy = afx * gw, afy * gh
-        return gx, gy
-
-    def _backing_to_render_coordinates(self, x, y):
-        '''
-        Map backing window coordinates directly to the XR per-eye
-        render texture, bypassing the graphics pane aspect ratio
-        correction. This is needed for vrto3d where the per-eye render
-        (e.g. 1920x2160 portrait) has a very different aspect ratio from
-        the graphics pane (e.g. 1979x1163 landscape).
-
-        We compute what graphics pane coordinates would make ray()
-        sample the correct position in the render texture by inverting
-        the texture coordinate mapping that ray() applies.
-        '''
-        w3d = self._widget
-        w, h = w3d.width(), w3d.height()
-        if w == 0 or h == 0:
-            return x, y
-        cam = self._session.main_view.camera
-        td = getattr(cam, '_texture_drawing', None)
-        if td is None or td.texture is None:
-            return self._backing_to_graphics_coordinates(x, y)
-        fx, fy = x / w, y / h
-        tc = td.texture_coordinates
-        (xmin, ymin), (xmax, ymax) = tc[0], tc[2]
-        gw, gh = self._session.main_view.window_size
-        if (xmax - xmin) == 0 or (ymax - ymin) == 0:
-            return self._backing_to_graphics_coordinates(x, y)
-        gx = (fx - xmin) / (xmax - xmin) * gw
-        gy = (fy - ymin) / (ymax - ymin) * gh
         return gx, gy
 
     def _repositioned_event(self, event, x, y):
