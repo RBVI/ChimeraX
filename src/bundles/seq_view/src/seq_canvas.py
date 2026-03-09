@@ -24,6 +24,7 @@
 
 from .settings import SINGLE_PREFIX, ALIGNMENT_PREFIX
 from chimerax.atomic import Sequence
+from chimerax.core.colors import scheme_color, Color
 
 """TODO
 from Consensus import Consensus
@@ -70,11 +71,13 @@ class SeqCanvas:
         """
         self.label_scene.setBackgroundBrush(Qt.lightGray)
         """
-        self.label_scene.setBackgroundBrush(Qt.white)
+        from .region_browser import get_rgba, rgba_to_qcolor
+        qt_background = rgba_to_qcolor(Color(scheme_color("Canvas", expand=True)).rgba)
+        self.label_scene.setBackgroundBrush(qt_background)
         self.label_view = QGraphicsView(self.label_scene)
         self.label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         self.main_scene = QGraphicsScene()
-        self.main_scene.setBackgroundBrush(Qt.white)
+        self.main_scene.setBackgroundBrush(qt_background)
         """if gray background desired...
         ms_brush = self.main_scene.backgroundBrush()
         from Qt.QtGui import QColor
@@ -1550,8 +1553,6 @@ class SeqCanvas:
 
 class SeqBlock:
     from Qt.QtCore import Qt
-    normal_label_color = Qt.black
-    header_label_color = Qt.blue
     multi_assoc_color = Qt.darkGreen
     label_pad = 3
     from Qt.QtGui import QPen
@@ -1615,6 +1616,9 @@ class SeqBlock:
             self._brushes = prev_block._brushes
             self.multi_assoc_brush = prev_block.multi_assoc_brush
             self.multi_assoc_pen = prev_block.multi_assoc_pen
+            self.normal_text_color = prev_block.normal_text_color
+            self.normal_label_color = prev_block.normal_label_color
+            self.header_label_color = prev_block.header_label_color
         else:
             self.top_y = 0
             self.line_index = {}
@@ -1642,6 +1646,10 @@ class SeqBlock:
                 sys.setrecursionlimit(4 * int(100 + seq_len / line_width))
             from chimerax.atomic import get_triggers
             self.handler = get_triggers().add_handler('changes', self._changes_cb)
+            from .region_browser import get_rgba, rgba_to_qcolor
+            self.normal_label_color = self.normal_text_color = rgba_to_qcolor(
+                Color(scheme_color("CanvasText", expand=True)).rgba)
+            self.header_label_color = rgba_to_qcolor(Color(scheme_color("LinkText", expand=True)).rgba)
         self.bottom_y = self.top_y
 
         self.label_texts = {}
@@ -1914,7 +1922,7 @@ class SeqBlock:
                 from .region_browser import get_rgba, rgba_to_qcolor
                 return lambda l, o: rgba_to_qcolor(get_rgba(l.position_color(o)))
             from Qt.QtCore import Qt
-            return lambda l, o, color=Qt.black: color
+            return lambda l, o, color=self.normal_text_color: color
     """TODO
         try:
             return line.color_func
@@ -1944,7 +1952,7 @@ class SeqBlock:
         if len(structures) > 1:
             brush = self.multi_assoc_brush
             pen = self.multi_assoc_pen
-            contrast = (0.0, 0.0, 0.0)
+            text_color = self.normal_label_color
         else:
             import numpy
             if len(self.alignment.match_maps[aseq]) == 1:
@@ -1969,10 +1977,11 @@ class SeqBlock:
                 pen = QPen(brush, 0, Qt.SolidLine)
             from chimerax.core.colors import contrast_with
             contrast = contrast_with([c/255.0 for c in color])
+            text_color = QColor(*[int(c*255+0.5) for c in contrast])
         label_rect.setBrush(brush)
         label_rect.setPen(pen)
         text_brush = label_text.brush()
-        text_brush.setColor(QColor(*[int(c*255+0.5) for c in contrast]))
+        text_brush.setColor(text_color)
         label_text.setBrush(text_brush)
 
     def _compute_numbering(self, line, end):

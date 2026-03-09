@@ -805,10 +805,18 @@ class Sequence(State):
         'W':'TRP', 'Y':'TYR', 'Z':'GLX' }
 
     # the following colors for use by alignment/sequence viewers
-    default_helix_fill_color = (1.0, 1.0, 0.8)
-    default_helix_outline_color = tuple([chan/255.0 for chan in (218, 165, 32)]) # goldenrod
-    default_strand_fill_color = (0.88, 1.0, 1.0) # light cyan
-    default_strand_outline_color = tuple([0.75*chan for chan in default_strand_fill_color])
+    light_mode_helix_fill = (1.0, 1.0, 0.8)
+    light_mode_helix_outline = tuple([chan/255.0 for chan in (218, 165, 32)]) # goldenrod
+    light_mode_strand_fill = (0.88, 1.0, 1.0) # light cyan
+    light_mode_strand_outline = tuple([0.75*chan for chan in light_mode_strand_fill])
+    dark_mode_helix_fill = tuple([0.6*chan for chan in light_mode_helix_fill])
+    dark_mode_helix_outline = light_mode_helix_fill
+    dark_mode_strand_fill = tuple([0.6*chan for chan in light_mode_strand_fill])
+    dark_mode_strand_outline = light_mode_strand_fill
+    default_helix_fill_color = light_mode_helix_fill
+    default_helix_outline_color = light_mode_helix_outline
+    default_strand_fill_color = light_mode_strand_fill
+    default_strand_outline_color = light_mode_strand_outline
 
     chimerax_exiting = False
 
