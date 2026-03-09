@@ -1291,7 +1291,7 @@ class TimelineSceneWidget(QWidget):
 
             angle_menu = menu.addMenu("Angle")
             current_angle = config.get("angle", 60)
-            for angle in [15, 30, 45, 60, 90, 120, 180]:
+            for angle in [15, 30, 45, 60, 90, 120, 180, 360]:
                 action = QAction(f"{angle}°", menu)
                 action.setCheckable(True)
                 action.setChecked(current_angle == angle)
