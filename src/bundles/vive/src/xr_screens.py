@@ -68,7 +68,7 @@ def _sony_spatial_reality_setup(openxr_camera):
                        scene_center = v.center_of_rotation,
                        scene_camera = v.camera)
 
-    _enable_xr_mouse_modes(c._session, openxr_window_captures_events = True)
+    enable_xr_mouse_modes(c._session, openxr_window_captures_events = True)
 
 def _acer_spatial_labs_setup(openxr_camera):
     # Flatpanel Acer SpatialLabs 27" display with eye tracking.
@@ -103,7 +103,7 @@ def _acer_spatial_labs_setup(openxr_camera):
                        scene_center = v.center_of_rotation,
                        scene_camera = v.camera)
 
-    _enable_xr_mouse_modes(c._session)
+    enable_xr_mouse_modes(c._session)
 
 def _enable_xr_mouse_modes(session, screen_model_name = None,
                            openxr_window_captures_events = False):
@@ -121,7 +121,11 @@ def _enable_xr_mouse_modes(session, screen_model_name = None,
     session.logger.info(f'Enabled mouse on OpenXR screen "{screen.model()}"')
     return True
 
+# The XR3D toolshed bundle replaces the XR mouse mode handling and adds Samsung
+# display support using the enable_xr_mouse_modes hook.
+enable_xr_mouse_modes = _enable_xr_mouse_modes
 xr_screen_model_names = ['ASV27-2P', '1ASV27-2P', 'DS1_156', 'SR Display', 'SR Display GB']
+
 def find_xr_screen(session, screen_model_name = None):
     model_names = [screen_model_name] if screen_model_name else xr_screen_model_names
     screens = session.ui.screens()
