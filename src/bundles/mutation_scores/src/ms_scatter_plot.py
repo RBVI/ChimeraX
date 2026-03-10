@@ -72,7 +72,8 @@ class MutationScatterPlot(Graph):
         nodes = edges = []
         Graph.__init__(self, session, nodes, edges,
                        tool_name = 'Mutation scores plot', title = 'Mutation scores plot',
-                       hide_ticks = False, drag_select_callback = self._rectangle_selected)
+                       hide_ticks = False, drag_select_callback = self._rectangle_selected,
+                       panel_placement = None)
         self.figure.set_layout_engine(layout='constrained')  # Avoid clipping axis labels
 
         parent = self.tool_window.ui_area
@@ -92,8 +93,6 @@ class MutationScatterPlot(Graph):
         # Add status line
         sl = self._create_status_line(parent)
         layout.addWidget(sl)
-
-        self.tool_window.manage(placement=None)	# Floating to handle large initial size
 
     def _create_axes_menus(self, parent):
         from chimerax.ui.widgets import EntriesRow

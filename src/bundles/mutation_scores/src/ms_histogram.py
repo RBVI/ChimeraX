@@ -53,7 +53,7 @@ class MutationHistogram(Graph):
         Graph.__init__(self, session, nodes, edges,
                        tool_name = 'Mutation scores histogram', title = 'Mutation scores histogram',
                        hide_ticks = False, drag_select_callback = self._rectangle_selected,
-                       zoom_axes = 'x', translate_axes = 'x')
+                       zoom_axes = 'x', translate_axes = 'x', panel_placement = None)
         self.figure.set_layout_engine(layout='constrained')  # Avoid clipping axis labels
 
         tw = self.tool_window
@@ -74,8 +74,6 @@ class MutationHistogram(Graph):
             menu.triggered.connect(self._menu_selection_changed)
         layout.addWidget(menus.frame)
         self._set_mutation_set_menu_visibility()
-
-        self.tool_window.manage(placement=None)	# Floating to handle large initial size
 
     def _menu_about_to_show(self, menu):
         menu.clear()
