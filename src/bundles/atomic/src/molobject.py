@@ -1668,6 +1668,8 @@ class StructureData:
     '''Ribbon mode showing secondary structure as an arc (tube or plank).'''
     RIBBON_MODE_WRAP = 2
     '''Ribbon mode showing helix as ribbon wrapped around tube.'''
+    RIBBON_MODE_CYLINDER = 3
+    '''Ribbon mode showing helix as straight cylinder.'''
     ring_display_count = c_property('structure_ring_display_count', int32, read_only = True,
         doc = "Return number of residues with ring display set. Integer.")
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
