@@ -26,7 +26,7 @@ class UI_Settings(Settings):
         'initial_window_size': ("last used", None),
         'tool_positions': {'toolbars': {}, 'windows': {}},
         'undockable': [
-            'Help Viewer', "Color Key", "Mutation scores plot",
+            'Help Viewer', "Color Key", "Mutation scores plot", "Mutation scores histogram",
         ],
     }
 
