@@ -24,15 +24,19 @@
 
 from chimerax.core.settings import Settings
 
+
 class _AnimationsSettings(Settings):
     EXPLICIT_SAVE = {
-        'recording_resolution': '1080p',  # Default to 1080p
-        'animation_mode': 'scene',  # Default to scene mode ('keyframe' or 'scene')
+        "recording_resolution": "1080p",  # Default to 1080p
+        "animation_mode": "scene",  # Default to scene mode ('keyframe' or 'scene')
+        "playback_fps": 60,  # Playback frame rate
     }
     AUTO_SAVE = {}
 
+
 # Global settings instance
 _settings = None
+
 
 def get_settings(session):
     """Get the animations settings instance"""
@@ -40,6 +44,7 @@ def get_settings(session):
     if _settings is None:
         _settings = _AnimationsSettings(session, "animations")
     return _settings
+
 
 class AnimationsPreferencesDialog:
     """Dialog for animations preferences"""
@@ -69,7 +74,7 @@ class AnimationsPreferencesDialog:
                 settings=self.settings,
                 callback=None,
                 labels=["1080p (1920x1080)", "4K UHD (3840x2160)", "Custom Resolution"],
-                values=["1080p", "4k", "custom"]
+                values=["1080p", "4k", "custom"],
             )
         )
 
@@ -82,7 +87,19 @@ class AnimationsPreferencesDialog:
                 settings=self.settings,
                 callback=None,
                 labels=["Keyframe Mode", "Scene Mode"],
-                values=["keyframe", "scene"]
+                values=["keyframe", "scene"],
+            )
+        )
+
+        self.panel.add_option(
+            SymbolicEnumOption(
+                name="Playback frame rate",
+                default=None,
+                attr_name="playback_fps",
+                settings=self.settings,
+                callback=None,
+                labels=["24 FPS", "48 FPS", "60 FPS", "120 FPS"],
+                values=[24, 48, 60, 120],
             )
         )
 
@@ -92,6 +109,7 @@ class AnimationsPreferencesDialog:
     def _show_help(self):
         """Show help for animations preferences"""
         from chimerax.core.commands import run
+
         run(self.session, "help help:user/tools/animations.html")
 
     def show(self):

@@ -1387,7 +1387,8 @@ class KeyframeEditorWidget(QWidget):
         self.is_playing = False
         self.playback_timer = QTimer(self)
         self.playback_timer.timeout.connect(self._advance_frame)
-        self.fps = 60  # Frames per second - increased for smoother playback
+        from .settings import get_settings
+        self.fps = get_settings(session).playback_fps
 
         # Get or create scene animation manager
         self.scene_animation = self._get_scene_animation_manager()
@@ -1721,12 +1722,18 @@ class KeyframeEditorWidget(QWidget):
 
         # FPS control
         layout.addWidget(QLabel("FPS:"))
-        self.fps_spin = QSpinBox()
-        self.fps_spin.setRange(1, 60)
-        self.fps_spin.setValue(self.fps)
-        self.fps_spin.valueChanged.connect(self._on_fps_changed)
-        self.fps_spin.setFixedWidth(60)
-        layout.addWidget(self.fps_spin)
+        from Qt.QtWidgets import QComboBox
+        self.fps_combo = QComboBox()
+        for fps_val in [24, 48, 60, 120]:
+            self.fps_combo.addItem(str(fps_val), fps_val)
+        idx = self.fps_combo.findData(self.fps)
+        if idx >= 0:
+            self.fps_combo.setCurrentIndex(idx)
+        self.fps_combo.currentIndexChanged.connect(
+            lambda i: self._on_fps_changed(self.fps_combo.itemData(i))
+        )
+        self.fps_combo.setFixedWidth(70)
+        layout.addWidget(self.fps_combo)
 
         # Zoom controls
         layout.addWidget(QLabel("Zoom:"))
@@ -2069,6 +2076,10 @@ class KeyframeEditorWidget(QWidget):
         # Sync FPS with scene animation manager
         if hasattr(self, 'scene_animation'):
             self.scene_animation.set_fps(fps)
+
+        from .settings import get_settings
+        settings = get_settings(self.session)
+        settings.playback_fps = fps
 
     def _evaluate_animation_at_frame(self, frame: int):
         """Evaluate and apply animation at the given frame."""
