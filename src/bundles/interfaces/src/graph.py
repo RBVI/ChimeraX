@@ -27,7 +27,8 @@
 from chimerax.core.tools import ToolInstance
 class Plot(ToolInstance):
 
-    def __init__(self, session, tool_name, *, title=None, zoom_axes = 'xy', translate_axes = 'xy'):
+    def __init__(self, session, tool_name, *, title=None, zoom_axes = 'xy', translate_axes = 'xy',
+                 panel_placement = "side"):
         self.zoom_axes = zoom_axes
         self.translate_axes = translate_axes
         
@@ -55,7 +56,7 @@ class Plot(ToolInstance):
 
         layout.addWidget(c, stretch = 1)
         parent.setLayout(layout)
-        tw.manage(placement="side")
+        tw.manage(placement = panel_placement)
 
         self.axes = axes = f.gca()
 
@@ -192,11 +193,13 @@ class Graph(Plot):
     '''
     
     def __init__(self, session, nodes, edges, tool_name, title, hide_ticks = True,
-                 drag_select_callback = None, zoom_axes = 'xy', translate_axes = 'xy'):
+                 drag_select_callback = None, zoom_axes = 'xy', translate_axes = 'xy',
+                 panel_placement = 'side'):
 
         # Create matplotlib panel
         Plot.__init__(self, session, tool_name, title = title,
-                      zoom_axes = zoom_axes, translate_axes = translate_axes)
+                      zoom_axes = zoom_axes, translate_axes = translate_axes,
+                      panel_placement = panel_placement)
         self.tool_window.fill_context_menu = self._fill_context_menu
 
         self.nodes = nodes

@@ -71,7 +71,7 @@ def _sony_spatial_reality_setup(openxr_camera):
                        scene_center = v.center_of_rotation,
                        scene_camera = v.camera)
 
-    _enable_xr_mouse_modes(c._session, openxr_window_captures_events = True)
+    enable_xr_mouse_modes(c._session, openxr_window_captures_events = True)
 
 def _acer_spatial_labs_setup(openxr_camera):
     # Flatpanel Acer SpatialLabs 27" display with eye tracking.
@@ -106,7 +106,7 @@ def _acer_spatial_labs_setup(openxr_camera):
                        scene_center = v.center_of_rotation,
                        scene_camera = v.camera)
 
-    _enable_xr_mouse_modes(c._session)
+    enable_xr_mouse_modes(c._session)
 
 def _vrto3d_screen_setup(openxr_camera):
     # SteamVR vrto3d driver used with autostereo 3D displays such as
@@ -124,9 +124,9 @@ def _vrto3d_screen_setup(openxr_camera):
     # through the graphics pane loses accuracy due to aspect ratio
     # mismatch. direct_pick maps backing window coordinates directly
     # to the XR render texture, bypassing the graphics pane.
-    _enable_xr_mouse_modes(openxr_camera._session,
-                           openxr_window_captures_events = True,
-                           direct_pick = True)
+    enable_xr_mouse_modes(openxr_camera._session,
+                          openxr_window_captures_events = True,
+                          direct_pick = True)
 
 def _enable_xr_mouse_modes(session, screen_model_name = None,
                            openxr_window_captures_events = False,
@@ -146,8 +146,12 @@ def _enable_xr_mouse_modes(session, screen_model_name = None,
     session.logger.info(f'Enabled mouse on OpenXR screen "{screen.model()}"')
     return True
 
+# The XR3D toolshed bundle replaces the XR mouse mode handling to add 3D cursors
+# using the enable_xr_mouse_modes hook.
+enable_xr_mouse_modes = _enable_xr_mouse_modes
 xr_screen_model_names = ['ASV27-2P', '1ASV27-2P', 'DS1_156', 'SR Display', 'SR Display GB',
                          'Odyssey G90XF', 'Odyssey G90XH']
+
 def find_xr_screen(session, screen_model_name = None):
     model_names = [screen_model_name] if screen_model_name else xr_screen_model_names
     screens = session.ui.screens()

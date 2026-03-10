@@ -25,7 +25,8 @@ for many aspects of a scene&nbsp;*</h3>
 <p>
 <b>Animations</b> is a timeline-based graphical interface for creating
 movies from a series of <a href="scenes.html">scenes</a> and other
-actions. See also: 
+actions. The <a href="#settings">scene mode</a> of the GUI is
+documented in this page. See also: 
 <a href="../images.html">making images</a>,
 <a href="../movies.html">making movies</a>
 </p>
@@ -50,7 +51,7 @@ width="750px"></a></td></tr>
 <br>
 <a href="#recording">Recording a Movie</a>
 <br>
-<a href="#settings">Settings</a>
+<a href="#settings">Settings (Preferences)</a>
 </b></blockquote>
 
 <a name="placing"></a>
@@ -74,9 +75,38 @@ represent rocking, rolling, and precession. Each type of action can be placed
 on the timeline any number of times by clicking and dragging the respective
 icon, and its start and stop times adjusted by dragging the left and right
 ends of the action bar horizontally on the timeline.
-</p><p>
+The <a href="../window.html#context-menu">context menu</a> for an action bar
+on the timeline includes corresponding options:
+</p>
+  <ul>
+  <li>for <b>Rock</b>:
+    <ul>
+    <li><b>Delete 'Rock' Segment</b>
+    </li><li><b>Axis</b> (X/<b>Y</b>/Z)
+    </li><li><b>Angle</b> (15/30/45/<b>60</b>/90/120/180&deg;)
+    </li><li><b>Count</b> (<b>1</b>/2/3/4/5)
+    </ul>
+  <li>for <b>Roll</b>:
+    <ul>
+    <li><b>Delete 'Roll' Segment</b>
+    </li><li><b>Axis</b> (X/<b>Y</b>/Z)
+    </li><li><b>Angle</b> (15/30/45/60/90/120/180/<b>360</b>&deg;) 
+    &ndash; total rotation
+    </li><li><b>Count</b> (<b>1</b>/2/3/4/5)
+    </ul>
+  <li>for <b>Precess</b>:
+    <ul>
+    <li><b>Delete 'Precess' Segment</b>
+    </li><li><b>Axis</b> (X/<b>Y</b>/Z)
+    </li><li><b>Count</b> (<b>1</b>/2/3/4/5) &ndash; number of cycles
+    </li><li><b>Precession Tilt</b> (5/<b>10</b>/15/20/30/45&deg;)
+    </ul>
+  </ul>
+<p>
 A scene or action can be removed from the timeline by clicking its
 representation on the timeline and pressing the <b>delete</b> key.
+A scene can also be deleted by using the 
+<a href="#transitions">thumbnail context menu</a>.
 </p>
 
 <a name="playback"></a>
@@ -134,18 +164,52 @@ on the timeline with line shapes and labels below the scene thumbnails.
 </p>
 <h4>Recording a Movie</h4>
 <p>
+Clicking the <font color="red">&#9673;</font> button to record a movie 
+opens a dialog for specifying the movie resolution
+and output file type, filename, and location. 
+Clicking <b>Save</b> initiates recording with the indicated settings, 
+and the recording button above the timeline changes to orange 
+<font color="orange">&#9673;</font> to indicate a recording in progress.
+Clicking the orange button halts the recording and assembles any 
+already-recorded image frames into the specified output file.
+In general, the scrubber will advance more slowly during recording
+than during playback because rendering the images takes time. 
 </p>
 
 <a name="settings"></a>
 <p class="nav">
 [<a href="#top">back to top: Animations</a>]
 </p>
-<h4>Settings</h4>
+<h4>Settings (Preferences)</h4>
 <p>
+Clicking the gear button opens the <b>Animations Preferences</b>,
+with settings:
 </p>
+<ul class="none">
+<li><b>Animation tool mode</b> &ndash; whether to show the
+<b>Scene Mode</b> GUI for <b>Animations</b> (default), which is
+documented in this page, or the more complex <b>Keyframe Mode</b>
+(not yet documented)
+</li><li><b>Default recording resolution</b> 
+&ndash; what resolution (image dimensions) to show initially in the 
+<a href="#recording">movie output dialog</a> when it is invoked
+by clicking the <font color="red">&#9673;</font> button to record;
+the resolution can still be changed in that dialog, however, 
+before recording is initiated
+</li></ul>
+<p>
+Buttons at the bottom of the dialog:
+</p>
+<ul>
+<li><b>Save</b> &ndash; save the current settings
+</li><li><b>Reset</b> &ndash; replace the current settings with the
+initial (&ldquo;factory&rdquo;) defaults
+</li><li><b>Restore</b> &ndash; restore values that were saved previously
+</li><li><b>Help</b> &ndash; show documentation
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2026</address>
+March 2026</address>
 
 </body></html>
