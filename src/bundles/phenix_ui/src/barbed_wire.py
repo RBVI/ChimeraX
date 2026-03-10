@@ -57,7 +57,7 @@ class BarbedWireJob(Job):
                 return
             finally:
                 self._running = False
-            self.session.ui.thread_safe(callback, *results)
+            self.session.ui.thread_safe(callback, results)
         import threading
         thread = threading.Thread(target=threaded_run, daemon=True)
         thread.start()
@@ -81,7 +81,7 @@ class BarbedWireJob(Job):
             seconds = delta % 60
             time_info = "%d:%02d:%02d" % (hours, minutes, seconds)
         ses = self.session
-        ses.ui.thread_safe(ses.logger.status, "Fitting job still running (%s)" % time_info)
+        ses.ui.thread_safe(ses.logger.status, "Barbed wire job still running (%s)" % time_info)
 
     def next_check(self):
         return self._monitor_interval
@@ -91,7 +91,7 @@ class BarbedWireJob(Job):
     def running(self):
         return self._running
 
-def phenix_barbed_wire(session, structures, *, block=None, phenix_location=None, show_key=True,
+def phenix_barbed_wire(session, structures, *, block=None, phenix_location=None, key=True,
         verbose=False, option_arg=[], position_arg=[]):
 
     # Find the phenix.barbed_wire_analysis executable
@@ -123,7 +123,7 @@ def phenix_barbed_wire(session, structures, *, block=None, phenix_location=None,
         # Run phenix.barbed_wire_analysis
         # keep a reference to 'tdir' in the callback so that the temporary directory isn't removed before
         # the program runs
-        callback = lambda json, *args, session=session, model=s, show_key=show_key, d_ref=tdir: \
+        callback = lambda json, *args, session=session, model=s, show_key=key, d_ref=tdir: \
             _process_results(session, json, model, show_key)
         BarbedWireJob(session, exe_path, option_arg, position_arg, temp_dir, verbose, callback, block)
 
@@ -131,7 +131,40 @@ def _process_results(session, json, structure, show_key):
     session.logger.status("Barbed wire analysis job finished")
     if structure.deleted:
         raise UserError("AlphaFold structure was deleted during analysis")
-    print("Returned JSON:", json)
+    # Ininitially color them all dark gray, the "unassigned" color
+    color_names = {
+        "Predictive": "blue",
+        "Unpacked high pLDDT": "gray",
+        "Near-predictive": "green",
+        "Unphysical": "purple",
+        "Pseudostructure": "gold",
+        "Barbed wire": "hotpink",
+        "Unassigned": "dim gray",
+    }
+    from chimerax.core.colors import Color
+    cat_colors = { cat: Color(color_name).uint8x4() for cat, color_name in color_names.items() }
+    structure.residues.ribbon_colors = cat_colors["Unassigned"]
+
+    from chimerax.atomic import Residue
+    Residue.register_attr(session, "barbed_wire_category", "barbed wire", attr_type=str)
+    for cat, res_infos in json['residues_by_category'].items():
+        for chain, res_str in [res_info.split(',') for res_info in res_infos]:
+            res_num = int(res_str.strip())
+            res = structure.find_residue(chain, res_num)
+            if res is None:
+                session.logger.warning("Could not find residue %d of chain %s from barbed wire output in %s;"
+                    " skipping" % (res_num, chain, structure))
+                continue
+            res.barbed_wire_category = cat
+            try:
+                res.ribbon_color = cat_colors[cat]
+            except KeyError:
+                raise RuntimeError("Unexpected structure category in barbed wire output: %s" % repr(cat))
+
+    from chimerax.core.commands import run, StringArg
+    run(session, "key %s pos 0.925,0.025 size 0.05,0.2 colorTreatment distinct labelSide left fontSize 16"
+        % ' '.join([StringArg.unparse("%s:%s" % (color_names[cat], cat))
+        for cat in reversed(sorted(list(color_names.keys())))]), log=False)
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 
@@ -140,7 +173,8 @@ def _run_barbed_wire_subprocess(session, exe_path, optional_args, positional_arg
     Run barbed_wire_analysis in a subprocess and return the JSON output.
     '''
     from chimerax.core.commands import StringArg
-    args = [exe_path, "model.pdb"] + ["output.type=json"] + optional_args + ["--json"] + positional_args
+    args = [exe_path, "model.pdb"] + ["output.type=json", "output.filename=barbed_wire_analysis_result.json"
+        ] + optional_args + positional_args
     tsafe=session.ui.thread_safe
     logger = session.logger
     tsafe(logger.status, f'Running {exe_path} in directory {temp_dir}')
@@ -182,8 +216,8 @@ def register_command(logger):
         required = [('structures', Or(AtomicStructuresArg, EmptyArg)),],
         keyword = [
                    ('block', BoolArg),
+                   ('key', BoolArg),
                    ('phenix_location', OpenFolderNameArg),
-                   ('show_key', BoolArg),
                    ('verbose', BoolArg),
                    ('option_arg', RepeatOf(StringArg)),
                    ('position_arg', RepeatOf(StringArg)),
