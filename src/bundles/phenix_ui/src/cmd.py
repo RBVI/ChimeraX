@@ -33,6 +33,9 @@ def register_command(logger):
     from .locate import phenix_location
     register('phenix location', desc, phenix_location, logger=logger)
 
+    from . import barbed_wire
+    barbed_wire.register_command(logger)
+
     from . import douse
     douse.register_command(logger)
 
