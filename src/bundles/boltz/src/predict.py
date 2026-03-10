@@ -56,6 +56,10 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
         from chimerax.core.errors import UserError
         raise UserError('No molecules specified for Boltz prediction')
 
+    if affinity == 'each' and len(for_each_smiles_ligand) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('Can only use "affinity each" option if forEachSmilesLigand option is given')
+
     predict_affinity = _affinity_component(affinity, ligand_components)
     _split_affinity_ligand(predict_affinity, molecular_components)
    

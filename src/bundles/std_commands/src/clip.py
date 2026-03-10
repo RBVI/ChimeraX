@@ -208,20 +208,19 @@ def report_clip_info(viewer, log):
     # Report current clip planes.
     planes = viewer.clip_planes.planes()
     if planes:
-        b = viewer.drawing_bounds()
-        c0 = b.center() if b else (0,0,0)
-        pinfo = [_clip_plane_info(p, c0) for p in planes]
-        msg = 'Using %d clip planes:\n%s' % (len(planes), '\n'.join(pinfo))
+        pinfo = '<br>'.join(_clip_plane_info(p) for p in planes)
+        msg = f'Using {len(planes)} clip planes:<br>{pinfo}'
+        status = f'Using {len(planes)} clip planes'
     else:
-        msg = 'Clipping is off'
-    log.info(msg)
-    log.status(msg)
+        msg = status = 'Clipping is off'
+    log.info(msg, is_html = True)
+    log.status(status)
 
-def _clip_plane_info(plane, center):
-    offset = -plane.offset(center) if plane.name in ('far', 'back') else plane.offset(center)
+def _clip_plane_info(plane):
     axis = '%.3f,%.3f,%.3f' % tuple(plane.normal)
     point = '%.4g,%.4g,%.4g' % tuple(plane.plane_point)
-    info = '%s offset %.5g, axis %s, point on plane %s)' % (plane.name,  offset, axis, point)
+    cmd = f'clip {plane.name} 0 axis {axis} position {point} coordinateSystem scene'
+    info = f'<a href="cxcmd:{cmd}">{cmd}</a>'
     return info
 
 def warn_on_zero_spacing(session, near, far, front, back):
