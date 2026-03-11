@@ -27,7 +27,9 @@ It interfaces with a local installation of
 See also: <a href="volume.html"><b>volume</b></a>
 </p>
 <ul>
-<li><a href="#douse"><b>phenix douse</b></a> 
+<li><a href="#barbedWire"><b>phenix barbedWire</b></a> 
+&ndash; classify low-pLDDT regions of AlphaFold2 structures
+</li><li><a href="#douse"><b>phenix douse</b></a> 
 &ndash; place waters into EM density
 </li><li><a href="#emplaceLocal"><b>phenix emplaceLocal</b></a>
 &ndash; local fitting into EM density
@@ -47,6 +49,74 @@ Macromolecular structure determination using X-rays, neutrons and electrons:
 recent developments in Phenix.</a>
 Liebschner D, Afonine PV, Baker ML, Bunk&oacute;czi G, Chen VB, Croll TI, Hintze B, Hung LW, Jain S, McCoy AJ, Moriarty NW, Oeffner RD, Poon BK, Prisant MG, Read RJ, Richardson JS, Richardson DC, Sammito MD, Sobolev OV, Stockwell DH, Terwilliger TC, Urzhumtsev AG, Videau LL, Williams CJ, Adams PD.
 <i>Acta Crystallogr D Struct Biol.</i> 2019 Oct 1;75(Pt 10):861-877.
+</blockquote>
+
+<a name="barbedWire"></a>
+<a href="#top" class="nounder">&bull;</a>
+<b>phenix barbedWire</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model</i></a>&nbsp;
+[&nbsp;<b>key</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>phenixLocation</b> &nbsp;<i>folder</i>&nbsp;]
+[&nbsp;<b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#advanced"><i>advanced-options</i></a>
+<blockquote>
+<p>
+Run the <a href="https://phenix-online.org" target="_blank">Phenix</a> program
+<i>barbed_wire_analysis</i> (under development, part of the MolProbity
+evaluation suite) on the specified atomic model(s). 
+The analysis was developed for AlphaFold2 models and applies to protein chains
+with <a href="https://alphafold.ebi.ac.uk/faq#faq-12" target="_blank">pLDDT</a> 
+values read from the B-factor field of their input files. See:
+</p>
+ <blockquote>
+<a href="https://journals.iucr.org/d/issues/2025/10/00/nz5018/index.html"
+target="_blank">
+Categorizing prediction modes within low-pLDDT regions of AlphaFold2 structures: near-predictive, pseudostructure and barbed wire.</a>
+Williams CJ, Chen VB, Richardson DC, Richardson JS.
+<i>Acta Crystallogr D Struct Biol.</i> 2025 Oct 1;81(Pt 10):558-572.
+ </blockquote>
+<p>
+Segments of the protein chain are classified and their ribbon representations
+colored as follows: 
+</p>
+<ul>
+<li><b>Barbed wire</b>
+<table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="hotpink" width="10px" title="hot pink"></td></tr>
+</tbody></table>
+</li><li><b>Near-predictive</b>
+<table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="green" width="10px" title="green"></td></tr>
+</tbody></table>
+</li><li><b>Predictive</b>
+<table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="blue" width="10px" title="blue"></td></tr>
+</tbody></table>
+</li><li><b>Pseudostructure</b>
+<table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="gold" width="10px" title="gold"></td></tr>
+</tbody></table>
+</li><li><b>Unassigned</b>
+<table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="dimgray" width="10px" title="dim gray"></td></tr>
+</tbody></table>
+</li><li><b>Unpacked high pLDDT</b>
+<table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="gray" width="10px" title="gray"></td></tr>
+</tbody></table>
+</li><li><b>Unphysical</b>
+<table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="purple" width="10px" title="purple"></td></tr>
+</tbody></table>
+</li>
+</ul>
+<p>
+The <b>key</b> option (default <b>true</b>) specifies whether to display a
+color key explaining these categories in the graphics window.
+The remaining options are as described below for
+<a href="#douse"><b>phenix douse</b></a>. See also:
+<a href="key.html"><b>key</b></a>
 </blockquote>
 
 <a name="douse"></a>
@@ -368,6 +438,6 @@ in the <a href="../tools/log.html"><b>Log</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-January 2026</address>
+March 2026</address>
 
 </body></html>
