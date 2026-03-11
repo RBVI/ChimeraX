@@ -1745,7 +1745,7 @@ class Center:
         return c
 
 
-class CoordSysArg(ModelArg):
+class CoordSysArg(Annotation):
     """
     Annotation for coordinate system for AxisArg and CenterArg
     when specified as tuples of numbers.  Coordinate system is
@@ -1756,12 +1756,20 @@ class CoordSysArg(ModelArg):
 
     @classmethod
     def parse(cls, text, session):
-        m, text, rest = super().parse(text, session)
-        return m.position, text, rest
+        value, used_text, rest = StringArg.parse(text, session)
+        if value == 'scene':
+            from chimerax.geometry import Place
+            p = Place()
+        elif value == 'screen':
+            p = session.main_view.camera.position
+        else:
+            m, used_text, rest = ModelArg.parse(text, session)
+            p = m.position
+        return p, used_text, rest
 
     @classmethod
     def unparse(cls, value, session):
-        raise NotImplementedError("No longer know model for %s" % cls.__name__)
+        raise NotImplementedError("Cannot infer CoordSysArg from value")
 
 
 class PlaceArg(Annotation):

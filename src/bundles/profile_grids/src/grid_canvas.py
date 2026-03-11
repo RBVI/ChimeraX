@@ -468,6 +468,7 @@ class GridCanvas:
     def update_selection(self, *args):
         for item in self.selection_items.values():
             self.main_scene.removeItem(item)
+        prev_sel = set(self.selection_items.keys())
         self.selection_items.clear()
         from chimerax.atomic import selected_chains, selected_residues
         sel_chains = set(selected_chains(self.pg.session))
@@ -501,6 +502,22 @@ class GridCanvas:
         for row, col in needs_highlight:
             self.selection_items[(row, col)] = self.main_scene.addRect(
                 col * width, row * height, width, height, pen=pen)
+        if self.selection_items and self.pg.settings.scroll_to_sel:
+            visible_scene_rect = self.main_view.mapToScene(self.main_view.viewport().rect()).boundingRect()
+            need_scroll = False
+            for row_col, sel_item in self.selection_items.items():
+                if row_col in prev_sel:
+                    continue
+                if visible_scene_rect.intersects(sel_item.sceneBoundingRect()):
+                    # at least one new item is visible
+                    need_scroll = False
+                    break
+                else:
+                    need_scroll = True
+                    scroll_item = sel_item
+            if need_scroll:
+                # nothing newly selected is showing
+                self.main_view.centerOn(scroll_item)
 
     def _cell_text(self, val, fraction):
         cell_text_type = self.pg.settings.cell_text
