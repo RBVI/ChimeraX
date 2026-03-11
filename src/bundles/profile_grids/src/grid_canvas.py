@@ -501,6 +501,14 @@ class GridCanvas:
         for row, col in needs_highlight:
             self.selection_items[(row, col)] = self.main_scene.addRect(
                 col * width, row * height, width, height, pen=pen)
+        if self.selection_items and self.pg.settings.scroll_to_sel:
+            visible_scene_rect = self.main_view.mapToScene(self.main_view.viewport().rect()).boundingRect()
+            for sel_item in self.selection_items.values():
+                if visible_scene_rect.intersects(sel_item.sceneBoundingRect()):
+                    break
+            else:
+                # nothing selected is showing
+                self.main_view.centerOn(list(self.selection_items.values())[0])
 
     def _cell_text(self, val, fraction):
         cell_text_type = self.pg.settings.cell_text
