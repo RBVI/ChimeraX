@@ -14,6 +14,7 @@
 from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
 from chimerax.core.settings import Settings
+from chimerax.core.colors import ColorValue
 from Qt.QtCore import Qt
 from Qt.QtWidgets import QDialog
 
@@ -42,6 +43,113 @@ class PhenixCitation(Citation):
         cite = '<br>'.join(["<b>" + title + "</b>"] + info)
         kw['prefix'] = "%s uses the Phenix <i>%s</i> command. Please cite:" % (tool_name, phenix_name)
         super().__init__(session, cite, **kw)
+
+class LaunchAlphaFoldAnalysisSettings(Settings):
+    AUTO_SAVE = {
+        'show_key': True,
+        'uncategorized_color': ColorValue(None),
+    }
+
+class LaunchAlphaFoldAnalysisTool(ToolInstance):
+    #help = "help:user/tools/fitligand.html"
+
+    def __init__(self, session, tool_name):
+        super().__init__(session, tool_name)
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
+
+        if not hasattr(self.__class__, 'settings'):
+            self.__class__.settings = LaunchAlphaFoldAnalysisSettings(session, "launch barbedWire")
+
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QMenu, QLineEdit
+        from Qt.QtWidgets import QCheckBox, QGridLayout, QGroupBox, QStackedWidget, QFrame
+        from Qt.QtGui import QDoubleValidator, QIntValidator
+        from Qt.QtCore import Qt
+        layout = QVBoxLayout()
+        parent.setLayout(layout)
+        layout.setSpacing(1)
+
+        from chimerax.atomic.widgets import AtomicStructureListWidget
+        model_layout = QHBoxLayout()
+        model_layout.setContentsMargins(2,2,2,2)
+        layout.addLayout(model_layout, stretch=1)
+        model_layout.addStretch(1)
+        model_layout.addWidget(QLabel("Analyze:"), alignment=Qt.AlignRight|Qt.AlignVCenter)
+        self.structure_list = AtomicStructureListWidget(session)
+        model_layout.addWidget(self.structure_list, alignment=Qt.AlignLeft|Qt.AlignVCenter)
+        model_layout.addStretch(1)
+
+        color_layout = QHBoxLayout()
+        color_layout.setContentsMargins(2,2,2,2)
+        layout.addLayout(color_layout)
+        color_layout.addStretch(1)
+        color_layout.addWidget(QLabel("Uncategorized structure color:"),
+            alignment=Qt.AlignRight|Qt.AlignVCenter)
+        from chimerax.ui.widgets import ColorButton
+        self.uncategorized_color = ColorButton(max_size=(16,16))
+        color_setting = self.settings.uncategorized_color
+        if color_setting is None:
+            from .barbed_wire import default_uncategorized_color
+            color_setting = default_uncategorized_color(session)
+        self.uncategorized_color.color = color_setting
+        color_layout.addWidget(self.uncategorized_color, alignment=Qt.AlignLeft|Qt.AlignVCenter)
+        color_layout.addStretch(1)
+
+        self.show_key = QCheckBox("Show category-to-color key")
+        self.show_key.setChecked(self.settings.show_key)
+        layout.addWidget(self.show_key, alignment=Qt.AlignCenter)
+
+        layout.addWidget(Citation(session, '\n'.join([
+                "Williams CJ,  Chen VB, Richardson DC, and Richardson JS",
+                "Structural Biology, vol. 81, part 10, 558-572 (2025)"
+            ]),
+            prefix="%s uses the Phenix<br>" \
+                "<i>barbed_wire_analysis</i> command.&nbsp;&nbsp;Please cite:" % tool_name,
+            pubmed_id=40937679,
+            ), alignment=Qt.AlignCenter)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.launch_barbed_wire)
+        bbox.rejected.connect(self.delete)
+        if getattr(self, "help", False):
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
+        tw.manage(placement=None)
+
+    def launch_barbed_wire(self):
+        structures = self.structure_list.value
+        if not structures:
+            return tool_user_error("No structure(s) chosen for analysis")
+
+        cmd_string = "phenix barbedWire"
+
+        from chimerax.core.commands import run, concise_model_spec
+        from chimerax.atomic import AtomicStructure
+        spec = concise_model_spec(self.session, structures, relevant_types=AtomicStructure)
+        if spec:
+            cmd_string += ' ' + spec
+
+        from chimerax.core.colors import Color, color_name
+        from .barbed_wire import default_uncategorized_color
+        uncat_color = Color(self.uncategorized_color.color)
+        if uncat_color != Color(default_uncategorized_color(self.session)):
+            cmd_string += ' uncategorizedColor ' + color_name(uncat_color)
+            self.settings.uncategorized_color = list(uncat_color.rgba)
+        else:
+            self.settings.uncategorized_color = None
+
+        show_key = self.settings.show_key = self.show_key.isChecked()
+        if not show_key:
+            cmd_string += ' key false'
+
+        run(self.session, cmd_string)
+        self.delete()
 
 class DouseSettings(Settings):
     AUTO_SAVE = {
@@ -2150,13 +2258,13 @@ def _run_ligand_fit_command(session, center, ligand_fmt, ligand_value, receptor,
     from chimerax.core.commands import run, StringArg, BoolArg
     from chimerax.map import Volume
     LLFT = LaunchLigandFitTool
-    lig_arg = "%s%s" % (LaunchLigandFitTool.ligand_fmt_to_prefix[ligand_fmt],
+    lig_arg = "%s%s" % (LLFT.ligand_fmt_to_prefix[ligand_fmt],
         (ligand_value.atomspec if ligand_fmt == LLFT.LIGAND_FMT_MODEL else ligand_value))
     if extent_type is None:
         extent_arg = ""
     else:
         extent_arg =  " extentType %s extentValue %g" % (
-            ("length" if extent_type == LaunchLigandFitTool.EXTENT_LENGTH else "angstroms"), extent_value)
+            ("length" if extent_type == LLFT.EXTENT_LENGTH else "angstroms"), extent_value)
     if conformers is None:
         conformers_arg = ""
     else:
