@@ -50,7 +50,7 @@ class _PhenixBundle(BundleAPI):
         if tool_name == 'Fit Ligand':
             from .tool import LaunchLigandFitTool
             return LaunchLigandFitTool(session, tool_name)
-        if tool_name == 'AlphaFold Analysis':
+        if tool_name == 'AlphaFold2 Barbed Wire':
             from .tool import LaunchAlphaFoldAnalysisTool
             return LaunchAlphaFoldAnalysisTool(session, tool_name)
 
