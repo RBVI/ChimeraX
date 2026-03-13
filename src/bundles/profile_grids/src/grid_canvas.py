@@ -104,7 +104,7 @@ class GridCanvas:
         self.main_view = QGraphicsView(self.main_scene)
         self.main_view.setAttribute(Qt.WA_AlwaysShowToolTips)
         import sys
-        if sys.platform == "darwin" and not self.pg.settings.mac_hscrollbar:
+        if sys.platform == "darwin" and self.pg.settings.mac_no_hscrollbar:
             # The "on demand" scrollbar really mucks up the size of the scrolling area
             self.main_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.main_view.viewport().installEventFilter(self.main_scene)
@@ -474,7 +474,7 @@ class GridCanvas:
         else:
             policy = Qt.ScrollBarAlwaysOff
         self.main_view.setHorizontalScrollBarPolicy(policy)
-        self.pg.settings.mac_hscrollbar = show
+        self.pg.settings.mac_no_hscrollbar = not show
 
     def state(self):
         return {
