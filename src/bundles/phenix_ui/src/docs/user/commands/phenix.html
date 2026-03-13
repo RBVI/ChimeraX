@@ -28,8 +28,7 @@ See also: <a href="volume.html"><b>volume</b></a>
 </p>
 <ul>
 <li><a href="#barbedWire"><b>phenix barbedWire</b></a> 
-&ndash; classify residues in AlphaFold2 structures based on 
-their pLDDT confidence scores and packing
+&ndash; classify residues in AlphaFold2 structures by pLDDT scores and packing
 </li><li><a href="#douse"><b>phenix douse</b></a> 
 &ndash; place waters into EM density
 </li><li><a href="#emplaceLocal"><b>phenix emplaceLocal</b></a>
@@ -80,8 +79,7 @@ Williams CJ, Chen VB, Richardson DC, Richardson JS.
 <i>Acta Crystallogr D Struct Biol.</i> 2025 Oct 1;81(Pt 10):558-572.
  </blockquote>
 <p>
-Residues in the protein chain are categorized and their ribbons/atoms colored as 
-follows: 
+Residues in the protein chains are categorized and colored as follows:
 </p>
 <ul>
 <li><b>Predictive</b>
@@ -118,9 +116,9 @@ specified with the <b>uncategorizedColor</b> option, otherwise
 </ul>
 <p>
 The residues are assigned an <a href="../attributes.html">attribute</a> 
-<!-- named ?? -->
-with character-string values equal to the category names above 
-(with the same capitalization and embedded spaces).
+named <b>barbed_wire_category</b> with values equal to the category names 
+listed above (character strings with the same capitalization and 
+embedded spaces as shown above, <i>e.g.</i>, &ldquo;Barbed wire&rdquo;).
 </p><p>
 The <b>key</b> option (default <b>true</b>) specifies whether to display a
 color key explaining these categories in the graphics window.
