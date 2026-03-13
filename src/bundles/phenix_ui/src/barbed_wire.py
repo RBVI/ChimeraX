@@ -30,6 +30,9 @@ from chimerax.core.errors import UserError
 from chimerax.atomic import AtomicStructure, Atom, colors, Residue
 from time import time
 
+def default_uncategorized_color(session):
+    return "saddle brown"
+
 class BarbedWireJob(Job):
 
     SESSION_SAVE = False
@@ -92,7 +95,7 @@ class BarbedWireJob(Job):
         return self._running
 
 def phenix_barbed_wire(session, structures, *, block=None, phenix_location=None, key=True,
-        verbose=False, option_arg=[], position_arg=[]):
+        uncategorized_color=None, verbose=False, option_arg=[], position_arg=[]):
 
     # Find the phenix.barbed_wire_analysis executable
     from .locate import find_phenix_command
@@ -107,6 +110,10 @@ def phenix_barbed_wire(session, structures, *, block=None, phenix_location=None,
         structures = all_atomic_structures(session)
         if not structures:
             raise UserError("No structures currently open")
+
+    if uncategorized_color is None:
+        from chimerax.core.colors import Color
+        uncategorized_color = Color(default_uncategorized_color(session))
 
     # Setup temporary directory to run phenix.barbed_wire_analysis
     from tempfile import TemporaryDirectory
@@ -123,15 +130,16 @@ def phenix_barbed_wire(session, structures, *, block=None, phenix_location=None,
         # Run phenix.barbed_wire_analysis
         # keep a reference to 'tdir' in the callback so that the temporary directory isn't removed before
         # the program runs
-        callback = lambda json, *args, session=session, model=s, show_key=key, d_ref=tdir: \
-            _process_results(session, json, model, show_key)
+        callback = lambda json, *args, session=session, model=s, show_key=key, ucolor=uncategorized_color, \
+            d_ref=tdir: _process_results(session, json, model, show_key, ucolor)
         BarbedWireJob(session, exe_path, option_arg, position_arg, temp_dir, verbose, callback, block)
 
-def _process_results(session, json, structure, show_key):
+def _process_results(session, json, structure, show_key, uncategorized_color):
     session.logger.status("Barbed wire analysis job finished")
     if structure.deleted:
         raise UserError("AlphaFold structure was deleted during analysis")
-    # Ininitially color them all dark gray, the "unassigned" color
+    # Ininitially color them all dark gray, the "uncategorized" color
+    from chimerax.core.commands import ColorArg
     color_names = {
         "Predictive": "blue",
         "Unpacked high pLDDT": "gray",
@@ -139,11 +147,11 @@ def _process_results(session, json, structure, show_key):
         "Unphysical": "purple",
         "Pseudostructure": "gold",
         "Barbed wire": "hotpink",
-        "Unassigned": "dim gray",
+        "Uncategorized": ColorArg.unparse(uncategorized_color, session),
     }
     from chimerax.core.colors import Color
     cat_colors = { cat: Color(color_name).uint8x4() for cat, color_name in color_names.items() }
-    structure.residues.ribbon_colors = cat_colors["Unassigned"]
+    structure.residues.ribbon_colors = cat_colors["Uncategorized"]
 
     from chimerax.atomic import Residue
     Residue.register_attr(session, "barbed_wire_category", "barbed wire", attr_type=str)
@@ -161,10 +169,13 @@ def _process_results(session, json, structure, show_key):
             except KeyError:
                 raise RuntimeError("Unexpected structure category in barbed wire output: %s" % repr(cat))
 
-    from chimerax.core.commands import run, StringArg
-    run(session, "key %s pos 0.925,0.025 size 0.05,0.2 colorTreatment distinct labelSide left fontSize 16"
-        % ' '.join([StringArg.unparse("%s:%s" % (color_names[cat], cat))
-        for cat in reversed(sorted(list(color_names.keys())))]), log=False)
+    if show_key:
+        from chimerax.core.commands import run, StringArg
+        semantic_cat_order = [ "Uncategorized", "Unphysical", "Barbed wire", "Pseudostructure",
+            "Near-predictive", "Unpacked high pLDDT", "Predictive" ] # order from Elaine
+        run(session, "key %s pos 0.925,0.025 size 0.05,0.2 colorTreatment distinct labelSide left"
+            " fontSize 16" % ' '.join([StringArg.unparse("%s:%s" % (color_names[cat], cat))
+            for cat in semantic_cat_order]), log=False)
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 
@@ -210,7 +221,8 @@ def _run_barbed_wire_subprocess(session, exe_path, optional_args, positional_arg
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register
-    from chimerax.core.commands import (EmptyArg, OpenFolderNameArg, BoolArg, RepeatOf, StringArg, Or)
+    from chimerax.core.commands import (EmptyArg, OpenFolderNameArg, BoolArg, RepeatOf, StringArg, Or,
+        ColorArg)
     from chimerax.atomic import AtomicStructuresArg
     desc = CmdDesc(
         required = [('structures', Or(AtomicStructuresArg, EmptyArg)),],
@@ -218,6 +230,7 @@ def register_command(logger):
                    ('block', BoolArg),
                    ('key', BoolArg),
                    ('phenix_location', OpenFolderNameArg),
+                   ('uncategorized_color', ColorArg),
                    ('verbose', BoolArg),
                    ('option_arg', RepeatOf(StringArg)),
                    ('position_arg', RepeatOf(StringArg)),
