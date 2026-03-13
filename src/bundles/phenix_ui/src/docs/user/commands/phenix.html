@@ -55,6 +55,7 @@ Liebschner D, Afonine PV, Baker ML, Bunk&oacute;czi G, Chen VB, Croll TI, Hintze
 <a href="#top" class="nounder">&bull;</a>
 <b>phenix barbedWire</b>
 &nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model</i></a>&nbsp;
+[&nbsp;<b>uncategorizedColor</b></a>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>key</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>phenixLocation</b> &nbsp;<i>folder</i>&nbsp;]
@@ -65,6 +66,7 @@ Liebschner D, Afonine PV, Baker ML, Bunk&oacute;czi G, Chen VB, Croll TI, Hintze
 Run the <a href="https://phenix-online.org" target="_blank">Phenix</a> program
 <i>barbed_wire_analysis</i> (under development, part of the MolProbity
 evaluation suite) on the specified atomic model(s). 
+The graphical interface to this command is <b>AlphaFold2 Barbed Wire</b>.
 The analysis was developed for AlphaFold2 models and applies to protein chains
 with <a href="https://alphafold.ebi.ac.uk/faq#faq-12" target="_blank">pLDDT</a> 
 values read from the B-factor field of their input files. See:
@@ -77,41 +79,48 @@ Williams CJ, Chen VB, Richardson DC, Richardson JS.
 <i>Acta Crystallogr D Struct Biol.</i> 2025 Oct 1;81(Pt 10):558-572.
  </blockquote>
 <p>
-Segments of the protein chain are classified and their ribbon representations
-colored as follows: 
+Residues in the protein chain are categorized and their ribbons/atoms colored as 
+follows: 
 </p>
 <ul>
-<li><b>Barbed wire</b>
-<table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
-<tbody><tr><td bgcolor="hotpink" width="10px" title="hot pink"></td></tr>
-</tbody></table>
-</li><li><b>Near-predictive</b>
-<table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
-<tbody><tr><td bgcolor="green" width="10px" title="green"></td></tr>
-</tbody></table>
-</li><li><b>Predictive</b>
+<li><b>Predictive</b>
 <table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
 <tbody><tr><td bgcolor="blue" width="10px" title="blue"></td></tr>
-</tbody></table>
-</li><li><b>Pseudostructure</b>
-<table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
-<tbody><tr><td bgcolor="gold" width="10px" title="gold"></td></tr>
-</tbody></table>
-</li><li><b>Unassigned</b>
-<table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
-<tbody><tr><td bgcolor="dimgray" width="10px" title="dim gray"></td></tr>
 </tbody></table>
 </li><li><b>Unpacked high pLDDT</b>
 <table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
 <tbody><tr><td bgcolor="gray" width="10px" title="gray"></td></tr>
 </tbody></table>
+</li><li><b>Near-predictive</b>
+<table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="green" width="10px" title="green"></td></tr>
+</tbody></table>
+</li><li><b>Pseudostructure</b>
+<table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="gold" width="10px" title="gold"></td></tr>
+</tbody></table>
+</li><li><b>Barbed wire</b>
+<table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="hotpink" width="10px" title="hot pink"></td></tr>
+</tbody></table>
 </li><li><b>Unphysical</b>
 <table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
 <tbody><tr><td bgcolor="purple" width="10px" title="purple"></td></tr>
 </tbody></table>
+</li><li><b>Uncategorized</b> 
+&ndash; <a href="colornames.html">color</a>
+specified with the <b>uncategorizedColor</b> option, otherwise
+<table border cellpadding="5" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="saddlebrown" width="10px" title="saddle brown"></td></tr>
+</tbody></table> (default)
 </li>
 </ul>
 <p>
+The residues are assigned an <a href="../attributes.html">attribute</a> 
+<!-- named ?? -->
+with character-string values equal to the category names above 
+(with the same capitalization and embedded spaces).
+</p><p>
 The <b>key</b> option (default <b>true</b>) specifies whether to display a
 color key explaining these categories in the graphics window.
 The remaining options are as described below for
