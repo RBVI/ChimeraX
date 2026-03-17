@@ -78,8 +78,8 @@ class MutationHistogram(Graph):
     def _menu_about_to_show(self, menu):
         menu.clear()
         if menu is self._mutation_set_menu.widget.menu():
-            from .ms_data import mutation_scores_list
-            for ms_name in mutation_scores_list(self.session):
+            from .ms_data import mutation_scores_names
+            for ms_name in mutation_scores_names(self.session):
                 menu.addAction(ms_name)
         else:
             from .ms_data import mutation_scores
@@ -107,8 +107,8 @@ class MutationHistogram(Graph):
                            synonymous = self._show_synonymous, bounds = self._synonymous_bounds)
 
     def _set_mutation_set_menu_visibility(self):
-        from .ms_data import mutation_scores_list
-        visible = (len(mutation_scores_list(self.session)) > 1)
+        from .ms_data import mutation_scores_names
+        visible = (len(mutation_scores_names(self.session)) > 1)
         self._mutation_set_menu.widget.setVisible(visible)
         self._mutation_set_menu_label.setVisible(visible)
 
