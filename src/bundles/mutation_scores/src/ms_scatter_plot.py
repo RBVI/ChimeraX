@@ -107,8 +107,8 @@ class MutationScatterPlot(Graph):
         return menus.frame
 
     def _set_mutation_set_menu_visibility(self):
-        from .ms_data import mutation_scores_list
-        visible = (len(mutation_scores_list(self.session)) > 1)
+        from .ms_data import mutation_scores_names
+        visible = (len(mutation_scores_names(self.session)) > 1)
         self._mutation_set_menu.widget.setVisible(visible)
         self._mutation_set_menu_label.setVisible(visible)
 
@@ -125,8 +125,8 @@ class MutationScatterPlot(Graph):
     def _menu_about_to_show(self, menu):
         menu.clear()
         if menu is self._mutation_set_menu.widget.menu():
-            from .ms_data import mutation_scores_list
-            for ms_name in mutation_scores_list(self.session):
+            from .ms_data import mutation_scores_names
+            for ms_name in mutation_scores_names(self.session):
                 menu.addAction(ms_name)
         else:
             # Mutation score names menus
@@ -548,11 +548,7 @@ class MutationScatterPlot(Graph):
                     ba.remove()
             self._bounds_artists = []
         if redraw_canvas:
-            from time import time
-            t0 = time()
             self.canvas.draw()
-            t1 = time()
-            print(f'synon bounds canvas draw {"%.2f"%(t1-t0)}')
     @property
     def _bounds_shown(self):
         return len(self._bounds_artists) > 0
