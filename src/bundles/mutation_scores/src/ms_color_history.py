@@ -22,6 +22,245 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.core.tools import ToolInstance
+class MutationStructureColoring(ToolInstance):
+    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
+
+    def __init__(self, session, tool_name = 'Mutation Structure Coloring'):
+        ToolInstance.__init__(self, session, tool_name)
+
+        from chimerax.ui import MainToolWindow
+        tw = MainToolWindow(self, close_destroys = False)
+        self.tool_window = tw
+        parent = tw.ui_area
+
+        from chimerax.ui.widgets import vertical_layout
+        layout = vertical_layout(parent, margins = (5,0,0,0))
+
+        # Add structure coloring controls
+        cc = self._create_coloring_controls(parent)
+        layout.addWidget(cc)
+        
+        # Color, Adjust, Previous buttons
+        bf = self._create_buttons(parent)
+        layout.addWidget(bf)
+
+        layout.addStretch(1)    # Extra space at end
+                
+        tw.manage(placement="side")
+
+    @classmethod
+    def get_singleton(cls, session, create=True):
+        from chimerax.core import tools
+        return tools.get_singleton(session, cls, 'Mutation Structure Coloring', create=create)
+
+    def _create_coloring_controls(self, parent):
+        from chimerax.ui.widgets import column_frame, EntriesRow
+        frame, layout = column_frame(parent, spacing=0)
+        from .ms_data import mutation_scores_list
+        mset_names = mutation_scores_list(self.session) + ('set1', 'set2')
+        controls = EntriesRow(frame,
+                              'Score', ('score1', 'score2'),  # Will be replaced when menu posted
+                              'subtract fit', ('none', 'score1'),
+                              'Mutations', mset_names)
+        controls2 = EntriesRow(frame,        
+                               'filter mutations', ('all', 'drag box on scatterplot'),
+                               'value', ('mean', 'count', 'sum absolute', 'sum', 'min', 'median', 'max', 'stddev'),
+                               'palette', ('blue to red', 'red to blue', 'white to red', 'red to white',
+                                           'white to blue', 'blue to white'))
+        self._color_score_menu, self._subtract_fit_menu, self._mutation_set_menu = controls.values
+        score_names = self._score_names()
+        self._color_score_menu.value = score_names[0] if score_names else 'none'
+        self._mutation_set_menu_label = controls.labels[2]
+        self._color_which_menu, self._color_score_type_menu, self._color_palette_menu = controls2.values
+
+        smenu = self._color_score_menu.widget.menu()
+        smenu.aboutToShow.connect(lambda *,menu=smenu: self._menu_about_to_show(menu))
+        msmenu = self._mutation_set_menu.widget.menu()
+        msmenu.aboutToShow.connect(lambda *,menu=smenu: self._menu_about_to_show(menu))
+        sfmenu = self._subtract_fit_menu.widget.menu()
+        sfmenu.aboutToShow.connect(lambda *,menu=sfmenu: self._menu_about_to_show(menu))
+        self._set_mutation_set_menu_visibility()
+
+        _mutation_color_history(self.session, create = True)  # Start tracking mutation residue coloring
+        return frame
+    
+    def _create_buttons(self, parent):
+        buttons = [
+            ('Color structures', self._color_structures),
+            ('Adjust colors', self._show_render_by_attribute_gui),
+            ('Previous colorings', self._show_color_history_gui),
+            ('Help', self._show_help),
+        ]
+        from chimerax.ui.widgets import button_row
+        f, buttons = button_row(parent, buttons, spacing = 5, button_list = True)
+        return f
+
+    def _set_mutation_set_menu_visibility(self):
+        from .ms_data import mutation_scores_list
+        visible = (len(mutation_scores_list(self.session)) > 1)
+        self._mutation_set_menu.widget.setVisible(visible)
+        self._mutation_set_menu_label.setVisible(visible)
+    
+    def _menu_about_to_show(self, menu):
+        menu.clear()
+        if menu is self._mutation_set_menu.widget.menu():
+            from .ms_data import mutation_scores_list
+            for ms_name in mutation_scores_list(self.session):
+                menu.addAction(ms_name)
+        else:
+            if menu is self._subtract_fit_menu.widget.menu():
+                menu.addAction('none')
+            for name in self._score_names():
+                menu.addAction(name)
+
+    def _score_names(self):
+        from .ms_data import mutation_scores
+        ms_name = self._mutation_set_menu.value
+        mset = mutation_scores(self.session, ms_name)
+        return mset.score_names()
+
+    def _color_structures(self):
+        from .ms_data import mutation_all_scores, mutation_scores
+        mutation_set_name = self._mutation_set_menu.value
+        session = self.session
+        scores = mutation_scores(session, mutation_set_name)
+        if len(scores.associate_chains(session)) == 0:
+            from chimerax.core.errors import UserError
+            raise UserError(f'There are no structures associated with mutations {mutation_set_name}')
+
+        score_name = self._color_score_menu.value
+        which = self._color_which_menu.value # 'all' or 'drag box on scatterplot'
+        score_type = self._color_score_type_menu.value # 'mean', 'sum absolute', 'sum'
+        score_type = score_type.replace(" ", "_")
+        palette = self._color_palette_menu.value # 'blue to red', ...
+        subtract_fit_name = self._subtract_fit_menu.value
+
+        ranges, range_name = self._box_ranges(score_name) if which == 'drag box on scatterplot' else (None,None)
+        if ranges is None:
+            which = 'all'
+
+        attr_name = self._attribute_name(score_name, range_name, score_type, subtract_fit_name)
+        self._last_define_attr_name = attr_name
+
+        cmd_score = f'mutationscores define {attr_name} from {score_name} combine {score_type}'
+        if ranges:
+            cmd_score += f' ranges "{ranges}"'
+        if subtract_fit_name != 'none':
+            cmd_score += f' subtractFit {subtract_fit_name}'
+        if len(mutation_all_scores(session)) > 1:
+            cmd_score += f' mutationSet {mutation_set_name}'
+        rvalues = self._run_command(cmd_score)
+        values = [value for rnum, from_aa, to_aa, value in rvalues.all_values()]
+
+        chains = scores.associated_chains()
+        from chimerax.atomic import concise_chain_spec
+        chain_spec = concise_chain_spec(chains)
+
+        palette_spec = self._palette_specifier(palette, values)
+
+        cmd_color = f'color byattribute r:{attr_name} {chain_spec} palette {palette_spec} noValueColor white'
+        self._run_command(cmd_color)
+
+    def _run_command(self, command):
+        from chimerax.core.commands import run
+        return run(self.session, command)
+
+    def _box_ranges(self, score_name):
+        from .ms_scatter_plot import MutationScatterPlot
+        plots = [scatter_plot for scatter_plot in self.session.tools
+                 if isinstance(scatter_plot, MutationScatterPlot) and scatter_plot._last_drag_box]
+        if len(plots) == 1:
+            box = plots[0]._last_drag_box
+            if box is None:
+                return None, None
+        elif len(plots) == 0:
+            from chimerax.core.errors import UserError
+            raise UserError('Drag a box on a scatter plot before filtering by box')
+        else:
+            from chimerax.core.errors import UserError
+            raise UserError('Multiple scatter plots have dragged box.  Clear all but one scatterplot box.')
+
+        score1, min1, max1, score2, min2, max2 = box
+        range1 = f'{score1} >= {"%.3g"%min1} and {score1} <= {"%.3g"%max1}'
+        range2 = f'{score2} >= {"%.3g"%min2} and {score2} <= {"%.3g"%max2}'
+        ranges = f'{range1} and {range2}'
+        if score2 == score_name:
+            range_name = f'{score2}_{"%.3g"%min2}_{"%.3g"%max2}_{score1}_{"%.3g"%min1}_{"%.3g"%max1}'
+        else:
+            range_name = f'{score1}_{"%.3g"%min1}_{"%.3g"%max1}_{score2}_{"%.3g"%min2}_{"%.3g"%max2}'
+        return ranges, range_name
+    
+    def _attribute_name(self, score_name, range_name, score_type, subtract_fit_name):
+        subtract_fit = '' if subtract_fit_name == 'none' else f'_subtract_fit_{subtract_fit_name}'
+        if range_name:
+            if range_name.startswith(score_name):
+                attr_name = f'{range_name}{subtract_fit}_{score_type}'
+            else:
+                attr_name = f'{score_name}_{range_name}{subtract_fit}_{score_type}'
+        else:
+            attr_name = f'{score_name}{subtract_fit}_{score_type}'
+        return attr_name
+
+    def _palette_specifier(self, palette, values):
+        palette_colors = {
+            'blue to red': ('blue', 'white', 'white', 'red'),
+            'red to blue': ('red', 'white', 'white', 'blue'),
+            'white to red': ('white', 'red'),
+            'red to white': ('red', 'white'),
+            'white to blue': ('white', 'blue'),
+            'blue to white': ('blue', 'white'),
+        }
+        colors = palette_colors[palette]
+        ncolors = len(colors)
+        from numpy import mean, std
+        m, sd = mean(values), std(values)
+        imid = (ncolors-1)/2
+        sd_range = 4    # Number of standard deviations from first color to last.
+        sd_step = sd * (sd_range / (ncolors-1))
+        thresholds = tuple((m + (i-imid)*sd_step) for i in range(ncolors))
+
+        '''
+        min_score, max_score = min(values), max(values)
+        step = (max_score - min_score) / (ncolors+1)
+        thresholds = tuple((min_score + (i+1)*step) for i in range(ncolors))
+        '''
+        
+        self._last_color_palette = tuple(zip(thresholds, colors))
+        palette_spec = ':'.join(f'{"%.3g"%thresh},{color}'for thresh, color in zip(thresholds, colors))
+        return palette_spec
+
+    def _show_render_by_attribute_gui(self):
+        if self._last_define_attr_name is None or self._last_color_palette is None:
+            self.session.logger.error('Color the structure first, then you can adjust colors')
+            return
+
+        mutation_set_name = self._mutation_set_menu.value
+        from .ms_data import mutation_scores
+        mset = mutation_scores(self.session, mutation_set_name)
+
+        _show_render_by_attribute_panel(self.session, mset, self._last_define_attr_name, self._last_color_palette)
+
+    def _show_color_history_gui(self):
+        mch = MutationColorHistoryPanel.get_singleton(self.session, create=True)
+        mch.display(True)
+        return mch
+
+    def _show_help(self):
+        self._run_command(f'help {self.help}')
+
+def _show_render_by_attribute_panel(session, mutation_set, attribute_name,
+                                    palette = None, no_value_color = None):
+    from chimerax.core.commands import run
+    rba_gui = run(session, 'ui tool show "Render/Select by Attribute"')
+
+    chains = mutation_set.associated_chains()
+    models = list(set(chain.structure for chain in chains))
+    no_value_info = (True, no_value_color) if no_value_color is not None else None
+    rba_gui.configure(models = models, target = 'residues', tab = 'render', attr_name = attribute_name,
+                      level_info = palette, render_type = rba_gui.RENDER_COLORS,
+                      no_value_info = no_value_info)
+
 def mutation_scores_color(session, attribute_name):
     '''Color structure residues as they were last colored with the specified attribute name.'''
     mch = _mutation_color_history(session)
@@ -35,6 +274,11 @@ def _mutation_color_history(session, create = False):
     if mch is None and create:
         session.mutation_color_history = mch = MutationColorHistory(session)
     return mch
+
+def show_structure_coloring_gui(session):
+    msc = MutationStructureColoring.get_singleton(session, create=True)
+    msc.display(True)
+    return msc
 
 from chimerax.core.state import StateManager  # Handles session saving
 
@@ -140,7 +384,7 @@ class MutationColorHistory(StateManager):
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        mch = _mutation_color_history(session)
+        mch = _mutation_color_history(session, create=True)
         params = data.copy()
         params.pop('version', None)
         mch._attribute_coloring_parameters = params
@@ -247,7 +491,6 @@ class MutationColorHistoryPanel(ToolInstance):
         from chimerax.core.colors import Color
         no_value_color = Color(options.get('noValueColor')).uint8x4()
 
-        from .ms_scatter_plot import _show_render_by_attribute_panel
         _show_render_by_attribute_panel(self.session, mset, attribute_name,
                                         palette = palette, no_value_color = no_value_color)
 
