@@ -91,7 +91,7 @@ TRANSITION_TYPES = {
 ACTION_DEFAULTS = {
     "rock": {"angle": 60, "axis": "y", "count": 1},  # Oscillate +/- angle degrees, count times
     "roll": {"angle": 360, "axis": "y", "count": 1},  # Rotate continuously
-    "precess": {"axis": "y", "count": 1, "precession_tilt": 10},  # Wobble in cone around axis (no rotation)
+    "precess": {"angle": 30, "axis": "y", "count": 1, "wobble_aspect": 0.3},  # Figure-8 wobble matching ChimeraX wobble command
 }
 
 
@@ -249,7 +249,6 @@ class SceneAnimation(StateManager):
     def preview_at_time(self, time: float):
         """Preview the animation at a specific time"""
         if time < 0 or time > self.duration:
-            #self.logger.warning(f"Time {time:.2f}s is outside animation duration")
             return
 
         self.current_time = time
@@ -752,46 +751,46 @@ class SceneAnimation(StateManager):
                     segment_key = (start_time, end_time, action_name)
 
                     if action_name == "precess":
-                        # Precess: wobble camera in a cone around the axis without rotating
-                        # Uses two perpendicular axes to create circular wobble pattern
-                        precession_tilt = config.get("precession_tilt", 10)
+                        # Precess: figure-8 wobble matching ChimeraX's wobble command
+                        # Primary rotation on main axis at frequency f,
+                        # secondary rotation on perpendicular axis at 2f
+                        wobble_aspect = config.get("wobble_aspect", 0.3)
 
-                        # Determine the two perpendicular axes for wobbling
-                        if axis == 'y':
-                            wobble_axis1, wobble_axis2 = 'x', 'z'
-                        elif axis == 'x':
-                            wobble_axis1, wobble_axis2 = 'y', 'z'
-                        else:  # axis == 'z'
-                            wobble_axis1, wobble_axis2 = 'x', 'y'
+                        # Compute wobble position as compound rotation, same as
+                        # Turner._wobble_position in std_commands/turn.py
+                        amax = 0.5 * angle
+                        f0 = fraction * count  # Current normalized position
+                        # We need the previous frame's position too for incremental motion
+                        if not hasattr(self, '_wobble_last_fraction'):
+                            self._wobble_last_fraction = {}
+                        f_prev = self._wobble_last_fraction.get(segment_key, 0.0)
+                        self._wobble_last_fraction[segment_key] = f0
 
-                        # Calculate wobble angles using sin/cos to create circular motion
-                        # count determines how many full wobble cycles
-                        # Use (cos - 1) to ensure motion is periodic: starts and ends at zero
-                        wobble_phase = fraction * count * 2 * math.pi
-                        wobble_angle1 = precession_tilt * math.sin(wobble_phase)
-                        wobble_angle2 = precession_tilt * (math.cos(wobble_phase) - 1.0)
+                        # Get axis vectors
+                        axis_map = {'x': (1, 0, 0), 'y': (0, 1, 0), 'z': (0, 0, 1)}
+                        axis_vec = axis_map.get(axis, (0, 1, 0))
 
-                        # Track wobble angles separately for each axis
-                        if not hasattr(self, '_wobble_angles'):
-                            self._wobble_angles = {}
+                        # Compute wobble axis from camera view direction cross primary axis
+                        from chimerax.geometry import cross_product, normalize_vector, rotation
+                        camera = self.session.view.camera
+                        wobble_axis_vec = normalize_vector(
+                            cross_product(camera.view_direction(), axis_vec)
+                        )
 
-                        wobble_key1 = (segment_key, "wobble1")
-                        wobble_key2 = (segment_key, "wobble2")
+                        # Compute wobble positions at previous and current fraction
+                        def wobble_pos(f):
+                            a = math.sin(2 * math.pi * f) * amax
+                            wa = math.sin(4 * math.pi * f) * amax * wobble_aspect
+                            r = rotation(axis_vec, a, center)
+                            rw = rotation(wobble_axis_vec, wa, center)
+                            return rw * r
 
-                        last_wobble1 = self._wobble_angles.get(wobble_key1, 0.0)
-                        last_wobble2 = self._wobble_angles.get(wobble_key2, 0.0)
+                        w_prev = wobble_pos(f_prev)
+                        w_curr = wobble_pos(f0)
 
-                        delta_wobble1 = wobble_angle1 - last_wobble1
-                        delta_wobble2 = wobble_angle2 - last_wobble2
-
-                        self._wobble_angles[wobble_key1] = wobble_angle1
-                        self._wobble_angles[wobble_key2] = wobble_angle2
-
-                        # Apply wobble rotations on both perpendicular axes
-                        if abs(delta_wobble1) > 0.01:
-                            run(self.session, f"turn {wobble_axis1} {delta_wobble1} center {center[0]},{center[1]},{center[2]}", log=False)
-                        if abs(delta_wobble2) > 0.01:
-                            run(self.session, f"turn {wobble_axis2} {delta_wobble2} center {center[0]},{center[1]},{center[2]}", log=False)
+                        # Incremental rotation: for camera motion, use w_prev * w_curr.inverse()
+                        incremental = w_prev * w_curr.inverse()
+                        camera.position = incremental * camera.position
 
                     else:
                         # Rock and Roll: calculate rotation angle
@@ -820,8 +819,8 @@ class SceneAnimation(StateManager):
         # If we're not in any segment, reset tracking
         if hasattr(self, '_segment_angles'):
             self._segment_angles.clear()
-        if hasattr(self, '_wobble_angles'):
-            self._wobble_angles.clear()
+        if hasattr(self, '_wobble_last_fraction'):
+            self._wobble_last_fraction.clear()
 
     def _prepare_model_fading_at_scene_timestamp(
         self, current_scene_name: str, current_time: float
