@@ -875,16 +875,8 @@ _find_attachment_atom(Residue* r, const std::set<Atom*>& atoms, std::set<Atom*>&
 }
 
 void
-Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
+Structure::_delete_atoms(const std::set<Atom*>& atoms, bool compact_coord_sets)
 {
-    if (verify)
-        for (auto a: atoms)
-            if (a->structure() != this) {
-                logger::error(_logger, "Atom ", a->residue()->str(), " ", a->name(),
-                    " does not belong to the structure that it's being deleted from.");
-                throw std::invalid_argument("delete_atoms called with Atom not in"
-                    " AtomicStructure/Structure");
-            }
     if (atoms.size() == _atoms.size()) {
         // if there's a Python instance call its delete(), else directly delete
         auto inst = py_instance(false);
@@ -898,6 +890,10 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
         }
         return;
     }
+    std::set<unsigned int> deleted_indices;
+    if (compact_coord_sets)
+        for (auto a: atoms)
+            deleted_indices.insert(a->coord_index());
     // want to put missing-structure pseudobonds across new mid-chain gaps,
     // so note which residues connected to their next existing one, considering
     // pre-existing missing-structure pseudobonds
@@ -1016,6 +1012,24 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool verify)
             _find_attachment_atom(end_next, atoms, bond_losers,
                 begin_right_missing_structure_atoms, end_right_missing_structure_atoms, false)
         );
+    }
+
+    if (compact_coord_sets) {
+        unsigned int consecutive_index = 0;
+        for (auto a: this->atoms())
+            a->set_coord_index(consecutive_index++, true);
+        for (auto cs: coord_sets()) {
+            CoordSet::Coords replacement;
+            auto& coords = cs->coords();
+            auto cs_size = coords.size();
+            for (CoordSet::Coords::size_type i = 0; i < cs_size; ++i) {
+                if (deleted_indices.find(i) == deleted_indices.end()) {
+                    // not deleted
+                    replacement.push_back(coords[i]);
+                }
+            }
+            cs->replace(replacement);
+        }
     }
 
     set_gc_shape();
@@ -1288,12 +1302,12 @@ Structure::_get_interres_connectivity(std::map<Residue*, int>& res_lookup,
 }
 
 void
-Structure::delete_atoms(const std::vector<Atom*>& atoms)
+Structure::delete_atoms(const std::vector<Atom*>& atoms, bool compact_coord_sets)
 {
     auto db = DestructionBatcher(this);
     // construct set first to ensure uniqueness before tests...
     auto del_atoms_set = std::set<Atom*>(atoms.begin(), atoms.end());
-    _delete_atoms(del_atoms_set);
+    _delete_atoms(del_atoms_set, compact_coord_sets);
 }
 
 void
@@ -1329,7 +1343,7 @@ void
 Structure::_delete_residue(Residue* r)
 {
     auto del_atoms_set = std::set<Atom*>(r->atoms().begin(), r->atoms().end());
-    _delete_atoms(del_atoms_set, false);
+    _delete_atoms(del_atoms_set);
 }
 
 void
@@ -1573,6 +1587,7 @@ Structure::new_coord_set(int index)
         return new_coord_set(index, _coord_sets.back()->coords().size());
     CoordSet* cs = new CoordSet(this, index);
     _coord_set_insert(_coord_sets, cs, index);
+    _active_coord_set = cs;
     return cs;
 }
 
