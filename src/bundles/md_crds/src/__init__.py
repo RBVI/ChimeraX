@@ -37,6 +37,8 @@ class _MDCrdsBundleAPI(BundleAPI):
     def run_provider(session, name, mgr, **kw):
         if mgr == session.open_command:
             from chimerax.open_command import OpenerInfo
+            from chimerax.core.commands import ListOf, EnumOf
+            omit_arg = ListOf(EnumOf(["main", "solvent", "ligand", "ions", "other"]))
             if name in ("psf", "data"):
                 class MDInfo(OpenerInfo):
                     def open(self, session, data, file_name, *, slider=True, format_name=name, **kw):
@@ -56,6 +58,7 @@ class _MDCrdsBundleAPI(BundleAPI):
                             'auto_style': BoolArg,
                             'coords': OpenFileNameArg,
                             'end': PositiveIntArg,
+                            'omit': omit_arg,
                             'slider': BoolArg,
                             'start': PositiveIntArg,
                             'step': PositiveIntArg,
@@ -124,7 +127,7 @@ class _MDCrdsBundleAPI(BundleAPI):
                             replace = structure_model.num_coordsets < 2
                         from .read_coords import read_coords
                         num_coords = read_coords(session, data, structure_model, md_type,
-                            replace=replace, start=start, step=step, end=end)
+                            replace=replace, **kw)
                         if slider and session.ui.is_gui:
                             from chimerax.std_commands.coordset import coordset_slider
                             coordset_slider(session, [structure_model])
@@ -139,6 +142,7 @@ class _MDCrdsBundleAPI(BundleAPI):
                         from chimerax.core.commands import BoolArg, PositiveIntArg
                         return {
                             'end': PositiveIntArg,
+                            'omit': omit_arg,
                             'replace': BoolArg,
                             'slider': BoolArg,
                             'start': PositiveIntArg,

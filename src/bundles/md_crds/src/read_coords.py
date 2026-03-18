@@ -24,7 +24,9 @@
 
 from chimerax.core.errors import UserError, LimitationError
 
-def read_coords(session, file_name, model, format_name, *, replace=True, start=1, step=1, end=None):
+def read_coords(session, file_name, model, format_name, *,
+        replace=True, start=1, step=1, end=None, omit=None):
+    print("omit:", repr(omit))
     from numpy import array, float64
     def read_gromacs_file(read_func, file_name):
         try:
@@ -55,7 +57,7 @@ def read_coords(session, file_name, model, format_name, *, replace=True, start=1
         from .dcd.MDToolsMarch97.md_DCD import DCD
         session.logger.status("Reading DCD coordinates", blank_after=0)
         dcd = DCD(file_name)
-        num_frames = _set_model_dcd_coordinates(session, model, dcd, replace, start, step, end)
+        num_frames = _set_model_dcd_coordinates(session, model, dcd, replace, start, step, end, omit)
         session.logger.status("Finished reading DCD coordinates")
         return num_frames
     elif format_name == "amber":
@@ -81,6 +83,10 @@ def read_coords(session, file_name, model, format_name, *, replace=True, start=1
     if start > 0 or step > 1 or end < len(coords):
         coords = coords[start:end:step]
 
+    if omit is not None:
+        omit_mask = _make_omit_mask(model, omit)
+        model.atoms[omit_mask].delete(compact_coordsets=True)
+        coords = coords[:,~omit_mask,:]
     model.add_coordsets(coords, replace=replace)
     return len(coords)
 
@@ -94,7 +100,17 @@ def process_limit_args(session, start, step, end, num_coords):
         session.logger.info("start: %d, step: %d, end %d" % (start+1, step, end))
     return start, step, end
 
-def _set_model_dcd_coordinates(session, model, dcd, replace, start, step, end):
+def _make_omit_mask(model, omit):
+    import numpy
+    mask = numpy.zeros(model.num_atoms, dtype=bool)
+    cats = model.atoms.structure_categories
+    for cat in omit:
+        mask = numpy.logical_or(mask, cats == cat)
+    if mask.all():
+        raise UserError("Omitting the specified categories would remove all atoms.")
+    return mask
+
+def _set_model_dcd_coordinates(session, model, dcd, replace, start, step, end, omit):
     '''Read DCD coordinates and add to model efficiently when there are thousands of frames.'''
     num_atoms = dcd.numatoms
     if model.num_atoms != num_atoms:
@@ -110,7 +126,13 @@ def _set_model_dcd_coordinates(session, model, dcd, replace, start, step, end):
     from numpy import asarray, float64
     num_frames = 0
     for i in range(start, end, step):
-        model.add_coordset(base+num_frames, asarray(dcd[i], float64, order = 'C'))
+        crds = asarray(dcd[i], float64, order = 'C')
+        if omit is not None and num_frames > 0:
+            crds = crds[~omit_mask]
+        model.add_coordset(base+num_frames, crds)
+        if omit is not None and num_frames == 0:
+            omit_mask = _make_omit_mask(model, omit)
+            model.atoms[omit_mask].delete(compact_coordsets=True)
         num_frames += 1
     model.active_coordset_id = base
     return num_frames

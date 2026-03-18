@@ -27,7 +27,9 @@ class MutationStructureColoring(ToolInstance):
     help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
 
     def __init__(self, session, tool_name = 'Mutation Structure Coloring'):
-        self._last_coloring_attribute = None
+        self._temporary_coloring_name = 'last_mutation_coloring'
+        self._coloring_attribute_name = 'mutation_score'  # Temporary residue attribute name
+        self._last_coloring_name = None
 
         ToolInstance.__init__(self, session, tool_name)
 
@@ -104,8 +106,7 @@ class MutationStructureColoring(ToolInstance):
     def _create_naming_controls(self, parent):
         from chimerax.ui.widgets import EntriesRow
         nc = EntriesRow(parent,
-                        ('Name', self._name_coloring),
-                        'coloring',
+                        ('Name coloring', self._name_coloring),
                         '',
                         ('Previous colorings', self._show_color_history_gui))
         self._coloring_name = cn = nc.values[0]
@@ -113,18 +114,15 @@ class MutationStructureColoring(ToolInstance):
         return nc.frame
 
     def _name_coloring(self):
-        name = self._coloring_name.value.strip()
-        if not name:
+        new_coloring_name = self._coloring_name.value.strip()
+        if not new_coloring_name:
             from chimerax.core.errors import UserError
             raise UserError('Enter a name for the coloring then press the Name button')
-        if self._last_coloring_attribute is None:
+        coloring_name = self._last_coloring_name
+        if not _rename_coloring_and_attribute(self.session, coloring_name, new_coloring_name):
             from chimerax.core.errors import UserError
-            raise UserError('Color a structure and then press the Name button')
-        mch = _mutation_color_history(self.session)
-        mch._set_coloring_name(self._last_coloring_attribute, name)
-        mchp = MutationColorHistoryPanel.get_singleton(self.session, create=False)
-        if mchp:
-            mchp._update_list()
+            raise UserError('Press the "Color structure" button, then you can name the coloring')
+        self._last_coloring_name = new_coloring_name
 
     def _set_mutation_set_menu_visibility(self):
         from .ms_data import mutation_scores_names
@@ -170,9 +168,7 @@ class MutationStructureColoring(ToolInstance):
         if ranges is None:
             which = 'all'
 
-        attr_name = self._attribute_name(score_name, range_name, score_type, subtract_fit_name)
-        self._last_define_attr_name = attr_name
-
+        attr_name = self._coloring_attribute_name
         cmd_score = f'mutationscores define {attr_name} from {score_name} combine {score_type}'
         if ranges:
             cmd_score += f' ranges "{ranges}"'
@@ -186,14 +182,29 @@ class MutationStructureColoring(ToolInstance):
         chains = scores.associated_chains()
         from chimerax.atomic import concise_chain_spec
         chain_spec = concise_chain_spec(chains)
-
         palette_spec = self._palette_specifier(palette, values)
 
         cmd_color = f'color byattribute r:{attr_name} {chain_spec} palette {palette_spec} noValueColor white'
         self._run_command(cmd_color)
 
-        self._last_coloring_attribute = attr_name
-    
+        # Save in coloring history.
+        coloring_info = {
+            'attribute_name': attr_name,
+            'source_score': score_name,
+            'combine_method': score_type,
+            'mutation_set_name': mutation_set_name,
+            'palette': palette_spec,
+            'noValueColor': 'white',
+            }
+        if ranges:
+            coloring_info['filtering'] = ranges
+        if subtract_fit_name != 'none':
+            coloring_info['subtract_fit'] = subtract_fit_name
+        mch = _mutation_color_history(self.session)
+        coloring_name = self._temporary_coloring_name
+        mch.add_coloring(coloring_name, coloring_info)
+        self._last_coloring_name = coloring_name
+        
     def _run_command(self, command):
         from chimerax.core.commands import run
         return run(self.session, command)
@@ -251,32 +262,34 @@ class MutationStructureColoring(ToolInstance):
         sd_range = 4    # Number of standard deviations from first color to last.
         sd_step = sd * (sd_range / (ncolors-1))
         thresholds = tuple((m + (i-imid)*sd_step) for i in range(ncolors))
-
-        '''
-        min_score, max_score = min(values), max(values)
-        step = (max_score - min_score) / (ncolors+1)
-        thresholds = tuple((min_score + (i+1)*step) for i in range(ncolors))
-        '''
-        
-        self._last_color_palette = tuple(zip(thresholds, colors))
         palette_spec = ':'.join(f'{"%.3g"%thresh},{color}'for thresh, color in zip(thresholds, colors))
         return palette_spec
 
     def _show_render_by_attribute_gui(self):
-        if self._last_define_attr_name is None or self._last_color_palette is None:
+        coloring_name = self._last_coloring_name
+        mch = _mutation_color_history(self.session)
+        coloring_info = mch.coloring_info(coloring_name)
+        if coloring_info is None:
             self.session.logger.error('Color the structure first, then you can adjust colors')
             return
 
-        mutation_set_name = self._mutation_set_menu.value
+        mutation_set_name = coloring_info['mutation_set_name']
         from .ms_data import mutation_scores
         mset = mutation_scores(self.session, mutation_set_name)
 
-        _show_render_by_attribute_panel(self.session, mset, self._last_define_attr_name, self._last_color_palette)
+        attr_name = coloring_info['attribute_name']
+        
+        palette = []
+        for val_col in coloring_info['palette'].split(':'):
+            threshold, color = val_col.split(',')
+            palette.append((float(threshold), color))
+
+        _show_render_by_attribute_panel(self.session, mset, attr_name, palette)
 
     def _show_color_history_gui(self):
-        mch = MutationColorHistoryPanel.get_singleton(self.session, create=True)
-        mch.display(True)
-        return mch
+        mchp = MutationColorHistoryPanel.get_singleton(self.session, create=True)
+        mchp.display(True)
+        return mchp
 
     def _show_help(self):
         self._run_command(f'help {self.help}')
@@ -299,7 +312,10 @@ def mutation_scores_color(session, coloring_name):
     if mch is None:
         from chimerax.core.errors import UserError
         raise UserError('No mutation score colorings have been saved.')
-    mch.color_by_name(coloring_name)
+    if mch.coloring_info(coloring_name) is None:
+        from chimerax.core.errors import UserError
+        raise UserError(f'No coloring named {coloring_name}.')
+    mch.apply_coloring(coloring_name)
 
 def _mutation_color_history(session, create = False):
     mch = getattr(session, 'mutation_color_history', None)
@@ -317,81 +333,58 @@ from chimerax.core.state import StateManager  # Handles session saving
 class MutationColorHistory(StateManager):
     def __init__(self, session):
         self._session = session
-        self._attribute_coloring_parameters = {}
+        self._coloring_parameters = {}  # Maps coloring name to palette and attribute settings
         self._ignore_color_command = False
         triggers = session.triggers
         triggers.add_handler('command finished', self._command_finished)
         if not triggers.has_trigger('new mutation coloring'):
             triggers.add_trigger('new mutation coloring')
 
-    def _command_finished(self, trigger_name, cmd_text):
-        if self._ignore_color_command:
+    def add_coloring(self, coloring_name, coloring_info):
+        cp = self._coloring_parameters
+        cp[coloring_name] = coloring_info
+
+    def rename_coloring(self, coloring_name, new_coloring_name):
+        cp = self._coloring_parameters
+        if coloring_name not in cp:
             return
-        
-        # Example: color byattribute a:bfactor #!1 target scab palette 63.64,blue:98.675,white:133.71,red
-        if not cmd_text.startswith('color byattribute r:'):
-            return
-        
-        fields = cmd_text.split()
-        attr_name = fields[2][2:]
-        mset = self.mutation_set_for_attribute(attr_name)
-        if mset is None:
-            return
-        
-        option_values = []
-        for save_option in ['palette', 'noValueColor']:
-            if save_option in fields:
-                i = fields.index(save_option)+1
-                if i < len(fields):
-                    option_values.append((save_option, fields[i]))
+        values = cp[coloring_name]
+        del cp[coloring_name]
+        cp[new_coloring_name] = values
+        self._session.triggers.activate_trigger('new mutation coloring', new_coloring_name)
+            
+    def coloring_info(self, coloring_name):
+        cp = self._coloring_parameters
+        return cp.get(coloring_name)
 
-        acp = self._attribute_coloring_parameters
-        new_attr = attr_name not in acp
-        if new_attr:
-            acp[attr_name] = {'attribute_name': attr_name}
-
-        for opt_name, opt_value in option_values:
-            acp[attr_name][opt_name] = opt_value
-
-        if new_attr:
-            self._session.triggers.activate_trigger('new mutation coloring', attr_name)
-
-    def _set_coloring_name(self, attribute_name, coloring_name):
-        acp = self._attribute_coloring_parameters
-        if attribute_name in acp:
-            acp[attribute_name]['coloring_name'] = coloring_name
-
-    def mutation_set_for_attribute(self, attr_name):
-        from .ms_data import mutation_all_scores
-        for mset in mutation_all_scores(self._session):
-            if attr_name in mset.computed_values_names():
-                return mset
+    def mutation_set_for_coloring(self, coloring_name):
+        cp = self._coloring_parameters
+        if coloring_name in cp:
+            mset_name = cp.get('mutation_set_name')
+            from .ms_data import mutation_scores
+            mset = mutation_scores(self._session, mset_name)
+            return mset
         return None
 
     def coloring_names(self):
-        coloring_names = []
-        acp = self._attribute_coloring_parameters
-        for attr_name, values in tuple(acp.items()):
-            if self.mutation_set_for_attribute(attr_name) is None:
-                del acp[attr_name]	        # Remove deleted attributes
-            elif 'coloring_name' in values:
-                coloring_names.append(values['coloring_name'])
-        return coloring_names
+        self._remove_colorings_for_closed_mutation_sets()
+        cp = self._coloring_parameters
+        return list(cp.keys())
 
-    def coloring_options(self, coloring_name):
-        acp = self._attribute_coloring_parameters
-        for attr_name, values in acp.items():
-            if values.get('coloring_name') == coloring_name:
-                return values
-        return None
+    def _remove_colorings_for_closed_mutation_sets(self):
+        cp = self._coloring_parameters
+        for coloring_name, values in tuple(cp.items()):
+            if self.mutation_set_for_coloring(coloring_name) is None:
+                del cp[coloring_name]
         
-    def _color_by_attribute(self, attribute_name):
-        acp = self._attribute_coloring_parameters        
-        params = acp.get(attribute_name)
+    def apply_coloring(self, coloring_name):
+        cp = self._coloring_parameters        
+        params = cp.get(coloring_name)
         if params is None:
             return
+        attribute_name = params['attribute_name']
 
-        mset = self.mutation_set_for_attribute(attribute_name)
+        mset = self.mutation_set_for_coloring(coloring_name)
         if mset is None:
             return
 
@@ -407,32 +400,55 @@ class MutationColorHistory(StateManager):
         self._ignore_color_command = True
         run(self._session, cmd_color)
         self._ignore_color_command = False
-        
-    def color_by_name(self, coloring_name):
-        acp = self._attribute_coloring_parameters
-        for attr_name, values in acp.items():
-            if values.get('coloring_name') == coloring_name:
-                self._color_by_attribute(attr_name)
-                return
-
-    def rename_coloring(self, coloring_name, new_name):
-        acp = self._attribute_coloring_parameters
-        for attribute_name, values in acp.items():
-            if values.get('coloring_name') == coloring_name:
-                values['coloring_name'] = new_name
 
     def remove_coloring(self, coloring_name):
-        acp = self._attribute_coloring_parameters
-        for attribute_name, values in tuple(acp.items()):
-            if values.get('coloring_name') == coloring_name:
-                del acp[attribute_name]
+        cp = self._coloring_parameters
+        if coloring_name in cp:
+            del cp[coloring_name]
+
+    def _command_finished(self, trigger_name, cmd_text):
+        '''
+        If user changes coloring with color byattribute command then update
+        the saved coloring settings.
+        '''
+        if self._ignore_color_command:
+            return
+        
+        # Example: color byattribute a:bfactor #!1 target scab palette 63.64,blue:98.675,white:133.71,red
+        if not cmd_text.startswith('color byattribute r:'):
+            return
+        
+        fields = cmd_text.split()
+        attr_name = fields[2][2:]
+        coloring_name = self._coloring_name_for_attribute(attr_name)
+        if coloring_name is None:
+            return
+        
+        option_values = []
+        for save_option in ['palette', 'noValueColor']:
+            if save_option in fields:
+                i = fields.index(save_option)+1
+                if i < len(fields):
+                    option_values.append((save_option, fields[i]))
+        
+        cp = self._coloring_parameters
+        for opt_name, opt_value in option_values:
+            cp[coloring_name][opt_name] = opt_value
+
+    def _coloring_name_for_attribute(self, attribute_name):
+        cp = self._coloring_parameters
+        cnames = [coloring_name for coloring_name, values in cp.items()
+                  if values.get('attribute_name') == attribute_name]
+        if len(cnames) != 1:
+            return None
+        return cnames[0]
 
     # ---------------------------------------------------------------------------
     # Session save and restore.
     #
     def take_snapshot(self, session, flags):
-        data = self._attribute_coloring_parameters.copy()
-        data['version'] = 2
+        data = self._coloring_parameters.copy()
+        data['version'] = 3
         return data
 
     @classmethod
@@ -446,11 +462,19 @@ class MutationColorHistory(StateManager):
                     values['coloring_name'] = attr_name
                 if 'attribute_name' not in values:
                     values['attribute_name'] = attr_name
-        mch._attribute_coloring_parameters = params
+        if version == 2:
+            # Key was attribute name and coloring_name was saved as value.
+            # Change to coloring name as key.
+            new_params = {}
+            for attr_name, values in params.items():
+                cname = values.get('coloring_name', attr_name)
+                new_params[cname] = values
+            params = new_params
+        mch._coloring_parameters = params
         return mch
 
     def reset_state(self, session):
-        self._attribute_coloring_parameters.clear()
+        self._coloring_parameters.clear()
 
 from chimerax.core.tools import ToolInstance
 class MutationColorHistoryPanel(ToolInstance):
@@ -513,11 +537,13 @@ class MutationColorHistoryPanel(ToolInstance):
     def _update_list(self):
         self._coloring_list.clear()
         coloring_names = self._mutation_color_history.coloring_names()
+        if 'last_mutation_coloring' in coloring_names:
+            coloring_names.remove('last_mutation_coloring')
         self._coloring_list.addItems(coloring_names)
 
     def _coloring_clicked(self, item):
         coloring_name = item.text()
-        self._mutation_color_history.color_by_name(coloring_name)
+        self._mutation_color_history.apply_coloring(coloring_name)
         self._rename_entry.value = coloring_name
 
     def _selected_coloring_names(self):
@@ -535,8 +561,8 @@ class MutationColorHistoryPanel(ToolInstance):
 
         coloring_name = coloring_names[0]
         mch = self._mutation_color_history
-        options = mch.coloring_options(coloring_name)
-        mset = mch.mutation_set_for_attribute(options['attribute_name'])
+        options = mch.coloring_info(coloring_name)
+        mset = mch.mutation_set_for_coloring(coloring_name)
         if 'palette' in options:
             palette = []
             for thresh_color in options['palette'].split(':'):
@@ -584,9 +610,9 @@ class MutationColorHistoryPanel(ToolInstance):
         values = []
         mch = self._mutation_color_history
         for coloring_name in coloring_names:
-            options = mch.coloring_options(coloring_name)
+            options = mch.coloring_info(coloring_name)
             attribute_name = options['attribute_name']
-            mset = mch.mutation_set_for_attribute(attribute_name)
+            mset = mch.mutation_set_for_coloring(coloring_name)
             if mset is None:
                 self.session.logger.error(f'No mutation set has an attribute "{attribute_name}".')
                 continue
@@ -630,9 +656,35 @@ class MutationColorHistoryPanel(ToolInstance):
             return
 
         if new_name != coloring_name:
-            mch = self._mutation_color_history
-            mch.rename_coloring(coloring_name, new_name)
-            self._update_list()
+            _rename_coloring_and_attribute(self.session, coloring_name, new_name)
+
+def _rename_coloring_and_attribute(session, coloring_name, new_name):
+    mch = _mutation_color_history(session)
+    info = mch.coloring_info(coloring_name)
+    if info is None:
+        return False
+    old_attr_name = info['attribute_name']
+    mset = mch.mutation_set_for_coloring(coloring_name)
+    mset.rename_computed_values(old_attr_name, new_name)
+    _rename_residue_attribute(mset.associated_chains(), old_attr_name, new_name)
+    info['attribute_name'] = new_name
+    mch.rename_coloring(coloring_name, new_name)
+    return True
+
+def _rename_residue_attribute(chains, attribute_name, new_name):
+    count = 0
+    for chain in chains:
+        for r in chain.residues:
+            if hasattr(r, attribute_name):
+                rvalue = getattr(r, attribute_name)
+                delattr(r, attribute_name)
+                setattr(r, new_name, rvalue)
+                count += 1
+    if count > 0:
+        session = chain.structure.session
+        atype = int if isinstance(rvalue, int) else float
+        from chimerax.atomic import Residue
+        Residue.register_attr(session, new_name, "Deep Mutational Scan", attr_type=atype, supercede=True)
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg

@@ -818,10 +818,14 @@ class Atoms(Collection):
     def __init__(self, atom_pointers = None):
         Collection.__init__(self, atom_pointers, molobject.Atom)
 
-    def delete(self):
-        '''Delete the C++ Atom objects'''
-        c_function('atom_delete',
-            args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
+    def delete(self, *, compact_coordsets=False):
+        '''Delete the C++ Atom objects.
+        If 'compact_coordsets' is True, the coordinate sets will be compacted to remove the
+        unused coordinates, which will take additional time but save some memory.  If additional
+        coordinate sets might be added to the structure later then it would be crucial to
+        set 'compact_coordsets' to True.'''
+        c_function('atom_delete', args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_bool])(
+            self._c_pointers, len(self), compact_coordsets)
 
     def update_ribbon_backbone_atom_visibility(self):
         '''Update the 'hide' status for ribbon backbone atoms, which

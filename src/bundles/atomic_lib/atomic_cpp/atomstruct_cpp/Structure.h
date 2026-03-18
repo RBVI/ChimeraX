@@ -194,7 +194,7 @@ protected:
     void  _copy(Structure* s, PositionMatrix coord_adjust = nullptr,
         std::map<ChainID, ChainID>* chain_id_map = nullptr) const;
     void  _delete_atom(Atom* a);
-    void  _delete_atoms(const std::set<Atom*>& atoms, bool verify=false);
+    void  _delete_atoms(const std::set<Atom*>& atoms, bool compact_coord_sets=false);
     void  _delete_residue(Residue* r);
     void  _ensure_overall_sequential(Chain*);
     void  _fast_calculate_rings(std::set<const Residue *>* ignore) const;
@@ -266,8 +266,9 @@ public:
     virtual Structure*  copy() const;
     void  delete_alt_locs();
     void  delete_atom(Atom* a);
-    void  delete_atoms(const std::set<Atom*>& atoms) { _delete_atoms(atoms); }
-    void  delete_atoms(const std::vector<Atom*>& atoms);
+    void  delete_atoms(const std::set<Atom*>& atoms, bool compact_coord_sets=false) {
+        _delete_atoms(atoms, compact_coord_sets); }
+    void  delete_atoms(const std::vector<Atom*>& atoms, bool compact_coord_sets=false);
     void  delete_bond(Bond* b);
     void  delete_residue(Residue* r);
     bool  display() const { return _display; }
