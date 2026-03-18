@@ -26,7 +26,6 @@ from chimerax.core.errors import UserError, LimitationError
 
 def read_coords(session, file_name, model, format_name, *,
         replace=True, start=1, step=1, end=None, omit=None):
-    print("omit:", repr(omit))
     from numpy import array, float64
     def read_gromacs_file(read_func, file_name):
         try:
