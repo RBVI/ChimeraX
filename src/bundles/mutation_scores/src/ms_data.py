@@ -390,6 +390,10 @@ def mutation_scores_list(session):
     sets = '\n'.join(f'{scores.name} ({", ".join(scores.score_names())})' for scores in score_sets)
     session.logger.info(f'{len(score_sets)} mutation score sets\n{sets}')
     return msm.names()
+    
+def mutation_scores_names(session):
+    msm = mutation_scores_manager(session)
+    return msm.names()
 
 def mutation_scores_structure(session, chains = None,
                               allow_mismatches = None, minimum_percent_identity = 50,

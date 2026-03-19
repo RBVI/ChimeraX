@@ -1583,7 +1583,9 @@ class StructureData:
     coordset_ids = c_property('structure_coordset_ids', int32, 'num_coordsets', read_only = True,
         doc = "Supported API. Return array of ids of all coordinate sets.")
     coordset_size = c_property('structure_coordset_size', int32, read_only = True,
-        doc = "Supported API. Return the size of the active coordinate set array.")
+        doc = "Supported API. Return the size of the active coordinate set array."
+        " If atoms have been deleted, this number could be more than the number of atoms, so in most"
+        " practical cases you should use the num_atoms attribute.")
     coordsets = c_property('structure_coordsets', cptr, 'num_coordsets', astype = convert.coordsets,
         read_only = True,
         doc = "Supported API. :class:`.CoordSets` collection containing all coordsets of the structure.")
@@ -1785,8 +1787,11 @@ class StructureData:
         if not xyzs.flags.c_contiguous:
             # molc.cpp code doesn't know about strides...
             xyzs = xyzs.copy()
-        cs_size = self.coordset_size
-        if cs_size > 0:
+        #cs_size = self.coordset_size
+        #if cs_size > 0:
+        # self.coordset_size could be > #atoms if atoms have been deleted.  Testing whether just
+        # always checking the number of atoms is okay...
+        if False:
             dim_check = cs_size
             check_text = "previous coordinate sets"
             do_check = True
