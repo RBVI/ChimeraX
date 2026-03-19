@@ -33,6 +33,12 @@ from time import time
 def default_uncategorized_color(session):
     return "saddle brown"
 
+def filter_out_gapped(s):
+    pbg = s.pseudobond_group(s.PBG_MISSING_STRUCTURE, create_type=None)
+    if not pbg:
+        return True
+    return not pbg.pseudobonds
+
 class BarbedWireJob(Job):
 
     SESSION_SAVE = False
@@ -110,6 +116,11 @@ def phenix_barbed_wire(session, structures, *, block=None, phenix_location=None,
         structures = all_atomic_structures(session)
         if not structures:
             raise UserError("No structures currently open")
+
+    structures = [s for s in structures if filter_out_gapped(s)]
+    if not structures:
+        raise UserError("Structures specified do not seem to be AlphaFold structures"
+            " (parts of chains are missing)")
 
     if uncategorized_color is None:
         from chimerax.core.colors import Color

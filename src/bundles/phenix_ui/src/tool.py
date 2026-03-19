@@ -76,7 +76,8 @@ class LaunchAlphaFoldAnalysisTool(ToolInstance):
         layout.addLayout(model_layout, stretch=1)
         model_layout.addStretch(1)
         model_layout.addWidget(QLabel("Analyze:"), alignment=Qt.AlignRight|Qt.AlignVCenter)
-        self.structure_list = AtomicStructureListWidget(session)
+        from .barbed_wire import filter_out_gapped
+        self.structure_list = AtomicStructureListWidget(session, filter_func=filter_out_gapped)
         model_layout.addWidget(self.structure_list, alignment=Qt.AlignLeft|Qt.AlignVCenter)
         model_layout.addStretch(1)
 
