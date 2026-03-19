@@ -23,6 +23,7 @@ defaults = {
 }
 
 sticky_defaults = {
+    "mac_no_hscrollbar": True,
     "scroll_to_sel": True,
 }
 

@@ -31,7 +31,7 @@ from chimerax.atomic import AtomicStructure, Atom, colors, Residue
 from time import time
 
 def default_uncategorized_color(session):
-    return "dim gray"
+    return "saddle brown"
 
 class BarbedWireJob(Job):
 
@@ -171,9 +171,11 @@ def _process_results(session, json, structure, show_key, uncategorized_color):
 
     if show_key:
         from chimerax.core.commands import run, StringArg
+        semantic_cat_order = [ "Uncategorized", "Unphysical", "Barbed wire", "Pseudostructure",
+            "Near-predictive", "Unpacked high pLDDT", "Predictive" ] # order from Elaine
         run(session, "key %s pos 0.925,0.025 size 0.05,0.2 colorTreatment distinct labelSide left"
             " fontSize 16" % ' '.join([StringArg.unparse("%s:%s" % (color_names[cat], cat))
-            for cat in reversed(sorted(list(color_names.keys())))]), log=False)
+            for cat in semantic_cat_order]), log=False)
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 

@@ -65,7 +65,10 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
     fake_n = set()
     n_error_template = "Don't know how to modify %s to match N-terminal template: %s"
     c_error_template = "Don't know how to modify %s to match C-terminal template: %s"
+    from chimerax.atomic import Residue
     for chain in structure.chains:
+        if chain.polymer_type != Residue.PT_AMINO:
+            continue
         in_missing = False
         prev_r = None
         for r in chain.residues:
@@ -86,7 +89,7 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
                 if c.num_bonds != 3:
                     fake_c.add(c_term)
             else:
-                raise LimitationError(c_error_template(c_term, "can't find C atom"))
+                raise LimitationError(c_error_template % (c_term, "can't find C atom"))
     from chimerax.atomic.bond_geom import bond_positions
     from chimerax.addh import bond_with_H_length
     NH_len = CO_len = None
@@ -170,7 +173,6 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
         omm_res_to_cx = { omm_r: cx_r for cx_r, omm_r in residues.items() }
         template, omm_res = templates[0], no_tmpl_omm_residues[0]
         cx_res = omm_res_to_cx[omm_res]
-        print("Making template for", cx_res)
         #TODO: try to fix NAD (in 7cmc for example) by prepending 'DNA-', but there is no
         # DNA-N (atom n7n) so needs further investigation
         #adjust_gaff_type = cx_res.name in ['ADP', 'ATP', 'GDP', 'GTP', 'NAD', 'NDP']
@@ -187,7 +189,6 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
 
                 #if adjust_gaff_type:
                 #    gaff_type = 'DNA-' + gaff_type
-                print("  setting", cx_atom.name, "type as", gaff_type)
                 omm_atom.type = gaff_type
                 omm_atom.parameters['charge'] = cx_atom.charge
             except AttributeError as e:

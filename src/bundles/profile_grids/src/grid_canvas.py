@@ -64,6 +64,8 @@ class GridCanvas:
         self.main_label_view = QGraphicsView(self.main_label_scene)
         self.main_label_view.setAlignment(Qt.AlignRight|Qt.AlignTop)
         self.main_label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
+        self.main_label_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.main_label_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.header_scene = QGraphicsScene()
         """
         self.header_scene.setBackgroundBrush(Qt.lightGray)
@@ -82,6 +84,8 @@ class GridCanvas:
         self.header_label_view = QGraphicsView(self.header_label_scene)
         self.header_label_view.setAlignment(Qt.AlignRight|Qt.AlignBottom)
         self.header_label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
+        self.header_label_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.header_label_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         self.main_scene = QGraphicsScene()
         self.main_scene.setBackgroundBrush(Qt.white)
@@ -99,6 +103,10 @@ class GridCanvas:
         """
         self.main_view = QGraphicsView(self.main_scene)
         self.main_view.setAttribute(Qt.WA_AlwaysShowToolTips)
+        import sys
+        if sys.platform == "darwin" and self.pg.settings.mac_no_hscrollbar:
+            # The "on demand" scrollbar really mucks up the size of the scrolling area
+            self.main_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.main_view.viewport().installEventFilter(self.main_scene)
         #self.main_view.setViewportMargins(0, 0, 0, -20)
         #from Qt.QtWidgets import QFrame
@@ -458,6 +466,15 @@ class GridCanvas:
         label.setPos(-label_rect.width(), group_rect.y() - label_rect.height())
         self.header_view.show()
         self._update_scene_rects()
+
+    def show_hscrollbar(self, show):
+        from Qt.QtCore import Qt
+        if show:
+            policy = Qt.ScrollBarAsNeeded
+        else:
+            policy = Qt.ScrollBarAlwaysOff
+        self.main_view.setHorizontalScrollBarPolicy(policy)
+        self.pg.settings.mac_no_hscrollbar = not show
 
     def state(self):
         return {

@@ -94,8 +94,9 @@ def mutation_scores_define(session, score_name = None, from_score_name = None, m
         scores.associate_chains(session)
         res, rnums = scores.associated_residues(rvalues.residue_numbers())
         if len(res) > 0:
+            atype = int if isinstance(rvalues.residue_value(rnums[0]), int) else float
             from chimerax.atomic import Residue
-            Residue.register_attr(session, score_name, "Deep Mutational Scan", attr_type=float)
+            Residue.register_attr(session, score_name, "Deep Mutational Scan", attr_type=atype, supercede=True)
             for r,rnum in zip(res, rnums):
                 setattr(r, score_name, rvalues.residue_value(rnum))
             from chimerax.atomic import concise_chain_spec

@@ -69,6 +69,7 @@ The scenes can be dragged horizontally to different positions on the timeline.
 </p><p>
 <b>Adjust Time</b>: Clicking the negative and positive numbers allows
 adjusting the length of the timeline by subtracting and adding seconds.
+The timeline length in seconds assumes a playback rate of 60 fps.
 </p><p>
 <b>Actions</b>: the three icons on gray circles represent (from left to right)
 represent rocking, rolling, and precession. Each type of action can be placed
@@ -83,22 +84,33 @@ on the timeline includes corresponding options:
     <ul>
     <li><b>Delete 'Rock' Segment</b>
     </li><li><b>Axis</b> (X/<b>Y</b>/Z)
-    </li><li><b>Angle</b> (15/30/45/<b>60</b>/90/120/180&deg;)
+&ndash; axis of rocking in the 
+<a href="../commands/view.html#screencoords">screen coordinate system</a>
+    </li><li><b>Angle</b> (15/30/45/<b>60</b>/90/120/180/360&deg;)
+&ndash; amplitude of rocking motion, maximum angle from starting point
+in each direction (total angle swept out is twice this value)
     </li><li><b>Count</b> (<b>1</b>/2/3/4/5)
+&ndash; number of cycles, each returning to the starting point
     </ul>
   <li>for <b>Roll</b>:
     <ul>
     <li><b>Delete 'Roll' Segment</b>
     </li><li><b>Axis</b> (X/<b>Y</b>/Z)
+&ndash; axis of rolling in the 
+<a href="../commands/view.html#screencoords">screen coordinate system</a>
     </li><li><b>Angle</b> (15/30/45/60/90/120/180/<b>360</b>&deg;) 
-    &ndash; total rotation
+&ndash; rotation per count
     </li><li><b>Count</b> (<b>1</b>/2/3/4/5)
+&ndash; total rotation = angle &times; count
     </ul>
   <li>for <b>Precess</b>:
     <ul>
     <li><b>Delete 'Precess' Segment</b>
     </li><li><b>Axis</b> (X/<b>Y</b>/Z)
-    </li><li><b>Count</b> (<b>1</b>/2/3/4/5) &ndash; number of cycles
+&ndash; axis of precession in the 
+<a href="../commands/view.html#screencoords">screen coordinate system</a>
+    </li><li><b>Count</b> (<b>1</b>/2/3/4/5)
+&ndash; number of cycles, each returning to the starting point
     </li><li><b>Precession Tilt</b> (5/<b>10</b>/15/20/30/45&deg;)
     </ul>
   </ul>
@@ -175,7 +187,6 @@ already-recorded image frames into the specified output file.
 In general, the scrubber will advance more slowly during recording
 than during playback because rendering the images takes time. 
 </p>
-
 <a name="settings"></a>
 <p class="nav">
 [<a href="#top">back to top: Animations</a>]
@@ -196,6 +207,11 @@ documented in this page, or the more complex <b>Keyframe Mode</b>
 by clicking the <font color="red">&#9673;</font> button to record;
 the resolution can still be changed in that dialog, however, 
 before recording is initiated
+</li><li><b>Default recording resolution</b> 
+&ndash; framerate at which to encode the movie
+(initial default <b>60</b> FPS); 120 would give a movie half as long as 
+indicated by the second markings on the timeline, whereas values &lt;60 
+would give movies longer than indicated by the markings on the timeline
 </li></ul>
 <p>
 Buttons at the bottom of the dialog:

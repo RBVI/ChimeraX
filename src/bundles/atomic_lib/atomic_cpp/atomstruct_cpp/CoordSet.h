@@ -73,6 +73,7 @@ public:
     float  get_occupancy(const Atom*) const;
     void  fill(const CoordSet* source) { _coords = source->_coords; }
     int  id() const { return _cs_id; }
+    void  replace(Coords& replacement) { _coords = replacement; }
     int  session_num_floats(int /*version*/=CURRENT_SESSION_VERSION) const {
         return _bfactor_map.size() + _occupancy_map.size() + 3 * _coords.size();
     }

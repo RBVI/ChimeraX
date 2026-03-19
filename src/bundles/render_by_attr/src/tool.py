@@ -198,6 +198,7 @@ class RenderByAttrTool(ToolInstance):
         self.radius_value_entry.setValidator(validator)
         from chimerax.ui import set_line_edit_width
         set_line_edit_width(self.radius_value_entry, 5)
+        self.radius_value_entry.editingFinished.connect(self._radius_edited)
         rh.add_custom_widget(self.radius_value_entry, left_side=False, alignment=Qt.AlignLeft)
         rv_widgets = [radius_label, self.radius_value_entry]
         self.render_type_widgets[self.RENDER_RADII] = rv_widgets
@@ -834,6 +835,14 @@ class RenderByAttrTool(ToolInstance):
         self.color_surfaces.setEnabled("surfaces" in color_targets)
         self._new_render_attr()
         self._new_select_attr()
+
+    def _radius_edited(self):
+        markers, cur_marker = self.render_histogram.current_marker_info()
+        if markers != self.render_radius_markers or not cur_marker:
+            return
+
+        if self.radius_value_entry.hasAcceptableInput():
+            cur_marker.radius = float(self.radius_value_entry.text().strip())
 
     def _radius_marker_add_del(self, marker=None):
         if marker:

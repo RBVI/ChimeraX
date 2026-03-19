@@ -132,6 +132,14 @@ class ProfileGridsTool(ToolInstance):
             setattr(settings, "scroll_to_sel", checked))
         menu.addAction(action)
 
+        import sys
+        if sys.platform == "darwin":
+            action = QAction("Suppress Horizontal Scrollbar", menu)
+            action.setCheckable(True)
+            action.setChecked(self.settings.mac_no_hscrollbar)
+            action.toggled.connect(lambda checked, *args, canvas=self.grid_canvas:
+                canvas.show_hscrollbar(not checked))
+        menu.addAction(action)
         settings_action = QAction("Settings...", menu)
         settings_action.triggered.connect(self.show_settings)
         menu.addAction(settings_action)
