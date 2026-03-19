@@ -38,7 +38,7 @@ class _MDCrdsBundleAPI(BundleAPI):
         if mgr == session.open_command:
             from chimerax.open_command import OpenerInfo
             from chimerax.core.commands import ListOf, EnumOf
-            omit_arg = ListOf(EnumOf(["main", "solvent", "ligand", "ions", "other"]))
+            omit_arg = ListOf(EnumOf(["main", "solvent", "ligand", "ions"]))
             if name in ("psf", "data"):
                 class MDInfo(OpenerInfo):
                     def open(self, session, data, file_name, *, slider=True, format_name=name, **kw):
