@@ -165,7 +165,9 @@ def _process_results(session, json, structure, show_key, uncategorized_color):
                 continue
             res.barbed_wire_category = cat
             try:
-                res.ribbon_color = cat_colors[cat]
+                cat_color = cat_colors[cat]
+                res.ribbon_color = cat_color
+                res.atoms.colors = cat_color
             except KeyError:
                 raise RuntimeError("Unexpected structure category in barbed wire output: %s" % repr(cat))
 
