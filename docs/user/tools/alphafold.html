@@ -595,6 +595,14 @@ if this option is unchecked, highlighting will be done with
 &ndash; color the plot to match the 3D structure where the pair of entities
 represented by an X,Y point have the same ribbon color; show the rest of the
 plot in shades of gray
+<!-- as per TG email 3/19/26
+the PAE plot for position (res1, res2) becomes the color of the structure ribbon 
+modulated by the PAE value if res1 and res2 have the same ribbon color, otherwise
+a gray color is used, where PAE 0 = black and PAE 30 = white and in between, the 
+square of PAE value maps to a linear black-white range. The modulation of the 
+ribbon color fades the ribbon color to white using the square of the PAE value,
+with PAE 0 producing the same color as the ribbon and PAE 30 producing white.
+-->
 </li><li><b>Color plot rainbow</b>
 &ndash; use the <b>pae</b>
 <a href="../commands/color.html#palette-options">palette</a> (default)

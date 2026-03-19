@@ -643,7 +643,7 @@ extern "C" EXPORT void atom_get_coord_altloc(void *atom, char altloc, float64_t 
     }
 }
 
-extern "C" EXPORT void atom_delete(void *atoms, size_t n)
+extern "C" EXPORT void atom_delete(void *atoms, size_t n, npy_bool compact_coordsets)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -658,7 +658,7 @@ extern "C" EXPORT void atom_delete(void *atoms, size_t n)
             // guard against that
             if (ma.first->py_instance(false) == Py_None)
                 continue;
-            ma.first->delete_atoms(ma.second);
+            ma.first->delete_atoms(ma.second, compact_coordsets);
         }
     } catch (...) {
         molc_error();
@@ -2774,7 +2774,7 @@ extern "C" EXPORT void residue_delete(void *residues, size_t n)
           const Residue::Atoms &ratoms = r[i]->atoms();
           atoms.insert(atoms.end(), ratoms.begin(), ratoms.end());
         }
-        atom_delete(atoms.data(), atoms.size());
+        atom_delete(atoms.data(), atoms.size(), false);
     } catch (...) {
         molc_error();
     }

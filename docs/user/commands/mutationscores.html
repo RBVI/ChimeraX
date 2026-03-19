@@ -142,70 +142,6 @@ on the X- and Y-axes and for which <a href="#mutationSet">mutation set</a>.
 Placing the cursor over a plotted point (circle)
 reports the specific mutation and its score values at the bottom of the panel.
 </p><p>
-Clicking <b>Color structures</b> colors any 
-associated structures <b>using</b> a score chosen from the menu, optionally
-normalized by linear least-squares fitting to a <b>subtract fit</b> score
-and subtracting the linear values 
-(if the <b>subtract fit</b> score is not set to <b>none</b>;
-<a href="#subtractFit">details...</a>).
-</p><p>
-There are typically several different <b>mutations</b> at the same 
-residue position, whereas a single value per position is needed for coloring.
-This single value per position can be calculated based on
-<b>all</b> of those mutations or only those enclosed in a <b>drag box</b>
-drawn on the plot, and can be computed as one of:
-</p>
-<ul>
-<li><b>mean</b> &ndash; average of values
-</li><li><b>count</b> &ndash; how many different mutations are being used
-</li><li><b>sum absolute</b> &ndash; sum of absolute values
-</li><li><b>sum</b>
-</li><li><b>min</b>
-</li><li><b>max</b>
-</li><li><b>median</b>
-</li><li><b>stddev</b> &ndash; standard deviation
-</li></ul>
-<p>
-Choices of <b>palette</b> for coloring by mutation scores include:
-</p>
-<ul>
-<li><b>blue to red</b>
-&ndash; with blue, white, another white, and red thresholds
-</li><li><b>red to blue</b>
-&ndash; with red, white, another white, and blue thresholds
-</li><li><b>white to red</b>
-&ndash; with white and red thresholds
-</li><li><b>red to white</b>
-&ndash; with red and white thresholds
-</li><li><b>white to blue</b>
-&ndash; with white and blue thresholds
-</li><li><b>blue to white</b>
-&ndash; with blue and white thresholds
-</li></ul>
-<p>
-The colors are in low &rarr; high value order in the names above, and
-the thresholds are placed to span four standard deviations centered on the mean.
-</p>
-Clicking <b>Adjust colors</b> shows the 
-<a href="../tools/render.html"><b>Render by Attribute</b></a> tool
-for interactively moving the thresholds and/or changing their colors.
-</p><p>
-<a name="previous-colorings"></a>
-<b>Previous colorings</b> shows a &ldquo;Mutation Coloring History&rdquo; table 
-allowing previous colorings to be chosen and easily reapplied
-(see also <a href="#color"><b>mutationscores color</b></a>).
-There are buttons below the table to:
-</p>
-<ul>
-<li><b>Rename</b> a chosen coloring
-</li><li><b>Delete</b> one or more chosen colorings
-</li><li><b>Adjust colors</b> for that coloring with 
-<a href="../tools/render.html"><b>Render by Attribute</b></a>
-</li><li><b>Save</b> one or more chosen scores (if none are chosen, all)
-to a .csv file with columns: 
-residue number, residue type, score1-name, score2-name, ...
-</ul>
-<p>
 Clicking the scatter plot raises a context menu; entries that refer to
 a specific mutant only appear when the click is on a circle, and some entries 
 only appear if there is an <a href="#associated">associated structure</a>:
@@ -272,15 +208,94 @@ can be removed with <a href="label.html#delete"><b>label delete</b></a>
 values for all substitutions at that position; the grid
 can be removed with <a href="label.html#delete"><b>label delete</b></a>
 </li></ul>
-The following relate to plots:
+The following relate to additional windows or dialogs:
 <ul>
 <li><b>New plot</b> 
 &ndash; duplicate the current plot window to allow changing one copy
 while retaining the settings of the other
-</li><li><b>Show histogram</b> 
-&ndash; show a <a href="#histogram">histogram</a> of the X-axis values
 </li><li><b>Save Plot As...</b> save the scatter plot as an image file
 (PNG, SVG, or PDF)
+</li><li><b>Show histogram</b> 
+&ndash; show a <a href="#histogram">histogram</a> of the X-axis values
+</li><li><b>Show structure coloring panel</b> 
+&ndash; show the &ldquo;Mutation Structure Coloring&rdquo; dialog, in which:
+<table class="clRight">
+<tbody><tr><td><img border="1" src="coloringdialog.png" alt="mutation structure coloring dialog" width="450px">
+</td></tr>
+</tbody></table>
+<blockquote>
+<p>
+Clicking <b>Color structures</b> colors any 
+associated structures using the <b>Score</b> chosen from the menu, optionally
+normalized by linear least-squares fitting to a <b>subtract fit</b> score
+and subtracting the linear values 
+(if the <b>subtract fit</b> score is not set to <b>none</b>;
+<a href="#subtractFit">details...</a>).
+An <a href="../attributes.html">attribute</a> named <b>mutation_score</b> 
+is assigned to the <a href="#associated">associated structure</a> residues.
+If the coloring is subsequently <a href="#previous-colorings">named/saved</a>,
+the attribute name is changed to match the name of the score.
+</p><p>
+There are typically several different mutations at the same 
+residue position, whereas a single value per position is needed for coloring.
+This single value per position can be calculated based on
+a <b>filter mutations</b> setting of <b>all</b> mutations
+(<i>i.e.</i>, unfiltered) or only those enclosed in a <b>drag box</b>
+drawn on the plot, and can be computed as one of:
+</p>
+<ul>
+<li><b>mean</b> &ndash; average of values
+</li><li><b>count</b> &ndash; how many different mutations are being used
+</li><li><b>sum absolute</b> &ndash; sum of absolute values
+</li><li><b>sum</b>
+</li><li><b>min</b>
+</li><li><b>max</b>
+</li><li><b>median</b>
+</li><li><b>stddev</b> &ndash; standard deviation
+</li></ul>
+<p>
+Choices of <b>palette</b> for coloring by mutation scores include:
+</p>
+<ul>
+<li><b>blue to red</b>
+&ndash; with blue, white, another white, and red thresholds
+</li><li><b>red to blue</b>
+&ndash; with red, white, another white, and blue thresholds
+</li><li><b>white to red</b>
+&ndash; with white and red thresholds
+</li><li><b>red to white</b>
+&ndash; with red and white thresholds
+</li><li><b>white to blue</b>
+&ndash; with white and blue thresholds
+</li><li><b>blue to white</b>
+&ndash; with blue and white thresholds
+</li></ul>
+<p>
+The colors are in low &rarr; high value order in the names above, and
+the thresholds are placed to span four standard deviations centered on the mean.
+</p>
+Clicking <b>Adjust colors</b> shows the 
+<a href="../tools/render.html"><b>Render by Attribute</b></a> tool
+for interactively moving the thresholds and/or changing their colors.
+</p><p>
+<a name="previous-colorings"></a>
+Clicking <b>Name</b> saves the current <b>coloring</b> settings to
+the specified name. Subsequently clicking
+<b>Previous colorings</b> shows a &ldquo;Mutation Coloring History&rdquo; table 
+allowing previously saved colorings to be chosen and easily reapplied
+(see also <a href="#color"><b>mutationscores color</b></a>).
+There are buttons below the table to:
+</p>
+<ul>
+<li><b>Adjust colors</b> for that coloring with 
+<a href="../tools/render.html"><b>Render by Attribute</b></a>
+</li><li><b>Rename</b> a chosen coloring
+</li><li><b>Save .csv</b> one or more chosen scores (if none are chosen, all)
+to a comma-separated values file with fields: 
+residue number, residue type, score1-name, score2-name, ...
+</li><li><b>Delete</b> one or more chosen colorings
+</ul>
+</blockquote>
 </li></ul>
 </blockquote>
 
@@ -606,6 +621,6 @@ with <a href="#list"><b>mutationscores list</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2026</address>
+March 2026</address>
 
 </body></html>
