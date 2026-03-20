@@ -210,7 +210,7 @@ endif
 MAGICK := $(shell magick --version > /dev/null 2>&1 && echo magick || echo convert)
 $(APP_NAME).ico: $(APP_NAME)-icon512.png
 	$(MAGICK) $(APP_NAME)-icon512.png -resize 256x256 \
-		-alpha Background -compress zip \
+		-alpha Background \
 		-define icon:auto-resize=256,128,96,64,48,32,24,16 \
 		$(APP_NAME).ico
 
