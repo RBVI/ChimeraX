@@ -30,6 +30,9 @@ from chimerax.core.errors import UserError
 from chimerax.atomic import AtomicStructure, Atom, colors, Residue
 from time import time
 
+semantic_category_order = [ "Uncategorized", "Unphysical", "Barbed wire", "Pseudostructure",
+    "Near-predictive", "Unpacked high pLDDT", "Predictive" ] # order from Elaine
+
 def default_uncategorized_color(session):
     return "saddle brown"
 
@@ -100,7 +103,7 @@ class BarbedWireJob(Job):
     def running(self):
         return self._running
 
-def phenix_barbed_wire(session, structures, *, block=None, phenix_location=None, key=True,
+def phenix_barbed_wire(session, structures, *, block=None, phenix_location=None, key=True, show_tool=True,
         uncategorized_color=None, verbose=False, option_arg=[], position_arg=[]):
 
     # Find the phenix.barbed_wire_analysis executable
@@ -142,10 +145,11 @@ def phenix_barbed_wire(session, structures, *, block=None, phenix_location=None,
         # keep a reference to 'tdir' in the callback so that the temporary directory isn't removed before
         # the program runs
         callback = lambda json, *args, session=session, model=s, show_key=key, ucolor=uncategorized_color, \
-            d_ref=tdir: _process_results(session, json, model, show_key, ucolor)
+            show_tool=show_tool, d_ref=tdir: _process_results(
+            session, json, model, show_key, ucolor, show_tool)
         BarbedWireJob(session, exe_path, option_arg, position_arg, temp_dir, verbose, callback, block)
 
-def _process_results(session, json, structure, show_key, uncategorized_color):
+def _process_results(session, json, structure, show_key, uncategorized_color, show_tool):
     session.logger.status("Barbed wire analysis job finished")
     if structure.deleted:
         raise UserError("AlphaFold structure was deleted during analysis")
@@ -184,11 +188,13 @@ def _process_results(session, json, structure, show_key, uncategorized_color):
 
     if show_key:
         from chimerax.core.commands import run, StringArg
-        semantic_cat_order = [ "Uncategorized", "Unphysical", "Barbed wire", "Pseudostructure",
-            "Near-predictive", "Unpacked high pLDDT", "Predictive" ] # order from Elaine
         run(session, "key %s pos 0.925,0.025 size 0.05,0.2 colorTreatment distinct labelSide left"
             " fontSize 16" % ' '.join([StringArg.unparse("%s:%s" % (color_names[cat], cat))
-            for cat in semantic_cat_order]), log=False)
+            for cat in semantic_category_order]), log=False)
+
+    if session.ui.is_gui and show_tool:
+        from .tool import BarbedWireResultsViewer
+        BarbedWireResultsViewer(session, structure)
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 
@@ -243,6 +249,7 @@ def register_command(logger):
                    ('block', BoolArg),
                    ('key', BoolArg),
                    ('phenix_location', OpenFolderNameArg),
+                   ('show_tool', BoolArg),
                    ('uncategorized_color', ColorArg),
                    ('verbose', BoolArg),
                    ('option_arg', RepeatOf(StringArg)),

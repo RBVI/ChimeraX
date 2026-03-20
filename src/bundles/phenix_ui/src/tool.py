@@ -44,13 +44,13 @@ class PhenixCitation(Citation):
         kw['prefix'] = "%s uses the Phenix <i>%s</i> command. Please cite:" % (tool_name, phenix_name)
         super().__init__(session, cite, **kw)
 
-class LaunchAlphaFoldAnalysisSettings(Settings):
+class LaunchBarbedWireAnalysisSettings(Settings):
     AUTO_SAVE = {
         'show_key': True,
         'uncategorized_color': ColorValue(None),
     }
 
-class LaunchAlphaFoldAnalysisTool(ToolInstance):
+class LaunchBarbedWireAnalysisTool(ToolInstance):
     #help = "help:user/tools/fitligand.html"
 
     def __init__(self, session, tool_name):
@@ -60,7 +60,7 @@ class LaunchAlphaFoldAnalysisTool(ToolInstance):
         parent = tw.ui_area
 
         if not hasattr(self.__class__, 'settings'):
-            self.__class__.settings = LaunchAlphaFoldAnalysisSettings(session, "launch barbedWire")
+            self.__class__.settings = LaunchBarbedWireAnalysisSettings(session, "launch barbedWire")
 
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QMenu, QLineEdit
         from Qt.QtWidgets import QCheckBox, QGridLayout, QGroupBox, QStackedWidget, QFrame
@@ -152,10 +152,109 @@ class LaunchAlphaFoldAnalysisTool(ToolInstance):
         run(self.session, cmd_string)
         self.delete()
 
-class DouseSettings(Settings):
+from .barbed_wire import semantic_category_order
+best_bw_first = list(reversed(semantic_category_order))
+class BarbedWireResultsSettings(Settings):
+    from .barbed_wire import semantic_category_order
     AUTO_SAVE = {
-        "show_hbonds": True,
+        'selected_categories': best_bw_first[3:]
     }
+
+class BarbedWireResultsViewer(ToolInstance):
+
+    #help = "help:user/tools/waterplacement.html#waterlist"
+
+    def __init__(self, session, arg):
+        # if 'arg' is a string, we are being restored from a session
+        # and _finalize_init() will be called later
+        super().__init__(session, "Barbed Wire Results")
+        if isinstance(arg, str):
+            return
+        self._finalize_init(arg)
+
+    def _finalize_init(self, structure):
+        self.structure = structure
+
+        from chimerax.core.models import REMOVE_MODELS
+        self.handlers = [
+            self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb),
+        ]
+
+        if not hasattr(self.__class__, 'settings'):
+            self.__class__.settings = BarbedWireResultsSettings(self.session, "barbed wire results")
+
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
+
+        from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
+        from Qt.QtWidgets import QPushButton, QLabel, QToolButton, QGridLayout
+        layout = QHBoxLayout()
+        layout.setContentsMargins(2,2,2,2)
+        layout.setSpacing(0)
+        parent.setLayout(layout)
+
+        sel_but = QPushButton("Select")
+        sel_but.clicked.connect(self._select)
+        layout.addWidget(sel_but, alignment=Qt.AlignCenter)
+        rows_layout = QVBoxLayout()
+        layout.addLayout(rows_layout)
+        self.check_boxes = []
+        for row_items in [best_bw_first[:3], best_bw_first[3:]]:
+            row_layout = QHBoxLayout()
+            rows_layout.addLayout(row_layout)
+            for cat_name in row_items:
+                cb = QCheckBox(cat_name)
+                cb.setChecked(cat_name in self.settings.selected_categories)
+                self.check_boxes.append(cb)
+                row_layout.addWidget(cb)
+                row_layout.addSpacing(14)
+            row_layout.addStretch(1)
+
+        self.tool_window.manage('side')
+
+    def delete(self):
+        for handler in self.handlers:
+            handler.remove()
+        self.model = self.map = None
+        super().delete()
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        inst = super().restore_snapshot(session, data['ToolInstance'])
+        inst._finalize_init(data['structure'])
+        for cat, box in zip(best_bw_first, inst.check_boxes):
+            box.setChecked(cat in data['checked boxes'])
+
+    SESSION_SAVE = True
+
+    def take_snapshot(self, session, flags):
+        return {
+            'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
+            'checked boxes': [cat for cat, box in zip(best_bw_first, self.check_boxes) if box.isChecked()],
+            'structure': self.structure,
+        }
+
+    def _models_removed_cb(self, trig_name, trig_data):
+        if self.structure in trig_data:
+            self.delete()
+
+    def _select(self):
+        sel_cats = []
+        for cat, but in zip(best_bw_first, self.check_boxes):
+            if but.isChecked():
+                sel_cats.append(cat)
+        if not sel_cats:
+            raise UserError("No barbed-wire categories selected")
+        self.settings.selected_categories = sel_cats
+        from chimerax.core.commands import run, StringArg
+        def barbed_wire_selector(cat):
+            if cat == best_bw_first[-1]:
+                # uncategorized
+                return "::^barbed_wire_category"
+            return "::barbed_wire_category=%s" % StringArg.unparse(cat)
+        run(self.session, "select " + self.structure.atomspec + ' & ' + ' '.join([barbed_wire_selector(cat)
+            for cat in sel_cats]))
 
 from chimerax.check_waters.tool import CheckWaterViewer, check_overlap
 class DouseResultsViewer(CheckWaterViewer):
