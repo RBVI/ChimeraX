@@ -100,7 +100,7 @@ modules:
       # need rpath to point to installation directory, not /usr/local/lib
       - (cd lib; for m in $(find . -name Makefile); do sed -i "s/SHLIB_RDIRS=.*/SHLIB_RDIRS='\$\$ORIGIN'/" $m; done)
       - make -j -C src/lib
-      - cd src/lib && cp libkrb5.so.3 libk5crypto.so.3 libcom_err.so.3 libkrb5support.so.0 libgssapi_krb5.so.2 /app/lib/python3*/site-packages/PyQt6/Qt6/lib/
+      - cd src/lib && cp libkrb5.so.3 libk5crypto.so.3 libcom_err.so.3 libkrb5support.so.0 libgssapi_krb5.so.2 $(/app/bin/python3.* -c "import PyQt6; print(PyQt6.__path__[0])")/Qt6/lib/
 
 cleanup:
   - "/bin/rsync*"
