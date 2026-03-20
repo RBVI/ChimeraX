@@ -13,6 +13,16 @@
 
 from chimerax.core.tools import ToolInstance
 
+# in case other tools want to show citation info
+openmm_citation_arg = (
+    "<b>OpenMM 8: Molecular Dynamics Simulation with Machine Learning Potentials</b><br>"
+    "Eastman P, Galvelis E, Peláez RP, <i>et al,<i><br>"
+    "J. Phys. Chem. B 128(1), pp. 109-116 (2023)")
+openmm_citation_kw = {
+    'prefix': "Minimization is performed using OpenMM.\nPublications using OpenMM minimization should cite:",
+    'pubmed_id': 38154096,
+}
+
 class MinimizeTool(ToolInstance):
 
     help = "help:user/tools/minimizestructure.html"
@@ -59,6 +69,11 @@ class MinimizeTool(ToolInstance):
         self.log_energies_button = QCheckBox("Report energies to Log")
         self.log_energies_button.setChecked(self.settings.log_energies)
         layout.addWidget(self.log_energies_button)
+
+        from chimerax.add_charge.tool import antechamber_citation_arg, antechamber_citation_kw
+        from chimerax.ui.widgets import Citation
+        layout.addWidget(Citation(session, antechamber_citation_arg, **antechamber_citation_kw))
+        layout.addWidget(Citation(session, openmm_citation_arg, **openmm_citation_kw))
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)
