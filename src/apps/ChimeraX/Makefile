@@ -212,7 +212,7 @@ $(APP_NAME).ico: $(APP_NAME)-icon512.png
 	$(MAGICK) $(APP_NAME)-icon512.png -resize 256x256 \
 		-alpha Background \
 		-define icon:auto-resize=256,128,96,64,48,32,24,16 \
-		$(APP_NAME).ico
+		ico:- > $(APP_NAME).ico
 
 icon.$(OBJ_EXT): $(APP_NAME).ico
 
