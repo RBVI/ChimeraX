@@ -222,7 +222,12 @@ class PickBlobs(MouseMode):
         cmd = 'measure blob #!%s triangle %d'  % (surface.id_string, t)
         settings = self.settings
         if settings.color_blob:
-            cmd += ' color %s' % hex_color(settings.blob_color)
+            color = settings.blob_color
+            if color[3] == 255:
+                alpha = _triangle_opacity(surface, t)
+                r,g,b = color[:3]
+                color = (r, g, b, alpha)
+            cmd += ' color %s' % hex_color(color)
             if settings.change_color:
                 settings.new_color()
         if settings.show_box:
@@ -253,6 +258,15 @@ def _picked_triangle(pick):
     t = tpick.triangle_number
     surface = tpick.drawing()
     return surface, t
+
+def _triangle_opacity(surface, t):
+    vc = surface.vertex_colors
+    if vc is None:
+        alpha = surface.color[3]
+    else:
+        v0,v1,v2 = surface.triangles[t]
+        alpha = (vc[v0][3] + vc[v1][3] + vc[v2][3]) // 3
+    return alpha
 
 def hex_color(rgba8):
     return '#%02x%02x%02x%02x' % tuple(rgba8)

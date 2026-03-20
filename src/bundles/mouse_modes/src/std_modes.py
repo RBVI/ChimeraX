@@ -615,7 +615,7 @@ class RotateIndependentMouseMode(MoveMouseMode):
         self._independent_model_rotation = True
     def models(self):
         models = [m for m in self.session.models.list()
-                  if m.visible and len(m.id) == 1]
+                  if m.visible and len(m.id) == 1 and m.parent is not None]
         if len(models) == 1:
             # If we have one grouping model then tile the child models.
             m = models[0]
