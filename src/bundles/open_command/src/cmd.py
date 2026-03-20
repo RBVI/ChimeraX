@@ -519,7 +519,7 @@ def collated_open(session, database_name, data, data_format, main_opener, log_er
             if isinstance(data, str):
                 raise UserError("Cannot open '%s': %s" % (data, e))
             else:
-                raise UserError("Cannot open files: %s" % e)
+                raise UserError("Cannot open file: %s" % e)
         for m in models:
             m.opened_data_format = data_format
         return models, status
