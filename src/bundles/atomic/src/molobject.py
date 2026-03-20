@@ -805,10 +805,18 @@ class Sequence(State):
         'W':'TRP', 'Y':'TYR', 'Z':'GLX' }
 
     # the following colors for use by alignment/sequence viewers
-    default_helix_fill_color = (1.0, 1.0, 0.8)
-    default_helix_outline_color = tuple([chan/255.0 for chan in (218, 165, 32)]) # goldenrod
-    default_strand_fill_color = (0.88, 1.0, 1.0) # light cyan
-    default_strand_outline_color = tuple([0.75*chan for chan in default_strand_fill_color])
+    light_mode_helix_fill = (1.0, 1.0, 0.8)
+    light_mode_helix_outline = tuple([chan/255.0 for chan in (218, 165, 32)]) # goldenrod
+    light_mode_strand_fill = (0.88, 1.0, 1.0) # light cyan
+    light_mode_strand_outline = tuple([0.75*chan for chan in light_mode_strand_fill])
+    dark_mode_helix_fill = tuple([0.6*chan for chan in light_mode_helix_fill])
+    dark_mode_helix_outline = light_mode_helix_fill
+    dark_mode_strand_fill = tuple([0.6*chan for chan in light_mode_strand_fill])
+    dark_mode_strand_outline = light_mode_strand_fill
+    default_helix_fill_color = light_mode_helix_fill
+    default_helix_outline_color = light_mode_helix_outline
+    default_strand_fill_color = light_mode_strand_fill
+    default_strand_outline_color = light_mode_strand_outline
 
     chimerax_exiting = False
 
@@ -1575,7 +1583,9 @@ class StructureData:
     coordset_ids = c_property('structure_coordset_ids', int32, 'num_coordsets', read_only = True,
         doc = "Supported API. Return array of ids of all coordinate sets.")
     coordset_size = c_property('structure_coordset_size', int32, read_only = True,
-        doc = "Supported API. Return the size of the active coordinate set array.")
+        doc = "Supported API. Return the size of the active coordinate set array."
+        " If atoms have been deleted, this number could be more than the number of atoms, so in most"
+        " practical cases you should use the num_atoms attribute.")
     coordsets = c_property('structure_coordsets', cptr, 'num_coordsets', astype = convert.coordsets,
         read_only = True,
         doc = "Supported API. :class:`.CoordSets` collection containing all coordsets of the structure.")
@@ -1660,6 +1670,8 @@ class StructureData:
     '''Ribbon mode showing secondary structure as an arc (tube or plank).'''
     RIBBON_MODE_WRAP = 2
     '''Ribbon mode showing helix as ribbon wrapped around tube.'''
+    RIBBON_MODE_CYLINDER = 3
+    '''Ribbon mode showing helix as straight cylinder.'''
     ring_display_count = c_property('structure_ring_display_count', int32, read_only = True,
         doc = "Return number of residues with ring display set. Integer.")
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
@@ -1775,8 +1787,11 @@ class StructureData:
         if not xyzs.flags.c_contiguous:
             # molc.cpp code doesn't know about strides...
             xyzs = xyzs.copy()
-        cs_size = self.coordset_size
-        if cs_size > 0:
+        #cs_size = self.coordset_size
+        #if cs_size > 0:
+        # self.coordset_size could be > #atoms if atoms have been deleted.  Testing whether just
+        # always checking the number of atoms is okay...
+        if False:
             dim_check = cs_size
             check_text = "previous coordinate sets"
             do_check = True

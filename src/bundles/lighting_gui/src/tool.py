@@ -311,6 +311,10 @@ class LightingGUI(ToolInstance):
         self.ambient_color.color_changed.connect(self._on_ambient_color_changed)
         layout.addRow("Ambient color:", self.ambient_color)
 
+        self.silhouette_enabled = QCheckBox()
+        self.silhouette_enabled.stateChanged.connect(self._on_silhouette_enabled_changed)
+        layout.addRow("Silhouettes:", self.silhouette_enabled)
+
         restore_button = QPushButton("Restore Defaults")
         restore_button.clicked.connect(self._on_restore_defaults)
         layout.addRow(restore_button)
@@ -404,6 +408,8 @@ class LightingGUI(ToolInstance):
         self.sharpness.setValue(mat.specular_exponent)
         self.reflectivity.setValue(mat.specular_reflectivity)
 
+        self.silhouette_enabled.setChecked(v.silhouette.enabled)
+
         # Depth cue
         self.depth_cue_enabled.setChecked(lp.depth_cue)
         self.depth_cue_start.setValue(lp.depth_cue_start)
@@ -422,6 +428,7 @@ class LightingGUI(ToolInstance):
         self.ambient_intensity.slider.blockSignals(block)
         self.sharpness.slider.blockSignals(block)
         self.reflectivity.slider.blockSignals(block)
+        self.silhouette_enabled.blockSignals(block)
         self.depth_cue_enabled.blockSignals(block)
         self.depth_cue_start.slider.blockSignals(block)
         self.depth_cue_end.slider.blockSignals(block)
@@ -581,6 +588,10 @@ class LightingGUI(ToolInstance):
 
     def _on_reflectivity_released(self):
         run(self.session, f"material reflectivity {self.reflectivity.value()}")
+
+    def _on_silhouette_enabled_changed(self, state):
+        enabled = state == Qt.CheckState.Checked.value
+        run(self.session, f"graphics silhouettes {'true' if enabled else 'false'}")
 
     # === Depth Cue callbacks ===
 
@@ -756,6 +767,13 @@ class LightingPreviewWidget(QWindow):
         direction = rot_h.transform_vector(direction)
         direction = rot_v.transform_vector(direction)
         direction = direction / np.linalg.norm(direction)
+
+        # Clamp so arrow stays visible in the preview. The camera looks
+        # down -Z, so light directions with Z near zero place the arrow
+        # at the equator where it goes off the edge of the preview window.
+        if direction[2] > -0.35:
+            direction[2] = -0.35
+            direction = direction / np.linalg.norm(direction)
 
         # Update lighting
         if self._dragging == "key":

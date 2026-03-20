@@ -159,6 +159,16 @@ class AddChargeTool(ToolInstance):
             self.dock_prep_info['callback'](AtomicStructures(self.structures), tool_settings=params)
         self.delete()
 
+# so that other tools can access the citation information
+antechamber_citation_arg = (
+    "<b>Automatic atom type and bond type perception in molecular mechanical calculations</b><br>"
+    "Wang J, Wang W, Kollman PA, and Case DA<br>"
+    "Journal of Molecular Graphics and Modelling, 25, 247-260 (2006)"
+    )
+antechamber_citation_kw = {
+    'prefix': "Charges are computed using ANTECHAMBER.\nPublications using ANTECHAMBER charges should cite:",
+    'pubmed_id': 16458552,
+}
 class AddNonstandardChargesTool(ToolInstance):
 
     SESSION_SAVE = False
@@ -241,11 +251,7 @@ class AddNonstandardChargesTool(ToolInstance):
         layout.addWidget(method_group)
 
         from chimerax.ui.widgets import Citation
-        layout.addWidget(Citation(session, "Wang, J., Wang, W., Kollman, P.A., and Case, D.A. (2006)\n"
-            "Automatic atom type and bond type perception in molecular mechanical calculations\n"
-            "Journal of Molecular Graphics and Modelling, 25, 247-260.",
-            prefix="Charges are computed using ANTECHAMBER.\n"
-            "Publications using ANTECHAMBER charges should cite:", pubmed_id=16458552))
+        layout.addWidget(Citation(session, antechamber_citation_arg, **antechamber_citation_kw))
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Cancel | qbbox.Help)

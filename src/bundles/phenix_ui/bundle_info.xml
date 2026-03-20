@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-PhenixUI" version="1.4.12"
+<BundleInfo name="ChimeraX-PhenixUI" version="1.5.1"
 	    package="chimerax.phenix_ui"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -32,6 +32,7 @@
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+    <ChimeraXClassifier>Command :: phenix barbedWire :: Structure Prediction :: Categorize regions of an AlphaFold prediction</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: phenix douse :: Structure Editing :: Place waters in a map</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: phenix emplaceLocal :: Structure Editing :: Place model in map</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: phenix fitLoops :: Structure Editing :: Fill in missing structure guided by map</ChimeraXClassifier>
@@ -41,6 +42,7 @@
     <ChimeraXClassifier>Tool :: Local EM Fitting :: Structure Editing, Phenix :: Place structure in a map using localized search</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Fit Loops :: Structure Editing, Phenix :: Fill in missing structure or remodel structure guided by Cryo-EM map</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Fit Ligand :: Structure Editing, Phenix :: Place a ligand based on map density</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: AlphaFold2 Barbed Wire :: Structure Prediction, Phenix :: Assign regions of AlphaFold prediction into categories based on pLDDT scores and geometry</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -64,6 +64,8 @@ class GridCanvas:
         self.main_label_view = QGraphicsView(self.main_label_scene)
         self.main_label_view.setAlignment(Qt.AlignRight|Qt.AlignTop)
         self.main_label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
+        self.main_label_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.main_label_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.header_scene = QGraphicsScene()
         """
         self.header_scene.setBackgroundBrush(Qt.lightGray)
@@ -82,6 +84,8 @@ class GridCanvas:
         self.header_label_view = QGraphicsView(self.header_label_scene)
         self.header_label_view.setAlignment(Qt.AlignRight|Qt.AlignBottom)
         self.header_label_view.setAttribute(Qt.WA_AlwaysShowToolTips)
+        self.header_label_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.header_label_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         self.main_scene = QGraphicsScene()
         self.main_scene.setBackgroundBrush(Qt.white)
@@ -99,6 +103,10 @@ class GridCanvas:
         """
         self.main_view = QGraphicsView(self.main_scene)
         self.main_view.setAttribute(Qt.WA_AlwaysShowToolTips)
+        import sys
+        if sys.platform == "darwin" and self.pg.settings.mac_no_hscrollbar:
+            # The "on demand" scrollbar really mucks up the size of the scrolling area
+            self.main_view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.main_view.viewport().installEventFilter(self.main_scene)
         #self.main_view.setViewportMargins(0, 0, 0, -20)
         #from Qt.QtWidgets import QFrame
@@ -459,6 +467,15 @@ class GridCanvas:
         self.header_view.show()
         self._update_scene_rects()
 
+    def show_hscrollbar(self, show):
+        from Qt.QtCore import Qt
+        if show:
+            policy = Qt.ScrollBarAsNeeded
+        else:
+            policy = Qt.ScrollBarAlwaysOff
+        self.main_view.setHorizontalScrollBarPolicy(policy)
+        self.pg.settings.mac_no_hscrollbar = not show
+
     def state(self):
         return {
             'chosen cells': list(self.chosen_cells.keys()),
@@ -468,6 +485,7 @@ class GridCanvas:
     def update_selection(self, *args):
         for item in self.selection_items.values():
             self.main_scene.removeItem(item)
+        prev_sel = set(self.selection_items.keys())
         self.selection_items.clear()
         from chimerax.atomic import selected_chains, selected_residues
         sel_chains = set(selected_chains(self.pg.session))
@@ -501,6 +519,22 @@ class GridCanvas:
         for row, col in needs_highlight:
             self.selection_items[(row, col)] = self.main_scene.addRect(
                 col * width, row * height, width, height, pen=pen)
+        if self.selection_items and self.pg.settings.scroll_to_sel:
+            visible_scene_rect = self.main_view.mapToScene(self.main_view.viewport().rect()).boundingRect()
+            need_scroll = False
+            for row_col, sel_item in self.selection_items.items():
+                if row_col in prev_sel:
+                    continue
+                if visible_scene_rect.intersects(sel_item.sceneBoundingRect()):
+                    # at least one new item is visible
+                    need_scroll = False
+                    break
+                else:
+                    need_scroll = True
+                    scroll_item = sel_item
+            if need_scroll:
+                # nothing newly selected is showing
+                self.main_view.centerOn(scroll_item)
 
     def _cell_text(self, val, fraction):
         cell_text_type = self.pg.settings.cell_text

@@ -32,6 +32,7 @@ class AnimationsTool(ToolInstance):
 
     SESSION_ENDURING = False  # Does this instance persist when session closes
     SESSION_SAVE = True  # We do save/restore in sessions
+    help = "help:user/tools/animations.html"
 
     def __init__(self, session, tool_name):
         """
@@ -164,6 +165,12 @@ class AnimationsTool(ToolInstance):
             else:  # scene mode
                 self.kf_editor_widget.scene_mode_btn.setChecked(True)
                 self.kf_editor_widget.switch_mode(self.kf_editor_widget.scene_mode_btn)
+        elif setting_name == 'playback_fps':
+            self.kf_editor_widget._on_fps_changed(new_value)
+            # Update the combo box to match
+            idx = self.kf_editor_widget.fps_combo.findData(new_value)
+            if idx >= 0:
+                self.kf_editor_widget.fps_combo.setCurrentIndex(idx)
 
 
     def delete(self):

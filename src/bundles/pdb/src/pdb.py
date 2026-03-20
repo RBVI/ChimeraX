@@ -92,6 +92,10 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
         if 'non-ASCII' in str(e):
             raise UserError(str(e))
         raise
+    except IOError as e:
+        if 'not in first model' in str(e):
+            raise UserError("Cannot open file as trajectory: " + str(e))
+        raise
     finally:
         stream.close()
 

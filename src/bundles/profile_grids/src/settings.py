@@ -22,6 +22,11 @@ defaults = {
         "Decimal places for percentages", 2, IntOption, {'min': 0, 'max': 3}, 0),
 }
 
+sticky_defaults = {
+    "mac_no_hscrollbar": True,
+    "scroll_to_sel": True,
+}
+
 prevalence_defaults = {
     "prevalence_main_color_info": (
         # RdBu3 color palette
@@ -38,7 +43,7 @@ from copy import deepcopy
 
 class _PGSettings(Settings):
     EXPLICIT_SAVE = { k: v[-1] for k, v in defaults.items() }
-    AUTO_SAVE = { k: v for k, v in prevalence_defaults.items() }
+    AUTO_SAVE = { k: v for k, v in (list(prevalence_defaults.items()) + list(sticky_defaults.items())) }
 
 def init(session):
     # each Profile Grids instance has its own settings instance

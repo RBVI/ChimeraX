@@ -1291,7 +1291,7 @@ class TimelineSceneWidget(QWidget):
 
             angle_menu = menu.addMenu("Angle")
             current_angle = config.get("angle", 60)
-            for angle in [15, 30, 45, 60, 90, 120, 180]:
+            for angle in [15, 30, 45, 60, 90, 120, 180, 360]:
                 action = QAction(f"{angle}°", menu)
                 action.setCheckable(True)
                 action.setChecked(current_angle == angle)
@@ -1314,21 +1314,20 @@ class TimelineSceneWidget(QWidget):
             action.triggered.connect(self._on_action_count_changed)
             count_menu.addAction(action)
 
-        # Precession tilt options (precess only)
+        # Wobble aspect options (precess only)
         if action_name == "precess":
             menu.addSeparator()
 
-            # Precession tilt submenu
-            tilt_menu = menu.addMenu("Precession Tilt")
-            current_tilt = config.get("precession_tilt", 10)
-            for tilt in [5, 10, 15, 20, 30, 45]:
-                action = QAction(f"{tilt}°", menu)
+            aspect_menu = menu.addMenu("Wobble Aspect")
+            current_aspect = config.get("wobble_aspect", 0.3)
+            for aspect in [0.0, 0.1, 0.2, 0.3, 0.5, 0.7, 1.0]:
+                action = QAction(f"{aspect:.1f}", menu)
                 action.setCheckable(True)
-                action.setChecked(current_tilt == tilt)
-                action.setProperty("tilt", tilt)
+                action.setChecked(abs(current_aspect - aspect) < 0.01)
+                action.setProperty("wobble_aspect", aspect)
                 action.setProperty("segment_idx", segment_idx)
-                action.triggered.connect(self._on_action_precession_tilt_changed)
-                tilt_menu.addAction(action)
+                action.triggered.connect(self._on_action_wobble_aspect_changed)
+                aspect_menu.addAction(action)
 
         menu.exec(global_pos)
 
@@ -1356,13 +1355,13 @@ class TimelineSceneWidget(QWidget):
             segment_idx = action.property("segment_idx")
             self._set_action_config(segment_idx, "count", count)
 
-    def _on_action_precession_tilt_changed(self):
-        """Handle precession tilt change for roll action"""
+    def _on_action_wobble_aspect_changed(self):
+        """Handle wobble aspect change for precess action"""
         action = self.sender()
         if action:
-            tilt = action.property("tilt")
+            aspect = action.property("wobble_aspect")
             segment_idx = action.property("segment_idx")
-            self._set_action_config(segment_idx, "precession_tilt", tilt)
+            self._set_action_config(segment_idx, "wobble_aspect", aspect)
 
     def _set_action_config(self, segment_idx, key, value):
         """Update a configuration value for an action segment"""
@@ -1388,16 +1387,10 @@ class TimelineSceneWidget(QWidget):
 
     def _sync_to_scene_animation(self):
         """Sync timeline data to scene animation manager"""
-        # print(f"DEBUG: _sync_to_scene_animation called")
-        # Get the scene animation manager and update it with our current data
         scene_timeline_widget = self._get_scene_timeline_widget()
-        # print(f"DEBUG: Found widget: {scene_timeline_widget}")
         if scene_timeline_widget and hasattr(scene_timeline_widget, "session"):
             session = scene_timeline_widget.session
-            # print(f"DEBUG: Found session: {session}")
-            # Get the scene animation manager from the session (stored as a custom attribute)
             scene_animation = getattr(session, "_scene_animation_manager", None)
-            # print(f"DEBUG: Found scene_animation from session: {scene_animation}")
             if scene_animation:
                 # Instead of clearing all scenes, just update this specific scene
                 # Remove existing scene at this time/name first
@@ -1413,12 +1406,6 @@ class TimelineSceneWidget(QWidget):
                         transition_data.get("fade_models", False),
                         action=transition_data.get("action", None),
                     )
-            else:
-                pass
-            # print(f"DEBUG: Could not get scene_animation from session")
-        else:
-            pass
-        # print(f"DEBUG: Could not find scene_timeline_widget or session")
 
     def _get_scene_timeline_widget(self):
         """Find the parent SceneTimelineWidget"""
