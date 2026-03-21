@@ -46,13 +46,17 @@ static float (*val_func)(float, float);
 
 namespace { // so these class declarations are not visible outside this file
 
+static int vector_index(const std::vector<StructureSeq*> vec, const StructureSeq *item) { return std::find(vec.begin(), vec.end(), item) - vec.begin(); }
+
+static int num_columns = 0;
 class Column
 {
 public:
     std::map<StructureSeq*, StructureSeq::SeqPos> positions;
+    int debug_index;
 
-    Column(decltype(positions) pos_info): positions(pos_info) {};
-    Column(const std::shared_ptr<Column>& _col): positions(_col->positions) {};
+    Column(decltype(positions) pos_info): positions(pos_info) { debug_index = num_columns++; };
+    Column(const std::shared_ptr<Column>& _col): positions(_col->positions) { debug_index = num_columns++; };
 
     bool  contains(StructureSeq* seq, StructureSeq::SeqPos pos) const {
         return positions.find(seq) != positions.end() && positions.at(seq) == pos;
@@ -662,6 +666,7 @@ std::cerr << "multi_align\n";
     std::map<StructureSeq*, std::vector<std::shared_ptr<Column>>> partial_order;
 
     std::set<std::pair<std::shared_ptr<EndPointOrColumn>, std::shared_ptr<EndPointOrColumn>>> seen;
+std::cerr << '\t' << all_links.size() << " links\n";
     while (all_links.size() > 0) {
         if (all_links.size() % 100 == 0)
             logger::status(py_logger, status_prefix,
@@ -788,6 +793,19 @@ std::cerr << "multi_align\n";
                     for (auto pcol: new_po_back)
                         seq_cols[pcol] -= 1;
                     seq_cols.erase(col_or_ep->col);
+std::cerr << "\tpartial order collation:\n";
+for (auto seq_cols: partial_order) {
+    auto seq = seq_cols.first;
+    std::cerr << "\t\tseq " << vector_index(chains, seq) << ": ";
+    int limit = 5;
+    for (auto col: seq_cols.second) {
+        std::cerr << col->positions[seq] << " [" << col->debug_index << "] ";
+        if (--limit < 1)
+            break;
+    }
+    std::cerr << "\n";
+
+}
                 }
             }
         }
@@ -796,10 +814,10 @@ std::cerr << "multi_align\n";
 std::cerr << "\tpartial order:\n";
 for (auto seq_cols: partial_order) {
     auto seq = seq_cols.first;
-    std::cerr << "\t\tseq " << (long(seq) % 1000) << ": ";
+    std::cerr << "\t\tseq " << vector_index(chains, seq) << ": ";
     int limit = 5;
     for (auto col: seq_cols.second) {
-        std::cerr << col->positions[seq] << " [" << (long)(col.get()) % 1000 << "] ";
+        std::cerr << col->positions[seq] << " [" << col->debug_index << "] ";
         if (--limit < 1)
             break;
     }
@@ -837,7 +855,7 @@ for (auto seq_offset: col->positions) {
     auto offset = seq_offset.second;
     auto cur_pos = -1;
     auto diff = offset - cur_pos;
-std::cerr << "\t\tseq, offset, cur_pos, diff: " << (long)seq % 1000 << ", " << offset << ", " << cur_pos << ", " << diff << "\n";
+std::cerr << "\t\tseq, offset, cur_pos, diff: " << vector_index(chains, seq) << ", " << offset << ", " << cur_pos << ", " << diff << "\n";
 }
             bool broke_cseq = false;
             for (auto c_seq_pos: col->positions) {
@@ -862,7 +880,7 @@ std::cerr << "\tpushing back:\n";
 for (auto seq_offset: col->positions) {
     auto seq = seq_offset.first;
     auto offset = seq_offset.second;
-std::cerr << "\t\tseq, offset: " << (long)seq % 1000 << ", " << offset << "\n";
+std::cerr << "\t\tseq, offset: " << vector_index(chains, seq) << ", " << offset << "\n";
 }
         for (auto cseq_pos: col->positions) {
             auto cseq = cseq_pos.first;
