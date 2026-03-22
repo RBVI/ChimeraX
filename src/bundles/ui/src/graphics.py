@@ -16,6 +16,11 @@ from Qt.QtGui import QWindow, QSurface
 class GraphicsWindow(QWindow):
     """
     The graphics window that displays the three-dimensional models.
+
+    On macOS the window can be run either in OpenGL mode (the default) or in
+    Metal mode.  Metal mode uses a CAMetalLayer-backed NSView via Qt's
+    MetalSurface type.  The surface type is chosen based on whether the Metal
+    graphics backend has been registered for this session.
     """
 
     def __init__(self, parent, ui, stereo = False, opengl_context = None):
@@ -26,27 +31,57 @@ class GraphicsWindow(QWindow):
         from Qt.QtWidgets import QWidget
         self.widget = w = QWidget.createWindowContainer(self, parent)
         w.setAcceptDrops(True)
-        # If Vulkan or Metal were to be supported this would have to change
-        # and then maybe the multitouch code would also have to change if
-        # NSView* no longer accepted the surface type
-        self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
 
-        if opengl_context is None:
-            from chimerax.graphics import OpenGLContext
-            oc = OpenGLContext(self, ui.primaryScreen(), use_stereo = stereo)
-        else:
-            from chimerax.graphics import OpenGLError
+        # Choose surface type based on active (or pending) render backend.
+        use_metal_surface = self._should_use_metal_surface()
+        if use_metal_surface:
+            # Qt.MetalSurface tells Qt to present a CAMetalLayer-backed NSView.
             try:
-                opengl_context.enable_stereo(stereo, window = self)
-            except OpenGLError as e:
-                from chimerax.core.errors import UserError
-                raise UserError(str(e))
-            oc = opengl_context
+                self.setSurfaceType(QSurface.SurfaceType.MetalSurface)
+                self._using_metal_surface = True
+            except AttributeError:
+                # Older Qt builds without MetalSurface — fall back to OpenGL.
+                self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
+                self._using_metal_surface = False
+        else:
+            self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
+            self._using_metal_surface = False
 
-        self.opengl_context = oc
-        self.view.initialize_rendering(oc)
+        self.opengl_context = None
+
+        if self._using_metal_surface:
+            # Metal backend handles its own initialization; OpenGLContext is
+            # not needed.  Record the window handle for the backend later.
+            self._metal_window_id = int(self.winId()) if self.winId() else 0
+        else:
+            if opengl_context is None:
+                from chimerax.graphics import OpenGLContext
+                oc = OpenGLContext(self, ui.primaryScreen(), use_stereo = stereo)
+            else:
+                from chimerax.graphics import OpenGLError
+                try:
+                    opengl_context.enable_stereo(stereo, window = self)
+                except OpenGLError as e:
+                    from chimerax.core.errors import UserError
+                    raise UserError(str(e))
+                oc = opengl_context
+
+            self.opengl_context = oc
+            self.view.initialize_rendering(oc)
 
         self.popup = Popup(self)        # For display of atom spec balloons
+
+    @staticmethod
+    def _should_use_metal_surface() -> bool:
+        """Return True when a Metal backend library is importable on macOS."""
+        import sys
+        if sys.platform != "darwin":
+            return False
+        try:
+            from chimerax.graphics_metal import is_metal_supported
+            return is_metal_supported()
+        except ImportError:
+            return False
 
     def event(self, event):
         # QWindow does not have drag and drop methods to handle file dropped on app
@@ -57,8 +92,36 @@ class GraphicsWindow(QWindow):
         if event.type() == QEvent.Type.Show and not getattr(self, '_first_show', False):
             self._first_show = True
             self.session.ui.mouse_modes.set_graphics_window(self)
-            self._check_opengl()
+            if getattr(self, '_using_metal_surface', False):
+                self._init_metal_backend()
+            else:
+                self._check_opengl()
         return QWindow.event(self, event)
+
+    def _init_metal_backend(self):
+        """Initialize the Metal render backend after the native window is ready."""
+        try:
+            from chimerax.graphics_metal import MetalBackend
+            from chimerax.graphics.render_backend import register_backend, switch_backend
+        except ImportError:
+            self.session.logger.warning(
+                "Metal backend module unavailable; falling back to OpenGL."
+            )
+            return
+
+        register_backend("metal", MetalBackend, self.session)
+        backend = MetalBackend(self.session)
+        w, h = self.view.window_size
+        win_id = int(self.winId()) if self.winId() else 0
+        if not backend.initialize(self.view, win_id, w, h):
+            self.session.logger.error(
+                "Metal backend initialization failed; staying on OpenGL."
+            )
+            return
+
+        self.view._render_backend = backend
+        self.view.redraw_needed = True
+        self.session.logger.info("Metal backend active.")
 
     def _check_opengl(self):
         r = self.view.render
@@ -142,12 +205,21 @@ class GraphicsWindow(QWindow):
         v.resize(w, h)
         v.redraw_needed = True
 
+        # Notify a non-OpenGL backend about the new drawable dimensions.
+        backend = getattr(v, '_render_backend', None)
+        if backend is not None and backend.name != "opengl":
+            backend.resize(w, h)
+
         if self.session.ui.main_window is None:
             return	# main window not yet initialized.
         if not self.is_drawable:
             return	# Window is not yet exposed so can't use opengl
 
         # Avoid flickering when resizing by drawing immediately.
+        if getattr(self, '_using_metal_surface', False):
+            v.redraw_needed = True
+            return
+
         from chimerax.graphics import OpenGLVersionError
         try:
             self.session.update_loop.update_graphics_now()

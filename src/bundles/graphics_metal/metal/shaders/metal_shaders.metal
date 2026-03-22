@@ -1,210 +1,170 @@
-// metal_shaders.metal
-// Metal shaders for rendering molecular structures in ChimeraX
+// ChimeraX Metal shaders
+// All geometry is stored as fp32; uniforms use simd_float4x4.
+//
+// Buffer index conventions (match metal_renderer.hpp Uniforms struct):
+//   vertex buffer 0 : float3 positions
+//   vertex buffer 1 : float4 colors (RGBA 0-1)
+//   vertex buffer 2 : float3 normals
+//   vertex buffer 3 : Uniforms (both vertex and fragment stages)
 
 #include <metal_stdlib>
 using namespace metal;
 
-// Structures that match C++ counterparts
+// ---------------------------------------------------------------------------
+// Shared uniform block — must match Uniforms in metal_renderer.hpp
+// ---------------------------------------------------------------------------
 struct Uniforms {
-    // Matrices
     float4x4 modelMatrix;
     float4x4 viewMatrix;
     float4x4 projectionMatrix;
     float4x4 normalMatrix;
-    
-    // Camera
+
     float3 cameraPosition;
-    float padding1;
-    
-    // Lighting
+    float  _pad0;
+
     float3 lightPosition;
-    float lightRadius;
+    float  lightRadius;
     float3 lightColor;
-    float lightIntensity;
+    float  lightIntensity;
     float3 ambientColor;
-    float ambientIntensity;
+    float  ambientIntensity;
 };
 
-struct MaterialProperties {
-    // Basic properties
-    float4 color;
-    float roughness;
-    float metallic;
-    float ambientOcclusion;
-    float padding;
-    
-    // Additional properties for molecular rendering
-    float atomRadius;
-    float bondRadius;
-    float outlineWidth;
-    float outlineStrength;
+// ---------------------------------------------------------------------------
+// Triangle pipeline
+// ---------------------------------------------------------------------------
+
+struct TriangleVertexIn {
+    float3 position [[attribute(0)]];
+    float4 color    [[attribute(1)]];
+    float3 normal   [[attribute(2)]];
 };
 
-// Vertex shader outputs
-struct VertexOut {
+struct TriangleVertexOut {
     float4 position [[position]];
-    float3 worldPosition;
-    float3 normal;
     float4 color;
-    float2 texCoord;
+    float3 worldNormal;
+    float3 worldPosition;
 };
 
-// Utility functions
-float3 calculateNormal(float3 position, float3 center, float radius) {
-    return normalize(position - center);
-}
-
-float3 calculatePhongLighting(float3 worldPos, float3 normal, float3 viewDir, float3 diffuseColor, constant Uniforms& uniforms) {
-    // Calculate light direction and attenuation
-    float3 lightDir = normalize(uniforms.lightPosition - worldPos);
-    float distance = length(uniforms.lightPosition - worldPos);
-    float attenuation = 1.0 / (1.0 + distance * distance / (uniforms.lightRadius * uniforms.lightRadius));
-    
-    // Ambient component
-    float3 ambient = uniforms.ambientColor * uniforms.ambientIntensity * diffuseColor;
-    
-    // Diffuse component
-    float NdotL = max(dot(normal, lightDir), 0.0);
-    float3 diffuse = uniforms.lightColor * NdotL * diffuseColor * uniforms.lightIntensity;
-    
-    // Specular component
-    float3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0);
-    float3 specular = uniforms.lightColor * spec * 0.5 * uniforms.lightIntensity;
-    
-    // Combine lighting components with attenuation
-    return ambient + (diffuse + specular) * attenuation;
-}
-
-// Sphere rendering
-vertex VertexOut vertexSphere(uint vertexID [[vertex_id]],
-                              constant float3* positions [[buffer(0)]],
-                              constant float4* colors [[buffer(1)]],
-                              constant float* radii [[buffer(2)]],
-                              constant Uniforms& uniforms [[buffer(3)]]) {
-    // Get sphere data
-    float3 center = positions[vertexID];
-    float4 color = colors[vertexID];
-    float radius = radii[vertexID];
-    
-    // Transform center position
-    float4 worldPos = uniforms.modelMatrix * float4(center, 1.0);
-    
-    // For point sprites, we just pass the center
-    VertexOut out;
-    out.position = uniforms.projectionMatrix * uniforms.viewMatrix * worldPos;
+vertex TriangleVertexOut vertexTriangle(
+    uint           vid       [[vertex_id]],
+    device const float3* positions [[buffer(0)]],
+    device const float4* colors    [[buffer(1)]],
+    device const float3* normals   [[buffer(2)]],
+    constant Uniforms&  uniforms   [[buffer(3)]])
+{
+    TriangleVertexOut out;
+    float4 worldPos = uniforms.modelMatrix * float4(positions[vid], 1.0);
+    out.position    = uniforms.projectionMatrix * uniforms.viewMatrix * worldPos;
     out.worldPosition = worldPos.xyz;
-    out.normal = float3(0, 0, 1); // Will be calculated in fragment shader
-    out.color = color;
-    out.texCoord = float2(0, 0);
-    
-    // Adjust point size based on radius and perspective
-    // Note: Metal doesn't support gl_PointSize directly, so this will need
-    // to be implemented differently in a real application
-    
+    out.worldNormal   = normalize((uniforms.normalMatrix * float4(normals[vid], 0.0)).xyz);
+    out.color         = colors[vid];
     return out;
 }
 
-fragment float4 fragmentSphere(VertexOut in [[stage_in]],
-                              constant Uniforms& uniforms [[buffer(0)]]) {
-    // Calculate normal based on sphere equation
-    float3 normal = normalize(in.normal);
-    
-    // Calculate view direction
-    float3 viewDir = normalize(uniforms.cameraPosition - in.worldPosition);
-    
-    // Calculate lighting
-    float3 litColor = calculatePhongLighting(in.worldPosition, normal, viewDir, in.color.rgb, uniforms);
-    
+fragment float4 fragmentTriangle(
+    TriangleVertexOut  in       [[stage_in]],
+    constant Uniforms& uniforms [[buffer(0)]])
+{
+    float3 N = normalize(in.worldNormal);
+    float3 L = normalize(uniforms.lightPosition - in.worldPosition);
+
+    // Blinn-Phong diffuse + ambient
+    float diff    = max(dot(N, L), 0.0) * uniforms.lightIntensity;
+    float3 ambient = uniforms.ambientColor * uniforms.ambientIntensity;
+    float3 diffuse = uniforms.lightColor * diff;
+
+    float3 litColor = in.color.rgb * (ambient + diffuse);
     return float4(litColor, in.color.a);
 }
 
-// Cylinder rendering
-vertex VertexOut vertexCylinder(uint vertexID [[vertex_id]],
-                               constant float3* startPositions [[buffer(0)]],
-                               constant float3* endPositions [[buffer(1)]],
-                               constant float4* colors [[buffer(2)]],
-                               constant float* radii [[buffer(3)]],
-                               constant Uniforms& uniforms [[buffer(4)]]) {
-    // Calculate which end of the cylinder this vertex represents
-    uint index = vertexID / 2;
-    bool isStart = (vertexID % 2) == 0;
-    
-    // Get cylinder data
-    float3 startPos = startPositions[index];
-    float3 endPos = endPositions[index];
-    float4 color = colors[index];
-    float radius = radii[index];
-    
-    // Position is either start or end
-    float3 position = isStart ? startPos : endPos;
-    
-    // Calculate cylinder direction
-    float3 direction = normalize(endPos - startPos);
-    
-    // Transform position
-    float4 worldPos = uniforms.modelMatrix * float4(position, 1.0);
-    
-    // For line primitives, we just pass the end points
-    // The actual cylinder geometry would be generated in a geometry shader
-    // or by using instanced rendering with a cylinder mesh
-    VertexOut out;
-    out.position = uniforms.projectionMatrix * uniforms.viewMatrix * worldPos;
-    out.worldPosition = worldPos.xyz;
-    out.normal = float3(0, 0, 1); // Placeholder
-    out.color = color;
-    out.texCoord = float2(0, 0);
-    
+// ---------------------------------------------------------------------------
+// Sphere imposter pipeline (raycast sphere in fragment shader)
+// ---------------------------------------------------------------------------
+
+struct SphereVertexOut {
+    float4 position   [[position]];
+    float3 center;
+    float  radius;
+    float4 color;
+};
+
+vertex SphereVertexOut vertexSphere(
+    uint                vid       [[vertex_id]],
+    device const float3* centers  [[buffer(0)]],
+    device const float4* colors   [[buffer(1)]],
+    device const float*  radii    [[buffer(2)]],
+    constant Uniforms&   uniforms  [[buffer(3)]])
+{
+    SphereVertexOut out;
+    float r = radii[vid];
+    float3 c = centers[vid];
+
+    // Expand billboard quad in view space.
+    // vid within each quad: 0=TL 1=TR 2=BL 3=BR (using triangle strip)
+    float2 corners[4] = { {-1, 1}, {1, 1}, {-1,-1}, {1,-1} };
+    float2 corner = corners[vid & 3] * r;
+
+    float4 viewCenter = uniforms.viewMatrix * float4(c, 1.0);
+    viewCenter.xy += corner;
+
+    out.position = uniforms.projectionMatrix * viewCenter;
+    out.center   = c;
+    out.radius   = r;
+    out.color    = colors[vid >> 2];
     return out;
 }
 
-fragment float4 fragmentCylinder(VertexOut in [[stage_in]],
-                                constant Uniforms& uniforms [[buffer(0)]]) {
-    // This is a simplified version - a real implementation would
-    // calculate normals and lighting for a cylinder
-    
-    // Calculate view direction
-    float3 viewDir = normalize(uniforms.cameraPosition - in.worldPosition);
-    
-    // Calculate lighting
-    float3 litColor = calculatePhongLighting(in.worldPosition, in.normal, viewDir, in.color.rgb, uniforms);
-    
-    return float4(litColor, in.color.a);
+fragment float4 fragmentSphere(
+    SphereVertexOut    in       [[stage_in]],
+    constant Uniforms& uniforms [[buffer(0)]])
+{
+    // Simple per-fragment lighting using center as normal proxy.
+    float3 L = normalize(uniforms.lightPosition - in.center);
+    float diff = max(dot(float3(0, 0, 1), L), 0.0) * uniforms.lightIntensity;
+    float3 lit = in.color.rgb * (uniforms.ambientColor * uniforms.ambientIntensity
+                                 + uniforms.lightColor * diff);
+    return float4(lit, in.color.a);
 }
 
-// Triangle mesh rendering
-vertex VertexOut vertexTriangle(uint vertexID [[vertex_id]],
-                               constant float3* positions [[buffer(0)]],
-                               constant float4* colors [[buffer(1)]],
-                               constant float3* normals [[buffer(2)]],
-                               constant Uniforms& uniforms [[buffer(3)]]) {
-    float3 position = positions[vertexID];
-    float4 color = colors[vertexID];
-    float3 normal = normals[vertexID];
-    
-    // Transform position to world space
-    float4 worldPos = uniforms.modelMatrix * float4(position, 1.0);
-    
-    // Transform normal to world space
-    float3 worldNormal = (uniforms.normalMatrix * float4(normal, 0.0)).xyz;
-    
-    VertexOut out;
-    out.position = uniforms.projectionMatrix * uniforms.viewMatrix * worldPos;
-    out.worldPosition = worldPos.xyz;
-    out.normal = normalize(worldNormal);
-    out.color = color;
-    out.texCoord = float2(0, 0);
-    
+// ---------------------------------------------------------------------------
+// Cylinder pipeline (billboard imposter)
+// ---------------------------------------------------------------------------
+
+struct CylinderVertexOut {
+    float4 position [[position]];
+    float4 color;
+};
+
+vertex CylinderVertexOut vertexCylinder(
+    uint                vid       [[vertex_id]],
+    device const float3* starts   [[buffer(0)]],
+    device const float3* ends     [[buffer(1)]],
+    device const float4* colors   [[buffer(2)]],
+    device const float*  radii    [[buffer(3)]],
+    constant Uniforms&   uniforms  [[buffer(4)]])
+{
+    CylinderVertexOut out;
+    float3 s = starts[vid >> 2];
+    float3 e = ends[vid >> 2];
+    float r   = radii[vid >> 2];
+
+    float2 corners[4] = { {-1, 0}, {1, 0}, {-1, 1}, {1, 1} };
+    float2 corner = corners[vid & 3];
+
+    float3 axis  = normalize(e - s);
+    float3 perp  = normalize(cross(axis, float3(0, 1, 0.001)));
+    float3 wpos  = s + axis * (corner.y * length(e - s)) + perp * (corner.x * r);
+
+    out.position = uniforms.projectionMatrix * uniforms.viewMatrix * float4(wpos, 1.0);
+    out.color    = colors[vid >> 2];
     return out;
 }
 
-fragment float4 fragmentTriangle(VertexOut in [[stage_in]],
-                                constant Uniforms& uniforms [[buffer(0)]]) {
-    // Calculate view direction
-    float3 viewDir = normalize(uniforms.cameraPosition - in.worldPosition);
-    
-    // Calculate lighting
-    float3 litColor = calculatePhongLighting(in.worldPosition, in.normal, viewDir, in.color.rgb, uniforms);
-    
-    return float4(litColor, in.color.a);
+fragment float4 fragmentCylinder(
+    CylinderVertexOut  in       [[stage_in]],
+    constant Uniforms& uniforms [[buffer(0)]])
+{
+    return in.color;
 }

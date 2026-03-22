@@ -1,131 +1,114 @@
 """
-Custom initialization for ChimeraX-GraphicsMetal bundle.
-This is called when the bundle is loaded through the 'custom-init' entry in pyproject.toml.
+Bundle initialisation for ChimeraX-GraphicsMetal.
+
+Called once when the bundle is loaded.  Registers the Metal backend with
+the graphics.View backend registry and, when auto_enable is set, switches
+to it immediately.
 """
 
+
 def init(session, bundle_info):
-    """Initialize the Metal graphics bundle"""
-    from . import metal_graphics
-    
-    # Register preferences
-    from . import preferences
-    preferences.register_settings(session)
-    preferences.register_metal_preferences(session)
-    
-    # Check if Metal is supported
-    if metal_graphics.is_metal_supported():
-        session.logger.info("Metal graphics acceleration is available")
-        
-        # Register commands for Metal
-        from chimerax.core.commands import register
-        register('graphics metal', switch_to_metal,
-                 help="Switch to Metal graphics renderer")
-        register('graphics opengl', switch_to_opengl,
-                 help="Switch back to OpenGL graphics renderer")
-        register('graphics multigpu', toggle_multi_gpu,
-                 help="Toggle multi-GPU acceleration for Metal renderer")
-        
-        # Auto-enable Metal if set in preferences
-        prefs = preferences.register_settings(session)
-        if prefs.auto_detect and prefs.use_metal:
-            try:
-                switch_to_metal(session)
-                session.logger.info("Auto-enabled Metal graphics renderer")
-            except Exception as e:
-                session.logger.warning(f"Failed to auto-enable Metal: {str(e)}")
-    else:
-        session.logger.info("Metal graphics acceleration is not available on this system")
+    from .metal_graphics import is_metal_supported
+
+    if not is_metal_supported():
+        session.logger.info(
+            "Metal graphics backend not available on this platform."
+        )
+        return
+
+    # Register persistent settings and the 'graphics metal set' command.
+    from .preferences import get_settings, register_commands
+    register_commands(session)
+
+    # Register the Metal backend factory with the View backend registry.
+    from chimerax.graphics.render_backend import register_backend
+    from .metal_graphics import MetalBackend
+
+    register_backend("metal", MetalBackend, session)
+    session.logger.info("Metal graphics backend registered.")
+
+    # Register ChimeraX commands.
+    from chimerax.core.commands import CmdDesc, BoolArg, StringArg, register
+
+    register(
+        "graphics metal",
+        CmdDesc(synopsis="Switch to the Metal graphics backend"),
+        _cmd_use_metal,
+        logger=session.logger,
+    )
+    register(
+        "graphics opengl",
+        CmdDesc(synopsis="Switch back to the OpenGL graphics backend"),
+        _cmd_use_opengl,
+        logger=session.logger,
+    )
+    register(
+        "graphics devices",
+        CmdDesc(synopsis="List available Metal GPU devices"),
+        _cmd_list_devices,
+        logger=session.logger,
+    )
+
+    # Auto-enable if the user preference says so.
+    prefs = get_settings(session)
+    if prefs.use_metal and prefs.auto_enable:
+        try:
+            _switch_to("metal", session)
+            session.logger.info("Auto-switched to Metal graphics backend.")
+        except Exception as exc:
+            session.logger.warning(
+                f"Auto-switch to Metal failed ({exc}); staying on OpenGL."
+            )
+
 
 def finish(session, bundle_info):
-    """Clean up when bundle is unloaded"""
-    from chimerax.graphics import provider_info
-    
-    # Check if we're using Metal
-    from .metal_graphics import MetalGraphics
-    if isinstance(session.main_view.graphics, MetalGraphics):
-        # Switch back to OpenGL before unloading
-        default_provider = provider_info('opengl')
-        if default_provider:
-            session.main_view.switch_graphics_provider('opengl')
-            session.logger.info("Switched back to OpenGL graphics renderer")
+    """Restore OpenGL on bundle unload if Metal is still active."""
+    from chimerax.graphics.render_backend import active_backend, switch_backend
+    backend = active_backend(session)
+    if backend and backend.name == "metal":
+        switch_backend("opengl", session)
+        session.logger.info("Switched back to OpenGL (Metal bundle unloaded).")
 
-def switch_to_metal(session):
-    """Command to switch to Metal renderer"""
-    from . import metal_graphics
-    if not metal_graphics.is_metal_supported():
+
+# ------------------------------------------------------------------
+# Command implementations
+# ------------------------------------------------------------------
+
+def _cmd_use_metal(session):
+    from .metal_graphics import is_metal_supported
+    if not is_metal_supported():
         from chimerax.core.errors import UserError
-        raise UserError("Metal graphics is not supported on this system")
-        
-    if session.main_view.graphics_changed:
-        # Graphics provider already changed, check if it's Metal
-        from .metal_graphics import MetalGraphics
-        if isinstance(session.main_view.graphics, MetalGraphics):
-            session.logger.info("Already using Metal graphics")
-            return
-            
-    # Switch to Metal
-    from chimerax.graphics import provider_info
-    metal_provider = provider_info('metal')
-    if metal_provider:
-        session.main_view.switch_graphics_provider('metal')
-        session.logger.info("Switched to Metal graphics renderer")
-        
-        # Apply multi-GPU setting from preferences
-        from . import preferences
-        prefs = preferences.register_settings(session)
-        if prefs.multi_gpu_enabled:
-            graphics = session.main_view.graphics
-            strategy_map = {
-                "split-frame": 0,
-                "task-based": 1,
-                "alternating": 2,
-                "compute-offload": 3
-            }
-            strategy = strategy_map.get(prefs.multi_gpu_strategy, 0)
-            if hasattr(graphics, 'enable_multi_gpu'):
-                graphics.enable_multi_gpu(True, strategy)
-                session.logger.info(f"Enabled multi-GPU acceleration with strategy: {prefs.multi_gpu_strategy}")
-    else:
-        from chimerax.core.errors import UserError
-        raise UserError("Metal graphics provider not found")
-        
-def switch_to_opengl(session):
-    """Command to switch back to OpenGL renderer"""
-    # Switch to default OpenGL
-    from .metal_graphics import MetalGraphics
-    if isinstance(session.main_view.graphics, MetalGraphics):
-        session.main_view.switch_graphics_provider('opengl')
-        session.logger.info("Switched to OpenGL graphics renderer")
-    else:
-        session.logger.info("Already using OpenGL graphics")
-        
-def toggle_multi_gpu(session, enable=None):
-    """Command to toggle multi-GPU acceleration"""
-    from .metal_graphics import MetalGraphics
-    if not isinstance(session.main_view.graphics, MetalGraphics):
-        from chimerax.core.errors import UserError
-        raise UserError("Multi-GPU acceleration is only available with Metal graphics")
-        
-    graphics = session.main_view.graphics
-    if enable is None:
-        # Toggle current state
-        enable = not graphics.is_multi_gpu_enabled()
-        
-    success = graphics.enable_multi_gpu(enable)
-    if success:
-        session.logger.info(f"Multi-GPU acceleration {'enabled' if enable else 'disabled'}")
-        
-        # Update preference
-        from . import preferences
-        prefs = preferences.register_settings(session)
-        prefs.multi_gpu_enabled = enable
-    else:
-        if enable:
-            session.logger.warning("Failed to enable multi-GPU acceleration")
+        raise UserError("Metal is not supported on this system.")
+    _switch_to("metal", session)
+    session.logger.info("Switched to Metal graphics backend.")
+
+
+def _cmd_use_opengl(session):
+    _switch_to("opengl", session)
+    session.logger.info("Switched to OpenGL graphics backend.")
+
+
+def _cmd_list_devices(session):
+    from chimerax.graphics.render_backend import active_backend
+    backend = active_backend(session)
+    if backend and backend.name == "metal":
+        devices = backend.available_devices()
+        if devices:
+            lines = ["Available Metal GPU devices:"]
+            for d in devices:
+                tag = " [primary]" if d.get("is_primary") else ""
+                mem_mb = d.get("memory_size", 0) // (1024 * 1024)
+                unified = " unified" if d.get("unified_memory") else ""
+                lines.append(f"  {d['name']}{tag} — {mem_mb} MB{unified}")
+            session.logger.info("\n".join(lines))
         else:
-            session.logger.info("Multi-GPU acceleration disabled")
-            
-            # Update preference
-            from . import preferences
-            prefs = preferences.register_settings(session)
-            prefs.multi_gpu_enabled = False
+            session.logger.info("No Metal devices found.")
+    else:
+        session.logger.info(
+            "Metal backend not active. Use 'graphics metal' first."
+        )
+
+
+def _switch_to(backend_name: str, session):
+    from chimerax.graphics.render_backend import switch_backend
+    switch_backend(backend_name, session)

@@ -58,18 +58,20 @@ cdef extern from "metal_argbuffer_manager.hpp" namespace "chimerax::graphics_met
 
 cdef extern from "metal_multi_gpu.hpp" namespace "chimerax::graphics_metal":
     cdef enum MultiGPUStrategy:
-        SplitFrame "chimerax::graphics_metal::MultiGPUStrategy::SplitFrame"
-        TaskBased "chimerax::graphics_metal::MultiGPUStrategy::TaskBased"
-        Alternating "chimerax::graphics_metal::MultiGPUStrategy::Alternating"
-        ComputeOffload "chimerax::graphics_metal::MultiGPUStrategy::ComputeOffload"
-        
+        DeviceSelection  "chimerax::graphics_metal::MultiGPUStrategy::DeviceSelection"
+        ComputeOffload   "chimerax::graphics_metal::MultiGPUStrategy::ComputeOffload"
+        SplitFrame       "chimerax::graphics_metal::MultiGPUStrategy::SplitFrame"
+        TaskBased        "chimerax::graphics_metal::MultiGPUStrategy::TaskBased"
+        Alternating      "chimerax::graphics_metal::MultiGPUStrategy::Alternating"
+
     cdef struct GPUDeviceInfo:
         string name
         bool isPrimary
         bool isActive
         bool unifiedMemory
         unsigned long long memorySize
-    
+        bool isLowPower
+
     cdef cppclass MetalMultiGPU:
         MetalMultiGPU() except +
         bool initialize(MetalContext*) except +
@@ -77,6 +79,8 @@ cdef extern from "metal_multi_gpu.hpp" namespace "chimerax::graphics_metal":
         bool enable(bool, MultiGPUStrategy) except +
         bool isEnabled() except +
         MultiGPUStrategy getStrategy() except +
+        bool selectPresentationDevice(string) except +
+        bool selectComputeDevice(string) except +
 
 cdef extern from "metal_renderer.hpp" namespace "chimerax::graphics_metal":
     cdef cppclass MetalRenderer:
@@ -86,6 +90,13 @@ cdef extern from "metal_renderer.hpp" namespace "chimerax::graphics_metal":
         void beginFrame() except +
         void endFrame() except +
         void setMultiGPUMode(bool, int) except +
+        void renderTrianglesBytes(
+            const void*, size_t,
+            const void*, size_t,
+            const void*, size_t,
+            const void*, size_t,
+            unsigned int,
+            bool) except +
 
 cdef extern from "metal_resources.hpp" namespace "chimerax::graphics_metal":
     cdef cppclass MetalResources:
@@ -271,6 +282,27 @@ cdef class PyMetalRenderer:
         """Enable or disable multi-GPU rendering"""
         self._renderer.setMultiGPUMode(enabled, strategy)
 
+    def renderTriangles(self,
+                        bytes vertex_bytes,
+                        bytes normal_bytes,
+                        bytes color_bytes,
+                        bytes index_bytes,
+                        unsigned int index_count,
+                        bool transparent=False):
+        """Upload a triangle batch (fp32 vertices/normals/colors, int32 indices) to Metal."""
+        cdef const unsigned char* vp = vertex_bytes
+        cdef const unsigned char* np_ = normal_bytes
+        cdef const unsigned char* cp = color_bytes
+        cdef const unsigned char* ip = index_bytes
+        self._renderer.renderTrianglesBytes(
+            <const void*>vp, len(vertex_bytes),
+            <const void*>np_, len(normal_bytes),
+            <const void*>cp, len(color_bytes),
+            <const void*>ip, len(index_bytes),
+            index_count,
+            transparent,
+        )
+
 # PyMetalMultiGPU - Wrapper for MetalMultiGPU
 cdef class PyMetalMultiGPU:
     cdef MetalMultiGPU* _multiGpu
@@ -309,40 +341,42 @@ cdef class PyMetalMultiGPU:
         return result
         
     def enable(self, bool enabled, int strategy=0):
-        """Enable or disable multi-GPU rendering"""
+        """
+        Enable or disable multi-device features.
+
+        Strategy values:
+          0 = DeviceSelection  (choose which GPU renders)
+          1 = ComputeOffload   (secondary GPU handles async compute)
+          2..4 = SplitFrame / TaskBased / Alternating (not supported on macOS;
+                  logged as unsupported and treated as DeviceSelection)
+        """
         cdef MultiGPUStrategy strat
-        
-        if strategy == 0:
-            strat = SplitFrame
-        elif strategy == 1:
-            strat = TaskBased
-        elif strategy == 2:
-            strat = Alternating
-        elif strategy == 3:
+        if strategy == 1:
             strat = ComputeOffload
+        elif strategy >= 2:
+            strat = SplitFrame  # will log unsupported + fall back
         else:
-            strat = SplitFrame
-            
+            strat = DeviceSelection
         return self._multiGpu.enable(enabled, strat)
-        
+
     def isEnabled(self):
-        """Check if multi-GPU rendering is enabled"""
+        """Check if multi-device features are enabled."""
         return self._multiGpu.isEnabled()
-        
+
     def getStrategy(self):
-        """Get the current multi-GPU strategy"""
+        """Return the current strategy as an integer."""
         cdef MultiGPUStrategy strat = self._multiGpu.getStrategy()
-        
-        if strat == SplitFrame:
-            return 0
-        elif strat == TaskBased:
+        if strat == ComputeOffload:
             return 1
-        elif strat == Alternating:
-            return 2
-        elif strat == ComputeOffload:
-            return 3
-        else:
-            return 0
+        return 0  # DeviceSelection or any stub strategy
+
+    def selectPresentationDevice(self, str device_name):
+        """Choose which GPU presents rendered frames (device_name='' = default)."""
+        return self._multiGpu.selectPresentationDevice(device_name.encode('utf-8'))
+
+    def selectComputeDevice(self, str device_name):
+        """Choose a secondary GPU for async compute offload ('' = disable)."""
+        return self._multiGpu.selectComputeDevice(device_name.encode('utf-8'))
 
 # PyMetalArgBuffer - Wrapper for MetalArgBuffer
 cdef class PyMetalArgBuffer:

@@ -7,7 +7,7 @@
 #include <algorithm>
 
 namespace chimerax {
-namespace graphics {
+namespace graphics_metal {
 
 // MetalLight implementation
 MetalLight::MetalLight()
@@ -136,5 +136,5 @@ std::shared_ptr<MetalLight> MetalScene::mainLight() const
     return _lights[0];
 }
 
-} // namespace graphics
+} // namespace graphics_metal
 } // namespace chimerax

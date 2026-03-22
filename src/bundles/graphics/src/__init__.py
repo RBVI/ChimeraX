@@ -52,6 +52,7 @@ from .opengl import Render, OpenGLError, OpenGLVersionError
 
 from .view import View
 from .clipping import SceneClipPlane, CameraClipPlane, ClipPlane
+from .render_backend import register_backend, switch_backend, active_backend, OpenGLBackend
 
 from chimerax.core.toolshed import BundleAPI
 class _GraphicsBundleAPI(BundleAPI):

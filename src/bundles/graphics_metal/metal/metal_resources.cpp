@@ -7,7 +7,7 @@
 #include <sstream>
 
 namespace chimerax {
-namespace graphics {
+namespace graphics_metal {
 
 MetalResources::MetalResources(MetalContext* context)
     : _context(context)
@@ -431,5 +431,5 @@ std::string MetalResources::generateSamplerStateKey(
     return ss.str();
 }
 
-} // namespace graphics
+} // namespace graphics_metal
 } // namespace chimerax

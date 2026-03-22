@@ -1,0 +1,54 @@
+[build-system]
+requires = ["ChimeraX-BundleBuilder>=1.4.0", "ChimeraX-Core ~=1.0"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-ADIOSTrajectory"
+version = "0.1.0"
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "Alpha Tau Biosciences", email = "support@alphataubio.com" }]
+description = "ADIOS2 BP5 streaming trajectory reader for UCSF ChimeraX"
+dependencies = [
+    "ChimeraX-Core ~=1.0",
+    "ChimeraX-Atomic ~=1.0",
+    "ChimeraX-DataFormats ~=1.0",
+    "ChimeraX-OpenCommand ~=1.0",
+]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = """
+ADIOS2 BP5 trajectory reader for ChimeraX.
+
+Reads trajectories step-by-step without loading all timesteps into RAM.
+Coordinates are stored as fp32 in a configurable ring buffer.
+
+ADIOS2 must be installed separately:
+  pip install adios2
+or via conda:
+  conda install -c conda-forge adios2
+"""
+
+[project.urls]
+Home = "https://www.alphataubio.com/"
+Source = "https://github.com/alphataubio/ChimeraX-alphataubio"
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Molecular Dynamics"]
+classifiers = ["Development Status :: 3 - Alpha"]
+
+[[tool.chimerax.provider."data formats"]]
+name = "ADIOS2 BP5 trajectory"
+category = "Molecular trajectory"
+nicknames = "bp5"
+suffixes = ".bp"
+encoding = "binary"
+synopsis = "ADIOS2 BP5 molecular dynamics trajectory"
+reference-url = "https://adios2.readthedocs.io/en/latest/engines/engines.html#bp5"
+
+[[tool.chimerax.provider."open command"]]
+name = "bp5"
+want-path = true

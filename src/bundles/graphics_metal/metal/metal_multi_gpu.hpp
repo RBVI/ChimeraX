@@ -1,13 +1,28 @@
 // metal_multi_gpu.hpp
-// Multi-GPU coordination for Metal rendering in ChimeraX
+// Multi-device coordination for Metal in ChimeraX.
+//
+// Metal on macOS does NOT support split-frame SLI-style rendering across
+// multiple GPUs.  The only meaningful multi-device workflows are:
+//
+//   1. Device selection — choose which MTLDevice to use for presentation
+//      (relevant on Intel Macs with discrete + integrated GPU; irrelevant on
+//      Apple Silicon which has exactly one Metal device).
+//
+//   2. Compute offload — dispatch heavy, non-rendering compute work
+//      (density preparation, RMSD batch computation, volume FFTs) to a
+//      secondary MTLDevice while the primary device renders.
+//
+// The SplitFrame, Alternating, and TaskBased strategies from the original
+// PR #186 draft are retained as named constants for API compatibility but
+// map to NoOp internally.
 
 #pragma once
 
 #import <Metal/Metal.h>
 #include <memory>
 #include <vector>
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 namespace chimerax {
 namespace graphics_metal {
@@ -16,83 +31,85 @@ namespace graphics_metal {
 class MetalContext;
 class MetalEventManager;
 
-/**
- * Multi-GPU rendering strategies
- */
+// ---------------------------------------------------------------------------
+// Strategy enumeration
+// ---------------------------------------------------------------------------
+
 enum class MultiGPUStrategy {
-    SplitFrame = 0,    // Each GPU renders a portion of the screen
-    TaskBased = 1,     // Distribute rendering tasks across GPUs
-    Alternating = 2,   // Alternate frames between GPUs
-    ComputeOffload = 3 // Main GPU renders, other GPUs handle compute tasks
+    // Supported on macOS Metal:
+    DeviceSelection  = 0,  // Choose which GPU renders (and presents).
+    ComputeOffload   = 1,  // Secondary device handles async compute.
+
+    // NOT supported on macOS Metal — kept for API compatibility only:
+    SplitFrame       = 2,  // Stub; maps to DeviceSelection internally.
+    TaskBased        = 3,  // Stub; maps to DeviceSelection internally.
+    Alternating      = 4,  // Stub; maps to DeviceSelection internally.
 };
 
-/**
- * Information about a GPU device
- */
+// ---------------------------------------------------------------------------
+// Device info
+// ---------------------------------------------------------------------------
+
 struct GPUDeviceInfo {
     std::string name;
     bool isPrimary;
     bool isActive;
     bool unifiedMemory;
-    uint64_t memorySize;
+    uint64_t memorySize;    // recommended max working set, bytes
+    bool isLowPower;        // integrated / low-power device
 };
 
-/**
- * Manages synchronization between multiple GPUs
- */
+// ---------------------------------------------------------------------------
+// MetalMultiGPU
+// ---------------------------------------------------------------------------
+
 class MetalMultiGPU {
 public:
     MetalMultiGPU();
     ~MetalMultiGPU();
-    
-    // Initialize with Metal context
+
     bool initialize(MetalContext* context);
-    
-    // Get available devices
+
+    // Device inventory
     std::vector<GPUDeviceInfo> getDeviceInfo() const;
-    
-    // Enable/disable multi-GPU and set strategy
-    bool enable(bool enabled, MultiGPUStrategy strategy = MultiGPUStrategy::SplitFrame);
+
+    // Enable / disable and set strategy.
+    // Returns false if the strategy requires hardware not present (e.g.
+    // SplitFrame always returns false on Apple Silicon).
+    bool enable(bool enabled, MultiGPUStrategy strategy = MultiGPUStrategy::DeviceSelection);
     bool isEnabled() const { return _enabled; }
-    
-    // Get current strategy
     MultiGPUStrategy getStrategy() const { return _strategy; }
-    
-    // Active device management
-    bool setDeviceActive(id<MTLDevice> device, bool active);
-    bool isDeviceActive(id<MTLDevice> device) const;
-    std::vector<id<MTLDevice>> getActiveDevices() const;
-    
-    // Workload distribution
-    void computeSplitFrameRegions(uint32_t width, uint32_t height, std::vector<MTLRegion>& regions);
-    
-    // Synchronization
-    id<MTLEvent> signalEvent(id<MTLCommandBuffer> commandBuffer, id<MTLDevice> waitingDevice);
-    void waitForEvent(id<MTLCommandBuffer> commandBuffer, id<MTLEvent> event, uint64_t value);
-    
-    // Resource sharing
-    bool shareResource(id<MTLResource> resource, id<MTLDevice> sourceDevice, id<MTLDevice> targetDevice);
-    
-    // Frame pacing for alternating strategy
-    void beginFrame();
-    void endFrame();
-    id<MTLDevice> getCurrentFrameDevice() const;
-    
+
+    // Select a named device for presentation (DeviceSelection strategy).
+    // Pass an empty string to revert to the system default.
+    bool selectPresentationDevice(const std::string& deviceName);
+    id<MTLDevice> presentationDevice() const { return _presentationDevice; }
+
+    // Select a named device for async compute offload (ComputeOffload strategy).
+    bool selectComputeDevice(const std::string& deviceName);
+    id<MTLDevice> computeDevice() const { return _computeDevice; }
+
+    // Submit a compute command buffer to the offload device and return
+    // a shared event that signals when work completes.
+    id<MTLSharedEvent> submitComputeWork(
+        id<MTLCommandBuffer> computeCommandBuffer,
+        id<MTLDevice> fromDevice);
+
 private:
-    MetalContext* _context;
-    bool _enabled;
-    MultiGPUStrategy _strategy;
-    std::vector<id<MTLDevice>> _activeDevices;
-    std::unordered_map<id<MTLDevice>, bool> _deviceActivityMap;
-    
-    // Frame counter for alternating strategy
-    uint64_t _frameCounter;
-    
-    // Cached event manager for synchronization
-    MetalEventManager* _eventManager;
-    
-    // Helper method to calculate device workload ratios
-    std::vector<float> calculateDeviceWorkloadRatios() const;
+    MetalContext*               _context;
+    bool                        _enabled;
+    MultiGPUStrategy            _strategy;
+    std::vector<id<MTLDevice>>  _allDevices;
+
+    id<MTLDevice>               _presentationDevice;
+    id<MTLDevice>               _computeDevice;
+    id<MTLCommandQueue>         _computeQueue;
+
+    MetalEventManager*          _eventManager;
+
+    // Internal helpers
+    id<MTLDevice> _findDeviceByName(const std::string& name) const;
+    void          _logUnsupportedStrategy(MultiGPUStrategy strategy) const;
 };
 
 } // namespace graphics_metal

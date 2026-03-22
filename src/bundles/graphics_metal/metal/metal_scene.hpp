@@ -10,7 +10,7 @@
 #include <string>
 
 namespace chimerax {
-namespace graphics {
+namespace graphics_metal {
 
 // Forward declarations
 class MetalContext;
@@ -70,22 +70,25 @@ public:
     
     simd::float3 position() const { return _position; }
     void setPosition(simd::float3 position) { _position = position; }
-    
+    void setPosition(float x, float y, float z) { _position = simd::float3{x, y, z}; }
+
     simd::float3 target() const { return _target; }
     void setTarget(simd::float3 target) { _target = target; }
-    
+    void setTarget(float x, float y, float z) { _target = simd::float3{x, y, z}; }
+
     simd::float3 up() const { return _up; }
     void setUp(simd::float3 up) { _up = up; }
-    
+    void setUp(float x, float y, float z) { _up = simd::float3{x, y, z}; }
+
     float fov() const { return _fov; }
     void setFov(float fov) { _fov = fov; }
-    
+
     float aspectRatio() const { return _aspectRatio; }
     void setAspectRatio(float aspectRatio) { _aspectRatio = aspectRatio; }
-    
+
     float nearPlane() const { return _nearPlane; }
     void setNearPlane(float nearPlane) { _nearPlane = nearPlane; }
-    
+
     float farPlane() const { return _farPlane; }
     void setFarPlane(float farPlane) { _farPlane = farPlane; }
     
@@ -125,11 +128,17 @@ public:
     // Background
     simd::float4 backgroundColor() const { return _backgroundColor; }
     void setBackgroundColor(simd::float4 color) { _backgroundColor = color; }
-    
+    void setBackgroundColor(float r, float g, float b, float a = 1.0f) {
+        _backgroundColor = simd::float4{r, g, b, a};
+    }
+
     // Ambient lighting
     simd::float3 ambientColor() const { return _ambientColor; }
     void setAmbientColor(simd::float3 color) { _ambientColor = color; }
-    
+    void setAmbientColor(float r, float g, float b) {
+        _ambientColor = simd::float3{r, g, b};
+    }
+
     float ambientIntensity() const { return _ambientIntensity; }
     void setAmbientIntensity(float intensity) { _ambientIntensity = intensity; }
     
@@ -142,5 +151,5 @@ private:
     float _ambientIntensity;
 };
 
-} // namespace graphics
+} // namespace graphics_metal
 } // namespace chimerax

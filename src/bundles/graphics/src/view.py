@@ -39,6 +39,7 @@ class View:
         self.window_size = window_size		# pixels
         self._render = None
         self._opengl_initialized = False
+        self._render_backend = None  # Set when a non-OpenGL backend is active
 
         self.set_default_parameters()
 
@@ -154,11 +155,35 @@ class View:
     camera = property(_get_camera, _set_camera)
     '''The Camera controlling the vantage shown in the graphics window.'''
 
+    def switch_render_backend(self, name: str) -> None:
+        '''Switch to a named render backend (e.g. "metal" or "opengl").'''
+        from .render_backend import switch_backend
+        # Session is accessible via the trigger_set owner, or by asking the
+        # active backend, but we prefer passing it explicitly when available.
+        # For compatibility, look it up from the drawing's session attribute.
+        session = getattr(self.drawing, "session", None)
+        if session is None:
+            raise RuntimeError("Cannot determine session from drawing; "
+                               "pass session explicitly.")
+        switch_backend(name, session)
+
     def draw(self, camera = None, drawings = None,
              check_for_changes = True, swap_buffers = True):
         '''
         Draw the scene.
         '''
+        # Dispatch to an alternative render backend if one is active.
+        if self._render_backend is not None and self._render_backend.name != "opengl":
+            backend = self._render_backend
+            if not backend.make_current():
+                return
+            c = camera if camera is not None else self._camera
+            d = drawings if drawings is not None else self.drawing
+            backend.render(d, c)
+            if swap_buffers:
+                backend.swap_buffers()
+            return
+
         if not self._use_opengl():
             return	# OpenGL not available
 

@@ -1,40 +1,66 @@
 [build-system]
-requires = ["setuptools>=42", "wheel", "cython>=0.29.24", "numpy"]
-build-backend = "setuptools.build_meta"
+requires = ["ChimeraX-BundleBuilder>=1.4.0", "ChimeraX-Core ~=1.0", "numpy"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
 
 [project]
 name = "ChimeraX-GraphicsMetal"
 version = "0.1.0"
-description = "Metal-accelerated multi-GPU graphics for ChimeraX"
-readme = "README.md"
-requires-python = ">=3.9"
-license = {text = "Free for non-commercial use"}
-authors = [
-    {name = "Alpha Tau Biosciences", email = "support@alphataubio.com"}
-]
-classifiers = [
-    "Framework :: ChimeraX",
-    "Development Status :: 4 - Beta",
-    "License :: Free for non-commercial use",
-    "Operating System :: MacOS :: MacOS X",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: C++"
-]
+license = { text = "Free for non-commercial use" }
+authors = [{ name = "Alpha Tau Biosciences", email = "support@alphataubio.com" }]
+description = "Metal-accelerated graphics for ChimeraX"
 dependencies = [
-    "numpy"
+    "ChimeraX-Core ~=1.0",
+    "ChimeraX-Graphics ~=1.0",
+    "ChimeraX-UI ~=1.0",
 ]
+dynamic = ["classifiers", "requires-python"]
+
+[project.readme]
+content-type = "text"
+text = "Metal-accelerated graphics renderer for UCSF ChimeraX, providing native Apple GPU integration with fp32 data paths."
 
 [project.urls]
-"Homepage" = "https://www.alphataubio.com/"
-"Source" = "https://github.com/alphataubio/ChimeraX-GraphicsMetal"
+Home = "https://www.alphataubio.com/"
+Source = "https://github.com/alphataubio/ChimeraX-GraphicsMetal"
 
 [tool.chimerax]
 min-session-version = 1
 max-session-version = 1
 categories = ["Graphics"]
-providers.graphics = [
-    {name = "metal", synopsis = "Metal-based multi-GPU accelerated rendering", 
-     service = "chimerax.graphics_metal:MetalGraphics"}
+classifiers = ["Development Status :: 3 - Alpha"]
+
+[tool.chimerax.package-data]
+"src" = ["metal_shaders/*.metallib"]
+
+# Metal Cython extension — compiled as Objective-C++ on macOS only.
+# Source files use #import and are compiled with -x objective-c++ so that
+# they work without renaming to .mm.
+[tool.chimerax.extension._metal]
+sources = [
+    "metal/metal.pyx",
+    "metal/metal_context.cpp",
+    "metal/metal_resources.cpp",
+    "metal/metal_scene.cpp",
+    "metal/metal_renderer.cpp",
+    "metal/metal_heap_manager.cpp",
+    "metal/metal_argbuffer_manager.cpp",
+    "metal/metal_event_manager.cpp",
+    "metal/metal_multi_gpu.cpp",
 ]
-custom-init = "chimerax.graphics_metal.custom_init"
-data-files = ["metal_shaders"]
+include-dirs = ["metal"]
+include-modules = ["chimerax.core", "numpy"]
+language = "c++"
+
+[tool.chimerax.extension._metal.platform.mac]
+frameworks = ["Metal", "MetalKit", "Foundation", "QuartzCore"]
+extra-compile-args = [
+    "-std=c++17",
+    "-x", "objective-c++",
+    "-fobjc-arc",
+    "-Wno-deprecated-declarations",
+]
+extra-link-args = ["-framework", "Metal", "-framework", "MetalKit"]
+
+[[tool.chimerax.provider."graphics backend"]]
+name = "metal"
+synopsis = "Apple Metal GPU renderer"

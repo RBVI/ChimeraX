@@ -11,7 +11,7 @@
 #include <vector>
 
 namespace chimerax {
-namespace graphics {
+namespace graphics_metal {
 
 // Forward declarations
 class MetalContext;
@@ -115,5 +115,5 @@ private:
         MTLSamplerAddressMode addressMode);
 };
 
-} // namespace graphics
+} // namespace graphics_metal
 } // namespace chimerax

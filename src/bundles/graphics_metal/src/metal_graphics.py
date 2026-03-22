@@ -1,262 +1,239 @@
 """
-Metal-based graphics implementation for ChimeraX with multi-GPU acceleration
+Metal render backend for ChimeraX.
+
+This module exposes MetalBackend, which implements the RenderBackend
+protocol defined in chimerax.graphics.render_backend.  When loaded,
+it registers itself with the View so that `graphics metal` can switch
+to it and `graphics opengl` can switch back.
 """
 
-import sys
-import os
 import platform
-import numpy
-from chimerax.core.graphics import Graphics
-from chimerax.core.logger import log_error, log_info
+import sys
 
-# Import C++ extension module for Metal - would be built with Cython
-# We use a try/except here to gracefully handle platforms where Metal is not available
-try:
-    from ._metal import (
-        MetalContext, 
-        MetalRenderer, 
-        MetalScene, 
-        MetalResources,
-        MetalView,
-        MetalArgBuffer,
-        MetalMultiGPU,
-        # Exception type for Metal errors
-        MetalError
-    )
-    _have_metal = True
-except ImportError as e:
-    _have_metal = False
-    log_error(f"Failed to import Metal module: {e}")
 
-# Check if we're on a platform that supports Metal
-def is_metal_supported():
-    """Check if the current platform supports Metal"""
-    if not _have_metal:
-        return False
-    
-    # Metal is only supported on macOS
+def is_metal_supported() -> bool:
+    """Return True if the current host can use Metal."""
     if platform.system() != "Darwin":
         return False
-    
-    # Check macOS version - Metal requires 10.14+ for all features we use
     mac_ver = platform.mac_ver()[0]
-    if mac_ver:
-        major, minor = map(int, mac_ver.split('.')[:2])
-        if (major < 10) or (major == 10 and minor < 14):
-            return False
-    
-    return True
+    if not mac_ver:
+        return False
+    major, *rest = mac_ver.split(".")
+    minor = int(rest[0]) if rest else 0
+    major = int(major)
+    # Metal is available from macOS 10.13; we require 10.14+ for full features.
+    return major > 10 or (major == 10 and minor >= 14)
 
-# Constants for multi-GPU strategies
-MULTI_GPU_STRATEGY_SPLIT_FRAME = 0
-MULTI_GPU_STRATEGY_TASK_BASED = 1
-MULTI_GPU_STRATEGY_ALTERNATING = 2
-MULTI_GPU_STRATEGY_COMPUTE_OFFLOAD = 3
 
-class MetalGraphics(Graphics):
-    """Metal-based graphics implementation for ChimeraX with multi-GPU support"""
-    
-    def __init__(self, session, **kw):
-        """Initialize Metal graphics"""
-        super().__init__(session, **kw)
-        
-        self._metal_view = None
+class MetalBackend:
+    """
+    Implements the RenderBackend protocol using Apple Metal.
+
+    The backend owns a MetalContext (MTLDevice + MTLCommandQueue), a
+    MetalScene (camera, lighting), and a MetalRenderer (pipeline states).
+    It is created once per View and lazily initialized on first use.
+    """
+
+    name = "metal"
+
+    def __init__(self, session):
+        self._session = session
+        self._context = None
+        self._scene = None
+        self._renderer = None
+        self._initialized = False
         self._multi_gpu = None
-        self._multi_gpu_enabled = False
-        self._multi_gpu_strategy = MULTI_GPU_STRATEGY_SPLIT_FRAME
-        
-        # Create Metal view if supported
-        if is_metal_supported():
-            try:
-                # Create the low-level Metal view
-                self._metal_view = MetalView()
-                
-                # Initialize multi-GPU manager if available
-                self._multi_gpu = MetalMultiGPU()
-                
-                log_info("Using Metal graphics renderer with multi-GPU support")
-            except Exception as e:
-                log_error(f"Failed to create Metal renderer: {e}")
-                self._metal_view = None
-                self._multi_gpu = None
-    
-    def initialize(self, width, height, window_id, make_current=False):
-        """Initialize the Metal rendering context"""
-        if self._metal_view:
-            try:
-                success = self._metal_view.initialize(window_id, width, height)
-                if not success:
-                    log_error("Failed to initialize Metal view")
-                    self._metal_view = None
-                    self._multi_gpu = None
-                    return super().initialize(width, height, window_id, make_current)
-                
-                # Initialize multi-GPU if available
-                if self._multi_gpu:
-                    # Get Metal context from view
-                    metal_context = self._metal_view.context()
-                    if metal_context:
-                        self._multi_gpu.initialize(metal_context)
-                
-                # Successfully initialized Metal
-                return True
-            except Exception as e:
-                log_error(f"Error initializing Metal view: {e}")
-                self._metal_view = None
-                self._multi_gpu = None
-        
-        # Fall back to OpenGL if Metal is not available
-        return super().initialize(width, height, window_id, make_current)
-    
-    def make_current(self):
-        """Make the Metal context current if using Metal, otherwise use OpenGL"""
-        if self._metal_view:
-            # Metal doesn't use the concept of "current context" like OpenGL
-            # so this is a no-op for Metal
+        self._preferred_device = None
+
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
+
+    def initialize(self, view, window_id: int, width: int, height: int) -> bool:
+        """
+        Initialize Metal for the given native window.
+
+        Parameters
+        ----------
+        view:
+            The chimerax.graphics.View that owns this backend.
+        window_id:
+            OS-level window handle (NSView* on macOS).
+        width, height:
+            Initial drawable size in device pixels.
+        """
+        if self._initialized:
             return True
-        return super().make_current()
-    
-    def done_current(self):
-        """Release the current context if using OpenGL"""
-        if not self._metal_view:
-            return super().done_current()
-    
-    def swap_buffers(self):
-        """Swap buffers or present the Metal drawable"""
-        if self._metal_view:
-            self._metal_view.render()
-        else:
-            super().swap_buffers()
-    
-    def render(self, drawing, camera, render_target=None):
-        """Render the drawing using metal or fall back to OpenGL"""
-        if self._metal_view:
-            # Update scene with camera and drawing
-            metal_scene = self._metal_view.scene()
-            if metal_scene:
-                # Update camera parameters
-                metal_camera = metal_scene.camera()
-                if metal_camera and camera:
-                    # Convert camera position and orientation
-                    eye_pos = camera.position.origin
-                    metal_camera.setPosition((eye_pos[0], eye_pos[1], eye_pos[2]))
-                    
-                    # Set camera target (look-at point)
-                    look_at = eye_pos + camera.view_direction() * 10.0
-                    metal_camera.setTarget((look_at[0], look_at[1], look_at[2]))
-                    
-                    # Set camera up vector
-                    up_vector = camera.position.z_axis
-                    metal_camera.setUp((up_vector[0], up_vector[1], up_vector[2]))
-                    
-                    # Set perspective parameters
-                    metal_camera.setFov(camera.field_of_view)
-                    metal_camera.setNearPlane(camera.near_clip_distance)
-                    metal_camera.setFarPlane(camera.far_clip_distance)
-                
-                # TODO: Convert drawing to Metal representation
-                # This is a complex step that would require translating the
-                # ChimeraX drawing structures into Metal-compatible buffers
-            
-            # Trigger rendering
-            self._metal_view.render()
-        else:
-            super().render(drawing, camera, render_target)
-    
-    def enable_multi_gpu(self, enable=True, strategy=MULTI_GPU_STRATEGY_SPLIT_FRAME):
-        """Enable or disable multi-GPU rendering with Metal"""
-        if not self._metal_view or not self._multi_gpu:
-            log_error("Cannot enable multi-GPU: Metal is not active or multi-GPU not supported")
+
+        try:
+            from ._metal import PyMetalContext, PyMetalScene, PyMetalRenderer, PyMetalMultiGPU
+        except ImportError as exc:
+            self._session.logger.error(
+                f"Could not import Metal extension (_metal): {exc}.  "
+                "Run 'make install' inside src/bundles/graphics_metal/ to build it."
+            )
             return False
-        
-        # Set the multi-GPU strategy
-        if enable:
-            self._multi_gpu_strategy = strategy
-            success = self._multi_gpu.enable(True, strategy)
-        else:
-            success = self._multi_gpu.enable(False, MULTI_GPU_STRATEGY_SPLIT_FRAME)
-            
-        self._multi_gpu_enabled = enable and success
-        
-        # Update renderer settings if multi-GPU enabled
-        if self._multi_gpu_enabled:
-            # Get Metal renderer from view and configure it for multi-GPU
-            renderer = self._metal_view.renderer()
-            if renderer:
-                renderer.setMultiGPUMode(True, strategy)
-        
-        return success
-    
-    def is_multi_gpu_enabled(self):
-        """Check if multi-GPU rendering is enabled"""
-        return self._metal_view is not None and self._multi_gpu is not None and self._multi_gpu_enabled
-    
-    def get_gpu_devices(self):
-        """Get information about available Metal GPU devices"""
-        if not self._metal_view:
+
+        ctx = PyMetalContext()
+        if not ctx.initialize():
+            self._session.logger.error("Metal context initialization failed.")
+            return False
+
+        scene = PyMetalScene(ctx)
+        if not scene.initialize():
+            self._session.logger.error("Metal scene initialization failed.")
+            return False
+
+        renderer = PyMetalRenderer(ctx)
+        if not renderer.initialize():
+            self._session.logger.error("Metal renderer initialization failed.")
+            return False
+
+        renderer.setScene(scene)
+
+        self._context = ctx
+        self._scene = scene
+        self._renderer = renderer
+        self._initialized = True
+        self._multi_gpu = PyMetalMultiGPU()
+        self._multi_gpu.initialize(ctx)
+
+        self._session.logger.info(
+            f"Metal backend initialized on {ctx.deviceName()} "
+            f"(unified memory: {ctx.supportsUnifiedMemory()})"
+        )
+        return True
+
+    def delete(self):
+        """Release all Metal resources."""
+        self._renderer = None
+        self._scene = None
+        self._multi_gpu = None
+        self._context = None
+        self._initialized = False
+
+    # ------------------------------------------------------------------
+    # Backend protocol (called by View / RenderBackend)
+    # ------------------------------------------------------------------
+
+    def make_current(self) -> bool:
+        """Metal has no 'current context' concept; always succeeds."""
+        return self._initialized
+
+    def done_current(self):
+        """No-op for Metal."""
+
+    def resize(self, width: int, height: int):
+        """Update drawable size on window resize."""
+        if self._scene and self._scene.camera():
+            aspect = width / max(height, 1)
+            self._scene.camera().setAspectRatio(aspect)
+
+    def render(self, drawing, camera):
+        """
+        Render one frame.
+
+        Parameters
+        ----------
+        drawing:
+            Root chimerax.graphics.Drawing to render.
+        camera:
+            Active chimerax.graphics.Camera.
+        """
+        if not self._initialized:
+            return
+
+        self._sync_camera(camera)
+        self._sync_background()
+
+        self._renderer.beginFrame()
+        self._upload_drawing(drawing)
+        self._renderer.endFrame()
+
+    def swap_buffers(self):
+        """Present Metal drawable — called automatically by endFrame."""
+
+    # ------------------------------------------------------------------
+    # Device selection / multi-device
+    # ------------------------------------------------------------------
+
+    def available_devices(self) -> list:
+        """Return a list of dicts describing available Metal GPU devices."""
+        if self._multi_gpu is None:
             return []
-            
-        if self._multi_gpu:
-            return self._multi_gpu.getDeviceInfo()
-        
-        # Fallback if multi-GPU manager is not available
-        metal_context = self._metal_view.context()
-        if metal_context:
-            # Just return primary device info
-            device_name = metal_context.deviceName()
-            return [{"name": device_name, "is_primary": True, "unified_memory": metal_context.supportsUnifiedMemory()}]
-            
-        return []
-    
-    def begin_frame_capture(self):
-        """Begin Metal frame capture for debugging"""
-        if self._metal_view:
-            self._metal_view.beginCapture()
-    
-    def end_frame_capture(self):
-        """End Metal frame capture"""
-        if self._metal_view:
-            self._metal_view.endCapture()
-    
-    def resize(self, width, height):
-        """Resize the rendering view"""
-        if self._metal_view:
-            self._metal_view.resize(width, height)
-        else:
-            super().resize(width, height)
-    
-    def set_background_color(self, color):
-        """Set the background color for rendering"""
-        if self._metal_view:
-            scene = self._metal_view.scene()
-            if scene:
-                # Convert RGBA color (0-1 range)
-                metal_color = (float(color[0]), float(color[1]), float(color[2]), 1.0)
-                scene.setBackgroundColor(metal_color)
-        else:
-            super().set_background_color(color)
-    
-    def get_capabilities(self):
-        """Return dictionary of supported capabilities"""
-        capabilities = super().get_capabilities()
-        
-        if self._metal_view:
-            # Add Metal-specific capabilities
-            metal_capabilities = {
-                "api": "Metal",
-                "multi_gpu": self._multi_gpu is not None,
-                "ray_tracing": True,  # Metal 3 supports ray tracing
-                "mesh_shaders": True, # Metal 3 supports mesh shaders
-                "indirect_drawing": True,
-                "argument_buffers": True,
-                "unified_memory": False
-            }
-            
-            # Check for unified memory (Apple Silicon)
-            metal_context = self._metal_view.context()
-            if metal_context:
-                metal_capabilities["unified_memory"] = metal_context.supportsUnifiedMemory()
-            
-            capabilities.update(metal_capabilities)
-        
-        return capabilities
+        return self._multi_gpu.getDeviceInfo()
+
+    def select_compute_device(self, device_name: str) -> bool:
+        """
+        Designate a secondary MTLDevice for async compute offload (e.g.
+        volume preprocessing, density analysis).  Returns True on success.
+
+        On Apple Silicon the only Metal device is the integrated GPU; this
+        method is meaningful mainly on Intel Macs with discrete + integrated.
+        """
+        devices = self.available_devices()
+        for d in devices:
+            if d["name"] == device_name:
+                self._preferred_device = device_name
+                self._session.logger.info(
+                    f"Metal compute offload device set to '{device_name}'"
+                )
+                return True
+        self._session.logger.warning(
+            f"Metal device '{device_name}' not found; "
+            f"available: {[d['name'] for d in devices]}"
+        )
+        return False
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _sync_camera(self, camera):
+        """Push ChimeraX camera state into the Metal scene camera."""
+        if camera is None or self._scene is None:
+            return
+        mc = self._scene.camera()
+        if mc is None:
+            return
+
+        pos = camera.position.origin()
+        mc.setPosition(float(pos[0]), float(pos[1]), float(pos[2]))
+
+        fwd = camera.view_direction()
+        look = pos + fwd * 10.0
+        mc.setTarget(float(look[0]), float(look[1]), float(look[2]))
+
+        up = camera.position.z_axis()
+        mc.setUp(float(up[0]), float(up[1]), float(up[2]))
+
+        if hasattr(camera, "field_of_view"):
+            mc.setFov(float(camera.field_of_view))
+        if hasattr(camera, "near_clip_distance"):
+            mc.setNearPlane(float(camera.near_clip_distance))
+        if hasattr(camera, "far_clip_distance"):
+            mc.setFarPlane(float(camera.far_clip_distance))
+
+    def _sync_background(self):
+        """Push the View's background colour into the Metal scene."""
+        if self._scene is None:
+            return
+        try:
+            rgba = self._session.main_view.background_rgba
+            r, g, b, a = (float(c) for c in rgba)
+        except Exception:
+            r, g, b, a = 0.0, 0.0, 0.0, 1.0
+        self._scene.setBackgroundColor(r, g, b, a)
+
+    def _upload_drawing(self, drawing):
+        """
+        Walk the Drawing tree and upload fp32 geometry to Metal buffers.
+
+        This is the core integration point.  The DrawingWalker (see
+        drawing_walker.py) batches geometry by draw mode and uploads
+        MTLBuffer instances that the renderer then encodes.
+        """
+        if drawing is None:
+            return
+        from .drawing_walker import walk_and_upload
+        walk_and_upload(drawing, self._renderer, self._context)
