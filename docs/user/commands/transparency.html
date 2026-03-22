@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: transparency</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: transparency</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -51,46 +46,46 @@ The <a name="target"><b>target</b></a> option allows acting on only
 a subset of the possible displays of a given atom, residue, <i>etc.</i>
 The <i>string</i> can be any combination of the following letters,
 without commas or spaces:
-  <ul>
+  </p><ul>
   <li><b>a</b> &ndash; atoms/bonds
   (shown for bonds in <a href="color.html#halfbond">halfbond mode</a>)
-  <li><b>b</b> &ndash; bonds-only
+  </li><li><b>b</b> &ndash; bonds-only
   (shown for bonds not in <a href="color.html#halfbond">halfbond mode</a>)
 <!--
   <li><b>l</b> &ndash; atom labels
 -->
-  <li><b>c</b> &nbsp;or&nbsp; <b>r</b>
+  </li><li><b>c</b> &nbsp;or&nbsp; <b>r</b>
   &ndash; cartoons (ribbons) (divisible to per-residue segments)
-  <li><b>s</b> &ndash; surfaces
+  </li><li><b>s</b> &ndash; surfaces
   (molecular surfaces divisible to per-atom patches, other surface models
    such as volume isosurfaces)
-  <li><b>p</b> &ndash; pseudobonds-only
+  </li><li><b>p</b> &ndash; pseudobonds-only
   (shown for <a href="../pseudobonds.html">pseudobonds</a>
    not in <a href="color.html#halfbond">halfbond mode</a>)
-  <li><b>f</b> &ndash; <a href="style.html">ring fill</a>
+  </li><li><b>f</b> &ndash; <a href="style.html">ring fill</a>
   and <a href="nucleotides.html">nucleotide representations</a>
 <!--
   <li><b>n</b> &ndash; nonmolecular models (model-level color)
   <li><b>m</b> &ndash; molecular models (model-level color)
   <li><b>d</b> &ndash; distances and other pseudobond labels
 -->
-  </ul>
+  </li></ul>
 The default is <b>target s</b>, surfaces only.
-</p><p>
+<p></p><p>
 Alternatively, the targets (<i>what</i> to act upon)
 can be specified with one or more of the following keywords
 as a comma-separated list at the end of the command:
 </p>
 <ul>
 <li><b>atoms</b> &ndash; equivalent to <b>target a</b>
-<li><b>bonds</b> &ndash; equivalent to <b>target b</b>
-<li><b>cartoons</b> or <b>ribbons</b> &ndash; equivalent to <b>target c</b>
+</li><li><b>bonds</b> &ndash; equivalent to <b>target b</b>
+</li><li><b>cartoons</b> or <b>ribbons</b> &ndash; equivalent to <b>target c</b>
 or <b>target r</b>
-<li><b>surfaces</b> &ndash; equivalent to <b>target s</b>
-<li><b>pseudobonds</b> &ndash; equivalent to <b>target p</b>
-<li><b>rings</b> &ndash; equivalent to <b>target f</b>
-<li><b>All</b> &ndash; equivalent to <b>target abcsp</b>
-</ul>
+</li><li><b>surfaces</b> &ndash; equivalent to <b>target s</b>
+</li><li><b>pseudobonds</b> &ndash; equivalent to <b>target p</b>
+</li><li><b>rings</b> &ndash; equivalent to <b>target f</b>
+</li><li><b>All</b> &ndash; equivalent to <b>target abcsp</b>
+</li></ul>
 
 <a name="examples"></a>
 <h4>Examples</h4>
@@ -119,4 +114,5 @@ Make model #2 chain B ribbons 80% transparent:
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 October 2024</address>
+
 </body></html>

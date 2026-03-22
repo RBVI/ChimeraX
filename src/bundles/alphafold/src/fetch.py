@@ -28,14 +28,22 @@
 #
 #	https://alphafold.ebi.ac.uk/files/AF-P29474-F1-model_v1.cif
 #
-def alphafold_fetch(session, uniprot_id, color_confidence=True,
+# Here is an example of isoform 2.
+#
+#	https://alphafold.ebi.ac.uk/files/AF-Q8N9C0-2-F1-model_v6.cif
+#
+def alphafold_fetch(session, alphafold_id, color_confidence=True,
                     align_to=None, trim=True, pae=False, ignore_cache=False,
                     add_to_session=True, version=None, in_file_history=True, **kw):
-
-    uniprot_name = uniprot_id if '_' in uniprot_id else None
-    uniprot_id = _parse_uniprot_id(uniprot_id)
+    '''
+    The alphafold_id can be a Uniprot id (P29474) or a Uniprot id and isoform number (Q8N9C0-2)
+    or a Uniprot name (IGS22_HUMAN) or an AlphaFold id which includes predicted fragment number and
+    database version number (AF-Q8N9C0-F1-v6, AF-Q8N9C0-2-F1-v6).
+    '''
+    uniprot_id, uniprot_name, isoform, fragment, database_version = _parse_alphafold_id(alphafold_id)
     from . import database
-    url = database.alphafold_model_url(session, uniprot_id, version)
+    url = database.alphafold_model_url(session, uniprot_id, isoform = isoform,
+                                       fragment = fragment, database_version = database_version)
     file_name = url.split('/')[-1]
     
     from chimerax.core.fetch import fetch_file
@@ -73,6 +81,39 @@ def alphafold_fetch(session, uniprot_id, color_confidence=True,
                       ignore_cache = ignore_cache)
         
     return models, status
+
+def _parse_alphafold_id(alphafold_id):
+    '''
+    The alphafold_id can be a Uniprot id (P29474) or a Uniprot id and isoform number (Q8N9C0-2)
+    or a Uniprot name (IGS22_HUMAN) or an AlphaFold id which includes predicted fragment number and
+    database version number (AF-Q8N9C0-F1-v6, AF-Q8N9C0-2-F1-v6).
+    '''
+    uniprot_name = isoform = fragment = database_version = None
+    if '_' in alphafold_id:
+        # Uniprot name
+        uniprot_name = alphafold_id 
+        uniprot_id = _parse_uniprot_id(alphafold_id)
+    else:
+        id_fields = alphafold_id.split('-')
+        if len(id_fields) == 1:
+            uniprot_id = _parse_uniprot_id(id_fields[0])
+        elif len(id_fields) == 2:
+            uniprot_id = _parse_uniprot_id(id_fields[0])
+            isoform = id_fields[1]
+        elif id_fields[0] != 'AF' or len(id_fields) < 4 or len(id_fields) > 5:
+            from chimerax.core.errors import UserError
+            raise UserError(f'Unrecognized format for AlphaFold id "{alphafold_id}".  Example AlphaFold ids P29474, Q8N9C0-2, IGS22_HUMAN, AF-Q8N9C0-F1-v6, AF-Q8N9C0-2-F1-v6.')
+        elif len(id_fields) == 4:
+            uniprot_id = id_fields[1]
+            fragment = id_fields[2][1:]
+            database_version = id_fields[3][1:]
+        elif len(id_fields) == 5:
+            uniprot_id = id_fields[1]
+            isoform = id_fields[2]
+            fragment = id_fields[3][1:]
+            database_version = id_fields[4][1:]
+            
+    return uniprot_id, uniprot_name, isoform, fragment, database_version
 
 def _parse_uniprot_id(uniprot_id):
     from chimerax.core.errors import UserError
@@ -117,7 +158,7 @@ def register_alphafold_fetch_command(logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, StringArg, IntArg
     from chimerax.atomic import ChainArg
     desc = CmdDesc(
-        required = [('uniprot_id', StringArg)],
+        required = [('alphafold_id', StringArg)],
         keyword = [('color_confidence', BoolArg),
                    ('align_to', ChainArg),
                    ('trim', BoolArg),

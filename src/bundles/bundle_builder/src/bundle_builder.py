@@ -2,6 +2,8 @@
 
 # Force import in a particular order since both Cython and
 # setuptools patch distutils, and we want Cython to win
+import os
+import re
 import setuptools
 import sys
 import sysconfig
@@ -44,12 +46,26 @@ else:
             self.dwFlags |= _winapi.STARTF_USESHOWWINDOW
 
 
+cpu_count = os.cpu_count()
+
+
+def _find_openmp_mac():
+    """Return (include_dir, lib_dir) for libomp on macOS, or (None, None) if not found."""
+    candidates = [
+        "/opt/homebrew/opt/libomp",  # Apple Silicon
+        "/usr/local/opt/libomp",  # Intel
+    ]
+    for path in candidates:
+        if os.path.exists(os.path.join(path, "lib", "libomp.dylib")):
+            return (os.path.join(path, "include"), os.path.join(path, "lib"))
+    return (None, None)
+
+
 # Python version was 3.7 in ChimeraX 1.0
 CHIMERAX1_0_PYTHON_VERSION = Version("3.7")
 
 
 class BundleBuilder:
-
     def __init__(self, logger, bundle_path=None, bundle_xml=None):
         import os
 
@@ -80,14 +96,15 @@ class BundleBuilder:
         # times which can remove/create the same directories.
         # So we need to flush the cache before each run.
         self._make_setup_arguments()
-        import distutils.dir_util
-
-        try:
-            distutils.dir_util._path_created.clear()
-        except AttributeError:
-            pass
+        self._clear_distutils_cache()
         # Copy additional files into package source tree
         self._copy_extrafiles(self.extrafiles)
+        # Copy libomp.dylib on macOS if any module uses OpenMP
+        uses_openmp = any(
+            getattr(cm, "uses_openmp", False) for cm in self.c_modules
+        ) or any(getattr(cl, "uses_openmp", False) for cl in self.c_libraries)
+        if sys.platform == "darwin" and uses_openmp:
+            self._copy_openmp_lib()
         # Build C libraries and executables
         import os
 
@@ -95,7 +112,7 @@ class BundleBuilder:
             lib.compile(self.logger, self.dependencies, debug=debug)
         for executable in self.c_executables:
             executable.compile(self.logger, self.dependencies, debug=debug)
-        setup_args = ["--no-user-cfg", "build"]
+        setup_args = ["--no-user-cfg", "build", f"-j{cpu_count}"]
         if debug:
             setup_args.append("--debug")
         setup_args.extend(["bdist_wheel"])
@@ -110,7 +127,9 @@ class BundleBuilder:
         wheel = os.path.basename(self.wheel_path)
         wheel_lower = wheel.lower()
         wheel_lower_path = os.path.join(wheel_dir, wheel_lower)
-        if not built or (not os.path.exists(self.wheel_path) and not os.path.exists(wheel_lower_path)):
+        if not built or (
+            not os.path.exists(self.wheel_path) and not os.path.exists(wheel_lower_path)
+        ):
             raise RuntimeError(f"Building wheel failed: {wheel}")
         else:
             if os.path.exists(self.wheel_path):
@@ -126,14 +145,15 @@ class BundleBuilder:
         # times which can remove/create the same directories.
         # So we need to flush the cache before each run.
         self._make_setup_arguments()
-        import distutils.dir_util
-
-        try:
-            distutils.dir_util._path_created.clear()
-        except AttributeError:
-            pass
+        self._clear_distutils_cache()
         # Copy additional files into package source tree
         self._copy_extrafiles(self.extrafiles)
+        # Copy libomp.dylib on macOS if any module uses OpenMP
+        uses_openmp = any(
+            getattr(cm, "uses_openmp", False) for cm in self.c_modules
+        ) or any(getattr(cl, "uses_openmp", False) for cl in self.c_libraries)
+        if sys.platform == "darwin" and uses_openmp:
+            self._copy_openmp_lib()
         # Build C libraries and executables
         import os
 
@@ -141,7 +161,7 @@ class BundleBuilder:
             lib.compile(self.logger, self.dependencies, debug=debug)
         for executable in self.c_executables:
             executable.compile(self.logger, self.dependencies, debug=debug)
-        setup_args = ["build_ext", "--inplace", "editable_wheel"]
+        setup_args = ["build_ext", f"-j{cpu_count}", "--inplace", "editable_wheel"]
         dist, built = self._run_setup(setup_args)
         import glob
 
@@ -210,6 +230,37 @@ class BundleBuilder:
         import shutil
 
         shutil.rmtree(path, ignore_errors=True)
+
+    @staticmethod
+    def _clear_distutils_cache():
+        """Clear distutils/setuptools directory creation cache.
+
+        Modern setuptools vendors its own distutils at setuptools._distutils,
+        which uses a SkipRepeatAbsolutePaths class to cache created directories.
+        Older versions used a _path_created dict. We try to clear both.
+        """
+        # Clear modern setuptools cache (SkipRepeatAbsolutePaths)
+        # The cache is a set instance stored as a class attribute
+        try:
+            from setuptools._distutils import dir_util as st_dir_util
+
+            cache_class = getattr(st_dir_util, "SkipRepeatAbsolutePaths", None)
+            if cache_class is not None:
+                instance = getattr(cache_class, "instance", None)
+                if instance is not None:
+                    # Directly clear the set (SkipRepeatAbsolutePaths extends set)
+                    set.clear(instance)
+        except Exception:
+            pass
+        # Clear legacy distutils cache (_path_created dict)
+        try:
+            import distutils.dir_util
+
+            cache = getattr(distutils.dir_util, "_path_created", None)
+            if cache is not None:
+                cache.clear()
+        except Exception:
+            pass
 
     _mac_platforms = ["mac", "macos", "darwin"]
     _windows_platforms = ["windows", "win32"]
@@ -427,16 +478,32 @@ class BundleBuilder:
             # ChimeraXCore *should* always be present
             return
         from packaging.requirements import Requirement
+        from packaging.version import parse
+        from importlib.metadata import version
 
         for e in self._get_elements(deps, "Dependency"):
             pkg = e.get("name", "")
             ver = e.get("version", "")
-            req = "%s %s" % (pkg, ver)
+            req_str = "%s %s" % (pkg, ver)
+
             try:
-                Requirement(req)
+                req = Requirement(req_str)
             except ValueError:
-                raise ValueError("Bad version specifier (see PEP 440): %r" % req)
-            self.dependencies.append(req)
+                raise ValueError("Bad version specifier (see PEP 440): %r" % req_str)
+
+            if e.get("build", False):
+                installed_version = parse(version(req.name))
+                if re.match(r"[Cc]himera[Xx]-[Cc]ore", req.name):
+                    # Always accept prereleases for the core for developers building
+                    # bundles
+                    req.specifier.prereleases = True
+                if installed_version not in req.specifier:
+                    raise ValueError(
+                        "Incompatible version for build dependency %s: %s (installed: %s)"
+                        % (pkg, req_str, str(installed_version))
+                    )
+
+            self.dependencies.append(req_str)
 
     def _get_initializations(self, bi):
         self.initializations = {}
@@ -472,9 +539,11 @@ class BundleBuilder:
             except ValueError:
                 minor = 1
             uses_numpy = cm.get("usesNumpy") == "true"
+            uses_openmp = cm.get("usesOpenMP") == "true"
             c = _CModule(
                 mod_name,
                 uses_numpy,
+                uses_openmp,
                 major,
                 minor,
                 self.installed_library_dir,
@@ -489,6 +558,7 @@ class BundleBuilder:
             c = _CLibrary(
                 lib.get("name", ""),
                 lib.get("usesNumpy") == "true",
+                lib.get("usesOpenMP") == "true",
                 lib.get("static") == "true",
                 self.installed_library_dir,
                 self.limited_api,
@@ -529,7 +599,7 @@ class BundleBuilder:
         for e in self._get_elements(ce, "Define"):
             edef = BundleBuilder._get_element_text(e).split("=")
             if len(edef) > 2:
-                raise TypeError("Too many arguments for macro " "definition: %s" % edef)
+                raise TypeError("Too many arguments for macro definition: %s" % edef)
             elif len(edef) == 1:
                 edef.append(None)
             c.add_macro_define(*edef)
@@ -654,6 +724,29 @@ class BundleBuilder:
                         shutil.rmtree(dstdir)
                     shutil.copytree(src, dstdir)
 
+    def _copy_openmp_lib(self):
+        omp_inc, omp_lib = _find_openmp_mac()
+        # For this library, we'll just return if we don't have it,
+        # and OpenMP code will run single-threaded
+        if not omp_lib:
+            return
+        import shutil
+        import subprocess
+
+        src = os.path.join(omp_lib, "libomp.dylib")
+        dst = os.path.join("src", "lib", "libomp.dylib")
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copyfile(src, dst)
+        # Change the library's install_name so binaries linking against it
+        # record @rpath/libomp.dylib instead of the absolute Homebrew path
+        subprocess.run(
+            ["install_name_tool", "-id", "@rpath/libomp.dylib", dst],
+            check=True
+        )
+        if self.package not in self.setup_arguments["package_data"]:
+            self.setup_arguments["package_data"][self.package] = []
+        self.setup_arguments["package_data"][self.package].append("lib/libomp.dylib")
+
     def _expand_datafiles(self, files):
         import os
 
@@ -737,7 +830,6 @@ class BundleBuilder:
             if em is not None
         ]
         if not self._is_pure_python():
-
             if sys.platform == "darwin":
                 env = "Environment :: MacOS X :: Aqua"
                 op_sys = "Operating System :: MacOS :: MacOS X"
@@ -816,7 +908,12 @@ class BundleBuilder:
             with suppress_known_deprecation():
                 dist = setuptools.setup(**kw)
             return dist, True
-        except (SystemExit, Exception):
+        except Exception:
+            import traceback
+
+            traceback.print_exc()
+            return None, False
+        except SystemExit:
             import traceback
 
             traceback.print_exc()
@@ -872,10 +969,10 @@ class BundleBuilder:
 
 
 class _CompiledCode:
-
-    def __init__(self, name, uses_numpy, install_dir, limited_api):
+    def __init__(self, name, uses_numpy, uses_openmp, install_dir, limited_api):
         self.name = name
         self.uses_numpy = uses_numpy
+        self.uses_openmp = uses_openmp
         self.requires = []
         self.source_files = []
         self.frameworks = []
@@ -963,6 +1060,23 @@ class _CompiledCode:
             libraries = self.libraries
             cpp_flags = ["-std=c++11"]
             extra_link_args = []
+        if self.uses_openmp:
+            if sys.platform == "darwin":
+                omp_inc, omp_lib = _find_openmp_mac()
+                if omp_inc:
+                    inc_dirs.append(omp_inc)
+                    # Link against our local copy in src/lib which has the
+                    # install_name changed to @rpath/libomp.dylib
+                    lib_dirs.append(os.path.join("src", "lib"))
+                    cpp_flags.extend(["-Xpreprocessor", "-fopenmp"])
+                    libraries.append("omp")
+                    extra_link_args.append("-Wl,-rpath,@loader_path/lib")
+                # else: silently skip, pragmas become no-ops
+            elif sys.platform == "win32":
+                cpp_flags.append("/openmp")
+            else:
+                cpp_flags.append("-fopenmp")
+                extra_link_args.append("-fopenmp")
         for req in self.requires:
             if not os.path.exists(req):
                 return None
@@ -1000,17 +1114,27 @@ class _CompiledCode:
             return None, None
         inc = bundle.include_dir()
         lib = bundle.library_dir()
-        if not inc and not lib:
+        if not inc:
             try:
                 import importlib
 
                 mod = importlib.import_module(bundle.package_name)
                 inc = mod.get_include()
+            # This code does not distinguish between build dependencies and
+            # regular dependencies, so must gracefully fail either way
+            except (AttributeError, ModuleNotFoundError):
+                return inc, None
+        if not lib:
+            try:
+                import importlib
+
+                mod = importlib.import_module(bundle.package_name)
                 lib = mod.get_lib()
             # This code does not distinguish between build dependencies and
             # regular dependencies, so must gracefully fail either way
             except (AttributeError, ModuleNotFoundError):
-                return None, None
+                return None, lib
+
         return inc, lib
 
     def compile_objects(self, logger, dependencies, static, debug):
@@ -1087,9 +1211,10 @@ class _CompiledCode:
 
 
 class _CModule(_CompiledCode):
-
-    def __init__(self, name, uses_numpy, major, minor, libdir, limited_api):
-        super().__init__(name, uses_numpy, libdir, limited_api)
+    def __init__(
+        self, name, uses_numpy, uses_openmp, major, minor, libdir, limited_api
+    ):
+        super().__init__(name, uses_numpy, uses_openmp, libdir, limited_api)
         self.major = major
         self.minor = minor
 
@@ -1128,13 +1253,11 @@ class _CModule(_CompiledCode):
 
 
 class _CLibrary(_CompiledCode):
-
-    def __init__(self, name, uses_numpy, static, libdir, limited_api):
-        super().__init__(name, uses_numpy, libdir, limited_api)
+    def __init__(self, name, uses_numpy, uses_openmp, static, libdir, limited_api):
+        super().__init__(name, uses_numpy, uses_openmp, libdir, limited_api)
         self.static = static
 
     def compile(self, logger, dependencies, debug=False):
-
         compiler, objs, extra_link_args = self.compile_objects(
             logger, dependencies, self.static, debug
         )
@@ -1239,17 +1362,14 @@ class _CLibrary(_CompiledCode):
 
 
 class _CExecutable(_CompiledCode):
-
     def __init__(self, name, execdir, limited_api):
-
         if sys.platform == "win32":
             # Remove .exe suffix because it will be added
             if name.endswith(".exe"):
                 name = name[:-4]
-        super().__init__(name, False, execdir, limited_api)
+        super().__init__(name, False, False, execdir, limited_api)
 
     def compile(self, logger, dependencies, debug=False):
-
         compiler, objs, extra_link_args = self.compile_objects(
             logger, dependencies, False, debug
         )
@@ -1287,7 +1407,6 @@ class _CExecutable(_CompiledCode):
 
 
 if __name__ == "__main__" or __name__.startswith("ChimeraX_sandbox"):
-
     bb = BundleBuilder()
     for cmd in sys.argv[1:]:
         if cmd == "wheel":

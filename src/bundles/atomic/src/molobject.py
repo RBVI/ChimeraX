@@ -579,6 +579,7 @@ class PseudobondManager(StateManager):
 
     @staticmethod
     def restore_snapshot(session, data):
+        import sys
         pbm = session.pb_manager
         # restore the int->structure mapping the pseudobonds use...
         ptr_mapping = {}
@@ -590,8 +591,8 @@ class PseudobondManager(StateManager):
         ints, floats, misc = data['mgr data']
         f = c_function('pseudobond_global_manager_session_restore',
                 args = (ctypes.c_void_p, ctypes.c_int,
-                        ctypes.py_object, ctypes.py_object, ctypes.py_object))
-        f(pbm._c_pointer, data['version'], ints, floats, misc)
+                        ctypes.py_object, ctypes.py_object, ctypes.py_object, ctypes.c_bool))
+        f(pbm._c_pointer, data['version'], ints, floats, misc, session.restore_options["combine"])
         pbm.set_custom_attrs(data)
         return pbm
 
@@ -804,17 +805,30 @@ class Sequence(State):
         'W':'TRP', 'Y':'TYR', 'Z':'GLX' }
 
     # the following colors for use by alignment/sequence viewers
-    default_helix_fill_color = (1.0, 1.0, 0.8)
-    default_helix_outline_color = tuple([chan/255.0 for chan in (218, 165, 32)]) # goldenrod
-    default_strand_fill_color = (0.88, 1.0, 1.0) # light cyan
-    default_strand_outline_color = tuple([0.75*chan for chan in default_strand_fill_color])
+    light_mode_helix_fill = (1.0, 1.0, 0.8)
+    light_mode_helix_outline = tuple([chan/255.0 for chan in (218, 165, 32)]) # goldenrod
+    light_mode_strand_fill = (0.88, 1.0, 1.0) # light cyan
+    light_mode_strand_outline = tuple([0.75*chan for chan in light_mode_strand_fill])
+    dark_mode_helix_fill = tuple([0.6*chan for chan in light_mode_helix_fill])
+    dark_mode_helix_outline = light_mode_helix_fill
+    dark_mode_strand_fill = tuple([0.6*chan for chan in light_mode_strand_fill])
+    dark_mode_strand_outline = light_mode_strand_fill
+    default_helix_fill_color = light_mode_helix_fill
+    default_helix_outline_color = light_mode_helix_outline
+    default_strand_fill_color = light_mode_strand_fill
+    default_strand_outline_color = light_mode_strand_outline
 
     chimerax_exiting = False
 
-    def __init__(self, seq_pointer=None, *, name="sequence", characters=""):
+    def __init__(self, seq_pointer=None, *, name="sequence", characters="", is_reference=False):
+        """'is_reference' indicates a full reference sequence that should not be renumbered
+           as chains are associated/disassociated from it.  If the numbering should not start
+           at 1, set 'numbering_start' after creation.
+        """
         self.attrs = {} # miscellaneous attributes
         self.markups = {} # per-residue (strings or lists)
-        self.numbering_start = None
+        self.is_reference = is_reference
+        self.numbering_start = 1 if is_reference else None
         self._features = {}
         self.accession_id = {}
         from chimerax.core.triggerset import TriggerSet
@@ -982,6 +996,7 @@ class Sequence(State):
         self.characters = data['characters']
         self.attrs = data.get('attrs', {})
         self.markups = data.get('markups', {})
+        self.is_reference = data.get('is_reference', False)
         self.numbering_start = data.get('numbering_start', None)
         self._features = data.get('features', {})
         self.accession_id = data.get('accession_id', {})
@@ -1007,7 +1022,7 @@ class Sequence(State):
         data = { 'name': self.name, 'characters': self.characters, 'attrs': self.attrs,
             'markups': self.markups, 'numbering_start': self.numbering_start,
             'custom attrs': self.custom_attrs, 'features': self._features,
-            'accession_id': self.accession_id }
+            'accession_id': self.accession_id, 'is_reference': self.is_reference }
         return data
 
     def ungapped(self):
@@ -1287,12 +1302,14 @@ class StructureSeq(Sequence):
         if "name changed" in changes.residue_reasons():
             updated_chars = []
             some_changed = False
+            # prevent calling C++ layer for residues mulitple times
+            residues = self.residues
             for gi, c in enumerate(self.characters):
                 ugi = self.gapped_to_ungapped(gi)
                 if ugi is None:
                     updated_chars.append(c)
                 else:
-                    res = self.residues[ugi]
+                    res = residues[ugi]
                     if res:
                         uc = Sequence.rname3to1(res.name)
                         updated_chars.append(uc)
@@ -1302,7 +1319,7 @@ class StructureSeq(Sequence):
                         updated_chars.append(c)
 
             if some_changed:
-                self.bulk_set(self.residues, ''.join(updated_chars), fire_triggers=False)
+                self.bulk_set(residues, ''.join(updated_chars), fire_triggers=False)
                 self._fire_trigger('characters changed', self)
 
     def _cpp_structure_seq_demotion(self):
@@ -1491,6 +1508,7 @@ class StructureData:
         ret = ctypes.c_char_p)().decode('utf-8')
     PBG_HYDROGEN_BONDS = c_function('structure_PBG_HYDROGEN_BONDS', args = (),
         ret = ctypes.c_char_p)().decode('utf-8')
+    _coordset_suppress_count = 0
     _ss_suppress_count = 0
 
     # For attribute registration...
@@ -1565,7 +1583,9 @@ class StructureData:
     coordset_ids = c_property('structure_coordset_ids', int32, 'num_coordsets', read_only = True,
         doc = "Supported API. Return array of ids of all coordinate sets.")
     coordset_size = c_property('structure_coordset_size', int32, read_only = True,
-        doc = "Supported API. Return the size of the active coordinate set array.")
+        doc = "Supported API. Return the size of the active coordinate set array."
+        " If atoms have been deleted, this number could be more than the number of atoms, so in most"
+        " practical cases you should use the num_atoms attribute.")
     coordsets = c_property('structure_coordsets', cptr, 'num_coordsets', astype = convert.coordsets,
         read_only = True,
         doc = "Supported API. :class:`.CoordSets` collection containing all coordsets of the structure.")
@@ -1650,6 +1670,8 @@ class StructureData:
     '''Ribbon mode showing secondary structure as an arc (tube or plank).'''
     RIBBON_MODE_WRAP = 2
     '''Ribbon mode showing helix as ribbon wrapped around tube.'''
+    RIBBON_MODE_CYLINDER = 3
+    '''Ribbon mode showing helix as straight cylinder.'''
     ring_display_count = c_property('structure_ring_display_count', int32, read_only = True,
         doc = "Return number of residues with ring display set. Integer.")
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
@@ -1660,9 +1682,25 @@ class StructureData:
 
     from contextlib import contextmanager
     @contextmanager
+    def suppress_coordset_change_notifications(self):
+        """Suppress coordinate set change notifications while the code body runs.
+           Restore the original coordinate set of this structure when done."""
+        orig_coordset_id = self.active_coordset_id
+        if self._coordset_suppress_count == 0:
+            self.active_coordset_change_notify = False
+        self._coordset_suppress_count += 1
+        try:
+            yield
+        finally:
+            self.active_coordset_id = orig_coordset_id
+            self._coordset_suppress_count -= 1
+            if self._coordset_suppress_count == 0:
+                self.active_coordset_change_notify = True
+
+    @contextmanager
     def suppress_ss_change_notifications(self):
         """Suppress secondard structure change notifications while the code body runs.
-           Restore the original secondard structure of this atom when done."""
+           Restore the original secondard structure of this model when done."""
         orig_ss_types = self.residues.ss_types
         orig_ss_ids = self.residues.ss_ids
         if self._ss_suppress_count == 0:
@@ -1749,8 +1787,11 @@ class StructureData:
         if not xyzs.flags.c_contiguous:
             # molc.cpp code doesn't know about strides...
             xyzs = xyzs.copy()
-        cs_size = self.coordset_size
-        if cs_size > 0:
+        #cs_size = self.coordset_size
+        #if cs_size > 0:
+        # self.coordset_size could be > #atoms if atoms have been deleted.  Testing whether just
+        # always checking the number of atoms is okay...
+        if False:
             dim_check = cs_size
             check_text = "previous coordinate sets"
             do_check = True
@@ -2351,7 +2392,9 @@ class SeqMatchMap(State):
         self._align_seq = align_seq
         self._struct_seq = struct_seq
         from . import get_triggers
-        self._handler = get_triggers().add_handler("changes", self._atomic_changes)
+        self._handlers = [get_triggers().add_handler("changes", self._atomic_changes)]
+        if align_seq.ungapped() == struct_seq.ungapped():
+            self._handlers.append(struct_seq.triggers.add_handler("residues changed", self._res_change_cb))
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('modified')
@@ -2425,11 +2468,20 @@ class SeqMatchMap(State):
             if modified:
                 self.triggers.activate_trigger('modified', self)
 
+    def _res_change_cb(self, trig_name, sseq):
+        # only called if alignment and structure seqs are the same
+        self._res_to_pos.clear()
+        self._pos_to_res.clear()
+        for r, i in sseq.res_map.items():
+            self._res_to_pos[r] = i
+            self._pos_to_res[i] = r
+        self.triggers.activate_trigger('modified', self)
+
     def __del__(self):
         self._pos_to_res.clear()
         self._res_to_pos.clear()
-        from . import get_triggers
-        get_triggers().remove_handler(self._handler)
+        for handler in self._handlers:
+            handler.remove()
 
 # -----------------------------------------------------------------------------
 #

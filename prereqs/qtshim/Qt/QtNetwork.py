@@ -4,7 +4,7 @@ if using_pyqt6:
     from PyQt6.QtNetwork import *
 
     # Allow using enum values without enumeration name.
-    from .promote_enums import promote_enums
+    from .promote_enums import promote_enums_pyqt as promote_enums
     from PyQt6 import QtNetwork
     promote_enums(QtNetwork)
     del QtNetwork
@@ -17,3 +17,9 @@ elif using_pyside2:
  
 elif using_pyside6:
     from PySide6.QtNetwork import *
+
+    from .promote_enums import promote_enums_pyside as promote_enums
+    from PySide6 import QtNetwork
+    promote_enums(QtNetwork)
+    del QtNetwork
+

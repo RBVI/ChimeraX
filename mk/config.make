@@ -28,10 +28,15 @@ export PKG_CONFIG_PATH=$(libdir)/pkgconfig
 # by default, don't do anything
 all:
 
+include $(TOP)/mk/os.make
+
 # version numbers that leak out of prerequisites
 
 PYTHON_VERSION = 3.11
-PYTHON_PATCH_VERSION = 4
+PYTHON_PATCH_VERSION = 9
+ifeq ($(OS),Linux)
+PYTHON_PATCH_VERSION = 13
+endif
 
 ifndef DEBUG
 # Starting with Python 3.8 the ABI "m" has been dropped.
@@ -47,8 +52,6 @@ endif
 endif
 # Windows uses python22.dll instead of libpython2.2.so
 PYVER_NODOT = $(subst .,,$(PYTHON_VERSION))
-
-include $(TOP)/mk/os.make
 
 ifeq ($(OS),Windows)
 datadir = $(bindir)/share
@@ -165,7 +168,7 @@ else
 PYTHON_INCLUDE_DIRS = -I$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
 PYTHON_LIBRARY_DIR = $(libdir)/python$(PYTHON_VERSION)
 ifdef UV_BUILD
-UV_PYTHON_DIR = $(shell grep home .venv/pyvenv.cfg | cut -d'=' -f2 | sed -e 's/ //g' -e 's/\/bin$$//g')
+UV_PYTHON_DIR = $(shell grep home $(TOP)/.venv/pyvenv.cfg | cut -d'=' -f2 | sed -e 's/ //g' -e 's/\/bin$$//g')
 PYTHON_INCLUDE_DIRS = -I$(UV_PYTHON_DIR)/include/python$(PYTHON_VERSION)
 PYTHON_LIBRARY_DIR = $(UV_PYTHON_DIR)/lib
 endif

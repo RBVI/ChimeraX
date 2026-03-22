@@ -95,6 +95,7 @@ class DICOM:
 
     def filter_unreadable(self, files):
         import pydicom.uid
+
         try:
             import gdcm  # noqa import used elsewhere
         except ModuleNotFoundError:
@@ -103,22 +104,31 @@ class DICOM:
             _has_gdcm = True
 
         if _has_gdcm:
-            return files  # PyDicom will use gdcm to read 16-bit lossless jpeg
+            return files  # GDCM can decode all compressed transfer syntaxes
 
-        # Python Image Library cannot read 16-bit lossless jpeg.
+        # Without GDCM, only uncompressed, RLE (built-in numpy handler),
+        # and Pillow-supported syntaxes (baseline JPEG, JPEG 2000) are readable.
+        readable = set(pydicom.uid.UncompressedTransferSyntaxes)
+        readable.update(pydicom.uid.RLETransferSyntaxes)
+        readable.update({
+            pydicom.uid.JPEGBaseline8Bit,
+            pydicom.uid.JPEG2000Lossless,
+            pydicom.uid.JPEG2000,
+        })
+
         keep = []
         for f in files:
-            if (
-                f.file_meta.TransferSyntaxUID == pydicom.uid.JPEGLosslessSV1
-                and f.get("BitsAllocated") == 16
-            ):
-                warning = (
-                    "Could not read DICOM %s because Python Image Library cannot read 16-bit lossless jpeg "
-                    "images. This functionality can be enabled by installing python-gdcm"
-                )
-                self.session.logger.warning(warning % f.filename)
-            else:
+            ts = getattr(f.file_meta, 'TransferSyntaxUID', None)
+            if ts is None or ts in readable:
                 keep.append(f)
+            else:
+                ts_name = ts.name if hasattr(ts, 'name') else str(ts)
+                self.session.logger.warning(
+                    "Could not read DICOM %s because no available decoder "
+                    "supports transfer syntax '%s'. Install python-gdcm to "
+                    "enable support for additional DICOM transfer syntaxes."
+                    % (f.filename, ts_name)
+                )
         return keep
 
     def _find_dicom_files_in_directory_recursively(self, path):
@@ -138,8 +148,6 @@ class DICOM:
                         "Pydicom could not read invalid or non-DICOM file %s; skipping."
                         % f
                     )
-        for d in dirs:
-            dfiles.extend(self._find_dicom_files_in_directory_recursively(d))
         return dfiles
 
     def dicom_patients(self, files) -> list["Patient"]:

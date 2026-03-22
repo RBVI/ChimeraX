@@ -46,6 +46,13 @@ def alias(session, name, text=''):
     cli.create_alias(name, text, user=True, logger=logger)
 
 
+def alias_usage(session, name, **kw):
+    try:
+        cli.set_alias_usage(name, **kw)
+    except ValueError as e:
+        session.logger.warning(str(e))
+
+
 def list_aliases(session, internal=False):
     # list aliases
     logger = session.logger
@@ -73,6 +80,41 @@ def unalias(session, name):
         cli.remove_alias(name, user=True, logger=logger)
 
 
+class NameDescriptionArg(cli.StringArg):
+    name = "an argument name[:description]"
+
+    @staticmethod
+    def parse(text, session):
+        token, text, rest = cli.StringArg.parse(text, session)
+        if not text:
+            raise cli.AnnotationError("Alias argument description can't be an empty string")
+        if ':' not in token:
+            value = (token, None)
+        else:
+            name, description = token.split(':', maxsplit=1)
+            name = name.strip()
+            description = description.strip()
+            if not name:
+                name = None
+            if not description:
+                description = None
+            value = (name, description)
+        return (value, text, rest)
+
+    @staticmethod
+    def unparse(value, session=None):
+        name, description = value
+        if name is None:
+            name = ''
+        if description is None:
+            return name
+        return f'{name}:{description}'
+
+    @classmethod
+    def html_name(cls, name=None):
+        return "an argument name[<b>:</b>description]"
+
+
 def register_command(logger):
     desc = cli.CmdDesc(
         required=[('name', cli.StringArg)],
@@ -80,6 +122,25 @@ def register_command(logger):
         non_keyword=['text'],
         synopsis='define or show a command alias')
     cli.register('alias', desc, alias, logger=logger)
+
+    desc = cli.CmdDesc(
+        required=[('name', cli.StringArg)],
+        keyword=[
+            ('synopsis', cli.StringArg),
+            ('url', cli.StringArg),
+            ('$1', NameDescriptionArg),
+            ('$2', NameDescriptionArg),
+            ('$3', NameDescriptionArg),
+            ('$4', NameDescriptionArg),
+            ('$5', NameDescriptionArg),
+            ('$6', NameDescriptionArg),
+            ('$7', NameDescriptionArg),
+            ('$8', NameDescriptionArg),
+            ('$9', NameDescriptionArg),
+            ('$*', NameDescriptionArg),
+        ],
+        synopsis="set alias' usage")
+    cli.register('alias usage', desc, alias_usage, logger=logger)
 
     desc = cli.CmdDesc(
         keyword=[('internal', cli.NoArg)],

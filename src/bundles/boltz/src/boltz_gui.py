@@ -29,13 +29,14 @@
 from chimerax.core.tools import ToolInstance
 class BoltzPredictionGUI(ToolInstance):
 #    help = 'help:user/tools/boltz.html'
-    help = 'help:boltz_help.html'
+    help = 'https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html'
 
     def __init__(self, session, tool_name):
 
         self._auto_set_prediction_name = True
-        self._boltz_run = None		# BoltzRun instance if a prediction has been started
+        self._boltz_runs = None		# List of BoltzRun instances if a prediction has been started
         self._installing_boltz = False
+        self._affinity_value_map = {'each': 'each'}
 
         ToolInstance.__init__(self, session, tool_name)
 
@@ -109,9 +110,9 @@ class BoltzPredictionGUI(ToolInstance):
         from chimerax.ui.widgets import EntriesRow
 
         pn = EntriesRow(parent, 'Prediction name', '')
-        self._prediction_name = pn.values[0]
-        pn.pixel_width = 100
-        self._prediction_name._line_edit.textEdited.connect(self._prediction_name_edited)
+        self._prediction_name = pname = pn.values[0]
+        pname.pixel_width = 200
+        pname._line_edit.textEdited.connect(self._prediction_name_edited)
         return pn
 
     # ---------------------------------------------------------------------------
@@ -173,7 +174,8 @@ class BoltzPredictionGUI(ToolInstance):
     #
     def _update_entry_display(self):
         text = self._seq_button.text()
-        if text in ('protein sequence', 'rna sequence', 'dna sequence', 'ligand SMILES string'):
+        if text in ('protein sequence', 'rna sequence', 'dna sequence', 'ligand SMILES string',
+                    'each ligand SMILES string'):
             show_seq, show_uniprot = True, False
         elif text in ('UniProt identifier', 'ligand CCD code'):
             show_seq, show_uniprot = False, True
@@ -186,16 +188,19 @@ class BoltzPredictionGUI(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _entry_strings(self):
+    def _entry_strings(self, remove_whitespace = True, separator = ','):
         e = self._seq_button.text()
-        if e in ('protein sequence', 'rna sequence', 'dna sequence', 'ligand SMILES string'):
+        if e in ('protein sequence', 'rna sequence', 'dna sequence', 'ligand SMILES string',
+                 'each ligand SMILES string'):
             text = self._sequence_entry.toPlainText()
         elif e in ('UniProt identifier', 'ligand CCD code'):
             text = self._molecule_identifier_entry.text()
         else:
             text = ''
-        strings = [_remove_whitespace(field) for field in text.split(',')]
-        strings = [string for string in strings if string]	# Remove empty strings
+        strings = text.split(separator)
+        if remove_whitespace:
+            strings = [_remove_whitespace(string) for string in strings]
+        strings = [string for string in strings if string.strip()]	# Remove empty strings
         return strings
 
     # ---------------------------------------------------------------------------
@@ -205,7 +210,7 @@ class BoltzPredictionGUI(ToolInstance):
             return
         text = self._seq_button.text()
         if text in ('protein sequence', 'rna sequence', 'dna sequence',
-                    'ligand CCD code', 'ligand SMILES string'):
+                    'ligand CCD code', 'ligand SMILES string', 'each ligand SMILES string'):
             pname = ''
         elif text == 'UniProt identifier':
             uids = self._entry_strings()
@@ -262,7 +267,8 @@ class BoltzPredictionGUI(ToolInstance):
                        ('dna sequence',None),
                        ('UniProt identifier',None),
                        ('ligand CCD code',None),
-                       ('ligand SMILES string',None)])
+                       ('ligand SMILES string',None),
+                       ('each ligand SMILES string',None)])
         return values
 
     # ---------------------------------------------------------------------------
@@ -288,6 +294,10 @@ class BoltzPredictionGUI(ToolInstance):
         if first_addition:
             self._set_prediction_name()
 
+        each_ligand = len([comp for comp in comps if comp.type == 'each ligand']) > 0
+        if each_ligand and self._affinity_ligand_value() is None:
+            self._affinity_ligand.value = 'each'
+            
         self._report_number_of_tokens()
         
     # ---------------------------------------------------------------------------
@@ -298,7 +308,8 @@ class BoltzPredictionGUI(ToolInstance):
         if e in ('protein sequence', 'rna sequence', 'dna sequence'):
             type = e.split()[0]
             for seq in self._entry_strings():
-                desc = f'{type} sequence length {len(seq)}: {seq}'
+                seq_summary = f'{seq[:8]}...{seq[-8:]}' if len(seq) > 20 else seq
+                desc = f'{type} sequence length {len(seq)}: {seq_summary}'
                 comps.append(MolecularComponent(desc, type = type, sequence_string = seq))
         elif e == 'UniProt identifier':
             uniprot_errors = []
@@ -327,6 +338,11 @@ class BoltzPredictionGUI(ToolInstance):
         elif e == 'ligand SMILES string':
             for smiles in self._entry_strings():
                 comps.append(MolecularComponent(f'ligand SMILES {smiles}', type = 'ligand', smiles_string = smiles))
+        elif e == 'each ligand SMILES string':
+            named_ligands = self._parse_each_ligand_smiles()  # list of (name, smiles)
+            if named_ligands:
+                comps.append(MolecularComponent(f'Each of {len(named_ligands)} ligands',
+                                                type = 'each ligand', named_ligands = named_ligands))
         else:
             s, c = self._menu_structure_or_chain()
             if s:
@@ -344,6 +360,24 @@ class BoltzPredictionGUI(ToolInstance):
                                             sequence_string = chains[0].characters)
                          for chains,polymer_type,desc in _unique_chain_descriptions([c])]
         return comps
+
+    # ---------------------------------------------------------------------------
+    #
+    def _parse_each_ligand_smiles(self):
+        named_ligands = []
+        rows = self._entry_strings(remove_whitespace = False, separator = '\n')
+        for i, name_smiles in enumerate(rows):
+            if name_smiles:
+                fields = name_smiles.split(',')
+                if len(fields) == 2:
+                    named_ligands.append(tuple(f.strip() for f in fields))
+                elif len(fields) == 1:
+                    named_ligands.append((f'ligand{i+1}', fields[0].strip()))
+                else:
+                    msg = f'Each ligand SMILES text must have on each line one SMILES string or a ligand name and SMILES string separated by a comma, "{name_smiles}" is not valid.'
+                    self.session.logger.error(msg)
+                    return ()
+        return named_ligands
 
     # ---------------------------------------------------------------------------
     #
@@ -400,6 +434,9 @@ class BoltzPredictionGUI(ToolInstance):
         mt = self._molecules_table
         if mt:
             mt.clear()
+            self._affinity_value_map = {}
+            if self._affinity_ligand.value not in ('none', 'last ligand'):
+                self._affinity_ligand.value = 'none'
 
     # ---------------------------------------------------------------------------
     #
@@ -414,7 +451,9 @@ class BoltzPredictionGUI(ToolInstance):
                 spec = comp.uniprot_id or comp.sequence_string
                 for i in range(comp.count):
                     if comp.chains:
-                        spec = comp.chains[i % len(comp.chains)].atomspec
+                        chain = comp.chains[i % len(comp.chains)]
+                        if chain.chain is not None:  # Check if chain is deleted
+                            spec = chain.atomspec
                     options.append(f'{comp.type} {spec}')
 
         ligand_ccds = []
@@ -432,7 +471,42 @@ class BoltzPredictionGUI(ToolInstance):
             smiles_specs = _ligands_with_counts(ligand_smiles)
             options.append(f'ligandSmiles {smiles_specs}')
 
+        each_ligand = []
+        for comp in mt.data:
+            if comp.type == 'each ligand':
+                each_ligand.extend([f'{name},{smiles}' for name, smiles in comp.named_ligands])
+        if each_ligand:
+            eligands = ','.join(each_ligand)
+            options.append(f'forEachSmilesLigand "{eligands}"')
+                            
         return options
+
+    # ---------------------------------------------------------------------------
+    #
+    def _affinity_ligand_value(self):
+        text = self._affinity_ligand.value
+        if text == 'none':
+            value = None
+        elif text == 'last ligand':
+            value = self._last_ligand()
+        else:
+            value = self._affinity_value_map.get(text, text)
+        return value
+
+    # ---------------------------------------------------------------------------
+    #
+    def _last_ligand(self):
+        mt = self._molecules_table
+        if mt is None or len(mt.data) == 0:
+            return None
+        ligand_spec = None
+        for comp in mt.data:
+            if comp.type == 'ligand':
+                if comp.ccd_code:
+                    ligand_spec = comp.ccd_code
+                elif comp.smiles_string:
+                    ligand_spec = comp.smiles_string
+        return ligand_spec
 
     # ---------------------------------------------------------------------------
     #
@@ -448,6 +522,7 @@ class BoltzPredictionGUI(ToolInstance):
             ('Predict', self._predict),
             ('Error plot', self._error_plot),
             ('Options', self._show_or_hide_options),
+            ('History', self._show_history_table),
             ('Help', self._show_help),
         ]
         show_install = self._need_to_install_boltz()
@@ -457,6 +532,7 @@ class BoltzPredictionGUI(ToolInstance):
         f, buttons = button_row(parent, buttons, spacing = 5, button_list = True)
         self._button_row = f
         self._install_boltz_button = buttons[0] if show_install else None
+        self._stop_button = None
         return f
 
     # ---------------------------------------------------------------------------
@@ -464,7 +540,7 @@ class BoltzPredictionGUI(ToolInstance):
     def _need_to_install_boltz(self):
         from .settings import _boltz_settings
         settings = _boltz_settings(self.session)
-        boltz_dir = settings.boltz_install_location
+        boltz_dir = settings.boltz22_install_location
         from .install import find_executable
         boltz_exe = find_executable(boltz_dir, 'boltz')
         from os.path import isdir, isfile
@@ -482,7 +558,7 @@ class BoltzPredictionGUI(ToolInstance):
         if self._installing_boltz:
             self.session.logger.error('Cannot make a prediction until Boltz installation finishes.')
             return
-        if self._boltz_run and self._boltz_run.running:
+        if self._boltz_run and not self._boltz_run.finished:
             self.session.logger.error('Cannot make a new prediction until the current prediction finishes.')
             return
         options = []
@@ -496,10 +572,26 @@ class BoltzPredictionGUI(ToolInstance):
             options.append('useMsaCache false')
         if self._device.value != 'default':
             options.append(f'device {self._device.value}')
+        if self._use_server.value:
+            options.append('useServer true')
+            host, port = self._server_host.value, self._server_port.value
+            if host.strip():
+                options.append(f'serverHost {host}')
+            options.append(f'serverPort {port}')
+        lig = self._affinity_ligand_value()
+        if lig:
+            options.append(f'affinity {lig}')
+        if self._use_steering_potentials.value:
+            options.append('steering true')
         if self._use_cuda_bfloat16 and self._use_cuda_bfloat16.value:
             options.append('float16 true')
         if self._samples.value != 1:
             options.append(f'samples {self._samples.value}')
+        from .settings import _boltz_settings
+        settings = _boltz_settings(self.session)
+        if self._install_directory.value != settings.boltz22_install_location:
+            from chimerax.core.commands import quote_path_if_necessary
+            options.append(f'installLocation {quote_path_if_necessary(self._install_directory.value)}')
         self._run_prediction(options = ' '.join(options))
 
     # ---------------------------------------------------------------------------
@@ -520,9 +612,20 @@ class BoltzPredictionGUI(ToolInstance):
         br = run(self.session, cmd)
         if br is None:
             return  # Boltz not yet installed or other startup error.
-        self._boltz_run = br
+        self._boltz_runs = br
 
         self._show_prediction_progress()
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def _boltz_run(self):
+        br = self._boltz_runs
+        if isinstance(br, list):
+            while len(br) > 1 and br[0].finished:
+                del br[0]
+            br = br[0]
+        return br
 
     # ---------------------------------------------------------------------------
     #
@@ -556,19 +659,23 @@ class BoltzPredictionGUI(ToolInstance):
         self._max_memory_use = None
         self.session.triggers.add_handler('new frame', self._report_progress)
 
-        self._show_stop_button(True)
+        if not self._boltz_run._use_server:
+            self._show_stop_button(True)
         
     # ---------------------------------------------------------------------------
     #
     def _report_progress(self, tname, tdata):
-        if not self.tool_window.shown:
+        tw = self.tool_window
+        if tw.ui_area is None:
+            return 'delete handler'
+        if not tw.shown:
             return
 
         from time import time
         t = time()
         elapsed = t - self._prediction_start_time
         br = self._boltz_run
-        if br and not br.running:
+        if br and br.finished:
             status = 'completed in' if br.success else 'failed after'
             msg = f'Prediction {status} {"%.0f" % elapsed} seconds'
             if self._max_memory_use:
@@ -580,6 +687,15 @@ class BoltzPredictionGUI(ToolInstance):
             return
         self._next_progress_time = t + 1
         msg = f'Prediction running {"%.0f" % elapsed} seconds'
+        if br.stage_info:
+            msg += ': ' + br.stage_info
+            if br.stage_info == 'sequence server busy... waiting':
+                self._progress_label.setStyleSheet('background-color: lightyellow;')
+                self._progress_label_colored = True
+            elif getattr(self, '_progress_label_colored', False):
+                self._progress_label.setStyleSheet('')
+                self._progress_label_colored = False
+                
         # Memory use values are not too useful on Mac ARM since GPU memory is not included
         # in RSS and too many libraries included in VMS.  Needs more investigation.
         '''
@@ -614,29 +730,27 @@ class BoltzPredictionGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def show_error_plot(self):
+        from chimerax.core.errors import UserError
+
         br = self._boltz_run
         if br is None:
-            from chimerax.core.errors import UserError
             raise UserError('No Boltz prediction has been run.')
 
-        rdir = br._results_directory
-        if br._results_directory is None:
-            from chimerax.core.errors import UserError
-            raise UserError('No Boltz results directory.')
-
-        from os.path import join, isfile
-        pae_path = join(rdir, f'pae_{br.name}_model_0.npz')
-        if not isfile(pae_path):
-            from chimerax.core.errors import UserError
-            raise UserError(f'Boltz PAE file does not exist "{pae_path}".')
-
-        structure = br._predicted_structure
-        if structure is None or structure.deleted:
-            from chimerax.core.errors import UserError
+        if len(br._opened_predictions) == 0:
             raise UserError('Boltz predicted structure is not open.')
-            
+
+        structure = br._opened_predictions[0]
+        if structure is None or structure.deleted:
+            raise UserError('Boltz predicted structure is not open.')
+
+        from chimerax.alphafold.pae import _matching_pae_file
+        pae_path = _matching_pae_file(structure.filename)
+        if pae_path is None:
+            raise UserError(f'Could not find Boltz PAE file for "{structure.filename}".')
+
         from chimerax.alphafold.pae import AlphaFoldPAE, AlphaFoldPAEPlot
         pae = AlphaFoldPAE(pae_path, structure)
+        structure.alphafold_pae = pae
         p = AlphaFoldPAEPlot(self.session, 'Boltz Predicted Aligned Error', pae)
         
     # ---------------------------------------------------------------------------
@@ -663,37 +777,82 @@ class BoltzPredictionGUI(ToolInstance):
         self._samples = sam = ns.values[0]
         sam.value = settings.samples
 
-        # CPU or GPU device
-        cd = EntriesRow(f, 'Compute device', ('default', 'cpu', 'gpu'))
-        self._device = dev = cd.values[0]
-        dev.value = settings.device
+        # Affinity prediction
+        la = EntriesRow(f, 'Predict ligand binding affinity for ', ('none', 'last ligand'))
+        self._affinity_ligand = al = la.values[0]
+        self._affinity_menu = am = al.widget.menu()
+        am.aboutToShow.connect(self._fill_affinity_menu)
 
+        # Steering potentials
+        sp = EntriesRow(f, False, 'Use steering potentials.  May be more accurate, but slower.')
+        self._use_steering_potentials = usp = sp.values[0]
+        usp.value = settings.use_steering_potentials
+
+        # Disabled this option since I only support it in Boltz 1.  Might add it to boltz 2 later.
         # Use 16-bit float with Nvidia CUDA, only shown if Nvidia gpu available
         from .install import have_nvidia_driver
-        if have_nvidia_driver():
+        if have_nvidia_driver() and False:
             bf = EntriesRow(f, True, 'Predict larger structures with Nvidia 16-bit floating point')
             self._use_cuda_bfloat16 = cbf = bf.values[0]
             cbf.value = settings.use_cuda_bfloat16
         else:
             self._use_cuda_bfloat16 = None
 
-
         # Use MSA cache
         mc = EntriesRow(f, True, 'Use multiple sequence alignment cache')
         self._use_msa_cache = uc = mc.values[0]
         uc.value = settings.use_msa_cache
+
+        # CPU or GPU device
+        cd = EntriesRow(f, 'Compute device', ('default', 'cpu', 'gpu'))
+        self._device = dev = cd.values[0]
+        dev.value = settings.device
+
+        # Server configuration
+        sr = EntriesRow(f, False, 'Use server ', '', ' port', 30172)
+        self._use_server, self._server_host, self._server_port = us,sh,sp = sr.values
+        us.value = settings.use_server
+        sh.pixel_width = 150
+        sh.value = settings.server_host
+        sp.value = settings.server_port
         
         # Boltz install location
         id = EntriesRow(f, 'Boltz install location', '',
                         ('Browse', self._choose_install_directory))
         self._install_directory = dir = id.values[0]
         dir.pixel_width = 350
-        dir.value = settings.boltz_install_location
+        dir.value = settings.boltz22_install_location
 
         EntriesRow(f, ('Save default options', self._save_default_options))
 
         return p
 
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _fill_affinity_menu(self):
+        choices = ['none']
+        self._affinity_value_map = {}	# Map abbreviated to full length smiles strings.
+        mt = self._molecules_table
+        if mt is not None:
+            for comp in mt.data:
+                if comp.type == 'ligand':
+                    if comp.ccd_code:
+                        choices.append(comp.ccd_code)
+                    elif comp.smiles_string:
+                        smiles = comp.smiles_string
+                        if len(smiles) > 30:
+                            smiles = smiles[:12] + '...' + smiles[-12:]
+                            self._affinity_value_map[smiles] = comp.smiles_string
+                        choices.append(smiles)
+                elif comp.type == 'each ligand':
+                    choices.append('each')
+        choices.append('last ligand')
+        menu = self._affinity_menu
+        menu.clear()
+        for text in choices:
+            menu.addAction(text)
+        
     # ---------------------------------------------------------------------------
     #
     def default_results_directory(self):
@@ -732,8 +891,12 @@ class BoltzPredictionGUI(ToolInstance):
             settings.device = self._device.value
             if self._use_cuda_bfloat16 is not None:
                 settings.use_cuda_bfloat16 = self._use_cuda_bfloat16.value
+            settings.use_steering_potentials = self._use_steering_potentials.value                
             settings.use_msa_cache = self._use_msa_cache.value
-        settings.boltz_install_location = self._install_directory.value
+            settings.use_server = self._use_server.value
+            settings.server_host = self._server_host.value
+            settings.server_port = self._server_port.value
+        settings.boltz22_install_location = self._install_directory.value
         settings.save()
         
     # ---------------------------------------------------------------------------
@@ -741,12 +904,12 @@ class BoltzPredictionGUI(ToolInstance):
     def _install_boltz(self):
 
         from os.path import expanduser
-        boltz_dir = expanduser('~/boltz')
+        boltz_dir = expanduser('~/boltz22')
         param_dir = expanduser('~/.boltz')
         message = ('Do you want to install Boltz?\n\n'
                    'This will take about 4 Gbytes of disk space and ten minutes or more depending on network speed.'
                    f' Boltz and its required packages will be installed in folder {boltz_dir} (1 GByte)'
-                   '  and its model parameters (3.3 GBytes) and chemical component dictionary (0.3 Gbytes)'
+                   '  and its model parameters (4 GBytes) and chemical component dictionary (1.8 Gbytes)'
                    f' will be installed in {param_dir}')
         from chimerax.ui.ask import ask
         answer = ask(self.session, message, title = 'Install Boltz', help_url = 'help:user/tools/boltz.html')
@@ -775,6 +938,8 @@ class BoltzPredictionGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _boltz_install_finished(self, success):
+        if self.tool_window.ui_area is None:
+            return	# Boltz gui was closed.
         layout = self._button_row.layout()
         layout.removeWidget(self._installing_label)
         self._installing_label.deleteLater()
@@ -799,6 +964,12 @@ class BoltzPredictionGUI(ToolInstance):
                                                  options = QFileDialog.Option.ShowDirsOnly)
         if path:
             self._install_directory.value = path
+
+    # ---------------------------------------------------------------------------
+    #
+    def _show_history_table(self):
+        from .history import show_predictions_panel
+        show_predictions_panel(self.session)
             
     # ---------------------------------------------------------------------------
     #
@@ -920,7 +1091,7 @@ class MoleculesTable(ItemTable):
     def __init__(self, parent, row_data = []):
         ItemTable.__init__(self, parent = parent, allow_user_sorting = False, auto_multiline_headers = False)
         self.setWordWrap(False)	# This allows ellipses to terminate long strings not limited to word boundaries.
-        desc_col = self.add_column('Molecular component', 'description', justification = 'left')
+        desc_col = self.add_column('Molecular component', 'short_description', justification = 'left')
         count_col = self.add_column('Count', 'count', format = '%d')
         self.data = row_data
         self.launch()
@@ -966,15 +1137,16 @@ class MoleculesTable(ItemTable):
 class MolecularComponent:
     def __init__(self, description, type = None, count = 1,
                  chains = [], sequence_string = None, uniprot_id = None,
-                 ccd_code = None, smiles_string = None):
+                 ccd_code = None, smiles_string = None, named_ligands = None):
         self.description = description
-        self.type = type		# protein, dna, rna, ligand
+        self.type = type		# protein, dna, rna, ligand, each ligand
         self.count = count
         self.chains = chains		# chains of open models, use chain ids for prediction
         self.sequence_string = sequence_string
         self.uniprot_id = uniprot_id
         self.ccd_code = ccd_code
         self.smiles_string = smiles_string
+        self.named_ligands = named_ligands	# Used for type "each ligand"
 
     def copy(self):
         return MolecularComponent(self.description, type = self.type, count = self.count, chains = self.chains,
@@ -989,8 +1161,222 @@ class MolecularComponent:
             'rna': ['sequence_string'],
             'ligand': ['ccd_code', 'smiles_string'],
          }
-        uid = (self.type,) + tuple((attr, getattr(self, attr)) for attr in mspec[self.type])
+        if self.type == 'each ligand':
+            uid = id(self)	# Don't combine different each ligand specifiers
+        else:
+            uid = (self.type,) + tuple((attr, getattr(self, attr)) for attr in mspec[self.type])
         return uid
+
+    @property
+    def short_description(self, max_length=70):
+        d = self.description
+        if len(d) > max_length:
+            d = d[:max_length] + '...'
+        return d
+
+# ------------------------------------------------------------------------------
+#
+from chimerax.core.tools import ToolInstance
+class LigandPredictionsTable(ToolInstance):
+    def __init__(self, session, predictions_directory, rows = None, smiles = None, align_to = None):
+        self._predictions_directory = predictions_directory
+        self._smiles = self._read_ligand_smiles() if smiles is None else smiles
+        self._opened = [] if align_to is None else [align_to]
+        ToolInstance.__init__(self, session, 'Boltz Ligand Predictions')
+
+        from chimerax.ui import MainToolWindow
+        tw = MainToolWindow(self)
+        tw.fill_context_menu = self._fill_context_menu
+        self.tool_window = tw
+        parent = tw.ui_area
+
+        from chimerax.ui.widgets import vertical_layout
+        layout = vertical_layout(parent, margins = (5,0,0,0))
+
+        # Heading
+        from chimerax.ui.widgets import EntriesRow
+        hl = EntriesRow(parent, 'Boltz predicted structures with ligands')
+        layout.addWidget(hl.frame)
+
+        # Table
+        if rows is None:
+            rows = self._table_rows()
+        hl.labels[0].setText(f'Boltz predicted structures for {len(rows)} ligands')
+        self._ligands_table = lt = BoltzLigandsTable(parent, rows)
+        layout.addWidget(lt)
+
+        # Buttons
+        from chimerax.ui.widgets import button_row
+        bf = button_row(parent,
+                        [('Open', self._open_selected),],
+                        spacing = 2)
+        bf.setContentsMargins(0,5,0,0)
+        layout.addWidget(bf)
+
+        from .boltz_gui import boltz_panel
+        bpanel = boltz_panel(self.session)
+        placement = bpanel.tool_window if bpanel else 'right'
+        tw.manage(placement = placement)
+
+    def ligand_count(self):
+        return len(self._ligands_table.data)
+
+    def _table_rows(self):
+        rows = []
+        pdir = self._predictions_directory
+        import os
+        ligand_names = os.listdir(pdir)
+        for ligand_name in ligand_names:
+            from .predict import _read_json
+            confidence = _read_json(pdir, ligand_name, f'confidence_{ligand_name}_model_0.json')
+            if not confidence:
+                continue  # Prediction failed probably due to chembl ligand standardization
+            lig_iptm = confidence.get('ligand_iptm')
+            affinity = _read_json(pdir, ligand_name, f'affinity_{ligand_name}.json')
+            if affinity:
+                log_affinity_uM = affinity.get('affinity_pred_value')
+                affinity_uM = 10.0 ** log_affinity_uM
+                prob = affinity.get('affinity_probability_binary')
+            else:
+                affinity_uM = prob = None
+            smiles = self._smiles.get(ligand_name) if self._smiles else None
+            row = LigandsTableRow(ligand_name, lig_iptm, affinity_uM, prob, smiles=smiles)
+            rows.append(row)
+        return rows
+
+    def _read_ligand_smiles(self):
+        from os.path import join, exists
+        ligands_path = join(self._predictions_directory, '..', '..', 'ligands')
+        if not exists(ligands_path):
+            return None
+        smiles = {}
+        with open(ligands_path, 'r') as f:
+            for line in f.readlines():
+                fields = line.split(',')
+                if len(fields) == 2 and fields[0] == 'smiles:':
+                    smiles[fields[0].strip()] = fields[1].strip()
+        return smiles
+    
+    def _open_selected(self):
+        rows = self._ligands_table.selected		# LigandsTableRow instances
+        paths = []
+        missing_paths = []
+        from os.path import join, exists
+        for row in rows:
+            name = row.ligand_name
+            i = 0
+            while True:
+                path = join(self._predictions_directory, name, f'{name}_model_{i}.cif')
+                if exists(path):
+                    paths.append(path)
+                    i += 1
+                else:
+                    if i == 0:
+                        missing_paths.append(path)
+                    break
+
+        if missing_paths:
+            self.session.logger.error(f'Could not find Boltz predictions {", ".join(missing_paths)}')
+
+        if len(paths) == 0:
+            return []
+        
+        # Open models
+        from chimerax.core.commands import run, quote_path_if_necessary, concise_model_spec
+        qpaths = [quote_path_if_necessary(path) for path in paths]
+        cmd = 'open ' + ' '.join(qpaths)
+        models = run(self.session, cmd)
+
+        # Align models
+        self._opened = [m for m in self._opened if not m.deleted]
+        malign = models if self._opened else models[1:]
+        self._opened.extend(models)
+        if len(self._opened) > 1:
+            model_spec = concise_model_spec(self.session, malign)
+            first_model_spec = concise_model_spec(self.session, self._opened[:1])
+            cmd = f'mm {model_spec} to {first_model_spec} logParameters false'
+            run(self.session, cmd)
+
+        return models
+
+    def save_csv_file(self, path):
+        with open(path, 'w') as f:
+            self._ligands_table.write_values(f, separator = ',')
+
+    def _fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        act = QAction("Save CSV or TSV File...", parent=menu)
+        act.triggered.connect(lambda *args, tab=self._ligands_table: tab.write_values())
+        menu.addAction(act)
+
+# -----------------------------------------------------------------------------
+#
+def open_boltz_ligands_file(session, path, align_to = None):
+    with open(path, 'r') as f:
+        line = f.readline()
+        headings = line.strip().split(',')
+        heading_attr = {
+            'Ligand': 'ligand_name',
+            'ipTM': ('iptm_score', float),
+            'Affinity (uM)': ('binding_affinity', float),
+            'Binding probability': ('binding_probability', float),
+            'SMILES': 'smiles',
+            }
+        rows = []
+        while True:
+            line = f.readline()
+            if not line:
+                break
+            fields = line.strip().split(',')
+            if len(fields) != len(headings):
+                from chimerax.core.errors import UserError
+                raise UserError(f'Boltz ligands file has line with {len(fields)} values but there are {len(headings)} headings: {line}')
+            attr_values = {}
+            for value, h in zip(fields, headings):
+                attr = heading_attr.get(h)
+                if attr:
+                    attr_name, attr_type = (attr, None) if isinstance(attr, str) else attr
+                    if attr_type:
+                        value = attr_type(value) if value else None
+                    attr_values[attr_name] = value
+            row = LigandsTableRow(**attr_values)
+            rows.append(row)
+
+    from os.path import join, dirname, basename
+    predictions_directory = join(dirname(path), f'boltz_results_{basename(dirname(path))}', 'predictions')
+    lpt = LigandPredictionsTable(session, predictions_directory, rows = rows, align_to = align_to)
+    return lpt
+
+# -----------------------------------------------------------------------------
+#
+from chimerax.ui.widgets import ItemTable
+class BoltzLigandsTable(ItemTable):
+    def __init__(self, parent, rows):
+        ItemTable.__init__(self, parent = parent)
+        self.add_column('Ligand', 'ligand_name')
+        iptm = self.add_column('ipTM', 'iptm_score', format = '%.2f')
+        self.add_column('Affinity (uM)', 'binding_affinity', format = '%.2g')
+        self.add_column('Binding probability', 'binding_probability', format = '%.2g')
+        smiles = self.add_column('SMILES', 'smiles')
+        self.data = rows
+        self.launch()
+        self.sort_by(iptm, self.SORT_DESCENDING)
+        smiles_column_index = self.columns.index(smiles)
+        smiles_column_width = 250
+        self.setColumnWidth(smiles_column_index, smiles_column_width)
+#        self.setAutoScroll(False)  # Otherwise click on Description column scrolls horizontally
+#        from Qt.QtWidgets import QSizePolicy
+#        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)  # Don't resize whole panel width
+
+# -----------------------------------------------------------------------------
+#
+class LigandsTableRow:
+    def __init__(self, ligand_name, iptm_score, binding_affinity, binding_probability, smiles = None):
+        self.ligand_name = ligand_name
+        self.iptm_score = iptm_score
+        self.binding_affinity = binding_affinity
+        self.binding_probability = binding_probability
+        self.smiles = smiles
 
 # -----------------------------------------------------------------------------
 #

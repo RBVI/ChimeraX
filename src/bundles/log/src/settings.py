@@ -24,43 +24,18 @@
 
 from chimerax.core.settings import Settings
 
-class _LogSettings(Settings):
-    EXPLICIT_SAVE = {
+class LogSettings(Settings):
+    AUTO_SAVE = {
         'errors_raise_dialog': True,
-        'warnings_raise_dialog': False,
+        "exec_cmd_links": False,
         'session_restore_clears': True,
         'show_if_new_content': False,
+        'warnings_raise_dialog': False,
     }
 
-    AUTO_SAVE = {
-        "exec_cmd_links": False,
-    }
-
-# 'settings' module attribute will be set by the initialization of the bundle API
-
-def register_settings_options(session):
-    from chimerax.ui.options import BooleanOption
-    from chimerax.core.utils import CustomSortString
-    settings_info = {
-        'errors_raise_dialog': (
-            CustomSortString('Errors shown in dialog', 1),
-            BooleanOption,
-            'Should error messages be shown in a separate dialog as well as being logged'),
-        'warnings_raise_dialog': (
-            CustomSortString('Warnings shown in dialog', 1),
-            BooleanOption,
-            'Should warning messages be shown in a separate dialog as well as being logged'),
-        'session_restore_clears': (
-            CustomSortString('Restoring session clears log', 2),
-            BooleanOption,
-            'Restoring session clears log'),
-        'show_if_new_content': (
-            CustomSortString('Raise log when logging occurs', 2),
-            BooleanOption,
-            'Show and raise the log if new content is logged'),
-    }
-    for setting, setting_info in settings_info.items():
-        opt_name, opt_class, balloon = setting_info
-        opt = opt_class(opt_name, getattr(settings, setting), None,
-            attr_name=setting, settings=settings, balloon=balloon)
-        session.ui.main_window.add_settings_option("Log", opt)
+_settings = None
+def get_settings(session):
+    global _settings
+    if _settings is None:
+        _settings = LogSettings(session, "Log")
+    return _settings

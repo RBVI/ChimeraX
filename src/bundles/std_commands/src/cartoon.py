@@ -761,7 +761,7 @@ def register_command(logger):
                             ("bar_sides", Bounded(EvenIntArg, 3, 24)),
                             ("ss_ends", EnumOf(["default", "short", "long"])),
                             ("mode_helix", EnumOf(list(_ModeHelixMap.keys()))),
-                            ("mode_strand", EnumOf(list(_ModeStrandMap.keys()))),
+#                            ("mode_strand", EnumOf(list(_ModeStrandMap.keys()))),
                             ("radius", Or(PositiveFloatArg, EnumOf(["auto"]))),
                             ("spline_normals", BoolArg),
                             ("worm", BoolArg),

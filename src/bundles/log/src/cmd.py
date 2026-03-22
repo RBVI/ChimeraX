@@ -122,7 +122,8 @@ def log_settings(session, error_dialog = None, warning_dialog = None):
     warning_dialog : bool
       Whether to show warnings in a separate dialog (for the remainder of this session)
     '''
-    from .settings import settings
+    from .settings import get_settings
+    settings = get_settings(session)
     if error_dialog is not None:
         settings.errors_raise_dialog = error_dialog
 
@@ -133,7 +134,17 @@ def log_metadata(session, models=None, verbose=False):
     if models is None:
         models = session.models
     log = get_singleton(session, create = False)
-    if log is not None:
+    try:
+        from chimerax.core.logger import StringPlainTextLog
+        # When the REST server wraps the logger with a StringPlainTextLog (or subclass),
+        # metadata needs to be routed through the session logger so the response can
+        # capture it instead of the GUI log tool.
+        use_logger = log is None or any(isinstance(l, StringPlainTextLog) for l in session.logger.logs)
+    except Exception:
+        # Fallback to previous behavior if the logger utility is unavailable
+        use_logger = log is None
+
+    if log is not None and not use_logger:
         any_metadata = False
         for model in models:
             if model.has_formatted_metadata(session):
@@ -147,7 +158,18 @@ def log_metadata(session, models=None, verbose=False):
             else:
                 log.log(log.LEVEL_INFO, "No models had metadata", (None, False), False)
     else:
-        session.logger.warning("no log tool for metadata")
+        any_metadata = False
+        for model in models:
+            if model.has_formatted_metadata(session):
+                any_metadata = True
+                model.show_metadata(session, verbose=verbose, log=None)
+        if not any_metadata:
+            if not models:
+                session.logger.info("No models match specifier")
+            elif len(models) == 1:
+                session.logger.info("The model has no metadata")
+            else:
+                session.logger.info("No models had metadata")
 
 def register_log_command(logger):
     from chimerax.core.commands import register, CmdDesc, NoArg, BoolArg, IntArg, RestOfLine, \

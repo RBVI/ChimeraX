@@ -20,6 +20,8 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from chimerax.viewdock import RATING_KEY, DEFAULT_RATING
+
 def open_pdbqt(*args):
     encodings = ['utf-8', 'utf-16', 'utf-32']
     for encoding in encodings:
@@ -62,9 +64,16 @@ def _open_pdbqt(session, path, file_name, auto_style, atomic, encoding):
 
 
 def _extract_metadata(session, f, structures):
+    """
+    Note:
+        Old ViewDockX (this bundl's predecessor) sessions have already registered a docking data attribute to structures
+        called "viewdockx_data". When this function is called with an old ViewDockX session, it will still register a
+        new docking data attribute called "viewdock_data". This bundle will NOT support reference to the old
+        "viewdockx_data" attribute.
+    """
     in_model = False
     model_index = -1
-    vina_values = {}
+    vina_values = {RATING_KEY: DEFAULT_RATING}
     vina_labels = ["Score", "RMSD l.b.", "RMSD u.b."]
     vina_marker = "VINA RESULT:"
     for line in f:
@@ -80,7 +89,7 @@ def _extract_metadata(session, f, structures):
         elif record_type == "ENDMDL":
             if vina_values:
                 from chimerax.atomic import Structure as SC
-                SC.register_attr(session, "viewdockx_data", "ViewDockX")
-                structures[model_index].viewdockx_data = vina_values
-                vina_values = {}
+                SC.register_attr(session, "viewdock_data", "ViewDock")
+                structures[model_index].viewdock_data = vina_values
+                vina_values = {RATING_KEY: DEFAULT_RATING}
             in_model = False

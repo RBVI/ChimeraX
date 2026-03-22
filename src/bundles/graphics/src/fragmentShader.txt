@@ -209,19 +209,20 @@ uniform sampler3D tex3d;
 
 #ifdef USE_VOLUME_RAYCASTING
   uniform float step_size;
-  uniform vec3 camera_pos;
-  uniform float camera_fov;
   uniform vec2 window_size;
-  uniform mat4 view_matrix;
+  uniform mat4 inverse_view_matrix;         // Camera to scene transform
+  uniform mat4 inverse_projection_matrix;   // For VR/ortho-compatible ray reconstruction
   uniform vec4 background_color;
   uniform vec3 bbox_min;
   uniform vec3 bbox_max;
   uniform vec3 full_region_min;
   uniform vec3 full_region_max;
-  float PHI = 1.61803398874989484820459;
 
-  float gold_noise(in vec2 xy, in float seed){
-         return fract(tan(distance(xy*PHI, xy)*seed)*xy.x);
+  // Hash function for stochastic jitter to reduce banding
+  float hash(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
   }
 #endif
 
@@ -251,15 +252,28 @@ out vec4 frag_color;
 void main (void)
 {
 #ifdef USE_VOLUME_RAYCASTING
-  float aspect_ratio = window_size.x / window_size.y;
-  float focal_length = 1.0 / tan(radians(camera_fov / 2.0));
-  vec3 ray_origin = camera_pos;
-  vec3 ray_direction;
-  ray_direction.xy = 2.0 * gl_FragCoord.xy / window_size - 1.0;
-  ray_direction.y /= aspect_ratio;
-  ray_direction.z = -focal_length;
-  ray_direction = (vec4(ray_direction, 0.0) * view_matrix).xyz;
+  // Reconstruct ray from inverse projection matrix
+  // This method lets us enable raycasting on stereo, mono, 360 cameras, etc.
+  vec2 ndc = 2.0 * gl_FragCoord.xy / window_size - 1.0;
+  vec4 clip_near = vec4(ndc, -1.0, 1.0);
+  vec4 clip_far = vec4(ndc, 1.0, 1.0);
+  vec4 view_near = inverse_projection_matrix * clip_near;
+  vec4 view_far = inverse_projection_matrix * clip_far;
+  view_near /= view_near.w;
+  view_far /= view_far.w;
 
+  // Transform to world/scene coordinates
+  // For perspective: view_near.xy ~ 0, rays converge at camera position
+  // For orthographic: view_near.xy varies per pixel, rays are parallel
+  // inverse_view_matrix transforms camera/view coords to scene coords
+  vec3 view_ray_origin = view_near.xyz;
+  vec3 view_ray_dir = view_far.xyz - view_near.xyz;
+
+  // Transform ray origin and direction from view space to scene/world space
+  vec3 ray_origin = (inverse_view_matrix * vec4(view_ray_origin, 1.0)).xyz;
+  vec3 ray_direction = normalize((inverse_view_matrix * vec4(view_ray_dir, 0.0)).xyz);
+
+  // Ray-box intersection
   vec3 direction_inv = 1.0 / ray_direction;
   vec3 t_bottom = direction_inv * (bbox_min - ray_origin);
   vec3 t_top = direction_inv * (bbox_max - ray_origin);
@@ -274,54 +288,85 @@ void main (void)
     discard;
   }
 
-  // Centers the volume in the box
-  vec3 ray_start = (ray_origin + ray_direction * t_0 - full_region_min) /  (full_region_max - full_region_min);
-  vec3 ray_stop = (ray_origin + ray_direction * t_1 - full_region_min) /  (full_region_max - full_region_min);
+  // Convert ray entry/exit points to texture coordinates [0,1]
+  // This centers the volume in its bounding box
+  vec3 region_size = full_region_max - full_region_min;
+  vec3 ray_start = (ray_origin + ray_direction * t_0 - full_region_min) / region_size;
+  vec3 ray_stop = (ray_origin + ray_direction * t_1 - full_region_min) / region_size;
 
   vec3 ray = ray_stop - ray_start;
   float ray_length = length(ray);
-  //float step_length = length(ssize);
-  float step_length = step_size; //min(step_size.x, min(step_size.y, step_size.z));
+  float step_length = step_size;
   vec3 step_vector = step_length * ray / ray_length;
-  float jitter = gold_noise(gl_FragCoord.xy, 0.9) * 0.5;
-  vec3 position = tex_coord_3d + (step_vector * jitter);
+
+  // Jitter: use full 0-1 range for proper stochastic sampling to reduce banding
+  float jitter = hash(gl_FragCoord.xy);
+  vec3 position = ray_start + step_vector * jitter;
+
+  // Gradient offset: use small value for sharp gradients
+  float grad_offset = min(step_length * 0.5, 0.002);
+
   frag_color = vec4(0);
-  while(ray_length > 0 && frag_color.a < 1) {
-    float intensity = (texture(tex3d, position).r - colormap_range.x) * colormap_range.y;
+  vec3 view_dir = normalize(ray_direction);
+
+  while(ray_length > 0 && frag_color.a < 0.99) {
+    // Clamp position to valid texture range to avoid boundary artifacts
+    vec3 sample_pos = clamp(position, vec3(0.001), vec3(0.999));
+
+    float intensity = (texture(tex3d, sample_pos).r - colormap_range.x) * colormap_range.y;
     vec4 cmap_color = texture(colormap, intensity) * color;
-    vec3 gradientVec = normalize(vec3(
-            texture(tex3d, position + vec3(step_length, 0.0, 0.0)).r - texture(tex3d, position - vec3(step_length, 0.0, 0.0)).r,
-            texture(tex3d, position + vec3(0.0, step_length, 0.0)).r - texture(tex3d, position - vec3(0.0, step_length, 0.0)).r,
-            texture(tex3d, position + vec3(0.0, 0.0, step_length)).r - texture(tex3d, position - vec3(0.0, 0.0, step_length)).r
-        ));
 
-    float keyDiffuse = max(0.0, -dot(gradientVec, key_light_direction));
-    float fillDiffuse = max(0.0, -dot(gradientVec, fill_light_direction));
-    vec3 R = normalize(reflect(key_light_direction,gradientVec));
-    float specular_factor = pow(max(-dot(R,normalize(ray_direction)),0.0), key_light_specular_exponent);
+    // Only compute lighting if this sample contributes
+    if (cmap_color.a > 0.001) {
+      // Compute gradient for lighting
+      vec3 gradientVec;
+      gradientVec.x = texture(tex3d, sample_pos + vec3(grad_offset, 0.0, 0.0)).r
+                    - texture(tex3d, sample_pos - vec3(grad_offset, 0.0, 0.0)).r;
+      gradientVec.y = texture(tex3d, sample_pos + vec3(0.0, grad_offset, 0.0)).r
+                    - texture(tex3d, sample_pos - vec3(0.0, grad_offset, 0.0)).r;
+      gradientVec.z = texture(tex3d, sample_pos + vec3(0.0, 0.0, grad_offset)).r
+                    - texture(tex3d, sample_pos - vec3(0.0, 0.0, grad_offset)).r;
 
-    vec3 lightColor = keyDiffuse * key_light_diffuse_color + fillDiffuse * fill_light_diffuse_color + key_light_specular_color * specular_factor;
-    lightColor += cmap_color.rgb * ambient_color;
-    cmap_color *= vec4(lightColor,1);
+      float grad_len = length(gradientVec);
+      if (grad_len > 0.0001) {
+        gradientVec /= grad_len;
 
+        float keyDiffuse = max(0.0, -dot(gradientVec, key_light_direction));
+        float fillDiffuse = max(0.0, -dot(gradientVec, fill_light_direction));
+        vec3 R = reflect(key_light_direction, gradientVec);
+        float specular_factor = pow(max(-dot(R, view_dir), 0.0), key_light_specular_exponent);
 
-    // Accumulate color and opacity
-    frag_color += (1.0 - frag_color.a) * cmap_color;
+        vec3 lightColor = keyDiffuse * key_light_diffuse_color
+                        + fillDiffuse * fill_light_diffuse_color
+                        + key_light_specular_color * specular_factor
+                        + ambient_color;
+        cmap_color.rgb *= lightColor;
+      } else {
+        // Flat region - just use ambient
+        cmap_color.rgb *= ambient_color;
+      }
 
-    // Alpha correction for step sizes other than 0.001
-    frag_color.a = 1 - pow(1 - frag_color.a, step_length / 0.001);
+      // Alpha correction for variable step sizes (reference step = 0.001)
+      float corrected_alpha = 1.0 - pow(1.0 - cmap_color.a, step_length / 0.001);
+      cmap_color.a = corrected_alpha;
+
+      // Front-to-back compositing
+      frag_color.rgb += (1.0 - frag_color.a) * cmap_color.a * cmap_color.rgb;
+      frag_color.a += (1.0 - frag_color.a) * cmap_color.a;
+    }
 
     ray_length -= step_length;
     position += step_vector;
-    if(
-       (position.x < 0.0) || (position.x > 1.0) ||
-       (position.y < 0.0) || (position.y > 1.0) ||
-       (position.z < 0.0) || (position.z > 1.0)
-    ) {
+
+    // Stop if we exit the volume (with small margin to avoid edge artifacts)
+    if (any(lessThan(position, vec3(-0.01))) || any(greaterThan(position, vec3(1.01)))) {
       break;
     }
   }
-  frag_color += (1.0 - frag_color.a) * background_color;
+
+  // Blend with background
+  frag_color.rgb += (1.0 - frag_color.a) * background_color.rgb;
+  frag_color.a = frag_color.a + (1.0 - frag_color.a) * background_color.a;
 }
 #else
   #ifdef USE_DEPTH_TEXTURE

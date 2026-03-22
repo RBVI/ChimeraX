@@ -1,0 +1,231 @@
+<html lang="en"><!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
+<title>Tool: Animations</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Animations</h3>
+<h3>*&nbsp;in progress; smooth transitions have not been implemented
+for many aspects of a scene&nbsp;*</h3>
+<p>
+<b>Animations</b> is a timeline-based graphical interface for creating
+movies from a series of <a href="scenes.html">scenes</a> and other
+actions. The <a href="#settings">scene mode</a> of the GUI is
+documented in this page. See also: 
+<a href="../images.html">making images</a>,
+<a href="../movies.html">making movies</a>
+</p>
+<table class="clRight">
+<tbody><tr><td>
+<a href="animationsplus.png">
+<img class="outline" src="animationsplus.png" title="click to enlarge..." 
+alt="ChimeraX window with Scenes and Animations timeline"
+width="750px"></a></td></tr>
+</tbody></table>
+<p>
+<b>Animations</b> can be started from the <b>Depiction</b> section of the 
+<b>Tools</b> menu and manipulated like other panels 
+(<a href="../window.html#panels">more...</a>).
+</p>
+<blockquote><b>
+<a href="#placing">Placing Scenes and Actions on the Timeline</a>
+<br>
+<a href="#playback">Playback and Scrubber</a>
+<br>
+<a href="#transitions">Transitions between Scenes</a>
+<br>
+<a href="#recording">Recording a Movie</a>
+<br>
+<a href="#settings">Settings (Preferences)</a>
+</b></blockquote>
+
+<a name="placing"></a>
+<p class="nav">
+[<a href="#top">back to top: Animations</a>]
+</p>
+<h4>Placing Scenes and Actions on the Timeline</h4>
+<p>
+An existing scene can be placed on the timeline by dragging and droppping
+a thumbnail from the <a href="scenes.html"><b>Scenes</b></a> tool. 
+A new scene corresponding to the current ChimeraX contents can be created 
+and added to the timeline by clicking the plus-sign icon
+(white on a blue circle). 
+The scenes can be dragged horizontally to different positions on the timeline.
+</p><p>
+<b>Adjust Time</b>: Clicking the negative and positive numbers allows
+adjusting the length of the timeline by subtracting and adding seconds.
+The timeline length in seconds assumes a playback rate of 60 fps.
+</p><p>
+<b>Actions</b>: the three icons on gray circles represent (from left to right)
+represent rocking, rolling, and precession. Each type of action can be placed
+on the timeline any number of times by clicking and dragging the respective
+icon, and its start and stop times adjusted by dragging the left and right
+ends of the action bar horizontally on the timeline.
+The <a href="../window.html#context-menu">context menu</a> for an action bar
+on the timeline includes corresponding options:
+</p>
+  <ul>
+  <li>for <b>Rock</b>:
+    <ul>
+    <li><b>Delete 'Rock' Segment</b>
+    </li><li><b>Axis</b> (X/<b>Y</b>/Z)
+&ndash; axis of rocking in the 
+<a href="../commands/view.html#screencoords">screen coordinate system</a>
+    </li><li><b>Angle</b> (15/30/45/<b>60</b>/90/120/180/360&deg;)
+&ndash; amplitude of rocking motion, maximum angle from starting point
+in each direction (total angle swept out is twice this value)
+    </li><li><b>Count</b> (<b>1</b>/2/3/4/5)
+&ndash; number of cycles, each returning to the starting point
+    </ul>
+  <li>for <b>Roll</b>:
+    <ul>
+    <li><b>Delete 'Roll' Segment</b>
+    </li><li><b>Axis</b> (X/<b>Y</b>/Z)
+&ndash; axis of rolling in the 
+<a href="../commands/view.html#screencoords">screen coordinate system</a>
+    </li><li><b>Angle</b> (15/30/45/60/90/120/180/<b>360</b>&deg;) 
+&ndash; rotation per count
+    </li><li><b>Count</b> (<b>1</b>/2/3/4/5)
+&ndash; total rotation = angle &times; count
+    </ul>
+  <li>for <b>Precess</b>:
+    <ul>
+    <li><b>Delete 'Precess' Segment</b>
+    </li><li><b>Axis</b> (X/<b>Y</b>/Z)
+&ndash; axis of precession in the 
+<a href="../commands/view.html#screencoords">screen coordinate system</a>
+    </li><li><b>Count</b> (<b>1</b>/2/3/4/5)
+&ndash; number of cycles, each returning to the starting point
+    </li><li><b>Precession Tilt</b> (5/<b>10</b>/15/20/30/45&deg;)
+    </ul>
+  </ul>
+<p>
+A scene or action can be removed from the timeline by clicking its
+representation on the timeline and pressing the <b>delete</b> key.
+A scene can also be deleted by using the 
+<a href="#transitions">thumbnail context menu</a>.
+</p>
+
+<a name="playback"></a>
+<p class="nav">
+[<a href="#top">back to top: Animations</a>]
+</p>
+<h4>Playback and Scrubber</h4>
+<p>
+The <b><i>scrubber</i></b> is the red vertical line indicating position
+on the timeline. Clicking the timeline places the scrubber, and dragging the 
+the scrubber horizontally shows the corresponding segment of the animation 
+as per the speed and direction of dragging.
+Clicking the play button <font size="-1">&#9654;</font> plays 
+the animation from the current scrubber position to the end,
+at the speed indicated by the timeline length in seconds.
+During playback, a pause button &#9208; is shown and can be clicked
+to halt playback in progress. Clicking the rewind button &#9198;
+places the scrubber at the beginning of the timeline.
+</p>
+
+<a name="transitions"></a>
+<p class="nav">
+[<a href="#top">back to top: Animations</a>]
+</p>
+<h4>Transitions between Scenes</h4>
+<p>
+The <a href="../window.html#context-menu">context menu</a> for a scene
+thumbnail on the timeline includes:
+</p>
+<ul>
+<li><b>Delete [name-of-scene] from Timeline</b>
+</li><li><b>Transition Type</b> &ndash; how to spread out any gradual changes
+over the interval between the scene and the one before it. 
+Transition type does not affect which aspects of a scene change gradually,
+only how the rate of change may vary. Transition types are indicated
+on the timeline with line shapes and labels below the scene thumbnails.
+  <ul>
+  <li><b>Linear</b> &ndash; constant rate of change
+  </li><li><b>Ease In (Sine)</b>
+  </li><li><b>Ease Out (Sine)</b>
+  </li><li><b>Ease In-Out (Sine)</b>
+  </li><li><b>Ease In (Quad)</b>
+  </li><li><b>Ease Out (Quad)</b>
+  </li><li><b>Ease In-Out (Quad)</b>
+  </li><li><b>Ease In (Cubic)</b>
+  </li><li><b>Ease Out (Cubic)</b>
+  </li><li><b>Ease In-Out (Cubic)</b>
+  </ul>
+</li><li><b>Fade Model</b> (checked or unchecked)
+</ul>
+
+<a name="recording"></a>
+<p class="nav">
+[<a href="#top">back to top: Animations</a>]
+</p>
+<h4>Recording a Movie</h4>
+<p>
+Clicking the <font color="red">&#9673;</font> button to record a movie 
+opens a dialog for specifying the movie resolution
+and output file type, filename, and location. 
+Clicking <b>Save</b> initiates recording with the indicated settings, 
+and the recording button above the timeline changes to orange 
+<font color="orange">&#9673;</font> to indicate a recording in progress.
+Clicking the orange button halts the recording and assembles any 
+already-recorded image frames into the specified output file.
+In general, the scrubber will advance more slowly during recording
+than during playback because rendering the images takes time. 
+</p>
+<a name="settings"></a>
+<p class="nav">
+[<a href="#top">back to top: Animations</a>]
+</p>
+<h4>Settings (Preferences)</h4>
+<p>
+Clicking the gear button opens the <b>Animations Preferences</b>,
+with settings:
+</p>
+<ul class="none">
+<li><b>Animation tool mode</b> &ndash; whether to show the
+<b>Scene Mode</b> GUI for <b>Animations</b> (default), which is
+documented in this page, or the more complex <b>Keyframe Mode</b>
+(not yet documented)
+</li><li><b>Default recording resolution</b> 
+&ndash; what resolution (image dimensions) to show initially in the 
+<a href="#recording">movie output dialog</a> when it is invoked
+by clicking the <font color="red">&#9673;</font> button to record;
+the resolution can still be changed in that dialog, however, 
+before recording is initiated
+</li><li><b>Default recording resolution</b> 
+&ndash; framerate at which to encode the movie
+(initial default <b>60</b> FPS); 120 would give a movie half as long as 
+indicated by the second markings on the timeline, whereas values &lt;60 
+would give movies longer than indicated by the markings on the timeline
+</li></ul>
+<p>
+Buttons at the bottom of the dialog:
+</p>
+<ul>
+<li><b>Save</b> &ndash; save the current settings
+</li><li><b>Reset</b> &ndash; replace the current settings with the
+initial (&ldquo;factory&rdquo;) defaults
+</li><li><b>Restore</b> &ndash; restore values that were saved previously
+</li><li><b>Help</b> &ndash; show documentation
+</li></ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+March 2026</address>
+
+</body></html>

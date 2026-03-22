@@ -388,7 +388,7 @@ def print_prep(session=None, *, pb_radius=0.4, ion_size_increase=0.0, bond_sides
 def rainbow_cmd(structure, target_atoms=False):
     target_arg = "target rfs%s" % ("a" if target_atoms else "")
     from chimerax.mmcif import get_mmcif_tables_from_metadata
-    if max([len(chain.chain_id) for chain in structure.chains]) > 1:
+    if structure.num_chains > 0 and max([len(chain.chain_id) for chain in structure.chains]) > 1:
         remapping = get_mmcif_tables_from_metadata(structure, ['pdbe_chain_remapping'])[0]
         if remapping:
             by_asym_okay = True

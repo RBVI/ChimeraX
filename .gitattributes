@@ -21,6 +21,9 @@ src/apps/ChimeraX/icon.rc.in eol=crlf
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
 
+# Windows patches
+prereqs/pips/openmm_metadata_cygwin.patch eol=crlf
+
 # Archives
 *.7z binary
 *.gz binary

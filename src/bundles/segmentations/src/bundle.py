@@ -65,6 +65,6 @@ class SegmentationsBundle(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr, **_):
         if mgr == session.toolbar:
-            from chmerax.segmentations.actions import run_toolbar_button
+            from chimerax.segmentations.actions import run_toolbar_button
 
             return run_toolbar_button(session, name)

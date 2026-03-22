@@ -19,6 +19,9 @@ Text-based user interface.  API-compatible with :py:module:`ui` package.
 """
 from .tasks import Task
 from .logger import PlainTextLog
+import re
+
+
 _color_output = None
 
 _log_level = {
@@ -40,6 +43,30 @@ _colors = {
     "endprompt": "",
 }
 
+# based on https://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
+# 7-bit C1 ANSI sequences
+ANSI_ESCAPE = re.compile(r'''
+    \x1B  # ESC
+    (?:   # 7-bit C1 Fe (except CSI)
+        [@-Z\\-_]
+    |     # or [ for CSI, followed by a control sequence
+        \[
+        [0-?]*  # Parameter bytes
+        [ -/]*  # Intermediate bytes
+        [@-~]   # Final byte
+    )
+''', re.VERBOSE)
+CONTROL = re.compile(r'''
+    [\x01-\x08\x0B-\x1F]  # control characters except HT and LF
+''', re.VERBOSE)
+
+
+def escape(text):
+    """Remove ANSI sequences and non-printable characters"""
+    text = ANSI_ESCAPE.sub('', text)
+    text = CONTROL.sub('', text)
+    return text
+
 
 class NoGuiLog(PlainTextLog):
 
@@ -49,6 +76,7 @@ class NoGuiLog(PlainTextLog):
         encoding = sys.stdout.encoding.lower()
         if encoding != 'utf-8' and isinstance(msg, str):
             msg = msg.encode(encoding, 'replace').decode(encoding)
+        msg = escape(msg)
 
         if _color_output:
             print("%s%s%s" % (
@@ -61,6 +89,7 @@ class NoGuiLog(PlainTextLog):
         if secondary:
             return False
         if msg:
+            msg = escape(msg)
             if _color_output:
                 print("%s%s%s" % (_colors["status"], msg, _colors["normal"]), flush=True)
             else:
@@ -139,7 +168,7 @@ class UI:
         try:
             from Qt.QtWidgets import QApplication
         except ModuleNotFoundError:
-            return	# ChimeraX being used without Qt
+            return  # ChimeraX being used without Qt
         import chimerax
         app_name = chimerax.app_dirs.appname if hasattr(chimerax, 'app_dirs') else 'ChimeraX'
         self._app = QApplication([app_name, '-platform', 'offscreen'])

@@ -86,7 +86,8 @@ class rotate_normal:
     
 def _tiling_models(session, models):
     if models is None:
-        models = [m for m in session.models.list() if len(m.id) == 1 and m.visible]
+        # Take only top level visible models and exclude 2D labels (parent = None).
+        models = [m for m in session.models.list() if len(m.id) == 1 and m.visible and m.parent is not None]
 
     if len(models) == 1:
         # If we have one grouping model then tile the child models.

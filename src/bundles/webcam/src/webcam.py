@@ -28,16 +28,22 @@ def webcam(session, enable = True, foreground_color = (0,255,0,255), saturation 
            flip_horizontal = True, name = None, size = None, framerate = 25,
            color_popup = False):
 
-    from .camera import WebCam
+    from .camera import WebCam, request_camera_permission
  
     wc_list = session.models.list(type = WebCam)
     if enable:
         if len(wc_list) == 0:
-            wc = WebCam('webcam', session,
-                        foreground_color = foreground_color, saturation = saturation,
-                        flip_horizontal = flip_horizontal, color_popup = color_popup,
-                        camera_name = name, size = size, framerate = framerate)
-            session.models.add([wc])
+            def permission_granted(granted):
+                if not granted:
+                    from chimerax.core.errors import UserError
+                    raise UserError('webcam: Could not get permission to use camera')
+                wc = WebCam('webcam', session,
+                            foreground_color = foreground_color, saturation = saturation,
+                            flip_horizontal = flip_horizontal, color_popup = color_popup,
+                            camera_name = name, size = size, framerate = framerate)
+                session.models.add([wc])
+            request_camera_permission(session, permission_granted)
+            # Request will call permission_granted callback when user responds.
         else:
             wc = wc_list[0]
             wc.foreground_color = foreground_color

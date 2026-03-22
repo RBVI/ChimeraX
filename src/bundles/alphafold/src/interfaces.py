@@ -93,7 +93,7 @@ def interface_confidence(session, directory, distance = 4, max_pae = 5, results_
         pdb_path = join(directory, file)
         pae_file = _pae_filename_from_structure_filename(file)
         pae_path = join(directory, pae_file)
-        dc = dimer_confidence(session, pdb_path, pae_path)
+        dc = dimer_confidence(session, pdb_path, pae_path, distance=distance, max_pae=max_pae)
         iclist.append(dc)
         session.logger.status(f'Evaluating {dc.sequence_names} ({fi+1} of {len(pdb_files)})')
 
@@ -251,8 +251,8 @@ def interface_table(giclist, directory, distance, max_pae, min_conf_pairs):
     for gic in giclist:
         ic = gic[0]
         seqs_name = ic.sequence_names
-        quoted_pdb_path = '\\"' + ic.pdb_path + '\\"' if ' ' in ic.pdb_path else ic.pdb_path
-        quoted_pae_path = '\\"' + ic.pae_path + '\\"' if ' ' in ic.pae_path else ic.pae_path
+        quoted_pdb_path = '&quot;' + ic.pdb_path + '&quot;' if ' ' in ic.pdb_path else ic.pdb_path
+        quoted_pae_path = '&quot;' + ic.pae_path + '&quot;' if ' ' in ic.pae_path else ic.pae_path
         res1 =  ','.join(str(i) for i in ic.interface_residue_numbers1)
         res2 =  ','.join(str(i) for i in ic.interface_residue_numbers2)
         res = f'/A:{res1}/B:{res2}'

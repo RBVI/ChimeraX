@@ -34,8 +34,10 @@ class SimilarStructures(State):
 
         self._allowed_residue_names = None
         if program == 'foldseek':
-            from .foldseek_search import foldseek_accepted_3_letter_codes
-            self._allowed_residue_names = foldseek_accepted_3_letter_codes
+            if len(hits) > 0 and hits[0].get('foldseek release') is None:
+                # Older foldseek versions excluded various non-standard residues. ChimeraX ticket #17890
+                from .foldseek_search import foldseek_accepted_3_letter_codes
+                self._allowed_residue_names = foldseek_accepted_3_letter_codes
         
         # Default values used when opening and aligning structures
         self.trim = trim
@@ -203,8 +205,12 @@ class SimilarStructures(State):
             if hxyz is not None:
                 hi, qi = self.hit_residue_pairing(hit)
                 if len(hi) >= 3:  # Need at least 3 atom pairs to align
-                    p, rms, npairs = align_xyz_transform(hxyz[hi], query_xyz[qi],
-                                                         cutoff_distance=alignment_cutoff_distance)
+                    try:
+                        p, rms, npairs = align_xyz_transform(hxyz[hi], query_xyz[qi],
+                                                             cutoff_distance=alignment_cutoff_distance)
+                    except:
+                        print (hi, len(hxyz), qi, len(query_xyz), hit)
+                        raise
                     hit['rmsd'] = rms
                     hit['close'] = 100*npairs/len(hi)
                     hit['cutoff_distance'] = alignment_cutoff_distance

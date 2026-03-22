@@ -60,8 +60,23 @@ with open("supplement.lib", 'w') as out:
                     "C'A3": "C3B", "O'A3": "O3B", "C'A2": "C2B", "O'A2": "O2B", "C'A1": "C1B", "P'A2": "P2B",
                     "OA22": "O1X", "OA23": "O2X", "OA24": "O3X",
                 }.get(name, name)
+                '''
                 if gaff == 'O3':
                     # ADP/ATP/GDP/GTP use 'O3' for phosphate non-bonded oxygens, which is not a type in
                     # standard force fields; 'O2' is most similar, use that
                     gaff = 'O2'
+                '''
+                # For OpenMM's convenience, output actual GAFF types
+                # (this translation might only be correct in the context of these specific templates)
+                try:
+                    gaff = {
+                        'C': 'c', 'CA': 'ca', 'CB': 'ca', 'CK': 'cc', 'CT': 'c3', 'CQ': 'ca',
+                        'H': 'hn', 'HA': 'ha', 'HO': 'ho', 'H1': 'h1', 'H2': 'h2', 'H4': 'h4', 'H5': 'h5',
+                        'N': 'n', 'NA': 'n', 'NB': 'nc', 'NC': 'nb', 'N2': 'nh', 'N*': 'na',
+                        'O': 'o', 'OH': 'oh', 'OS': 'os', 'O2': 'o', 'O3': 'o',
+                        'P': 'p5',
+                    }[gaff]
+                except KeyError:
+                    print(res_name, name, gaff)
+                    raise
                 print("%s %s 0 0 1 2 -1 %s" % (repr(name), repr(gaff), charge), file=out)

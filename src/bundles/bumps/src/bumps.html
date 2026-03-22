@@ -1,9 +1,8 @@
-<html>
-  <title>Measure cell protrusions</title>
-  <body>
+<html lang="en"><head><meta charset="utf-8"><title>Measure cell protrusions</title>
+  </head><body>
     <h1>Bumps command for measuring cell protrusions</h1>
 
-    <img src="bumps.png" width=400 align=right>
+    <img src="bumps.png" width="400" align="right" alt="computer generated image">
 
     <p>
       Tom Goddard<br>
@@ -45,8 +44,7 @@
     </p>
     
 
-    <pre>
-    bumps #1 center #2 height 1 base 100 range 75
+    <pre>    bumps #1 center #2 height 1 base 100 range 75
     </pre>
 
     <p>
@@ -55,12 +53,10 @@
       in a second map.
     </p>
     
-    <pre>
-    bumps report #3 save ~/Desktop/prot.txt signalMap #4
+    <pre>    bumps report #3 save ~/Desktop/prot.txt signalMap #4
     </pre>
 
-    <pre>
-    # BMDC_NoSL8.tif
+    <pre>    # BMDC_NoSL8.tif
     #  119 protrusions, base area 100, minimum height 1, cell center ijk 97.52 78.18 70.71, range 75
     # id    i    j    k   points   height  signal
        1  154   73   28    146     5.222      7856
@@ -73,8 +69,7 @@
     <h2>Command Syntax</h2>
 
     <p>Mark protrusions in 3D image data:</p>
-    <pre>
-      <b>bumps</b> <i>volume</i> <b>center</b> <i>point</i>
+    <pre>      <b>bumps</b> <i>volume</i> <b>center</b> <i>point</i>
         [<b>range</b> <i>number</i>] [<b>baseArea</b> <i>number</i>] [<b>height</b> <i>number</i>]
         [<b>markerRadius</b> <i>number</i>] [<b>markerColor</b> <i>color</i>] [<b>colorSurface</b> <b>true</b>|false]
         [<b>name</b> <i>text</i>] [<b>allExtrema</b> true|<b>false</b>]
@@ -82,46 +77,45 @@
     
 
     <p>Output table reporting protrusions in 3D image data</p> 
-    <pre>
-      <b>bumps report</b> [<i>bumps model spec</i>] [<b>save</b> <i>filename</i>] [<b>signalMap</b> <i>map</i>]
+    <pre>      <b>bumps report</b> [<i>bumps model spec</i>] [<b>save</b> <i>filename</i>] [<b>signalMap</b> <i>map</i>]
     </pre>
 
     <h2>Options</h2>
 
-    <table border=1 cellpadding=5 cellspacing=0 bgcolor="#f0f0f0">
-      <tr>
+    <table border="1" cellpadding="5" cellspacing="0" bgcolor="#f0f0f0">
+      <tbody><tr>
 	<td><b>volume</b>
-	<td>Map to find protrusions on.  Highest surface contour level used.
-      <tr>    
+	</td><td>Map to find protrusions on.  Highest surface contour level used.
+      </td></tr><tr>    
 	<td><b>center</b>
-	<td>Point which is the cell center for finding radial protrusions.  Often this is the model number
+	</td><td>Point which is the cell center for finding radial protrusions.  Often this is the model number
 	  of a single marker placed at the center of the cell by hand.
-      <tr>
+      </td></tr><tr>
 	<td><b>range</b>
-        <td>How far out from center to look for protrusions. Physical units (typically microns).
-      <tr>
+        </td><td>How far out from center to look for protrusions. Physical units (typically microns).
+      </td></tr><tr>
 	<td><b>baseArea</b>
-        <td>Area of base of protrusion.  Protrusion is extended inward until this
+        </td><td>Area of base of protrusion.  Protrusion is extended inward until this
         area is attained and that defines the protrusion height.   Physical units (typically microns**2).
-      <tr>
+      </td></tr><tr>
 	<td><b>height</b>
-        <td>Minimum height of a protrusion to be marked.  Physical units (typically microns).
-      <tr>
+        </td><td>Minimum height of a protrusion to be marked.  Physical units (typically microns).
+      </td></tr><tr>
 	<td><b>markerRadius</b>
-        <td>Size of marker spheres to place at protrusion tips.  Physical units (typically microns).
-      <tr>
+        </td><td>Size of marker spheres to place at protrusion tips.  Physical units (typically microns).
+      </td></tr><tr>
 	<td><b>markerColor</b>
-        <td>Color of markers placed at tips of protrusions.  Default light green.
-      <tr>
+        </td><td>Color of markers placed at tips of protrusions.  Default light green.
+      </td></tr><tr>
 	<td><b>name</b>
-	<td>Name of created marker model. Default "bumps".
-      <tr>
+	</td><td>Name of created marker model. Default "bumps".
+      </td></tr><tr>
 	<td><b>allExtrema</b>
-        <td>Whether to mark all radial extrema even if the don't meet the protrusion height minimum.
+        </td><td>Whether to mark all radial extrema even if the don't meet the protrusion height minimum.
         Markers within another protrusion are colored yellow, ones that never attain the specified
         protrusion base_area (often smal disconnected density blobs) are colored pink, markers
         on protrusions that are too short are colored blue.
-    </table>
+    </td></tr></tbody></table>
 
     <h2>Algorithm</h2>
     <p>
@@ -144,5 +138,6 @@
     </p>
     
     
-  </body>
-</html>
+  
+
+</body></html>

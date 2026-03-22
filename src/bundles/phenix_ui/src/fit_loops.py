@@ -199,7 +199,7 @@ def phenix_fit_loops(session, residues, in_map, *, block=None, gap_only=False, p
 
             # Save structure to file.
             from chimerax.pdb import save_pdb
-            save_pdb(session, path.join(temp_dir,'model.pdb'), models=[structure], rel_model=map)
+            save_pdb(session, path.join(temp_dir,'model.pdb'), models=[structure], rel_model=in_map)
 
             seqf_path = path.join(temp_dir, "sequences")
             if sequence_file is None:

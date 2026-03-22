@@ -1,0 +1,52 @@
+*** include/xdrfile-prev.h	Tue Dec 16 11:46:20 2025
+--- include/xdrfile.h	Tue Dec 16 11:46:37 2025
+***************
+*** 106,112 ****
+  
+  #define DIM 3
+  	typedef float matrix[DIM][DIM];
+! 	typedef float rvec[DIM];
+  	typedef int   mybool;
+  
+  
+--- 106,112 ----
+  
+  #define DIM 3
+  	typedef float matrix[DIM][DIM];
+! 	typedef double rvec[DIM];
+  	typedef int   mybool;
+  
+  
+*** src/xdrfile_xtc.prev.c	Wed Dec 17 18:14:13 2025
+--- src/xdrfile_xtc.c	Wed Dec 17 18:17:33 2025
+***************
+*** 73,85 ****
+  		{
+  			if (bRead)
+  				{
+! 					result = xdrfile_decompress_coord_float(x[0],natoms,prec,xd); 
+  					if (result != *natoms)
+  						return exdr3DX;
+  				}
+  			else
+  				{
+! 					result = xdrfile_compress_coord_float(x[0],*natoms,*prec,xd); 
+  					if (result != *natoms)
+  						return exdr3DX;
+  				}
+--- 73,87 ----
+  		{
+  			if (bRead)
+  				{
+! 					double double_prec;
+! 					result = xdrfile_decompress_coord_double(x[0],natoms,&double_prec,xd); 
+  					if (result != *natoms)
+  						return exdr3DX;
++ 					*prec = double_prec;
+  				}
+  			else
+  				{
+! 					result = xdrfile_compress_coord_double(x[0],*natoms,*prec,xd); 
+  					if (result != *natoms)
+  						return exdr3DX;
+  				}

@@ -32,8 +32,9 @@ from Qt.QtWidgets import QVBoxLayout, QWidget
 from Qt.QtGui import QImage, QPainter
 from Qt.QtCore import Qt
 
+
 class OrthoplaneTool(ToolInstance):
-    help = "help:user/tools/orthoplanetool.html"
+    help = "help:user/tools/orthoplanes.html"
     SESSION_ENDURING = True
 
     def __init__(self, session=None, name="Orthoplane Viewer"):
@@ -44,7 +45,9 @@ class OrthoplaneTool(ToolInstance):
         self._orthoplane_manager = PlaneViewerManager(session)
         self.parent = self.tool_window.ui_area
         self.parent.setLayout(QVBoxLayout())
-        self.viewer = PlaneViewer(self.parent, self._orthoplane_manager, self.session, Axis.AXIAL)
+        self.viewer = PlaneViewer(
+            self.parent, self._orthoplane_manager, self.session, Axis.AXIAL
+        )
         self.parent.layout().addWidget(self.viewer.container)
         self.parent.grab = self._grab_window
         self.tool_window.manage("side")
@@ -55,11 +58,19 @@ class OrthoplaneTool(ToolInstance):
         total_size = self.viewer.parent.size()
         widget_size = self.viewer.widget.size()
         painter = QPainter(rest_of_window)
-        resized_opengl_image = graphics_area.scaled(widget_size.width(), widget_size.height(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        painter.drawImage(self.viewer.widget.x() + self.viewer.container.x(), self.viewer.widget.y() + self.viewer.container.y(), resized_opengl_image)
+        resized_opengl_image = graphics_area.scaled(
+            widget_size.width(),
+            widget_size.height(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        painter.drawImage(
+            self.viewer.widget.x() + self.viewer.container.x(),
+            self.viewer.widget.y() + self.viewer.container.y(),
+            resized_opengl_image,
+        )
         painter.end()
         return rest_of_window
-
 
     def delete(self):
         self.viewer.close()

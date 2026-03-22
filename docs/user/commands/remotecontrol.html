@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2020 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: remotecontrol</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: remotecontrol</h3>
 <p>
@@ -32,8 +27,8 @@ Either of the following methods of communication can be used:
 </p>
 <ul>
 <li><a href="#rest">REST</a> 
-<li><a href="#xmlrpc">XML-RPC</a> 
-</ul>
+</li><li><a href="#xmlrpc">XML-RPC</a> 
+</li></ul>
 
 <a name="rest"></a>
 <p class="nav">
@@ -47,6 +42,7 @@ Either of the following methods of communication can be used:
 [&nbsp;<b>ssl</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>json</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>log</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>cors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>remotecontrol rest stop</b>
@@ -57,8 +53,7 @@ Either of the following methods of communication can be used:
 </blockquote>
 <p>
 The REST method 
-(<a href="https://en.wikipedia.org/wiki/Representational_state_transfer"
-target="_blank">representational state transfer</a>)
+(<a href="https://en.wikipedia.org/wiki/Representational_state_transfer" target="_blank">representational state transfer</a>)
 is used by web browsers and shell commands such as curl and wget.
 The commands are sent by http (<b>ssl false</b>, default)
 or https (<b>ssl true</b>) requests.
@@ -92,6 +87,19 @@ in the ChimeraX <a href="../tools/log.html"><b>Log</b></a>
 in addition to the client log.
 With <b>log false</b> (default), the messages will go to the client log only.
 </p><p>
+The <b>cors</b> option enables
+<a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS" target="_blank">Cross-Origin Resource Sharing</a>
+(CORS) headers for requests from localhost origins.
+With <b>cors true</b>, the server will respond with appropriate
+<code>Access-Control-Allow-Origin</code> headers for requests originating from
+<code>http://localhost:*</code>, <code>http://127.0.0.1:*</code>, or their HTTPS equivalents.
+This is useful for browser-based applications (such as interactive tutorials or web-based tools)
+that need to communicate with ChimeraX via JavaScript <code>fetch()</code> from a different port.
+The default is <b>cors false</b>, which blocks cross-origin requests.
+Note that CORS is only enabled for localhost origins as a security measure.
+</p><p>
+If sending large data, use POST with "multipart/form-data" in the header.
+</p><p>
 If <b>json</b> is <b>false</b> (default), 
 any logging that would normally result from command execution will still occur,
 but will be shown in the web browser or (for curl or wget) in the shell
@@ -102,7 +110,7 @@ If <b>json</b> is <b>true</b>, command execution will return a string in
 with the following name/value pairs:
 </p>
 <table border cellpadding="4" cellspacing="0">
-	<tr>
+	<tbody><tr>
 		<th>Name</th>
 		<th>Value</th>
 	</tr>
@@ -110,19 +118,19 @@ with the following name/value pairs:
 		<td>python&nbsp;values</td>
 		<td class="text">A list of the Python values returned by the commands executed. Typically, the list would contain only one value, but if the &ldquo;command&rdquo; sent was actually a series of commands separated by semicolons, the list would contain the corresponding number of values.</td>
 	</tr>
-	</tr>
-		<td>json&nbsp;values</td>
+	
+		<tr><td>json&nbsp;values</td>
 		<td class="text">A list of the JSON values returned by the commands executed. The exact contents of a command's JSON value should be provided in the doc string for the function that carries out the corresponding command. The value will be <code>null</code> for commands that have not yet implemented JSON return values.</td>
 	</tr>
-	</tr>
-		<td>log&nbsp;messages</td>
+	
+		<tr><td>log&nbsp;messages</td>
 		<td>A JSON object with the names corresponding to <code>chimerax.core.logger.Log.LEVEL_DESCRIPTS</code> and whose values are lists of messages logged at that level during command execution.</td>
 	</tr>
-	</tr>
-		<td>error</td>
+	
+		<tr><td>error</td>
 		<td>If the commands execute without raising an error, this will be <code>null</code>.  Otherwise, it will be a JSON object with two names, <code>type</code> and <code>message</code>, with values that are the Python class name for the error (<i>e.g.</i> <code>ValueError</code>) and the error message text, respectively.  In this case the &ldquo;python values&rdquo; and &ldquo;json values&rdquo; lists will be empty.</td>
 	</tr>
-</table>
+</tbody></table>
 <p>The command <b>remotecontrol rest stop</b> 
 discontinues accepting commands by REST, optionally sending a notification
 to the <a href="../tools/log.html"><b>Log</b></a> (<b>quiet false</b>, default).
@@ -144,8 +152,7 @@ to the <a href="../tools/log.html"><b>Log</b></a> (<b>quiet false</b>, default).
 <b>remotecontrol xmlrpc off</b>
 </blockquote>
 <p>
-The XML-RPC method (<a href="https://en.wikipedia.org/wiki/XML-RPC"
-target="_blank">extensible markup language remote procedure call</a>)
+The XML-RPC method (<a href="https://en.wikipedia.org/wiki/XML-RPC" target="_blank">extensible markup language remote procedure call</a>)
 is used by Python scripts or applications.
 The command <b>remotecontrol xmlrpc on</b> 
 (synonyms for <b>on</b> are <b>true</b>, <b>True</b>, <b>1</b>)
@@ -176,5 +183,6 @@ discontinues accepting commands by XML-RPC.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2024</address>
+May 2025</address>
+
 </body></html>

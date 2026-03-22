@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command-Line Specification: Points, Vectors</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3>Command-Line Specification: Points, Vectors</h3>
 
@@ -37,18 +32,18 @@ In general, a <b><i>point-spec</i></b> can be:
 <ul>
 <li><i>x,y,z</i> (three values separated by commas only) 
 &ndash; an arbitrary point
-<li>a <a href="atomspec.html"><i>specification</i></a> 
+</li><li>a <a href="atomspec.html"><i>specification</i></a> 
 of atoms, residues, and/or models open in ChimeraX
 &ndash; the center of the bounding box of the specified items.
 A map's bounding box encloses its contour surface (if the map is in the
 <b>surface</b> or <b>mesh</b> <a href="volume.html#style">display style</a>)
 or its entire grid (when the <b>image</b> or &ldquo;volume&rdquo;
 <a href="volume.html#style">display style</a> is used).
-<li><b>cofr</b>
+</li><li><b>cofr</b>
 &ndash; the current <a href="cofr.html">center of rotation</a>
-<li><b>camera</b>
+</li><li><b>camera</b>
 &ndash; the viewer position
-</ul>
+</li></ul>
 <p>
 The default <b>coordinateSystem</b> for interpreting point specifications
 varies by command, and could be that of a specific data model or the
@@ -60,13 +55,13 @@ In general, a <b><i>vector-spec</i></b> can be:
 </p>
 <ul>
 <li><b>x</b> &ndash; unit vector along the X-axis (1,0,0)
-<li><b>y</b> &ndash; unit vector along the Y-axis (0,1,0)
-<li><b>z</b> &ndash; unit vector along the Z-axis (0,0,1)
-<li><i>x,y,z</i> (three values separated by commas only) 
+</li><li><b>y</b> &ndash; unit vector along the Y-axis (0,1,0)
+</li><li><b>z</b> &ndash; unit vector along the Z-axis (0,0,1)
+</li><li><i>x,y,z</i> (three values separated by commas only) 
 &ndash; an arbitrary vector
-<li>the <a href="atomspec.html#othermodels"><i>specifier</i></a> (<i>e.g.</i>, 
+</li><li>the <a href="atomspec.html#othermodels"><i>specifier</i></a> (<i>e.g.</i>, 
 model number) of a previously defined <a href="define.html#axis">axis</a> model
-<li>an <a href="atomspec.html"><i>atom-spec</i></a> of exactly two atoms,
+</li><li>an <a href="atomspec.html"><i>atom-spec</i></a> of exactly two atoms,
 not necessarily bonded or in the same model
 <p>
 For rotations, the order of the two atoms defines a handedness,
@@ -78,7 +73,7 @@ will be used for reference frame pinning unless
 a center point <a href="atomspec.html"><i>atom-spec</i></a>
 or a <b>coordinateSystem</b> is also given.
 </p>
-</ul>
+</li></ul>
 <p>
 The default <b>coordinateSystem</b> for interpreting vector specifications
 varies by command, and could be that of a specific data model or just
@@ -92,4 +87,5 @@ See also:
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 March 2022</address>
+
 </body></html>

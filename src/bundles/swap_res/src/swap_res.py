@@ -410,9 +410,8 @@ def template_swap_res(res, res_type, *, preserve=False, bfactor=None):
             preserve_dihed = None
 
     # prune non-backbone atoms
-    for a in res.atoms:
-        if a.name not in fixed:
-            a.structure.delete_atom(a)
+    from chimerax.atomic import Atoms
+    Atoms([a for a in res.atoms if a.name not in fixed]).delete()
 
     # add new sidechain
     new_atoms = []
@@ -525,7 +524,7 @@ def get_res_info(res):
     elif res.find_atom("O3'"):
         # putative nucleic acid
         basic_info = nucleic_info
-        start = res.find_atom("P") is not None
+        start = res.find_atom("P") is None
         end = len([nb for nb in res.find_atom("O3'").neighbors if nb.element.name == "P"]) == 0
         if end and res.find_atom("O2'") is not None:
             end = len([nb for nb in res.find_atom("O2'").neighbors if nb.element.name == "P"]) == 0
@@ -568,7 +567,10 @@ def form_dihedral(res_bud, real1, tmpl_res, a, b, pos=None, dihed=None):
         real1 = res.find_atom("C1'")
         real2 = res.find_atom("O4'")
     else:
-        real2 = inres[0]
+        while inres:
+            real2 = inres.pop()
+            if tmpl_res.find_atom(name_correction.get(real2.name, real2.name)):
+                break
     xyz0, xyz1, xyz2 = [tmpl_res.find_atom(name_correction.get(a.name, a.name)).coord
         for a in (res_bud, real1, real2)]
 

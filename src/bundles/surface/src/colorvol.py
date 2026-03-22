@@ -197,8 +197,7 @@ class VolumeColor(State):
 
         self.set_colormap(palette, range, outside_color = outside_color)
         
-        arv = self._auto_recolor if auto_recolor else None
-        surface.auto_recolor_vertices = arv
+        surface.auto_recolor_vertices = self if auto_recolor else None
 
         if auto_recolor:
             from .updaters import add_updater_for_session_saving
@@ -208,7 +207,7 @@ class VolumeColor(State):
     #
     def active(self):
         s = self.surface
-        return s is not None and s.auto_recolor_vertices == self._auto_recolor
+        return s is not None and s.auto_recolor_vertices is self
 
     # -------------------------------------------------------------------------
     #
@@ -218,8 +217,8 @@ class VolumeColor(State):
         if outside_color is not None:
             from chimerax.core.colors import Colormap
             cmap = Colormap(cmap.data_values, cmap.colors,
-                            cmap.color_below_value_range,
-                            cmap.color_above_value_range,
+                            color_above_value_range = cmap.color_above_value_range,
+                            color_below_value_range = cmap.color_below_value_range,
                             color_no_value = outside_color.rgba)
         self.colormap = cmap
         self.per_pixel_coloring = per_pixel
@@ -260,6 +259,11 @@ class VolumeColor(State):
         s.vertex_colors = self.vertex_colors(report_stats)
         if arv:
             s.auto_recolor_vertices = arv
+
+    # -------------------------------------------------------------------------
+    #
+    def __call__(self):
+        self._auto_recolor()
 
     # -------------------------------------------------------------------------
     #
@@ -440,11 +444,9 @@ class VolumeColor(State):
 #
 def volume_coloring(surface):
     '''Return VolumeColor class for surface model if it is being auto colored.'''
-    arv = surface.auto_recolor_vertices
-    if hasattr(arv, '__self__'):
-        vc = arv.__self__  # Instance of a bound method
-        if isinstance(vc, VolumeColor):
-            return vc
+    vc = surface.auto_recolor_vertices
+    if isinstance(vc, VolumeColor):
+        return vc
     return None
 
 # -----------------------------------------------------------------------------

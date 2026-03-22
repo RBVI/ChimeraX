@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="userdocs.css">
 <title>Model Information</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="index.html">
-<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3>Model Information</h3>
 <p>
@@ -46,37 +41,36 @@ The following may be shown (if available) for an atomic structure:
   <li>clicking the &ldquo;more info&rdquo; link 
 uses <a href="commands/log.html#metadata"><b>log metadata</b></a>
 to show title, literature references, nonstandard residues, <i>etc.</i> 
-  </ul>
+  </li></ul>
 <br>
-<li>nonstandard residues (a subset of the larger table of information
+</li><li>nonstandard residues (a subset of the larger table of information
 shown with <a href="commands/log.html#metadata"><b>log metadata</b></a>)
   <ul>
   <li>clicking the 3-character residue name <a href="selection">selects</a>
   the corresponding residue(s) in the structure
-  <li>clicking the description shows the 
+  </li><li>clicking the description shows the 
 <a href="https://www.rcsb.org/" target="_blank">RCSB Protein Data Bank</a>
 webpage for that residue type
   in the <a href="tools/helpviewer.html">ChimeraX browser</a>
-  </ul>
+  </li></ul>
 <br>
-<li>macromolecular assemblies (this information can also be shown with 
+</li><li>macromolecular assemblies (this information can also be shown with 
 the <a href="commands/sym.html#assembly"><b>sym</b></a> command)
   <ul>
   <li>clicking an assembly identifier generates the corresponding assembly 
   using <a href="commands/sym.html#assembly"><b>sym</b></a> defaults,
   and adjusts the view to contain the assembly
-  </ul>
+  </li></ul>
 <br>
-<li>biopolymer chain information (this information can also be shown with
+</li><li>biopolymer chain information (this information can also be shown with
 <a href="commands/log.html#chains"><b>log chains</b></a>)
   <ul>
   <li>clicking a chain identifier <a href="selection.html">selects</a>
    the corresponding chain in the structure
-  <li>clicking a chain description opens the sequence in the
+  </li><li>clicking a chain description opens the sequence in the
   <a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
   associated with all of the corresponding chains in the structure
-  <li>clicking a <a href="https://www.uniprot.org"
-target="_blank">UniProt</a> identifier 
+  </li><li>clicking a <a href="https://www.uniprot.org" target="_blank">UniProt</a> identifier 
 <a href="commands/open.html#fetch">fetches</a> the corresponding protein 
 sequence and its <a href="tools/sequenceviewer.html#uniprot">sequence 
 feature annotations</a>, and clicking the residue number range 
@@ -84,8 +78,8 @@ feature annotations</a>, and clicking the residue number range
 <a href="selection.html">selects</a> the corresponding structure residues;
 multiple <a href="https://www.uniprot.org" target="_blank">UniProt</a> 
 identifiers and residue ranges may be given for a fusion protein
-  </ul>
-</ul>
+  </li></ul>
+</li></ul>
 <p>
 For mmCIF files of comparative models from 
 <a href="https://modbase.compbio.ucsf.edu/" target="_blank">ModBase</a>: 
@@ -93,9 +87,9 @@ For mmCIF files of comparative models from
 <ul>
 <li>the target-template sequence alignment is shown automatically in the
 <a href="tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
-<li>model quality scores are not shown automatically, but can be reported 
+</li><li>model quality scores are not shown automatically, but can be reported 
 with <a href="commands/log.html#metadata"><b>log metadata</b></a>
-</ul>
+</li></ul>
 <p>
 <a href="dicom/dicom.html">DICOM files</a> also contain associated information 
 (metadata). This information is not shown automatically when the files are
@@ -106,13 +100,14 @@ opened, but can be displayed with the following:
 &ndash; patient&rarr;study&rarr;series hierarchy, shown by choosing a patient
 or study in the <a href="tools/modelpanel.html"><b>Model Panel</b></a>
 and clicking <b>Info</b>
-<li><a href="tools/dicommetadata.html"><b>DICOM Metadata</b></a> 
+</li><li><a href="tools/dicommetadata.html"><b>DICOM Metadata</b></a> 
 &ndash; full list of DICOM attributes, shown by choosing a series
 in the <a href="tools/modelpanel.html"><b>Model Panel</b></a>
 and clicking <b>Info</b>
-</ul> 
+</li></ul> 
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 January 2023</address>
+
 </body></html>

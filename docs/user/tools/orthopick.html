@@ -1,0 +1,105 @@
+<html lang="en"><!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
+<title>Tool: Orthopick</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
+
+<h3><a href="../index.html#tools">Tool</a>: Orthopick</h3>
+<p>
+<table class="clRight">
+<tbody><tr><td><a href="orthopick.png">
+<img class="outline" src="orthopick.png" title="click for larger..." width="450px" alt="Orthopick images"></a></td></tr>
+</tbody></table>
+</p><p>
+<b>Orthopick</b> contains settings for the
+<a href="../commands/ui.html#mousemode">mouse mode</a> named
+<a href="../commands/ui.html#orthopick"><b>orthopick</b></a>,
+developed for picking particles in cryo-electron tomograms with the mouse.
+The <b>orthopick</b> mode shows three orthogonal slices of a small area of 
+the map centered at the clicked point as well as laid out in a plane
+for easy viewing without rotation.
+</p><p>
+For an example of use, details, and discussion, see
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/membrane-jun2024/membrane_pick.html" target="_blank">Membrane Complexes</a>. See also:
+<a href="volumeviewer.html"><b>Volume Viewer</b></a>
+</p><p>
+<b>Orthopick</b> can be started
+from the <b>Volume Data</b> section of the <b>Tools</b> menu and
+<a href="../window.html#panels">moved, resized, <i>etc.</i></a>
+like other tool windows. Starting <b>Orthopick</b> automatically
+assigns the mode to the right mouse button
+(= trackpad + <b>Alt</b> on Windows, trackpad + 
+<img src="../icon-clover.png" width="12px" style="background:white" alt="computer generated image"> on Mac).
+Other ways to assign the mode are by clicking the <b>orthopick</b> icon
+<img class="icon" border="1" src="mouse-icons/orthopick.png" alt="computer generated image">
+in the <a href="toolbar.html"><b>Toolbar</b></a> or by using the
+<a href="../commands/ui.html#mousemode"><b>mousemode</b></a> command.
+By default, the <b>orthopick</b> icon
+<img class="icon" border="1" src="mouse-icons/orthopick.png" alt="computer generated image"> is
+not shown in the <a href="toolbar.html"><b>Toolbar</b></a>,
+but it can be added to the <b>Home</b> tab using the
+<a href="toolbar.html#settings"><b>Toolbar Settings</b></a>.
+</p><p>
+In the <b>orthopick</b> mode, 
+</p>
+<ul>
+<li>clicking shows orthogonal red (cryo-EM-beam-aligned XY), green (XZ), 
+and blue (YZ) slices centered on the click, as well as copies of the
+slices laid out in a plane, as shown in the figure
+</li><li>each of the slice planes can be dragged to see different cross-sections
+</li><li>dragging with the Shift key held down translates (recenters) the box
+delimiting the orthoplanes
+</li></ul>
+<p>
+Settings:
+</p>
+<ul class="none">
+<li><b>Particle size (Angstroms)</b> [default <b>200</b>]
+&ndash; orthoplanes box size in each dimension
+</li><li><b>Orient to membrane surface</b> [<i>surface-model</i>]
+&ndash; if a surface model is specified, use the plane of the surface
+as the reference for aligning the box; if no surface model is specified,
+the box will be aligned to the XYZ axes of the tomogram
+</li><li><b>Average slab density, thickness (Angstroms)</b> [default <b>50</b>]
+&ndash; color the slice planes based on average density values through a
+slab of the specified thickness
+</li></ul>
+<p>
+Buttons:
+</p>
+<ul class="none">
+<li><b>Show particle surface</b> &ndash; 
+show 3D contour surface inside the box instead of intersecting orthoplanes;
+the slices laid out in a plane will still be shown, however, as in 
+the righthand image above. The contour level can be changed by 
+clicking and dragging with the <b>orthopick</b>-assigned mouse button 
+on the particle surface. 
+</li><li><b>Save particle map</b> &ndash;
+save an MRC file of the map inside the box, including the origin 
+and rotation to apply if the file is opened in ChimeraX;
+other programs may honor the origin, but not the rotational information, 
+as the latter is not a defined part of the MRC format
+</li><li><b>Help</b> &ndash; show this page
+in the <a href="helpviewer.html"><b>Help Viewer</b></a>
+</li></ul>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+August 2025</address>
+
+</body></html>

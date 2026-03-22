@@ -24,6 +24,37 @@
 
 from chimerax.core.errors import UserError
 
+def chirality_cmd(session, atoms, *, verbose=False):
+    from .chirality import chirality
+    if not atoms:
+        raise UserError("No atoms specified")
+    from .idatm import type_info
+    centers = []
+    for atom in atoms:
+        try:
+            info = type_info[atom.idatm_type]
+        except KeyError:
+            if atom.num_bonds != 4:
+                continue
+        else:
+            if info.substituents != 4:
+                continue
+        centers.append(atom)
+    if not centers:
+        session.logger.warning("There are no possible stereo centers in the specified atoms")
+        return {}
+    chiralities = [chirality(atom) for atom in centers]
+    ch_info = list(zip(centers, chiralities))
+    # use list() above, otherwise the 'dict()' below is on an exhausted iterator
+    for atom, ch in ch_info:
+        if verbose:
+            session.logger.info("%s is %s" % (atom, "not chiral" if not ch else ch))
+        elif ch:
+            session.logger.info("%s is %s" % (atom, ch))
+    if not verbose and chiralities.count(None) == len(chiralities):
+        session.logger.info("None of the specified atoms are chiral")
+    return dict(ch_info)
+
 def log_chains(session, structures=None):
     if structures is None:
         from chimerax.atomic import AtomicStructure
@@ -171,7 +202,12 @@ def combine_cmd(session, structures, *, close=False, model_id=None, name=None, r
     if model_id is not None:
         combination.id = model_id
     if add_to_session:
-        session.models.add([combination])
+        from chimerax.core.models import BadIDError
+        try:
+            session.models.add([combination])
+        except BadIDError as e:
+            combination.delete()
+            raise UserError(str(e))
     return combination
 
 def label_missing_cmd(session, structures, max_chains):
@@ -253,6 +289,7 @@ def pbond_cmd(session, atoms, *, color=BuiltinColors["slate gray"], current_coor
     else:
         if pbg in dist_monitor.monitored_groups:
             dist_monitor.remove_group(pbg)
+    return pb
 
 def xpbond_cmd(session, atoms, *, global_=False, name="custom"):
     if len(atoms) != 2:
@@ -334,4 +371,14 @@ def register_command(logger):
         ],
         synopsis = 'Show/hide missing-structure pseudobond labels')
     register('label missing', label_missing_desc, label_missing_cmd, logger=logger)
+
+    chirality_desc = CmdDesc(
+        required=[
+            ('atoms', AtomsArg),
+        ],
+        keyword=[
+            ('verbose', BoolArg),
+        ],
+        synopsis = 'Report chirality of atoms')
+    register('chirality', chirality_desc, chirality_cmd, logger=logger)
 

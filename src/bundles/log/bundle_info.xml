@@ -1,5 +1,5 @@
-<BundleInfo name="ChimeraX-Log" version="1.2"
-	    package="chimerax.log" customInit="true"
+<BundleInfo name="ChimeraX-Log" version="1.2.2"
+	    package="chimerax.log"
 		minSessionVersion="1" maxSessionVersion="1">
 
   <Author>UCSF RBVI</Author>

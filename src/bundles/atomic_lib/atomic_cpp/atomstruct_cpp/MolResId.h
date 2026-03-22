@@ -69,11 +69,12 @@ public:
 };
 
 inline std::ostream & operator<<(std::ostream &os, const MolResId &rid) {
-    os << rid.number;
+    if (rid.chain != " ") {
+        os << "/" << rid.chain;
+    }
+    os << ':' << rid.number;
     if (rid.insert != ' ')
         os << rid.insert;
-    if (rid.chain != " ")
-        os << "." << rid.chain;
     return os;
 }
 

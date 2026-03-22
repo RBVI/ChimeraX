@@ -67,6 +67,8 @@ prereqs/pips/grako*.whl
 prereqs/pips/tinyarray*.whl
 prereqs/pips/Cython*.whl
 prereqs/pips/PyOpenGL*.whl
+prereqs/pips/pyopengl_accelerate*.tar.gz
+prereqs/pips/pyopengl_accelerate-3.1.9
 prereqs/pips/*.dylib.arm64
 prereqs/pips/*.dylib
 prereqs/pips/qtshim*.whl
@@ -258,6 +260,8 @@ src/bundles/markers/pyproject.toml
 src/bundles/mask/pyproject.toml
 src/bundles/match_maker/pyproject.toml
 src/bundles/mcopy/pyproject.toml
+src/bundles/mcp_server/src/node_modules
+src/bundles/mcp_server/src/package-lock.json
 src/bundles/md_crds/pyproject.toml
 src/bundles/medical_toolbar/pyproject.toml
 src/bundles/meeting/pyproject.toml

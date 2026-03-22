@@ -35,13 +35,17 @@ from chimerax.core.tools import ADD_TOOL_INSTANCE
 from chimerax.geometry import Place, translation
 from chimerax.graphics import Drawing
 from chimerax.map import Volume, VolumeSurface, VolumeImage
+from chimerax.pick_blobs.pickblobs import BlobOutlineBox
 from chimerax.map.volume import show_planes
 from chimerax.map.volume_viewer import VolumeViewer, Histogram_Pane
 from chimerax.map.volumecommand import apply_volume_options
 from chimerax.mouse_modes.mousemodes import decode_modifier_bits
 from chimerax.mouse_modes.trackpad import MultitouchEvent, Touch
 
-from chimerax.segmentations.segmentation import Segmentation, copy_volume_for_auxiliary_display
+from chimerax.segmentations.segmentation import (
+    Segmentation,
+    copy_volume_for_auxiliary_display,
+)
 from chimerax.segmentations.segmentation_tracker import get_tracker
 
 from chimerax.segmentations.ui.color_key import ColorKeyModel
@@ -69,6 +73,23 @@ TRACKPAD_ZOOM_SPEED: int = 7
 TRACKPAD_PAN_SPEED: int = 100
 WHEEL_ZOOM_SPEED: int = 10
 RIGHT_CLICK_ZOOM_SPEED: int = 5
+
+
+def _remove_from_blend_manager(volume_image):
+    """Remove a VolumeImage from the session blend manager.
+
+    HACK: The session-level ImageBlendManager groups images for blending based on
+    scene position, without considering which View they belong to. When we display
+    the same volume data in both the main 3D view and orthoplane viewers, they get
+    grouped together and cause texture conflicts (ticket #16267).
+
+    This removes our auxiliary display volumes from the blend manager entirely.
+    """
+    bm = volume_image._blend_manager
+    if bm is not None:
+        bm.remove_image(volume_image)
+        volume_image._blend_manager = None
+
 
 if sys.platform == "darwin":
     SYSTEM_KEY = Qt.KeyboardModifier.ControlModifier
@@ -157,7 +178,6 @@ class PlaneViewerManager:
             return None
         return self.axes[Axis.AXIAL].segmentation_tool
 
-
     def _on_segmentation_added(self, _, segmentation):
         self.add_segmentation(segmentation)
 
@@ -185,6 +205,7 @@ class PlaneViewerManager:
 class PlaneViewer(QWindow):
     def __init__(self, parent, manager, session, axis=Axis.AXIAL):
         from chimerax.ui.widgets import ModelMenu
+
         QWindow.__init__(self)
         self.parent = parent
         self.manager = manager
@@ -278,6 +299,7 @@ class PlaneViewer(QWindow):
         def _not_volume_surface_or_segmentation(m):
             ok_to_list = not isinstance(m, VolumeSurface)
             ok_to_list &= not isinstance(m, VolumeImage)
+            ok_to_list &= hasattr(m, "data")
             # This will run over all models which may not have DICOM data...
             try:
                 if hasattr(m.data, "dicom_data"):
@@ -287,6 +309,7 @@ class PlaneViewer(QWindow):
             except AttributeError:
                 pass
             ok_to_list &= not isinstance(m, Segmentation)
+            ok_to_list &= not isinstance(m, BlobOutlineBox)
             return ok_to_list
 
         self.model_menu = ModelMenu(
@@ -416,16 +439,21 @@ class PlaneViewer(QWindow):
         self.guideline_visibility_handler = chimerax.segmentations.triggers.add_handler(
             Trigger.GuidelinesVisibilityChanged, self._on_guideline_visibility_changed
         )
-        self.color_key_visibility_changed_handler = chimerax.segmentations.triggers.add_handler(
-            Trigger.ColorKeysVisibilityChanged, self._on_color_key_visibility_changed
+        self.color_key_visibility_changed_handler = (
+            chimerax.segmentations.triggers.add_handler(
+                Trigger.ColorKeysVisibilityChanged,
+                self._on_color_key_visibility_changed,
+            )
         )
         self.segmentation_modified_handler = (
             chimerax.segmentations.triggers.add_handler(
                 SEGMENTATION_MODIFIED, self._on_segmentation_modified
             )
         )
-        self.reference_model_changed_handler = chimerax.segmentations.triggers.add_handler(
-            Trigger.ReferenceModelChanged, self._on_reference_model_changed
+        self.reference_model_changed_handler = (
+            chimerax.segmentations.triggers.add_handler(
+                Trigger.ReferenceModelChanged, self._on_reference_model_changed
+            )
         )
         self.active_segmentation_changed_handler = (
             chimerax.segmentations.triggers.add_handler(
@@ -435,6 +463,7 @@ class PlaneViewer(QWindow):
 
     def _on_active_segmentation_changed(self, _, data):
         self._redraw()
+
     def _on_reference_model_changed(self, _, model):
         self.model_menu._menu.set_value(model)
 
@@ -489,12 +518,14 @@ class PlaneViewer(QWindow):
         v.update_drawings()
         v.allow_style_changes = False
         # Add our new volume to the volume menu with our custom widget
-        self._add_axis_to_volume_viewer(volume_viewer[0], v)
+        if volume_viewer:
+            self._add_axis_to_volume_viewer(volume_viewer[0], v)
 
         self.main_view.camera.redraw_needed = True
         for d in v._child_drawings:
             if type(d) == VolumeImage:
                 new_drawing = d
+                _remove_from_blend_manager(d)
         # self.manager.update_drawing(self.model_menu.value)
         if new_drawing is not None:
             # Set the view's root drawing, and our ground truth drawing, to the new one
@@ -750,7 +781,10 @@ class PlaneViewer(QWindow):
         self._redraw()
 
     def on_color_changed(self):
-        if self.view.drawing is not self.placeholder_drawing:
+        if (
+            self.view.drawing is not self.placeholder_drawing
+            and self.view.drawing.parent is not None
+        ):
             colors = self.view.drawing.parent.image_colors
             levels = self.view.drawing.parent.image_levels
             rgba_and_labels = []
@@ -958,6 +992,7 @@ class PlaneViewer(QWindow):
 
     def toggle_color_keys(self):
         from chimerax.segmentations.settings import get_settings
+
         settings = get_settings(self.session)
         settings.display_color_keys = not settings.display_color_keys
 
@@ -1124,14 +1159,18 @@ class PlaneViewer(QWindow):
         self.segmentation_cursor_overlay.display = False
 
     def enterEvent(self):
-        chimerax.segmentations.triggers.activate_trigger(Trigger.PlaneViewerEnter, self.axis)
+        chimerax.segmentations.triggers.activate_trigger(
+            Trigger.PlaneViewerEnter, self.axis
+        )
         if self.segmentation_tool:
             self.enableSegmentationOverlays()
             self.resize3DSegmentationCursor()
         self.render()
 
     def leaveEvent(self):
-        chimerax.segmentations.triggers.activate_trigger(Trigger.PlaneViewerLeave, self.axis)
+        chimerax.segmentations.triggers.activate_trigger(
+            Trigger.PlaneViewerLeave, self.axis
+        )
         self.disableSegmentationOverlays()
         self.level_label.hide()
         self.mouse_move_timer.stop()
@@ -1232,19 +1271,14 @@ class PlaneViewer(QWindow):
         if self.segmentation_tool:
             ww, wh = self.main_view.window_size
             width, height = self.view.window_size
-            if (
-                ww <= 0
-                or wh <= 0
-                or width <= 0
-                or height <= 0
-            ):
+            if ww <= 0 or wh <= 0 or width <= 0 or height <= 0:
                 return
             psize = self.view.pixel_size()
             radius = self.segmentation_cursor_overlay.radius
             rel_size = (radius / width) * psize
             needed_rad = (rel_size / psize) * ww
-            self.segmentation_tool.segmentation_cursors[self.axis].radius = (
-                self.segmentation_cursor_overlay.radius * psize / self.scale
+            self.segmentation_tool.set_radius(
+                self.axis, self.segmentation_cursor_overlay.radius * psize / self.scale
             )
 
     def wheelEvent(self, event):
@@ -1574,9 +1608,7 @@ class PlaneViewer(QWindow):
                     "region": (v.region[0], v.region[1]),
                     "planes": self.axis.cartesian,
                 },
-                roptions={
-                    "projection_mode": "3d"
-                },
+                roptions={"projection_mode": "3d"},
                 image_mode_off=False,
                 session=self.session,
             )
@@ -1592,6 +1624,7 @@ class PlaneViewer(QWindow):
             for d in v._child_drawings:
                 if type(d) == VolumeImage:
                     new_drawing = d
+                    _remove_from_blend_manager(d)
             # self.manager.update_drawing(self.model_menu.value)
             if new_drawing is not None:
                 # Set the view's root drawing, and our ground truth drawing, to the new one
@@ -1633,6 +1666,8 @@ class PlaneViewer(QWindow):
                 volume_viewer.thresholds_panel.close_histogram_pane(hptable[volume])
 
     def _add_axis_to_volume_viewer(self, volume_viewer, volume):
+        if not volume_viewer:
+            return
         v = volume
         tp = volume_viewer.thresholds_panel
         hptable = tp.histogram_table
@@ -1818,6 +1853,11 @@ class SegmentationVolumePanel(Histogram_Pane):
         h = self.make_histogram(f, histogram_height, new_marker_color=(1, 1, 1, 1))
         flayout.addWidget(h)
         h.contextMenuEvent = self.show_context_menu
+
+        # Listen for color scheme changes to update histogram colors
+        self._color_scheme_handler = dialog.session.ui.triggers.add_handler(
+            "color scheme changed", self._update_histogram_colors
+        )
 
         # Create planes slider below histogram if requested.
         self._planes_slider_shown = False

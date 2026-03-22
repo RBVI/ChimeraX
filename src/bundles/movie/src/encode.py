@@ -45,21 +45,19 @@ class ffmpeg_encoder:
             else:
                 ffmpeg_cmd = 'ffmpeg'
         if not os.path.isabs(ffmpeg_cmd):
-            import subprocess
-            import sys
-            if sys.platform == "win32" or subprocess.run(["which", "ffmpeg"]).returncode:
-                from chimerax import app_bin_dir
-                path_dirs = os.environ.get('PATH', None)
-                if path_dirs is None:
-                    path_dirs = []
-                else:
-                    path_dirs = path_dirs.split(os.pathsep)
-                    path_dirs.insert(0, app_bin_dir)
-                    for pd in path_dirs:
-                        path = os.path.join(pd, ffmpeg_cmd)
-                        if os.path.exists(path):
-                            ffmpeg_cmd = path
-                            break
+            from chimerax import app_bin_dir
+            path_dirs = os.environ.get('PATH', None)
+            if path_dirs is None:
+                path_dirs = []
+            else:
+                path_dirs = path_dirs.split(os.pathsep)
+            # TODO: Test each ffmpeg we come across for all the features we require
+            path_dirs.append(app_bin_dir)
+            for pd in path_dirs:
+                path = os.path.join(pd, ffmpeg_cmd)
+                if os.path.exists(path):
+                    ffmpeg_cmd = path
+                    break
         self.ffmpeg_cmd = ffmpeg_cmd
 
         self.arg_list = self._buildArgList(output_file, output_format, output_size, video_codec, pixel_format,

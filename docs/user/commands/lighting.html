@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: lighting</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: lighting</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -38,16 +33,18 @@ class="clRighticon" title="User Guide Index"/></a>
 <p>
 The <b>lighting</b> command controls global lighting parameters,
 through individual <a href="#options">options</a> and
-in convenient <a href="#preset">preset</a> combinations.
+in convenient <a href="#preset">lighting preset</a> combinations.
 Related <a href="#model">per-model settings</a> can be adjusted with
 the <b>lighting model</b> command.
 The <a href="material.html"><b>material</b></a> command sets
 material properties for light reflection and whether mesh surfaces and 
-transparent objects cast shadows.
+transparent objects cast shadows. 
+The <a href="../tools/lighting.html"><b>Lighting</b></a> tool is
+a graphical interface for adjusting some of these parameters.
 See also: 
 <a href="preset.html"><b>preset</b></a>,
 <a href="graphics.html"><b>graphics</b></a>,
-<a href="../tools/graphics.html"><b>Graphics</b></a> icons,
+<a href="../tools/graphics.html"><b>Graphics</b> icons</a>,
 <a href="../autostyle.html">automatic styling</a>
 </p><p>
 Given without arguments, <b>lighting</b> reports the current settings in the
@@ -76,45 +73,51 @@ ambient shadowing, or &ldquo;ambient occlusion.&rdquo;
 The <a name="preset"><i>preset</i></a> can be:
 </p>
 <ul>
-<li><b>default</b> or <b>simple</b>
+<li><b>simple</b>
 <a href="../tools/graphics.html" title="Graphics Toolbar">
-<img class="icon" border=1 src="../tools/shortcut-icons/simplelight.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/simplelight.png" alt="computer generated image"></a>
 &ndash; all three kinds of light, but no shadows
 (<a href="#simple">details...</a>)
-<li><b>full</b>
+</li><li><b>default</b>
+&ndash; same as <b>simple</b>, plus lighting colors and directions
+(<a href="#default">details...</a>)
+</li><li><b>full</b>
 <a href="../tools/graphics.html" title="Graphics Toolbar">
-<img class="icon" border=1 src="../tools/shortcut-icons/fulllight.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/fulllight.png" alt="computer generated image"></a>
 &ndash; all three kinds of light, key light with shadows,
 ambient lighting with shadowing from 64 directions
 (<a href="#full">details...</a>)
-<li><b>soft</b>
+</li><li><b>soft</b>
 <a href="../tools/graphics.html" title="Graphics Toolbar">
-<img class="icon" border=1 src="../tools/shortcut-icons/softlight.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/softlight.png" alt="computer generated image"></a>
 &ndash; ambient lighting only, ambient shadowing from 64 directions
 (<a href="#soft">details...</a>)
   <ul>
   <li>to decrease a sooty/smudgy appearance, try <b>gentle</b> instead
 and/or increase the multishadow directions, <i>e.g.</i> with
 <b>lighting <a href="#multiShadow">multiShadow</a> 512</b>
-  <li>in general, however, ambient shadowing works better with
+  </li><li>in general, however, ambient shadowing works better with
   space-filling representations such as surfaces 
   than with more sparse representations such as cartoons and sticks
-  </ul>
-<li><b>gentle</b> 
+  </li></ul>
+</li><li><b>gentle</b> 
 &ndash; same as <b>soft</b>, except tuned to emphasize larger indentations
 (<a href="#gentle">details...</a>)
-<li><b>flat</b> 
+</li><li><b>flat</b> 
 <a href="../tools/graphics.html" title="Graphics Toolbar">
-<img class="icon" border=1 src="../tools/shortcut-icons/flat.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/flat.png" alt="computer generated image"></a>
 &ndash; ambient lighting only, no shadows (<a href="#flat">details...</a>)
   <ul>
   <li>this preset also turns silhouettes <b>on</b>;
 for silhouettes <b>off</b>, use
-<a href="../tools/graphics.html" title="Graphics Toolbar">
-<img class="icon" border=1 src="../tools/shortcut-icons/silhouette.png"></a>
-or <a href="graphics.html#silhouettes"><b>graphics silhouettes false</b></a>
-  </ul>
-</ul>
+the <b>Silhouettes</b> checkbox in 
+<a href="../tools/lighting.html"><b>Lighting</b></a>,
+or toolbar icon <a href="../tools/graphics.html" title="Graphics Toolbar">
+<img class="icon" border="1" src="../tools/shortcut-icons/silhouette.png" alt="computer generated image"></a>,
+or the command
+<a href="graphics.html#silhouettes"><b>graphics silhouettes false</b></a>
+  </li></ul>
+</li></ul>
 <p>
 The detailed settings within a preset can be listed in the 
 <a href="../tools/log.html"><b>Log</b></a> by applying the preset
@@ -125,7 +128,7 @@ based on the size of the first atomic model opened at a time.
 <!-- whenever an atomic model is opened and no others are already present -->
 </p><p>
 The <a href="../tools/graphics.html"><b>Graphics</b></a> icon 
-<a href="../tools/graphics.html" title="Graphics"><img class="icon" border=1 src="../tools/shortcut-icons/shadow.png"></a>&nbsp;
+<a href="../tools/graphics.html" title="Graphics"><img class="icon" border="1" src="../tools/shortcut-icons/shadow.png" alt="computer generated image"></a>&nbsp;
 toggles key-light <a href="#shadows"><b>shadows</b></a>, and if the key light 
 is off, adjusts key-light <a href="#intensity"><b>intensity</b></a> 
 from 0 to 0.5 to show the shadows.
@@ -201,7 +204,7 @@ Set ambient-light color (<b>white</b> in <b>simple</b> lighting).
 <a name="depthCue"></a>
 <b>depthCue</b> &nbsp;true | false
 <br>
-Whether to use depth-cueing, front-to-back shading of the scene
+Whether to use depth-cueing, near-far shading of the scene
 (<b>true</b> in <b>simple</b> lighting).
 See also <a href="#model">per-model settings</a>.
 </blockquote>
@@ -245,10 +248,10 @@ The integer map size <i>M<sub>k</sub></i> can be specified directly
 or <i>via</i> one of the quality settings:
 <ul>
 <li><b>coarse</b> &ndash; map size 1024
-<li><b>normal</b> (as in <b>simple</b> lighting) &ndash; map size 2048
-<li><b>fine</b> &ndash; map size 4096
-<li><b>finer</b> &ndash; map size 8192
-</ul>
+</li><li><b>normal</b> (as in <b>simple</b> lighting) &ndash; map size 2048
+</li><li><b>fine</b> &ndash; map size 4096
+</li><li><b>finer</b> &ndash; map size 8192
+</li></ul>
 </blockquote>
 <blockquote>
 <b>depthBias</b> &nbsp;<i>b<sub>k</sub></i>
@@ -319,7 +322,8 @@ If the setting is globally disabled, the per-model settings will not be evident.
 <b>depthCue</b> &nbsp;true | false
 <br>
 Whether depth-cueing should apply to the specified model(s) when
-depth-cueing is <a href="#depthCue">enabled globally</a>.
+depth-cueing is enabled globally with
+<a href="#depthCue"><b>lighting depthCue true</b></a>.
 </blockquote>
 <blockquote>
 <a name="model-directional"></a>
@@ -337,15 +341,17 @@ but depth-cueing may still apply.
 Whether the key light should cast shadows on the specified model(s).
 This will only have a visible effect when the key light is on
 (<a href="#intensity"><b>intensity</b></a> &gt; 0) and shadows are
-<a href="#shadows">enabled globally</a>.
+enabled globally with
+<a href="#shadows"><b>lighting shadows true</b></a>.
 </blockquote>
 <blockquote>
 <a name="model-multiShadow"></a>
 <b>multiShadow</b> &nbsp;true | false
 <br>
 Whether ambient shadowing should be shown on the specified model(s) 
-when ambient shadowing is <a href="#multiShadow">enabled globally</a>
-(number of directions <i>N</i> &gt; 0).
+when ambient shadowing is enabled globally with
+<a href="#multiShadow"><b>lighting multiShadow <i>N</i></b></a>
+(with number of directions <i>N</i> &gt; 0).
 </blockquote>
 
 <a name="preset-details"></a>
@@ -355,40 +361,39 @@ when ambient shadowing is <a href="#multiShadow">enabled globally</a>
 <h3>Lighting Preset Details</h3>
 
 <a href="#preset" class="nounder">&bull;</a>
-<a name="simple"><b>default</b> or <b>simple</b></a>
+<a name="simple"><b>simple</b></a>
 <a href="../tools/graphics.html" title="Graphics Toolbar">
-<img class="icon" border=1 src="../tools/shortcut-icons/simplelight.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/simplelight.png" alt="computer generated image"></a>
 &ndash; all three kinds of light, but no shadows:
-<blockquote><pre>
-Intensity: 1
-Direction: 0.577,-0.577,-0.577
-Color: 100,100,100
+<blockquote><pre>Intensity: 1
 Fill intensity: 0.5
-Fill direction: -0.2,-0.2,-0.959
-Fill color: 100,100,100
 Ambient intensity: 0.4
-Ambient color: 100,100,100
 Depth cue: 1, start 0.5, end 1, color 0,0,0
 Shadow: False (depth map size 2048, depth bias 0.005)
 Multishadows: 0 (max 1024, depth map size 1024, depth bias 0.01)
 </pre></blockquote>
 
 <a href="#preset" class="nounder">&bull;</a>
+<a name="default"><b>default</b></a> 
+&ndash; same as <a href="#simple"><b>simple</b></a>,
+plus lighting directions and colors:
+<blockquote><pre>Direction: 0.577,-0.577,-0.577
+Color: 100,100,100
+Fill direction: -0.2,-0.2,-0.959
+Fill color: 100,100,100
+Ambient color: 100,100,100
+</pre></blockquote>
+
+<a href="#preset" class="nounder">&bull;</a>
 <a name="full"><b>full</b></a>
 <a href="../tools/graphics.html" title="Graphics Toolbar">
-<img class="icon" border=1 src="../tools/shortcut-icons/fulllight.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/fulllight.png" alt="computer generated image"></a>
 &ndash; all three kinds of light, key light with shadows,
 ambient lighting with shadowing from 64 directions
 (8 in <a href="../vr.html">VR</a>):
-<blockquote><pre>
-Intensity: 0.7
-Direction: 0.577,-0.577,-0.577
-Color: 100,100,100
+<blockquote><pre>Intensity: 0.7
 Fill intensity: 0.3
-Fill direction: -0.2,-0.2,-0.959
-Fill color: 100,100,100
 Ambient intensity: 0.8
-Ambient color: 100,100,100
 Depth cue: 1, start 0.5, end 1, color 0,0,0
 Shadow: True (depth map size 2048, depth bias 0.005)
 Multishadows: 64 (max 1024, depth map size 1024, depth bias 0.01)
@@ -398,18 +403,12 @@ Multishadows: 64 (max 1024, depth map size 1024, depth bias 0.01)
 <a href="#preset" class="nounder">&bull;</a>
 <a name="soft"><b>soft</b></a>
 <a href="../tools/graphics.html" title="Graphics Toolbar">
-<img class="icon" border=1 src="../tools/shortcut-icons/softlight.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/softlight.png" alt="computer generated image"></a>
 &ndash; ambient lighting only, ambient shadowing from 64 directions
 (8 in <a href="../vr.html">VR</a>):
-<blockquote><pre>
-Intensity: 0
-Direction: 0.577,-0.577,-0.577
-Color: 100,100,100
+<blockquote><pre>Intensity: 0
 Fill intensity: 0
-Fill direction: -0.2,-0.2,-0.959
-Fill color: 100,100,100
 Ambient intensity: 1.5
-Ambient color: 100,100,100
 Depth cue: 1, start 0.5, end 1, color 0,0,0
 Shadow: False (depth map size 2048, depth bias 0.005)
 Multishadows: 64 (max 1024, depth map size 1024, depth bias 0.01)
@@ -421,15 +420,9 @@ Multishadows: 64 (max 1024, depth map size 1024, depth bias 0.01)
 &ndash; same as <b>soft</b>, except tuned to emphasize larger indentations
 with <a href="#msMapSize"><b>msMapSize</b></a> <b>128</b> instead of 1024 and
 <a href="#msDepthBias"><b>msDepthBias</b></a> <b>0.05</b> instead of 0.01
-<blockquote><pre>
-Intensity: 0
-Direction: 0.577,-0.577,-0.577
-Color: 100,100,100
+<blockquote><pre>Intensity: 0
 Fill intensity: 0
-Fill direction: -0.2,-0.2,-0.959
-Fill color: 100,100,100
 Ambient intensity: 1.5
-Ambient color: 100,100,100
 Depth cue: 1, start 0.5, end 1, color 0,0,0
 Shadow: False (depth map size 2048, depth bias 0.005)
 Multishadows: 64 (max 1024, depth map size 128, depth bias 0.05)
@@ -438,22 +431,19 @@ Multishadows: 64 (max 1024, depth map size 128, depth bias 0.05)
 <a href="#preset" class="nounder">&bull;</a>
 <a name="flat"><b>flat</b></a>
 <a href="../tools/graphics.html" title="Graphics Toolbar">
-<img class="icon" border=1 src="../tools/shortcut-icons/flat.png"></a>
+<img class="icon" border="1" src="../tools/shortcut-icons/flat.png" alt="computer generated image"></a>
 &ndash; ambient lighting only, no shadows
 (this preset also turns silhouettes <b>on</b>;
 for silhouettes <b>off</b>, use
-<a href="../tools/graphics.html" title="Graphics Toolbar">
-<img class="icon" border=1 src="../tools/shortcut-icons/silhouette.png"></a>
-or <a href="graphics.html#silhouettes"><b>graphics silhouettes false</b></a>):
-<blockquote><pre>
-Intensity: 0
-Direction: 0.577,-0.577,-0.577
-Color: 100,100,100
+the <b>Silhouettes</b> checkbox in 
+<a href="../tools/lighting.html"><b>Lighting</b></a>,
+or toolbar icon <a href="../tools/graphics.html" title="Graphics Toolbar">
+<img class="icon" border="1" src="../tools/shortcut-icons/silhouette.png" alt="computer generated image"></a>,
+or the command
+<a href="graphics.html#silhouettes"><b>graphics silhouettes false</b></a>):
+<blockquote><pre>Intensity: 0
 Fill intensity: 0
-Fill direction: -0.2,-0.2,-0.959
-Fill color: 100,100,100
 Ambient intensity: 1.45
-Ambient color: 100,100,100
 Depth cue: 1, start 0.5, end 1, color 0,0,0
 Shadow: False (depth map size 2048, depth bias 0.005)
 Multishadows: 0 (max 1024, depth map size 1024, depth bias 0.01)
@@ -461,5 +451,6 @@ Multishadows: 0 (max 1024, depth map size 1024, depth bias 0.01)
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-September 2022</address>
+March 2026</address>
+
 </body></html>

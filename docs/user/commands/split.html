@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: split</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: split</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -49,25 +44,26 @@ There is no way to undo this operation except by reopening
 the original data.
 </p><p>
 How to split can be indicated with one or more of the following:
-<ul>
+</p><ul>
 <li><b>chains</b> - by chain ID (default)
-<li><b>ligands</b> - each
+</li><li><b>ligands</b> - each
 <a href="atomspec.html#builtin">ligand</a> in a separate submodel,
 the remaining atoms in another
-<li><b>connected</b> - into covalently bonded sets of atoms
-<li><b>atoms</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
+</li><li><b>connected</b> - into covalently bonded sets of atoms
+</li><li><b>atoms</b> &nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 - can be used multiple times in the same command, for example:
 <blockquote>
 <b>split #1 atoms :1-100 atoms :101-150 atoms :151-200</b>
 </blockquote>
 ... to place each set of specified atoms, 
 as well as the set of unspecified atoms, in a separate submodel.
-</ul>
+</li></ul>
 If none of the above are given, the <b>chains</b> method will be used.
 If there is nothing to split, the original model will be left unaltered.
-</p>
+<p></p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 July 2024</address>
+
 </body></html>

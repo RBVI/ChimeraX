@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,39 +9,35 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Find Cavities</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Find Cavities</h3>
 <p>
 <b>Find Cavities</b> detects cavities or pockets in an atomic structure using 
 <b><i>KVFinder</i></b>, a method based on surface shape, as described in:
-<blockquote>
-<a href="https://www.sciencedirect.com/science/article/pii/S2352711020303198"
-target="_blank">parKVFinder: A thread-level parallel approach in biomolecular cavity detection.</a>
+</p><blockquote>
+<a href="https://www.sciencedirect.com/science/article/pii/S2352711020303198" target="_blank">parKVFinder: A thread-level parallel approach in biomolecular cavity detection.</a>
 Guerra JVDS, Ribeiro-Filho HV, Bortot LO, Honorato RV, Pereira JGC, Lopes-de-Oliveira PS.
 <i>SoftwareX.</i> 2020 Jul-Dec;100606.
 <br>
-<a href="https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-021-04519-4"
-target="_blank">
+<a href="https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-021-04519-4" target="_blank">
 pyKVFinder: an efficient and integrable Python package for biomolecular cavity detection and characterization in data science.</a>
 Guerra JVDS, Ribeiro-Filho HV, Jara GE, Bortot LO, Pereira JGC, Lopes-de-Oliveira PS.
 <i>BMC Bioinformatics.</i> 2021 Dec 20;22(1):607.
 </blockquote>
 <p>
 <b>Find Cavities</b> installs and runs 
-<a href="https://lbc-lnbio.github.io/pyKVFinder/"
-target="_blank"><i>pyKVFinder</i></a> locally. It is also implemented as the
+<a href="https://lbc-lnbio.github.io/pyKVFinder/" target="_blank"><i>pyKVFinder</i></a> locally (it is obtained from
+the <a href="https://pypi.org" target="_blank">PyPi server</a>).
+It is also implemented as the
 <a href="../commands/kvfinder.html"><b>kvfinder</b></a> command.
 The authors of KVFinder (at the Brazilian Biosciences National Lab) also provide
 a <a href="https://kvfinder-web.cnpem.br/" target="_blank">web service</a>,
@@ -52,12 +46,9 @@ See also:
 <a href="../measurements.html">measurements</a>,
 <a href="../tutorials/binding-sites.html">Protein-Ligand Binding Sites
 tutorial</a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html"
-target="_blank">MOLE Channel Coloring tutorial</a>,
-<a href="https://rbvi.github.io/chimerax-recipes/castp/castp.html" 
-target="_blank">recipe for reading CASTp pockets</a>,
-the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#kvfinder"
-target="_blank">ChimeraX Find Cavities highlight</a>
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/mole-channel/mole-channel.html" target="_blank">MOLE Channel Coloring tutorial</a>,
+<a href="https://rbvi.github.io/chimerax-recipes/castp/castp.html" target="_blank">recipe for reading CASTp pockets</a>,
+the <a href="https://www.rbvi.ucsf.edu/chimerax/features.html#kvfinder" target="_blank">ChimeraX Find Cavities highlight</a>
 </p><p>
 Conceptually, the method rolls two spherical probes
 over the VDW spheres of the macromolecule to identify cavities. 
@@ -78,32 +69,51 @@ One or more atomic models should be chosen from the resulting list.
 </p>
 <ul>
 <li><b>Grid spacing</b>
-(initial default <b>0.60</b> &Aring;)
-&ndash; a smaller spacing gives a higher-resolution result, 
-but can significantly increase the calculation time
-<li><b>Inner probe radius</b>
+(initial default <b>0.60</b> &Aring;; must
+be greater than 0.0 and smaller than 5.0)
+&ndash; a value no greater than half the <b>Inner probe radius</b>
+is recommended; decreasing the spacing gives higher resolution, 
+but may also increase the calculation time significantly
+</li><li><b>Inner probe radius</b>
 (initial default <b>1.4</b> &Aring;)
-<li><b>Outer probe radius</b>
+</li><li><b>Outer probe radius</b>
 (initial default <b>4.0</b> &Aring;)
 &ndash; a larger outer probe increases calculation time
-<li><b>Exterior trim distance</b>
+</li><li><b>Exterior trim distance</b>
 (initial default <b>2.4</b> &Aring;)
-<li><b>Minimum cavity volume</b>
+</li><li><b>Minimum cavity volume</b>
 (initial default <b>5.0</b> &Aring;<sup>3</sup>)
-</ul>
+</li></ul>
 <ul>
 <li><b>Save</b> saves the current parameter values as user 
 <a href="../preferences.html#other">preferences</a>
-<li><b>Reset</b> resets the dialog to the initial defaults
+</li><li><b>Reset</b> resets the dialog to the initial defaults
 without changing any preferences
-<li><b>Restore</b> populates the dialog with the last saved preferences
-</ul>
+</li><li><b>Restore</b> populates the dialog with the last saved preferences
+</li></ul>
+<p>
+Additional settings:
+</p><ul>
+<li><b>Restrict search to box around selected atoms with padding [<i>p</i>]</b>
+(default <b>off</b>)
+&ndash; whether to limit the search space to a rectangular box around
+the current <a href="../selection.html">selection</a>, with specified padding
+(default <b>2.0</b> &Aring;)
+</li><li><b>Include selected atoms as part of macromolecule</b> (default <b>off</b>)
+&ndash; whether to consider the current <a href="../selection.html">selection</a>
+(for example, a cofactor) as part of the receptor instead of ignoring it
+</li><li><b>Replace existing results, if any</b> (default <b>on</b>) 
+&ndash; whether to overwrite the cavity dots and
+<a href="#cavitylist">cavity list</a> when the calculation is
+re-run on the same atomic model. Otherwise, a new
+<a href="#cavitylist">cavity list</a> and additional
+cavity models will be created without closing the existing ones.
+</li></ul>
 <p>
 Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
 runs the calculation. The first time the tool is used,
 it may take a little longer to run as
-<a href="https://lbc-lnbio.github.io/pyKVFinder/"
-target="_blank"><i>pyKVFinder</i></a> is installed locally.
+<a href="https://lbc-lnbio.github.io/pyKVFinder/" target="_blank"><i>pyKVFinder</i></a> is installed locally.
 </p><p>
 The results for each atomic model are tabulated
 in a separate <a href="#cavitylist">cavity list</a> window
@@ -111,14 +121,7 @@ and reported in the <a href="log.html"><b>Log</b></a>.
 In the graphics window, the cavities are shown as clouds of points 
 on a grid. These collections of dots are opened as (pseudo)atomic models
 in ChimeraX, each cavity as a separate submodel assigned a unique color.
-</p><p>
-<b>Replace existing results, if any</b> (default <b>on</b>) 
-indicates whether to overwrite the cavity dots and
-<a href="#cavitylist">cavity list</a> when the calculation is
-re-run on the same atomic model. Otherwise, a new
-<a href="#cavitylist">cavity list</a> and additional
-cavity models will be created without closing the existing ones.
-<p><p>
+</p><p></p><p>
 For more details on the method and/or to adjust additional parameters,
 see the <a href="../commands/kvfinder.html"><b>kvfinder</b></a> command.
 </p>
@@ -137,21 +140,21 @@ listing the cavities that were found in the model, with sortable columns:
 <ul>
 <li><b>ID</b> &ndash; cavity model number (these models are also listed
 in the <a href="modelpanel.html"><b>Model Panel</b></a>)
-<li>a color well; click to change the color interactively
-<li><b>Volume</b> &ndash; cavity volume as determined by <b><i>KVFinder</i></b>
-<li><b>Surface Area</b> &ndash; cavity surface area
+</li><li>a color well; click to change the color interactively
+</li><li><b>Volume</b> &ndash; cavity volume as determined by <b><i>KVFinder</i></b>
+</li><li><b>Surface Area</b> &ndash; cavity surface area
 as determined by <b><i>KVFinder</i></b>
-<li><b>Points</b> &ndash; number of grid points in the cavity,
+</li><li><b>Points</b> &ndash; number of grid points in the cavity,
 displayed as (pseudo)atoms in ChimeraX
-<li><b>Average Depth</b> 
+</li><li><b>Average Depth</b> 
 &ndash; average depth of pocket points, 
 <a name="depth"></a>
 where the <b><i>depth</i></b> of a point is its approximate distance
 in &Aring; from the pocket opening. 
 Points in completely enclosed pockets are assigned a zero depth.
-<li><b>Maximum Depth</b> 
+</li><li><b>Maximum Depth</b> 
 &ndash; how far from the opening the pocket extends
-</ul>
+</li></ul>
 <p>
 If a cavity list is closed but the corresponding cavity models still exist,
 the list can be reshown by choosing it from the bottom section of the 
@@ -167,10 +170,10 @@ Chosen rows are highlighted in the dialog, and the following options
 </p>
 <ul>
 <li><b>Focus view on cavity</b>
-<li><b>Show cavity surface</b>
-<li><b>Select cavity points</b> &ndash; <a href="../selection.html">select</a>
+</li><li><b>Show cavity surface</b>
+</li><li><b>Select cavity points</b> &ndash; <a href="../selection.html">select</a>
 the grid points (pseudoatoms) defining the cavity
-<li><b>Select nearby atoms</b> &ndash; <a href="../selection.html">select</a>
+</li><li><b>Select nearby atoms</b> &ndash; <a href="../selection.html">select</a>
 atoms within the specified <a href="#nearby">nearby distance</a>
 of any cavity point
 <!-- may be shown if from previously saved session
@@ -179,30 +182,30 @@ any nearby atoms; although other atoms (not nearby) are not hidden,
 unchecking the option will hide the nearby residues of the currently 
 chosen cavities
 -->
-<li><b>Show contacting residues</b> &ndash; show atoms of the cavity-contacting
+</li><li><b>Show contacting residues</b> &ndash; show atoms of the cavity-contacting
 residues determined by <b><i>KVFinder</i></b>
   <ul>
   <li><b>Include backbone contacts</b> 
 &ndash; whether to include residues with backbone-only contacts in the above
-  </ul>
-</ul>
+  </li></ul>
+</li></ul>
 <p>
 <a name="nearby"></a>
 <b>"Nearby" atoms are within</b> [<i>distance</i>] <b>angstroms
 of cavity points</b>
 &ndash; distance criterion for the <b>nearby</b> checkbox options above
+(initial default <b>3.5</b> &Aring;)
 </p><p>
 <b>Color open cavities by depth from outside</b> 
 &ndash; color cavity points by <a href="#depth">depth</a>
 (assigned as atom <a href="../attributes.html">attribute</a>
 <b>kvfinder_depth</b>) using
 <a href="../commands/color.html#byattribute"><b>color byattribute</b></a>
-with palette <b>bluered</b> <table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=blue width="10px" title="blue"></td>
-<td bgcolor=white width="10px" title="white"></td>
-<td bgcolor=red width="10px" title="red"></td>
-</tr></table> over the full range of values;
+with palette <b>bluered</b> <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="blue" width="10px" title="blue"></td>
+<td bgcolor="white" width="10px" title="white"></td>
+<td bgcolor="red" width="10px" title="red"></td>
+</tr></tbody></table> over the full range of values;
 different colorings can be obtained by reissuing the command with
 different <a href="../commands/color.html#palette-options">palette options</a>
 </p>
@@ -251,5 +254,6 @@ These types of coloring can be combined with surface transparency, for example:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2025</address>
+December 2025</address>
+
 </body></html>

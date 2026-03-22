@@ -28,16 +28,18 @@ from chimerax.core.toolshed import BundleAPI
 from chimerax.core.tools import get_singleton
 from chimerax.lighting_gui.tool import LightingGUI
 
+
 class _LightingGUI(BundleAPI):
-    api_version=1
+    api_version = 1
 
     @staticmethod
     def get_class(class_name):
-        class_names = { "LightingGUI": LightingGUI }
+        class_names = {"LightingGUI": LightingGUI}
         return class_names.get(class_name, None)
 
     @staticmethod
     def start_tool(session, bi, ti):
-        return get_singleton(session, LightingGUI, "Lighting GUI")
+        return get_singleton(session, LightingGUI, "Lighting")
+
 
 bundle_api = _LightingGUI()

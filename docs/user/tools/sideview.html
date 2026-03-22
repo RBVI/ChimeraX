@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,25 +9,22 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Side View</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Side View</h3>
 <p>
 <table class="clRight">
-<tr><td><img class="outline" src="sideview.png" alt="Side View"></td></tr>
-</table>
-<p>
+<tbody><tr><td><img class="outline" src="sideview.png" alt="Side View"></td></tr>
+</tbody></table>
+</p><p>
 The <b>Side View</b> tool provides an intuitive way to zoom
 the view and to control the <b>near</b> and <b>far</b> clipping planes, 
 which always remain perpendicular to the line of sight.
@@ -41,15 +36,15 @@ See also:
 <a href="../commands/camera.html"><b>camera</b></a>,
 <a href="../commands/ui.html#mousemode"><b>mousemode</b></a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
-<img class="icon" border=1 src="../tools/mouse-icons/zoom.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/zoom.png" alt="computer generated image"></a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
-<img class="icon" border=1 src="../tools/mouse-icons/clip.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/clip.png" alt="computer generated image"></a>
 <a href="../tools/mousemodes.html" title="Right Mouse Toolbar...">
-<img class="icon" border=1 src="../tools/mouse-icons/cliprot.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/cliprot.png" alt="computer generated image"></a>
 </p><p>
 The <b>Side View</b> can be opened from the <b>Tools</b> menu
 or by clicking the <a href="graphics.html"><b>Graphics</b></a> icon
-<img class="icon" src="toolbar-icons/sideview.png">.
+<img class="icon" src="toolbar-icons/sideview.png" alt="computer generated image">.
 Like other tools, it can be
 <a href="../window.html#panels">moved, resized, <i>etc.</i></a>
 </p>
@@ -57,15 +52,15 @@ Like other tools, it can be
 <li>The square on the left represents the viewer or <b>eye position</b>.
 It can be dragged horizontally to adjust the zoom.
 <br><br>
-<li>The vertical lines represent the <b>near</b> and <b>far</b>
+</li><li>The vertical lines represent the <b>near</b> and <b>far</b>
 <a href="../commands/clip.html">clipping planes</a>.
 Dragging either line activates (as needed) and moves the corresponding plane.
 <br><br>
-<li>The lines emanating from the eye position show the field of vision.
+</li><li>The lines emanating from the eye position show the field of vision.
 The lines diverge when perspective is used (default),
 but are parallel to each other in the orthographic
 <a href="../commands/camera.html">camera mode</a>.
-</ul>
+</li></ul>
 <p>
 The <b>clip</b> checkboxes indicate whether the <b>near</b> and/or <b>far</b>
 clipping planes are active.
@@ -78,8 +73,27 @@ Capping of clipped surfaces can be controlled
 with a <a href="../preferences.html">preference</a> setting and/or the
 <a href="../commands/surface.html#cap"><b>surface cap</b></a> command.
 </p>
+<!-- 
+Details from Tom Goddard Nov 2025:
+When you have not moved the front and back clipping planes, they are 
+positioned in front and behind all the displayed models. The front and back 
+clip planes are usually not at the very front-most and back-most atom.
+Here is how they are computed. Each model has a rectangular bounding box 
+which just touches the atom rendering at the x,y,z edges. All those 
+displayed model boxes are combined into one box that contains them all.
+The center of that box plus or minus one box radius (= radius of sphere 
+containing the box) is where the front and back clip planes are positioned 
+when the clip planes have not been manually moved. These rules for 
+determining the front and back positions mean that usually there is a 
+good bit of empty space between the front/back clip planes and the 
+actual models since the molecules are not rectangular in shape and even 
+if they were, a sphere bounding the rectangular box is used to position 
+the front/back planes (so that viewing from different directions does 
+not move the clip plane in and out).
+-->
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 May 2020</address>
+
 </body></html>

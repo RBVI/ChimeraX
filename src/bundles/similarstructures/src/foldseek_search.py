@@ -358,6 +358,7 @@ def parse_search_result(line, database):
         db = 'afdb'
     values['database'] = db
     values['coordinate_indexing'] = True	# Alignment indexing includes only residues with coordinates
+    values['foldseek release'] = 10		# Handle changed output for different foldseek version
     return values
 
 def parse_pdb100_theader(theader):
@@ -398,24 +399,45 @@ def parse_pdb100_theader(theader):
     return values
 
 def parse_alphafold_theader(theader):
-    '''Example: "AF-A7E3S4-F1-model_v4 RAF proto-oncogene serine/threonine-protein kinase"'''
-    fields = theader.split('-')
-    if fields[0] != 'AF':
+    '''
+    Example: "AF-A7E3S4-F1-model_v4 RAF proto-oncogene serine/threonine-protein kinase"
+    Examble with isoform 2: "AF-Q8N9C0-2-F1-model_v6 Immunoglobulin superfamily member 22"
+    '''
+    id_descrip = theader.split(' ', maxsplit=1)
+    af_id = id_descrip[0]
+    descrip = id_descrip[1] if len(id_descrip) == 2 else ''
+    id_fields = af_id.split('-')
+    if len(id_fields) < 4:
         from chimerax.core.errors import UserError
-        raise UserError(f'Foldseek results target header "{theader}" did not start with "AF-"')
-
-    if len(fields) < 3 or not fields[2].startswith('F'):
+        raise UserError(f'Foldseek results AlphaFold header "{theader}" did not have at least 4 "-" separated fields')
+        
+    if id_fields[0] != 'AF':
         from chimerax.core.errors import UserError
-        raise UserError(f'Foldseek results target header "{theader}" did not have 3rd "-" separated field starting with "F"')
+        raise UserError(f'Foldseek results AlphaFold header "{theader}" did not start with "AF-"')
 
-    if len(fields) < 4 or  not fields[3].startswith('model_v'):
+    uniprot_id = id_fields[1]
+    
+    if len(id_fields) == 5:
+        isoform = id_fields[2]
+        ifrag = 3
+    else:
+        isoform = None
+        ifrag = 2
+
+    if not id_fields[ifrag].startswith('F'):
         from chimerax.core.errors import UserError
-        raise UserError(f'Foldseek results target header "{theader}" did not have 4th "-" separated field starting with "model_v"')
+        raise UserError(f'Foldseek results Alphafold header "{theader}" did not have fragment identifier start wiht "F" in "-" separated field {ifrag+1}')
+    fragment = id_fields[ifrag]
+    
+    if not id_fields[ifrag+1].startswith('model_v'):
+        from chimerax.core.errors import UserError
+        raise UserError(f'Foldseek results AlphaFold header "{theader}" did not have "model_v" at "-" separated field {ifrag+1}')
+    version = id_fields[ifrag+1][7:]
 
-    version, descrip = fields[3][7:].split(' ', maxsplit=1)
     values = {
-        'alphafold_id': fields[1],
-        'alphafold_fragment': fields[2],
+        'alphafold_id': uniprot_id,
+        'alphafold_isoform': isoform,
+        'alphafold_fragment': fragment,
         'alphafold_version': version,
         'description': descrip,
     }

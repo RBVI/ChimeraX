@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: hkcage</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: hkcage</h3>
 
@@ -55,9 +50,8 @@ is proportional to the number of subunits in the capsid.
 <a href="http://viperdb.scripps.edu/" target="_blank">VIPERdb</a>
 includes viruses with T = 1, 3, 4, 7, 13, and in a few cases, even higher.
 For more details, see the
-<a href="http://viperdb.scripps.edu/icos_server.php?icspage=paradigm"
-target="_blank">VIPERdb description</a> and the following reference:
-<blockquote>
+<a href="http://viperdb.scripps.edu/icos_server.php?icspage=paradigm" target="_blank">VIPERdb description</a> and the following reference:
+</p><blockquote>
 <a href="https://www.ncbi.nlm.nih.gov/pubmed/9223631" target="_blank">
 Quasi-equivalent viruses: a paradigm for protein assemblies.</a>
 Johnson JE, Speir JA.
@@ -65,7 +59,7 @@ Johnson JE, Speir JA.
 </blockquote>
 The arguments <i>h</i> and <i>k</i> are required;
 each can be a positive integer or zero, but not both zero at the same time.
-</p><p>
+<p></p><p>
 The basic T number equation describes lattices built from repeats 
 of the same asymmetric unit. However, expanded versions of the lattices 
 are possible for capsids with vertices occupied by different proteins 
@@ -89,7 +83,7 @@ are formed by two straight segments rather than one.
 [<a href="#top">back to top: hkcage</a>]
 </p>
 <h4>Options</h4>
-</a>
+
 <blockquote>
   <b>radius</b> &nbsp;<i>cage-radius</i>
   <br>
@@ -111,14 +105,14 @@ The <i>type</i> of icosahedral orientation can be:
   <ul>
   <li><b>222</b> (default)
    &ndash; with two-fold symmetry axes along the X, Y, and Z axes
-  <li>2n5 &ndash; with two-fold symmetry along X and 5-fold along Z
-  <li>n25 &ndash; with two-fold symmetry along Y and 5-fold along Z
-  <li>2n3 &ndash; with two-fold symmetry along X and 3-fold along Z
-  <li>222r &ndash; same as 222 except rotated 90&deg; about Z
-  <li>2n5r &ndash; same as 2n5 except rotated 180&deg; about Y
-  <li>n25r &ndash; same as n25 except rotated 180&deg; about X
-  <li>2n3r &ndash; same as 2n3 except rotated 180&deg; about Y
-  </ul>
+  </li><li>2n5 &ndash; with two-fold symmetry along X and 5-fold along Z
+  </li><li>n25 &ndash; with two-fold symmetry along Y and 5-fold along Z
+  </li><li>2n3 &ndash; with two-fold symmetry along X and 3-fold along Z
+  </li><li>222r &ndash; same as 222 except rotated 90&deg; about Z
+  </li><li>2n5r &ndash; same as 2n5 except rotated 180&deg; about Y
+  </li><li>n25r &ndash; same as n25 except rotated 180&deg; about X
+  </li><li>2n3r &ndash; same as 2n3 except rotated 180&deg; about Y
+  </li></ul>
 </blockquote>
 <blockquote>
   <b>sphereFactor</b> &nbsp;<i>f</i>
@@ -151,23 +145,22 @@ Twarock R, Luque A.
 <p>
 The <b>alpha</b> option allows creating such expanded lattices,
 with choices for <i>alphatype</i>
-(see <a href="https://www.nature.com/articles/s41467-019-12367-3#Fig2"
-target="_blank">Fig. 2</a> in the paper):
-<ul>
+(see <a href="https://www.nature.com/articles/s41467-019-12367-3#Fig2" target="_blank">Fig. 2</a> in the paper):
+</p><ul>
 <li><b>hexagonal</b> (default)
-<li>hexagonal-dual
-<li>rhomb
-<li>rhomb-dual
-<li>trihex
-<li>trihex-dual
-<li>snub
-<li>snub-dual
-</ul>
-</p>
+</li><li>hexagonal-dual
+</li><li>rhomb
+</li><li>rhomb-dual
+</li><li>trihex
+</li><li>trihex-dual
+</li><li>snub
+</li><li>snub-dual
+</li></ul>
+<p></p>
 Thanks to the <a href="https://www.luquelab.com" target="_blank">Luque Lab</a>
 at San Diego State University for developing the code for this option, with
 funding from the <a href="https://www.nsf.gov/" target="_blank">NSF</a>.
-</p>
+<p></p>
 </blockquote>
 <blockquote>
   <b>color</b> &nbsp;<a href="colornames.html"><i>color-spec</i></a>
@@ -195,4 +188,5 @@ the new one rather than opening an additional model.
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 November 2021</address>
+
 </body></html>

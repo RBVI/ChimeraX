@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Sequence-Coloring Format</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3>Sequence Coloring Format</h3>
 <p>
@@ -35,9 +30,8 @@ to the sequence window and colors the corresponding residues of any
 <a href="../tools/sequenceviewer.html#association">associated</a> structures.
 </p><p>
 SCF files were first written by the program JEvTrace: 
-<blockquote>
-<a href="https://link.springer.com/article/10.1186/gb-2002-3-12-research0077"
-target="_blank">
+</p><blockquote>
+<a href="https://link.springer.com/article/10.1186/gb-2002-3-12-research0077" target="_blank">
 JEvTrace: refinement and variations of the evolutionary trace in JAVA.</a>
 Joachimiak MP, Cohen FE. <i>Genome Biol.</i> 2002;3(12):RESEARCH0077.
 </blockquote>
@@ -46,7 +40,7 @@ Joachimiak MP, Cohen FE. <i>Genome Biol.</i> 2002;3(12):RESEARCH0077.
 for display in Chimera (and now ChimeraX).
 They can also be generated &ldquo;by hand&rdquo; in a text editor
 or programmatically.
-</p><p>
+<p></p><p>
 The <a href="../tools/sequenceviewer.html#regions">regions</a> may contain 
 any subset of residues in any subset of the sequences shown in the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
@@ -67,8 +61,7 @@ and the <b>red, green, and blue components of the color</b>,
 each on a scale from 0 to 255.
 Example:
 </p>
-<blockquote><pre>
-337    0      0     0   255  # column 338
+<blockquote><pre>337    0      0     0   255  # column 338
 340    1      0   255   255 
 338    9    255   255     0
 </pre></blockquote>
@@ -83,8 +76,7 @@ in the ninth sequence.
 The <b><i>newer format</i></b> is similar,
 but contains additional columns for easier specification 
 of residue and sequence ranges.  Example:
-<blockquote><pre>
-8   28    -1     -1    0   255   255      
+</p><blockquote><pre>8   28    -1     -1    0   255   255      
 8   28    9     9    255   175   175    // pinkish
 8   28    10     10    255   175   175   // pinkish
 </pre></blockquote>
@@ -100,8 +92,9 @@ the <b>red, green, and blue components of the color</b>,
 each on a scale from 0 to 255.
 The example creates a region named &ldquo;pinkish&rdquo; 
 spanning positions 9-29 in the ninth and tenth sequences.
-</p>
+<p></p>
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
 June 2018</address>
+
 </body></html>

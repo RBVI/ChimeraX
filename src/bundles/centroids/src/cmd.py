@@ -57,6 +57,12 @@ class CentroidModel(Structure, SimpleMeasurable):
         a.string = lambda a=a, **kw: simplified_string(a, **kw)
         return inst
 
+    def restore_scene(self, scene_data):
+        super().restore_scene(scene_data['base data'])
+
+    def interpolate_scene(self, scene1_data, scene2_data, *args, **kw):
+        super().interpolate_scene(scene1_data['base data'], scene2_data['base data'], *args, **kw)
+
 from . import centroid
 
 def cmd_centroid(session, atoms=None, *, id=None, mass_weighting=False, name="centroid", color=None,

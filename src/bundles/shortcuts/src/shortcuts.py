@@ -1077,11 +1077,10 @@ def show_sequence(atoms):
         chains_by_struct = {}
         for c in schains:
             chains_by_struct.setdefault(c.structure, []).append(c)
-        seq_chain_spec = ''.join('#%s/%s' % (s.id_string, ','.join(c.chain_id for c in sclist))
+        seq_chain_spec = ''.join('#%s/%s' % (s.id_string, ','.join(["?" if c.chain_id.isspace() else c.chain_id for c in sclist]))
                                  for s,sclist in chains_by_struct.items())
-        # Don't log since sequence commmand syntax has not been finalized.
         session = schains[0].structure.session
-        run(session, 'sequence chain %s' % seq_chain_spec, log = False)
+        run(session, 'sequence chain %s' % seq_chain_spec)
 
 def list_keyboard_shortcuts(session):
     t = shortcut_descriptions(session.keyboard_shortcuts, html = True)

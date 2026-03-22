@@ -182,6 +182,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         const Neighbors& neighbors()
         int num_explicit_bonds()
         float occupancy()
+        float occupancy(char)
         object py_instance(bool)
         float radius()
         Residue* residue()
@@ -200,7 +201,7 @@ cdef extern from "<atomstruct/Atom.h>" namespace "atomstruct":
         void set_color(Rgba.Channel, Rgba.Channel, Rgba.Channel, Rgba.Channel)
         void set_coord(const cycoord.Point&)
         void set_coord(const cycoord.Point&, CoordSet*)
-        void set_coord_index(unsigned int) except +
+        void set_coord_index(unsigned int, bool) except +
         void set_display(bool)
         void set_draw_mode(DrawMode)
         void set_element(const cyelem.Element&)

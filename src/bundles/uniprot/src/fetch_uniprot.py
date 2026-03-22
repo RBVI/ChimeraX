@@ -41,12 +41,12 @@ def fetch_uniprot(session, ident, ignore_cache=False, *, associate=None):
         session.logger.status("Fetch of %s cancelled" % ident)
         return
     from chimerax.atomic import Sequence
-    seq = Sequence(name=ident)
+    seq = Sequence(name=ident, is_reference=True)
     seq.extend(seq_string)
     seq.accession_id["UniProt"] = accession
     seq.set_features("UniProt", expand_features(features))
     session.logger.status("Opening UniProt %s" % ident)
-    aln = session.alignments.new_alignment([seq], ident, auto_associate=(associate is None), copy_seqs=False)
+    aln = session.alignments.new_alignment([seq], ident, auto_associate=(associate is None))
     if associate is not None:
         for chain in associate:
             aln.associate(chain, min_length=2)
@@ -198,6 +198,8 @@ def expand_features(features):
             if begin is None or end is None:
                 continue
             blocks.append((begin, end))
+        if not blocks: # there may be no blocks where both ends are known; ticket #19086
+            continue
         if 'bond' in ftype:
             old_blocks = blocks[:]
             blocks = []

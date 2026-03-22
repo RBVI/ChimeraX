@@ -2,7 +2,7 @@ from . import using_pyqt6, using_pyqt5, using_pyside2, using_pyside6
 
 if using_pyqt6:
     from PyQt6.QtWebEngineCore import *
-    from .promote_enums import promote_enums
+    from .promote_enums import promote_enums_pyqt as promote_enums
     from PyQt6 import QtWebEngineCore
     promote_enums(QtWebEngineCore)
     del QtWebEngineCore
@@ -19,3 +19,8 @@ elif using_pyside2:
 
 elif using_pyside6:
     from PySide6.QtWebEngineCore import *
+
+    from .promote_enums import promote_enums_pyside as promote_enums
+    from PySide6 import QtWebEngineCore
+    promote_enums(QtWebEngineCore)
+    del QtWebEngineCore

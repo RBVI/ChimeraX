@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .fetch_uniprot import map_uniprot_ident
+from .fetch_uniprot import map_uniprot_ident, InvalidAccessionError
 
 from chimerax.core.toolshed import BundleAPI
 

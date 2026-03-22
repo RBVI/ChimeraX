@@ -38,7 +38,7 @@ jobs:
       matrix:
         os: [macos-latest]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - name: Set up Homebrew
@@ -95,6 +95,7 @@ jobs:
           cp utils/build/wheel/make_init.py build/wheel
           cp utils/build/wheel/setup.py build/wheel
           cp utils/build/wheel/filter_modules.py build/wheel
+          cp utils/import_excludes.py build/wheel
           cp utils/build/wheel/make_init.py build/wheel
       - name: Remove UI files and add an __init__.py
         run: |

@@ -382,7 +382,7 @@ Residue::is_missing_heavy_template_atoms(bool no_template_okay) const
         os << "No residue template found for " << name();
         throw tmpl::TA_NoTemplate(os.str());
     }
-    // pretty unsophicated check upcoming; check both have the same number of heavy atoms
+    // pretty unsophisticated check upcoming; check both have the same number of heavy atoms
     // and then check they have the same elements.  No name or connectivity checking
     std::map<int, int> res_heavys;
     std::map<int, int> tmpl_heavys;

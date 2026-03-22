@@ -144,7 +144,8 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
 
     res_num : bool
         Controls whether residue sequence numbers are included in the substructure name.
-        Since Sybyl Mol2 files include them, this defaults to True.
+        Despite Sybyl Mol2 files including them, this defaults to False because before ViewDock
+        Mol2 reading got improved it lead to ugly residue names.
 
     gaff_type : bool
        If 'gaff_type' is True, outout GAFF atom types instead of Sybyl atom types.

@@ -54,11 +54,17 @@ def button_row(parent, name_and_callback_list,
     return f
 
 def row_frame(parent, spacing = 5):
-    from Qt.QtWidgets import QFrame, QHBoxLayout
+    return _frame_with_layout(parent, spacing=spacing)
+
+def column_frame(parent, spacing = 5):
+    return _frame_with_layout(parent, spacing=spacing, horizontal=False)
+
+def _frame_with_layout(parent, spacing = 5, horizontal = True):
+    from Qt.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout
     f = QFrame(parent)
     parent.layout().addWidget(f)
 
-    layout = QHBoxLayout(f)
+    layout = QHBoxLayout(f) if horizontal else QVBoxLayout(f)
     layout.setContentsMargins(0,0,0,0)
     layout.setSpacing(spacing)
     return f, layout

@@ -25,11 +25,28 @@
 from chimerax.core.errors import LimitationError, UserError
 import pyKVFinder
 
-def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, grid_spacing=0.6,
-        probe_in=1.4, probe_out=4.0, removal_distance=2.4, show_box=True, show_tool=True, surface_type='SES',
-        replace=True, volume_cutoff=5.0):
+def cmd_kvfinder(session, structures=None, *, box_atoms=None, box_extent=None, box_origin=None, box_pad=2,
+        grid_spacing=0.6, include_atoms=None, probe_in=1.4, probe_out=4.0, removal_distance=2.4,
+        show_box=True, show_tool=True, surface_type='SES', replace=True, volume_cutoff=5.0):
     if [box_origin, box_extent].count(None) == 1:
         raise UserError("Must specify both 'boxOrigin' and 'boxExtent' or neither")
+    if box_atoms is not None:
+        if [box_origin, box_extent].count(None) < 2:
+            raise UserError("Cannot specify either 'boxOrigin' or 'boxExtent' if specifying 'boxAtoms'")
+        if len(box_atoms) == 0:
+            raise UserError("No atoms specified by 'box_atoms' argument")
+        from chimerax.geometry import sphere_bounds
+        bounds = sphere_bounds(box_atoms.coords, box_atoms.radii + box_pad)
+        from numpy import array, float64
+        box_extent = array(bounds.size(), float64)
+        box_origin = array(bounds.center(), float64) - box_extent/2
+    if include_atoms is not None:
+        if len(include_atoms) == 0:
+            raise UserError("No atoms specified by 'include_atoms' argument")
+        include_atoms = include_atoms.filter(include_atoms.structure_categories != "main")
+        if len(include_atoms) == 0:
+            session.logger.warning("Atoms specified by 'include_atoms' are already part of receptor")
+            include_atoms = None
     from chimerax.atomic import all_atomic_structures, Structure, Atom, Residues
     for attr_name in ["area", "volume", "max_depth", "average_depth"]:
         Structure.register_attr(session, "kvfinder_" + attr_name, "KVFinder", attr_type=float)
@@ -42,14 +59,19 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
     import numpy
     return_values = []
     cavity_group_name = "cavities"
+    cavity_box_name = "cavity search box"
     for s in structures:
         session.logger.status("Find Cavities for %s: preparing KVFinder input" % s)
         insert_codes = s.residues.insertion_codes
         if len(insert_codes[insert_codes != '']) > 0:
             session.logger.warning("%s contains residue insertion codes; KVFinder may not work correctly"
                 % s)
-        struct_input, vertices = prep_input(s, box_origin, box_extent, show_box,
-            probe_in, probe_out, grid_spacing)
+        if replace:
+            for child in s.child_models():
+                if child.name == cavity_box_name:
+                    session.models.close([child])
+        struct_input, vertices = prep_input(s, include_atoms, box_origin, box_extent, show_box,
+            cavity_box_name, probe_in, probe_out, grid_spacing)
         session.logger.status("Find Cavities for %s: getting grid dimensions" % s)
         nx, ny, nz = pyKVFinder.grid._get_dimensions(vertices, grid_spacing)
         sincos = pyKVFinder.grid._get_sincos(vertices)
@@ -105,21 +127,26 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
         from chimerax.core.colors import distinguish_from
         for i in range(num_cavities):
             cav_s = Structure(session, name="cavity %d" % (i+1), auto_style=False, log_info=False)
-            r = cav_s.new_residue("CAV", "cavity", 1)
+            try:
+                r = cav_s.new_residue("CAV", "cavity", 1)
+                rgb = distinguish_from(used_colors, num_candidates=5, seed=71428)
+                used_colors.append(rgb)
+                model_lookup[i+2] = (cav_s, r, rgb + (1.0,))
+                # map 'KXX"-indexed volume/area to usable indices
+                k_index = pyKVFinder.grid._get_cavity_name(i)
+                cav_s.kvfinder_area = k_area[k_index]
+                cav_s.kvfinder_volume = k_volume[k_index]
+                cav_s.kvfinder_max_depth = max_depth[k_index]
+                cav_s.kvfinder_average_depth = avg_depth[k_index]
+                contacting[cav_s] = contacting[k_index]
+                non_backbone_contacting[cav_s] = non_backbone_contacting[k_index]
+                del contacting[k_index]
+                del non_backbone_contacting[k_index]
+            except BaseException:
+                cav_s.delete()
+                session.models.remove([cavity_group])
+                raise
             cavity_group.add([cav_s])
-            rgb = distinguish_from(used_colors, num_candidates=5, seed=71428)
-            used_colors.append(rgb)
-            model_lookup[i+2] = (cav_s, r, rgb + (1.0,))
-            # map 'KXX"-indexed volume/area to usable indices
-            k_index = pyKVFinder.grid._get_cavity_name(i)
-            cav_s.kvfinder_area = k_area[k_index]
-            cav_s.kvfinder_volume = k_volume[k_index]
-            cav_s.kvfinder_max_depth = max_depth[k_index]
-            cav_s.kvfinder_average_depth = avg_depth[k_index]
-            contacting[cav_s] = contacting[k_index]
-            non_backbone_contacting[cav_s] = non_backbone_contacting[k_index]
-            del contacting[k_index]
-            del non_backbone_contacting[k_index]
         origin, *args = vertices
         assert (nx, ny, nz) == cavity_matrix.shape
         # Using the explicit triple loop instead of more numpy-like code, because AFAICT the
@@ -205,19 +232,23 @@ def cmd_kvfinder(session, structures=None, *, box_extent=None, box_origin=None, 
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, Float3Arg, FloatArg, EnumOf, BoolArg
-    from chimerax.atomic import AtomicStructuresArg
+    from chimerax.core.commands import Bounded, PositiveFloatArg, NonNegativeFloatArg
+    from chimerax.atomic import AtomicStructuresArg, AtomsArg
     kw = {
         'required': [('structures', Or(AtomicStructuresArg, EmptyArg))],
         'keyword': [
+            ('box_atoms', AtomsArg),
             ('box_extent', Or(Float3Arg, FloatArg)),
             ('box_origin', Float3Arg),
-            ('probe_in', FloatArg),
-            ('probe_out', FloatArg),
+            ('box_pad', NonNegativeFloatArg),
+            ('grid_spacing', Bounded(FloatArg, min=0, max=5, inclusive=False, name="a number > 0 and < 5")),
+            ('include_atoms', AtomsArg),
+            ('probe_in', PositiveFloatArg),
+            ('probe_out', PositiveFloatArg),
             ('removal_distance', FloatArg),
             ('replace', BoolArg),
             ('show_box', BoolArg),
             ('show_tool', BoolArg),
-            ('grid_spacing', FloatArg),
             ('surface_type', EnumOf(['SAS', 'SES'])),
             ('volume_cutoff', FloatArg),
         ]

@@ -482,7 +482,8 @@ def _set_appearance(session, participant, name, color, face_image):
         p.name = settings.name
 
     if color is not None:
-        p.color = settings.color = color
+        c = tuple(int(r) for r in color)  # Avoid uint8 which msgpack won't handle.
+        p.color = settings.color = c
         save_settings = True
     else:
         p.color = settings.color

@@ -158,6 +158,11 @@ class FeatureBrowser:
             feature_chooser.set_state(state['feature_chooser'])
         feature_chooser.itemSelectionChanged.connect(self._feature_selection_changed)
 
+    def region_notification(self, category, region):
+        if category == "border color" or category == "interior color":
+            if len(self._selected_regions) == 1 and self._selected_regions[0] == region:
+                self._update_colors_area()
+
     @property
     def selected_regions(self):
         return self._selected_regions

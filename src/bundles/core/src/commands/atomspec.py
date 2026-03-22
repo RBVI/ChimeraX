@@ -89,6 +89,29 @@ _terminator = re.compile(r"[;\s]")  # semicolon or whitespace
 
 MAX_STACK_DEPTH = 10000000
 
+_rlimit_set = False
+def max_cpp_stack():
+    global _rlimit_set
+    if not _rlimit_set:
+        _rlimit_set = True
+        try:
+            import resource
+        except ImportError:
+            pass
+        else:
+            try:
+                soft, hard = resource.getrlimit(resource.RLIMIT_STACK)
+            except OSError:
+                pass
+            except ValueError:
+                pass
+            else:
+                try:
+                    resource.setrlimit(resource.RLIMIT_STACK, (hard, hard))
+                except ValueError:
+                    pass
+                except OSError:
+                    pass
 
 @contextmanager
 def maximum_stack(max_depth=MAX_STACK_DEPTH):
@@ -100,6 +123,12 @@ def maximum_stack(max_depth=MAX_STACK_DEPTH):
     sys.setrecursionlimit(save_current_limit)
 
 
+class PeglibParseError(ValueError):
+    pass
+
+class PeglibSemanticsError(ValueError):
+    pass
+
 class AtomSpecArg(Annotation):
     """Command line type annotation for atom specifiers.
 
@@ -108,6 +137,8 @@ class AtomSpecArg(Annotation):
     """
     name = "an atom specifier"
     url = "help:user/commands/atomspec.html"
+
+    use_peglib_parser = False
 
     @classmethod
     def parse(cls, text, session):
@@ -144,28 +175,41 @@ class AtomSpecArg(Annotation):
         from .cli import unescape_with_index_map
         token, index_map = unescape_with_index_map(text[start + 1:end - 1])
         # Create parser and parse converted token
-        from ._atomspec import _atomspecParser
-        parser = _atomspecParser(parseinfo=True)
-        semantics = _AtomSpecSemantics(session, add_implied=add_implied)
-        from grako.exceptions import FailedParse, FailedSemantics
-        try:
-            with maximum_stack():
-                ast = parser.parse(token, "atom_specifier", semantics=semantics)
-        except FailedSemantics as e:
-            from .cli import AnnotationError
-            raise AnnotationError(str(e), offset=e.pos)
-        except FailedParse as e:
-            from .cli import AnnotationError, discard_article
-            # Add one to offset for leading quote
-            offset = index_map[e.pos]
-            message = 'invalid ' + discard_article(cls.name)
-            if str(e.message) != 'no available options':
-                message = '%s: %s' % (message, e.message)
-            raise AnnotationError(message, offset=offset)
+        if cls.use_peglib_parser:
+            max_cpp_stack()
+            from chimerax.core._spec_parser import parse
+            try:
+                with maximum_stack():
+                    ast = parse(session, token, PeglibParseError, PeglibSemanticsError, add_implied)
+            except (PegilbParseError, PeglibSemanticsError) as e:
+                from .cli import AnnotationError
+                raise AnnotationError(e.args[1], offset=e.args[0])
+            else:
+                end = len(token)
+        else:
+            from ._atomspec import _atomspecParser
+            parser = _atomspecParser(parseinfo=True)
+            semantics = _AtomSpecSemantics(session, add_implied=add_implied)
+            from grako.exceptions import FailedParse, FailedSemantics
+            try:
+                with maximum_stack():
+                    ast = parser.parse(token, "atom_specifier", semantics=semantics)
+            except FailedSemantics as e:
+                from .cli import AnnotationError
+                raise AnnotationError(str(e), offset=e.pos)
+            except FailedParse as e:
+                from .cli import AnnotationError, discard_article
+                # Add one to offset for leading quote
+                offset = index_map[e.pos]
+                message = 'invalid ' + discard_article(cls.name)
+                if str(e.message) != 'no available options':
+                    message = '%s: %s' % (message, e.message)
+                raise AnnotationError(message, offset=offset)
+            end = ast.parseinfo.endpos
         # Must consume everything inside quotes
-        if ast.parseinfo.endpos != len(token):
+        if end != len(token):
             from .cli import AnnotationError
-            offset = index_map[ast.parseinfo.endpos] + 1
+            offset = index_map[end] + 1
             raise AnnotationError("mangled atom specifier", offset=offset)
         # Success!
         return ast, consumed, rest
@@ -183,24 +227,36 @@ class AtomSpecArg(Annotation):
             parse_text = text
             add_implied = True
             text_offset = 0
-        from ._atomspec import _atomspecParser
-        parser = _atomspecParser(parseinfo=True)
-        semantics = _AtomSpecSemantics(session, add_implied=add_implied)
-        from grako.exceptions import FailedParse, FailedSemantics
-        try:
-            with maximum_stack():
-                ast = parser.parse(parse_text, "atom_specifier", semantics=semantics)
-        except FailedSemantics as e:
-            from .cli import AnnotationError
-            raise AnnotationError(str(e), offset=e.pos)
-        except FailedParse as e:
-            from .cli import AnnotationError, discard_article
-            message = 'invalid ' + discard_article(cls.name)
-            if str(e.message) != 'no available options':
-                message = '%s: %s' % (message, e.message)
-            raise AnnotationError(message, offset=e.pos)
-
-        end = ast.parseinfo.endpos
+        if cls.use_peglib_parser:
+            max_cpp_stack()
+            from chimerax.core._spec_parser import parse
+            try:
+                ast = parse(session, parse_text, PeglibParseError, PeglibSemanticsError, add_implied)
+            except PeglibParseError as e:
+                end = e.args[0][0]
+            except PeglibSemanticsError as e:
+                from .cli import AnnotationError
+                raise AnnotationError(e.args[1], offset=e.args[0])
+            else:
+                end = len(parse_text)
+        else:
+            from ._atomspec import _atomspecParser
+            parser = _atomspecParser(parseinfo=True)
+            semantics = _AtomSpecSemantics(session, add_implied=add_implied)
+            from grako.exceptions import FailedParse, FailedSemantics
+            try:
+                with maximum_stack():
+                    ast = parser.parse(parse_text, "atom_specifier", semantics=semantics)
+            except FailedSemantics as e:
+                from .cli import AnnotationError
+                raise AnnotationError(str(e), offset=e.pos)
+            except FailedParse as e:
+                from .cli import AnnotationError, discard_article
+                message = 'invalid ' + discard_article(cls.name)
+                if str(e.message) != 'no available options':
+                    message = '%s: %s' % (message, e.message)
+                raise AnnotationError(message, offset=e.pos)
+            end = ast.parseinfo.endpos
         if end == 0:
             from .cli import AnnotationError
             raise AnnotationError("not an atom specifier")
@@ -374,7 +430,7 @@ class _AtomSpecSemantics:
         if not attr_list:
             return _AttrList([attr_test])
         else:
-            return attr_list.insert(0, attr_test)
+            return _AttrList([attr_test] + [at for comma, at in attr_list])
 
     def attr_test(self, ast):
         import operator
@@ -669,7 +725,8 @@ class _PartList(list):
         return self
 
 
-def _has_wildcard(s):
+# also used by chimerax.core.models.Model.atomspec_model_attr
+def has_wildcard(s):
     try:
         return any((c in s) for c in "*?[")
     except TypeError:
@@ -693,7 +750,7 @@ class _Part:
         start_test = self.start if case_sensitive else self.start.lower()
         if self.end is None:
             from fnmatch import fnmatch
-            if _has_wildcard(start_test):
+            if has_wildcard(start_test):
                 if case_sensitive:
                     def matcher(name):
                         return fnmatch(name, start_test)
@@ -873,10 +930,11 @@ class _AttrTest:
         elif (self.op in (operator.eq, operator.ne, "==", "!==") and
                 isinstance(self.value, str)):
             # Equality-comparison operators for strings handle wildcards
+            # Similar code in chimerax.core.models.Model.atomspec_model_attr
             case_sensitive = self.op in ["==", "!=="]
             attr_value = self.value if case_sensitive else self.value.lower()
             invert = self.op in (operator.ne, "!==")
-            if _has_wildcard(self.value):
+            if has_wildcard(self.value):
                 from fnmatch import fnmatchcase
 
                 def matcher(obj):
@@ -946,10 +1004,8 @@ class _SelectorName:
             else:
                 try:
                     f(session, models, results)
-                except Exception:
-                    session.logger.report_exception(preface="Error executing selector '%s'" % self.name)
-                    from grako.exceptions import FailedSemantics
-                    raise FailedSemantics("error evaluating selector %s" % self.name)
+                except Exception as e:
+                    raise RuntimeError("Error executing selector '%s'" % self.name) from e
 
 
 class _ZoneSelector:
@@ -967,7 +1023,10 @@ class _ZoneSelector:
         self.model = None
 
     def __str__(self):
-        return "%s%s%.3f" % (self.target_type, self.operator, self.distance)
+        zone_part = "%s%s%.3f" % (self.target_type, self.operator, self.distance)
+        if self.model is None:
+            return zone_part
+        return str(self.model) + ' ' + zone_part
 
     def find_matches(self, session, models, results, ordered, *, add_implied=None):
         if self.model is None:
@@ -1079,8 +1138,8 @@ class AtomSpec:
         order_implicit_atoms : whether to order atoms that aren't
             explicitly specified (e.g. ":5") [which can be costly]
         **kw : keyword arguments
-            If 'models' is None, 'kw' is passed through to call to
-            'session.models.list' to generate the model list.
+            If 'models' is None, 'kw' is passed through to the call
+            to 'session.models.list' that generates the model list.
 
         Returns
         -------

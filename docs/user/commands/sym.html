@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: sym</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: sym</h3>
 
@@ -75,8 +70,7 @@ but not any copies that were opened as full atomic models:
 <p>
 Given without options, <b>sym</b> reports 
 any assemblies read from
-<a href="https://mmcif.wwpdb.org/docs/faqs/pdbx-mmcif-faq-general.html"
-target="_blank">mmCIF</a> for the specified model
+<a href="https://mmcif.wwpdb.org/docs/faqs/pdbx-mmcif-faq-general.html" target="_blank">mmCIF</a> for the specified model
 as a table in the <a href="../tools/log.html"><b>Log</b></a>.
 Similar <a href="../modelinfo.html">information</a>
 is shown automatically when the structure is first opened.
@@ -120,12 +114,12 @@ is specified with the <i>identifier</i> mentioned above.
 <p>
 Alternatively, symmetry information can specified explicitly in the command.
 The <i>sym-type</i> can be:
- <ul>
+ </p><ul>
   <li><b>biomt</b>
   &ndash; use &ldquo;biological assembly&rdquo; information from the atomic
   model containing the specified atoms
   <br>(currently this information is only read from PDB format, not mmCIF)
-  <li><b>symmetry #<i>N</i></b>
+  </li><li><b>symmetry #<i>N</i></b>
   &ndash; use the biological assembly information from another atomic model or the
   symmetry assignment of a volume model
 (such as from <a href="volume.html#symmetry"><b>volume symmetry</b></a>
@@ -133,9 +127,9 @@ or <a href="measure.html#symmetry"><b>measure symmetry</b></a>),
 where <i>N</i> is the model number
     <ul type="none">
     <li>Example: <b>symmetry #4</b>
-    </ul>
+    </li></ul>
 
-   <li>
+   </li><li>
   <b>symmetry #<i>N</i>,p<i>M</i></b> or <b>symmetry #<i>N</i>,pn<i>M</i></b>
   &ndash; use cage model (from 
 <a href="../tools/cagebuilder.html"><b>Cage Builder</b></a>) polygon symmetry;
@@ -143,65 +137,65 @@ where <i>N</i> is the model number
   in the cage with model number <i>N</i>.
   The <b>p<i>M</i></b> form places one copy per M-sided polygon, 
   whereas <b>pn<i>M</i></b> places M copies per M-sided polygon using 
-  C<font size=-1><i>M</i></font> symmetry about the center
+  C<font size="-1"><i>M</i></font> symmetry about the center
   of the M-sided polygon nearest the original copy.
     <ul type="none">
     <li>Examples: <b>symmetry #2,p6</b> or <b>symmetry #2,pn5</b>
-    </ul>
+    </li></ul>
 
-  <li>cyclic symmetry <b>C<i>n</i></b>
+  </li><li>cyclic symmetry <b>C<i>n</i></b>
    around <a href="#axis">axis</a> and <a href="#center">center</a>
     <ul type="none">
     <li>Example: <b>C3</b>
-    </ul>
+    </li></ul>
 
-  <li>dihedral symmetry <b>D<i>n</i></b>
+  </li><li>dihedral symmetry <b>D<i>n</i></b>
    around <a href="#axis">axis</a> and <a href="#center">center</a>
     <ul type="none">
     <li>Example: <b>d7</b>
-    </ul>
+    </li></ul>
 
-  <li>tetrahedral symmetry <b>T[,<i>orientation</i>]</b>
+  </li><li>tetrahedral symmetry <b>T[,<i>orientation</i>]</b>
    around <a href="#center">center</a>
     <ul type="none">
     <li>Example: <b>t,z3</b>
-    </ul>
+    </li></ul>
    where <i>orientation</i> can be:
    <ul>
    <li><b>222</b> (default)
    &ndash; with two-fold symmetry axes along the X, Y, and Z axes, a three-fold
     along axis (1,1,1)
-   <li><b>z3</b> &ndash; a three-fold symmetry axis along Z, another three-fold
+   </li><li><b>z3</b> &ndash; a three-fold symmetry axis along Z, another three-fold
    axis in the YZ plane such that rotation about the X axis by ~110&deg; is a
    symmetry operation (EMAN convention)
-   </ul>
+   </li></ul>
 
-  <li>octahedral symmetry <b>O</b> around <a href="#center">center</a>
+  </li><li>octahedral symmetry <b>O</b> around <a href="#center">center</a>
 
-  <li>icosahedral symmetry <b>I[,<i>orientation</i>]</b>
+  </li><li>icosahedral symmetry <b>I[,<i>orientation</i>]</b>
    around <a href="#center">center</a>
     <ul type="none">
     <li>Example: <b>i,n25</b>
-    </ul>
+    </li></ul>
    where <i>orientation</i> can be:
     <ul>
     <li><b>222</b> (default)
     &ndash; with two-fold symmetry axes along the X, Y, and Z axes
-    <li><b>2n5</b> &ndash; with two-fold symmetry along X and 5-fold along Z
-    <li><b>n25</b> &ndash; with two-fold symmetry along Y and 5-fold along Z
-    <li><b>2n3</b> &ndash; with two-fold symmetry along X and 3-fold along Z
-    <li><b>222r</b> &ndash; same as 222 except rotated 90&deg; about Z
-    <li><b>2n5r</b> &ndash; same as 2n5 except rotated 180&deg; about Y
-    <li><b>n25r</b> &ndash; same as n25 except rotated 180&deg; about X
-    <li><b>2n3r</b> &ndash; same as 2n3 except rotated 180&deg; about Y
-    </ul>
+    </li><li><b>2n5</b> &ndash; with two-fold symmetry along X and 5-fold along Z
+    </li><li><b>n25</b> &ndash; with two-fold symmetry along Y and 5-fold along Z
+    </li><li><b>2n3</b> &ndash; with two-fold symmetry along X and 3-fold along Z
+    </li><li><b>222r</b> &ndash; same as 222 except rotated 90&deg; about Z
+    </li><li><b>2n5r</b> &ndash; same as 2n5 except rotated 180&deg; about Y
+    </li><li><b>n25r</b> &ndash; same as n25 except rotated 180&deg; about X
+    </li><li><b>2n3r</b> &ndash; same as 2n3 except rotated 180&deg; about Y
+    </li></ul>
 
-  <li>helical symmetry
+  </li><li>helical symmetry
   <b>H,<i>rise,angle,n</i>[,<i>offset</i>]</b>
   around <a href="#axis">axis</a> and <a href="#center">center</a>
     <ul type="none">
     <li>Example: <b>h,43.5,21,6,-2</b>
-    </ul>
+    </li></ul>
   where <i>rise</i> is the translation along the <a href="#axis">axis</a> per
   subunit, <i>angle</i> is the rotation in degrees per subunit,
   and <i>n</i> is how many copies total (including the original)
@@ -211,12 +205,12 @@ where <i>N</i> is the model number
   with two copies in the negative axis direction,
   one at the identity position, and three in the positive axis direction.
 
-  <li>translational symmetry
+  </li><li>translational symmetry
   <b>shift,<i>n,distance</i></b> along <a href="#axis">axis</a>
   &ndash; or &ndash; <b>shift,<i>n,x,y,z</i></b>
     <ul type="none">
     <li>Example: <b>shift,3,26.7</b>
-    </ul>
+    </li></ul>
   where <i>n</i> is how many copies total (including the original)
   the result should contain.
   The translation can be expressed as a
@@ -224,14 +218,14 @@ where <i>N</i> is the model number
   or as a vector <i>x,y,z</i> in the
   <a href="#coordinateSystem">reference coordinate system</a>.
    
-  <li>the product of symmetry groups, each specified as described above
+  </li><li>the product of symmetry groups, each specified as described above
   and separated by <b>*</b> to indicate multiplying each symmetry matrix of one
   group with each symmetry matrix of another; can be generalized to
   multiple symmetry groups (not just two)
     <ul type="none"> 
     <li>Example: <b>c2*h,42,21,9,-4</b>
-    </ul>
-  </ul>
+    </li></ul>
+  </li></ul>
 <p>
 The <a name="axis"><b>axis</b></a> option
 specifies a <a href="pointspec.html#vector">vector</a> 
@@ -347,23 +341,24 @@ with default <a href="surface.html#parameters">parameters</a>:
 <li>If <b>resolution</b> is not specified, 
 <a href="surface.html#surfdefs">solvent-excluded surfaces</a> (SES)
 will be calculated (probe radius 1.4 &Aring;).
-<li>If <b>resolution</b> is specified, low-resolution Gaussian surfaces
+</li><li>If <b>resolution</b> is specified, low-resolution Gaussian surfaces
 will be calculated instead.  For each biopolymer chain,
 a pseudo-density map is generated by summing over atoms, 
 where each atom is described as a Gaussian distribution 
 of width proportional to the <b>resolution</b> <i>r</i>
 and amplitude equal to the atomic number. 
 An isosurface is displayed and the pseudo-density map discarded.
-<li> The <b>gridSpacing</b> <i>s</i> is the spacing of the grid used to
+</li><li> The <b>gridSpacing</b> <i>s</i> is the spacing of the grid used to
 calculate either type of surface. The default spacing is <b>0.5</b> &Aring;
 for an SES, <b>0.1<i>r</i></b> (one-tenth the resolution)
 for a Gaussian surface.
 A smaller spacing gives a smoother, more finely triangulated surface,
 but uses more memory.
-</ul>
+</li></ul>
 </blockquote>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 October 2024</address>
+
 </body></html>

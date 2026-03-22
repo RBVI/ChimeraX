@@ -480,29 +480,73 @@ class MouseModes:
         Typically this will be called by the redraw loop and is used to determine
         when a mouse pause occurs.
         '''
-        cp = self._cursor_position()
-        w,h = self.graphics_window.view.window_size
-        x,y = cp
-        if x < 0 or y < 0 or x >= w or y >= h:
-            return      # Cursor outside of graphics window
+        cp = self._graphics_cursor_position()
+        paused, unpaused = self.mouse_paused(cp)
+        if paused:
+            self._mouse_pause()
+        elif unpaused:
+            self._mouse_move_after_pause()
+
+    def mouse_paused(self, position):
+        if position is None:
+            return False, self._paused
         if self._mouse_buttons_down():
-            return
+            return False, self._paused
         from time import time
         t = time()
-        moved = (cp != self._mouse_pause_position)
+        moved = (position != self._mouse_pause_position)
         if moved:
-            self._mouse_pause_position = cp
+            self._mouse_pause_position = position
             self._last_mouse_time = t
             if self._paused:
                 # Moved after pausing
                 self._paused = False
-                self._mouse_move_after_pause()
+                return False, True
         elif not self._paused:
             # Not moving but not paused for enough time yet.
             lt = self._last_mouse_time
             if lt and t >= lt + self._mouse_pause_interval:
-                self._mouse_pause()
                 self._paused = True
+                return True, False
+        return False, False
+
+    def _graphics_cursor_position(self):
+        from Qt.QtGui import QCursor
+        gp = QCursor.pos()
+        p = self.graphics_window.mapFromGlobal(gp)
+        x, y = p.x(), p.y()
+        w,h = self.graphics_window.view.window_size
+        if x < 0 or y < 0 or x >= w or y >= h:
+            return None     # Cursor outside of graphics window
+        ui = self.session.ui
+        if ui.activeWindow() is None:
+            # Qt 5.7 gives app mouse events on Mac even
+            # if another application has the focus,
+            # and even if the this app is minimized
+            # it gets events for where it used to be on the screen.
+            return None
+        # ensure that no other top-level window is above the graphics
+        from Qt.QtGui import QCursor
+        if ui.topLevelAt(gp) != ui.main_window:
+            return None
+        # ensure there's no popup menu above the graphics
+        apw = ui.activePopupWidget()
+        if apw:
+            from Qt.QtCore import QPoint
+            pp = apw.mapToGlobal(QPoint())
+            if ui.topLevelAt(pp) == ui.main_window:
+                return None
+        return x, y
+
+    def _mouse_pause(self):
+        m = self.mode('pause')
+        if m:
+            m.pause(self._mouse_pause_position)
+
+    def _mouse_move_after_pause(self):
+        m = self.mode('pause')
+        if m:
+            m.move_after_pause()
 
     def remove_binding(self, button=None, modifiers=[],
             trackpad_action=None, trackpad_modifiers=[]):
@@ -519,12 +563,6 @@ class MouseModes:
         '''Remove a MouseMode instance from the list of available modes.'''
         self._available_modes.append(mode)
         self._bindings = [b for b in self.bindings if b.mode is not mode]
-
-    def _cursor_position(self):
-        from Qt.QtGui import QCursor
-        gp = QCursor.pos()
-        p = self.graphics_window.mapFromGlobal(gp)
-        return p.x(), p.y()
 
     def _mouse_buttons_down(self):
         from Qt.QtCore import Qt
@@ -638,16 +676,6 @@ class MouseModes:
             if b.exact_match(button, [modifier]):
                 return True
         return False
-
-    def _mouse_pause(self):
-        m = self.mode('pause')
-        if m:
-            m.pause(self._mouse_pause_position)
-
-    def _mouse_move_after_pause(self):
-        m = self.mode('pause')
-        if m:
-            m.move_after_pause()
 
     def set_graphics_window(self, graphics_window):
         self.graphics_window = gw = graphics_window

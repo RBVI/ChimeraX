@@ -234,7 +234,10 @@ def vr_room_camera(session, enable = True, field_of_view = None, width = None,
       for future sessions.
     '''
 
-    c = vr_camera(session)
+    c = vr_camera(session, create = False)
+    if c is None:
+        from chimerax.core.errors import UserError
+        raise UserError('VR must be enabled before creating VR room camera')
     rc = c.enable_room_camera(enable)
 
     if not enable:
