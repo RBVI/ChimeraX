@@ -59,7 +59,7 @@ from chimerax.core.tools import ToolInstance
 class SequencePlotPanel(ToolInstance):
 
     name = 'Sequence Plot'
-    help = 'help:user/tools/similarstructures.html#seqplot'
+    help = 'help:user/tools/foldseek.html#sequences'
 
     def __init__(self, session, results, order = 'cluster or evalue',
                  show_conserved = True, conserved_threshold = 0.5,

@@ -546,14 +546,16 @@ class StructureShownOption(BooleanOption):
         return "setattr %%s struct display %s" % str(self.value).lower()
 
 class StructureHelixModeOption(SymbolicEnumOption):
-    values = (Structure.RIBBON_MODE_DEFAULT, Structure.RIBBON_MODE_ARC, Structure.RIBBON_MODE_WRAP)
-    labels = ("default", "tube", "wrap")
+    values = (Structure.RIBBON_MODE_DEFAULT, Structure.RIBBON_MODE_ARC, Structure.RIBBON_MODE_WRAP,
+        Structure.RIBBON_MODE_CYLINDER)
+    labels = ("default", "tube", "wrap", "straight")
     attr_name = "ribbon_mode_helix"
     balloon = "How peptide helices are depicted in cartoons.  If 'default', depicted as\n" \
         "a ribbon whose flat surface faces outward from the local curvature of the\n" \
         "peptide chain.  If 'tube', as a cylinder that follows the overall curvature\n" \
         "of the helix path.  If 'wrap', similar to 'default' except following the same\n" \
-        "curved path as 'tube'."
+        "curved path as 'tube'. If 'straight', like 'tube' except a best-fitting straight\n" \
+        "cylinder is used."
     default = Structure.RIBBON_MODE_DEFAULT
     name = "Cartoon helix style"
     @property

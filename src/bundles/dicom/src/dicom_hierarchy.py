@@ -143,6 +143,7 @@ class Study(Model):
 
     def __init__(self, session, uid, patient: Patient):
         import pydicom.uid
+
         if type(uid) is str:
             uid = pydicom.uid.UID(uid)
         self.uid = uid
@@ -484,6 +485,7 @@ class DicomData:
         mask_number: Optional[int] = None,
     ):
         import pydicom.uid
+
         self.session = session
         self.mask_number = mask_number
         self.dicom_series = series
@@ -653,7 +655,7 @@ class DicomData:
                 )
             for model in models:
                 for omodel in open_models:
-                    if model.data.reference_data is omodel.data:
+                    if getattr(model.data, "reference_data", None) is omodel.data:
                         model.reference_data = omodel
             return models
         else:
@@ -902,13 +904,13 @@ class DicomData:
         return x_scale, y_scale, z_scale
 
     def rotation(self):
-        #affine = self.affine
-        #x_scale, y_scale, z_scale = self.pixel_spacing()
-        #rotation_matrix = [
+        # affine = self.affine
+        # x_scale, y_scale, z_scale = self.pixel_spacing()
+        # rotation_matrix = [
         #    [affine[0][0] / x_scale, affine[0][1] / y_scale, affine[0][2] / z_scale],
         #    [affine[1][0] / x_scale, affine[1][1] / y_scale, affine[1][2] / z_scale],
         #    [affine[2][0] / x_scale, affine[2][1] / y_scale, affine[2][2] / z_scale],
-        #]
+        # ]
         # We're ignoring the rotation given by the DICOM files until someone complains about it.
         # Doing this simplifies other areas of the codebase significantly.
         # 1) The plane viewers use orthographic cameras pointed down the X, Y, and Z axes, and
@@ -916,7 +918,7 @@ class DicomData:
         #    point the cameras down when files aren't axis aligned.
         # 2) We don't have to modify the raycasting shader to do such calculations either.
         return [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-        #return rotation_matrix
+        # return rotation_matrix
 
     def origin(self):
         affine = self.affine
@@ -958,6 +960,7 @@ class DicomData:
     def read_plane(self, k, time=None, channel=None, rescale=True):
         # TODO: Don't need to dcmread already read in data...
         from pydicom import dcmread
+
         if self._reverse_planes:
             klast = self.data_size[2] - 1
             k = klast - k
@@ -984,8 +987,7 @@ class DicomData:
         if self.mask_number is not None:
             size_of_masks = self.files[0].mask_length
             data = data[
-                self.mask_number
-                * size_of_masks : (self.mask_number + 1)
+                self.mask_number * size_of_masks : (self.mask_number + 1)
                 * size_of_masks,
                 :,
                 :,

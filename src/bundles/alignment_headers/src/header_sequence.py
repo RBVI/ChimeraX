@@ -350,9 +350,17 @@ class HeaderSequence(list):
 
 class FixedHeaderSequence(HeaderSequence):
 
-    def __init__(self, alignment, name=None, vals=[]):
+    def __init__(self, alignment, name=None, vals=[], identifier=None, **kw):
+        if identifier is None and getattr(self, 'ident', None) is None:
+            if name is None:
+                self.ident = None
+            else:
+                from chimerax.core.attributes import string_to_attr
+                self.ident = string_to_attr(name, prefix=self.ATTR_PREFIX)
+        else:
+            self.ident = identifier
         self.vals = vals
-        HeaderSequence.__init__(self, alignment, name=name)
+        HeaderSequence.__init__(self, alignment, name=name, **kw)
 
     def align_change(self, left, right):
         pass
@@ -363,6 +371,7 @@ class FixedHeaderSequence(HeaderSequence):
     def get_state(self):
         state = {
             'base state': HeaderSequence.get_state(self),
+            'ident': self.ident,
             'vals': self.vals
         }
         return state
@@ -387,7 +396,8 @@ class FixedHeaderSequence(HeaderSequence):
             super().reevaluate(pos1, pos2, evaluation_func=self._reevaluate)
 
     def set_state(self, state):
-        HeaderSequence.set_state(state['base state'])
+        HeaderSequence.set_state(self, state['base state'])
+        self.ident = state['ident']
         self.vals = state['vals']
         self.reevaluate()
 

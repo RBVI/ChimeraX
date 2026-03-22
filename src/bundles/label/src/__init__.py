@@ -33,6 +33,9 @@ class _LabelBundle(BundleAPI):
         if tool_name == 'Scale Bar':
             from .scalebar_gui import Scalebar
             return Scalebar.get_singleton(session)
+        elif tool_name == '2D Labels and Arrows':
+            from .label_gui import LabelGUI
+            return LabelGUI.get_singleton(session)
 
     @staticmethod
     def register_command(command_name, logger):

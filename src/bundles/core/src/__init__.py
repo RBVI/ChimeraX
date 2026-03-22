@@ -27,6 +27,7 @@ chimerax.core: collection of base ChimeraX functionality
 ========================================================
 
 """
+
 from .buildinfo import version
 
 __version__ = version
@@ -48,6 +49,7 @@ def get_minimal_test_session():
     from chimerax.atomic import initialize_atomic
     from chimerax.dist_monitor import _DistMonitorBundleAPI
     from chimerax.core.session import register_misc_commands
+    from chimerax.core import nogui
 
     warnings.warn(
         "This function is not intended for use in the ChimeraX library. It is for testing ChimeraX modules and bundles. If and only if you are, as intended, calling it in your test harness, catch and ignore this warning. We will close without investigation tickets that are reported if this session is being used."
@@ -55,6 +57,10 @@ def get_minimal_test_session():
 
     _set_app_dirs(version)
     session = Session(minimal=False)
+    session.ui = nogui.UI(session)
+    session.logger.add_log(nogui.NoGuiLog())
+    session.ui.initialize_color_output(True)  # Colored text
+
     session.ui.is_gui = False
     core_settings.init(session)
     register_misc_commands(session)
@@ -175,7 +181,6 @@ _class_class_init = {
 
 
 class _MyAPI(BundleAPI):
-
     @staticmethod
     def get_class(class_name):
         """Return chimerax.core class for instance in a session

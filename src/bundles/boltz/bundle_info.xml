@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Boltz" version="1.0"
+<BundleInfo name="ChimeraX-Boltz" version="1.1"
 	    package="chimerax.boltz"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -9,11 +9,6 @@
   <Synopsis>Predict structures using Boltz</Synopsis>
   <Description>Predict structures using Boltz</Description>
 
-  <DataFiles>
-    <DataFile>docs/boltz_help.html</DataFile>
-    <DataFile>docs/images/*.png</DataFile>
-  </DataFiles>
-
   <Categories>
     <Category name="Structure Prediction"/>
   </Categories>
@@ -22,12 +17,26 @@
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="Boltz ligands" synopsis="Boltz ligand binding predictions table"
+	      category="Structure Prediction" suffixes=".bzlig" nicknames="bzlig" />
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="Boltz ligands" want_path="true" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: boltz predict :: Structure Prediction :: Predict a structure using Boltz</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: boltz install :: Structure Prediction :: Install Boltz</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: boltz ligandtable :: Structure Prediction :: Show table of Boltz ligand prediction results</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: boltz server start :: Structure Prediction :: Start a server that runs Boltz predictions</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: boltz server list :: Structure Prediction :: List active Boltz prediction server jobs</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: boltz server fetch :: Structure Prediction :: Fetch active Boltz prediction server jobs</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Boltz :: Structure Prediction :: Predict structures using Boltz</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Boltz History :: Structure Prediction :: Table of previously run Boltz predictions</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

@@ -127,6 +127,8 @@ public:
     void  set_chain_id(ChainID chain_id);
     void  set_description(const std::string& d) { _description = d; }
     void  set_from_seqres(bool fs);
+    void  set_name(std::string& name) { Sequence::set_name(name); }
+    void  set_name(const char* name) { Sequence::set_name(name); }
     Contents::size_type  size() const { return Sequence::size(); }
     Structure*  structure() const { return _structure; }
 };

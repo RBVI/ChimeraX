@@ -847,9 +847,11 @@ start_t = end_t;
                 }
                 if (cur_residue == nullptr || MolResId(cur_residue) != rid 
                 || cur_residue->name() != rname) {
-                    logger::error(py_logger, "Residue ", rid, " not in first"
-                        " model on line ", *line_num, " of PDB file");
-                    goto finished;
+                    std::stringstream err_msg;
+                    err_msg << "Residue " << rid << " not in first model on line "
+                        << *line_num << " of PDB file";
+                    PyErr_SetString(PyExc_IOError, err_msg.str().c_str());
+                    return nullptr;
                 }
             } else if (cur_residue == nullptr || cur_rid != rid
             // modifying HETs can be inline...
@@ -1123,6 +1125,11 @@ start_t = end_t;
                     ++brn;
                 }
                 ResName res_name(rn);
+                // some non-standard PDB files may not have a full 13 residues per line...
+                if (res_name.empty()) {
+                    seqres_cur_count -= 1;
+                    continue;
+                }
                 as->extend_input_seq_info(chain_id, res_name);
             }
             if (as->input_seq_source.empty())

@@ -387,6 +387,11 @@ def first_volume_maxima(xyz_in, xyz_out, vlist):
         v_xyz_in, v_xyz_out = data_slice(v, line)
         if v_xyz_in is None:
             continue
+        # Trim volume box segment to xyz_in, xyz_out segment.
+        s2v = v.scene_position.inverse()
+        v_xyz_in, v_xyz_out = _trim_segment((v_xyz_in, v_xyz_out), (s2v*xyz_in, s2v*xyz_out))
+        if v_xyz_in is None:
+            continue
         threshold = v.minimum_surface_level
         if threshold is None:
             if len(v.image_levels) == 0:
@@ -405,6 +410,24 @@ def first_volume_maxima(xyz_in, xyz_out, vlist):
     
     d,sxyz,v = min(hits, key=lambda h: h[0])
     return sxyz, v
+
+# -----------------------------------------------------------------------------
+#
+def _trim_segment(segment, clamp_to_segment):
+    '''
+    Return the portion of segment within clamp_to_segment.
+    segment and clamp_to_segment must be colinear.
+    '''
+    s, e = segment
+    cs, ce = clamp_to_segment
+    v = ce - cs
+    from chimerax.geometry import inner_product
+    fs = inner_product(s - cs, v)
+    fe = inner_product(e - cs, v)
+    d2 = inner_product(v, v)
+    if fs >= d2 or fe < 0:
+        return (None, None)
+    return ((s if fs >= 0 else cs), (ce if fe > d2 else e))
 
 # -----------------------------------------------------------------------------
 #

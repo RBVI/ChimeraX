@@ -23,7 +23,7 @@
 # === UCSF ChimeraX Copyright ===
 
 #--- public API ---
-from .cmd import dock_prep_caller
+from .cmd import dock_prep_caller, get_param_info
 
 # all modules involved in the DockPrep pipeline provide these variables/functions
 from .cmd import dock_prep_arg_info

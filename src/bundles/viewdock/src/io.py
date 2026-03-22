@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2025 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
@@ -19,6 +21,8 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+
+from chimerax.viewdock import RATING_KEY, DEFAULT_RATING
 
 def open_mol2(session, path, file_name, auto_style, atomic):
     from chimerax.io import open_input
@@ -99,6 +103,7 @@ class Mol2Parser:
         self.structures = []
         self._lineno = 0
         self._line = ""
+        self._prelude_lines = []
         self._reset_structure()
         while self._read_section():
             pass
@@ -162,7 +167,7 @@ class Mol2Parser:
 
     def _reset_structure(self):
         """Reset structure data cache"""
-        self._data = {}
+        self._data = {RATING_KEY: DEFAULT_RATING}
         self._molecule = None
         self._atoms = []
         self._bonds = []
@@ -170,7 +175,16 @@ class Mol2Parser:
         self._comments = []
 
     def _make_structure(self):
-        """Build ChimeraX structure and reset structure data cache"""
+        """
+        Build ChimeraX structure and reset structure data cache
+
+        Note:
+            Old ViewDockX (this bundl's predecessor) sessions have already registered a docking data attribute to structures
+            called "viewdockx_data". When this function is called with an old ViewDockX session, it will still register a
+            new docking data attribute called "viewdock_data". This bundle will NOT support reference to the old
+            "viewdockx_data" attribute.
+        """
+
         try:
             if self._molecule is None:
                 return
@@ -181,17 +195,23 @@ class Mol2Parser:
             # Create structure
             s = SC(self.session, auto_style=self.auto_style)
             s.name = self._molecule.mol_name
-            SC.register_attr(self.session, "viewdockx_data", "ViewDockX")
-            from chimerax.atomic import Atom
-            Atom.register_attr(self.session, "charge", "ViewDockX", attr_type=float)
-            Atom.register_attr(self.session, "mol2_type", "ViewDockX", attr_type=str)
-            s.viewdockx_data = self._data
+            SC.register_attr(self.session, "viewdock_data", "ViewDock")
+            from chimerax.atomic import Atom, AtomicStructure, Bond
+            Atom.register_attr(self.session, "charge", "ViewDock", attr_type=float)
+            Atom.register_attr(self.session, "mol2_type", "ViewDock", attr_type=str)
+            Bond.register_attr(self.session, "mol2_type", "ViewDock", attr_type=str)
+            AtomicStructure.register_attr(self.session, "mol2_type", "ViewDock", attr_type=str)
+            AtomicStructure.register_attr(self.session, "mol2_comment", "ViewDock", attr_type=str)
+            AtomicStructure.register_attr(self.session, "mol2_comments", "ViewDock", attr_type=list)
+            s.viewdock_data = self._data
             if self._molecule.charge_type:
                 s.charge_model = self._molecule.charge_type
             if self._molecule.mol_type:
                 s.mol2_type = self._molecule.mol_type
             if self._molecule.mol_comment:
                 s.mol2_comment = self._molecule.mol_comment
+            if self._prelude_lines:
+                s.mol2_comments = self._prelude_lines
             # Create residues
             substid2residue = {}
             for subst_data in self._substs:
@@ -243,7 +263,8 @@ class Mol2Parser:
                 except KeyError:
                     self.session.logger.warning("bad atom index in bond")
                 else:
-                    s.new_bond(origin, target)
+                    b = s.new_bond(origin, target)
+                    b.mol2_type = bond_data.bond_type
             # Add missing-structure pseudobonds
             for i, r in enumerate(s.residues[:-1]):
                 if r.polymer_type == r.PT_NONE:
@@ -302,6 +323,7 @@ class Mol2Parser:
         while self._line:
             if self._line[0] != '#':
                 break
+            self._prelude_lines.append(self._line)
             non_hash = 0
             try:
                 while self._line[non_hash] == '#':
@@ -486,6 +508,13 @@ def _value(s):
             return s
 
 def open_swissdock(session, stream, file_name, auto_style, atomic):
+    """
+    Note:
+        Old ViewDockX (Previous tool version) sessions have already registered a docking data attribute to structures
+        called "viewdockx_data". When this function is called with an old ViewDockX session, it will still register a
+        new docking data attribute called "viewdock_data". This bundle will NOT support reference to the old
+        "viewdockx_data" attribute.
+    """
     from chimerax.atomic import next_chain_id
     import tempfile
     import os
@@ -496,7 +525,7 @@ def open_swissdock(session, stream, file_name, auto_style, atomic):
     is_ligands = True
     used_chains = set()
     cur_in_chain = cur_out_chain = cur_res_num = None
-    viewdockx_data = {}
+    viewdock_data = {RATING_KEY: DEFAULT_RATING}
     models = []
     status = ""
     from chimerax.pdb import open_pdb
@@ -530,23 +559,23 @@ def open_swissdock(session, stream, file_name, auto_style, atomic):
                 ligs, status = open_pdb(session, out_f.name, file_name=file_name, auto_style=auto_style,
                         atomic=atomic)
                 for lig in ligs:
-                    lig.viewdockx_data = viewdockx_data
+                    lig.viewdock_data = viewdock_data
                     models.append(lig)
                 os.unlink(out_f.name)
                 out_f = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', suffix=".pdb", delete=False)
-                viewdockx_data = {}
+                viewdock_data = {RATING_KEY: DEFAULT_RATING}
         elif line.startswith("REMARK"):
             if line.count(': ') != 1:
                 is_ligands = False
             else:
                 k,v = line[7:].strip().split(': ')
-                viewdockx_data[_wordize(k)] = _value(v)
+                viewdock_data[_wordize(k)] = _value(v)
             # these "REMARK"s are all badly formatted, prevent ChimeraX from complaining
             line = None
         if line is not None:
             print(line, file=out_f)
     if is_ligands and models:
-        models[0].__class__.register_attr(session, "viewdockx_data", "ViewDockX")
+        models[0].__class__.register_attr(session, "viewdock_data", "ViewDock")
     out_f.close()
     if not is_ligands:
         models, status = open_pdb(session, out_f.name,
@@ -561,15 +590,22 @@ def _wordize(sd_key):
         if sd_key.startswith("deltaG"):
             parts.extend(["delta", "G"])
             sd_key = sd_key[6:]
+        elif '_' in sd_key:
+            part, sd_key = sd_key.split('_', 1)
+            parts.append(part)
         else:
             part = sd_key[0]
+            breakable = False
             for c in sd_key[1:]:
                 if c.islower():
                     part = part + c
-                else:
+                    breakable = True
+                elif breakable or c.isspace():
                     break
+                else:
+                    part = part + c
             parts.append(part)
-            sd_key = sd_key[len(part):]
+            sd_key = sd_key[len(part):].strip()
     return ' '.join(parts)
 
 def open_zdock(session, stream, file_name, auto_style, atomic):

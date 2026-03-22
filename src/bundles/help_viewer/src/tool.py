@@ -139,6 +139,9 @@ class _HelpWebView(ChimeraXHtmlView):
         error.rejectCertificate()
 
 
+_null_authenticator = None
+
+
 class HelpUI(ToolInstance):
 
     # do not close when opening session (especially if web page asked to open session)
@@ -301,6 +304,7 @@ class HelpUI(ToolInstance):
     def authorize(self, requestUrl, auth):
         from Qt.QtWidgets import QDialog, QGridLayout, QLineEdit, QLabel, QPushButton
         from Qt.QtCore import Qt
+        from Qt import using_pyqt6, using_pyside6
 
         class PasswordDialog(QDialog):
 
@@ -338,9 +342,24 @@ class HelpUI(ToolInstance):
                 layout.addWidget(self.ok_button, 3, 3)
 
             def reject(self):
+                # https://doc.qt.io/qt-6/qtwebengine-webenginewidgets-simplebrowser-example.html
+                # *auth = QAuthenticator();
                 from Qt.QtNetwork import QAuthenticator
-                from qtpy import sip
-                sip.assign(self.auth, QAuthenticator())
+                if using_pyqt6:
+                    from qtpy import sip
+                    sip.assign(self.auth, QAuthenticator())
+                else:
+                    # PySide6
+                    global _null_authenticator
+                    if _null_authenticator is None:
+                        _null_authenticator = QAuthenticator()
+                    import ctypes
+                    from shiboken6 import Shiboken
+                    ctypes.memmove(
+                        Shiboken.getCppPointer(auth)[0],
+                        Shiboken.getCppPointer(_null_authenticator)[0],
+                        8  # size of 64-bit pointer
+                    )
                 return super().reject()
 
             def accept(self):
@@ -384,7 +403,7 @@ class HelpUI(ToolInstance):
                                view=tabs.currentWidget())
 
     def download_requested(self, item):
-        # "item" is an instance of QWebEngineDownloadItem
+        # "item" is an instance of QWebEngineDownloadRequest
         # print("HelpUI.download_requested", item)
         import os
         url_file = item.suggestedFileName()
@@ -395,6 +414,13 @@ class HelpUI(ToolInstance):
         # download extension instead
         if extension == ".whl":
             is_wheel = True
+            page = item.page()
+            if page is None:
+                from_toolshed = False
+            else:
+                url = page.requestedUrl()
+                from_toolshed = url.host() in (
+                        'cxtoolshed.rbvi.ucsf.edu', 'cxtoolshed-preview.rbvi.ucsf.edu')
             # Since the file name encodes information about the bundle, we make
             # sure that we are using the original name instead of the name
             # QWebEngine generated to avoid conflicting with an existing download.
@@ -405,16 +431,15 @@ class HelpUI(ToolInstance):
                 os.remove(file_path)
             except OSError:
                 pass
-            self.session.logger.info("Downloading bundle %s" % url_file)
             self.status("Downloading bundle %s" % url_file, 0)
         else:
             is_wheel = False
+            from_toolshed = False
             from Qt.QtWidgets import QFileDialog
             file_path = os.path.join(item.downloadDirectory(), item.downloadFileName())
             path, filt = QFileDialog.getSaveFileName(directory=file_path)
             if not path:
                 return
-            self.session.logger.info("Downloading file %s" % url_file)
             self.status("Downloading file %s" % url_file, 0)
             dirname, filename = os.path.split(path)
             item.setDownloadDirectory(dirname)
@@ -422,7 +447,7 @@ class HelpUI(ToolInstance):
         # print("HelpUI.download_requested accept", file_path)
         item.totalBytesChanged.connect(lambda: self.change_total_bytes(item=item))
         item.receivedBytesChanged.connect(lambda: self.change_received_bytes(item=item))
-        item.isFinishedChanged.connect(lambda *args, **kw: self.download_finished(*args, **kw, item=item, is_wheel=is_wheel))
+        item.isFinishedChanged.connect(lambda *args, **kw: self.download_finished(*args, **kw, item=item, is_wheel=is_wheel, from_toolshed=from_toolshed))
         item.accept()
 
     def download_progress(self, bytes_received=None, bytes_total=None):
@@ -439,7 +464,7 @@ class HelpUI(ToolInstance):
     def change_received_bytes(self, item):
         self.download_progress(bytes_received=item.receivedBytes())
 
-    def download_finished(self, *args, item=None, is_wheel=False, **kw):
+    def download_finished(self, *args, item=None, is_wheel=False, from_toolshed=False, **kw):
         item.totalBytesChanged.disconnect()
         item.receivedBytesChanged.disconnect()
         item.isFinishedChanged.disconnect()
@@ -487,18 +512,24 @@ class HelpUI(ToolInstance):
         elif prefix == "Installed":
             action = prefix = "Reinstall"
             reinstall = True
-        how = ask(self.session,
-                  f"{prefix} {wh.name} {wh.version} (file {path})?",
-                  [action, "cancel"],
-                  title="Toolshed")
-        if how == "cancel":
-            self.session.logger.info("Bundle installation canceled")
-            return
+        if not from_toolshed:
+            how = ask(self.session,
+                      f"{prefix} {wh.name} {wh.version} (file {path})?",
+                      [action, "cancel"],
+                      title="Toolshed")
+            if how == "cancel":
+                self.session.logger.info("Bundle installation canceled")
+                return
+        else:
+              msg = f"{wh.name} {wh.version} (file {path})"
+              self.session.logger.status(msg, secondary=True)
         self.session.toolshed.install_bundle(path,
                                              self.session.logger,
                                              per_user=True, reinstall=reinstall,
                                              session=self.session)
         self.reload_toolshed_tabs()
+        if from_toolshed:
+              self.session.logger.status("", secondary=True)
 
     def show(self, url, *, new_tab=False, html=None):
         from urllib.parse import urlparse, urlunparse

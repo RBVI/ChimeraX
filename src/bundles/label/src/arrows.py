@@ -457,6 +457,12 @@ class ArrowModel(Model):
         self._aspect = 1		# Scale y positioning for image saving at non-screen aspect ratio
         self.needs_update = True
 
+    def _set_arrow_display(self, display):
+        # Make sure arrow visibility attribute tracks model display changes.
+        self.arrow.visibility = display
+        Model.display.fset(self, display)
+    display = Model.display.setter(_set_arrow_display)
+
     def draw(self, renderer, draw_pass):
         self._update_graphics(renderer)
         Model.draw(self, renderer, draw_pass)

@@ -12,7 +12,7 @@ dependencies = [
 	, "ChimeraX-UI ~=1.0"
 	, "ChimeraX-Help ~=1.0"
 	, "ChimeraX-WebServices ~=1.0"
-	, "ChimeraX-Alignments ~=2.0"
+	, "ChimeraX-Alignments ~=3.0"
 	, "ChimeraX-AlphaFold ~=1.0"
 ]
 

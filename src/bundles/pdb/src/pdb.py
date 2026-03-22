@@ -92,6 +92,10 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
         if 'non-ASCII' in str(e):
             raise UserError(str(e))
         raise
+    except IOError as e:
+        if 'not in first model' in str(e):
+            raise UserError("Cannot open file as trajectory: " + str(e))
+        raise
     finally:
         stream.close()
 
@@ -376,7 +380,7 @@ def format_nonstd_res_info(model, update_nonstd_res_info, standalone):
                 selector = ":%s" % abbr
             text = '<a title="select residue" href="cxcmd:sel %s">%s</a> &mdash; ' % (selector, abbr)
             if name:
-                text += '<a title="show residue info" href="http://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
+                text += '<a title="show residue info" href="https://www.rcsb.org/ligand/%s">%s</a>' % (abbr,
                     process_chem_name(name))
                 if syns:
                     text += " (%s)" % process_chem_name(syns)

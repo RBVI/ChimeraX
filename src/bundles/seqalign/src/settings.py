@@ -33,7 +33,8 @@ class _AlignmentsSettings(Settings):
         'large_align_threshold': 300,
         'small_align_viewer': fallbacks['small_align_viewer'],
         'assoc_error_rate': 10,
-        'iterate': 2.0
+        'iterate': 2.0,
+        'auto_assoc_cutoff': 10000,
     }
 
 settings = None
@@ -63,6 +64,9 @@ def register_settings_options(session):
                 # class scope can't reference local variables, so...
                 return lambda *args, v=values, l=[v.title() for v in viewers], **kw: \
                     SymbolicEnumOption(*args, values=v, labels=l, **kw)
+            # didn't find current setting as synonym for any viewer(!), revert to default setting [#17895]
+            setattr(settings, attribute, fallbacks[attribute])
+        raise AssertionError("Default %s not found" % attribute)
     settings_info = {}
     settings_info['large_align_viewer'] = ("Large alignment viewer",
         viewer_option("alignment", "large_align_viewer"),
@@ -75,6 +79,13 @@ def register_settings_options(session):
         "Default tool to use to show small (< %d sequences) alignments" % settings.large_align_threshold)
     settings_info['seq_viewer'] = ("Single sequence viewer", viewer_option("sequence", "seq_viewer"),
         "Default tool to use to show a single sequence")
+    settings_info['auto_assoc_cutoff'] = (
+        "Auto-associate if fewer than this many sequences",
+        (IntOption, {'min': 2}), "Automatically associating chains to large alignments can be very slow.\n"
+        "So, for better performance only auto-associate to alignments with fewer\n"
+        "than this many sequences.  You can still use the alignment context menu\n"
+        "to manually associate chains as desired.  Changing this setting will not\n"
+        "affect currently open alignments.")
     for setting, setting_info in settings_info.items():
         opt_name, opt_class, balloon = setting_info
         if isinstance(opt_class, tuple):

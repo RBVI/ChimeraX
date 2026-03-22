@@ -22,10 +22,11 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def boltz_install(session, directory = None, download_model_weights_and_ccd = True, wait = None):
+def boltz_install(session, directory = None, download_model_weights_and_ccd = True,
+                  branch = 'chimerax_boltz22', wait = None):
     if directory is None:
         from os.path import expanduser
-        directory = expanduser('~/boltz')
+        directory = expanduser('~/boltz22')
 
     # Check that directory either does not exist or is empty.
     from os.path import exists, isdir
@@ -35,21 +36,29 @@ def boltz_install(session, directory = None, download_model_weights_and_ccd = Tr
             from chimerax.core.errors import UserError
             raise UserError(f'You must install Boltz into a new or empty directory.  The directory {directory} already exists and is not empty.')
 
+    import platform
+    if platform.system() == 'Darwin' and platform.machine() == 'x86_64':
+        from chimerax.core.errors import UserError
+        raise UserError('Boltz requires newer Torch versions that are not available on Intel Macs.')
+
     if wait is None:
         wait = False if session.ui.is_gui else True
 
-    ib = InstallBoltz(session, directory, download_model_weights_and_ccd, wait = wait)
+    ib = InstallBoltz(session, directory, download_model_weights_and_ccd,
+                      branch = branch, wait = wait)
     return ib
             
 # ------------------------------------------------------------------------------
 #
 class InstallBoltz:
 
-    def __init__(self, session, directory, download_model_weights_and_ccd = True, wait = False):
+    def __init__(self, session, directory, download_model_weights_and_ccd = True,
+                 branch = 'chimerax', wait = False):
 
         self._session = session
         self._directory = directory
         self._download_model_weights_and_ccd = download_model_weights_and_ccd
+        self._branch = branch		# Git branch to install
         self._wait = wait
         self.finished_callback = None
         self.success = None
@@ -108,7 +117,7 @@ class InstallBoltz:
         logger = self._session.logger
         logger.info('Now installing machine learning package torch.')
         # TODO: We should try to match the system cuda version.
-        command = [self._venv_python_executable(), '-m', 'pip', 'install', 'torch',
+        command = [self._venv_python_executable(), '-m', 'pip', 'install', 'torch==2.7.1',
                    '--index-url', 'https://download.pytorch.org/whl/cu126']
         logger.info(' '.join(command))
 
@@ -137,7 +146,8 @@ class InstallBoltz:
 
 #        boltz_ver = 'boltz==0.4.1'
 #        boltz_ver = 'git+https://github.com/jwohlwend/boltz@a9b3abc2c1f90f26b373dd1bcb7afb5a3cb40293'  # Install from Github source
-        boltz_ver = 'git+https://github.com/RBVI/boltz@chimerax'  # Install from RBVI fork of Boltz
+#        boltz_ver = f'git+https://github.com/RBVI/boltz@{self._branch}'  # Install from RBVI fork of Boltz
+        boltz_ver = f'https://github.com/RBVI/boltz/archive/{self._branch}.zip'  # Install from RBVI fork of Boltz using zip so git not needed.
         command = [self._venv_python_executable(), '-m', 'pip', 'install', boltz_ver]
         logger.info(' '.join(command))
 
@@ -150,12 +160,10 @@ class InstallBoltz:
         # Report success of failure of pip install of Boltz
         logger = self._session.logger
         if success:
-            logger.info('Successfully installed Boltz.')
-
             # Remember the Boltz install directory
             from .settings import _boltz_settings
             settings = _boltz_settings(self._session)
-            settings.boltz_install_location = self._directory
+            settings.boltz22_install_location = self._directory
             settings.save()
 
             # Make the Boltz GUI show the install location.
@@ -173,7 +181,7 @@ class InstallBoltz:
     def _download_model_weights_and_ccd_database(self):
 
         logger = self._session.logger
-        logger.info('Downloading Boltz model parameters (3.3 GB) and chemical component database (330 MB) to ~/.boltz')
+        logger.info('Downloading Boltz model parameters (4 GB) and chemical component database (1.8 GB) to ~/.boltz')
 
         from os.path import join, dirname
         download_path = join(dirname(__file__), 'download_weights_and_ccd.py')
@@ -214,7 +222,7 @@ class InstallBoltz:
                 if self._download_model_weights_and_ccd:
                     self._download_model_weights_and_ccd_database()
                     return
-            self._session.logger.info('Successfully installed Boltz.')
+            self._session.logger.info('Successfully installed Boltz program and neural net weights.')
 
         self.success = success
         if self.finished_callback:
@@ -240,8 +248,9 @@ class log_subprocess_output:
         if wait:
             while t.is_alive():
                 self._log_queued_lines()
+            self._finished()
         else:
-            session.triggers.add_handler('new frame', self._log_queued_lines)
+            session.triggers.add_handler('new frame', self._log_queued_lines_while_alive)
 
     def _queue_output_in_thread(self):
         while True:
@@ -250,10 +259,15 @@ class log_subprocess_output:
                 break
             self._queue.put(line)
 
-    def _log_queued_lines(self, *trigger_args):
+    def _log_queued_lines(self):
         while not self._queue.empty():
             line = self._queue.get()
-            self._session.logger.info(line.decode('utf-8'))
+            import locale
+            stdout_encoding = locale.getpreferredencoding()
+            self._session.logger.info(line.decode(stdout_encoding, errors = 'ignore'))
+
+    def _log_queued_lines_while_alive(self, *trigger_args):
+        self._log_queued_lines()
         if not self._thread.is_alive():
             self._finished()
             return 'delete handler'
@@ -302,11 +316,12 @@ def find_executable(venv_directory, exe_name):
 # ------------------------------------------------------------------------------
 #
 def register_boltz_install_command(logger):
-    from chimerax.core.commands import CmdDesc, register, SaveFolderNameArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, SaveFolderNameArg, BoolArg, StringArg
     desc = CmdDesc(
         optional = [('directory', SaveFolderNameArg)],
-        keyword = [('download_model_weights_and_ccd', BoolArg)],
+        keyword = [('download_model_weights_and_ccd', BoolArg),
+                   ('branch', StringArg)],
         synopsis = 'Install Boltz from PyPi in a virtual environment',
-        url = 'help:boltz_help.html'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html#install'
     )
     register('boltz install', desc, boltz_install, logger=logger)

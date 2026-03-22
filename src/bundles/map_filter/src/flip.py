@@ -30,6 +30,12 @@ class FlipGrid(GridData):
         self.data_cache = None      # Caching done by underlying grid.
 
     # ---------------------------------------------------------------------------
+    # 
+    @property
+    def source_path(self):
+        return self.data.path
+
+    # ---------------------------------------------------------------------------
     #
     def matrix(self, ijk_origin = (0,0,0), ijk_size = None,
                ijk_step = (1,1,1), progress = None, from_cache_only = False):

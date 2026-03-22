@@ -79,6 +79,7 @@ def register_volume_command(logger):
                ('smoothing_factor', FloatArg),
                ('square_mesh', BoolArg),
                ('cap_faces', BoolArg),
+               ('surface_algorithm', EnumOf(ro.surface_algorithms)),
                ('position_planes', Int3Arg),
                ('tilted_slab_axis', AxisArg),
                ('tilted_slab_offset', FloatArg),
@@ -129,6 +130,7 @@ def register_volume_command(logger):
                ('axis', AxisArg),
                ('coordinate_system', CoordSysArg),
         ] + global_options + rendering_options,
+        hidden = ['smooth_lines', 'dim_transparency'],  # Options not implemented
         synopsis = 'set volume model parameters, display style and colors')
     register('volume', volume_desc, volume, logger=logger)
 
@@ -226,6 +228,7 @@ def volume(session,
            smoothing_factor = None,
            square_mesh = None,
            cap_faces = None,
+           surface_algorithm = None,
            box_faces = None,
            orthoplanes = None,
            position_planes = None,
@@ -439,7 +442,7 @@ def _render_settings(options):
         'line_thickness', 'smooth_lines', 'mesh_lighting',
         'two_sided_lighting', 'flip_normals', 'subdivide_surface',
         'subdivision_levels', 'surface_smoothing', 'smoothing_iterations',
-        'smoothing_factor', 'square_mesh', 'cap_faces',
+        'smoothing_factor', 'square_mesh', 'cap_faces', 'surface_algorithm',
         'tilted_slab_axis', 'tilted_slab_offset',
         'tilted_slab_spacing', 'tilted_slab_plane_count', 'image_mode', 'backing_color')
     rsettings = dict((n,options[n]) for n in ropt if options.get(n) is not None)
@@ -622,7 +625,7 @@ def level_and_color_settings(v, options):
             levels.extend(rms_levels)
         if sd_levels:
             for lvl in sd_levels:
-                lvl[0] *= sd
+                lvl[0] = mean + sd*lvl[0]
             levels.extend(sd_levels)
 
     colors = options.get('color', [])
@@ -880,6 +883,7 @@ def volume_default_values(session,
            smoothing_factor = None,
            square_mesh = None,
            cap_faces = None,
+           surface_algorithm = None,
            position_planes = None,
            tilted_slab_axis = None,
            tilted_slab_spacing = None,

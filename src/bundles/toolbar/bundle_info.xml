@@ -214,8 +214,7 @@ Provides a Windows ribbon-style toolbar interface
 
     <Provider tab="Right Mouse" section="Other"
       name="layout-mouse-other" after="Structure Modification"/>
-    <Provider tab="Right Mouse" section="Other" name="mO1" mouse_mode="next docked"
-      display_name="Next docked" description="Show next docked ligand"/>
+    <!-- ViewDock will register stuff in this section -->
   </Providers>
 
   <DataFiles>

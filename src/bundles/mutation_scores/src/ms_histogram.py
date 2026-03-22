@@ -41,6 +41,8 @@ def mutation_scores_histogram(session, score_name, mutation_set = None,
 from chimerax.interfaces.graph import Graph
 class MutationHistogram(Graph):
 
+    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html#histograms'
+
     def __init__(self, session):
         self.mutation_set_name = ''
         self._synonymous_histogram = None
@@ -50,27 +52,34 @@ class MutationHistogram(Graph):
         nodes = edges = []
         Graph.__init__(self, session, nodes, edges,
                        tool_name = 'Mutation scores histogram', title = 'Mutation scores histogram',
-                       hide_ticks = False, drag_select_callback = self._rectangle_selected)
+                       hide_ticks = False, drag_select_callback = self._rectangle_selected,
+                       zoom_axes = 'x', translate_axes = 'x', panel_placement = None)
+        self.figure.set_layout_engine(layout='constrained')  # Avoid clipping axis labels
 
         tw = self.tool_window
         parent = tw.ui_area
+        from types import MethodType
+        from Qt.QtCore import QSize
+        parent.sizeHint = MethodType(lambda p: QSize(500,200), parent)	# Set initial size
         layout = parent.layout()
 
         # Add score and mutation set menus.
         from chimerax.ui.widgets import EntriesRow
         menus = EntriesRow(parent, ' Score', ('score1', 'score2'), 'Mutations', ('set1', 'set2'))
         self._score_menu, self._mutation_set_menu = menus.values
+        self._mutation_set_menu_label = menus.labels[1]
         for m in menus.values:
             menu = m.widget.menu()
             menu.aboutToShow.connect(lambda menu=menu: self._menu_about_to_show(menu))
             menu.triggered.connect(self._menu_selection_changed)
         layout.addWidget(menus.frame)
+        self._set_mutation_set_menu_visibility()
 
     def _menu_about_to_show(self, menu):
         menu.clear()
         if menu is self._mutation_set_menu.widget.menu():
-            from .ms_data import mutation_scores_list
-            for ms_name in mutation_scores_list(self.session):
+            from .ms_data import mutation_scores_names
+            for ms_name in mutation_scores_names(self.session):
                 menu.addAction(ms_name)
         else:
             from .ms_data import mutation_scores
@@ -97,6 +106,12 @@ class MutationHistogram(Graph):
                            curve = self._smooth_curve, smooth_width = self._smooth_width, smooth_bins = self._smooth_bins,
                            synonymous = self._show_synonymous, bounds = self._synonymous_bounds)
 
+    def _set_mutation_set_menu_visibility(self):
+        from .ms_data import mutation_scores_names
+        visible = (len(mutation_scores_names(self.session)) > 1)
+        self._mutation_set_menu.widget.setVisible(visible)
+        self._mutation_set_menu_label.setVisible(visible)
+
     def set_plot_data(self, score_name, mutation_set_name, bins = 20, scale = 'linear',
                       curve = True, smooth_bins = 20, smooth_width = None,
                       synonymous = True, bounds = True):
@@ -106,6 +121,7 @@ class MutationHistogram(Graph):
 
         self._score_menu.value = score_name
         self._mutation_set_menu.value = self.mutation_set_name = mset.name
+        self._set_mutation_set_menu_visibility()
 
         values = [value for res_num, from_aa, to_aa, value in score_values.all_values()]
         syn_values = [value for res_num, from_aa, to_aa, value in score_values.all_values() if to_aa == from_aa]
@@ -248,7 +264,8 @@ class MutationHistogram(Graph):
             self._bounds_artists = [a.add_artist(line) for line in lines]
         elif not show and self._bounds_artists:
             for ba in self._bounds_artists:
-                ba.remove()
+                if ba.axes is not None:
+                    ba.remove()
             self._bounds_artists.clear()
         self._synonymous_bounds = show
         self.canvas.draw()

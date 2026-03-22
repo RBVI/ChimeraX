@@ -29,9 +29,16 @@ class _MDCrdsBundleAPI(BundleAPI):
     from chimerax.atomic import StructureArg
 
     @staticmethod
+    def register_command(command_name, logger):
+        from . import cmd
+        cmd.register_command(logger)
+
+    @staticmethod
     def run_provider(session, name, mgr, **kw):
         if mgr == session.open_command:
             from chimerax.open_command import OpenerInfo
+            from chimerax.core.commands import ListOf, EnumOf
+            omit_arg = ListOf(EnumOf(["main", "solvent", "ligand", "ions"]))
             if name in ("psf", "data"):
                 class MDInfo(OpenerInfo):
                     def open(self, session, data, file_name, *, slider=True, format_name=name, **kw):
@@ -51,6 +58,7 @@ class _MDCrdsBundleAPI(BundleAPI):
                             'auto_style': BoolArg,
                             'coords': OpenFileNameArg,
                             'end': PositiveIntArg,
+                            'omit': omit_arg,
                             'slider': BoolArg,
                             'start': PositiveIntArg,
                             'step': PositiveIntArg,
@@ -67,7 +75,7 @@ class _MDCrdsBundleAPI(BundleAPI):
             else:
                 class MDInfo(OpenerInfo):
                     def open(self, session, data, file_name, *, structure_model=None,
-                            md_type=name, replace=True, slider=True, start=1, step=1, end=None, **kw):
+                            md_type=name, replace=None, slider=True, start=1, step=1, end=None, **kw):
                         if structure_model is None:
                             from chimerax.core.errors import UserError, CancelOperation
                             from chimerax.atomic import Structure
@@ -114,9 +122,12 @@ class _MDCrdsBundleAPI(BundleAPI):
                                 else:
                                     raise UserError("Must specify an atomic model to read the coordinates"
                                         " into")
+                        if replace is None:
+                            # if 'replace' omitted, replace if 1 coordset, otherwise append
+                            replace = structure_model.num_coordsets < 2
                         from .read_coords import read_coords
                         num_coords = read_coords(session, data, structure_model, md_type,
-                            replace=replace, start=start, step=step, end=end)
+                            replace=replace, **kw)
                         if slider and session.ui.is_gui:
                             from chimerax.std_commands.coordset import coordset_slider
                             coordset_slider(session, [structure_model])
@@ -131,6 +142,7 @@ class _MDCrdsBundleAPI(BundleAPI):
                         from chimerax.core.commands import BoolArg, PositiveIntArg
                         return {
                             'end': PositiveIntArg,
+                            'omit': omit_arg,
                             'replace': BoolArg,
                             'slider': BoolArg,
                             'start': PositiveIntArg,
@@ -173,6 +185,8 @@ class _MDCrdsBundleAPI(BundleAPI):
             return MDInfo()
 
         # MD plotting manager
+        if kw.get('check_relevance', False):
+            return True
         if name == "distance":
             a1, a2 = kw['atoms']
             from chimerax.geometry import distance
@@ -195,6 +209,12 @@ class _MDCrdsBundleAPI(BundleAPI):
         elif name == "surface":
             from .providers import sasa
             return sasa(session, mgr, **kw)
+        elif name == "rmsd":
+            from .providers import rmsd
+            return rmsd(session, mgr, **kw)
+        elif name == "hbonds":
+            from .providers import hbonds
+            return hbonds(session, mgr, **kw)
         raise ValueError("Unknown plotting type: %s" % name)
 
 

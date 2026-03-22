@@ -4,13 +4,13 @@ build-backend = "chimerax.bundle_builder.cx_pep517"
 
 [project]
 name = "ChimeraX-Modeller"
-version = "1.5.19"
+version = "1.5.23"
 license = { text = "Free for non-commercial use" }
 authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
 description = "Interface to Modeller"
 dependencies = [
 	"ChimeraX-Core ~= 1.0"
-	, "ChimeraX-Alignments ~= 2.0"
+	, "ChimeraX-Alignments ~= 3.0"
 	, "ChimeraX-PDB ~= 2.0"
 	, "ChimeraX-UI ~= 1.15"
 ]

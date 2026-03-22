@@ -22,7 +22,7 @@ build-minimal: centos
 install-rbvi: centos
 	env HOME=`pwd` $(MAKE) install-rbvi CENTOS_DIST=$(CENTOS)
 
-package: centos
+production-package package: centos
 	env HOME=`pwd` $(APP_PYTHON_EXE) mkcentos.py $(CENTOS)
 
 daily-package: centos

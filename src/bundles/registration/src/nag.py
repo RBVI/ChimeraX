@@ -166,12 +166,12 @@ def _check_expiration(param, logger):
 
 def _expiration_time(param):
     from datetime import timedelta
+    #try:
+    #    return _strptime(param["Expires"])
+    #except (KeyError, ValueError):
+    #    pass
     try:
-        return _strptime(param["Expires"])
-    except (KeyError, ValueError):
-        pass
-    try:
-        return _strptime(param["Signed"]) + timedelta(days=365)
+        return _strptime(param["Signed"]) + timedelta(days=36500)
     except (KeyError, ValueError):
         pass
     return None

@@ -23,8 +23,11 @@ SUBDIRS = devel pdbimages quickstart user js
 
 DOCDIR = $(app_datadir)/docs
 
+EXTRA_EMBEDDED = openmm
 ifndef UBUNTU_DIST
-EXTRA_EMBEDDED = ffmpeg
+ifndef FLATPAK_DIST
+EXTRA_EMBEDDED += ffmpeg
+endif
 endif
 
 SRCS = $(wildcard *.html) license.html embedded.html licenses videos
@@ -66,7 +69,7 @@ embedded.html licenses: embedded.html.in make_embedded.py need_app
 	if [ -d "$(app_prefix)" ]; then \
 		$(APP_PYTHON_EXE) make_embedded.py $(EXTRA_EMBEDDED); \
 	fi
-	cp -p basictypes-license.txt licenses
+	cp -p *-license.txt licenses
 
 
 clean:

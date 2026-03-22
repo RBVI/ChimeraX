@@ -52,9 +52,9 @@ from .triggers import get_triggers
 from .shapedrawing import AtomicShapeDrawing, AtomicShapeInfo
 from .args import ElementArg, AtomArg, AtomsArg, OrderedAtomsArg, ResiduesArg
 from .args import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg
-from .args import UniqueChainsArg, ChainArg, SequencesArg, SequenceArg, UniProtIdArg
+from .args import UniqueChainsArg, ChainArg, SequencesArg, SequenceArg, UniProtIdArg, is_uniprot_id
 from .args import AtomicStructureArg, AtomicStructuresArg, StructureArg, StructuresArg
-from .args import SymmetryArg, concise_residue_spec, concise_chain_spec
+from .args import SymmetryArg, concise_residue_spec, concise_chain_spec, concise_atom_spec, classify_hydrogen_visibility
 from .cytmpl import TmplResidue
 
 def initialize_atomic(session):

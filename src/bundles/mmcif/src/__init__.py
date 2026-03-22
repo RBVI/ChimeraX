@@ -64,6 +64,7 @@ class _mmCIFioAPI(BundleAPI):
                             'log_info': BoolArg,
                             'max_models': IntArg,
                             'slider': BoolArg,
+                            'fetch_emdb_map': BoolArg,
                         }
             elif name == "ccd":
                 from chimerax.open_command import FetcherInfo

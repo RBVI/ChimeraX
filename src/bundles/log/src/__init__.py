@@ -27,15 +27,6 @@ from chimerax.core.toolshed import BundleAPI
 class _MyAPI(BundleAPI):
 
     @staticmethod
-    def initialize(session, bundle_info):
-        from . import settings
-        settings.settings = settings._LogSettings(session, "Log")
-
-        if session.ui.is_gui:
-            session.ui.triggers.add_handler('ready',
-                lambda *args, ses=session: settings.register_settings_options(ses))
-
-    @staticmethod
     def get_class(class_name):
         # 'get_class' is called by session code to get class saved in a session
         if class_name == 'Log':

@@ -389,7 +389,7 @@ def write_object(file, name, va, na, tca, ta, voffset, pos, obj_to_unity):
     file.write('\n')
 
     # Write texture coordinates
-    if tca is not None:
+    if tca is not None and len(tca) > 0 and len(tca[0]) == 2:
         file.write('\n'.join(('vt %.5g %.5g' % tuple(uv)) for uv in tca))
         file.write('\n')
 

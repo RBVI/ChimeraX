@@ -41,6 +41,9 @@ class _AlignmentsBundleAPI(BundleAPI):
         elif class_name == "Alignment":
             from . import alignment
             return alignment.Alignment
+        elif class_name == "MarkupHeaderSequence":
+            from . import alignment
+            return alignment.MarkupHeaderSequence
 
     @staticmethod
     def init_manager(session, bundle_info, name, **kw):

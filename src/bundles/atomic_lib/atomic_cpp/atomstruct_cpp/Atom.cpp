@@ -1446,9 +1446,9 @@ Atom::set_coord(const Coord& coord, CoordSet* cs, bool track_change)
 }
 
 void
-Atom::set_coord_index(unsigned int ci)
+Atom::set_coord_index(unsigned int ci, bool reassign)
 {
-    if (_coord_index != COORD_UNASSIGNED)
+    if (_coord_index != COORD_UNASSIGNED && !reassign)
         throw std::logic_error("Coordinate index already assigned");
     auto cs = structure()->active_coord_set();
     if (cs == nullptr)

@@ -171,11 +171,18 @@ class AlphaFoldRun(ToolInstance):
             item.cancel()  # Historical.  Used to just download pdb file.
             return
         dir = self._results_directory
-        from os.path import isdir
+        from os.path import isdir, exists, join
         if not isdir(dir):
+            self._original_results_directory = dir
+            self._results_directory = dir = self._unique_results_directory()
+        elif exists(join(dir, 'results.zip')):
+            # Already downloaded results.zip once so create a new directory.
+            # This can happen if the user reruns the prediction in the Google Colab window.
+            odir = getattr(self, '_original_results_directory', '')
+            self._results_directory = odir if '[N]' in odir else default_results_directory
             self._results_directory = dir = self._unique_results_directory()
         item.setDownloadDirectory(dir)
-        if  filename == 'results.zip':
+        if filename == 'results.zip':
             item.isFinishedChanged.connect(self._unzip_results)	# Qt 6
         item.accept()
 

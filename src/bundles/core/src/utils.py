@@ -230,7 +230,7 @@ def make_link(target, source) -> None:
     """An OS-agnostic way to make a symbolic link that does not require permissions
     on Windows to use."""
     if sys.platform == "win32":
-        subprocess.run('mklink /J "%s" "%s"' % (source, target), shell = True)
+        subprocess.run(['mklink', '/J', source, target])
     else:
         os.symlink(target, source)
 
@@ -251,3 +251,14 @@ def chimerax_bin_dir_first_in_path():
     os.environ['PATH'] = ":".join([chimerax_binary_directory(), oldpath])
     yield
     os.environ['PATH'] = oldpath or ''
+
+@contextmanager
+def no_garbage_collection():
+    import gc
+    was_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        yield
+    finally:
+        if was_enabled:
+            gc.enable()

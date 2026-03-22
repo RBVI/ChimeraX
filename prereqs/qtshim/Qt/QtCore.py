@@ -8,7 +8,7 @@ if using_pyqt6:
     from PyQt6.QtCore import QT_VERSION_STR as __version__
 
     # Allow using enum values without enumeration name.
-    from .promote_enums import promote_enums
+    from .promote_enums import promote_enums_pyqt as promote_enums
     from PyQt6 import QtCore
     promote_enums(QtCore)
     del QtCore
@@ -34,4 +34,10 @@ elif using_pyside2:
 elif using_pyside6:
     from PySide6.QtCore import *
     import PySide6.QtCore
+
+    from .promote_enums import promote_enums_pyside as promote_enums
+    from PySide6 import QtCore
+    promote_enums(QtCore)
+    del QtCore
+
     __version__ = PySide6.QtCore.__version__

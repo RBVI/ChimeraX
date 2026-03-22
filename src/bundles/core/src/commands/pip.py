@@ -68,28 +68,24 @@ def pip(
             else:
                 pip_cmd.extend(["uninstall", "-y", "%s" % package])
     elif action == 'list':
-        pip_cmd.appendf("list")
+        pip_cmd.append("list")
     elif action == 'check':
-        pip_cmd.appendf("check")
+        pip_cmd.append("check")
     elif action == 'show':
         if not package:
             raise UserError("Can't possibly show an unspecified package.")
         pip_cmd.extend(["show", "%s" % package])
-    elif action == 'search':
-        if not package:
-            raise UserError("Can't possibly search for an unspecified package.")
-        pip_cmd.extend(["search", "%s" % package])
     elif action == 'debug':
        pip_cmd.append("debug")
     else:
-        raise UserError("Unsupported action. Please use one of [install, uninstall, list, check, show, search, debug].")
+        raise UserError("Unsupported action. Please use one of [install, uninstall, list, check, show, debug].")
     if verbose:
         pip_cmd.append("--verbose")
     run_logged_pip(pip_cmd, session.logger)
 
 pip_desc = CmdDesc(
     required=[
-        ("action", EnumOf(["install", "uninstall", "list", "check", "show", "search", "debug"]))
+        ("action", EnumOf(["install", "uninstall", "list", "check", "show", "debug"]))
     ],
     optional=[
         ("package", StringArg)

@@ -12,10 +12,6 @@
 # === UCSF ChimeraX Copyright ===
 from enum import IntEnum
 from chimerax.core.commands import run
-from chimerax.segmentations.ui.segmentation_mouse_mode import (
-    mouse_bindings_saved,
-    hand_bindings_saved,
-)
 
 
 class ImageFormat(IntEnum):
@@ -61,6 +57,10 @@ class Handedness(IntEnum):
 
 def run_toolbar_button(session, name):
     # run shortcut chosen via bundle provider interface
+    from chimerax.segmentations.ui.segmentation_mouse_mode import (
+        mouse_bindings_saved,
+        hand_bindings_saved,
+    )
     if name == "toggle mouse modes":
         if mouse_bindings_saved():
             run(session, "segmentations mouseModes off")

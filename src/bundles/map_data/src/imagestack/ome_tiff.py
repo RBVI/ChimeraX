@@ -122,7 +122,11 @@ def ome_pixels_from_xml(path, xml_header, found_paths = None, log = None):
     for im in r:
         if tag_name(im) != 'Image':
             continue
-        name = im.attrib['Name']
+        if 'Name' in im.attrib:
+            name = im.attrib['Name']
+        else:
+            from os.path import basename
+            name = basename(path)
         for p in im:
             if tag_name(p) != 'Pixels':
                 continue

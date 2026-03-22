@@ -114,7 +114,7 @@ def model_loops(session, targets, *, adjacent_flexible=1, block=None, chains=Non
             for i in range(len(seq)):
                 for sseq in sseqs:
                     try:
-                        r = seq.match_maps[sseq][i]
+                        r = target_alignment.match_maps[seq][sseq][i]
                     except KeyError:
                         continue
                 if r in sel_residues:

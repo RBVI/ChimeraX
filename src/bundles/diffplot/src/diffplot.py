@@ -179,7 +179,7 @@ def _residue_alignment_columns(alignment, residues):
 #       in the sequence alignment.
 
     ref_seq = alignment.associations[ref_chain]
-    ref_match = ref_seq.match_maps[ref_chain]
+    ref_match = alignment.match_maps[ref_seq][ref_chain]
     rp = ref_match.res_to_pos
     aligned = [r for r in residues if r in rp]
     if len(aligned) < len(residues):
@@ -200,7 +200,7 @@ def _alignment_atoms(chain, alignment, columns):
         from chimerax.core.errors import UserError
         raise UserError(f'Chain {chain} is not associated with any sequence in alignment {alignment.description}')
     aseq = alignment.associations[chain]
-    mm = aseq.match_maps[chain]
+    mm = alignment.match_maps[aseq][chain]
     cares = mm.pos_to_res
     ugcolumns = [aseq.gapped_to_ungapped(col) for col in columns]
     missing_col = []

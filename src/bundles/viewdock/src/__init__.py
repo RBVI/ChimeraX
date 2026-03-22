@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2025 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
@@ -22,6 +24,9 @@
 
 from chimerax.core.toolshed import BundleAPI
 
+RATING_KEY = 'rating'
+DEFAULT_RATING = 0
+
 class _MyAPI(BundleAPI):
     api_version = 1
 
@@ -31,13 +36,8 @@ class _MyAPI(BundleAPI):
             show_docking_file_dialogue(session)
 
     @staticmethod
-    def register_command(bi, ci, logger):
-        from . import cmd
-        cmd.register_command(ci)
-
-    @staticmethod
     def get_class(name):
-        if name == "ViewDockTool":
+        if name == "ViewDockTool" or name == "TableTool":
             from .tool import ViewDockTool
             return ViewDockTool
         return None
@@ -47,13 +47,13 @@ class _MyAPI(BundleAPI):
         from chimerax.open_command import OpenerInfo
         class ViewDockOpenerInfo(OpenerInfo):
             def open(self, session, data, file_name, *, _name=name, show_tool=True, **kw):
-                if _name == "vd_AutoDock PDBQT":
+                if _name == "AutoDock PDBQT":
                     from .pdbqt import open_pdbqt
                     opener = open_pdbqt
                 elif "Mol2" in name:
                     from .io import open_mol2
                     opener = open_mol2
-                elif _name == "vd_SwissDock":
+                elif _name == "SwissDock":
                     from .io import open_swissdock
                     opener = open_swissdock
                 else: # ZDOCK
@@ -62,9 +62,9 @@ class _MyAPI(BundleAPI):
                 # the below code is also in the Maestro bundle
                 models, status = opener(session, data, file_name, True, True)
                 all_models = sum([m.all_models() for m in models], start=[])
-                if show_tool and session.ui.is_gui and len(all_models) > 1:
+                if show_tool and session.ui.is_gui:
                     for m in all_models:
-                        if hasattr(m, 'viewdockx_data'):
+                        if hasattr(m, 'viewdock_data'):
                             show_dock = True
                             break
                     else:
@@ -90,13 +90,13 @@ def show_docking_file_dialogue(session):
 
     docking_formats_names = []
     for data_format in session.data_formats.formats:
-        if data_format.category == "Docking results":
+        if data_format.category == "Docking results" or data_format.name == "Sybyl Mol2":
             docking_formats_names.append(data_format.name)
     if not docking_formats_names:
         session.logger.warning("No docking results formats found.")
         return
     from chimerax.open_command import show_open_file_dialog
-    show_open_file_dialog(session, format_names=docking_formats_names)
+    show_open_file_dialog(session, format_names=docking_formats_names, caption="Choose Docking Results File")
 
 
 def open_viewdock_tool(session, structures):
@@ -110,6 +110,11 @@ def open_viewdock_tool(session, structures):
 
     if not structures:
         session.logger.warning("Cannot open ViewDock without providing docking structures.")
+        return
+    # Don't show ViewDock if the structures aren't open in the session
+    # (e.g. the output of antechamber being read by add_charge)
+    structures = [s for s in structures if s.id is not None]
+    if not structures:
         return
     from .tool import ViewDockTool
     ViewDockTool(session, "ViewDock", structures)

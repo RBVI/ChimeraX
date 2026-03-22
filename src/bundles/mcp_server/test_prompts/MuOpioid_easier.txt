@@ -1,0 +1,7 @@
+I'd like to look at how fentanyl interacts with the opioid receptor, PDB 8ef5
+Could you hide the G proteins?  Also hide the antibody.
+Show the receptor as ribbon
+Show just one copy of the receptor
+Can you show the protein residues near fentanyl in stick style
+Can you show hydrogen bonds between fentanyl and the protein?  How many are there?
+And what are the distances and angles between the atoms involved in this H bond? (you may need to add hydrongens first, in which case please hide non-polar hydrogens)

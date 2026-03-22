@@ -45,6 +45,15 @@ BEGIN_DELETE_MODELS = "begin delete models"
 END_DELETE_MODELS = "end delete models"
 # TODO: register Model as data event type
 
+class BadIDError(ValueError):
+    pass
+class NoParentError(BadIDError):
+    pass
+class BadParentError(BadIDError):
+    pass
+class DuplicateIDError(BadIDError):
+    pass
+
 # If any of the *STATE_VERSIONs change, then increase the (maximum) core session
 # number in setup.py.in
 MODEL_STATE_VERSION = 1
@@ -358,7 +367,9 @@ class Model(State, Drawing):
         # Scene interface implementation
         if flags == State.SCENE:
             scene_data = {'version': MODEL_STATE_VERSION}
-            scene_attrs = ['selected', 'overall_color', 'model_color', 'display']
+            scene_attrs = ['selected', 'display']
+            if self.model_color is not None:
+                scene_attrs.append('model_color')
             for attr in scene_attrs:
                 scene_data[attr] = getattr(self, attr)
             return scene_data
@@ -451,8 +462,10 @@ class Model(State, Drawing):
         you needn't implement this method (restore_scene() is sufficient).
 
         '''
-        #TODO: interpolate base Model state here
-        raise NotImplementedError("interpolate_scene not implemented")
+        for attr_name, val in scene1_data.items():
+            if attr_name in scene2_data:
+                #TODO: do something better for colors
+                setattr(self, attr_name, scene2_data[attr_name] if switchover else val)
 
     def save_geometry(self, session, flags):
         '''
@@ -539,7 +552,7 @@ class Model(State, Drawing):
         pass
 
     def atomspec_model_attr(self, attrs):
-        # Return true is attributes specifier matches model
+        # Return true if attributes specifier matches model
         for attr in attrs:
             try:
                 v = getattr(self, attr.name)
@@ -547,8 +560,25 @@ class Model(State, Drawing):
                 if not attr.no:
                     return False
             else:
+                import operator
                 if attr.value is None:
                     tv = attr.op(v)
+                elif (attr.op in (operator.eq, operator.ne, "==", "!==")
+                and isinstance(attr.value, str)):
+                    # Equality-comparison operators for strings handle wildcards
+                    # Largely cribbed from chimerax,commands.atomspec._AttrTest.attr_matcher
+                    case_sensitive = attr.op in ["==", "!=="]
+                    attr_value = attr.value if case_sensitive else attr.value.lower()
+                    if not case_sensitive:
+                        v = v.lower()
+                    invert = attr.op in (operator.ne, "!==")
+                    from chimerax.core.commands.atomspec import has_wildcard
+                    if has_wildcard(attr.value):
+                        from fnmatch import fnmatchcase
+                        matches = fnmatchcase(v, attr_value)
+                    else:
+                        matches = v == attr_value
+                    tv = not matches if invert else matches
                 else:
                     tv = attr.op(v, attr.value)
                 if not tv:
@@ -834,13 +864,13 @@ class Models(StateManager):
             par_id = model.id[:-1]
             p = self._models.get(par_id) if par_id else self.scene_root_model
             if p is None:
-                raise ValueError('Tried to add model %s but parent #%s does not exist'
+                raise NoParentError('Tried to add model %s but parent #%s does not exist'
                                  % (model, '.'.join('%d'% i for i in par_id)))
             if parent is not None and parent is not p:
-                raise ValueError('Tried to add model %s to parent %s with incompatible id'
+                raise BadParentError('Tried to add model %s to parent %s with incompatible id'
                                  % (model, parent))
             if model.id in self._models:
-                raise ValueError('Tried to add model %s with the same id as another model %s'
+                raise DuplicateIDError('Tried to add model %s with the same id as another model %s'
                                  % (model, self._models[model.id]))
         return p
 

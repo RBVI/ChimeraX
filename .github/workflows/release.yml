@@ -3,24 +3,24 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-rocky8-docker:
-    name: Build ChimeraX for Rocky 8
-    uses: ./.github/workflows/rocky8_build.yml
+  build-rocky9-docker:
+    name: Build ChimeraX for Rocky 9
+    uses: ./.github/workflows/rocky9_build.yml
     with:
       branch: master
       release_type: production
     secrets: inherit
-  build-rocky9-docker:
-    name: Build ChimeraX for Rocky 9
-    needs: [build-rocky8-docker]
-    uses: ./.github/workflows/rocky9_build.yml
+  build-rocky10-docker:
+    name: Build ChimeraX for Rocky 10
+    needs: [build-rocky9-docker]
+    uses: ./.github/workflows/rocky10_build.yml
     with:
       branch: master
       release_type: production
     secrets: inherit
   build-ubuntu:
     name: Build ChimeraX for Ubuntu
-    needs: [build-rocky8-docker]
+    needs: [build-rocky9-docker]
     uses: ./.github/workflows/ubuntu_build.yml
     with:
       branch: master
@@ -28,7 +28,7 @@ jobs:
     secrets: inherit
   build-flatpak:
     name: Build ChimeraX FlatPak
-    needs: [build-rocky8-docker]
+    needs: [build-rocky9-docker]
     uses: ./.github/workflows/flatpak_build.yml
     with:
       branch: master
@@ -70,10 +70,10 @@ jobs:
       branch: master
       release_type: production
     secrets: inherit
-  build-wheels:
-    name: Build ChimeraX wheels
-    uses: ./.github/workflows/wheels.yml
-    with:
-      branch: develop
-      release_type: production
-    secrets: inherit
+#  build-wheels:
+#    name: Build ChimeraX wheels
+#    uses: ./.github/workflows/wheels.yml
+#    with:
+#      branch: develop
+#      release_type: production
+#    secrets: inherit

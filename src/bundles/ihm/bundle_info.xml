@@ -27,14 +27,14 @@
   </Dependencies>
 
   <Providers manager="data formats">
-    <Provider name="Integrative/Hybrid Models" category="Higher-order structure" suffixes=".ihm"
+    <Provider name="Integrative/Hybrid Models" category="Higher-order structure" suffixes=".ihm,.cif"
 		nicknames="ihm" reference_url="https://pdb-ihm.org/" />
   </Providers>
 
   <Providers manager="open command">
     <Provider name="Integrative/Hybrid Models" want_path="true" />
     <Provider name="pdbdev" type="fetch" format_name="Integrative/Hybrid Models" />
-    <Provider name="pdbihm" type="fetch" format_name="Integrative/Hybrid Models" />
+    <Provider name="pdbihm" type="fetch" format_name="Integrative/Hybrid Models" synopsis="Integrative Hybrid Models" example_ids="8zze"/>
   </Providers>
 
   <Classifiers>

@@ -1,6 +1,4 @@
-<html>
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: zone</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: zone</h3>
 
@@ -41,8 +36,8 @@ class="clRighticon" title="User Guide Index"/></a>
 <a name="setting"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>zone setting</b>
-[&nbsp;<b>labelColor</b></a>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;default&nbsp;]
-[&nbsp;<b>labelBackgroundColor</b></a>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;none&nbsp;]
+[&nbsp;<b>labelColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;default&nbsp;]
+[&nbsp;<b>labelBackgroundColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;none&nbsp;]
 [&nbsp;<b>save</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 </h3>
 <p>
@@ -56,19 +51,19 @@ and volume displays:
 <ul>
 <li><b>residueDistance</b> (initial default <b>5</b> &Aring;)
 &ndash; for all-atom display of nearby residues
-<li><b>labelDistance</b> (initial default <b>4</b> &Aring;)
+</li><li><b>labelDistance</b> (initial default <b>4</b> &Aring;)
 &ndash; for labels on nearby residues
-<li><b>surfaceDistance</b> (initial default <b>8</b> &Aring;)
+</li><li><b>surfaceDistance</b> (initial default <b>8</b> &Aring;)
 &ndash; for <a href="../tools/volumeviewer.html">volume data</a> displays
 (surface, mesh, or solid);
 does not affect <a href="surface.html">molecular surfaces</a>
-</ul>
+</li></ul>
 <p>
 The cutoff values remain in effect for automatic application with
 the <b>zone</b> command and/or
 <b>zone</b> <a href="ui.html#mousemode">mouse mode</a>
 <a href="../tools/mousemodes.html" title="Mouse Modes for Right Button...">
-<img class="icon" border=1 src="../tools/mouse-icons/zone.png"></a>
+<img class="icon" border="1" src="../tools/mouse-icons/zone.png" alt="computer generated image"></a>
 until they are explicitly changed or ChimeraX is exited.
 </p><p>
 The <b>label</b> option indicates whether to show zone residue labels
@@ -89,19 +84,18 @@ the label color will automatically adjust to <b>white</b> or <b>black</b>
 depending on the color of the label background, or if there is no 
 label background, depending on the color of the 
 <a href="set.html#bgColor">window background</a>
-<li><b>labelBackgroundColor</b>
+</li><li><b>labelBackgroundColor</b>
 &ndash; color of the rectangular backgrounds shown behind the labels
 (initial default <b>none</b>, meaning no backgrounds)
-</ul>
+</li></ul>
 <p>
 By default (<b>save true</b>), these changes are saved as
 <a href="../preferences.html#other">preferences</a> for zone labels only
 (not other labels).
 Enabling <a href="../vr.html">virtual reality</a> automatically
 changes the zone-label color to <b>yellow</b>
-<table border cellpadding="4" cellspacing="0"
-style="display:inline-block; vertical-align:middle"><tr>
-<td bgcolor=yellow width="10px" title="yellow"></td></tr></table>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="yellow" width="10px" title="yellow"></td></tr></tbody></table>
 and zone-label background color to <b>black</b> without saving 
 these values as <a href="../preferences.html#other">preferences</a>.
 </p><p>
@@ -119,4 +113,5 @@ See also:
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 October 2020</address>
-</body></html> 
+ 
+</body></html>

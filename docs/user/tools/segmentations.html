@@ -1,5 +1,4 @@
-<html>
-  <!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -10,10 +9,8 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-  <head>
-    <link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="../userdocs.css">
     <title>Tool: Segmentations</title>
     <style>
       @media (prefers-color-scheme: dark) {
@@ -26,36 +23,22 @@ or derivations thereof.
   <body>
     <a name="top"></a>
     <a href="../index.html">
-      <img
-        width="60px"
-        src="../ChimeraX-docs-icon.svg"
-        alt="ChimeraX docs icon"
-        class="clRighticon"
-        title="User Guide Index"
-    /></a>
+      <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
     <table class="clRight">
-      <tr>
+      <tbody><tr>
         <td>
-          <a href="segmentations.png"
-            ><img
-              class="outline"
-              src="segmentations.png"
-              title="click to enlarge..."
-              alt="chest CT with segmentations"
-              width="600px"
-          /></a>
+          <a href="segmentations.png"><img class="outline" src="segmentations.png" title="click to enlarge..." alt="chest CT with segmentations" width="600px"></a>
         </td>
       </tr>
       <tr>
         <td align="center">
           <font size="-1">
             <a href="../dicom-quickref.html#data">Chest CT dataset</a> with
-            several axial slices segmented</font
-          >
+            several axial slices segmented</font>
         </td>
       </tr>
-    </table>
+    </tbody></table>
 
     <h3><a href="../index.html#tools">Tool</a>: Segmentations</h3>
     <p>
@@ -74,33 +57,16 @@ or derivations thereof.
     </p>
     <p>
       The <b>Segmentations</b> tool can be started from the
-      <b>Volume Data</b> section of the <b>Tools</b> menu (<a
-        href="../window.html#panels"
-        >more...</a
-      >). Some of its functions are also implemented as the
+      <b>Volume Data</b> section of the <b>Tools</b> menu (<a href="../window.html#panels">more...</a>). Some of its functions are also implemented as the
       <a href="../commands/segmentations.html"><b>segmentations</b></a> command.
-      See also: <a href="downloaddicom.html"><b>Download DICOM</b></a
-      >, <a href="volumeviewer.html"><b>Volume Viewer</b></a
-      >, <a href="maperaser.html"><b>Map Eraser</b></a
-      >, <a href="../commands/color.html#zone"><b>color zone</b></a
-      >, <a href="../commands/volume.html#mask"><b>volume mask</b></a
-      >, <a href="../commands/segmentation.html"><b>segmentation</b></a
-      >,
-      <a
-        href="https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html"
-        >DICOM segmentation tutorial</a
-      >, <a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>,
+      See also: <a href="downloaddicom.html"><b>Download DICOM</b></a>, <a href="volumeviewer.html"><b>Volume Viewer</b></a>, <a href="maperaser.html"><b>Map Eraser</b></a>, <a href="../commands/color.html#zone"><b>color zone</b></a>, <a href="../commands/volume.html#mask"><b>volume mask</b></a>, <a href="../commands/segmentation.html"><b>segmentation</b></a>,
+      <a href="https://www.rbvi.ucsf.edu/chimerax/data/dicom-tutorials/dicom-segmentations.html">DICOM segmentation tutorial</a>, <a href="../dicom-quickref.html">ChimeraX DICOM Reference</a>,
       <a href="medicalimage.html#mousemodes"><b>Medical Image</b></a> toolbar
       icons:
       <a href="medicalimage.html#mousemodes" title="Medical Image Toolbar...">
-        <img class="icon" border="1" src="mouse-icons/mouse_small.svg"
-      /></a>
+        <img class="icon" border="1" src="mouse-icons/mouse_small.svg" alt="computer generated image"></a>
       <a href="medicalimage.html#mousemodes" title="Medical Image Toolbar...">
-        <img
-          class="icon"
-          border="1"
-          src="mouse-icons/right_controller_small.svg"
-      /></a>
+        <img class="icon" border="1" src="mouse-icons/right_controller_small.svg" alt="computer generated image"></a>
     </p>
 
     <a name="dialog"></a>
@@ -176,14 +142,8 @@ or derivations thereof.
       up a dialog for saving the segmentation to a file. If the
       <a href="../dicom/dicom.html">DICOM</a> file type is chosen, the
       segmentation is saved as the SEG modality with the associated metadata, if
-      any. Other medical-image formats (<a
-        href="https://nifti.nimh.nih.gov/"
-        target="_blank"
-        ><b>NIfTI</b></a
-      >,
-      <a href="https://teem.sourceforge.net/nrrd/" target="_blank"
-        ><b>NRRD</b></a
-      >) will not include the metadata.
+      any. Other medical-image formats (<a href="https://nifti.nimh.nih.gov/" target="_blank"><b>NIfTI</b></a>,
+      <a href="https://teem.sourceforge.net/nrrd/" target="_blank"><b>NRRD</b></a>) will not include the metadata.
     </p>
     <p>
       In the slice views, the segmentation cursor is shown as a red circle; left
@@ -205,8 +165,7 @@ or derivations thereof.
     </p>
     <p>
       Clicking <b>Help</b> opens this page in the
-      <a href="helpviewer.html"><b>Help Viewer</b></a
-      >.
+      <a href="helpviewer.html"><b>Help Viewer</b></a>.
     </p>
 
     <a name="settings"></a>
@@ -324,8 +283,7 @@ or derivations thereof.
       <a href="medicalimage.html#mousemodes"><b>Medical Image</b></a> toolbar
       icon
       <a href="medicalimage.html#mousemodes" title="Medical Image Toolbar...">
-        <img class="icon" border="1" src="mouse-icons/mouse_small.svg" /></a
-      >, where the &ldquo;off&rdquo; state restores the previous assignments.
+        <img class="icon" border="1" src="mouse-icons/mouse_small.svg" alt="computer generated image"></a>, where the &ldquo;off&rdquo; state restores the previous assignments.
     </p>
 
     <a name="settings-vr"></a>
@@ -340,16 +298,13 @@ or derivations thereof.
       <a href="medicalimage.html#mousemodes"><b>Medical Image</b></a> toolbar
       icon
       <a href="medicalimage.html#mousemodes" title="Medical Image Toolbar...">
-        <img
-          class="icon"
-          border="1"
-          src="mouse-icons/right_controller_small.svg" /></a
-      >, where the &ldquo;off&rdquo; state restores the previous assignments.
+        <img class="icon" border="1" src="mouse-icons/right_controller_small.svg" alt="computer generated image"></a>, where the &ldquo;off&rdquo; state restores the previous assignments.
     </p>
 
-    <hr />
+    <hr>
     <address>
       UCSF Resource for Biocomputing, Visualization, and Informatics / May 2024
     </address>
-  </body>
-</html>
+  
+
+</body></html>

@@ -1,6 +1,12 @@
 # vi: set expandtab shiftwidth=4 softtabstop=4:
 
-import sys, getopt, os, shutil
+import getopt
+import os
+import shutil
+import subprocess
+import sys
+
+
 verbose = False
 my_name = None
 skip = set()
@@ -9,9 +15,21 @@ DOCS = os.path.join("..", "docs")
 BUNDLES = os.path.join("..", "src", "bundles")
 
 
+def get_bundle_subdirs():
+    # Use make to find out which bundles are included in build
+    output = subprocess.check_output(["make", "-qp"], cwd=BUNDLES, encoding='utf-8')
+    lines = output.split('\n')
+    rest = None
+    for line in lines:
+        if line.startswith('REST_SUBDIRS ='):
+            rest = line
+            break
+    return rest.split()[2:]
+
+
 def build():
     _symlink_user(DOCS, True)
-    for dirname in os.listdir(BUNDLES):
+    for dirname in get_bundle_subdirs():
         # dirname may not be a directory, but we do not care
         # since test will return False anyway
         docs_dir = os.path.join(BUNDLES, dirname, "src", "docs")
@@ -153,7 +171,7 @@ def _remove_symlink(p):
 def _remove_directory(p):
     try:
         os.rmdir(p)
-    except OSError as e:
+    except OSError:
         pass
 
 

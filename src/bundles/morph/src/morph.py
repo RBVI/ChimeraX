@@ -25,7 +25,8 @@
 #
 def morph(session, structures, frames = 50, wrap = False, rate = 'linear', method = 'corkscrew',
           cartesian = False, same = False, core_fraction = 0.5, min_hinge_spacing = 6,
-          hide_models = True, play = True, slider = True, color_segments = False, color_core = None):
+          hide_models = True, play = True, slider = True, color_segments = False, color_core = None,
+          model_id = None):
     '''
     Morph between atomic models using Yale Morph Server algorithm.
 
@@ -71,6 +72,8 @@ def morph(session, structures, frames = 50, wrap = False, rate = 'linear', metho
     color_core : Color or None
         Color the core residues the specified color.  This is to understand what residues
         the algorithm calculates to be the core.
+    model_id : tuple of integers or None
+        Model Id number for the newly created morph model.
     '''
 
     if len(structures) < 2:
@@ -85,6 +88,8 @@ def morph(session, structures, frames = 50, wrap = False, rate = 'linear', metho
                          cartesian=cartesian, match_same=same, core_fraction = core_fraction,
                          min_hinge_spacing = min_hinge_spacing,
                          color_segments = color_segments, color_core = color_core)
+    if model_id is not None:
+        traj.id = model_id
     session.models.add([traj])
     if not color_segments and color_core is None:
         if traj.num_chains == 1:
@@ -127,7 +132,7 @@ def morph(session, structures, frames = 50, wrap = False, rate = 'linear', metho
 # -----------------------------------------------------------------------------------------
 #
 def register_morph_command(logger):
-    from chimerax.core.commands import CmdDesc, register, IntArg, EnumOf, BoolArg, FloatArg, ColorArg
+    from chimerax.core.commands import CmdDesc, register, IntArg, EnumOf, BoolArg, FloatArg, ColorArg, ModelIdArg
     from chimerax.atomic import StructuresArg
     desc = CmdDesc(
         required = [('structures', StructuresArg)],
@@ -143,7 +148,8 @@ def register_morph_command(logger):
                    ('play', BoolArg),
                    ('slider', BoolArg),
                    ('color_segments', BoolArg),
-                   ('color_core', ColorArg)],
+                   ('color_core', ColorArg),
+                   ('model_id', ModelIdArg)],
         synopsis = 'morph atomic structures'
     )
     register('morph', desc, morph, logger=logger)

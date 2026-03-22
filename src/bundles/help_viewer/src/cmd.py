@@ -75,28 +75,12 @@ def help(session, topic=None, *, option=None):
         url = topic
     else:
         cmd_name = topic
-        found = False
-        while True:
-            try:
-                url = cli.command_url(cmd_name)
-            except ValueError:
-                session.logger.error("No help found for '%s'" % topic)
-                return
-            if url:
-                found = True
-                break
-            alias = cli.expand_alias(cmd_name)
-            if not alias:
-                break
-            alias_words = alias.split()
-            for i in range(len(alias_words)):
-                try:
-                    cmd_name = ' '.join(alias_words[0:i + 1])
-                    cli.command_url(cmd_name)
-                except ValueError:
-                    cmd_name = ' '.join(alias_words[0:i])
-                    break
-        if not found:
+        try:
+            url = cli.command_url(cmd_name)
+        except ValueError:
+            session.logger.error("No help found for '%s'" % topic)
+            return
+        if url is None:
             run(session, "usage %s" % topic, log=False)
             return
     from . import show_url

@@ -50,6 +50,9 @@ def move(session, axis, distance=None, frames=None, coordinate_system=None,
                 d = distance if undo is None else -distance
                 move(session, axis=axis, distance=d, frames=None,
                      coordinate_system=coordinate_system, models=models, atoms=atoms)
+        from chimerax.core.commands.motion import CallForNFrames
+        if distance is not None and frames != CallForNFrames.Infinite:
+            session.undo.register(UndoMotion("move", move_step, frames, session))
         multiframe_motion("move", move_step, frames, session)
         return
 
@@ -77,8 +80,6 @@ def move(session, axis, distance=None, frames=None, coordinate_system=None,
 
 def multiframe_motion(name, func, frames, session):
     from chimerax.core.commands.motion import CallForNFrames
-    if frames != CallForNFrames.Infinite:
-        session.undo.register(UndoMotion(name, func, frames, session))
     CallForNFrames(func, frames, session)
 
 

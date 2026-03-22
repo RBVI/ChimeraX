@@ -643,7 +643,7 @@ extern "C" EXPORT void atom_get_coord_altloc(void *atom, char altloc, float64_t 
     }
 }
 
-extern "C" EXPORT void atom_delete(void *atoms, size_t n)
+extern "C" EXPORT void atom_delete(void *atoms, size_t n, npy_bool compact_coordsets)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -651,8 +651,15 @@ extern "C" EXPORT void atom_delete(void *atoms, size_t n)
         for (size_t i = 0; i != n; ++i)
             matoms[a[i]->structure()].push_back(a[i]);
 
-        for (auto ma: matoms)
-            ma.first->delete_atoms(ma.second);
+        for (auto ma: matoms) {
+            // Deleting all the atoms of a parent model can cause
+            // child models to be destroyed before this loop gets
+            // to them (e.g. parent model of Find Cavities);
+            // guard against that
+            if (ma.first->py_instance(false) == Py_None)
+                continue;
+            ma.first->delete_atoms(ma.second, compact_coordsets);
+        }
     } catch (...) {
         molc_error();
     }
@@ -2491,7 +2498,7 @@ extern "C" EXPORT int pseudobond_global_manager_session_info(void *manager, PyOb
 }
 
 extern "C" EXPORT void pseudobond_global_manager_session_restore(void *manager, int version,
-    PyObject *ints, PyObject *floats, PyObject *misc)
+    PyObject *ints, PyObject *floats, PyObject *misc, bool combine)
 {
     PBManager *mgr = static_cast<PBManager *>(manager);
     try {
@@ -2505,7 +2512,7 @@ extern "C" EXPORT void pseudobond_global_manager_session_restore(void *manager, 
             throw std::invalid_argument("Global pseudobond float data is not a one-dimensional"
                 " numpy float array");
         float* float_array = static_cast<float*>(farray.values());
-        mgr->session_restore(version, &int_array, &float_array, misc);
+        mgr->session_restore(version, &int_array, &float_array, misc, combine);
     } catch (...) {
         molc_error();
     }
@@ -2767,7 +2774,7 @@ extern "C" EXPORT void residue_delete(void *residues, size_t n)
           const Residue::Atoms &ratoms = r[i]->atoms();
           atoms.insert(atoms.end(), ratoms.begin(), ratoms.end());
         }
-        atom_delete(atoms.data(), atoms.size());
+        atom_delete(atoms.data(), atoms.size(), false);
     } catch (...) {
         molc_error();
     }
