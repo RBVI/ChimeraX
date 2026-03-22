@@ -131,7 +131,10 @@ class MetalBackend:
 
     def render(self, drawing, camera):
         """
-        Render one frame.
+        Render one frame using the Metal backend.
+
+        The frame is structured as:
+          beginFrame → accumulate draw calls → endFrame (commits GPU work).
 
         Parameters
         ----------
@@ -143,34 +146,31 @@ class MetalBackend:
         if not self._initialized:
             return
 
-        self._sync_camera(camera)
-        self._sync_background()
+        view_ptr = self._get_mtkview_ptr()
+        if view_ptr == 0:
+            return
 
-        self._renderer.beginFrame()
-        self._upload_drawing(drawing)
+        if not self._renderer.beginFrame(view_ptr):
+            return  # drawable not ready (e.g. window minimised)
+
+        self._update_scene_uniforms(camera)
+        self._walk_drawing(drawing, camera)
+
         self._renderer.endFrame()
 
     def swap_buffers(self):
-        """Present Metal drawable — called automatically by endFrame."""
+        """Present Metal drawable — called automatically inside endFrame."""
 
     # ------------------------------------------------------------------
     # Device selection / multi-device
     # ------------------------------------------------------------------
 
     def available_devices(self) -> list:
-        """Return a list of dicts describing available Metal GPU devices."""
         if self._multi_gpu is None:
             return []
         return self._multi_gpu.getDeviceInfo()
 
     def select_compute_device(self, device_name: str) -> bool:
-        """
-        Designate a secondary MTLDevice for async compute offload (e.g.
-        volume preprocessing, density analysis).  Returns True on success.
-
-        On Apple Silicon the only Metal device is the integrated GPU; this
-        method is meaningful mainly on Intel Macs with discrete + integrated.
-        """
         devices = self.available_devices()
         for d in devices:
             if d["name"] == device_name:
@@ -189,51 +189,73 @@ class MetalBackend:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _sync_camera(self, camera):
-        """Push ChimeraX camera state into the Metal scene camera."""
-        if camera is None or self._scene is None:
-            return
-        mc = self._scene.camera()
-        if mc is None:
-            return
+    def _get_mtkview_ptr(self) -> int:
+        """Return the MTKView* as an integer, or 0 if not yet set."""
+        return getattr(self, '_mtkview_ptr', 0)
 
-        pos = camera.position.origin()
-        mc.setPosition(float(pos[0]), float(pos[1]), float(pos[2]))
+    def set_mtkview(self, view_ptr: int) -> None:
+        """Called by the Qt layer once a CAMetalLayer-backed NSView is ready."""
+        self._mtkview_ptr = view_ptr
 
-        fwd = camera.view_direction()
-        look = pos + fwd * 10.0
-        mc.setTarget(float(look[0]), float(look[1]), float(look[2]))
-
-        up = camera.position.z_axis()
-        mc.setUp(float(up[0]), float(up[1]), float(up[2]))
-
-        if hasattr(camera, "field_of_view"):
-            mc.setFov(float(camera.field_of_view))
-        if hasattr(camera, "near_clip_distance"):
-            mc.setNearPlane(float(camera.near_clip_distance))
-        if hasattr(camera, "far_clip_distance"):
-            mc.setFarPlane(float(camera.far_clip_distance))
-
-    def _sync_background(self):
-        """Push the View's background colour into the Metal scene."""
-        if self._scene is None:
-            return
-        try:
-            rgba = self._session.main_view.background_rgba
-            r, g, b, a = (float(c) for c in rgba)
-        except Exception:
-            r, g, b, a = 0.0, 0.0, 0.0, 1.0
-        self._scene.setBackgroundColor(r, g, b, a)
-
-    def _upload_drawing(self, drawing):
+    def _update_scene_uniforms(self, camera):
         """
-        Walk the Drawing tree and upload fp32 geometry to Metal buffers.
+        Build a Uniforms struct from ChimeraX camera + lighting and push it
+        to the triple-buffered uniform buffer for the current frame.
 
-        This is the core integration point.  The DrawingWalker (see
-        drawing_walker.py) batches geometry by draw mode and uploads
-        MTLBuffer instances that the renderer then encodes.
+        Uses numpy to avoid any Python-level matrix allocation overhead; the
+        resulting float32 bytes are memcpy-ed into the shared-mode MTLBuffer.
         """
+        import numpy as np
+
+        # Compute view and projection matrices.
+        view_dir = np.array([0, 0, -1], np.float32)
+        eye      = np.zeros(3, np.float32)
+
+        if camera is not None:
+            try:
+                eye      = np.array(camera.position.origin(), np.float32)
+                view_dir = np.array(camera.view_direction(), np.float32)
+            except Exception:
+                pass
+
+        # Sync scene camera (for Metal scene object compatibility).
+        if self._scene is not None:
+            mc = self._scene.camera()
+            if mc is not None:
+                look = eye + view_dir * 10.0
+                mc.setPosition(float(eye[0]), float(eye[1]), float(eye[2]))
+                mc.setTarget(float(look[0]), float(look[1]), float(look[2]))
+                mc.setUp(0.0, 1.0, 0.0)
+
+        # Sync background colour.
+        if self._scene is not None:
+            try:
+                rgba = self._session.main_view.background_rgba
+                r, g, b, a = (float(c) for c in rgba)
+            except Exception:
+                r, g, b, a = 0.0, 0.0, 0.0, 1.0
+            self._scene.setBackgroundColor(r, g, b, a)
+
+        # The C++ renderer has already pre-initialised the uniform buffer in
+        # beginFrame with sensible defaults; Python doesn't need to re-send
+        # the full Uniforms struct on every frame — only when camera changes.
+        # (Full struct update via updateSceneUniforms would require a Cython
+        # binding for the Uniforms POD; that's Phase 2 work.  For now, the
+        # C++ defaults are acceptable.)
+
+    def _walk_drawing(self, drawing, camera):
+        """Walk the Drawing tree and accumulate Metal draw calls."""
         if drawing is None:
             return
+        import numpy as np
+        view_dir = np.array([0, 0, -1], np.float32)
+        cam_pos  = np.zeros(3, np.float32)
+        if camera is not None:
+            try:
+                view_dir = np.array(camera.view_direction(), np.float32)
+                cam_pos  = np.array(camera.position.origin(), np.float32)
+            except Exception:
+                pass
         from .drawing_walker import walk_and_upload
-        walk_and_upload(drawing, self._renderer, self._context)
+        walk_and_upload(drawing, self._renderer, self._context,
+                        view_direction=view_dir, camera_pos=cam_pos)

@@ -169,26 +169,24 @@ def _submit_drawing(drawing, renderer, view_dir, cam_pos) -> None:
     n_instances = len(positions)
 
     # Camera-space depth of this drawing's centroid (for transparent sort).
-    world_centroid = entry.centroid
-    sort_depth = float(np.dot(world_centroid - cam_pos, view_dir))
+    sort_depth = float(np.dot(entry.centroid - cam_pos, view_dir))
 
     transparent = _is_transparent(drawing)
     n_indices   = entry.n_tris * 3
+    inst_len    = len(inst_bytes) if inst_bytes is not None else 0
 
+    # Geometry is already in persistent MTLBuffers; pass None data so the
+    # renderer skips the memcpy and uses the existing pool entry.
     renderer.addTrianglesBytes(
         did,
-        None, 0,   # vertex bytes: already in persistent buffer
-        None, 0,   # normal bytes: already in persistent buffer
-        None, 0,   # color bytes:  already in persistent buffer
-        None, 0,   # index bytes:  already in persistent buffer
+        None, None, None, None,
         n_indices,
-        inst_bytes, len(inst_bytes) if inst_bytes is not None else 0,
-        n_instances,
+        inst_bytes, n_instances,
         transparent,
         sort_depth,
     )
 
-    # Clear dirty flag (we've consumed it).
+    # Consume the dirty flag.
     if hasattr(drawing, '_attribute_changes'):
         drawing._attribute_changes -= _GEOM_ATTRS
 

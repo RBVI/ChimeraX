@@ -83,20 +83,34 @@ cdef extern from "metal_multi_gpu.hpp" namespace "chimerax::graphics_metal":
         bool selectComputeDevice(string) except +
 
 cdef extern from "metal_renderer.hpp" namespace "chimerax::graphics_metal":
+    # Opaque MTKView pointer — we only need to pass it through.
+    ctypedef void* MTKViewPtr "MTKView*"
+
     cdef cppclass MetalRenderer:
         MetalRenderer(MetalContext*) except +
         bool initialize() except +
         void setScene(MetalScene*) except +
-        void beginFrame() except +
+        bool beginFrame(MTKViewPtr view) except +
         void endFrame() except +
         void setMultiGPUMode(bool, int) except +
-        void renderTrianglesBytes(
-            const void*, size_t,
-            const void*, size_t,
-            const void*, size_t,
-            const void*, size_t,
-            unsigned int,
-            bool) except +
+
+        # Persistent buffer pool
+        void ensureBuffer(size_t drawingId, unsigned int attr,
+                          const void* data, size_t length) except +
+        void evictDrawing(size_t drawingId) except +
+
+        # Accumulate an instanced draw call (called from Python walker).
+        void addTrianglesBytes(
+            size_t drawingId,
+            const void* vData,    size_t vLen,
+            const void* nData,    size_t nLen,
+            const void* cData,    size_t cLen,
+            const void* iData,    size_t iLen,
+            unsigned int indexCount,
+            const void* instData, size_t instLen,
+            unsigned int instanceCount,
+            bool transparent,
+            float sortDepth) except +
 
 cdef extern from "metal_resources.hpp" namespace "chimerax::graphics_metal":
     cdef cppclass MetalResources:
@@ -248,59 +262,107 @@ cdef class PyMetalCamera:
 cdef class PyMetalRenderer:
     cdef MetalRenderer* _renderer
     cdef PyMetalContext _context
-    
+
     def __cinit__(self, PyMetalContext context):
         self._context = context
         self._renderer = new MetalRenderer(context._context)
         if self._renderer == NULL:
             raise MemoryError("Failed to allocate MetalRenderer")
-    
+
     def __dealloc__(self):
         if self._renderer != NULL:
             del self._renderer
             self._renderer = NULL
-    
+
     def initialize(self):
-        """Initialize the Metal renderer"""
+        """Initialize Metal pipelines and triple-buffered uniforms."""
         if not self._renderer.initialize():
             raise MetalError("Failed to initialize Metal renderer")
         return True
-        
+
     def setScene(self, PyMetalScene scene):
-        """Set the scene to render"""
         self._renderer.setScene(scene._scene)
-        
-    def beginFrame(self):
-        """Begin a new frame for rendering"""
-        self._renderer.beginFrame()
-        
+
+    def beginFrame(self, long view_ptr):
+        """Begin a frame.  view_ptr is the MTKView* as an integer."""
+        return self._renderer.beginFrame(<MTKViewPtr>view_ptr)
+
     def endFrame(self):
-        """End the current frame rendering"""
+        """Execute all accumulated draw calls and present the drawable."""
         self._renderer.endFrame()
-        
+
     def setMultiGPUMode(self, bool enabled, int strategy=0):
-        """Enable or disable multi-GPU rendering"""
         self._renderer.setMultiGPUMode(enabled, strategy)
 
-    def renderTriangles(self,
-                        bytes vertex_bytes,
-                        bytes normal_bytes,
-                        bytes color_bytes,
-                        bytes index_bytes,
-                        unsigned int index_count,
-                        bool transparent=False):
-        """Upload a triangle batch (fp32 vertices/normals/colors, int32 indices) to Metal."""
-        cdef const unsigned char* vp = vertex_bytes
-        cdef const unsigned char* np_ = normal_bytes
-        cdef const unsigned char* cp = color_bytes
-        cdef const unsigned char* ip = index_bytes
-        self._renderer.renderTrianglesBytes(
-            <const void*>vp, len(vertex_bytes),
-            <const void*>np_, len(normal_bytes),
-            <const void*>cp, len(color_bytes),
-            <const void*>ip, len(index_bytes),
+    # ------------------------------------------------------------------
+    # Persistent buffer pool
+    # ------------------------------------------------------------------
+
+    def ensureBuffer(self, size_t drawing_id, unsigned int attr,
+                     bytes data, size_t length):
+        """Upload *data* into the persistent shared-mode MTLBuffer for
+        (drawing_id, attr), growing the buffer if needed.
+        On Apple Silicon this is a memcpy into unified DRAM — no GPU copy."""
+        cdef const unsigned char* ptr = data
+        self._renderer.ensureBuffer(drawing_id, attr,
+                                    <const void*>ptr, length)
+
+    def evictDrawing(self, size_t drawing_id):
+        """Release all persistent buffers for a deleted Drawing."""
+        self._renderer.evictDrawing(drawing_id)
+
+    # ------------------------------------------------------------------
+    # Draw call accumulation
+    # ------------------------------------------------------------------
+
+    def addTrianglesBytes(self,
+                          size_t drawing_id,
+                          object vertex_bytes,
+                          object normal_bytes,
+                          object color_bytes,
+                          object index_bytes,
+                          unsigned int index_count,
+                          object instance_bytes,
+                          unsigned int instance_count,
+                          bool transparent,
+                          float sort_depth = 0.0):
+        """
+        Accumulate one instanced draw call.
+
+        Geometry byte-string arguments may be None if the persistent buffer
+        for that attribute is already current (geometry not dirty).
+        instance_bytes may be None if instance_count == 1 and no transform
+        is needed beyond the uniform modelMatrix.
+        """
+        cdef const unsigned char* vp   = NULL
+        cdef const unsigned char* np_  = NULL
+        cdef const unsigned char* cp   = NULL
+        cdef const unsigned char* ip   = NULL
+        cdef const unsigned char* instp = NULL
+        cdef size_t vl = 0, nl = 0, cl = 0, il_ = 0, instl = 0
+
+        if vertex_bytes is not None:
+            vp = vertex_bytes;  vl = len(vertex_bytes)
+        if normal_bytes is not None:
+            np_ = normal_bytes; nl = len(normal_bytes)
+        if color_bytes is not None:
+            cp = color_bytes;   cl = len(color_bytes)
+        if index_bytes is not None:
+            ip = index_bytes;   il_ = len(index_bytes)
+        if instance_bytes is not None:
+            instp = instance_bytes; instl = len(instance_bytes)
+
+        self._renderer.addTrianglesBytes(
+            drawing_id,
+            <const void*>vp,    vl,
+            <const void*>np_,   nl,
+            <const void*>cp,    cl,
+            <const void*>ip,    il_,
             index_count,
+            <const void*>instp, instl,
+            instance_count,
             transparent,
+            sort_depth,
         )
 
 # PyMetalMultiGPU - Wrapper for MetalMultiGPU
