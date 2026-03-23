@@ -61,6 +61,12 @@ def string_to_attr(string, *, prefix="", collapse=True):
 class RegistrationConflict(ValueError):
     pass
 
+class BadDeregistration(ValueError):
+    pass
+
+class BadAttrRename(ValueError):
+    pass
+
 def type_attrs(t):
     """Return known attribute names for the class/type 't'"""
     from types import GetSetDescriptorType
@@ -90,6 +96,17 @@ def register_attr(cls, session, attr_name, registerer, *, attr_type=None,
     cls._attr_registration.register(session, attr_name, registerer, (attr_type, can_return_none),
         supercede=supercede)
 
+@classmethod
+def deregister_attr(cls, session, attr_name, registerer):
+    cls._attr_registration.deregister(session, attr_name, registerer)
+
+@classmethod
+def rename_attr(cls, session, prev_attr_name, new_attr_name, registerer):
+    '''Only renames the information about the attribute.  It does not move the attribute/value
+       occurances in the individual instances of the class.
+    '''
+    cls._attr_registration.rename(session, prev_attr_name, new_attr_name, registerer)
+
 # used within the class to hold the registration info
 class AttrRegistration:
     def __init__(self, class_):
@@ -113,6 +130,36 @@ class AttrRegistration:
         session_attrs = self._session_attrs.setdefault(session, set())
         if attr_name not in session_attrs:
             session_attrs.add(attr_name)
+
+    def deregister(self, session, attr_name, registrant):
+        if attr_name in self.reg_attr_info:
+            prev_registrant, prev_type_info = self.reg_attr_info[attr_name]
+            if prev_registrant == registrant:
+                del self.reg_attr_info[attr_name]
+            else:
+                raise BadDeregistration(
+                    "%s cannot deregister attribute %s registered by different source (%s)" % (registrant,
+                    attr_name, prev_registrant))
+        else:
+            raise BadDeregistration("%s cannot deregister un-registered attribute %s"
+                % (registrant, attr_name))
+
+    def rename(self, session, prev_attr_name, new_attr_name, registrant):
+        if new_attr_name in self.reg_attr_info:
+            raise BadAttrRename("%s cannot rename attribute %s to already existing name %s"
+                % (registrant, prev_attr_name, new_attr_name))
+        if prev_attr_name in self.reg_attr_info:
+            prev_registrant, prev_type_info = self.reg_attr_info[prev_attr_name]
+            if prev_registrant == registrant:
+                self.reg_attr_info[new_attr_name] = self.reg_attr_info[prev_attr_name]
+                del self.reg_attr_info[prev_attr_name]
+            else:
+                raise BadAttrRename(
+                    "%s cannot rename attribute %s to %s registered by different source (%s)"
+                    % (registrant, prev_attr_name, new_attr_name, prev_registrant))
+        else:
+            raise BadAttrRename("%s cannot rename un-registered attribute %s"
+                % (registrant, prev_attr_name))
 
     # session functions; called from manager, not directly from session-saving mechanism,
     # so API varies from that for State class
@@ -194,6 +241,8 @@ def register_class(reg_class, instances_func, builtin_attr_info={}):
     else:
         reg_class._attr_registration = AttrRegistration(reg_class)
         reg_class.register_attr = register_attr
+        reg_class.deregister_attr = deregister_attr
+        reg_class.rename_attr = rename_attr
         reg_class.has_custom_attrs = has_custom_attrs
         reg_class.custom_attrs = custom_attrs
         reg_class.set_custom_attrs = set_custom_attrs
