@@ -56,7 +56,7 @@ jobs:
           per_page: 100
       - name: Note the run and job IDs on Plato
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 1000
           timeout_seconds: 60
@@ -87,7 +87,7 @@ jobs:
           echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
       - name: Upload ChimeraX (Daily or Tech Preview)
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'techpreview' }}
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 1000
           timeout_minutes: 60
@@ -99,7 +99,7 @@ jobs:
           echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
       - name: Upload ChimeraX (Candidate or Production)
         if: ${{ inputs.release_type == 'candidate' || inputs.release_type == 'production' }}
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 1000
           timeout_minutes: 60
