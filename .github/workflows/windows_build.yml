@@ -48,7 +48,7 @@ jobs:
           per_page: 100
       - name: Note the run and job IDs on Plato
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
           # GitHub Actions couldn't contact Plato.
@@ -83,7 +83,7 @@ jobs:
             echo "TEST_OUTCOME=Passing" >> $GITHUB_ENV
           fi
       - name: Report test results to Plato
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 1000
           timeout_minutes: 60
@@ -102,7 +102,7 @@ jobs:
       - name: Build tarball
         run: tar zcf ChimeraX.tar.gz ChimeraX.app
       - name: Upload ChimeraX
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 1000
           timeout_minutes: 60
@@ -138,7 +138,7 @@ jobs:
           per_page: 100
       - name: Note the run and job IDs on Plato
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
           # GitHub Actions couldn't contact Plato.
@@ -167,7 +167,7 @@ jobs:
             echo "TEST_OUTCOME=Passing" >> $GITHUB_ENV
           fi
       - name: Report test results to Plato
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 1000
           timeout_minutes: 60
@@ -187,7 +187,7 @@ jobs:
         run: tar zcf ChimeraX.tar.gz ChimeraX.app
       - name: Upload ChimeraX
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'techpreview' }}
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 1000
           timeout_minutes: 60
@@ -201,7 +201,7 @@ jobs:
       - name: Build tarball
         run: tar zcf ChimeraX.tar.gz ChimeraX.app
       - name: Upload ChimeraX
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 1000
           timeout_minutes: 60
@@ -258,7 +258,7 @@ jobs:
       - name: Build tarball
         run: tar zcf ChimeraX.tar.gz ChimeraX.app
       - name: Upload ChimeraX
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 1000
           shell: bash
@@ -319,7 +319,7 @@ jobs:
       - name: Build tarball
         run: tar zcf ChimeraX.tar.gz ChimeraX.app
       - name: Upload ChimeraX
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
           # GitHub Actions couldn't contact Plato.
