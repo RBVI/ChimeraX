@@ -10,6 +10,8 @@ Components:
 - TimelineControlWidget: Timeline scrubber and playback controls
 """
 
+from dataclasses import dataclass, field
+
 from Qt.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -35,6 +37,17 @@ import io
 from PIL import Image
 
 from chimerax.scenes.tool import SCENE_EVENT_MIME_FORMAT
+
+
+@dataclass
+class SceneMarker:
+    """Timeline scene marker with stable identity across sorting and edits."""
+
+    marker_id: int
+    time: float
+    scene_name: str
+    thumbnail_pixmap: QPixmap | None
+    transition_data: dict = field(default_factory=dict)
 
 
 class ActionThumbnailWidget(QWidget):
@@ -336,13 +349,13 @@ class TimelineSceneWidget(QWidget):
 
     scene_dropped = Signal(str, float)  # scene_name, time
     scene_moved = Signal(str, float, float)  # scene_name, old_time, new_time
-    scene_deleted = Signal(str)  # scene_name
+    scene_deleted = Signal(str, float)  # scene_name, time (specific instance)
     time_clicked = Signal(float)  # time position clicked
 
     def __init__(self, duration=5.0, parent=None):
         super().__init__(parent)
         self.duration = duration
-        self.scene_markers = []  # List of (time, scene_name, thumbnail_pixmap, transition_data) tuples
+        self.scene_markers = []  # List[SceneMarker]
         self.action_segments = []  # List of (start_time, end_time, action_name) tuples for rock/roll
         self.current_time = 0.0
         self.drag_time = None  # Time position for drag preview
@@ -355,16 +368,18 @@ class TimelineSceneWidget(QWidget):
         # Enable focus to receive key events
         self.setFocusPolicy(Qt.StrongFocus)
 
-        # Selected scene tracking
-        self.selected_scene = None
+        self._next_scene_marker_id = 0
+
+        # Selected scene tracking (by stable marker id)
+        self.selected_scene_marker_id = None
 
         # Store reference to session for key handling
         self.session = None
 
-        # Dragging state for scene markers
-        self.dragging_scene = None  # Scene name being dragged
-        self.potential_drag_scene = (
-            None  # Scene that might be dragged if mouse moves far enough
+        # Dragging state for scene markers (by stable marker id)
+        self.dragging_scene_marker_id = None  # Marker id of scene being dragged
+        self.potential_drag_scene_marker_id = (
+            None  # Marker id of scene that might be dragged if mouse moves far enough
         )
 
         # Dragging state for action segments
@@ -385,16 +400,59 @@ class TimelineSceneWidget(QWidget):
 
         # Get scene thumbnail from session
         thumbnail_pixmap = self._get_scene_thumbnail(scene_name)
-        self.scene_markers.append((time, scene_name, thumbnail_pixmap, transition_data))
-        self.scene_markers.sort()  # Keep sorted by time
+        marker = SceneMarker(
+            marker_id=self._allocate_scene_marker_id(),
+            time=time,
+            scene_name=scene_name,
+            thumbnail_pixmap=thumbnail_pixmap,
+            transition_data=transition_data.copy(),
+        )
+        self.scene_markers.append(marker)
+        self._sort_scene_markers()
         self.update()
 
-    def remove_scene_marker(self, scene_name):
-        """Remove scene marker by name"""
-        self.scene_markers = [
-            (t, s, p, td) for t, s, p, td in self.scene_markers if s != scene_name
-        ]
+    def remove_scene_marker(self, scene_name, time=None):
+        """Remove a scene marker. If time is given, remove only the instance at that
+        time; otherwise remove all instances with the given name."""
+        if time is not None:
+            self.scene_markers = [
+                marker
+                for marker in self.scene_markers
+                if not (
+                    marker.scene_name == scene_name and abs(marker.time - time) < 0.001
+                )
+            ]
+        else:
+            self.scene_markers = [
+                marker for marker in self.scene_markers if marker.scene_name != scene_name
+            ]
+        # Reset selection and dragging state since identities may be gone.
+        self.selected_scene_marker_id = None
+        self.dragging_scene_marker_id = None
+        self.potential_drag_scene_marker_id = None
         self.update()
+
+    def _allocate_scene_marker_id(self):
+        marker_id = self._next_scene_marker_id
+        self._next_scene_marker_id += 1
+        return marker_id
+
+    def _sort_scene_markers(self):
+        self.scene_markers.sort(key=lambda marker: marker.time)
+
+    def _get_scene_marker_index(self, marker_id):
+        if marker_id is None:
+            return None
+        for index, marker in enumerate(self.scene_markers):
+            if marker.marker_id == marker_id:
+                return index
+        return None
+
+    def _get_scene_marker_by_id(self, marker_id):
+        marker_index = self._get_scene_marker_index(marker_id)
+        if marker_index is None:
+            return None
+        return self.scene_markers[marker_index]
 
     def _get_scene_thumbnail(self, scene_name):
         """Get thumbnail pixmap for a scene"""
@@ -425,21 +483,19 @@ class TimelineSceneWidget(QWidget):
         return default_pixmap
 
     def _get_scene_at_position(self, x):
-        """Get scene name if click position is on a scene marker"""
+        """Get marker id of the scene marker at the click position, or None."""
         width = self.width()
 
         # Check each scene marker to see if click is within its bounds
-        for marker_data in self.scene_markers:
-            if len(marker_data) >= 2:
-                time, scene_name = marker_data[:2]
-                marker_x = int((time / self.duration) * width)
+        for marker in self.scene_markers:
+            marker_x = int((marker.time / self.duration) * width)
 
-                # Check if click is within the thumbnail bounds (40px wide, centered on marker_x)
-                thumb_left = marker_x - 20
-                thumb_right = marker_x + 20
+            # Check if click is within the thumbnail bounds (40px wide, centered on marker_x)
+            thumb_left = marker_x - 20
+            thumb_right = marker_x + 20
 
-                if thumb_left <= x <= thumb_right:
-                    return scene_name
+            if thumb_left <= x <= thumb_right:
+                return marker.marker_id
 
         return None
 
@@ -488,12 +544,17 @@ class TimelineSceneWidget(QWidget):
         return None
 
     def _get_scene_time(self, scene_name):
-        """Get the time of a scene marker"""
-        for marker_data in self.scene_markers:
-            if len(marker_data) >= 2:
-                time, name = marker_data[:2]
-                if name == scene_name:
-                    return time
+        """Get the time of a scene marker by name (returns first match)"""
+        for marker in self.scene_markers:
+            if marker.scene_name == scene_name:
+                return marker.time
+        return None
+
+    def _get_scene_time_by_id(self, marker_id):
+        """Get the time of a scene marker by stable marker id"""
+        marker = self._get_scene_marker_by_id(marker_id)
+        if marker is not None:
+            return marker.time
         return None
 
     def set_current_time(self, time):
@@ -538,17 +599,8 @@ class TimelineSceneWidget(QWidget):
                     painter.drawLine(x, 10, x, 20)
 
             # Draw scene markers with thumbnails
-            for marker_data in self.scene_markers:
-                if len(marker_data) >= 3:
-                    time, scene_name, thumbnail_pixmap = marker_data[
-                        :3
-                    ]  # Only take first 3 elements
-                else:
-                    # Handle old format without thumbnails
-                    time, scene_name = marker_data[:2]
-                    thumbnail_pixmap = self._get_scene_thumbnail(scene_name)
-
-                x = int((time / self.duration) * width)
+            for marker in self.scene_markers:
+                x = int((marker.time / self.duration) * width)
 
                 # Draw thumbnail background
                 thumb_rect_x = x - 20
@@ -562,18 +614,18 @@ class TimelineSceneWidget(QWidget):
                 painter.drawRect(thumb_rect_x, thumb_rect_y, thumb_rect_w, thumb_rect_h)
 
                 # Draw thumbnail
-                if thumbnail_pixmap and not thumbnail_pixmap.isNull():
+                if marker.thumbnail_pixmap and not marker.thumbnail_pixmap.isNull():
                     painter.drawPixmap(
                         thumb_rect_x,
                         thumb_rect_y,
                         thumb_rect_w,
                         thumb_rect_h,
-                        thumbnail_pixmap,
+                        marker.thumbnail_pixmap,
                     )
 
                 # Draw border around thumbnail (highlight if selected)
                 painter.setBrush(Qt.NoBrush)
-                if scene_name == self.selected_scene:
+                if marker.marker_id == self.selected_scene_marker_id:
                     # Highlight selected scene with thicker, brighter border
                     painter.setPen(QColor(255, 255, 0, 255))  # Yellow selection
                     painter.drawRect(
@@ -589,7 +641,7 @@ class TimelineSceneWidget(QWidget):
 
                 # Scene name below thumbnail
                 painter.setPen(QColor(255, 255, 255))
-                painter.drawText(x - 25, 70, scene_name[:8])  # Truncate long names
+                painter.drawText(x - 25, 70, marker.scene_name[:8])  # Truncate long names
 
                 # Draw vertical line from scene marker up into timeline ruler area for clarity
                 painter.setPen(
@@ -861,22 +913,24 @@ class TimelineSceneWidget(QWidget):
                 return
 
             # Check if we clicked on a scene marker
-            clicked_scene = self._get_scene_at_position(x)
-            if clicked_scene:
+            clicked_scene_marker_id = self._get_scene_at_position(x)
+            if clicked_scene_marker_id is not None:
                 # Select the scene for potential deletion
-                self.selected_scene = clicked_scene
+                self.selected_scene_marker_id = clicked_scene_marker_id
                 self.selected_action_segment = None  # Deselect action segments
                 self.setFocus()  # Ensure we can receive key events
 
                 # Prepare for potential scene dragging, but don't actually drag until significant movement
-                self.dragging_scene = (
+                self.dragging_scene_marker_id = (
                     None  # Don't set this until we actually start dragging
                 )
-                self.potential_drag_scene = (
-                    clicked_scene  # Track which scene might be dragged
+                self.potential_drag_scene_marker_id = (
+                    clicked_scene_marker_id  # Track which scene might be dragged
                 )
                 self.drag_start_pos = event.position()
-                self.original_scene_time = self._get_scene_time(clicked_scene)
+                self.original_scene_time = self._get_scene_time_by_id(
+                    clicked_scene_marker_id
+                )
                 self.dragging_playhead = False
 
                 # Single click now only selects - don't restore scene
@@ -884,9 +938,9 @@ class TimelineSceneWidget(QWidget):
                 self.update()  # Redraw to show selection
             else:
                 # Clear scene selection and dragging state
-                self.selected_scene = None
-                self.dragging_scene = None
-                self.potential_drag_scene = None
+                self.selected_scene_marker_id = None
+                self.dragging_scene_marker_id = None
+                self.potential_drag_scene_marker_id = None
                 self.drag_start_pos = event.position()
                 self.original_scene_time = None
                 self.dragging_playhead = True
@@ -968,9 +1022,9 @@ class TimelineSceneWidget(QWidget):
 
         # Check if we have a potential drag that should become actual dragging
         if (
-            self.potential_drag_scene
+            self.potential_drag_scene_marker_id is not None
             and self.drag_start_pos
-            and not self.dragging_scene
+            and self.dragging_scene_marker_id is None
         ):
             current_pos = event.position()
             from Qt.QtWidgets import QApplication
@@ -980,10 +1034,10 @@ class TimelineSceneWidget(QWidget):
                 current_pos - self.drag_start_pos
             ).manhattanLength() > QApplication.startDragDistance():
                 # Now start actually dragging
-                self.dragging_scene = self.potential_drag_scene
-                self.potential_drag_scene = None
+                self.dragging_scene_marker_id = self.potential_drag_scene_marker_id
+                self.potential_drag_scene_marker_id = None
 
-        if self.dragging_scene and self.drag_start_pos:
+        if self.dragging_scene_marker_id is not None and self.drag_start_pos:
             # Calculate how far we've moved
             current_pos = event.position()
 
@@ -993,7 +1047,7 @@ class TimelineSceneWidget(QWidget):
             new_time = max(0, min(new_time, self.duration))  # Clamp to valid range
 
             # Update the scene marker position
-            self._move_scene_marker(self.dragging_scene, new_time)
+            self._move_scene_marker_by_id(self.dragging_scene_marker_id, new_time)
             self.update()
 
         elif self.dragging_playhead and self.drag_start_pos:
@@ -1014,7 +1068,7 @@ class TimelineSceneWidget(QWidget):
         if (
             not self.dragging_action_segment
             and not self.resizing_action_segment
-            and not self.dragging_scene
+            and self.dragging_scene_marker_id is None
         ):
             edge_result = self._get_action_segment_edge_at_position(x, y)
             if edge_result is not None:
@@ -1046,7 +1100,7 @@ class TimelineSceneWidget(QWidget):
                 self.update()
                 return
 
-            if self.dragging_scene:
+            if self.dragging_scene_marker_id is not None:
                 # Calculate final time position for scene marker
                 x = event.position().x()
                 new_time = (x / self.width()) * self.duration
@@ -1054,21 +1108,23 @@ class TimelineSceneWidget(QWidget):
 
                 # Move the scene marker to final position
                 old_time = self.original_scene_time
-                self._move_scene_marker(self.dragging_scene, new_time)
+                marker = self._get_scene_marker_by_id(self.dragging_scene_marker_id)
+                scene_name = marker.scene_name if marker is not None else None
+                self._move_scene_marker_by_id(self.dragging_scene_marker_id, new_time)
 
                 # Emit signal that scene was moved
-                if old_time != new_time:
-                    self.scene_moved.emit(self.dragging_scene, old_time, new_time)
+                if scene_name is not None and old_time != new_time:
+                    self.scene_moved.emit(scene_name, old_time, new_time)
 
                 # Clear scene dragging state
-                self.dragging_scene = None
-                self.potential_drag_scene = None
+                self.dragging_scene_marker_id = None
+                self.potential_drag_scene_marker_id = None
                 self.drag_start_pos = None
                 self.original_scene_time = None
 
-            elif self.potential_drag_scene:
+            elif self.potential_drag_scene_marker_id is not None:
                 # Clear potential drag state (was a simple click, not a drag)
-                self.potential_drag_scene = None
+                self.potential_drag_scene_marker_id = None
                 self.drag_start_pos = None
                 self.original_scene_time = None
 
@@ -1088,15 +1144,16 @@ class TimelineSceneWidget(QWidget):
             x = event.position().x()
 
             # Check if we double-clicked on a scene marker
-            clicked_scene = self._get_scene_at_position(x)
-            if clicked_scene:
+            clicked_marker_id = self._get_scene_at_position(x)
+            if clicked_marker_id is not None:
+                marker = self._get_scene_marker_by_id(clicked_marker_id)
+                scene_name = marker.scene_name if marker is not None else None
                 # Restore the double-clicked scene
                 session = self._get_session()
-                if session:
+                if session and scene_name is not None:
                     from chimerax.core.commands import run
 
-                    run(session, f'scene restore "{clicked_scene}"')
-                    # print(f"Restored scene: {clicked_scene}")
+                    run(session, f'scene restore "{scene_name}"')
 
         super().mouseDoubleClickEvent(event)
 
@@ -1108,10 +1165,12 @@ class TimelineSceneWidget(QWidget):
                 del self.action_segments[self.selected_action_segment]
                 self.selected_action_segment = None
                 self.update()
-            elif self.selected_scene:
-                # Delete the selected scene
-                self.scene_deleted.emit(self.selected_scene)
-                self.selected_scene = None
+            elif self.selected_scene_marker_id is not None:
+                # Delete the selected scene instance
+                marker = self._get_scene_marker_by_id(self.selected_scene_marker_id)
+                if marker is not None:
+                    self.scene_deleted.emit(marker.scene_name, marker.time)
+                self.selected_scene_marker_id = None
                 self.update()
             # Accept the event regardless to prevent forwarding to command line
             event.accept()
@@ -1121,9 +1180,11 @@ class TimelineSceneWidget(QWidget):
 
     def _grab_focus_and_handle_delete(self):
         """Alternative approach: just handle delete in a more direct way"""
-        if self.selected_scene:
-            self.scene_deleted.emit(self.selected_scene)
-            self.selected_scene = None
+        if self.selected_scene_marker_id is not None:
+            marker = self._get_scene_marker_by_id(self.selected_scene_marker_id)
+            if marker is not None:
+                self.scene_deleted.emit(marker.scene_name, marker.time)
+            self.selected_scene_marker_id = None
             self.update()
 
     def contextMenuEvent(self, event):
@@ -1138,20 +1199,25 @@ class TimelineSceneWidget(QWidget):
             return
 
         # Check if we right-clicked on a scene marker
-        clicked_scene = self._get_scene_at_position(x)
-        if clicked_scene:
-            self._show_transition_menu(clicked_scene, event.globalPos())
+        clicked_marker_id = self._get_scene_at_position(x)
+        if clicked_marker_id is not None:
+            self._show_transition_menu(clicked_marker_id, event.globalPos())
         else:
             super().contextMenuEvent(event)
 
-    def _show_transition_menu(self, scene_name, global_pos):
-        """Show transition selection menu for a scene"""
-        # print(f"DEBUG: Showing transition menu for scene '{scene_name}'")
+    def _show_transition_menu(self, marker_id, global_pos):
+        """Show transition selection menu for a scene instance"""
         from .scene_animation import TRANSITION_TYPES
 
+        marker = self._get_scene_marker_by_id(marker_id)
+        if marker is None:
+            return
+
+        scene_name = marker.scene_name
+        scene_time = marker.time
+
         # Get current transition data
-        current_transition = self._get_scene_transition_data(scene_name)
-        # print(f"DEBUG: Current transition data: {current_transition}")
+        current_transition = self._get_scene_transition_data_by_id(marker_id)
         current_type = (
             current_transition.get("type", "linear") if current_transition else "linear"
         )
@@ -1165,7 +1231,7 @@ class TimelineSceneWidget(QWidget):
 
         # Add delete option at the top
         delete_action = menu.addAction(f"Delete '{scene_name}' from Timeline")
-        delete_action.triggered.connect(lambda: self.scene_deleted.emit(scene_name))
+        delete_action.triggered.connect(lambda: self.scene_deleted.emit(scene_name, scene_time))
         menu.addSeparator()
 
         # Transition type submenu
@@ -1190,7 +1256,7 @@ class TimelineSceneWidget(QWidget):
             action.setChecked(current_type == transition_key)
             # Fix lambda closure issue by storing the transition key in the action
             action.setProperty("transition_key", transition_key)
-            action.setProperty("scene_name", scene_name)
+            action.setProperty("marker_id", marker_id)
             action.triggered.connect(self._on_transition_action_triggered)
             transition_menu.addAction(action)
 
@@ -1201,7 +1267,7 @@ class TimelineSceneWidget(QWidget):
         fade_action.setCheckable(True)
         fade_action.setChecked(current_fade)
         fade_action.triggered.connect(
-            lambda checked: self._set_scene_fade_models(scene_name, checked)
+            lambda checked, mid=marker_id: self._set_scene_fade_models_by_id(mid, checked)
         )
         menu.addAction(fade_action)
 
@@ -1212,41 +1278,38 @@ class TimelineSceneWidget(QWidget):
         action = self.sender()
         if action:
             transition_key = action.property("transition_key")
-            scene_name = action.property("scene_name")
-            # print(f"DEBUG: Action triggered for scene '{scene_name}', transition '{transition_key}'")
-            self._set_scene_transition_type(scene_name, transition_key)
+            marker_id = action.property("marker_id")
+            self._set_scene_transition_type_by_id(marker_id, transition_key)
 
     def _get_scene_transition_data(self, scene_name):
-        """Get transition data for a scene"""
-        for time, name, pixmap, transition_data in self.scene_markers:
-            if name == scene_name:
-                return transition_data
+        """Get transition data for a scene (first match by name)"""
+        for marker in self.scene_markers:
+            if marker.scene_name == scene_name:
+                return marker.transition_data
         return None
 
-    def _set_scene_transition_type(self, scene_name, transition_type):
-        """Set transition type for a scene"""
-        # print(f"DEBUG: Setting scene '{scene_name}' transition to '{transition_type}'")
-        # Update the scene marker data
-        for i, (time, name, pixmap, transition_data) in enumerate(self.scene_markers):
-            if name == scene_name:
-                # print(f"DEBUG: Found scene '{name}', old transition: {transition_data}")
-                transition_data["type"] = transition_type
-                self.scene_markers[i] = (time, name, pixmap, transition_data)
-                # print(f"DEBUG: Updated transition data: {transition_data}")
-                break
+    def _get_scene_transition_data_by_id(self, marker_id):
+        """Get transition data for a scene by stable marker id"""
+        marker = self._get_scene_marker_by_id(marker_id)
+        if marker is not None:
+            return marker.transition_data
+        return None
+
+    def _set_scene_transition_type_by_id(self, marker_id, transition_type):
+        """Set transition type for a specific scene instance"""
+        marker = self._get_scene_marker_by_id(marker_id)
+        if marker is not None:
+            marker.transition_data["type"] = transition_type
 
         # Update the scene animation manager
         self._sync_to_scene_animation()
         self.update()
 
-    def _set_scene_fade_models(self, scene_name, fade_models):
-        """Set fade models option for a scene"""
-        # Update the scene marker data
-        for i, (time, name, pixmap, transition_data) in enumerate(self.scene_markers):
-            if name == scene_name:
-                transition_data["fade_models"] = fade_models
-                self.scene_markers[i] = (time, name, pixmap, transition_data)
-                break
+    def _set_scene_fade_models_by_id(self, marker_id, fade_models):
+        """Set fade models option for a specific scene instance"""
+        marker = self._get_scene_marker_by_id(marker_id)
+        if marker is not None:
+            marker.transition_data["fade_models"] = fade_models
 
         # Update the scene animation manager
         self._sync_to_scene_animation()
@@ -1392,19 +1455,16 @@ class TimelineSceneWidget(QWidget):
             session = scene_timeline_widget.session
             scene_animation = getattr(session, "_scene_animation_manager", None)
             if scene_animation:
-                # Instead of clearing all scenes, just update this specific scene
-                # Remove existing scene at this time/name first
-                for time, name, pixmap, transition_data in self.scene_markers:
-                    # Remove old scene if it exists
-                    scene_animation.remove_scene(name)
-                    # Add with new transition data
-                    # print(f"DEBUG: Syncing scene '{name}' at {time}s with transition: {transition_data}")
+                # Clear all scenes and re-add from our markers to ensure
+                # the animation model matches the timeline exactly
+                scene_animation.clear_all_scenes()
+                for marker in self.scene_markers:
                     scene_animation.add_scene_at_time(
-                        name,
-                        time,
-                        transition_data.get("type", "linear"),
-                        transition_data.get("fade_models", False),
-                        action=transition_data.get("action", None),
+                        marker.scene_name,
+                        marker.time,
+                        marker.transition_data.get("type", "linear"),
+                        marker.transition_data.get("fade_models", False),
+                        action=marker.transition_data.get("action", None),
                     )
 
     def _get_scene_timeline_widget(self):
@@ -1435,20 +1495,18 @@ class TimelineSceneWidget(QWidget):
             return
 
         # Sort markers by time
-        sorted_markers = sorted(self.scene_markers, key=lambda x: x[0])
+        sorted_markers = sorted(self.scene_markers, key=lambda marker: marker.time)
 
         # Draw curves between consecutive scenes
         for i in range(len(sorted_markers) - 1):
             scene1_data = sorted_markers[i]
             scene2_data = sorted_markers[i + 1]
 
-            t1, name1 = scene1_data[:2]
-            t2, name2 = scene2_data[:2]
+            t1 = scene1_data.time
+            t2 = scene2_data.time
 
             # Get transition data for the target scene
-            transition_data = (
-                scene2_data[3] if len(scene2_data) > 3 else {"type": "linear"}
-            )
+            transition_data = scene2_data.transition_data or {"type": "linear"}
             transition_type = transition_data.get("type", "linear")
 
             # Calculate X positions
@@ -1519,39 +1577,22 @@ class TimelineSceneWidget(QWidget):
             painter.drawLine(points[i], points[i + 1])
 
     def _move_scene_marker(self, scene_name, new_time):
-        """Move a scene marker to a new time position"""
-        # Find and update the scene marker
-        for i, marker_data in enumerate(self.scene_markers):
-            if len(marker_data) >= 2 and marker_data[1] == scene_name:
-                # Preserve thumbnail and transition data if they exist
-                if len(marker_data) >= 4:
-                    # Full format: (time, name, thumbnail, transition_data)
-                    self.scene_markers[i] = (
-                        new_time,
-                        scene_name,
-                        marker_data[2],
-                        marker_data[3],
-                    )
-                elif len(marker_data) >= 3:
-                    # Backward compatibility: add default transition data
-                    self.scene_markers[i] = (
-                        new_time,
-                        scene_name,
-                        marker_data[2],
-                        {"type": "linear", "fade_models": False},
-                    )
-                else:
-                    # Very old format
-                    self.scene_markers[i] = (
-                        new_time,
-                        scene_name,
-                        None,
-                        {"type": "linear", "fade_models": False},
-                    )
+        """Move a scene marker to a new time position (first match by name)"""
+        for marker in self.scene_markers:
+            if marker.scene_name == scene_name:
+                self._move_scene_marker_by_id(marker.marker_id, new_time)
                 break
 
-        # Re-sort markers by time
-        self.scene_markers.sort(key=lambda x: x[0])
+    def _move_scene_marker_by_id(self, marker_id, new_time):
+        """Move a scene marker identified by marker id to a new time position"""
+        marker = self._get_scene_marker_by_id(marker_id)
+        if marker is None:
+            return
+
+        marker.time = new_time
+        if marker.transition_data is None:
+            marker.transition_data = {"type": "linear", "fade_models": False}
+        self._sort_scene_markers()
 
 
 class SceneTimelineWidget(QWidget):
@@ -1625,21 +1666,15 @@ class SceneTimelineWidget(QWidget):
         self.scene_moved.emit(scene_name, old_time, new_time)
         print(f"Scene '{scene_name}' moved from {old_time:.2f}s to {new_time:.2f}s")
 
-    def on_scene_deleted(self, scene_name):
-        """Handle scene deleted from timeline"""
-        # Remove scene marker from timeline widget
-        self.timeline_scene.remove_scene_marker(scene_name)
+    def on_scene_deleted(self, scene_name, scene_time):
+        """Handle scene deleted from timeline (specific instance)"""
+        # Remove the specific scene instance from timeline widget
+        self.timeline_scene.remove_scene_marker(scene_name, scene_time)
 
         # Also remove from the scene animation manager to prevent interpolation errors
         scene_animation = getattr(self.session, "_scene_animation_manager", None)
         if scene_animation:
-            scene_animation.remove_scene(scene_name)
-            # print(f"Scene '{scene_name}' removed from timeline and animation manager")
-        else:
-            # print(
-            #    f"Scene '{scene_name}' removed from timeline (no animation manager found)"
-            # )
-            pass
+            scene_animation.remove_scene_at_time(scene_time)
 
     def on_time_clicked(self, time):
         """Handle timeline click to preview at that time"""
@@ -1700,9 +1735,9 @@ class SceneTimelineWidget(QWidget):
         """Add a scene marker to the timeline"""
         self.timeline_scene.add_scene_marker(time, scene_name)
 
-    def remove_scene_marker(self, scene_name):
+    def remove_scene_marker(self, scene_name, time=None):
         """Remove a scene marker from the timeline"""
-        self.timeline_scene.remove_scene_marker(scene_name)
+        self.timeline_scene.remove_scene_marker(scene_name, time)
 
     def set_current_time(self, time):
         """Set the current time on the timeline"""
