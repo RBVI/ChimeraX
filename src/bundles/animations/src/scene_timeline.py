@@ -1348,22 +1348,21 @@ class TimelineSceneWidget(QWidget):
             action.triggered.connect(self._on_action_axis_changed)
             axis_menu.addAction(action)
 
-        # Angle submenu (not applicable for precess, which only wobbles)
-        if action_name != "precess":
-            menu.addSeparator()
+        # Angle submenu
+        menu.addSeparator()
 
-            angle_menu = menu.addMenu("Angle")
-            current_angle = config.get("angle", 60)
-            for angle in [15, 30, 45, 60, 90, 120, 180, 360]:
-                action = QAction(f"{angle}°", menu)
-                action.setCheckable(True)
-                action.setChecked(current_angle == angle)
-                action.setProperty("angle", angle)
-                action.setProperty("segment_idx", segment_idx)
-                action.triggered.connect(self._on_action_angle_changed)
-                angle_menu.addAction(action)
+        angle_menu = menu.addMenu("Angle")
+        current_angle = config.get("angle", 60 if action_name != "precess" else 30)
+        for angle in [15, 30, 45, 60, 90, 120, 180, 360]:
+            action = QAction(f"{angle}°", menu)
+            action.setCheckable(True)
+            action.setChecked(current_angle == angle)
+            action.setProperty("angle", angle)
+            action.setProperty("segment_idx", segment_idx)
+            action.triggered.connect(self._on_action_angle_changed)
+            angle_menu.addAction(action)
 
-            menu.addSeparator()
+        menu.addSeparator()
 
         # Count submenu (number of oscillations/rotations)
         count_menu = menu.addMenu("Count")
