@@ -2738,11 +2738,10 @@ class KeyframeEditorWidget(QWidget):
         """Handle scene added to timeline"""
         # Scene is already added to timeline via drag/drop
         # Find the time where this scene was added and add it to scene animation
-        for marker_data in self.scene_timeline_widget.timeline_scene.scene_markers:
-            time, name = marker_data[:2]  # Only take first 2 elements
-            if name == scene_name:
+        for marker in self.scene_timeline_widget.timeline_scene.scene_markers:
+            if marker.scene_name == scene_name:
                 # Add the scene to the scene animation manager at this time
-                self.scene_animation.add_scene_at_time(scene_name, time)
+                self.scene_animation.add_scene_at_time(scene_name, marker.time)
                 #self.session.logger.info(f"Added scene '{scene_name}' to animation at {time:.2f}s")
                 break
 
@@ -2793,19 +2792,13 @@ class KeyframeEditorWidget(QWidget):
         self.scene_animation.set_duration(duration)
 
         # Add all scenes from timeline to animation manager
-        for marker_data in self.scene_timeline_widget.timeline_scene.scene_markers:
-            if len(marker_data) >= 4:
-                # Full format with transition data
-                time, scene_name, pixmap, transition_data = marker_data
-                self.scene_animation.add_scene_at_time(
-                    scene_name, time,
-                    transition_data.get('type', 'linear'),
-                    transition_data.get('fade_models', False)
-                )
-            elif len(marker_data) >= 2:
-                # Backward compatibility - no transition data
-                time, scene_name = marker_data[:2]
-                self.scene_animation.add_scene_at_time(scene_name, time)
+        for marker in self.scene_timeline_widget.timeline_scene.scene_markers:
+            self.scene_animation.add_scene_at_time(
+                marker.scene_name,
+                marker.time,
+                marker.transition_data.get("type", "linear"),
+                marker.transition_data.get("fade_models", False),
+            )
 
         # Sync action segments (rock/roll) from timeline
         self.scene_animation.action_segments = list(self.scene_timeline_widget.timeline_scene.action_segments)
