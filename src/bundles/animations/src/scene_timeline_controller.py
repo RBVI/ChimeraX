@@ -200,17 +200,13 @@ class SceneTimelineController:
         duration = self.widget.timeline_scene.duration
         self.scene_animation.set_duration(duration)
 
-        for marker_data in self.widget.timeline_scene.scene_markers:
-            if len(marker_data) >= 4:
-                time, scene_name, pixmap, transition_data = marker_data
-                self.scene_animation.add_scene_at_time(
-                    scene_name, time,
-                    transition_data.get('type', 'linear'),
-                    transition_data.get('fade_models', False)
-                )
-            elif len(marker_data) >= 2:
-                time, scene_name = marker_data[:2]
-                self.scene_animation.add_scene_at_time(scene_name, time)
+        for marker in self.widget.timeline_scene.scene_markers:
+            self.scene_animation.add_scene_at_time(
+                marker.scene_name,
+                marker.time,
+                marker.transition_data.get("type", "linear"),
+                marker.transition_data.get("fade_models", False),
+            )
 
         self.scene_animation.action_segments = list(
             self.widget.timeline_scene.action_segments

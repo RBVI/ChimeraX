@@ -43,6 +43,13 @@
     <Library>arrays</Library>
   </CModule>
 
+  <CModule name="_flying_edges" usesOpenMP="true">
+    <SourceFile>_flying_edges/flying_edges_py.cpp</SourceFile>
+    <SourceFile>_flying_edges/module.cpp</SourceFile>
+    <SourceFile>_flying_edges/contourdata.cpp</SourceFile>
+    <Library>arrays</Library>
+  </CModule>
+
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.3dev2021"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>

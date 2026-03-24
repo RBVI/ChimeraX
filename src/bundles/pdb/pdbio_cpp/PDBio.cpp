@@ -847,9 +847,11 @@ start_t = end_t;
                 }
                 if (cur_residue == nullptr || MolResId(cur_residue) != rid 
                 || cur_residue->name() != rname) {
-                    logger::error(py_logger, "Residue ", rid, " not in first"
-                        " model on line ", *line_num, " of PDB file");
-                    goto finished;
+                    std::stringstream err_msg;
+                    err_msg << "Residue " << rid << " not in first model on line "
+                        << *line_num << " of PDB file";
+                    PyErr_SetString(PyExc_IOError, err_msg.str().c_str());
+                    return nullptr;
                 }
             } else if (cur_residue == nullptr || cur_rid != rid
             // modifying HETs can be inline...

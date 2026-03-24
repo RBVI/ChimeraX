@@ -208,10 +208,7 @@ FLAGS = 0
 endif
 
 $(APP_NAME).ico: $(APP_NAME)-icon512.png
-	convert $(APP_NAME)-icon512.png -resize 256x256 \
-		-alpha Background -compress zip \
-		-define icon:auto-resize=256,128,96,64,48,32,24,16 \
-		$(APP_NAME).ico
+	$(APP_PYTHON_EXE) -c "from PIL import Image; img = Image.open('$<'); img.save('$@', sizes=[(256,256),(128,128),(96,96),(64,64),(48,48),(32,32),(24,24),(16,16)])"
 
 icon.$(OBJ_EXT): $(APP_NAME).ico
 
