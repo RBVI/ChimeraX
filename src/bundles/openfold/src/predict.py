@@ -1266,7 +1266,8 @@ def _find_msa_cache_files(protein_seqs, msa_cache_dir):
             msa_dir, msa_seqs = fields[0], fields[1:]
             if msa_seqs == protein_seqs:
                 msa_dir = join(msa_cache_dir, msa_dir)
-                return MSACacheFiles(msa_seqs, msa_dir)
+                if exists(msa_dir):
+                    return MSACacheFiles(msa_seqs, msa_dir)
     return None
 
 # ------------------------------------------------------------------------------
