@@ -334,7 +334,7 @@ template_preprocessor_settings:
         return self.cached_msa_dir is not None
     
     def _add_to_msa_cache(self, msa_directory, template_directory, cache_directory):
-        if self.cached_msa_dir:
+        if self.using_cached_msa:
             return False
         protein_seqs = [mc.sequence_string for mc in self._molecular_components if mc.type == 'protein']
         if len(protein_seqs) == 0:
@@ -919,8 +919,9 @@ class OpenFoldRun:
                     self._opened_predictions = models
             success = True
 
-        for p in self._predictions:
-            p._add_to_msa_cache(self._msa_directory, self._template_directory, self._msa_cache_dir)
+        if self._use_msa_cache:
+            for p in self._predictions:
+                p._add_to_msa_cache(self._msa_directory, self._template_directory, self._msa_cache_dir)
 
         self._prediction_finished(success)
 
