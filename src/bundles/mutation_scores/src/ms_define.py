@@ -91,7 +91,12 @@ def mutation_scores_define(session, score_name = None, from_score_name = None, m
 
     # Set residue attribute
     if set_attribute:
-        scores.associate_chains(session)
+        chains = scores.associate_chains(session)
+        # Remove old values for same attribute name.
+        for chain in chains:
+            for r in chain.existing_residues:
+                if hasattr(r, score_name):
+                    delattr(r, score_name)
         res, rnums = scores.associated_residues(rvalues.residue_numbers())
         if len(res) > 0:
             atype = int if isinstance(rvalues.residue_value(rnums[0]), int) else float
