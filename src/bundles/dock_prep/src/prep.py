@@ -78,6 +78,9 @@ def prep(session, state, callback, memo_type, memo_name, structures, keywords):
                             continue
                     for bb_name in min_backbone_names:
                         if not r.find_atom(bb_name):
+                            # 5' termimus can be missing P
+                            if r == c.residues[0] and bb_name == 'P':
+                                continue
                             session.logger.info("%s is missing heavy backbone atoms; deleting" % r)
                             s.delete_residue(r)
                             break

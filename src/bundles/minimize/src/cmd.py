@@ -92,7 +92,7 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
                 raise LimitationError(c_error_template % (c_term, "can't find C atom"))
     from chimerax.atomic.bond_geom import bond_positions
     from chimerax.addh import bond_with_H_length
-    NH_len = CO_len = None
+    NH_len = CO_len = PO_len = None
     filter = []
     name_lookup = {}
     for r in structure.residues:
@@ -158,6 +158,20 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
                 top.addBond(atoms[c], o)
                 fake_serial += 1
                 filter.append(False)
+        # If nucleic residue phosphate only has 3 bonds (truncated chain) add a fake oxygen
+        if r.polymer_type == r.PT_NUCLEIC:
+            p = r.find_atom("P")
+            if p and p.num_bonds == 3:
+                if PO_len is None:
+                    from chimerax.atomic import Element
+                    PO_len = Element.bond_length("P", "O")
+                bonded = p.neighbors
+                for pos in bond_positions(p.coord, 4, PO_len, [bd.coord for bd in bonded]):
+                    o = top.addAtom("OP3", element.Element.getBySymbol("O"), residues[r], fake_serial)
+                    coords.append(Quantity(vec3.Vec3(*pos), angstrom))
+                    top.addBond(atoms[p], o)
+                    fake_serial += 1
+                    filter.append(False)
     filter = numpy.array(filter)
 
     for b in structure.bonds:
@@ -178,14 +192,28 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
         #adjust_gaff_type = cx_res.name in ['ADP', 'ATP', 'GDP', 'GTP', 'NAD', 'NDP']
         template.name = "%s-%s-%s%s" % ("blank" if cx_res.chain_id.isspace() else cx_res.chain_id,
             cx_res.name, cx_res.number, cx_res.insertion_code)
+        if cx_res.polymer_type != cx_res.PT_NUCLEIC:
+            prefix = ""
+        elif cx_res.find_atom("O2'"):
+            prefix = "RNA-"
+        else:
+            prefix = "DNA-"
         for omm_atom in template.atoms:
-            cx_atom = name_lookup[cx_res][omm_atom.name]
+            try:
+                cx_atom = name_lookup[cx_res][omm_atom.name]
+            except KeyError:
+                if omm_atom.name == 'OP3':
+                    op2 = cx_res.find_atom('OP2')
+                    omm_atom.type = prefix + op2.gaff_type
+                    omm_atom.parameters['charge'] = op2.charge
+                    continue
+                raise
             try:
                 if cx_atom.num_bonds == 0:
                     gaff_type = "tip3pfb_standard-" + cx_atom.element.name + (str(cx_atom.charge)
                         if abs(cx_atom.charge) > 1 else "") + ('+' if cx_atom.charge > 0 else '-')
                 else:
-                    gaff_type = cx_atom.gaff_type
+                    gaff_type = prefix + cx_atom.gaff_type
 
                 #if adjust_gaff_type:
                 #    gaff_type = 'DNA-' + gaff_type
