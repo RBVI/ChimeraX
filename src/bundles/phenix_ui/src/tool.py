@@ -162,18 +162,19 @@ class BarbedWireResultsSettings(Settings):
 
 class BarbedWireResultsViewer(ToolInstance):
 
-    #help = "help:user/tools/waterplacement.html#waterlist"
+    help = "help:user/tools/alphafold2barbedwire.html#results"
 
-    def __init__(self, session, arg):
-        # if 'arg' is a string, we are being restored from a session
+    def __init__(self, session, *args):
+        # if only one arg, we are being restored from a session
         # and _finalize_init() will be called later
         super().__init__(session, "Barbed Wire Results")
-        if isinstance(arg, str):
+        if len(args) == 1:
             return
-        self._finalize_init(arg)
+        self._finalize_init(*args)
 
-    def _finalize_init(self, structure):
+    def _finalize_init(self, structure, cat_colors):
         self.structure = structure
+        self.cat_colors = cat_colors
 
         from chimerax.core.models import REMOVE_MODELS
         self.handlers = [
@@ -189,6 +190,7 @@ class BarbedWireResultsViewer(ToolInstance):
 
         from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
         from Qt.QtWidgets import QPushButton, QLabel, QToolButton, QGridLayout
+        from Qt.QtGui import QPixmap, QColor, QIcon
         layout = QHBoxLayout()
         layout.setContentsMargins(2,2,2,2)
         layout.setSpacing(0)
@@ -202,12 +204,17 @@ class BarbedWireResultsViewer(ToolInstance):
         self.check_boxes = []
         for row_items in [best_bw_first[:3], best_bw_first[3:]]:
             row_layout = QHBoxLayout()
+            row_layout.setSpacing(2)
             rows_layout.addLayout(row_layout)
             for cat_name in row_items:
-                cb = QCheckBox(cat_name)
+                cb = QCheckBox()
                 cb.setChecked(cat_name in self.settings.selected_categories)
+                pm = QPixmap(16, 16)
+                pm.fill(QColor(*cat_colors[cat_name]))
+                cb.setIcon(QIcon(pm))
                 self.check_boxes.append(cb)
                 row_layout.addWidget(cb)
+                row_layout.addWidget(QLabel(cat_name))
                 row_layout.addSpacing(14)
             row_layout.addStretch(1)
 
@@ -222,7 +229,7 @@ class BarbedWireResultsViewer(ToolInstance):
     @classmethod
     def restore_snapshot(cls, session, data):
         inst = super().restore_snapshot(session, data['ToolInstance'])
-        inst._finalize_init(data['structure'])
+        inst._finalize_init(data['structure'], data['category colors'])
         for cat, box in zip(best_bw_first, inst.check_boxes):
             box.setChecked(cat in data['checked boxes'])
 
@@ -232,6 +239,7 @@ class BarbedWireResultsViewer(ToolInstance):
         return {
             'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
             'checked boxes': [cat for cat, box in zip(best_bw_first, self.check_boxes) if box.isChecked()],
+            'category colors': self.cat_colors,
             'structure': self.structure,
         }
 

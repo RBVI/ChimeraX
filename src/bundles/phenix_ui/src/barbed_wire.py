@@ -194,7 +194,7 @@ def _process_results(session, json, structure, show_key, uncategorized_color, sh
 
     if session.ui.is_gui and show_tool:
         from .tool import BarbedWireResultsViewer
-        BarbedWireResultsViewer(session, structure)
+        BarbedWireResultsViewer(session, structure, cat_colors)
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
 
