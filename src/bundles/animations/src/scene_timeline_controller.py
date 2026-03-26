@@ -215,7 +215,7 @@ class SceneTimelineController:
     def _get_movie_save_path_and_options(self):
         """Get save path and recording options using dialog."""
         # Import here to avoid circular imports
-        from .kf_editor_two import MovieRecordingDialog
+        from .editor_widget import MovieRecordingDialog
         dialog = MovieRecordingDialog(self.session, parent=self.widget)
         if dialog.exec():
             return dialog.get_save_path(), dialog.get_resolution()
