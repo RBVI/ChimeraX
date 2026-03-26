@@ -875,8 +875,7 @@ and data value in a pop-up balloon.
 <p>
 The <b>surface</b> and <b>mesh</b> <a href="#style">display styles</a>
 both depict isosurfaces. See also: <a href="marker.html#fromMesh"><b>marker
-fromMesh</b>
-</a></p>
+fromMesh</b></a></p>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
   <a name="smoothing"><b>surfaceSmoothing</b> &nbsp;true | <b>false</b></a>
@@ -989,12 +988,14 @@ See also: <a href="material.html"><b>material</b></a>
 </blockquote>
 <blockquote>
   <a href="#top" class="nounder">&bull;</a>
-  <a name="surfaceAlgorithm"><b>surfaceAlgorithm</b>
-  &nbsp;flyingEdges | <b>marchingCubes</b></a>
-  <br>Which isosurface extraction algorithm to use.
-  The default <b>marchingCubes</b> is the standard algorithm.
-  The <b>flyingEdges</b> algorithm uses OpenMP parallelism for
-  faster surface computation on multi-core systems.
+  <a name="surfaceAlgorithm"><b>surfaceAlgorithm</b></a>
+  &nbsp;<b>marchingCubes</b>&nbsp;|&nbsp;flyingEdges
+  <br>
+Specify surface calculation algorithm as marching cubes (default) or flying edges 
+(uses OpenMP parallelism for faster surface computation on multi-core systems; see
+<a href="https://www.computer.org/csdl/proceedings-article/ldav/2015/07348069/12OmNxu6p7q" 
+target="_blank">Schroeder <i>et al.</i></a>,
+<i>2015 IEEE 5th Symposium on Large Data Analysis and Visualization</i>, pp. 33-40).
 </blockquote>
 
 <a name="dispsolid"></a>
