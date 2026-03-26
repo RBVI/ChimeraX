@@ -810,8 +810,10 @@ class OpenFoldPredictionGUI(ToolInstance):
     #
     def _install_openfold(self):
 
+        openfold_dir = self._install_directory.value
         from os.path import expanduser
-        openfold_dir = expanduser('~/openfold3')
+        if not openfold_dir:
+            openfold_dir = expanduser('~/openfold3')
         param_dir = expanduser('~/.openfold3')
         message = ('Do you want to install OpenFold?\n\n'
                    'This will take about 3 Gbytes of disk space and ten minutes or more depending on network speed.'
