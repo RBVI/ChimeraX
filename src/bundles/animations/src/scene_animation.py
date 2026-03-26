@@ -255,6 +255,10 @@ class SceneAnimation(StateManager):
 
         # Find the appropriate scene or transition
         scene1, scene2, fraction = self._get_interpolation_at_time(time)
+        active_action_segment = self._get_active_action_segment_index(time)
+        previous_active_action_segment = getattr(
+            self, "_last_active_action_segment", None
+        )
 
         # Check if the scene state changed from what we're currently displaying
         scene_changed = True
@@ -264,36 +268,24 @@ class SceneAnimation(StateManager):
             elif self._last_scene_state[:2] != (scene1, scene2):
                 self._last_action_angle = 0.0
 
-        # Restore or interpolate scenes when the scene state changed
-        if scene_changed:
-            if scene1 == scene2:
-                if scene1:
-                    self.session.scenes.restore_scene(scene1)
-                    self._prepare_model_fading_at_scene_timestamp(scene1, time)
-            else:
-                if scene1 and scene2:
-                    scene2_data = self._get_scene_transition_data(scene2)
-                    fade_models = (
-                        scene2_data.get("fade_models", False) if scene2_data else False
-                    )
-                    self.session.scenes.interpolate_scenes(
-                        scene1, scene2, fraction, fade_models=fade_models
-                    )
-                    action = scene2_data.get("action") if scene2_data else None
-                    if action:
-                        self._apply_action(action, fraction)
+        base_state_restored = False
+        if not self.scenes and active_action_segment is None:
+            self._ensure_action_only_base_state()
+            self._restore_action_only_base_state()
+            base_state_restored = True
+        elif scene_changed or previous_active_action_segment != active_action_segment:
+            self._restore_preview_base_state(scene1, scene2, fraction, time)
+            base_state_restored = True
 
-            # Scene was just restored/interpolated, so the camera is at the base
-            # state. Reset action tracking so the next action application computes
-            # its effect as an absolute offset from zero.
+        if base_state_restored:
             self._reset_action_tracking()
-
             self._last_scene_state = (scene1, scene2, fraction)
 
         # Apply action segments after scene restore so they layer on top of
         # the base scene state. During sequential playback the scene state
         # won't change every frame, but actions still need to update.
         self._apply_action_segments(time)
+        self._last_active_action_segment = active_action_segment
 
         # Only log occasionally to avoid spam during playback
         if hasattr(self, "_last_log_time"):
@@ -683,6 +675,39 @@ class SceneAnimation(StateManager):
                 return transition_data
         return None
 
+    def _get_active_action_segment_index(self, time: float):
+        """Return the active action segment index for a preview time."""
+        for index, segment_data in enumerate(self.action_segments):
+            start_time, end_time, _action_name = segment_data[:3]
+            if start_time <= time <= end_time:
+                return index
+        return None
+
+    def _restore_preview_base_state(
+        self, scene1: str, scene2: str, fraction: float, time: float
+    ):
+        """Restore the base state for the current preview time before actions."""
+        if not self.scenes:
+            self._ensure_action_only_base_state()
+            self._restore_action_only_base_state()
+            return
+
+        if scene1 == scene2:
+            if scene1:
+                self.session.scenes.restore_scene(scene1)
+                self._prepare_model_fading_at_scene_timestamp(scene1, time)
+            return
+
+        if scene1 and scene2:
+            scene2_data = self._get_scene_transition_data(scene2)
+            fade_models = scene2_data.get("fade_models", False) if scene2_data else False
+            self.session.scenes.interpolate_scenes(
+                scene1, scene2, fraction, fade_models=fade_models
+            )
+            action = scene2_data.get("action") if scene2_data else None
+            if action:
+                self._apply_action(action, fraction)
+
     def _apply_action(self, action: str, fraction: float):
         """Apply rock/roll action during transition"""
         if action not in ACTION_TYPES:
@@ -829,6 +854,35 @@ class SceneAnimation(StateManager):
             self._wobble_last_fraction.clear()
         if hasattr(self, '_last_action_angle'):
             self._last_action_angle = 0.0
+
+    def _ensure_action_only_base_state(self):
+        """Capture the current view as the base state for action-only previews."""
+        if hasattr(self, "_action_only_base_camera_position"):
+            return
+
+        view = self.session.view
+        self._action_only_base_camera_position = view.camera.position
+        self._action_only_center_of_rotation = getattr(view, "center_of_rotation", None)
+        self._action_only_center_of_rotation_method = getattr(
+            view, "center_of_rotation_method", None
+        )
+
+    def _restore_action_only_base_state(self):
+        """Restore the captured base state for action-only previews."""
+        if not hasattr(self, "_action_only_base_camera_position"):
+            return
+
+        view = self.session.view
+        view.camera.position = self._action_only_base_camera_position
+
+        if hasattr(self, "_action_only_center_of_rotation"):
+            view.center_of_rotation = self._action_only_center_of_rotation
+
+        if (
+            hasattr(self, "_action_only_center_of_rotation_method")
+            and self._action_only_center_of_rotation_method is not None
+        ):
+            view.center_of_rotation_method = self._action_only_center_of_rotation_method
 
     def _prepare_model_fading_at_scene_timestamp(
         self, current_scene_name: str, current_time: float
