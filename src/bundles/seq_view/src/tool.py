@@ -961,8 +961,7 @@ class SequenceViewer(ToolInstance):
                             cur_partial_block = None
 
         def adjust_for_mode(colors):
-            from .region_browser import is_dark_mode
-            if not is_dark_mode():
+            if not self.session.ui.dark_mode():
                 return colors
             from chimerax.core.colors import Color
             rets = []
