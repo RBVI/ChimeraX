@@ -135,37 +135,33 @@ def cone_geometry(radius=1.0, height=1.0, divisions=24):
     """
     Generate a cone with apex at top, base at bottom, centered at origin.
 
+    Uses per-face vertices so that the apex and base center are duplicated
+    per triangle, giving correct normals on the side faces and a flat base.
     Returns (vertices, triangles) as numpy arrays.
     """
-    # Apex vertex
-    apex = np.array([[0, height/2, 0]], dtype=np.float32)
+    apex = np.array([0, height/2, 0], dtype=np.float32)
+    base_center = np.array([0, -height/2, 0], dtype=np.float32)
 
-    # Base center vertex
-    base_center = np.array([[0, -height/2, 0]], dtype=np.float32)
-
-    # Base circle vertices
     angles = np.linspace(0, 2*pi, divisions, endpoint=False)
     base_circle = np.zeros((divisions, 3), dtype=np.float32)
     base_circle[:, 0] = radius * np.cos(angles)
     base_circle[:, 2] = radius * np.sin(angles)
     base_circle[:, 1] = -height/2
 
-    # Combine vertices: apex (0), base_center (1), base_circle (2 to divisions+1)
-    vertices = np.vstack([apex, base_center, base_circle])
-
-    # Side triangles (apex to base circle)
-    side_tris = []
+    # Side faces: each gets its own apex and two base vertices
+    side_verts = []
     for i in range(divisions):
         next_i = (i + 1) % divisions
-        side_tris.append([0, i + 2, next_i + 2])
+        side_verts.extend([apex, base_circle[i], base_circle[next_i]])
 
-    # Base triangles (base_center to base circle)
-    base_tris = []
+    # Base faces: each gets its own base center and two rim vertices
+    base_verts = []
     for i in range(divisions):
         next_i = (i + 1) % divisions
-        base_tris.append([1, next_i + 2, i + 2])
+        base_verts.extend([base_center, base_circle[next_i], base_circle[i]])
 
-    triangles = np.array(side_tris + base_tris, dtype=np.int32)
+    vertices = np.array(side_verts + base_verts, dtype=np.float32)
+    triangles = np.arange(len(vertices), dtype=np.int32).reshape(-1, 3)
 
     return vertices, triangles
 
