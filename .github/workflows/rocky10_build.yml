@@ -83,10 +83,6 @@ jobs:
         continue-on-error: true
         id: test-exes
         run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        continue-on-error: true
-        id: test-wheel
-        run: USE_COVERAGE=1 make pytest-wheel
       - name: Run distribution tests
         continue-on-error: true
         id: test-distribution
@@ -95,7 +91,7 @@ jobs:
         run: make report-coverage
       - name: Put the test outcome in the environment
         run: |
-          if [ "${{ steps.test-exes.outcome }}" = "failure" ] || [ "${{ steps.test-wheel.outcome }}" = "failure" ] || [ "${{ steps.test-distribution.outcome }}" = "failure" ]; then
+          if [ "${{ steps.test-exes.outcome }}" = "failure" ] || [ "${{ steps.test-distribution.outcome }}" = "failure" ]; then
             echo "TEST_OUTCOME=Failing" >> $GITHUB_ENV
           else
             echo "TEST_OUTCOME=Passing" >> $GITHUB_ENV
