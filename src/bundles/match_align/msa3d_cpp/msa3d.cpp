@@ -48,7 +48,7 @@ namespace { // so these class declarations are not visible outside this file
 
 static int vector_index(const std::vector<StructureSeq*> vec, const StructureSeq *item) { return std::find(vec.begin(), vec.end(), item) - vec.begin(); }
 
-static int num_columns = 0;
+static int num_columns;
 class Column
 {
 public:
@@ -534,6 +534,7 @@ PyObject*
 multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all, char gap_char,
     bool circular, const char* status_prefix, PyObject* py_logger, PyObject* error_class)
 {
+num_columns = 0;
 std::cerr << "multi_align\n";
     // Create list of pairings between chains and prune to be monotonic
     if (circular) {
@@ -667,6 +668,7 @@ std::cerr << "multi_align\n";
 
     std::set<std::pair<std::shared_ptr<EndPointOrColumn>, std::shared_ptr<EndPointOrColumn>>> seen;
 std::cerr << '\t' << all_links.size() << " links\n";
+int po_num = 0;
     while (all_links.size() > 0) {
         if (all_links.size() % 100 == 0)
             logger::status(py_logger, status_prefix,
@@ -793,18 +795,13 @@ std::cerr << '\t' << all_links.size() << " links\n";
                     for (auto pcol: new_po_back)
                         seq_cols[pcol] -= 1;
                     seq_cols.erase(col_or_ep->col);
-std::cerr << "\tpartial order collation:\n";
-for (auto seq_cols: partial_order) {
-    auto seq = seq_cols.first;
-    std::cerr << "\t\tseq " << vector_index(chains, seq) << ": ";
-    int limit = 5;
-    for (auto col: seq_cols.second) {
+std::cerr << "\tpartial order " << ++po_num << " collation:\n";
+for (unsigned int index = 0; index < chains.size(); ++index) {
+    auto seq = chains[index];
+    std::cerr << "\t\tseq " << index << ": ";
+    for (auto& col: partial_order[seq])
         std::cerr << col->positions[seq] << " [" << col->debug_index << "] ";
-        if (--limit < 1)
-            break;
-    }
     std::cerr << "\n";
-
 }
                 }
             }
