@@ -44,6 +44,7 @@ _XSectionInverseMap = dict([(v, k) for k, v in _XSectionMap.items()])
 _ModeHelixMap = {
     "default": Structure.RIBBON_MODE_DEFAULT,
     "tube": Structure.RIBBON_MODE_ARC,
+    "cylinder": Structure.RIBBON_MODE_CYLINDER,
     "wrap": Structure.RIBBON_MODE_WRAP,
 }
 _ModeHelixInverseMap = dict([(v, k) for k, v in _ModeHelixMap.items()])

@@ -106,7 +106,8 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         is_helix = residues.is_helix
         ssids = residues.secondary_structure_ids
         worm = structure.worm_ribbon
-        arc_helix = (structure.ribbon_mode_helix == structure.RIBBON_MODE_ARC and not worm)
+        tube_helix_modes = (structure.RIBBON_MODE_ARC, structure.RIBBON_MODE_CYLINDER)
+        arc_helix = (structure.ribbon_mode_helix in tube_helix_modes and not worm)
         res_class, helix_ranges, sheet_ranges, display_ranges = \
             _ribbon_ranges(is_helix, residues.is_strand, ssids, displays,
                            residues.polymer_types, arc_helix)
@@ -137,9 +138,10 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
         # Create tube helices.
         if arc_helix:
             ribbon_adjusts = residues.ribbon_adjusts
+            straight = (structure.ribbon_mode_helix == structure.RIBBON_MODE_CYLINDER)
             for start, end in helix_ranges:
                 if displays[start:end].any():
-                    centers = _arc_helix_geometry(coords, xs_mgr, displays, start, end, geometry)
+                    centers = _arc_helix_geometry(coords, xs_mgr, displays, start, end, geometry, straight)
                     # Adjust coords so non-tube half of helix ends joins center of cylinder
                     coords[start:end] = centers
 
@@ -954,7 +956,7 @@ def _smooth_ribbon(rlist, coords, guides, helix_ranges, sheet_ranges, helix_mode
         pass
         # for start, end in helix_ranges:
         #     _smooth_helix(coords, guides, ribbon_adjusts, start, end)
-    elif helix_mode == StructureData.RIBBON_MODE_ARC:
+    elif helix_mode in (StructureData.RIBBON_MODE_ARC, StructureData.RIBBON_MODE_CYLINDER):
         # No spline smoothing for tube helices
         pass
     elif helix_mode == StructureData.RIBBON_MODE_WRAP:
@@ -1003,11 +1005,11 @@ def _smooth_helix(rlist, coords, guides, ribbon_adjusts, start, end):
     # the same relative place as before
     #   guides[start:end] = new_coords + delta_guides
 
-def _arc_helix_geometry(coords, xs_mgr, displays, start, end, geometry):
+def _arc_helix_geometry(coords, xs_mgr, displays, start, end, geometry, straight):
     '''Compute triangulation for one tube helix.'''
 
     from .sse import HelixCylinder
-    hc = HelixCylinder(coords[start:end])
+    hc = HelixCylinder(coords[start:end], straight=straight)
     centers = hc.cylinder_centers()
     radius = hc.cylinder_radius()
     normals, binormals = hc.cylinder_normals()

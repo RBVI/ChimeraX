@@ -107,15 +107,16 @@ class SceneTimelineController:
         if time is None:
             time = self.widget.timeline_controls.current_time
 
-        success = self.scene_animation.add_scene_at_time(scene_name, time)
-        if success:
-            self.widget.add_scene_marker(time, scene_name)
+        self.scene_animation.add_scene_at_time(scene_name, time)
 
-    def _on_scene_removed(self, scene_name: str):
+    def _on_scene_removed(self, scene_name: str, time: float = None):
         """Handle scene removal from the widget."""
-        success = self.scene_animation.remove_scene(scene_name)
+        if time is not None:
+            success = self.scene_animation.remove_scene_at_time(time)
+        else:
+            success = self.scene_animation.remove_scene(scene_name)
         if success:
-            self.widget.timeline_scene.remove_scene_marker(scene_name)
+            self.widget.timeline_scene.remove_scene_marker(scene_name, time)
 
     def _on_scene_moved(self, scene_name: str, old_time: float, new_time: float):
         """Handle scene marker moved on timeline."""
@@ -215,7 +216,7 @@ class SceneTimelineController:
     def _get_movie_save_path_and_options(self):
         """Get save path and recording options using dialog."""
         # Import here to avoid circular imports
-        from .kf_editor_two import MovieRecordingDialog
+        from .editor_widget import MovieRecordingDialog
         dialog = MovieRecordingDialog(self.session, parent=self.widget)
         if dialog.exec():
             return dialog.get_save_path(), dialog.get_resolution()
