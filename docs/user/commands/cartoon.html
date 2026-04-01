@@ -277,18 +277,25 @@ For cylinders aligned with the helix axis that can be used in
 <a href="angle.html"><b>angle</b></a> measurements, see
 <a href="define.html#axis"><b>define axis</b></a> instead.
 <p>
-Helix <b>tube</b> calculations use &alpha;-carbon coordinates.
-For a helix of 6 or more residues, a straight tube axis (first principal
+Helix <b>tube</b> and <b>cylinder</b> calculations use &alpha;-carbon 
+coordinates. In the <b>tube</b> mode, 
+</p>
+<ul>
+<li>For a helix of 6 or more residues, a straight tube axis (first principal
 component) is used if it gives a low average distance to the &alpha;-carbons; 
 otherwise, an arc (circle segment) fit to the &alpha;-carbon coordinates 
-is used instead. For a helix of 3-5 residues, the axis of an idealized 
+is used instead. 
+<li>For a helix of 3-5 residues, the axis of an idealized 
 &alpha;-helix fit to the &alpha;-carbons is used.
+</ul>
+<p>
 Increasing the number of <a href="#sides"><b>sides</b></a> from 12
-is recommended to give tubes a more rounded (smoother) appearance.
+is recommended to give tubes and cylinders
+a more rounded (smoother) appearance.
 Other than <a href="#radius"><b>radius</b></a>
 and <a href="#sides"><b>sides</b></a>,
 most helix settings such as width, height, cross-section, and arrows
-do not apply to helices in the <b>tube</b> mode.
+do not apply to helices in the <b>tube</b> or <b>cylinder</b> modes.
 </p></blockquote><blockquote>
 <a name="radius"></a>
 <b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;|&nbsp;<b>auto</b>
