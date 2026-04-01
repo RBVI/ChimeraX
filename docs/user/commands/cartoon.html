@@ -163,7 +163,7 @@ in reusing the settings:
 &nbsp;<a href="atomspec.html#builtin">nucleic</a> 
 xsect oval width 1.6 thick 1.6
 <br>
-<a href="alias.html">alias</a> cylinders 
+<a href="alias.html">alias</a> tubes 
 &nbsp;<a href="#style">cartoon style</a> 
 &nbsp;<a href="atomspec.html#builtin">protein</a> 
 modeh tube rad 2 sides 24
@@ -183,14 +183,14 @@ default cartoon style can be restored with command:
 <tbody><tr>
 <td><img class="outline" src="style1.png" width="200px" alt="6cmn default cartoon" title="6cmn default cartoon"></td>
 <td><img class="outline" src="nucrib.png" width="200px" alt="6cmn nucrib" title="6cmn nucrib"></td>
-<td><img class="outline" src="cylinders.png" width="200px" alt="6cmn alpha-helix cylinders" title="6cmn alpha-helix cylinders"></td>
+<td><img class="outline" src="cylinders.png" width="200px" alt="6cmn alpha-helix tubes" title="6cmn alpha-helix cylinders"></td>
 <td><img class="outline" src="licorice.png" width="200px" alt="6cmn licorice" title="6cmn licorice"></td>
 </tr><tr>
 <!-- 6cmn, white background, silhouettes, color bychain, nuc stubs -->
 <td align="center">initial cartoon style
 <br>+ <a href="nucleotides.html#stubs"><b>nuc stubs</b></a></td>
 <td align="center"><b>nucrib</b><br>(nucleic backbone tubes)</td>
-<td align="center"><b>nucrib</b> + <b>cylinders</b>
+<td align="center"><b>nucrib</b> + <b>tubes</b>
 <br>(protein &alpha;-helix tubes)</td>
 <td align="center"><b>nucrib</b> + <b>licorice</b>
 <br>(no 2&deg;-structure representations)</td>
@@ -220,7 +220,7 @@ preceded by coil? due to https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/333 )
 [&nbsp;<b>sides</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>divisions</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>barSides</b>&nbsp;&nbsp;<i>N<font size="-1"><sub>b</sub></font></i>&nbsp;]
-[&nbsp;<b>modeHelix</b>&nbsp;tube&nbsp;|&nbsp;wrap&nbsp;|&nbsp;default&nbsp;]
+[&nbsp;<b>modeHelix</b>&nbsp;&nbsp;tube&nbsp;|&nbsp;cylinder&nbsp;|&nbsp;wrap&nbsp;|&nbsp;default&nbsp;]
 [&nbsp;<b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;|&nbsp;<b>auto</b>&nbsp;]
 [&nbsp;<b>ssEnds</b>&nbsp;&nbsp;short&nbsp;|&nbsp;long&nbsp;]
 -->
@@ -263,36 +263,45 @@ have only a single value per model:
 </p>
 <blockquote>
 <a name="hmode"></a>
-<b>modeHelix</b>&nbsp;&nbsp;tube&nbsp;|&nbsp;wrap&nbsp;|&nbsp;default
+<b>modeHelix</b>&nbsp;&nbsp;tube&nbsp;|&nbsp;cylinder&nbsp;|&nbsp;wrap&nbsp;|&nbsp;default
 <br>
 The <b>modeHelix</b> option
-allows showing peptide helices as tubes (curved cylinders)
-rather than as ribbons spiraling along the backbone atoms (initial default).
+allows showing each peptide helix as a <b>tube</b> (curved cylinder) or 
+straight <b>cylinder</b> rather than as a ribbon spiraling along the 
+backbone atoms (initial default).
 Spiraling ribbons from the <b>wrap</b> mode wrap around the calculated
 tubes, whereas those from the initial <b>default</b> mode
 are oriented as described <a href="#orientation">above</a>.
-For straight helix-axis cylinders that can be used in
+For cylinders aligned with the helix axis that can be used in
 <a href="distance.html"><b>distance</b></a> and 
 <a href="angle.html"><b>angle</b></a> measurements, see
 <a href="define.html#axis"><b>define axis</b></a> instead.
 <p>
-Helix <b>tube</b> calculations use &alpha;-carbon coordinates.
-For a helix of 6 or more residues, a straight tube axis (first principal
+Helix <b>tube</b> and <b>cylinder</b> calculations use &alpha;-carbon 
+coordinates. In the <b>tube</b> mode, 
+</p>
+<ul>
+<li>For a helix of 6 or more residues, a straight tube axis (first principal
 component) is used if it gives a low average distance to the &alpha;-carbons; 
 otherwise, an arc (circle segment) fit to the &alpha;-carbon coordinates 
-is used instead. For a helix of 3-5 residues, the axis of an idealized 
+is used instead. 
+<li>For a helix of 3-5 residues, the axis of an idealized 
 &alpha;-helix fit to the &alpha;-carbons is used.
+</ul>
+<p>
 Increasing the number of <a href="#sides"><b>sides</b></a> from 12
-is recommended to give tubes a more rounded (smoother) appearance.
+is recommended to give tubes and cylinders
+a more rounded (smoother) appearance.
 Other than <a href="#radius"><b>radius</b></a>
 and <a href="#sides"><b>sides</b></a>,
 most helix settings such as width, height, cross-section, and arrows
-do not apply to helices in the <b>tube</b> mode.
+do not apply to helices in the <b>tube</b> or <b>cylinder</b> modes.
 </p></blockquote><blockquote>
 <a name="radius"></a>
 <b>radius</b>&nbsp;&nbsp;<i>r</i>&nbsp;|&nbsp;<b>auto</b>
 <br>
-For peptide helices in the <a href="#hmode"><b>tube</b> mode</a> only,
+For peptide helices in the <a href="#hmode"><b>tube</b> mode</a> or
+<a href="#hmode"><b>cylinder</b> mode</a>,
 a constant <b>radius</b> <i>r</i> can be specified, otherwise
 (<b>auto</b>, default) a radius will be determined separately for each helix
 according to the average distance of the &alpha;-carbons to the tube midline,
@@ -535,6 +544,6 @@ The general <a href="show.html"><b>hide</b></a> and
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2026</address>
+March 2026</address>
 
 </body></html>
