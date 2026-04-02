@@ -482,7 +482,11 @@ class RenderByAttrTool(ToolInstance):
                 if rendering and render_type != self.RENDER_COLORS:
                     marker.radius = radius
             histogram = self.render_histogram if rendering else self.select_histogram
-            cur_min, cur_max, data = histogram.data_source
+            try:
+                cur_min, cur_max, data = histogram.data_source
+            except ValueError:
+                # Showing a string, data only has one value
+                return
             set_data = False
             if min_val < cur_min:
                 cur_min = min_val
