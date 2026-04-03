@@ -194,7 +194,7 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
 
 def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend, *, cutoff_distance=None,
         show_alignment=defaults['show_alignment'], align=align, domain_residues=(None, None), bring=None,
-        verbose=defaults['verbose_logging'], always_raise_errors=False, report_matrix=False,
+        verbose=defaults['verbose_logging'], always_raise_errors=False, report_matrix=False, rmsd=False,
         log_parameters=defaults['log_parameters'],
         **align_kw):
     """Superimpose structures based on sequence alignment
@@ -554,7 +554,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 s1.name, s1.structure.id_string, s2.name,
                 s2.structure.id_string, score), log=(verbose is not None))
             skip = set()
-            if show_alignment:
+            if show_alignment or rmsd:
                 for s in [s1,s2]:
                     if hasattr(s, '_dm_rebuild_info'):
                         residues = s.residues
@@ -578,7 +578,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                         s.bulk_set(residues, characters)
                 with show_context():
                     alignment = session.alignments.new_alignment([s1,s2], None, auto_associate=None,
-                        name="MatchMaker alignment")
+                        name="MatchMaker alignment", viewer=show_alignment)
                 alignment.auto_associate = True
                 for hdr in alignment.headers:
                     hdr.shown = hdr.ident == "rmsd"
@@ -690,7 +690,7 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
         hgap=defaults["helix_open"], sgap=defaults["strand_open"], ogap=defaults["other_open"],
         cutoff_distance=defaults["iter_cutoff"], gap_extend=defaults["gap_extend"],
         show_alignment=defaults['show_alignment'], compute_s_s=defaults["compute_ss"],
-        keep_computed_s_s=defaults['overwrite_ss'], report_matrix=False,
+        keep_computed_s_s=defaults['overwrite_ss'], report_matrix=False, rmsd=False,
         log_parameters=defaults['log_parameters'],
         mat_h_h=default_ss_matrix[('H', 'H')],
         mat_s_s=default_ss_matrix[('S', 'S')],
@@ -775,7 +775,7 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
     ss_matrix[('H', 'O')] = ss_matrix[('O', 'H')] = float(mat_h_o)
     ss_matrix[('S', 'O')] = ss_matrix[('O', 'S')] = float(mat_s_o)
     ret_vals = match(session, pairing, match_items, matrix, alg, gap_open, gap_extend,
-        ss_fraction=ss_fraction, ss_matrix=ss_matrix,
+        ss_fraction=ss_fraction, ss_matrix=ss_matrix, rmsd=rmsd,
         cutoff_distance=cutoff_distance, show_alignment=show_alignment, bring=bring,
         domain_residues=(ref_atoms.residues.unique(), match_atoms.residues.unique()),
         gap_open_helix=hgap, gap_open_strand=sgap, gap_open_other=ogap, report_matrix=report_matrix,
@@ -856,7 +856,7 @@ def register_command(logger):
             ('bring', TopModelsArg), ('show_alignment', BoolArg), ('compute_s_s', BoolArg),
             ('mat_h_h', FloatArg), ('mat_s_s', FloatArg), ('mat_o_o', FloatArg), ('mat_h_s', FloatArg),
             ('mat_h_o', FloatArg), ('mat_s_o', FloatArg), ('keep_computed_s_s', BoolArg),
-            ('report_matrix', BoolArg), ('log_parameters', BoolArg)],
+            ('report_matrix', BoolArg), ('rmsd', BoolArg), ('log_parameters', BoolArg)],
         synopsis = 'Align atomic structures using sequence alignment'
     )
     register('matchmaker', desc, cmd_match, logger=logger)

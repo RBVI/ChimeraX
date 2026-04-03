@@ -56,6 +56,7 @@ class _MDCrdsBundleAPI(BundleAPI):
                         from chimerax.core.commands import BoolArg, OpenFileNameArg, PositiveIntArg
                         return {
                             'auto_style': BoolArg,
+                            'break_triangle_waters': BoolArg,
                             'coords': OpenFileNameArg,
                             'end': PositiveIntArg,
                             'omit': omit_arg,
@@ -71,7 +72,7 @@ class _MDCrdsBundleAPI(BundleAPI):
                     @property
                     def open_args(self):
                         from chimerax.core.commands import BoolArg
-                        return { 'auto_style': BoolArg }
+                        return { 'auto_style': BoolArg, 'break_triangle_waters': BoolArg }
             else:
                 class MDInfo(OpenerInfo):
                     def open(self, session, data, file_name, *, structure_model=None,

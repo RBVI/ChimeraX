@@ -164,5 +164,11 @@ class _MutationScoresAPI(BundleAPI):
         elif class_name == 'MutationColorHistory':
             from .ms_color_history import MutationColorHistory
             return MutationColorHistory
+        elif class_name == 'NamedScoreRanges':
+            from .ms_color_history import NamedScoreRanges
+            return NamedScoreRanges
+        elif class_name == 'ScoreRange':
+            from .ms_color_history import ScoreRange
+            return ScoreRange
 
 bundle_api = _MutationScoresAPI()

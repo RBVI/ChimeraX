@@ -50,6 +50,7 @@ class _PDBioAPI(BundleAPI):
                         return {
                             'atomic': BoolArg,
                             'auto_style': BoolArg,
+                            'break_triangle_waters': BoolArg,
                             'combine_sym_atoms': BoolArg,
                             'coordsets': BoolArg,
                             'log_info': BoolArg,

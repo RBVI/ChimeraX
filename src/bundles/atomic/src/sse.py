@@ -413,7 +413,7 @@ class HelixCylinder:
         if vdot(self.coords[-1] - self.coords[0], self.axis) < 0:
             self.axis = -self.axis
         radii = norm(self.coords - self.cylinder_centers(), axis=1)
-        self.radius = mean(radii)
+        self.radius = min(2.5, mean(radii))
 
     def _straight_initial(self):
         from numpy import mean, dot, newaxis

@@ -316,6 +316,13 @@ class ScoreValues(State):
         values = [val[3] for val in self._mutation_values]
         return min(values), max(values)
 
+    def synonymous_mean_and_sdev(self):
+        values = [value for res_num, from_aa, to_aa, value in self._mutation_values if to_aa == from_aa]
+        if len(values) == 0:
+            return None, None
+        from numpy import mean, std
+        return mean(values), std(values)
+
     def take_snapshot(self, session, flags):
         return {'mutation_values': self._mutation_values,
                 'per_residue': self.per_residue,
