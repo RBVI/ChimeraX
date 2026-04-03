@@ -1737,6 +1737,11 @@ class StructureData:
         import numpy
         return [Atoms(numpy.array(x, numpy.uintp)) for x in f(self._c_pointer, consider_missing_structure)]
 
+    def break_triangle_waters(self):
+        '''For waters with an H-H bond, break that bond'''
+        f = c_function('structure_break_triangle_waters', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
+        p = f(self._c_pointer)
+
     def chain_trace_atoms(self):
         '''
         Find pairs of atoms that should be connected in a chain trace.

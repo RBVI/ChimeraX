@@ -25,7 +25,7 @@
 from chimerax.atomic import AtomicStructure
 from .util import determine_element_from_mass, prep_coords
 
-def read_psf(session, path, file_name, *, auto_style=True, coords=None, **kw):
+def read_psf(session, path, file_name, *, auto_style=True, break_triangle_waters=True, coords=None, **kw):
     from chimerax.core.errors import UserError
     import os
     coords, data_fmt = prep_coords(session, coords, path, "PSF")
@@ -37,7 +37,8 @@ def read_psf(session, path, file_name, *, auto_style=True, coords=None, **kw):
     except Exception as e:
         raise UserError("Problem reading/processing PSF file '%s': %s" % (path, e))
 
-    s = AtomicStructure(session, name=os.path.basename(file_name), auto_style=auto_style)
+    s = AtomicStructure(session, name=os.path.basename(file_name), auto_style=auto_style,
+        break_triangle_waters=break_triangle_waters)
     try:
         from chimerax.atomic.struct_edit import add_atom, add_bond
         import tinyarray

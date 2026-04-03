@@ -31,7 +31,7 @@ Read Protein DataBank (PDB) files.
 
 def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=False, atomic=True,
              max_models=None, log_info=True, combine_sym_atoms=True, segid_chains=False,
-             slider=True, missing_coordsets="renumber"):
+             slider=True, missing_coordsets="renumber", break_triangle_waters=True):
     """Read PDB data from a file or stream and return a list of models and status information.
 
     ``stream`` is either a string a string with a file system path to a PDB file, or an open input
@@ -68,6 +68,8 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
     MODEL numbers are not consecutive.  The possible values are 'fill' (fill in the missing with copies
     of the preceding coord set), 'ignore' (don't fill in; use MODEL number as is for coordset ID), and
     'renumber' (don't fill in and use the next available coordset ID).
+
+    ``break_triangle_waters`` will break H-H bonds in water molecules if present.
     """
 
     from chimerax.core.errors import UserError
@@ -103,8 +105,8 @@ def open_pdb(session, stream, file_name=None, *, auto_style=True, coordsets=Fals
         from chimerax.atomic.structure import AtomicStructure as StructureClass
     else:
         from chimerax.atomic.structure import Structure as StructureClass
-    models = [StructureClass(session, name=file_name, c_pointer=p, auto_style=auto_style, log_info=log_info)
-        for p in pointers]
+    models = [StructureClass(session, name=file_name, c_pointer=p, auto_style=auto_style, log_info=log_info,
+        break_triangle_waters=break_triangle_waters) for p in pointers]
     from numpy import isfinite
     for m in models:
         if not isfinite(m.atoms.coords).all():
