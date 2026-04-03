@@ -229,6 +229,19 @@ compact representation; how they are aligned is not meaningful.
   </blockquote>
 </blockquote>
 <blockquote>
+<a name="rmsd"><b>rmsd</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
+<br>
+With <a href="#show"><b>showAlignment</b></a> <b>false</b>, the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window
+is not shown, and the
+<a href="../tools/sequenceviewer.html#headers">alignment-header attributes</a>
+<b>seq_rmsd</b> and <b>seq_conservation</b> are not automatically assigned.
+Specifying <b>rmsd true</b> forces calculating and assigning these attributes 
+even though the pairwise sequence alignment is not displayed.
+If <a href="#show"><b>showAlignment</b></a> is <b>true</b>, the <b>rmsd</b>
+option is unnecessary and ignored.
+</blockquote>
+<blockquote>
   <a name="cutoffDistance"><b>cutoffDistance</b> 
   &nbsp;<i>cutoff</i>&nbsp;|&nbsp;none</a>
 <br>
@@ -459,6 +472,6 @@ that existed before the <b>matchmaker</b> command was used.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2025</address>
+April 2026</address>
 
 </body></html>
