@@ -22,11 +22,11 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def read_gro(session, stream, file_name, *, auto_style=True):
+def read_gro(session, stream, file_name, **kw):
     structures = []
     try:
         lines = [line for line in stream]
-        parse_gro(session, file_name, lines, structures, auto_style)
+        parse_gro(session, file_name, lines, structures, **kw)
     except BaseException:
         for s in structures:
             s.delete()
@@ -38,7 +38,7 @@ def read_gro(session, stream, file_name, *, auto_style=True):
 
 from chimerax.atomic import AtomicStructure, Element
 
-def parse_gro(session, file_name, lines, structures, auto_style):
+def parse_gro(session, file_name, lines, structures, **kw):
     from chimerax.core.errors import UserError
     state = "init"
     anums = {}
@@ -55,7 +55,7 @@ def parse_gro(session, file_name, lines, structures, auto_style):
                 mol_name = line
             from chimerax.atomic.structure import is_informative_name
             name = mol_name if is_informative_name(mol_name) else file_name
-            s = AtomicStructure(session, name=name, auto_style=auto_style)
+            s = AtomicStructure(session, name=name, **kw)
             structures.append(s)
             continue
         if state == "post line 1":

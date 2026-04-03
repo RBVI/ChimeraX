@@ -88,9 +88,9 @@ def _initialize(session):
         lambda name, session=session: _get_template(session, name))
 
 
-def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, atomic=True,
+def open_mmcif(session, path, file_name=None, coordsets=False, atomic=True,
                max_models=None, log_info=True, extra_categories=(), combine_sym_atoms=True,
-               slider=True, ignore_styling=False, fetch_emdb_map=False, ihm_warning=True):
+               slider=True, ignore_styling=False, fetch_emdb_map=False, ihm_warning=True, **kw):
     # mmCIF parsing requires an uncompressed file
 
     if not _initialized:
@@ -112,16 +112,16 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
                     f"open {file_name} format corecif</a>.\n", is_html=True)
             return corecif.open_corecif(
                 session, path, file_name=file_name,
-                auto_style=auto_style, log_info=log_info
+                log_info=log_info, **kw
             )
         if 'PDBx/mmCIF styling lost' in error_text:
             if log is not None:
                 log.info(error_text + ".  Rereading mmCIF file from the beginning.")
             return open_mmcif(
                 session, path, file_name=file_name,
-                auto_style=auto_style, coordsets=coordsets, atomic=atomic,
+                coordsets=coordsets, atomic=atomic,
                 max_models=max_models, log_info=log_info, extra_categories=extra_categories,
-                combine_sym_atoms=combine_sym_atoms, slider=slider, ignore_styling=True
+                combine_sym_atoms=combine_sym_atoms, slider=slider, ignore_styling=True, **kw
             )
         raise UserError('mmCIF parsing error: %s' % e)
 
@@ -132,7 +132,7 @@ def open_mmcif(session, path, file_name=None, auto_style=True, coordsets=False, 
         from chimerax.atomic.structure import AtomicStructure as StructureClass
     else:
         from chimerax.atomic.structure import Structure as StructureClass
-    models = [StructureClass(session, name=file_name, c_pointer=p, auto_style=auto_style, log_info=log_info)
+    models = [StructureClass(session, name=file_name, c_pointer=p, log_info=log_info, **kw)
               for p in pointers]
 
     if max_models is not None:
