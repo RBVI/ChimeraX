@@ -4156,6 +4156,47 @@ extern "C" EXPORT void structure_combine(void *combination, void *s, void *pos, 
     }
 }
 
+extern "C" EXPORT void *structure_break_triangle_waters(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        for (auto r: m->residues()) {
+            auto& atoms = r->atoms();
+            if (atoms.size() != 3)
+                continue;
+            Atom* o = nullptr;
+            Atom* h1 = nullptr;
+            Atom* h2 = nullptr;
+            for (auto a: atoms) {
+                if (a->element() == Element::O) {
+                    if (o == nullptr)
+                        o = a;
+                    else
+                        break;
+                } else if (a->element() == Element::H) {
+                    if (h1 == nullptr)
+                        h1 = a;
+                    else if (h2 == nullptr)
+                        h2 = a;
+                    else
+                        break;
+                } else
+                    break;
+            }
+            if (o != nullptr && h1 != nullptr && h2 != nullptr) {
+                for (auto& b: h1->bonds())
+                    if (b->other_atom(h1) == h2) {
+                        m->delete_bond(b);
+                        break;
+                    }
+            }
+        }
+    } catch (...) {
+        molc_error();
+    }
+    return nullptr;
+}
+
 extern "C" EXPORT void *structure_copy(void *mol)
 {
     Structure *m = static_cast<Structure *>(mol);

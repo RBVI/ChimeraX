@@ -256,6 +256,8 @@ def surface_smooth(session, surfaces, factor = 0.3, iterations = 2, in_place = F
         copies = []
         from chimerax.core.models import Surface
         for surface in surfaces:
+            if surface.vertices is None or surface.normals is None or surface.triangles is None:
+                continue
             va, na, ta = surface.vertices.copy(), surface.normals.copy(), surface.triangles.copy()
             smooth_vertex_positions(va, ta, factor, iterations)
             smooth_vertex_positions(na, ta, factor, iterations)

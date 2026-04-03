@@ -28,12 +28,13 @@ from chimerax.atomic import AtomicStructure
 from chimerax.io import open_input
 from .util import determine_element_from_mass, prep_coords
 
-def read_data(session, stream, file_name, *, auto_style=True, coords=None, **kw):
+def read_data(session, stream, file_name, *, auto_style=True, break_triangle_waters=True, coords=None, **kw):
     from chimerax.core.errors import UserError
     import os
     coords, data_fmt = prep_coords(session, coords, stream, "DATA", file_type="DUMP")
 
-    structure = AtomicStructure(session, name=os.path.basename(file_name), auto_style=auto_style)
+    structure = AtomicStructure(session, name=os.path.basename(file_name), auto_style=auto_style,
+        break_triangle_waters=True)
 
     try:
         from chimerax.atomic.struct_edit import add_atom, add_bond

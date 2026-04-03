@@ -1450,9 +1450,9 @@ class TimelineSceneWidget(QWidget):
     def _sync_to_scene_animation(self):
         """Sync timeline data to scene animation manager"""
         scene_timeline_widget = self._get_scene_timeline_widget()
-        if scene_timeline_widget and hasattr(scene_timeline_widget, "session"):
-            session = scene_timeline_widget.session
-            scene_animation = getattr(session, "_scene_animation_manager", None)
+        if scene_timeline_widget:
+            controller = getattr(scene_timeline_widget, "controller", None)
+            scene_animation = getattr(controller, "scene_animation", None)
             if scene_animation:
                 # Clear all scenes and re-add from our markers to ensure
                 # the animation model matches the timeline exactly
@@ -1465,6 +1465,7 @@ class TimelineSceneWidget(QWidget):
                         marker.transition_data.get("fade_models", False),
                         action=marker.transition_data.get("action", None),
                     )
+                scene_animation.action_segments = list(self.action_segments)
 
     def _get_scene_timeline_widget(self):
         """Find the parent SceneTimelineWidget"""
@@ -1597,8 +1598,8 @@ class TimelineSceneWidget(QWidget):
 class SceneTimelineWidget(QWidget):
     """Main scene timeline widget combining all components"""
 
-    scene_added = Signal(str)  # scene_name
-    scene_removed = Signal(str)  # scene_name
+    scene_added = Signal(str, float)  # scene_name, time
+    scene_removed = Signal(str, float)  # scene_name, time
     scene_moved = Signal(str, float, float)  # scene_name, old_time, new_time
     scene_selected = Signal(str)  # scene_name
     time_changed = Signal(float)  # time
@@ -1655,7 +1656,7 @@ class SceneTimelineWidget(QWidget):
         """Handle scene dropped onto timeline"""
         # Add the scene marker directly to the timeline
         self.timeline_scene.add_scene_marker(time, scene_name)
-        self.scene_added.emit(scene_name)
+        self.scene_added.emit(scene_name, time)
         # The parent tool will handle adding the scene to the animation
 
     def on_scene_moved(self, scene_name, old_time, new_time):
@@ -1667,13 +1668,7 @@ class SceneTimelineWidget(QWidget):
 
     def on_scene_deleted(self, scene_name, scene_time):
         """Handle scene deleted from timeline (specific instance)"""
-        # Remove the specific scene instance from timeline widget
-        self.timeline_scene.remove_scene_marker(scene_name, scene_time)
-
-        # Also remove from the scene animation manager to prevent interpolation errors
-        scene_animation = getattr(self.session, "_scene_animation_manager", None)
-        if scene_animation:
-            scene_animation.remove_scene_at_time(scene_time)
+        self.scene_removed.emit(scene_name, scene_time)
 
     def on_time_clicked(self, time):
         """Handle timeline click to preview at that time"""
@@ -1703,7 +1698,7 @@ class SceneTimelineWidget(QWidget):
 
         # Add the scene to the timeline
         self.timeline_scene.add_scene_marker(time, scene_name)
-        self.scene_added.emit(scene_name)
+        self.scene_added.emit(scene_name, time)
 
     def on_duration_changed(self, new_duration):
         """Handle duration change from zoom buttons"""
@@ -1740,4 +1735,24 @@ class SceneTimelineWidget(QWidget):
 
     def set_current_time(self, time):
         """Set the current time on the timeline"""
+        self.timeline_controls.set_current_time(time)
         self.timeline_scene.set_current_time(time)
+
+    def set_playing_state(self, is_playing):
+        """Update playback controls to reflect play state."""
+        self.timeline_controls.is_playing = is_playing
+        self.timeline_controls.play_btn.setText("⏸" if is_playing else "▶")
+
+    def set_recording_state(self, is_recording):
+        """Update recording controls to reflect record state."""
+        record_btn = self.timeline_controls.record_btn
+        if is_recording:
+            record_btn.setText("⏹")
+            record_btn.setStyleSheet(
+                "background-color: #ff9800; color: white; border-radius: 15px; font-weight: bold;"
+            )
+        else:
+            record_btn.setText("●")
+            record_btn.setStyleSheet(
+                "background-color: #f44336; color: white; border-radius: 15px; font-weight: bold;"
+            )
