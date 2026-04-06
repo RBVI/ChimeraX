@@ -20,8 +20,8 @@ CYTHON_VERSION = $(shell grep Cython $(TOP)/pyproject.toml  | sed -e 's/ ;.*//' 
 CXSERVICES_VER = 1.2.3
 CXSERVICES_DEPLOYMENT_VER ?= production
 
-# tcia_utils.patch: Fix needless import of x86_64 zmq on macOS, see Trac#8638
-# Remove if tcia_utils removes those imports
+# tcia_utils.patch: Defer heavy imports (pandas, plotly, IPython, etc.)
+# so that ChimeraX can use tcia_utils without pulling in those packages.
 PATCHES = tcia_utils.patch tcia_utils_metadata.patch grako.patch
 ifeq ($(OS),Windows)
 ifneq ($(filter $(MSYSTEM),MSYS MINGW64),)
@@ -150,7 +150,7 @@ outdated:
 	$(PIP) list --outdated --format=columns
 	@echo ""
 	@echo "Known issues:"
-	@echo "  tcia_utils versions >1.5.1 make no API changes and add more dependencies to patch out"
+	@echo "  tcia_utils: heavy deps (pandas, plotly, etc.) are patched out; update patch when upgrading"
 	@echo "  distlib 0.2.7 last version that works with 'toolshed uninstall'"
 	@echo "  grako (3.16.5 is the last version that works [see #3460])"
 	@echo "  lineprofiler 2.1.2, newer versions 3.0 and above require cmake"
