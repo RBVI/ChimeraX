@@ -86,10 +86,11 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _draw_graphics(self):
+        scene = self._score_view.scene
+        scene.clear()
         self._set_heatmap_image()
         self._make_residue_axis_labels()
         self._make_amino_acid_axis_labels()
-        scene = self._score_view.scene
         scene.setSceneRect(scene.itemsBoundingRect())
 
     # ---------------------------------------------------------------------------
@@ -144,20 +145,24 @@ class MutationScoresHeatmap(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    _amino_acids = 'HRKDEFWYNQILCSTVMAGP'
-    def _score_matrix(self):
-        from .ms_data import mutation_all_scores
-        msets = mutation_all_scores(self.session)
-        self._mutation_set = mset = msets[0]  # TODO: Allow choosing mutation set
-        scores = None
+    @property
+    def _score_names(self):
+        mset = self._mutation_set
         score_names = mset.score_names()
         # TODO: Allow choosing score names
-        score_names = [score_name for score_name in score_names if score_name.endswith('_effect')]
-        self._score_names = score_names
-        self._num_scores = score_count = len(score_names)
+#        score_names = [score_name for score_name in score_names if score_name.endswith('_effect')]
+        return score_names
+        
+    # ---------------------------------------------------------------------------
+    #
+    _amino_acids = 'HRKDEFWYNQILCSTVMAGP'
+    def _score_matrix(self):
+        scores = None
+        mset = self._mutation_set
+        self._num_scores = score_count = len(self._score_names)
         aa_to_index = {aa:i for i, aa in enumerate(self._amino_acids)}
         self._res_aa = res_aa = {}
-        for snum, score_name in enumerate(score_names):
+        for snum, score_name in enumerate(self._score_names):
             score_values = mset.score_values(score_name)
             if scores is None:
                 # TODO: This may not give maximum res number
@@ -249,7 +254,6 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _make_amino_acid_axis_labels(self):
-
         aa_step = self._num_scores + self._score_pad
         for i, aa in enumerate(self._amino_acids):
             t = self._score_view.scene.addText(aa)
@@ -271,7 +275,17 @@ class MutationScoresHeatmap(ToolInstance):
         self._options_panel = p = CollapsiblePanel(parent, title = None)
         f = p.content_area
 
+        # Which mutation set
         from chimerax.ui.widgets import EntriesRow, ColorButton
+        ms = EntriesRow(parent, 'Mutations', ('set1', 'set2'))
+        self._mutation_set_menu = msm = ms.values[0]
+        from .ms_data import mutation_all_scores
+        msets = mutation_all_scores(self.session)
+        if msets:
+            msm.value = msets[0].name
+        menu = msm.widget.menu()
+        menu.aboutToShow.connect(self._mutation_set_menu_about_to_show)
+        menu.triggered.connect(self._mutation_set_changed)
 
         # Colormap
         self._colormaps = {'normalized':[(-2.0,-1.0,1.0,2.0), ('blue','white','white','red')]}
@@ -293,6 +307,29 @@ class MutationScoresHeatmap(ToolInstance):
         nv.changed.connect(self._normalize_changed)
         
         return p
+        
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def _mutation_set(self):
+        mset_name = self._mutation_set_menu.value
+        from .ms_data import mutation_scores
+        mset = mutation_scores(self.session, mset_name)
+        return mset
+
+    # ---------------------------------------------------------------------------
+    #
+    def _mutation_set_changed(self):
+        self._draw_graphics()
+
+    # ---------------------------------------------------------------------------
+    #
+    def _mutation_set_menu_about_to_show(self):
+        menu = self._mutation_set_menu.widget.menu()
+        menu.clear()
+        from .ms_data import mutation_scores_names
+        for ms_name in mutation_scores_names(self.session):
+            menu.addAction(ms_name)
 
     # ---------------------------------------------------------------------------
     #
@@ -424,7 +461,7 @@ class ScoreView(QGraphicsView):
     def _set_image(self, rgb):
         scene = self.scene
         pi = self._pixmap_item
-        if pi is not None:
+        if pi is not None and pi in self.scene.items():
             scene.removeItem(pi)
 
         pixmap = rgb_to_pixmap(rgb)
