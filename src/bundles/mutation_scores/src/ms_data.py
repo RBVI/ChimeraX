@@ -323,6 +323,10 @@ class ScoreValues(State):
         from numpy import mean, std
         return mean(values), std(values)
 
+    def subtract_fit(self, score_values):
+        values = subtract_fit_values(self.all_values(), score_values.all_values())
+        return ScoreValues(values)
+    
     def take_snapshot(self, session, flags):
         return {'mutation_values': self._mutation_values,
                 'per_residue': self.per_residue,
@@ -332,6 +336,23 @@ class ScoreValues(State):
     def restore_snapshot(cls, session, data):
         sv = cls(data['mutation_values'], per_residue = data['per_residue'])
         return sv
+
+def subtract_fit_values(cvalues, svalues):
+    smap = {(res_num,from_aa,to_aa):value for res_num, from_aa, to_aa, value in svalues}
+    x = []
+    y = []
+    for res_num, from_aa, to_aa, value in cvalues:
+        svalue = smap.get((res_num,from_aa,to_aa))
+        if svalue is not None:
+            x.append(svalue)
+            y.append(value)
+    from numpy import polyfit
+    degree = 1
+    m,b = polyfit(x, y, degree)
+    sfvalues = [(res_num, from_aa, to_aa, value - (m*smap[(res_num,from_aa,to_aa)] + b))
+                for res_num, from_aa, to_aa, value in cvalues
+                if (res_num,from_aa,to_aa) in smap]
+    return sfvalues
 
 from chimerax.core.state import StateManager  # For session saving
 class MutationScoresManager(StateManager):

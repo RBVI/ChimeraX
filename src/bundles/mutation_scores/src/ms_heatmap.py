@@ -148,6 +148,13 @@ class MutationScoresHeatmap(ToolInstance):
         # TODO: Allow choosing score names
 #        score_names = [score_name for score_name in score_names if score_name.endswith('_effect')]
         return score_names
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def _all_score_names(self):
+        mset = self._mutation_set
+        return mset.score_names() if mset else []
         
     # ---------------------------------------------------------------------------
     #
@@ -160,6 +167,10 @@ class MutationScoresHeatmap(ToolInstance):
         self._res_aa = res_aa = {}
         for snum, score_name in enumerate(self._score_names):
             score_values = mset.score_values(score_name)
+            sf_name = self._subtract_fit
+            if sf_name:
+                sub_score_values = mset.score_values(sf_name)
+                score_values = score_values.subtract_fit(sub_score_values)
             if scores is None:
                 # TODO: This may not give maximum res number
                 self._num_residues = rmax = max(score_values.residue_numbers())
@@ -275,7 +286,7 @@ class MutationScoresHeatmap(ToolInstance):
             msm.value = msets[0].name
         menu = msm.widget.menu()
         menu.aboutToShow.connect(self._mutation_set_menu_about_to_show)
-        menu.triggered.connect(self._mutation_set_changed)
+        menu.triggered.connect(self._draw_graphics)
 
         # Colormap
         self._colormaps = {'normalized':[(-2.0,-1.0,1.0,2.0), ('blue','white','white','red')]}
@@ -296,6 +307,18 @@ class MutationScoresHeatmap(ToolInstance):
         self._normalize = nv = ns.values[0]
         nv.changed.connect(self._normalize_changed)
 
+        # Subtract fit
+        sf = EntriesRow(f, False, 'Subtract fit of score', ('', 'score2'))
+        self._use_subtract_fit, self._subtract_score = sfe, sfs = sf.values
+        score_names = self._all_score_names
+        if score_names:
+            surf_names = [score_name for score_name in score_names if 'surface' in score_name.lower()]
+            sfs.value = surf_names[0] if surf_names else score_names[0]
+        sfe.changed.connect(self._set_heatmap_image)
+        menu = sfs.widget.menu()
+        menu.aboutToShow.connect(self._subtract_fit_menu_about_to_show)
+        menu.triggered.connect(self._set_heatmap_image)
+
         # Highlight mutations with associated structure residues
         hs = EntriesRow(f, True, 'Highlight structure residues')
         self._highlight_structure_residues = hs = hs.values[0]
@@ -311,11 +334,6 @@ class MutationScoresHeatmap(ToolInstance):
         from .ms_data import mutation_scores
         mset = mutation_scores(self.session, mset_name)
         return mset
-
-    # ---------------------------------------------------------------------------
-    #
-    def _mutation_set_changed(self):
-        self._draw_graphics()
 
     # ---------------------------------------------------------------------------
     #
@@ -378,6 +396,23 @@ class MutationScoresHeatmap(ToolInstance):
     def _normalize_changed(self):
         self._set_other_colormap()
         self._set_heatmap_image()
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def _subtract_fit(self):
+        if not self._use_subtract_fit.enabled:
+            return None
+        score_name = self._subtract_score.value
+        return score_name
+
+    # ---------------------------------------------------------------------------
+    #
+    def _subtract_fit_menu_about_to_show(self):
+        mset = self._mutation_set
+        menu = self._subtract_score.widget.menu()
+        for score_name in mset.score_names():
+            menu.addAction(score_name_name)
 
     # ---------------------------------------------------------------------------
     #
