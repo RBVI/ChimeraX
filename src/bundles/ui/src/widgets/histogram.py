@@ -426,7 +426,9 @@ class MarkedHistogram(QWidget):
 
     def _abs2rel(self, abs_xy):
         x, y = abs_xy
-        rel_x = (x - self._min_val) / float(self._max_val - self._min_val)
+        min_val = self._min_val if self._draw_min is None else self._draw_min
+        max_val = self._max_val if self._draw_max is None else self._draw_max
+        rel_x = (x - min_val) / float(max_val - min_val)
         rel_y = y / float(self._ymax)
         return rel_x, rel_y
 
@@ -508,13 +510,22 @@ class MarkedHistogram(QWidget):
             return
         m.rgba = rgba
 
+    def _ensure_range(self, abs_xy):
+        x = abs_xy[0]
+        if x < self._min_val and (self._draw_min is None or x < self._draw_min):
+            self._draw_min = x
+            self._redraw_cb()
+        elif x > self._max_val and (self._draw_max is None or x > self._draw_max):
+            self._draw_max = x
+            self._redraw_cb()
+
     @property
     def _int_values(self):
         from numbers import Integral
         return isinstance(self._min_val, Integral)
 
     def _marker2abs(self, marker):
-        if self._active_markers.coord_type == 'absolute':
+        if marker.markers.coord_type == 'absolute':
             return marker.xy
         else:
             return self._rel2abs(marker.xy)
@@ -703,7 +714,9 @@ class MarkedHistogram(QWidget):
 
     def _rel2abs(self, rel_xy):
         x, y = rel_xy
-        abs_x = self._min_val * (1-x) + x * self._max_val
+        min_val = self._min_val if self._draw_min is None else self._draw_min
+        max_val = self._max_val if self._draw_max is None else self._draw_max
+        abs_x = min_val * (1-x) + x * max_val
         abs_y = y * self._ymax
         return abs_x, abs_y
 
@@ -927,6 +940,8 @@ class HistogramMarkers:
     def append(self, val):
         marker = self._marker_func(val)
         self._markers.append(marker)
+        if self.coord_type == "absolute":
+            self.histogram._ensure_range(marker.xy)
         self._update_plot()
         if self._add_del_callback:
             self._add_del_callback(marker)
