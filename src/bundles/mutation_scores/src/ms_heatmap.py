@@ -32,7 +32,6 @@ class MutationScoresHeatmap(ToolInstance):
     def __init__(self, session, tool_name = 'Mutation Scores Heatmap'):
 
         self._score_pad = 1	# Number of blank pixels after each score group
-        self._highlighted_structure_residues = False        
 
         ToolInstance.__init__(self, session, tool_name)
 
@@ -113,9 +112,6 @@ class MutationScoresHeatmap(ToolInstance):
                 menu.addAction(f'Select residue {from_aa}{res_num}',
                                lambda res_num=res_num: self._select_residue(res_num))
 
-            _add_menu_toggle(menu, 'Highlight structure residues', self._highlighted_structure_residues,
-                             self._highlight_structure_residues)
-
         menu.addAction('Save image', self._save_image)
     
     # ---------------------------------------------------------------------------
@@ -132,7 +128,7 @@ class MutationScoresHeatmap(ToolInstance):
         for i in range(self._num_scores,rgb.shape[0]-row_step,row_step):
             rgb[i:i+self._score_pad,:,:] = divider_line_color
 
-        if self._highlighted_structure_residues:
+        if self._highlight_structure_residues.enabled:
             mset = self._mutation_set
             if len(mset.associate_chains(self.session)) > 0:
                 res, rnums = mset.associated_residues(tuple(range(1, self._num_residues+1)))
@@ -264,12 +260,6 @@ class MutationScoresHeatmap(ToolInstance):
         
     # ---------------------------------------------------------------------------
     #
-    def _highlight_structure_residues(self, highlight):
-        self._highlighted_structure_residues = highlight
-        self._set_heatmap_image()
-        
-    # ---------------------------------------------------------------------------
-    #
     def _create_options_gui(self, parent):
         from chimerax.ui.widgets import CollapsiblePanel
         self._options_panel = p = CollapsiblePanel(parent, title = None)
@@ -305,7 +295,12 @@ class MutationScoresHeatmap(ToolInstance):
         ns = EntriesRow(f, True, 'Normalize scores to synonymous mean 0, standard deviation 1')
         self._normalize = nv = ns.values[0]
         nv.changed.connect(self._normalize_changed)
-        
+
+        # Highlight mutations with associated structure residues
+        hs = EntriesRow(f, True, 'Highlight structure residues')
+        self._highlight_structure_residues = hs = hs.values[0]
+        hs.changed.connect(self._set_heatmap_image)
+
         return p
         
     # ---------------------------------------------------------------------------
