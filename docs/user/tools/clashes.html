@@ -58,6 +58,8 @@ Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
 runs the calculation. Several of the dialog settings are remembered as 
 <a href="../preferences.html#other">preferences</a> when the calculation is run.
 Clicking <b>Reset</b> restores the dialog to factory default settings.
+<b>Help</b> opens this page in the
+<a href="helpviewer.html"><b>Help Viewer</b></a>
 </p><p>
 <b>Interaction parameters</b>:
 </p><ul>
@@ -153,12 +155,22 @@ at the <a href="../hierarchy.html">model level</a>
 show/hide checkbox unchecked)
 </li></ul>
 <p>
+<b>Calculate</b>:
+</p>
+<ul>
+<li><b>when OK/Apply clicked</b> (default)
+</li><li>
+<a name="continuous"></a>
+<b>continuously (until tool closed)</b>
+&ndash; during motions 
+  </li></ul>
+<p>
 <b>Treatment of results</b>:
 </p>
 <ul>
-<li><b>Select atoms</b> (initial default <b>off</b>)
+<li><b>Select</b> (initial default <b>off</b>)
 &ndash; whether to <a href="../selection.html">select</a> the interacting atoms
-</li><li><b>Reveal atoms of interacting residues</b> (initial default <b>off</b>)
+</li><li><b>Reveal residues</b> (initial default <b>off</b>)
 &ndash; since a <a href="../pseudobonds.html">pseudobond</a>
 is only shown when both of its endpoint atoms are shown,
 whether to ensure all showing all H-bonds by displaying all of the endpoint
@@ -170,7 +182,7 @@ moieties separately displayed by this option.
 Displayed backbone atoms may still be invisible where cartoon is shown,
 unless their simultaneous display has been enabled with
 <b><a href="../commands/cartoon.html">cartoon suppress false</a></b>.
-</li><li><b>Assign atomic attribute named</b> [<i>name</i>] 
+</li><li><b>Assign attribute named</b> [<i>name</i>] 
 (initial default <b>off</b>)
 &ndash; whether to assign the largest <a href="#overlap-def">overlap</a>
 per atom as an <a href="../attribute.html">attribute</a> with the 
@@ -243,21 +255,10 @@ disallowed with <a href="#continuous">continuous monitoring</a>.
 &ndash; show the information in the <a href="log.html"><b>Log</b></a>
   </li><li><b>File</b> (initial default <b>off</b>) 
 &ndash; save the information to a text file
-  </li></ul>
-<p>
-<b>Frequency of checking</b>:
-</p>
-<ul>
-<li><b>when OK/Apply clicked</b> (default)
-</li><li>
-<a name="continuous"></a>
-<b>continuously (until dialog closed)</b>
-&ndash; during motions 
 </li></ul>
-  
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-January 2026</address>
+April 2026</address>
 
 </body></html>
