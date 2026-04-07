@@ -55,7 +55,7 @@ class MutationStructureColoring(ToolInstance):
         
         layout.addStretch(1)    # Extra space at end
                 
-        tw.manage(placement="side")
+        tw.manage(placement=None)	# Floating
 
     @classmethod
     def get_singleton(cls, session, create=True):
@@ -72,7 +72,7 @@ class MutationStructureColoring(ToolInstance):
                               'subtract fit', ('none', 'score1'),
                               'Mutations', mset_names)
         controls2 = EntriesRow(frame,        
-                               'filter mutations', ('all', 'drag box on scatterplot'),
+                               'filter mutations', ('all', 'drag box on scatterplot', 'define ranges...'),
                                'value', ('mean', 'count', 'sum absolute', 'sum', 'min', 'median', 'max', 'stddev'),
                                'palette', ('blue to red', 'red to blue', 'white to red', 'red to white',
                                            'white to blue', 'blue to white'))
@@ -82,10 +82,13 @@ class MutationStructureColoring(ToolInstance):
         self._mutation_set_menu_label = controls.labels[2]
         self._color_which_menu, self._color_score_type_menu, self._color_palette_menu = controls2.values
 
+        cwmenu = self._color_which_menu.widget.menu()
+        cwmenu.triggered.connect(self._color_which_chosen)
+        cwmenu.aboutToShow.connect(lambda *,menu=cwmenu: self._menu_about_to_show(menu))
         smenu = self._color_score_menu.widget.menu()
         smenu.aboutToShow.connect(lambda *,menu=smenu: self._menu_about_to_show(menu))
         msmenu = self._mutation_set_menu.widget.menu()
-        msmenu.aboutToShow.connect(lambda *,menu=smenu: self._menu_about_to_show(menu))
+        msmenu.aboutToShow.connect(lambda *,menu=msmenu: self._menu_about_to_show(menu))
         sfmenu = self._subtract_fit_menu.widget.menu()
         sfmenu.aboutToShow.connect(lambda *,menu=sfmenu: self._menu_about_to_show(menu))
         self._set_mutation_set_menu_visibility()
@@ -129,13 +132,25 @@ class MutationStructureColoring(ToolInstance):
         visible = (len(mutation_scores_names(self.session)) > 1)
         self._mutation_set_menu.widget.setVisible(visible)
         self._mutation_set_menu_label.setVisible(visible)
-    
+
+    def _color_which_chosen(self):
+        if self._color_which_menu.value == 'define ranges...':
+            show_name_score_ranges_gui(self.session)
+            self._color_which_menu.value = 'all'
+
     def _menu_about_to_show(self, menu):
         menu.clear()
         if menu is self._mutation_set_menu.widget.menu():
             from .ms_data import mutation_scores_names
             for ms_name in mutation_scores_names(self.session):
                 menu.addAction(ms_name)
+        elif menu is self._color_which_menu.widget.menu():
+            filters = ('all', 'drag box on scatterplot', 'define ranges...')
+            named_ranges = _named_score_ranges(self.session)
+            if named_ranges:
+                filters += tuple(named_ranges.names())
+            for filter in filters:
+                menu.addAction(filter)
         else:
             if menu is self._subtract_fit_menu.widget.menu():
                 menu.addAction('none')
@@ -158,15 +173,18 @@ class MutationStructureColoring(ToolInstance):
             raise UserError(f'There are no structures associated with mutations {mutation_set_name}')
 
         score_name = self._color_score_menu.value
-        which = self._color_which_menu.value # 'all' or 'drag box on scatterplot'
+        which = self._color_which_menu.value # 'all' or 'drag box on scatterplot' or named filtering
         score_type = self._color_score_type_menu.value # 'mean', 'sum absolute', 'sum'
         score_type = score_type.replace(" ", "_")
         palette = self._color_palette_menu.value # 'blue to red', ...
         subtract_fit_name = self._subtract_fit_menu.value
 
-        ranges, range_name = self._box_ranges(score_name) if which == 'drag box on scatterplot' else (None,None)
-        if ranges is None:
-            which = 'all'
+        if which == 'drag box on scatterplot':
+            ranges = self._box_ranges(score_name)
+        elif which == 'all':
+            ranges = None
+        else:
+            ranges = self._named_ranges(which)
 
         attr_name = self._coloring_attribute_name
         cmd_score = f'mutationscores define {attr_name} from {score_name} combine {score_type}'
@@ -228,11 +246,19 @@ class MutationStructureColoring(ToolInstance):
         range1 = f'{score1} >= {"%.3g"%min1} and {score1} <= {"%.3g"%max1}'
         range2 = f'{score2} >= {"%.3g"%min2} and {score2} <= {"%.3g"%max2}'
         ranges = f'{range1} and {range2}'
-        if score2 == score_name:
-            range_name = f'{score2}_{"%.3g"%min2}_{"%.3g"%max2}_{score1}_{"%.3g"%min1}_{"%.3g"%max1}'
-        else:
-            range_name = f'{score1}_{"%.3g"%min1}_{"%.3g"%max1}_{score2}_{"%.3g"%min2}_{"%.3g"%max2}'
-        return ranges, range_name
+        return ranges
+
+    def _named_ranges(self, ranges_name):
+        named_ranges = _named_score_ranges(self.session)
+        if named_ranges is None or ranges_name not in named_ranges.names():
+            from chimerax.core.errors import UserError
+            raise UserError(f'No named score ranges {ranges_name}')
+
+        score_ranges = named_ranges.score_ranges(ranges_name)
+        ranges = ' and '.join(
+            f'{score_range.score_name} {score_range.compare} {score_range.threshold}'
+            for score_range in score_ranges)
+        return ranges if ranges else None
     
     def _attribute_name(self, score_name, range_name, score_type, subtract_fit_name):
         subtract_fit = '' if subtract_fit_name == 'none' else f'_subtract_fit_{subtract_fit_name}'
@@ -328,6 +354,335 @@ def show_structure_coloring_gui(session):
     msc.display(True)
     return msc
 
+class NameScoreRanges(ToolInstance):
+    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
+
+    def __init__(self, session, tool_name = 'Name Mutation Score Ranges'):
+        ToolInstance.__init__(self, session, tool_name)
+
+        from chimerax.ui import MainToolWindow
+        tw = MainToolWindow(self, close_destroys = False)
+        self.tool_window = tw
+        parent = tw.ui_area
+
+        from chimerax.ui.widgets import vertical_layout
+        layout = vertical_layout(parent, margins = (5,0,0,0))
+
+        # Create score range controls
+        cc = self._create_score_range_controls(parent)
+        layout.addWidget(cc)
+
+        # Allow naming score ranges for use in the coloring gui.
+        nc = self._create_naming_controls(parent)
+        layout.addWidget(nc)
+        
+        layout.addStretch(1)    # Extra space at end
+                
+        tw.manage(placement=None)	# Floating
+
+    @classmethod
+    def get_singleton(cls, session, create=True):
+        from chimerax.core import tools
+        return tools.get_singleton(session, cls, 'Name Mutation Score Ranges', create=create)
+
+    def _create_score_range_controls(self, parent):
+        from chimerax.ui.widgets import column_frame, EntriesRow, radio_buttons
+        frame, layout = column_frame(parent, spacing=0)
+
+        from .ms_data import mutation_scores_names
+        mset_names = mutation_scores_names(self.session) + ('set1', 'set2')
+        controls = EntriesRow(frame,
+                              'Score ranges', True, 'high', False, 'low',
+                              '  Suffix', '',
+                              '  Named', ('new', 'name1'),  # Will be replaced by named ranges when menu posted
+                              'Mutations', mset_names)
+        self._high_ranges, self._low_ranges, self._score_name_suffix, self._name_menu, self._mutation_set_menu = controls.values
+        radio_buttons(self._high_ranges, self._low_ranges)
+        for checkbutton in (self._high_ranges, self._low_ranges):
+            checkbutton.changed.connect(self._range_chosen)
+        snsuffix = self._score_name_suffix
+        snsuffix.widget.returnPressed.connect(self._suffix_changed)
+        snsuffix.pixel_width = 50
+        nmmenu = self._name_menu.widget.menu()
+        nmmenu.triggered.connect(self._name_chosen)
+        nmmenu.aboutToShow.connect(lambda: self._menu_about_to_show(nmmenu))
+        self._mutation_set_menu_label = controls.labels[5]
+        msmenu = self._mutation_set_menu.widget.menu()
+        msmenu.triggered.connect(self._mutation_set_chosen)
+        msmenu.aboutToShow.connect(lambda: self._menu_about_to_show(msmenu))
+        self._set_mutation_set_menu_visibility()
+
+        score_names_frame, sn_layout = column_frame(parent, spacing=0)
+        sn_layout.setContentsMargins(20,0,0,0)
+        self._score_names_frame = score_names_frame
+        layout.addWidget(score_names_frame, stretch = 1)
+        self._score_checkbutton_rows = []
+        self._create_score_checkbuttons()
+
+        flines, fl_layout = column_frame(frame, spacing=0)
+        self._range_lines_frame = flines
+        layout.addWidget(flines)
+        self._range_rows = []
+
+        return frame
+
+    def _create_score_checkbuttons(self):
+        for row in self._score_checkbutton_rows:
+            row.frame.deleteLater()
+        self._score_checkbutton_rows.clear()
+
+        max_name_chars_per_line = 50
+        score_names = self._score_names()
+        i = 0
+        while i < len(score_names):
+            row_score_names = []
+            line_args = []
+            row_chars = 0
+            for score_name in score_names[i:]:
+                nchar = len(score_name)
+                if len(row_score_names) == 0 or row_chars + nchar <= max_name_chars_per_line:
+                    row_score_names.append(score_name)
+                    line_args.append(False)
+                    line_args.append(score_name)
+                    row_chars += nchar
+                    i += 1
+                else:
+                    break
+            from chimerax.ui.widgets import EntriesRow
+            score_checkbuttons = EntriesRow(self._score_names_frame, *line_args)
+            self._score_checkbutton_rows.append(score_checkbuttons)
+            for score_name, checkbutton in zip(row_score_names,score_checkbuttons.values):
+                checkbutton.changed.connect(lambda enabled, score_name=score_name:
+                                            self._score_chosen(score_name, enabled))
+
+    def _mutation_set_chosen(self):
+        self._clear_range_rows()
+        self._create_score_checkbuttons()
+        
+    def _range_chosen(self):
+        high, low = self._high_ranges.value, self._low_ranges.value
+        if (high and low) or (not high and not low):
+            return
+        self._update_score_checkmarks()
+
+    def _update_score_checkmarks(self):        
+        compare = ('>=' if self._high_ranges.value else '<=')
+        enabled_scores = []
+        for row in self._range_rows:
+            score_name, row_compare = [label.text() for label in row.labels[:2]]
+            if row_compare == compare:
+                enabled_scores.append(score_name)
+        for row in self._score_checkbutton_rows:
+            score_names = [label.text() for label in row.labels]
+            for score_name, checkbutton in zip(score_names, row.values):
+                checkbutton.value = (score_name in enabled_scores)
+
+    def _suffix_changed(self):
+        self._create_score_checkbuttons()
+        self._update_score_checkmarks()
+
+    def _name_chosen(self):
+        ranges_name = self._name_menu.value
+        if ranges_name == 'new':
+            self._clear_range_rows()
+            self._range_chosen()
+        else:
+            named_ranges = _named_score_ranges(self.session)
+            if named_ranges and ranges_name in named_ranges.names():
+                self._show_named_ranges(ranges_name)
+
+    def _show_named_ranges(self, ranges_name):
+        self._clear_range_rows()
+        named_ranges = _named_score_ranges(self.session)
+        score_ranges = named_ranges.score_ranges(ranges_name)
+        for score_range in score_ranges:
+            self._add_score_range(score_range)
+        self._range_chosen()	# Set score checkbuttons
+        self._ranges_name.value = ranges_name
+
+    def _clear_range_rows(self):
+        for row in self._range_rows:
+            row.frame.deleteLater()
+        self._range_rows.clear()
+
+    def _score_chosen(self, score_name, enabled):
+        if enabled:
+            if self._find_range_row(score_name) is None:
+                mutation_set_name = self._mutation_set_menu.value
+                high = self._high_ranges.value
+                compare = ('>=' if high else '<=')
+                tlow,thigh = self._score_thresholds(score_name, mutation_set_name)
+                threshold = '%.3g' % (thigh if high else tlow)
+                score_range = ScoreRange(mutation_set_name, score_name, compare, threshold)
+                self._add_score_range(score_range)
+        else:
+            row = self._find_range_row(score_name)
+            if row:
+                row.frame.deleteLater()
+                self._range_rows.remove(row)
+
+    def _score_thresholds(self, score_name, mutation_set_name):
+        from .ms_data import mutation_scores
+        mset = mutation_scores(self.session, mutation_set_name)
+        score_values = mset.score_values(score_name)
+        mean, sdev = score_values.synonymous_mean_and_sdev()
+        if mean is None or sdev is None:
+            mean, sdev = 0,1
+        return mean-2*sdev, mean+2*sdev
+
+    def _add_score_range(self, score_range):
+        from chimerax.ui.widgets import EntriesRow
+        sr = EntriesRow(self._range_lines_frame,
+                        score_range.score_name,
+                        score_range.compare,
+                        '')
+        threshold = sr.values[0]
+        threshold.value = score_range.threshold
+        threshold.pixel_width = 50
+        self._range_rows.append(sr)
+
+    def _find_range_row(self, score_name):
+        compare = ('>=' if self._high_ranges.value else '<=')
+        for row in self._range_rows:
+            row_score_name, row_compare = [label.text() for label in row.labels[:2]]
+            if row_score_name == score_name and row_compare == compare:
+                return row
+        return None
+    
+    def _create_naming_controls(self, parent):
+        from chimerax.ui.widgets import EntriesRow
+        naming = EntriesRow(parent,
+                            ('Define name', self._name_ranges),
+                            '',
+                            ('Delete', self._delete_named_ranges))
+        self._ranges_name = fn = naming.values[0]
+        fn.pixel_width = 200
+        return naming.frame
+
+    def _name_ranges(self):
+        ranges_name = self._ranges_name.value.strip()
+        if not ranges_name:
+            from chimerax.core.errors import UserError
+            raise UserError('Enter a name for the score ranges then press the Define Name button')
+        score_ranges = self._score_ranges()
+        if len(score_ranges) == 0:
+            from chimerax.core.errors import UserError
+            raise UserError('No high or low score ranges specified')
+        named_ranges = _named_score_ranges(self.session, create=True)
+        named_ranges.add_name(ranges_name, score_ranges)
+        self._name_menu.value = ranges_name
+
+    def _score_ranges(self):
+        score_ranges = []
+        mutation_set_name = self._mutation_set_menu.value
+        for row in self._range_rows:
+            score_name, compare = [label.text() for label in row.labels[:2]]
+            threshold = row.values[0].value
+            sr = ScoreRange(mutation_set_name, score_name, compare, threshold)
+            score_ranges.append(sr)
+        return score_ranges
+        
+    def _delete_named_ranges(self):
+        named_ranges = _named_score_ranges(self.session)
+        if named_ranges is None:
+            return
+        ranges_name = self._ranges_name.value.strip()
+        if not ranges_name:
+            from chimerax.core.errors import UserError
+            raise UserError('Enter a ranges name and then press the Delete button')
+        if ranges_name not in named_ranges.names():
+            from chimerax.core.errors import UserError
+            raise UserError(f'There is no named ranges {ranges_name}')
+        named_ranges.delete_name(ranges_name)
+        
+    def _set_mutation_set_menu_visibility(self):
+        from .ms_data import mutation_scores_names
+        visible = (len(mutation_scores_names(self.session)) > 1)
+        self._mutation_set_menu.widget.setVisible(visible)
+        self._mutation_set_menu_label.setVisible(visible)
+    
+    def _menu_about_to_show(self, menu):
+        menu.clear()
+        if menu is self._mutation_set_menu.widget.menu():
+            from .ms_data import mutation_scores_names
+            for ms_name in mutation_scores_names(self.session):
+                menu.addAction(ms_name)
+        else:
+            menu.addAction('new')
+            named_ranges = _named_score_ranges(self.session)
+            if named_ranges:
+                for ranges_name in named_ranges.names():
+                    menu.addAction(ranges_name)
+            
+    def _score_names(self):
+        from .ms_data import mutation_scores
+        ms_name = self._mutation_set_menu.value
+        mset = mutation_scores(self.session, ms_name)
+        score_names = mset.score_names()
+        suffix = self._score_name_suffix.value
+        score_names = [score_name for score_name in score_names if score_name.endswith(suffix)]
+        return score_names
+
+from chimerax.core.state import StateManager  # Handles session saving
+
+class NamedScoreRanges(StateManager):
+    def __init__(self):
+        self._named_ranges = {}		# ranges name -> list of ScoreRange
+    def names(self):
+        return tuple(self._named_ranges.keys())
+    def add_name(self, ranges_name, score_ranges):
+        self._named_ranges[ranges_name] = score_ranges
+    def delete_name(self, ranges_name):
+        if ranges_name in self._named_ranges:
+            del self._named_ranges[ranges_name]
+    def score_ranges(self, ranges_name):
+        return self._named_ranges.get(ranges_name, [])
+
+    # ---------------------------------------------------------------------------
+    # Session save and restore.
+    #
+    def take_snapshot(self, session, flags):
+        data = {'named_ranges': self._named_ranges}
+        return data
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        nsr = _named_score_ranges(session, create=True)
+        nsr._named_ranges = data['named_ranges']
+        return nsr
+    def reset_state(self, session):
+        self._named_ranges.clear()
+
+def _named_score_ranges(session, create = False):
+    msr = getattr(session, 'mutation_score_ranges', None)
+    if msr is None and create:
+        session.mutation_score_ranges = msr = NamedScoreRanges()
+    return msr
+
+from chimerax.core.state import State  # Handles session saving
+
+class ScoreRange(State):
+    def __init__(self, mutation_set_name, score_name, compare, threshold):
+        self.mutation_set_name = mutation_set_name
+        self.score_name = score_name
+        self.compare = compare		# '>=' or '<='
+        self.threshold = threshold	# String '2.0'
+
+    # ---------------------------------------------------------------------------
+    # Session save and restore.
+    #
+    save_attr_names = ('mutation_set_name', 'score_name', 'compare', 'threshold')
+    def take_snapshot(self, session, flags):
+        data = {attr:getattr(self, attr) for attr in self.save_attr_names}
+        return data
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        return ScoreRange(**data)
+
+def show_name_score_ranges_gui(session):
+    nsr = NameScoreRanges.get_singleton(session, create=True)
+    nsr.display(True)
+    return nsr
+    
 from chimerax.core.state import StateManager  # Handles session saving
 
 class MutationColorHistory(StateManager):

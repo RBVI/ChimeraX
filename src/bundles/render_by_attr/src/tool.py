@@ -462,7 +462,6 @@ class RenderByAttrTool(ToolInstance):
                 markers.pop()
             coord_type = markers.coord_type
             markers.coord_type = "absolute"
-            min_val = max_val = None
             for info in level_info:
                 if rendering:
                     if render_type == self.RENDER_COLORS:
@@ -474,24 +473,9 @@ class RenderByAttrTool(ToolInstance):
                 else:
                     level = info
                     arg = ((level, 0.0), None)
-                if min_val is None or level < min_val:
-                    min_val = level
-                elif max_val is None or level > max_val:
-                    max_val = level
                 marker = markers.append(arg)
                 if rendering and render_type != self.RENDER_COLORS:
                     marker.radius = radius
-            histogram = self.render_histogram if rendering else self.select_histogram
-            cur_min, cur_max, data = histogram.data_source
-            set_data = False
-            if min_val < cur_min:
-                cur_min = min_val
-                set_data = True
-            if max_val > cur_max:
-                cur_max = max_val
-                set_data = True
-            if set_data:
-                histogram.data_source = (cur_min, cur_max, data)
             markers.coord_type = coord_type
 
     @property

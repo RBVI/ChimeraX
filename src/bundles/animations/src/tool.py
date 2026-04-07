@@ -14,7 +14,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.ui.open_save import SaveDialog
 
 from chimerax.animations.triggers import (add_handler, KF_EDIT, PREVIEW, PLAY, KF_ADD, KF_DELETE, RECORD, STOP_PLAYING, INSERT_TIME, REMOVE_TIME, remove_handler, STOP_RECORDING)
-from chimerax.animations.kf_editor_two import KeyframeEditorWidget
+from chimerax.animations.editor_widget import KeyframeEditorWidget
 
 
 class AnimationsTool(ToolInstance):
@@ -81,7 +81,7 @@ class AnimationsTool(ToolInstance):
 
         main_vbox_layout = QVBoxLayout()
 
-        # Use the enhanced KeyframeEditorWidget that includes dual-mode support
+        # Use the dual-mode editor that switches between keyframe and scene timelines
         self.kf_editor_widget = KeyframeEditorWidget(self.session)
 
         # Hide mode toggle buttons to reclaim vertical space
@@ -186,7 +186,8 @@ class AnimationsTool(ToolInstance):
             settings = get_settings(self.session)
             settings.triggers.remove_handler('setting changed', self._on_setting_changed)
 
-        # Note: KeyframeEditorWidget cleanup is handled automatically by Qt
+        if hasattr(self.kf_editor_widget, 'cleanup'):
+            self.kf_editor_widget.cleanup()
 
         super().delete()
 

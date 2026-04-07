@@ -93,29 +93,39 @@ def diamond_geometry(size=1.0):
     """
     Generate a diamond (octahedron) centered at origin.
 
-    An octahedron has 6 vertices and 8 triangular faces.
+    Uses per-face vertices (3 per face, 8 faces = 24 vertices) so that
+    vertex normals are flat per face rather than smoothed across edges.
     Returns (vertices, triangles) as numpy arrays.
     """
     s = size / 2
+    top    = [ 0,  s,  0]
+    bottom = [ 0, -s,  0]
+    right  = [ s,  0,  0]
+    left   = [-s,  0,  0]
+    front  = [ 0,  0,  s]
+    back   = [ 0,  0, -s]
+
+    # 8 triangular faces with duplicated vertices for flat shading normals
     vertices = np.array([
-        [ 0,  s,  0],  # Top
-        [ 0, -s,  0],  # Bottom
-        [ s,  0,  0],  # Right
-        [-s,  0,  0],  # Left
-        [ 0,  0,  s],  # Front
-        [ 0,  0, -s],  # Back
+        top, front, right,    # Top-front-right
+        top, right, back,     # Top-right-back
+        top, back,  left,     # Top-back-left
+        top, left,  front,    # Top-left-front
+        bottom, right, front, # Bottom-right-front
+        bottom, back,  right, # Bottom-back-right
+        bottom, left,  back,  # Bottom-left-back
+        bottom, front, left,  # Bottom-front-left
     ], dtype=np.float32)
 
-    # 8 triangular faces
     triangles = np.array([
-        [0, 4, 2],  # Top-front-right
-        [0, 2, 5],  # Top-right-back
-        [0, 5, 3],  # Top-back-left
-        [0, 3, 4],  # Top-left-front
-        [1, 2, 4],  # Bottom-right-front
-        [1, 5, 2],  # Bottom-back-right
-        [1, 3, 5],  # Bottom-left-back
-        [1, 4, 3],  # Bottom-front-left
+        [0,  1,  2],
+        [3,  4,  5],
+        [6,  7,  8],
+        [9,  10, 11],
+        [12, 13, 14],
+        [15, 16, 17],
+        [18, 19, 20],
+        [21, 22, 23],
     ], dtype=np.int32)
 
     return vertices, triangles
@@ -125,37 +135,33 @@ def cone_geometry(radius=1.0, height=1.0, divisions=24):
     """
     Generate a cone with apex at top, base at bottom, centered at origin.
 
+    Uses per-face vertices so that the apex and base center are duplicated
+    per triangle, giving correct normals on the side faces and a flat base.
     Returns (vertices, triangles) as numpy arrays.
     """
-    # Apex vertex
-    apex = np.array([[0, height/2, 0]], dtype=np.float32)
+    apex = np.array([0, height/2, 0], dtype=np.float32)
+    base_center = np.array([0, -height/2, 0], dtype=np.float32)
 
-    # Base center vertex
-    base_center = np.array([[0, -height/2, 0]], dtype=np.float32)
-
-    # Base circle vertices
     angles = np.linspace(0, 2*pi, divisions, endpoint=False)
     base_circle = np.zeros((divisions, 3), dtype=np.float32)
     base_circle[:, 0] = radius * np.cos(angles)
     base_circle[:, 2] = radius * np.sin(angles)
     base_circle[:, 1] = -height/2
 
-    # Combine vertices: apex (0), base_center (1), base_circle (2 to divisions+1)
-    vertices = np.vstack([apex, base_center, base_circle])
-
-    # Side triangles (apex to base circle)
-    side_tris = []
+    # Side faces: each gets its own apex and two base vertices
+    side_verts = []
     for i in range(divisions):
         next_i = (i + 1) % divisions
-        side_tris.append([0, i + 2, next_i + 2])
+        side_verts.extend([apex, base_circle[i], base_circle[next_i]])
 
-    # Base triangles (base_center to base circle)
-    base_tris = []
+    # Base faces: each gets its own base center and two rim vertices
+    base_verts = []
     for i in range(divisions):
         next_i = (i + 1) % divisions
-        base_tris.append([1, next_i + 2, i + 2])
+        base_verts.extend([base_center, base_circle[next_i], base_circle[i]])
 
-    triangles = np.array(side_tris + base_tris, dtype=np.int32)
+    vertices = np.array(side_verts + base_verts, dtype=np.float32)
+    triangles = np.arange(len(vertices), dtype=np.int32).reshape(-1, 3)
 
     return vertices, triangles
 

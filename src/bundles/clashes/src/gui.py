@@ -256,6 +256,20 @@ class AtomProximityGUI(QWidget):
                         attr_name="ignore_hidden_models", settings=settings)
                     bool_param_options.add_option(self.ignore_hidden_option)
 
+        if show_checking_frequency:
+            group_layout = QHBoxLayout()
+            layout.addLayout(group_layout)
+            group_layout.setContentsMargins(2,0,2,0)
+            group_layout.setSpacing(5)
+            group_layout.addStretch(1)
+            group_layout.addWidget(QLabel("Calculate:"))
+            self.ok_radio = QRadioButton("when OK%s clicked" % ("/Apply" if has_apply_button else ""))
+            self.ok_radio.setChecked(True)
+            group_layout.addWidget(self.ok_radio)
+            self.ok_radio.toggled.connect(self._checking_change)
+            group_layout.addWidget(QRadioButton("continuously (until tool closed)"))
+            group_layout.addStretch(1)
+
         if show_select or show_make_pseudobonds or show_color or show_dashes or show_radius \
         or show_show_dist or show_name or show_reveal or show_attr_name or show_set_attrs or show_log \
         or show_save_file:
@@ -265,10 +279,11 @@ class AtomProximityGUI(QWidget):
             group_layout.setContentsMargins(0,0,0,0)
             group_layout.setSpacing(5)
             group.setLayout(group_layout)
-            treatment_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(10,0,10,0))
+            treatment_options = OptionsPanel(sorting=False, scrolled=False, contents_margins=(10,0,10,0),
+                columns=2)
             group_layout.addWidget(treatment_options)
             if show_select:
-                self.select_option = BooleanOption("Select atoms",
+                self.select_option = BooleanOption("Select",
                     None if settings else select, None, attr_name="select", settings=settings)
                 treatment_options.add_option(self.select_option)
             if show_make_pseudobonds:
@@ -276,7 +291,7 @@ class AtomProximityGUI(QWidget):
                     # checkable group
                     self.make_pseudobonds_widget, sub_options = treatment_options.add_option_group(
                         group_label="Display as pseudobonds", checked=final_val['make_pseudobonds'],
-                        contents_margins=(10,0,10,0), sorting=False)
+                        contents_margins=(10,0,10,0), sorting=False, columns=2)
                     subgroup_layout = QVBoxLayout()
                     subgroup_layout.setContentsMargins(0,0,0,0)
                     subgroup_layout.setSpacing(5)
@@ -329,13 +344,13 @@ class AtomProximityGUI(QWidget):
                     self.name_option = StringOption("Pseudobond group name", name, None)
                     sub_options.add_option(self.name_option)
             if show_reveal:
-                self.reveal_option = BooleanOption("Reveal atoms of interacting residues",
+                self.reveal_option = BooleanOption("Reveal residues",
                     None if settings else reveal, None, attr_name="reveal", settings=settings)
                 treatment_options.add_option(self.reveal_option)
             if show_set_attrs:
                 if show_attr_name:
                     combo_option = make_optional(StringOption)
-                    option = self.attr_name_option = combo_option("Assign atomic attribute named",
+                    option = self.attr_name_option = combo_option("Assign attribute named",
                         final_val['attr_name'], None)
                     if not final_val['set_attrs']:
                         # done this way so that attr name is not blank
@@ -370,23 +385,6 @@ class AtomProximityGUI(QWidget):
                 self.summary_option = BooleanOption("Log total number of %s" % prox_words,
                     None if settings else summary, None, attr_name="summary", settings=settings)
                 treatment_options.add_option(self.summary_option)
-
-        if show_checking_frequency:
-            group = QGroupBox("Frequency of checking" if show_section_titles else "")
-            layout.addWidget(group)
-            group_layout = QGridLayout()
-            group_layout.setContentsMargins(0,0,0,0)
-            group_layout.setSpacing(5)
-            group_layout.setColumnStretch(0, 1)
-            group_layout.setColumnStretch(3, 1)
-            group.setLayout(group_layout)
-            group_layout.addWidget(QLabel("Check..."), 0, 1, 2, 1, alignment=Qt.AlignRight|Qt.AlignVCenter)
-            self.ok_radio = QRadioButton("when OK%s clicked" % ("/Apply" if has_apply_button else ""))
-            self.ok_radio.setChecked(True)
-            group_layout.addWidget(self.ok_radio, 0, 2, alignment=Qt.AlignLeft)
-            self.ok_radio.toggled.connect(self._checking_change)
-            group_layout.addWidget(QRadioButton("continuously (until dialog closed)"), 1, 2,
-                alignment=Qt.AlignLeft)
 
     def destroy(self):
         if self.show_values['checking_frequency'] and not self.ok_radio.isChecked():

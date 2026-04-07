@@ -1172,7 +1172,7 @@ class RegionManager:
         sv = self.seq_canvas.sv
         sel_fill = sv.settings.sel_region_interior
         sel_outline = sv.settings.sel_region_border
-        if is_dark_mode():
+        if sv.session.ui.dark_mode():
             sel_fill = darken(sel_fill)
             sel_outline = darken(sel_outline)
         sel_region = self.get_region("ChimeraX selection", create=True, read_only=True,
@@ -1180,7 +1180,7 @@ class RegionManager:
         sel_region.clear()
 
         from chimerax.atomic import selected_residues
-        sel_residues = set(selected_residues(self.seq_canvas.sv.session))
+        sel_residues = set(selected_residues(sv.session))
         blocks = []
         alignment = self.seq_canvas.alignment
         for aseq in alignment.seqs:
@@ -1266,7 +1266,7 @@ class RegionManager:
 
     def show_ss(self, show):
         """show actual secondary structure"""
-        prefix = "dark" if is_dark_mode() else "light"
+        prefix = "dark" if self.seq_canvas.sv.session.ui.dark_mode() else "light"
         from chimerax.atomic import Sequence
         helix_reg = self.get_region(self.ACTUAL_HELICES_REG_NAME, create=show,
                 fill=getattr(Sequence, prefix + "_mode_helix_fill"),
@@ -1780,10 +1780,11 @@ class RegionManager:
         self._sel_change_from_self = False
 
     def _sel_change_cb(self, _, changes):
-        settings = self.seq_canvas.sv.settings
+        sv = self.seq_canvas.sv
+        settings = sv.settings
         sel_fill = settings.sel_region_interior
         sel_outline = settings.sel_region_border
-        if is_dark_mode():
+        if sv.session.ui.dark_mode():
             sel_fill = darken(sel_fill)
             sel_outline = darken(sel_outline)
         sel_region = self.get_region("ChimeraX selection", create=True, read_only=True,
@@ -2168,11 +2169,6 @@ def darken(color):
         return None
     from chimerax.core.colors import Color
     return [c*0.7 for c in Color(color).rgba]
-
-def is_dark_mode():
-    from chimerax.core.colors import ColorScheme, scheme_color
-    return scheme_color("Canvas", expand=True, scheme=ColorScheme.LIGHT) != scheme_color(
-        "Canvas", expand=True)
 
 def get_rgba(color_info):
     if isinstance(color_info, str):

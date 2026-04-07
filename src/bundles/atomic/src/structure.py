@@ -61,7 +61,7 @@ class Structure(Model, StructureData):
         'ribbon_tether_opacity', 'ribbon_tether_scale', 'worm_radii'])
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
-                 auto_style = True, log_info = True):
+                 auto_style = True, log_info = True, break_triangle_waters = True):
         from .molarray import Residues
         from numpy import array
         from .ribbon import XSectionManager
@@ -83,6 +83,7 @@ class Structure(Model, StructureData):
         Model.__init__(self, name, session)
         self._auto_style = auto_style
         self._log_info = log_info
+        self._break_triangle_waters = break_triangle_waters
 
         # for now, restore attrs to default initial values even for sessions...
         self._atoms_drawing = None
@@ -202,6 +203,8 @@ class Structure(Model, StructureData):
         # but that is only certain to be correct if this is the first time the structure
         # has been added to the session, so always set it. [#18427]
         self._cpp_notify_position(self.scene_position)
+        if self._break_triangle_waters:
+            self.break_triangle_waters()
         if self._auto_style:
             self.apply_auto_styling(set_lighting = self._is_only_model())
         self._start_change_tracking(session.change_tracker)
