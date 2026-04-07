@@ -30,7 +30,10 @@ class MutationScoresHeatmap(ToolInstance):
     help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
 
     def __init__(self, session, tool_name = 'Mutation Scores Heatmap'):
-        
+
+        self._score_pad = 1	# Number of blank pixels after each score group
+        self._highlighted_structure_residues = False        
+
         ToolInstance.__init__(self, session, tool_name)
 
         from chimerax.ui import MainToolWindow
@@ -60,6 +63,9 @@ class MutationScoresHeatmap(ToolInstance):
         layout.addWidget(info)
 
         self._set_heatmap_image()
+        self._make_residue_axis_labels()
+        self._make_amino_acid_axis_labels()
+        gs.setSceneRect(gs.itemsBoundingRect())
 
         tw.manage(placement=None)	# Start floating
 
@@ -71,7 +77,19 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _fill_context_menu(self, menu, x, y):
-        menu.addAction('Select residue', self._select_residue)
+        from Qt.QtCore import QPointF
+        gxy = self.tool_window.ui_area.mapToGlobal(QPointF(x,y))
+        gv_point = self._score_view.mapFromGlobal(gxy)
+        ix, iy = self._score_view.graphics_view_to_image_position(gv_point)
+        res_num, from_aa, to_aa, score_name, score_value = self._cell_info(ix, iy)
+        if res_num is not None and from_aa is not None:
+            menu.addAction(f'Select residue {from_aa}{res_num}',
+                           lambda res_num=res_num: self._select_residue(res_num))
+
+        if len(self._mutation_set.associate_chains(self.session)) > 0:
+            _add_menu_toggle(menu, 'Highlight structure residues', self._highlighted_structure_residues,
+                             self._highlight_structure_residues)
+
         menu.addAction('Save image', self._save_image)
     
     # ---------------------------------------------------------------------------
@@ -81,7 +99,25 @@ class MutationScoresHeatmap(ToolInstance):
         blue,white,red = (0,0,1,1), (1,1,1,1), (1,0,0,1)
         from chimerax.core.colors import Colormap
         colormap = Colormap((-2.0,-1.0,1.0,2.0), (blue, white, white, red))
-        self._score_view._make_image(score_matrix, colormap)
+        rgb = matrix_to_rgb(score_matrix, colormap)
+        self._heatmap_height = rgb.shape[0]
+
+        # Add divider lines
+        divider_line_color = (0,0,0)
+        row_step = self._num_scores + self._score_pad
+        for i in range(self._num_scores,rgb.shape[0]-row_step,row_step):
+            rgb[i:i+self._score_pad,:,:] = divider_line_color
+
+        if self._highlighted_structure_residues:
+            mset = self._mutation_set
+            if len(mset.associate_chains(self.session)) > 0:
+                res, rnums = mset.associated_residues(tuple(range(1, self._num_residues+1)))
+                struct_res_nums = set(rnums)
+                no_struct_res_nums = [r for r in range(1, self._num_residues+1) if not r in struct_res_nums]
+                for r in no_struct_res_nums:
+                    rgb[:,r-1,:] = _shade_gray(rgb[:,r-1,:])
+            
+        self._score_view._set_image(rgb)
 
     # ---------------------------------------------------------------------------
     #
@@ -104,7 +140,7 @@ class MutationScoresHeatmap(ToolInstance):
                 # TODO: This may not give maximum res number
                 self._num_residues = rmax = max(score_values.residue_numbers())
                 from numpy import zeros, float32
-                self._scores = scores = zeros((rmax, 20, score_count), float32)
+                self._scores = scores = zeros((rmax, 20, score_count + self._score_pad), float32)
             sscores = scores[:,:,snum]
             for res_num, from_aa, to_aa, value in score_values.all_values():
                 res_aa[res_num] = from_aa
@@ -114,27 +150,51 @@ class MutationScoresHeatmap(ToolInstance):
             sscores -= mean
             sscores /= sdev
 
-        scores_2d = scores.reshape((rmax, 20*score_count)).transpose()
+        scores_2d = scores.reshape((rmax, 20*(score_count+self._score_pad))).transpose()
         return scores_2d
 
     # ---------------------------------------------------------------------------
     #
     def _report_cell_info(self, column_index, row_index):
-        num_cols = self._num_residues
-        num_rows = 20 * self._num_scores
-        if column_index < 0 or row_index < 0 or column_index >= num_cols or row_index >= num_rows or column_index+1 not in self._res_aa:
+        res_num, from_aa, to_aa, score_name, score_value = self._cell_info(column_index, row_index)
+        if score_name is None:
             msg = ''
         else:
-            res_num = column_index + 1
-            from_aa = self._res_aa[res_num]
-            score_num = row_index % self._num_scores
-            score_name = self._score_names[score_num]
-            aa_index = row_index // self._num_scores
-            to_aa = self._amino_acids[aa_index]
-            score_value = self._scores[res_num-1, aa_index, score_num]
             msg = f'{from_aa}{res_num}{to_aa} {score_name} {"%.2f"%score_value}'
         self._info_label.setText(msg)
 
+    # ---------------------------------------------------------------------------
+    #
+    def _cell_info(self, column_index, row_index):
+        c, r = int(round(column_index)), int(round(row_index))
+        res_num = from_aa = to_aa = score_name = score_value = None
+        num_cols = self._num_residues
+        num_rows = 20 * (self._num_scores + self._score_pad)
+        if c >= 0 and c < num_cols and r >= 0 and r < num_rows and c+1 in self._res_aa:
+            res_num = c + 1
+            from_aa = self._res_aa[res_num]
+            score_num = r % (self._num_scores + self._score_pad)
+            if score_num < self._num_scores:
+                score_name = self._score_names[score_num]
+                aa_index = r // (self._num_scores + self._score_pad)
+                to_aa = self._amino_acids[aa_index]
+                score_value = self._scores[res_num-1, aa_index, score_num]
+        return res_num, from_aa, to_aa, score_name, score_value
+
+    # ---------------------------------------------------------------------------
+    #
+    def _select_residue(self, res_num):
+        mset = self._mutation_set
+        mset.associate_chains(self.session)
+        res,rnums = mset.associated_residues([res_num])
+        if len(res) == 0:
+            self.session.logger.info(f'No associated structure residues for residue number {res_num}')
+        else:
+            from chimerax.core.commands import run
+            from chimerax.atomic import concise_residue_spec
+            spec = concise_residue_spec(self.session, res)
+            run(self.session, f'select {spec}')
+        
     # ---------------------------------------------------------------------------
     #
     def _save_image(self, default_suffix = '_heatmap.png'):
@@ -149,13 +209,59 @@ class MutationScoresHeatmap(ToolInstance):
                                                    suggested_path)
         if path:
             self._score_view.save_image(path)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _make_residue_axis_labels(self):
+        res_step = 100
+        for r in (1,) + tuple(range(res_step, self._num_residues+1, res_step)):
+            text = str(r)
+            t = self._scene.addText(text)
+            rect = t.boundingRect()
+            x = r - rect.width()/2
+            y = self._heatmap_height
+            t.setPos(x, y)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _make_amino_acid_axis_labels(self):
+
+        aa_step = self._num_scores + self._score_pad
+        for i, aa in enumerate(self._amino_acids):
+            t = self._scene.addText(aa)
+            rect = t.boundingRect()
+            x = -rect.width()
+            y = (i+.5) * aa_step - rect.height()/2
+            t.setPos(x, y)
         
+    # ---------------------------------------------------------------------------
+    #
+    def _highlight_structure_residues(self, highlight):
+        self._highlighted_structure_residues = highlight
+        self._set_heatmap_image()
+
     # ---------------------------------------------------------------------------
     #
     def _show_help(self):
         from chimerax.core.commands import run
         run(self.session, 'help %s' % self.help)
+        
+# ---------------------------------------------------------------------------
+#
+def _add_menu_toggle(menu, text, checked, callback):
+    from Qt.QtGui import QAction
+    a = QAction(text, menu)
+    a.setCheckable(True)
+    a.setChecked(checked)
+    a.triggered.connect(callback)
+    menu.addAction(a)
 
+# ---------------------------------------------------------------------------
+#
+def _shade_gray(rgb_array, gray = (100,100,100)):
+    from numpy import clip, int32
+    return clip(rgb_array.astype(int32) - gray, 0, 255).astype(rgb_array.dtype)
+    
 # ---------------------------------------------------------------------------
 #
 from Qt.QtWidgets import QGraphicsView
@@ -176,24 +282,37 @@ class ScoreView(QGraphicsView):
         return QSize(500,500)
 
     def mouseMoveEvent(self, event):
-        if self._report_cell_info_callback:
-            x,y = self._scene_position(event)
-            self._report_cell_info_callback(int(x),int(y))
+        if self._report_cell_info_callback is None:
+            return
+        # This gives event handler is for QAbstractScrollArea and the event is in viewport() coordinates.
+        # We need the event in QGraphicsView coordinates which differ by 1 pixel in x,y.
+        gv_point = self.mapFromGlobal(event.globalPosition())  # Map from viewport to graphics view.
+        x,y = self._image_position(gv_point)
+        self._report_cell_info_callback(x,y)
 
-    def _scene_position(self, event):
-        p = self.mapToScene(event.pos())
-        return p.x(), p.y()
+    def _image_position(self, gv_point):
+        # QGrahicsView.mapToScene() takes integer QPoint, not float QPointF.
+        #   p = self.mapToScene(gv_point)
+        # So use the viewportTransform() to use floating point coordinates.
+        v2s, invertible = self.viewportTransform().inverted()
+        p = v2s.map(gv_point)	# Map float view position to scene
+        ip = self._pixmap_item.mapFromScene(p)
+        return ip.x(), ip.y()
 
-    def _make_image(self, matrix, colormap):
+    def graphics_view_to_image_position(self, gv_point):
+        sp = self.mapToScene(gv_point.x(), gv_point.y()) # QGraphicsView to QGraphicsScene
+        ip = self._pixmap_item.mapFromScene(sp) # QGraphicsScene to pixmap item
+        return ip.x(), ip.y()
+
+    def _set_image(self, rgb):
         scene = self.scene()
         pi = self._pixmap_item
         if pi is not None:
             scene.removeItem(pi)
 
-        rgb = matrix_to_rgb(matrix, colormap)
         pixmap = rgb_to_pixmap(rgb)
         self._pixmap_item = scene.addPixmap(pixmap)
-        scene.setSceneRect(0, 0, pixmap.width(), pixmap.height())
+        w, h = pixmap.width(), pixmap.height()
 
     def save_image(self, path):
         pixmap = self.grab()
