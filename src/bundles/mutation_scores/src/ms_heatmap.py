@@ -45,29 +45,52 @@ class MutationScoresHeatmap(ToolInstance):
         from chimerax.ui.widgets import vertical_layout
         layout = vertical_layout(parent, margins = (5,0,0,0))
 
-        self._score_view = gv = ScoreView(parent, self._report_cell_info)
-        from Qt.QtWidgets import QSizePolicy
-        from Qt.QtCore import Qt
-#        gv.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-#        gv.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-#        gv.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        layout.addWidget(gv, stretch=1)
+        # Make heatmap widget
+        self._score_view = sv = self._create_graphics_pane(parent)
+        layout.addWidget(sv, stretch=1)
 
-        from Qt.QtWidgets import QGraphicsScene
-        self._scene = gs = QGraphicsScene(gv)
-        gs.setSceneRect(0, 0, 500, 500)
-        gv.setScene(gs)
+        # Buttons, e.g. Options, Help
+        bf = self._create_action_buttons(parent)
+        layout.addWidget(bf)
 
+        # Status line that shows mutation mouse hovers over.
         from Qt.QtWidgets import QLabel
         self._info_label = info = QLabel(parent)
-        layout.addWidget(info)
+        bf.layout().insertWidget(2, self._info_label)
 
+        # Options panel
+        options = self._create_options_gui(parent)
+        layout.addWidget(options)
+
+        # Draw the heatmap and axis labels
+        self._draw_graphics()
+
+        tw.manage(placement=None)	# Start floating
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _create_graphics_pane(self, parent):
+        gv = ScoreView(parent, self._report_cell_info)
+        return gv
+    
+    # ---------------------------------------------------------------------------
+    #
+    def _create_action_buttons(self, parent):
+        from chimerax.ui.widgets import button_row
+        f = button_row(parent,
+                       [('Options', self._show_or_hide_options),
+                        ('Help', self._show_help)],
+                       spacing = 10)
+        return f
+
+    # ---------------------------------------------------------------------------
+    #
+    def _draw_graphics(self):
         self._set_heatmap_image()
         self._make_residue_axis_labels()
         self._make_amino_acid_axis_labels()
-        gs.setSceneRect(gs.itemsBoundingRect())
-
-        tw.manage(placement=None)	# Start floating
+        scene = self._score_view.scene
+        scene.setSceneRect(scene.itemsBoundingRect())
 
     # ---------------------------------------------------------------------------
     #
@@ -77,16 +100,18 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _fill_context_menu(self, menu, x, y):
-        from Qt.QtCore import QPointF
-        gxy = self.tool_window.ui_area.mapToGlobal(QPointF(x,y))
-        gv_point = self._score_view.mapFromGlobal(gxy)
-        ix, iy = self._score_view.graphics_view_to_image_position(gv_point)
-        res_num, from_aa, to_aa, score_name, score_value = self._cell_info(ix, iy)
-        if res_num is not None and from_aa is not None:
-            menu.addAction(f'Select residue {from_aa}{res_num}',
-                           lambda res_num=res_num: self._select_residue(res_num))
 
-        if len(self._mutation_set.associate_chains(self.session)) > 0:
+        have_structure = (len(self._mutation_set.associate_chains(self.session)) > 0)
+        if have_structure:
+            from Qt.QtCore import QPointF
+            gxy = self.tool_window.ui_area.mapToGlobal(QPointF(x,y))
+            gv_point = self._score_view.mapFromGlobal(gxy)
+            ix, iy = self._score_view.graphics_view_to_image_position(gv_point)
+            res_num, from_aa, to_aa, score_name, score_value = self._cell_info(ix, iy)
+            if res_num is not None and from_aa is not None:
+                menu.addAction(f'Select residue {from_aa}{res_num}',
+                               lambda res_num=res_num: self._select_residue(res_num))
+
             _add_menu_toggle(menu, 'Highlight structure residues', self._highlighted_structure_residues,
                              self._highlight_structure_residues)
 
@@ -96,9 +121,7 @@ class MutationScoresHeatmap(ToolInstance):
     #
     def _set_heatmap_image(self):
         score_matrix = self._score_matrix()
-        blue,white,red = (0,0,1,1), (1,1,1,1), (1,0,0,1)
-        from chimerax.core.colors import Colormap
-        colormap = Colormap((-2.0,-1.0,1.0,2.0), (blue, white, white, red))
+        colormap = self._colormap()
         rgb = matrix_to_rgb(score_matrix, colormap)
         self._heatmap_height = rgb.shape[0]
 
@@ -146,9 +169,10 @@ class MutationScoresHeatmap(ToolInstance):
                 res_aa[res_num] = from_aa
                 aa_index = aa_to_index[to_aa]
                 sscores[res_num-1, aa_index] = value
-            mean, sdev = score_values.synonymous_mean_and_sdev()
-            sscores -= mean
-            sscores /= sdev
+            if self._normalize.enabled:
+                mean, sdev = score_values.synonymous_mean_and_sdev()
+                sscores -= mean
+                sscores /= sdev
 
         scores_2d = scores.reshape((rmax, 20*(score_count+self._score_pad))).transpose()
         return scores_2d
@@ -216,7 +240,7 @@ class MutationScoresHeatmap(ToolInstance):
         res_step = 100
         for r in (1,) + tuple(range(res_step, self._num_residues+1, res_step)):
             text = str(r)
-            t = self._scene.addText(text)
+            t = self._score_view.scene.addText(text)
             rect = t.boundingRect()
             x = r - rect.width()/2
             y = self._heatmap_height
@@ -228,7 +252,7 @@ class MutationScoresHeatmap(ToolInstance):
 
         aa_step = self._num_scores + self._score_pad
         for i, aa in enumerate(self._amino_acids):
-            t = self._scene.addText(aa)
+            t = self._score_view.scene.addText(aa)
             rect = t.boundingRect()
             x = -rect.width()
             y = (i+.5) * aa_step - rect.height()/2
@@ -239,6 +263,94 @@ class MutationScoresHeatmap(ToolInstance):
     def _highlight_structure_residues(self, highlight):
         self._highlighted_structure_residues = highlight
         self._set_heatmap_image()
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _create_options_gui(self, parent):
+        from chimerax.ui.widgets import CollapsiblePanel
+        self._options_panel = p = CollapsiblePanel(parent, title = None)
+        f = p.content_area
+
+        from chimerax.ui.widgets import EntriesRow, ColorButton
+
+        # Colormap
+        self._colormaps = {'normalized':[(-2.0,-1.0,1.0,2.0), ('blue','white','white','red')]}
+        cm = EntriesRow(f, 'Colormap', -2.0, ColorButton, -1.0, ColorButton, 1.0, ColorButton, 2.0,
+                        ('Set', self._change_colormap))
+        v1,c1,v2,c2,v3,c3,v4 = cm.values
+        c1.color, c2.color, c3.color = 'blue', 'white', 'red'
+        self._colormap_values = (v1,v2,v3,v4)
+        self._colormap_colors = (c1,c2,c2,c3)
+        for cv in (v1,v2,v3,v4):
+            cv.format = '%.2g'
+            cv.return_pressed.connect(self._change_colormap)
+        for cc in (c1,c2,c3):
+            cc.color_changed.connect(self._change_colormap)
+
+        # Normalize scores
+        ns = EntriesRow(f, True, 'Normalize scores to synonymous mean 0, standard deviation 1')
+        self._normalize = nv = ns.values[0]
+        nv.changed.connect(self._normalize_changed)
+        
+        return p
+
+    # ---------------------------------------------------------------------------
+    #
+    def _change_colormap(self):
+        self._set_heatmap_image()
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _colormap(self):
+        values = [cv.value for cv in self._colormap_values]
+        from chimerax.core.colors import rgba8_to_rgba, Colormap
+        colors = [rgba8_to_rgba(cc.color) for cc in self._colormap_colors]
+        colormap = Colormap(values, colors)
+        cmap_name = 'normalized' if self._normalize.enabled else 'unnormalized'
+        self._colormaps[cmap_name] = [values, colors]
+        return colormap
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _set_other_colormap(self):
+        normalized = self._normalize.enabled
+        if 'unnormalized' not in self._colormaps:
+            self._colormaps['unnormalized'] = self._default_unnormalized_colormap()
+        values, colors = self._colormaps['normalized' if normalized else 'unnormalized']
+        for cv, v in zip(self._colormap_values, values):
+            cv.value = v
+        for cc, c in zip(self._colormap_colors, colors):
+            cc.color = c
+
+    # ---------------------------------------------------------------------------
+    #
+    def _default_unnormalized_colormap(self):
+        mean, sd = self._all_score_mean_and_sdev()
+        return [(mean-2*sd, mean-sd, mean+sd, mean+2*sd),
+                ('blue', 'white', 'white', 'red')]
+
+    # ---------------------------------------------------------------------------
+    #
+    def _all_score_mean_and_sdev(self):
+        values = []
+        mset = self._mutation_set
+        for score_name in self._score_names:
+            score_values = mset.score_values(score_name)
+            for res_num, from_aa, to_aa, value in score_values.all_values():
+                values.append(value)
+        from numpy import mean, std
+        return mean(values), std(values)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _normalize_changed(self):
+        self._set_other_colormap()
+        self._set_heatmap_image()
+
+    # ---------------------------------------------------------------------------
+    #
+    def _show_or_hide_options(self):
+        self._options_panel.toggle_panel_display()
 
     # ---------------------------------------------------------------------------
     #
@@ -271,15 +383,20 @@ class ScoreView(QGraphicsView):
         self._report_cell_info_callback = report_cell_info_cb
         self._pixmap_item = None
 
+        from Qt.QtWidgets import QGraphicsScene
+        self.scene = gs = QGraphicsScene(self)
+        self.setScene(gs)
+
         # Report cell info as mouse hovers over plot.
         self.setMouseTracking(True)
 
         # Zoom in
-        self.scale(2,2)
+#        self.scale(2,2)
 
     def sizeHint(self):
-        from Qt.QtCore import QSize
-        return QSize(500,500)
+        rect = self.scene.itemsBoundingRect()
+        size = rect.size().toSize()
+        return size
 
     def mouseMoveEvent(self, event):
         if self._report_cell_info_callback is None:
@@ -305,7 +422,7 @@ class ScoreView(QGraphicsView):
         return ip.x(), ip.y()
 
     def _set_image(self, rgb):
-        scene = self.scene()
+        scene = self.scene
         pi = self._pixmap_item
         if pi is not None:
             scene.removeItem(pi)
