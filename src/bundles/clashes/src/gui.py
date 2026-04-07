@@ -267,7 +267,7 @@ class AtomProximityGUI(QWidget):
             self.ok_radio.setChecked(True)
             group_layout.addWidget(self.ok_radio)
             self.ok_radio.toggled.connect(self._checking_change)
-            group_layout.addWidget(QRadioButton("continuously (until dialog closed)"))
+            group_layout.addWidget(QRadioButton("continuously (until tool closed)"))
             group_layout.addStretch(1)
 
         if show_select or show_make_pseudobonds or show_color or show_dashes or show_radius \
