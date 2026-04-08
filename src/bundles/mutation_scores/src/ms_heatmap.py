@@ -142,11 +142,21 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     @property
-    def _score_names(self):
+    def _score_names(self, exclude = ['position']):
         mset = self._mutation_set
-        score_names = mset.score_names()
-        # TODO: Allow choosing score names
-#        score_names = [score_name for score_name in score_names if score_name.endswith('_effect')]
+        score_names = [score_name for score_name in mset.score_names() if score_name not in exclude]
+        sf = self._score_name_filter.value
+        snames = sf.strip().split(',')
+        if snames:
+            matches = []
+            for sname in snames:
+                if sname.startswith('*'):
+                    suffix = sname[1:]
+                    matches.extend([score_name for score_name in score_names if score_name.endswith(suffix)])
+                elif sname in score_names:
+                    matches.append(sname)
+            if matches:
+                score_names = matches
         return score_names
 
     # ---------------------------------------------------------------------------
@@ -165,11 +175,11 @@ class MutationScoresHeatmap(ToolInstance):
         self._num_scores = score_count = len(self._score_names)
         aa_to_index = {aa:i for i, aa in enumerate(self._amino_acids)}
         self._res_aa = res_aa = {}
+        subtract_fit = self._subtract_fit
+        sub_score_values = mset.score_values(subtract_fit) if subtract_fit else None
         for snum, score_name in enumerate(self._score_names):
             score_values = mset.score_values(score_name)
-            sf_name = self._subtract_fit
-            if sf_name:
-                sub_score_values = mset.score_values(sf_name)
+            if sub_score_values:
                 score_values = score_values.subtract_fit(sub_score_values)
             if scores is None:
                 # TODO: This may not give maximum res number
@@ -278,7 +288,7 @@ class MutationScoresHeatmap(ToolInstance):
 
         # Which mutation set
         from chimerax.ui.widgets import EntriesRow, ColorButton
-        ms = EntriesRow(parent, 'Mutations', ('set1', 'set2'))
+        ms = EntriesRow(f, 'Mutations', ('set1', 'set2'))
         self._mutation_set_menu = msm = ms.values[0]
         from .ms_data import mutation_all_scores
         msets = mutation_all_scores(self.session)
@@ -288,19 +298,25 @@ class MutationScoresHeatmap(ToolInstance):
         menu.aboutToShow.connect(self._mutation_set_menu_about_to_show)
         menu.triggered.connect(self._draw_graphics)
 
+        # Which scores.  Comma-separated list.  *_effect includes all scores with suffix
+        sc = EntriesRow(f, 'Score names', '')
+        self._score_name_filter = scf = sc.values[0]
+        scf.pixel_width = 300
+        scf.return_pressed.connect(self._draw_graphics)
+        
         # Colormap
-        self._colormaps = {'normalized':[(-2.0,-1.0,1.0,2.0), ('blue','white','white','red')]}
+        self._colormaps = {}
         cm = EntriesRow(f, 'Colormap', -2.0, ColorButton, -1.0, ColorButton, 1.0, ColorButton, 2.0,
-                        ('Set', self._change_colormap))
+                        ('Default', self._set_default_colormap))
         v1,c1,v2,c2,v3,c3,v4 = cm.values
         c1.color, c2.color, c3.color = 'blue', 'white', 'red'
         self._colormap_values = (v1,v2,v3,v4)
         self._colormap_colors = (c1,c2,c2,c3)
         for cv in (v1,v2,v3,v4):
             cv.format = '%.2g'
-            cv.return_pressed.connect(self._change_colormap)
+            cv.return_pressed.connect(self._changed_colormap)
         for cc in (c1,c2,c3):
-            cc.color_changed.connect(self._change_colormap)
+            cc.color_changed.connect(self._changed_colormap)
 
         # Normalize scores
         ns = EntriesRow(f, True, 'Normalize scores to synonymous mean 0, standard deviation 1')
@@ -314,10 +330,10 @@ class MutationScoresHeatmap(ToolInstance):
         if score_names:
             surf_names = [score_name for score_name in score_names if 'surface' in score_name.lower()]
             sfs.value = surf_names[0] if surf_names else score_names[0]
-        sfe.changed.connect(self._set_heatmap_image)
+        sfe.changed.connect(self._subtract_fit_changed)
         menu = sfs.widget.menu()
         menu.aboutToShow.connect(self._subtract_fit_menu_about_to_show)
-        menu.triggered.connect(self._set_heatmap_image)
+        menu.triggered.connect(self._subtract_fit_changed)
 
         # Highlight mutations with associated structure residues
         hs = EntriesRow(f, True, 'Highlight structure residues')
@@ -346,7 +362,13 @@ class MutationScoresHeatmap(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _change_colormap(self):
+    def _changed_colormap(self):
+        self._set_heatmap_image()
+    
+    # ---------------------------------------------------------------------------
+    #
+    def _set_default_colormap(self):
+        self._switch_colormap(use_default = True)
         self._set_heatmap_image()
         
     # ---------------------------------------------------------------------------
@@ -356,17 +378,29 @@ class MutationScoresHeatmap(ToolInstance):
         from chimerax.core.colors import rgba8_to_rgba, Colormap
         colors = [rgba8_to_rgba(cc.color) for cc in self._colormap_colors]
         colormap = Colormap(values, colors)
-        cmap_name = 'normalized' if self._normalize.enabled else 'unnormalized'
-        self._colormaps[cmap_name] = [values, colors]
+        self._colormaps[self._colormap_name] = [values, colors]
         return colormap
-        
+    
     # ---------------------------------------------------------------------------
     #
-    def _set_other_colormap(self):
+    @property
+    def _colormap_name(self):
         normalized = self._normalize.enabled
-        if 'unnormalized' not in self._colormaps:
-            self._colormaps['unnormalized'] = self._default_unnormalized_colormap()
-        values, colors = self._colormaps['normalized' if normalized else 'unnormalized']
+        if normalized:
+            cmap_name = 'normalized'
+        elif self._subtract_fit is None:
+            cmap_name = 'unnormalized'
+        else:
+            cmap_name = 'unnormalized subtract fit'
+        return cmap_name
+    
+    # ---------------------------------------------------------------------------
+    #
+    def _switch_colormap(self, use_default = False):
+        cmap_name = self._colormap_name
+        if use_default or cmap_name not in self._colormaps:
+            self._colormaps[cmap_name] = self._default_colormap()
+        values, colors = self._colormaps[cmap_name]
         for cv, v in zip(self._colormap_values, values):
             cv.value = v
         for cc, c in zip(self._colormap_colors, colors):
@@ -374,18 +408,25 @@ class MutationScoresHeatmap(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _default_unnormalized_colormap(self):
-        mean, sd = self._all_score_mean_and_sdev()
-        return [(mean-2*sd, mean-sd, mean+sd, mean+2*sd),
-                ('blue', 'white', 'white', 'red')]
+    def _default_colormap(self):
+        if self._normalize.enabled:
+            cmap = [(-2,-1,1,2), ('blue', 'white', 'white', 'red')]
+        else:
+            mean, sd = self._all_score_mean_and_sdev()
+            return [(mean-2*sd, mean-sd, mean+sd, mean+2*sd),
+                    ('blue', 'white', 'white', 'red')]
 
     # ---------------------------------------------------------------------------
     #
     def _all_score_mean_and_sdev(self):
         values = []
         mset = self._mutation_set
+        subtract_fit = self._subtract_fit
+        sub_score_values = mset.score_values(subtract_fit) if subtract_fit else None
         for score_name in self._score_names:
             score_values = mset.score_values(score_name)
+            if sub_score_values:
+                score_values = score_values.subtract_fit(sub_score_values)
             for res_num, from_aa, to_aa, value in score_values.all_values():
                 values.append(value)
         from numpy import mean, std
@@ -394,7 +435,13 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _normalize_changed(self):
-        self._set_other_colormap()
+        self._switch_colormap()
+        self._set_heatmap_image()
+
+    # ---------------------------------------------------------------------------
+    #
+    def _subtract_fit_changed(self):
+        self._switch_colormap()
         self._set_heatmap_image()
 
     # ---------------------------------------------------------------------------
@@ -412,7 +459,7 @@ class MutationScoresHeatmap(ToolInstance):
         mset = self._mutation_set
         menu = self._subtract_score.widget.menu()
         for score_name in mset.score_names():
-            menu.addAction(score_name_name)
+            menu.addAction(score_name)
 
     # ---------------------------------------------------------------------------
     #
