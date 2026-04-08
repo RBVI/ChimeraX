@@ -471,8 +471,9 @@ class MutationScoresHeatmap(ToolInstance):
             cmap = [(-2,-1,1,2), ('blue', 'white', 'white', 'red')]
         else:
             mean, sd = self._all_score_mean_and_sdev()
-            return [(mean-2*sd, mean-sd, mean+sd, mean+2*sd),
+            cmap = [(mean-2*sd, mean-sd, mean+sd, mean+2*sd),
                     ('blue', 'white', 'white', 'red')]
+        return cmap
 
     # ---------------------------------------------------------------------------
     #
