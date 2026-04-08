@@ -32,9 +32,8 @@ class MutationScoresHeatmap(ToolInstance):
     def __init__(self, session, tool_name = 'Mutation Scores Heatmap'):
 
         self._score_pad = 1	# Number of blank pixels after each score group
-        self._color_residue_on_hover = False
-        self._residue_highlight_color = (255,255,0,255)
-        self._last_highlight_residues = None		# (Residues, colors)
+        self._last_hover_residues = None		# (Residues, res_colors, atom_colors)
+        self._last_dragbox_residues = []		# List of (Residues, res_colors, atom_colors)
         
         ToolInstance.__init__(self, session, tool_name)
 
@@ -72,7 +71,7 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _create_graphics_pane(self, parent):
-        gv = ScoreView(parent, self._report_cell_info)
+        gv = ScoreView(parent, self._report_cell_info, self._dragged_box)
         return gv
     
     # ---------------------------------------------------------------------------
@@ -88,11 +87,11 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _draw_graphics(self):
-        scene = self._score_view.scene
-        scene.clear()
+        self._score_view.clear_scene()
         self._set_heatmap_image()
         self._make_residue_axis_labels()
         self._make_amino_acid_axis_labels()
+        scene = self._score_view.scene
         scene.setSceneRect(scene.itemsBoundingRect())
 
     # ---------------------------------------------------------------------------
@@ -103,7 +102,6 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _fill_context_menu(self, menu, x, y):
-
         if self._have_structure:
             from Qt.QtCore import QPointF
             gxy = self.tool_window.ui_area.mapToGlobal(QPointF(x,y))
@@ -113,9 +111,6 @@ class MutationScoresHeatmap(ToolInstance):
             if res_num is not None and from_aa is not None:
                 menu.addAction(f'Select residue {from_aa}{res_num}',
                                lambda res_num=res_num: self._select_residue(res_num))
-
-            _add_menu_toggle(menu, 'Color structure residue while hovering',
-                             self._color_residue_on_hover, self._color_on_hover_changed)
 
         menu.addAction('Save image', self._save_image)
 
@@ -139,14 +134,15 @@ class MutationScoresHeatmap(ToolInstance):
         for i in range(self._num_scores,rgb.shape[0],row_step):
             rgb[i:i+self._score_pad,:,:] = divider_line_color
 
-        if self._highlight_structure_residues.enabled:
+        if self._gray_missing_structure_residues.enabled:
             mset = self._mutation_set
             if len(mset.associate_chains(self.session)) > 0:
                 res, rnums = mset.associated_residues(tuple(range(1, self._num_residues+1)))
                 struct_res_nums = set(rnums)
                 no_struct_res_nums = [r for r in range(1, self._num_residues+1) if not r in struct_res_nums]
+                gray_color = -self._grayout_color.color[:3] + 255
                 for r in no_struct_res_nums:
-                    rgb[:,r-1,:] = _shade_gray(rgb[:,r-1,:])
+                    rgb[:,r-1,:] = _shade_gray(rgb[:,r-1,:], gray_color)
 
         pixels_per_cell = self._pixels_per_cell.value
         self._score_view.set_image(rgb, pixels_per_cell)
@@ -223,12 +219,14 @@ class MutationScoresHeatmap(ToolInstance):
             msg = f'{from_aa}{res_num}{to_aa} {score_name} {"%.2f"%score_value}'
         self._info_label.setText(msg)
 
-        if res_num is not None and self._color_residue_on_hover and self._have_structure:
-            self._uncolor_highlight_residues()
+        if res_num is not None and self._color_residue_on_hover.enabled and self._have_structure:
+            self._uncolor_hover_residues()
             res, rnums = self._mutation_set.associated_residues([res_num])
             if len(res) > 0:
-                self._last_highlight_residues = (res, res.ribbon_colors)
-                res.ribbon_colors = self._residue_highlight_color
+                self._last_hover_residues = (res, res.ribbon_colors, res.atoms.colors)
+                color = self._hover_color.color
+                res.ribbon_colors = color
+                res.atoms.colors = color
             
     # ---------------------------------------------------------------------------
     #
@@ -249,6 +247,37 @@ class MutationScoresHeatmap(ToolInstance):
                 to_aa = self._amino_acids[aa_index]
                 score_value = self._scores[res_num-rmin, aa_index, score_num]
         return res_num, from_aa, to_aa, score_name, score_value
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _dragged_box(self, xy1, xy2, add = False):
+        if not self._drag_color_enabled.value:
+            return
+        if not self._have_structure:
+            return
+        x1,y1 = xy1
+        x2,y2 = xy2
+        rmin, rmax = max(self._rmin,int(min(x1,x2))), min(self._rmax, int(max(x1,x2)))
+        if rmax < rmin:
+            return
+        if not add:
+            self._uncolor_dragbox_residues()
+        res_nums = tuple(range(rmin, rmax+1))
+        mset = self._mutation_set
+        res, rnums = mset.associated_residues(res_nums)
+        if len(res) > 0:
+            self._last_dragbox_residues.append((res, res.ribbon_colors, res.atoms.colors))
+            color = self._dragbox_color.color
+            res.ribbon_colors = color
+            res.atoms.colors = color
+
+    # ---------------------------------------------------------------------------
+    #
+    def _uncolor_dragbox_residues(self):
+        for last_res, last_res_colors, last_atom_colors in self._last_dragbox_residues:
+            last_res.ribbon_colors = last_res_colors
+            last_res.atoms.colors = last_atom_colors
+        self._last_dragbox_residues.clear()
 
     # ---------------------------------------------------------------------------
     #
@@ -263,21 +292,6 @@ class MutationScoresHeatmap(ToolInstance):
             from chimerax.atomic import concise_residue_spec
             spec = concise_residue_spec(self.session, res)
             run(self.session, f'select {spec}')
-
-    # ---------------------------------------------------------------------------
-    #
-    def _color_on_hover_changed(self, enable):
-        self._color_residue_on_hover = enable
-        if not enable:
-            self._uncolor_highlight_residues()
-
-    # ---------------------------------------------------------------------------
-    #
-    def _uncolor_highlight_residues(self):
-        if self._last_highlight_residues:
-            last_res, last_colors = self._last_highlight_residues
-            last_res.ribbon_colors = last_colors
-            self._last_highlight_residues = None
 
     # ---------------------------------------------------------------------------
     #
@@ -394,11 +408,48 @@ class MutationScoresHeatmap(ToolInstance):
         menu.triggered.connect(self._subtract_fit_changed)
 
         # Highlight mutations with associated structure residues
-        hs = EntriesRow(f, True, 'Highlight structure residues')
-        self._highlight_structure_residues = hs = hs.values[0]
+        hs = EntriesRow(f, True, 'Gray missing structure residues', ColorButton)
+        self._gray_missing_structure_residues, self._grayout_color = hs,gc = hs.values
+        gc.color = (0.8,0.8,0.8,1.0)	# Gray
         hs.changed.connect(self._set_heatmap_image)
+        gc.color_changed.connect(self._set_heatmap_image)
 
+        # Color by dragging box
+        dc = EntriesRow(f, True, 'Drag box to color structure', ColorButton, 'linewidth', 3)
+        self._drag_color_enabled, self._dragbox_color, self._dragbox_linewidth = e,c,lw = dc.values
+        c.color = (1.0,1.0,0,1.0)	# Yellow
+        c.color_changed.connect(self._dragbox_color_changed)
+        lw.widget.editingFinished.connect(self._dragbox_linewidth_changed)
+
+        # Color residues while hovering.
+        hc = EntriesRow(f, False, 'Hover colors structure residue', ColorButton)
+        self._color_residue_on_hover, self._hover_color = e,c = hc.values
+        c.color = (1.0,1.0,0,1.0)	# Yellow
+        e.changed.connect(self._color_on_hover_changed)
+        
         return p
+
+    # ---------------------------------------------------------------------------
+    #
+    def _dragbox_color_changed(self):
+        self._score_view.dragbox_color = self._dragbox_color.color[:3]
+    def _dragbox_linewidth_changed(self):
+        self._score_view.dragbox_linewidth = self._dragbox_linewidth.value
+
+    # ---------------------------------------------------------------------------
+    #
+    def _color_on_hover_changed(self, enable):
+        if not enable:
+            self._uncolor_hover_residues()
+
+    # ---------------------------------------------------------------------------
+    #
+    def _uncolor_hover_residues(self):
+        if self._last_hover_residues:
+            last_res, last_res_colors, last_atom_colors = self._last_hover_residues
+            last_res.ribbon_colors = last_res_colors
+            last_res.atoms.colors = last_atom_colors
+            self._last_hover_residues = None
         
     # ---------------------------------------------------------------------------
     #
@@ -543,7 +594,7 @@ def _add_menu_toggle(menu, text, checked, callback):
 
 # ---------------------------------------------------------------------------
 #
-def _shade_gray(rgb_array, gray = (100,100,100)):
+def _shade_gray(rgb_array, gray):
     from numpy import clip, int32
     return clip(rgb_array.astype(int32) - gray, 0, 255).astype(rgb_array.dtype)
     
@@ -551,25 +602,40 @@ def _shade_gray(rgb_array, gray = (100,100,100)):
 #
 from Qt.QtWidgets import QGraphicsView
 class ScoreView(QGraphicsView):
-    def __init__(self, parent, report_cell_info_cb=None):
+    def __init__(self, parent, report_cell_info_cb=None, rectangle_select_cb=None):
         QGraphicsView.__init__(self, parent)
         self._report_cell_info_callback = report_cell_info_cb
         self._pixmap_item = None
+        self._mouse_down = False
+        self._shift_mod = False
+        self._drag_boxes = []
+        self._new_dragbox = False
+        self._down_xy = None
+        self._rectangle_select_callback = rectangle_select_cb
+        self.dragbox_color = (255,255,0)
+        self.dragbox_linewidth = 3
 
         from Qt.QtWidgets import QGraphicsScene
         self.scene = gs = QGraphicsScene(self)
         self.setScene(gs)
 
         # Report cell info as mouse hovers over plot.
-        self.setMouseTracking(True)
-
-        # Zoom in
-#        self.scale(2,2)
+        if report_cell_info_cb:
+            self.setMouseTracking(True)
 
     def sizeHint(self):
         rect = self.scene.itemsBoundingRect()
         size = rect.size().toSize()
         return size
+
+    def mousePressEvent(self, event):
+        from Qt.QtCore import Qt
+        self._shift_mod = shift = (event.modifiers() == Qt.KeyboardModifier.ShiftModifier)
+        self._mouse_down = True
+        self._down_xy = self._scene_position(event)
+        self._new_dragbox = True
+        if not shift:
+            self._clear_drag_boxes()
 
     def mouseMoveEvent(self, event):
         if self._report_cell_info_callback is None:
@@ -579,6 +645,49 @@ class ScoreView(QGraphicsView):
         gv_point = self.mapFromGlobal(event.globalPosition())  # Map from viewport to graphics view.
         x,y = self.graphics_view_to_image_position(gv_point)
         self._report_cell_info_callback(x,y)
+
+        if self._mouse_down:
+            self._drag(event)
+
+    def _drag(self, event):
+        self._draw_drag_box(event)
+
+    def mouseReleaseEvent(self, event):
+        if self._mouse_down:
+            self._mouse_down = False
+            self._drag(event)
+            if self._rectangle_select_callback and self._down_xy:
+                corner1 = self._down_xy
+                corner2 = self._scene_position(event)
+                self._rectangle_select_callback(corner1, corner2, add = self._shift_mod)
+
+    def _scene_position(self, event):
+        p = self.mapToScene(event.pos())
+        return p.x(), p.y()
+
+    def _draw_drag_box(self, event):
+        x1,y1 = self._down_xy
+        x2,y2 = self._scene_position(event)
+        x,y,w,h = min(x1,x2), min(y1,y2), abs(x2-x1), abs(y2-y1)
+
+        if self._new_dragbox:
+            from Qt.QtGui import QPen, QColor
+            pen = QPen()
+            pen.setColor(QColor(*self.dragbox_color))
+            pen.setWidth(self.dragbox_linewidth)
+            rect = self.scene.addRect(x,y,w,h, pen=pen)
+            self._drag_boxes.append(rect)
+            self._new_dragbox = False
+        else:
+            rect = self._drag_boxes[-1]
+            rect.setRect(x,y,w,h)
+
+    def _clear_drag_boxes(self):
+        boxes = self._drag_boxes
+        if boxes:
+            for box in boxes:
+                self.scene.removeItem(box)
+            boxes.clear()
 
     def graphics_view_to_image_position(self, gv_point):
         # QGrahicsView.mapToScene() takes integer QPoint, not float QPointF.
@@ -612,6 +721,11 @@ class ScoreView(QGraphicsView):
 # The following only saves what is visible in the viewport, and includes scrollbars.
 #        scene_pixmap = self.grab()
 #        scene_pixmap.save(path)
+
+    def clear_scene(self):
+        self.scene.clear()
+        self._pixmap_item = None
+        self._drag_boxes.clear()
 
 # -----------------------------------------------------------------------------
 #
