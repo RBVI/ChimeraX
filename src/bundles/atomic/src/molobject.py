@@ -1792,18 +1792,9 @@ class StructureData:
         if not xyzs.flags.c_contiguous:
             # molc.cpp code doesn't know about strides...
             xyzs = xyzs.copy()
-        #cs_size = self.coordset_size
-        #if cs_size > 0:
-        # self.coordset_size could be > #atoms if atoms have been deleted.  Testing whether just
-        # always checking the number of atoms is okay...
-        if False:
-            dim_check = cs_size
-            check_text = "previous coordinate sets"
-            do_check = True
-        else:
-            dim_check = self.num_atoms
-            check_text = "number of atoms"
-            do_check = dim_check > 0
+        dim_check = self.num_atoms
+        check_text = "number of atoms"
+        do_check = dim_check > 0
         if do_check and xyzs.shape[1] != dim_check:
             raise ValueError('add_coordsets(): second dimension of coordinate array'
                 ' must be same as %s' % check_text)

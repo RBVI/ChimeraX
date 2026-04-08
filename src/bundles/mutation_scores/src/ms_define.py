@@ -48,7 +48,8 @@ def mutation_scores_define(session, score_name = None, from_score_name = None, m
         values = from_score_values.all_values()
         if subtract_fit:
             sub_score_values = scores.score_values(subtract_fit)
-            values = _subtract_fit_values(values, sub_score_values.all_values())
+            from .ms_data import subtract_fit_values
+            values = subtract_fit_values(values, sub_score_values.all_values())
         if from_aa is not None:
             values = [(rnum, faa, taa, value) for rnum, faa, taa, value in values if faa in from_aa]
         if to_aa is not None:
@@ -183,23 +184,6 @@ def _combine_scores(score_values, residue_number, operation):
         value = None
 
     return value
-
-def _subtract_fit_values(cvalues, svalues):
-    smap = {(res_num,from_aa,to_aa):value for res_num, from_aa, to_aa, value in svalues}
-    x = []
-    y = []
-    for res_num, from_aa, to_aa, value in cvalues:
-        svalue = smap.get((res_num,from_aa,to_aa))
-        if svalue is not None:
-            x.append(svalue)
-            y.append(value)
-    from numpy import polyfit
-    degree = 1
-    m,b = polyfit(x, y, degree)
-    sfvalues = [(res_num, from_aa, to_aa, value - (m*smap[(res_num,from_aa,to_aa)] + b))
-                for res_num, from_aa, to_aa, value in cvalues
-                if (res_num,from_aa,to_aa) in smap]
-    return sfvalues
 
 def mutation_scores_undefine(session, score_name, mutation_set = None):
     from .ms_data import mutation_scores
