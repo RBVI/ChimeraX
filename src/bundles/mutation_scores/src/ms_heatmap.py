@@ -32,7 +32,10 @@ class MutationScoresHeatmap(ToolInstance):
     def __init__(self, session, tool_name = 'Mutation Scores Heatmap'):
 
         self._score_pad = 1	# Number of blank pixels after each score group
-
+        self._color_residue_on_hover = False
+        self._residue_highlight_color = (255,255,0,255)
+        self._last_highlight_residues = None		# (Residues, colors)
+        
         ToolInstance.__init__(self, session, tool_name)
 
         from chimerax.ui import MainToolWindow
@@ -101,8 +104,7 @@ class MutationScoresHeatmap(ToolInstance):
     #
     def _fill_context_menu(self, menu, x, y):
 
-        have_structure = (len(self._mutation_set.associate_chains(self.session)) > 0)
-        if have_structure:
+        if self._have_structure:
             from Qt.QtCore import QPointF
             gxy = self.tool_window.ui_area.mapToGlobal(QPointF(x,y))
             gv_point = self._score_view.mapFromGlobal(gxy)
@@ -112,7 +114,16 @@ class MutationScoresHeatmap(ToolInstance):
                 menu.addAction(f'Select residue {from_aa}{res_num}',
                                lambda res_num=res_num: self._select_residue(res_num))
 
+            _add_menu_toggle(menu, 'Color structure residue while hovering',
+                             self._color_residue_on_hover, self._color_on_hover_changed)
+
         menu.addAction('Save image', self._save_image)
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def _have_structure(self):
+        return len(self._mutation_set.associate_chains(self.session)) > 0
     
     # ---------------------------------------------------------------------------
     #
@@ -212,6 +223,13 @@ class MutationScoresHeatmap(ToolInstance):
             msg = f'{from_aa}{res_num}{to_aa} {score_name} {"%.2f"%score_value}'
         self._info_label.setText(msg)
 
+        if res_num is not None and self._color_residue_on_hover and self._have_structure:
+            self._uncolor_highlight_residues()
+            res, rnums = self._mutation_set.associated_residues([res_num])
+            if len(res) > 0:
+                self._last_highlight_residues = (res, res.ribbon_colors)
+                res.ribbon_colors = self._residue_highlight_color
+            
     # ---------------------------------------------------------------------------
     #
     def _cell_info(self, column_index, row_index):
@@ -245,7 +263,22 @@ class MutationScoresHeatmap(ToolInstance):
             from chimerax.atomic import concise_residue_spec
             spec = concise_residue_spec(self.session, res)
             run(self.session, f'select {spec}')
-        
+
+    # ---------------------------------------------------------------------------
+    #
+    def _color_on_hover_changed(self, enable):
+        self._color_residue_on_hover = enable
+        if not enable:
+            self._uncolor_highlight_residues()
+
+    # ---------------------------------------------------------------------------
+    #
+    def _uncolor_highlight_residues(self):
+        if self._last_highlight_residues:
+            last_res, last_colors = self._last_highlight_residues
+            last_res.ribbon_colors = last_colors
+            self._last_highlight_residues = None
+
     # ---------------------------------------------------------------------------
     #
     def _save_image(self, default_suffix = '_heatmap.png'):
@@ -543,21 +576,16 @@ class ScoreView(QGraphicsView):
         # This gives event handler is for QAbstractScrollArea and the event is in viewport() coordinates.
         # We need the event in QGraphicsView coordinates which differ by 1 pixel in x,y.
         gv_point = self.mapFromGlobal(event.globalPosition())  # Map from viewport to graphics view.
-        x,y = self._image_position(gv_point)
+        x,y = self.graphics_view_to_image_position(gv_point)
         self._report_cell_info_callback(x,y)
 
-    def _image_position(self, gv_point):
+    def graphics_view_to_image_position(self, gv_point):
         # QGrahicsView.mapToScene() takes integer QPoint, not float QPointF.
         #   p = self.mapToScene(gv_point)
         # So use the viewportTransform() to use floating point coordinates.
         v2s, invertible = self.viewportTransform().inverted()
         p = v2s.map(gv_point)	# Map float view position to scene
         ip = self._pixmap_item.mapFromScene(p)
-        return ip.x(), ip.y()
-
-    def graphics_view_to_image_position(self, gv_point):
-        sp = self.mapToScene(gv_point.x(), gv_point.y()) # QGraphicsView to QGraphicsScene
-        ip = self._pixmap_item.mapFromScene(sp) # QGraphicsScene to pixmap item
         return ip.x(), ip.y()
 
     def set_image(self, rgb, pixels_per_cell = 1):
