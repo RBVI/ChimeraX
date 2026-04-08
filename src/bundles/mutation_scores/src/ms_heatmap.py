@@ -123,9 +123,9 @@ class MutationScoresHeatmap(ToolInstance):
         self._heatmap_height = rgb.shape[0]
 
         # Add divider lines
-        divider_line_color = (0,0,0)
+        divider_line_color = (0,0,0) if self._num_scores > 5 else (255,255,255)
         row_step = self._num_scores + self._score_pad
-        for i in range(self._num_scores,rgb.shape[0]-row_step,row_step):
+        for i in range(self._num_scores,rgb.shape[0],row_step):
             rgb[i:i+self._score_pad,:,:] = divider_line_color
 
         if self._highlight_structure_residues.enabled:
@@ -136,8 +136,9 @@ class MutationScoresHeatmap(ToolInstance):
                 no_struct_res_nums = [r for r in range(1, self._num_residues+1) if not r in struct_res_nums]
                 for r in no_struct_res_nums:
                     rgb[:,r-1,:] = _shade_gray(rgb[:,r-1,:])
-            
-        self._score_view._set_image(rgb)
+
+        pixels_per_cell = self._pixels_per_cell.value
+        self._score_view.set_image(rgb, pixels_per_cell)
 
     # ---------------------------------------------------------------------------
     #
@@ -183,20 +184,22 @@ class MutationScoresHeatmap(ToolInstance):
                 score_values = score_values.subtract_fit(sub_score_values)
             if scores is None:
                 # TODO: This may not give maximum res number
-                self._num_residues = rmax = max(score_values.residue_numbers())
+                res_nums = score_values.residue_numbers()
+                self._rmin, self._rmax = rmin, rmax = min(res_nums), max(res_nums)
+                self._num_residues = num_res = rmax-rmin+1
                 from numpy import zeros, float32
-                self._scores = scores = zeros((rmax, 20, score_count + self._score_pad), float32)
+                self._scores = scores = zeros((num_res, 20, score_count + self._score_pad), float32)
             sscores = scores[:,:,snum]
             for res_num, from_aa, to_aa, value in score_values.all_values():
                 res_aa[res_num] = from_aa
                 aa_index = aa_to_index[to_aa]
-                sscores[res_num-1, aa_index] = value
+                sscores[res_num-rmin, aa_index] = value
             if self._normalize.enabled:
                 mean, sdev = score_values.synonymous_mean_and_sdev()
                 sscores -= mean
                 sscores /= sdev
 
-        scores_2d = scores.reshape((rmax, 20*(score_count+self._score_pad))).transpose()
+        scores_2d = scores.reshape((num_res, 20*(score_count+self._score_pad))).transpose()[:-1,:]
         return scores_2d
 
     # ---------------------------------------------------------------------------
@@ -212,19 +215,21 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _cell_info(self, column_index, row_index):
-        c, r = int(round(column_index)), int(round(row_index))
+        # Float column index ranges from 0-1 from left to right edge of first pixel.
+        c, r = int(round(column_index-0.5)), int(round(row_index-0.5))
         res_num = from_aa = to_aa = score_name = score_value = None
         num_cols = self._num_residues
         num_rows = 20 * (self._num_scores + self._score_pad)
-        if c >= 0 and c < num_cols and r >= 0 and r < num_rows and c+1 in self._res_aa:
-            res_num = c + 1
+        rmin = self._rmin
+        if c >= 0 and c < num_cols and r >= 0 and r < num_rows and c+rmin in self._res_aa:
+            res_num = c + rmin
             from_aa = self._res_aa[res_num]
             score_num = r % (self._num_scores + self._score_pad)
             if score_num < self._num_scores:
                 score_name = self._score_names[score_num]
                 aa_index = r // (self._num_scores + self._score_pad)
                 to_aa = self._amino_acids[aa_index]
-                score_value = self._scores[res_num-1, aa_index, score_num]
+                score_value = self._scores[res_num-rmin, aa_index, score_num]
         return res_num, from_aa, to_aa, score_name, score_value
 
     # ---------------------------------------------------------------------------
@@ -258,25 +263,40 @@ class MutationScoresHeatmap(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _make_residue_axis_labels(self):
-        res_step = 100
-        for r in (1,) + tuple(range(res_step, self._num_residues+1, res_step)):
+    def _make_residue_axis_labels(self, residue_step = None):
+        pixels_per_cell = self._pixels_per_cell.value
+        if residue_step is None:
+            if pixels_per_cell == 1:
+                residue_step = 100
+            elif pixels_per_cell == 2:
+                residue_step = 50
+            elif pixels_per_cell in (3,4):
+                residue_step = 20
+            else:
+                residue_step = 10
+        rmin, rmax = self._rmin, self._rmax
+        imin, imax = (rmin//residue_step) + 1, ((rmax-1)//residue_step)
+        rnums = [rmin] + [i*residue_step for i in range(imin, imax+1)] + [rmax]
+        for r in rnums: 
             text = str(r)
             t = self._score_view.scene.addText(text)
             rect = t.boundingRect()
-            x = r - rect.width()/2
-            y = self._heatmap_height
+            x = (r-rmin+.5)*pixels_per_cell - rect.width()/2
+            y = self._heatmap_height * pixels_per_cell
             t.setPos(x, y)
 
     # ---------------------------------------------------------------------------
     #
     def _make_amino_acid_axis_labels(self):
-        aa_step = self._num_scores + self._score_pad
+        pixels_per_cell = self._pixels_per_cell.value
+        num_scores = self._num_scores
+        scores_height = num_scores * pixels_per_cell
+        aa_step = (num_scores + self._score_pad) * pixels_per_cell
         for i, aa in enumerate(self._amino_acids):
             t = self._score_view.scene.addText(aa)
             rect = t.boundingRect()
             x = -rect.width()
-            y = (i+.5) * aa_step - rect.height()/2
+            y = i*aa_step + 0.5*scores_height - rect.height()/2
             t.setPos(x, y)
         
     # ---------------------------------------------------------------------------
@@ -303,6 +323,11 @@ class MutationScoresHeatmap(ToolInstance):
         self._score_name_filter = scf = sc.values[0]
         scf.pixel_width = 300
         scf.return_pressed.connect(self._draw_graphics)
+
+        # Zoom factor for heatmap
+        zf = EntriesRow(f, 'Pixels per cell', 1)
+        self._pixels_per_cell = ppc = zf.values[0]
+        ppc.return_pressed.connect(self._draw_graphics)
         
         # Colormap
         self._colormaps = {}
@@ -535,19 +560,29 @@ class ScoreView(QGraphicsView):
         ip = self._pixmap_item.mapFromScene(sp) # QGraphicsScene to pixmap item
         return ip.x(), ip.y()
 
-    def _set_image(self, rgb):
+    def set_image(self, rgb, pixels_per_cell = 1):
         scene = self.scene
         pi = self._pixmap_item
         if pi is not None and pi in self.scene.items():
             scene.removeItem(pi)
 
         pixmap = rgb_to_pixmap(rgb)
-        self._pixmap_item = scene.addPixmap(pixmap)
-        w, h = pixmap.width(), pixmap.height()
+        self._pixmap_item = pi = scene.addPixmap(pixmap)
+        pi.setScale(pixels_per_cell)
 
     def save_image(self, path):
-        pixmap = self.grab()
-        pixmap.save(path)
+        size = self.scene.sceneRect().size().toSize()
+        from Qt.QtGui import QImage, QPainter
+        image = QImage(size, QImage.Format_ARGB32)
+        from Qt.QtCore import Qt
+        image.fill(Qt.white)
+        painter = QPainter(image)
+        self.scene.render(painter)
+        painter.end()
+        image.save(path)
+# The following only saves what is visible in the viewport, and includes scrollbars.
+#        scene_pixmap = self.grab()
+#        scene_pixmap.save(path)
 
 # -----------------------------------------------------------------------------
 #
