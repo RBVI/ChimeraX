@@ -31,6 +31,7 @@ class MutationScoresHeatmap(ToolInstance):
 
     def __init__(self, session, tool_name = 'Mutation Scores Heatmap'):
 
+        self._default_amino_acid_order = 'HRKDEFWYNQILCSTVMAGP'
         self._score_pad = 1	# Number of blank pixels after each score group
         self._last_hover_residues = None		# (Residues, res_colors, atom_colors)
         self._last_dragbox_residues = []		# List of (Residues, res_colors, atom_colors)
@@ -176,12 +177,21 @@ class MutationScoresHeatmap(ToolInstance):
         
     # ---------------------------------------------------------------------------
     #
-    _amino_acids = 'HRKDEFWYNQILCSTVMAGP'
+    @property
+    def _amino_acids(self):
+        aa = self._amino_acid_order.value.strip()
+        if len(aa) == 0:
+            aa = self._default_amino_acid_order
+        return aa
+        
+    # ---------------------------------------------------------------------------
+    #
     def _score_matrix(self):
         scores = None
         mset = self._mutation_set
         self._num_scores = score_count = len(self._score_names)
         aa_to_index = {aa:i for i, aa in enumerate(self._amino_acids)}
+        num_aa = len(aa_to_index)
         self._res_aa = res_aa = {}
         subtract_fit = self._subtract_fit
         sub_score_values = mset.score_values(subtract_fit) if subtract_fit else None
@@ -195,18 +205,19 @@ class MutationScoresHeatmap(ToolInstance):
                 self._rmin, self._rmax = rmin, rmax = min(res_nums), max(res_nums)
                 self._num_residues = num_res = rmax-rmin+1
                 from numpy import zeros, float32
-                self._scores = scores = zeros((num_res, 20, score_count + self._score_pad), float32)
+                self._scores = scores = zeros((num_res, num_aa, score_count + self._score_pad), float32)
             sscores = scores[:,:,snum]
             for res_num, from_aa, to_aa, value in score_values.all_values():
                 res_aa[res_num] = from_aa
-                aa_index = aa_to_index[to_aa]
-                sscores[res_num-rmin, aa_index] = value
+                if to_aa in aa_to_index:
+                    aa_index = aa_to_index[to_aa]
+                    sscores[res_num-rmin, aa_index] = value
             if self._normalize.enabled:
                 mean, sdev = score_values.synonymous_mean_and_sdev()
                 sscores -= mean
                 sscores /= sdev
 
-        scores_2d = scores.reshape((num_res, 20*(score_count+self._score_pad))).transpose()[:-1,:]
+        scores_2d = scores.reshape((num_res, num_aa*(score_count+self._score_pad))).transpose()[:-1,:]
         return scores_2d
 
     # ---------------------------------------------------------------------------
@@ -235,7 +246,8 @@ class MutationScoresHeatmap(ToolInstance):
         c, r = int(round(column_index-0.5)), int(round(row_index-0.5))
         res_num = from_aa = to_aa = score_name = score_value = None
         num_cols = self._num_residues
-        num_rows = 20 * (self._num_scores + self._score_pad)
+        num_aa = len(self._amino_acids)
+        num_rows = num_aa * (self._num_scores + self._score_pad)
         rmin = self._rmin
         if c >= 0 and c < num_cols and r >= 0 and r < num_rows and c+rmin in self._res_aa:
             res_num = c + rmin
@@ -370,6 +382,13 @@ class MutationScoresHeatmap(ToolInstance):
         self._score_name_filter = scf = sc.values[0]
         scf.pixel_width = 300
         scf.return_pressed.connect(self._draw_graphics)
+
+        # Which amino acids.  String of 1-letter codes.
+        aao = EntriesRow(f, 'Amino acid order', '')
+        self._amino_acid_order = ao = aao.values[0]
+        ao.value = self._default_amino_acid_order
+        ao.pixel_width = 200
+        ao.return_pressed.connect(self._draw_graphics)
 
         # Zoom factor for heatmap
         zf = EntriesRow(f, 'Pixels per cell', 1)
