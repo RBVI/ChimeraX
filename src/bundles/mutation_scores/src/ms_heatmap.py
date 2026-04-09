@@ -32,7 +32,7 @@ class MutationScoresHeatmap(ToolInstance):
     def __init__(self, session, tool_name = 'Mutation Scores Heatmap'):
 
         self._default_amino_acid_order = 'HRKDEFWYNQILCSTVMAGP'
-        self._score_pad = 1	# Number of blank pixels after each score group
+        self._group_spacing = 1	# Number of blank pixels after each amino acid or score group
         self._last_hover_residues = None		# (Residues, res_colors, atom_colors)
         self._last_dragbox_residues = []		# List of (Residues, res_colors, atom_colors)
         
@@ -91,7 +91,10 @@ class MutationScoresHeatmap(ToolInstance):
         self._score_view.clear_scene()
         self._set_heatmap_image()
         self._make_residue_axis_labels()
-        self._make_amino_acid_axis_labels()
+        if self._grouping == 'amino acid':
+            self._make_amino_acid_axis_labels()
+        else:
+            self._make_score_name_axis_labels()
         scene = self._score_view.scene
         scene.setSceneRect(scene.itemsBoundingRect())
 
@@ -131,9 +134,10 @@ class MutationScoresHeatmap(ToolInstance):
 
         # Add divider lines
         divider_line_color = (0,0,0) if self._num_scores > 5 else (255,255,255)
-        row_step = self._num_scores + self._score_pad
-        for i in range(self._num_scores,rgb.shape[0],row_step):
-            rgb[i:i+self._score_pad,:,:] = divider_line_color
+        group_size = self._num_scores if self._grouping == 'amino acid' else self._num_amino_acids
+        row_step = group_size + self._group_spacing
+        for i in range(group_size,rgb.shape[0],row_step):
+            rgb[i:i+self._group_spacing,:,:] = divider_line_color
 
         if self._gray_missing_structure_residues.enabled:
             mset = self._mutation_set
@@ -191,7 +195,7 @@ class MutationScoresHeatmap(ToolInstance):
         mset = self._mutation_set
         self._num_scores = score_count = len(self._score_names)
         aa_to_index = {aa:i for i, aa in enumerate(self._amino_acids)}
-        num_aa = len(aa_to_index)
+        self._num_amino_acids = num_aa = len(aa_to_index)
         self._res_aa = res_aa = {}
         subtract_fit = self._subtract_fit
         sub_score_values = mset.score_values(subtract_fit) if subtract_fit else None
@@ -204,9 +208,12 @@ class MutationScoresHeatmap(ToolInstance):
                 res_nums = score_values.residue_numbers()
                 self._rmin, self._rmax = rmin, rmax = min(res_nums), max(res_nums)
                 self._num_residues = num_res = rmax-rmin+1
+                dims = ((num_aa, score_count + self._group_spacing)
+                        if self._grouping == 'amino acid' else
+                        (score_count, num_aa + self._group_spacing))
                 from numpy import zeros, float32
-                self._scores = scores = zeros((num_res, num_aa, score_count + self._score_pad), float32)
-            sscores = scores[:,:,snum]
+                self._scores = scores = zeros((num_res,)+dims, float32)
+            sscores = scores[:,:,snum] if self._grouping == 'amino acid' else scores[:,snum,:]
             for res_num, from_aa, to_aa, value in score_values.all_values():
                 res_aa[res_num] = from_aa
                 if to_aa in aa_to_index:
@@ -217,14 +224,15 @@ class MutationScoresHeatmap(ToolInstance):
                 sscores -= mean
                 sscores /= sdev
 
-        scores_2d = scores.reshape((num_res, num_aa*(score_count+self._score_pad))).transpose()[:-1,:]
+        y_size = scores.shape[1]*scores.shape[2]
+        scores_2d = scores.reshape((num_res, y_size)).transpose()[:-1,:]
         return scores_2d
 
     # ---------------------------------------------------------------------------
     #
     def _report_cell_info(self, column_index, row_index):
         res_num, from_aa, to_aa, score_name, score_value = self._cell_info(column_index, row_index)
-        if score_name is None:
+        if score_value is None:
             msg = ''
         else:
             msg = f'{from_aa}{res_num}{to_aa} {score_name} {"%.2f"%score_value}'
@@ -247,17 +255,23 @@ class MutationScoresHeatmap(ToolInstance):
         res_num = from_aa = to_aa = score_name = score_value = None
         num_cols = self._num_residues
         num_aa = len(self._amino_acids)
-        num_rows = num_aa * (self._num_scores + self._score_pad)
+        group_size = self._num_scores + self._group_spacing
+        aa_grouping = (self._grouping == 'amino acid')
+        num_rows = num_aa * group_size
         rmin = self._rmin
         if c >= 0 and c < num_cols and r >= 0 and r < num_rows and c+rmin in self._res_aa:
             res_num = c + rmin
             from_aa = self._res_aa[res_num]
-            score_num = r % (self._num_scores + self._score_pad)
+            score_num = (r % group_size) if aa_grouping else (r // group_size)
             if score_num < self._num_scores:
                 score_name = self._score_names[score_num]
-                aa_index = r // (self._num_scores + self._score_pad)
-                to_aa = self._amino_acids[aa_index]
-                score_value = self._scores[res_num-rmin, aa_index, score_num]
+                aa_index = (r // group_size) if aa_grouping else (r % group_size)
+                if aa_index < num_aa:
+                    to_aa = self._amino_acids[aa_index]
+                    if aa_grouping:
+                        score_value = self._scores[res_num-rmin, aa_index, score_num]
+                    else:
+                        score_value = self._scores[res_num-rmin, score_num, aa_index]
         return res_num, from_aa, to_aa, score_name, score_value
         
     # ---------------------------------------------------------------------------
@@ -350,12 +364,26 @@ class MutationScoresHeatmap(ToolInstance):
         pixels_per_cell = self._pixels_per_cell.value
         num_scores = self._num_scores
         scores_height = num_scores * pixels_per_cell
-        aa_step = (num_scores + self._score_pad) * pixels_per_cell
+        aa_step = (num_scores + self._group_spacing) * pixels_per_cell
         for i, aa in enumerate(self._amino_acids):
             t = self._score_view.scene.addText(aa)
             rect = t.boundingRect()
             x = -rect.width()
             y = i*aa_step + 0.5*scores_height - rect.height()/2
+            t.setPos(x, y)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _make_score_name_axis_labels(self):
+        pixels_per_cell = self._pixels_per_cell.value
+        num_aa = self._num_amino_acids
+        aa_height = num_aa * pixels_per_cell
+        score_step = (num_aa + self._group_spacing) * pixels_per_cell
+        for i, score_name in enumerate(self._score_names):
+            t = self._score_view.scene.addText(score_name)
+            rect = t.boundingRect()
+            x = -rect.width()
+            y = i*score_step + 0.5*aa_height - rect.height()/2
             t.setPos(x, y)
         
     # ---------------------------------------------------------------------------
@@ -390,6 +418,13 @@ class MutationScoresHeatmap(ToolInstance):
         ao.pixel_width = 200
         ao.return_pressed.connect(self._draw_graphics)
 
+        # Grouping on vertical axis.
+        gp = EntriesRow(f, 'Group by', True, 'amino acid', False, 'score name')
+        self._group_amino_acid, self._group_score_name = ga,gs = gp.values
+        from chimerax.ui.widgets import radio_buttons
+        radio_buttons(ga,gs)
+        ga.changed.connect(self._draw_graphics)
+        
         # Zoom factor for heatmap
         zf = EntriesRow(f, 'Pixels per cell', 1)
         self._pixels_per_cell = ppc = zf.values[0]
@@ -487,6 +522,12 @@ class MutationScoresHeatmap(ToolInstance):
         from .ms_data import mutation_scores_names
         for ms_name in mutation_scores_names(self.session):
             menu.addAction(ms_name)
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def _grouping(self):
+        return 'amino acid' if self._group_amino_acid.enabled else 'score name'
 
     # ---------------------------------------------------------------------------
     #
