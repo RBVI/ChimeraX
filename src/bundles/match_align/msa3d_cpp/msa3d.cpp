@@ -44,21 +44,19 @@ static float min(float a, float b) { return std::min(a, b); }
 static float max(float a, float b) { return std::max(a, b); }
 static float (*val_func)(float, float);
 
-static bool debug = false;
-
 namespace { // so these class declarations are not visible outside this file
 
+#ifdef DEBUGGING
 static int vector_index(const std::vector<StructureSeq*> vec, const StructureSeq *item) { return std::find(vec.begin(), vec.end(), item) - vec.begin(); }
+#endif
 
-static int num_columns;
 class Column
 {
 public:
     std::map<StructureSeq*, StructureSeq::SeqPos> positions;
-    int debug_index;
 
-    Column(decltype(positions) pos_info): positions(pos_info) { debug_index = num_columns++; };
-    Column(const std::shared_ptr<Column>& _col): positions(_col->positions) { debug_index = num_columns++; };
+    Column(decltype(positions) pos_info): positions(pos_info) {};
+    Column(const std::shared_ptr<Column>& _col): positions(_col->positions) {};
 
     bool  contains(StructureSeq* seq, StructureSeq::SeqPos pos) const {
         return positions.find(seq) != positions.end() && positions.at(seq) == pos;
@@ -340,8 +338,8 @@ bool
 _check(std::map<StructureSeq*, StructureSeq::SeqPos>& info, std::map<StructureSeq*, std::vector<std::shared_ptr<Column>>>& order,
     std::vector<StructureSeq*>& chains)
 {
-    std::map<StructureSeq*, std::vector<StructureSeq::SeqPos>> equiv;
-    std::vector<StructureSeq::SeqPos> null_init = { INT_MAX, INT_MAX, INT_MAX };
+    std::map<StructureSeq*, std::vector<int>> equiv;
+    std::vector<int> null_init = { INT_MAX, INT_MAX, INT_MAX };
     for (auto chain: chains)
         equiv[chain] = null_init;
     std::vector<std::pair<std::vector<std::shared_ptr<Column>>, int>> todo;
@@ -388,7 +386,6 @@ _check(std::map<StructureSeq*, StructureSeq::SeqPos>& info, std::map<StructureSe
         }
         todo.emplace_back(std::vector<std::shared_ptr<Column>>(seq_cols.begin() + j, seq_cols.end()), 1);
     }
-//std::cerr << "_check todo size: " << todo.size() << "\n";
     while (todo.size() > 0) {
         auto& cols_rel = todo.back();
         auto cols = cols_rel.first;
@@ -397,10 +394,9 @@ _check(std::map<StructureSeq*, StructureSeq::SeqPos>& info, std::map<StructureSe
         for (auto col: cols) {
             for (auto& cseq_cpos: col->positions) {
                 auto cseq = cseq_cpos.first;
-                auto cpos = cseq_cpos.second;
+                int cpos = cseq_cpos.second;
                 auto& eqseq = equiv[cseq];
                 auto eq = eqseq[rel+1];
-//std::cerr << "_check: eq: " << eq << ", cpos: " << cpos << ", rel: " << rel << "\n";
                 if (eq != INT_MAX && (cpos < eq ? -1 : (cpos > eq ? 1 : 0)) == rel)
                     continue;
                 auto& seq_cols = order[cseq];
@@ -408,21 +404,15 @@ _check(std::map<StructureSeq*, StructureSeq::SeqPos>& info, std::map<StructureSe
                     auto num_seq_cols = seq_cols.size();
                     decltype(num_seq_cols) i, j;
                     if (eq != INT_MAX)
-{
-if (debug) std::cerr << "_check returns false (1)\n";
                         return false;
-}
                     if ((eqseq[0] != INT_MAX && eqseq[0] >= cpos)
                     || (eqseq[2] != INT_MAX && eqseq[2] <= cpos))
-{
-if (debug) std::cerr << "_check returns false (2)\n";
                         return false;
-}
                     eqseq[1] = cpos;
                     bool broke = false;
                     for (i = 0; i < num_seq_cols; ++i) {
                         auto ccol = seq_cols[i];
-                        auto ccol_pos = ccol->positions[cseq];
+                        int ccol_pos = ccol->positions[cseq];
                         if (ccol_pos > cpos) {
                             i = num_seq_cols;
                             broke = true;
@@ -438,7 +428,7 @@ if (debug) std::cerr << "_check returns false (2)\n";
                     broke = false;
                     for (j = i; j < num_seq_cols; ++j) {
                         auto ccol = seq_cols[j];
-                        if (ccol->positions[cseq] > cpos) {
+                        if (static_cast<int>(ccol->positions[cseq]) > cpos) {
                             broke = true;
                             break;
                         }
@@ -458,12 +448,8 @@ if (debug) std::cerr << "_check returns false (2)\n";
                 auto test = cseq_equiv[1];
                 if (test == INT_MAX)
                     test = cseq_equiv[1-rel];
-if (debug) std::cerr << "_check: test: " << test << ", cpos: " << cpos << ", rel: " << rel << "\n";
                 if (test != INT_MAX && (cpos < test ? -1 : (cpos > test ? 1 : 0)) != rel)
-{
-if (debug) std::cerr << "_check returns false (3)\n";
                     return false;
-}
                 if (rel < 0) {
                     auto num_seq_cols = seq_cols.size();
                     decltype(num_seq_cols) i, j;
@@ -473,7 +459,7 @@ if (debug) std::cerr << "_check returns false (3)\n";
                         bool broke = false;
                         for (i = 0; i < num_seq_cols; ++i) {
                             auto ccol = seq_cols[i];
-                            if (ccol->positions[cseq] > eq) {
+                            if (static_cast<int>(ccol->positions[cseq]) > eq) {
                                 broke = true;
                                 break;
                             }
@@ -484,7 +470,7 @@ if (debug) std::cerr << "_check returns false (3)\n";
                     bool broke = false;
                     for (j = i; j < num_seq_cols; ++j) {
                         auto ccol = seq_cols[j];
-                        if (ccol->positions[cseq] > cpos) {
+                        if (static_cast<int>(ccol->positions[cseq]) > cpos) {
                             broke = true;
                             break;
                         }
@@ -508,7 +494,7 @@ if (debug) std::cerr << "_check returns false (3)\n";
                         bool broke = false;
                         for (i = num_seq_cols-1; i >= 0; --i) {
                             auto ccol = seq_cols[i];
-                            if (ccol->positions[cseq] < eq) {
+                            if (static_cast<int>(ccol->positions[cseq]) < eq) {
                                 broke = true;
                                 break;
                             }
@@ -518,7 +504,7 @@ if (debug) std::cerr << "_check returns false (3)\n";
                         broke = false;
                         for (j = i; j >= 0; --j) {
                             auto ccol = seq_cols[j];
-                            if (ccol->positions[cseq] < cpos) {
+                            if (static_cast<int>(ccol->positions[cseq]) < cpos) {
                                 j += 1;
                                 broke = true;
                                 break;
@@ -539,7 +525,6 @@ if (debug) std::cerr << "_check returns false (3)\n";
             }
         }
     }
-if (debug) std::cerr << "_check returns true\n";
     return true;
 }
 
@@ -547,8 +532,6 @@ PyObject*
 multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all, char gap_char,
     bool circular, const char* status_prefix, PyObject* py_logger, PyObject* error_class)
 {
-num_columns = 0;
-if (debug) std::cerr << "multi_align\n";
     // Create list of pairings between chains and prune to be monotonic
     if (circular) {
         PyErr_SetString(PyExc_NotImplementedError, "C++ multi_align cicular permutation support not implemented");
@@ -680,21 +663,7 @@ if (debug) std::cerr << "multi_align\n";
     std::map<StructureSeq*, std::vector<std::shared_ptr<Column>>> partial_order;
 
     std::set<std::pair<std::shared_ptr<EndPointOrColumn>, std::shared_ptr<EndPointOrColumn>>> seen;
-int po_num = 0;
-if (debug) {
-std::cerr << "\tinitial partial order\n";
-for (unsigned int index = 0; index < chains.size(); ++index) {
-    auto seq = chains[index];
-    std::cerr << "\t\tseq " << index << ": ";
-    for (auto& col: partial_order[seq])
-        std::cerr << col->positions[seq] << " [" << col->debug_index << "] ";
-    std::cerr << "\n";
-}
-}
     while (all_links.size() > 0) {
-++po_num;
-debug = po_num >= 266 && po_num <= 268;
-if (debug) std::cerr << '\t' << all_links.size() << " links\n";
         if (all_links.size() % 100 == 0)
             logger::status(py_logger, status_prefix,
                     "Forming columns (", all_links.size(), " links to check)");
@@ -727,10 +696,7 @@ if (debug) std::cerr << '\t' << all_links.size() << " links\n";
         std::pair<std::shared_ptr<EndPointOrColumn>, std::shared_ptr<EndPointOrColumn>>
             key(link->info()[0], link->info()[1]);
         if (seen.find(key) != seen.end())
-{
-if (debug) std::cerr << "short circuit 1\n";
             continue;
-}
         seen.insert(key);
         for (auto ep_or_col: link->info()) {
             for (auto seq_pos: ep_or_col->positions()) {
@@ -758,10 +724,7 @@ if (debug) std::cerr << "short circuit 1\n";
         }
 
         if (!okay || !_check(check_info, partial_order, chains))
-{
-if (debug) std::cerr << "short circuit 2: okay: " << okay << "\n";
             continue;
-}
 
         auto col = std::shared_ptr<Column>(new Column(check_info));
         for (auto seq_pos: check_info) {
@@ -826,49 +789,11 @@ if (debug) std::cerr << "short circuit 2: okay: " << okay << "\n";
                     for (auto pcol: new_po_back)
                         seq_cols[pcol] -= 1;
                     seq_cols.erase(col_or_ep->col);
-if (debug)
-{
-std::cerr << "\tpartial order " << po_num << " collation:\n";
-for (unsigned int index = 0; index < chains.size(); ++index) {
-    auto seq = chains[index];
-    std::cerr << "\t\tseq " << index << ": ";
-    for (auto& col: partial_order[seq])
-        std::cerr << col->positions[seq] << " [" << col->debug_index << "] ";
-    std::cerr << "\n";
-}
-}
                 }
             }
-else {
-if (debug) {
-std::cerr << "\tpartial order " << po_num << " non-collation:\n";
-for (unsigned int index = 0; index < chains.size(); ++index) {
-    auto seq = chains[index];
-    std::cerr << "\t\tseq " << index << ": ";
-    for (auto& col: partial_order[seq])
-        std::cerr << col->positions[seq] << " [" << col->debug_index << "] ";
-    std::cerr << "\n";
-}
-}
-}
         }
     }
         
-if (debug) {
-std::cerr << "\tpartial order:\n";
-for (auto seq_cols: partial_order) {
-    auto seq = seq_cols.first;
-    std::cerr << "\t\tseq " << vector_index(chains, seq) << ": ";
-    int limit = 5;
-    for (auto col: seq_cols.second) {
-        std::cerr << col->positions[seq] << " [" << col->debug_index << "] ";
-        if (--limit < 1)
-            break;
-    }
-    std::cerr << "\n";
-
-}
-}
     logger::status(py_logger, status_prefix, "Collating columns");
 
     std::vector<std::shared_ptr<Column>> ordered_columns;
@@ -894,27 +819,15 @@ for (auto seq_cols: partial_order) {
                 return nullptr;
             }
             col = cols[0];
-if (debug) {
-std::cerr << "\ttrying column:\n";
-for (auto seq_offset: col->positions) {
-    auto seq = seq_offset.first;
-    auto offset = seq_offset.second;
-    auto cur_pos = -1;
-    auto diff = offset - cur_pos;
-std::cerr << "\t\tseq, offset, cur_pos, diff: " << vector_index(chains, seq) << ", " << offset << ", " << cur_pos << ", " << diff << "\n";
-}
-}
             bool broke_cseq = false;
             for (auto c_seq_pos: col->positions) {
                 auto cseq = c_seq_pos.first;
                 if (partial_order[cseq][0] != col) {
                     broke_cseq = true;
-if (debug) std::cerr << "\t\tpartial order does not start with col\n";
                     break;
                 }
             }
             if (!broke_cseq) {
-if (debug) std::cerr << "\t\tinitial element for all sequences\n";
                 broke_po = true;
                 break;
             }
@@ -923,12 +836,6 @@ if (debug) std::cerr << "\t\tinitial element for all sequences\n";
             break;
 
         ordered_columns.push_back(col);
-if (debug) std::cerr << "\tpushing back:\n";
-for (auto seq_offset: col->positions) {
-    auto seq = seq_offset.first;
-    auto offset = seq_offset.second;
-if (debug) std::cerr << "\t\tseq, offset: " << vector_index(chains, seq) << ", " << offset << "\n";
-}
         for (auto cseq_pos: col->positions) {
             auto cseq = cseq_pos.first;
             auto& cols = partial_order[cseq];
@@ -1264,7 +1171,6 @@ if (debug) std::cerr << "\t\tseq, offset: " << vector_index(chains, seq) << ", "
         auto& aligned_seq = working_seqs[chain];
         chain->bulk_set(chain->residues(), &aligned_seq);
     }
-if (debug) std::cerr << "\talignment length: " << (*working_seqs.begin()).second.size() << "\n";
 
     logger::status(py_logger, status_prefix, "Done");
     return Py_None;
