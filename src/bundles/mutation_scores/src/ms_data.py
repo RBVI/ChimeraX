@@ -172,13 +172,13 @@ class MutationSet(State):
     def _remove_deleted_residues(self):
         self._associated_residues = [(rnum, r) for rnum, r in self._associated_residues if not r.deleted]
 
-    def associated_residues(self, res_nums):
+    def associated_residues(self, res_nums = None):
         rlist = []
         rnums = []
-        res_nums_set = set(res_nums)
+        res_nums_set = set(res_nums) if res_nums is not None else None
         deleted = False
         for rnum, r in self._associated_residues:
-            if rnum in res_nums_set:
+            if res_nums is None or rnum in res_nums_set:
                 if r.deleted:
                     deleted = True
                 else:
