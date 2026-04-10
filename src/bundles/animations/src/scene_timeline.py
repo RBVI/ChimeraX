@@ -351,6 +351,9 @@ class TimelineSceneWidget(QWidget):
     scene_moved = Signal(str, float, float)  # scene_name, old_time, new_time
     scene_deleted = Signal(str, float)  # scene_name, time (specific instance)
     time_clicked = Signal(float)  # time position clicked
+    action_added = Signal(float, float, str, dict)  # start, end, name, config
+    action_removed = Signal(int)  # index
+    action_updated = Signal(int, float, float, str, dict)  # index, start, end, name, config
 
     def __init__(self, duration=5.0, parent=None):
         super().__init__(parent)
@@ -819,7 +822,8 @@ class TimelineSceneWidget(QWidget):
                 self.action_segments.append(
                     (time, end_time, action_name, default_config)
                 )
-                self.action_segments.sort(key=lambda x: x[0])  # Sort by start time
+                self.action_segments.sort(key=lambda x: x[0])
+                self.action_added.emit(time, end_time, action_name, default_config)
 
                 # Clear drag preview
                 self.drag_time = None
@@ -1092,11 +1096,17 @@ class TimelineSceneWidget(QWidget):
                 self.dragging_action_segment is not None
                 or self.resizing_action_segment is not None
             ):
+                idx = (self.dragging_action_segment
+                       if self.dragging_action_segment is not None
+                       else self.resizing_action_segment[0])
+                seg = self.action_segments[idx]
+                self.action_updated.emit(idx, seg[0], seg[1], seg[2],
+                                         seg[3] if len(seg) > 3 else {})
                 self.dragging_action_segment = None
                 self.resizing_action_segment = None
                 self.action_drag_offset = 0.0
                 self.drag_start_pos = None
-                self.setCursor(Qt.ArrowCursor)  # Reset cursor
+                self.setCursor(Qt.ArrowCursor)
                 self.update()
                 return
 
@@ -1162,7 +1172,9 @@ class TimelineSceneWidget(QWidget):
         if event.key() == Qt.Key_Delete or event.key() == Qt.Key_Backspace:
             if self.selected_action_segment is not None:
                 # Delete the selected action segment
-                del self.action_segments[self.selected_action_segment]
+                idx = self.selected_action_segment
+                del self.action_segments[idx]
+                self.action_removed.emit(idx)
                 self.selected_action_segment = None
                 self.update()
             elif self.selected_scene_marker_id is not None:
@@ -1438,12 +1450,15 @@ class TimelineSceneWidget(QWidget):
                 action_name,
                 config,
             )
+            self.action_updated.emit(segment_idx, start_time, end_time,
+                                     action_name, config)
             self.update()
 
     def _delete_action_segment(self, segment_idx):
         """Delete an action segment"""
         if 0 <= segment_idx < len(self.action_segments):
             del self.action_segments[segment_idx]
+            self.action_removed.emit(segment_idx)
             self.selected_action_segment = None
             self.update()
 
@@ -1602,6 +1617,9 @@ class SceneTimelineWidget(QWidget):
     scene_removed = Signal(str, float)  # scene_name, time
     scene_moved = Signal(str, float, float)  # scene_name, old_time, new_time
     scene_selected = Signal(str)  # scene_name
+    action_added = Signal(float, float, str, dict)  # start, end, name, config
+    action_removed = Signal(int)  # index
+    action_updated = Signal(int, float, float, str, dict)  # index, start, end, name, config
     time_changed = Signal(float)  # time
     play_requested = Signal()
     pause_requested = Signal()
@@ -1648,6 +1666,9 @@ class SceneTimelineWidget(QWidget):
         self.timeline_scene.scene_moved.connect(self.on_scene_moved)
         self.timeline_scene.scene_deleted.connect(self.on_scene_deleted)
         self.timeline_scene.time_clicked.connect(self.on_time_clicked)
+        self.timeline_scene.action_added.connect(self.action_added)
+        self.timeline_scene.action_removed.connect(self.action_removed)
+        self.timeline_scene.action_updated.connect(self.action_updated)
         timeline_layout.addWidget(self.timeline_scene)
 
         main_layout.addWidget(timeline_frame)
@@ -1664,7 +1685,6 @@ class SceneTimelineWidget(QWidget):
         # Scene marker is already moved in the timeline widget
         # Emit signal so parent tool can update the animation
         self.scene_moved.emit(scene_name, old_time, new_time)
-        print(f"Scene '{scene_name}' moved from {old_time:.2f}s to {new_time:.2f}s")
 
     def on_scene_deleted(self, scene_name, scene_time):
         """Handle scene deleted from timeline (specific instance)"""

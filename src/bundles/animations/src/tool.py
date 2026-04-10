@@ -192,38 +192,40 @@ class AnimationsTool(ToolInstance):
         super().delete()
 
     def take_snapshot(self, session, flags):
-        scene_anim = self.kf_editor_widget.scene_animation
+        # SceneAnimation is now a session state manager and is saved/restored
+        # independently.  We only need to store our own version marker.
         return {
-            'version': 2,
-            'scene_animation': scene_anim.take_snapshot(session, flags),
+            'version': 3,
         }
 
     @classmethod
     def restore_snapshot(class_obj, session, data):
         inst = class_obj(session, "Animations")
-        if data.get('version', 1) >= 2:
+        version = data.get('version', 1)
+        if version == 2:
+            # Backward compat: v2 stored scene_animation data inside the tool
+            # snapshot.  Migrate it into the session state manager.
             scene_anim_data = data.get('scene_animation')
             if scene_anim_data:
-                inst._restore_scene_animation(scene_anim_data)
+                scene_anim = session.get_state_manager("scene animations")
+                scene_anim.restore_from_data(scene_anim_data)
+        # For v3+, SceneAnimation is restored by the session machinery.
+        inst._repopulate_scene_timeline()
         return inst
 
-    def _restore_scene_animation(self, scene_anim_data):
-        """Restore scene animation state and repopulate the timeline widget."""
-        scene_anim = self.kf_editor_widget.scene_animation
-        scene_anim.restore_from_data(scene_anim_data)
+    def _repopulate_scene_timeline(self):
+        """Repopulate the scene timeline widget from the state manager."""
+        scene_anim = self.session.get_state_manager("scene animations")
+        scene_anim.validate_scenes()
 
-        # Repopulate the timeline widget from the restored scene animation
         timeline = self.kf_editor_widget.scene_timeline_widget
         timeline_scene = timeline.timeline_scene
 
-        # Set duration
         timeline_scene.duration = scene_anim.duration
         timeline.timeline_controls.set_duration(scene_anim.duration)
 
-        # Add scene markers
         for time, scene_name, transition_data in scene_anim.scenes:
             timeline_scene.add_scene_marker(time, scene_name, transition_data)
 
-        # Add action segments
         timeline_scene.action_segments = list(scene_anim.action_segments)
         timeline_scene.update()

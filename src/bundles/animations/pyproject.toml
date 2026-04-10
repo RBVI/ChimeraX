@@ -41,9 +41,37 @@ custom-init = true
 categories = ["General"]
 classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
-[tool.chimerax.command.animations]
+[tool.chimerax.command."animations timeline"]
 category = "General"
-description = "Create, play back, edit, and save animation timelines."
+description = "List all keyframes or scenes in the animation."
+
+[tool.chimerax.command."animations play"]
+category = "General"
+description = "Play the animation."
+
+[tool.chimerax.command."animations stop"]
+category = "General"
+description = "Stop the animation."
+
+[tool.chimerax.command."animations preview"]
+category = "General"
+description = "Preview animation at a specific time."
+
+[tool.chimerax.command."animations setLength"]
+category = "General"
+description = "Set animation length."
+
+[tool.chimerax.command."animations record"]
+category = "General"
+description = "Record the animation to a movie file."
+
+[tool.chimerax.command."animations stopRecording"]
+category = "General"
+description = "Stop recording the animation."
+
+[tool.chimerax.command."animations clear"]
+category = "General"
+description = "Clear all keyframes or scenes from the animation."
 
 [tool.chimerax.tool."Animations"]
 category = "Depiction"

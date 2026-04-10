@@ -38,9 +38,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .scene_timeline import SceneTimelineWidget
 
-from .scene_animation import SceneAnimation
-
-
 class SceneTimelineController:
     """
     Controller for the Scene Timeline mode.
@@ -70,8 +67,9 @@ class SceneTimelineController:
         self.widget = widget
         self.fps = fps
 
-        # Create our own SceneAnimation - NOT stored on session
-        self.scene_animation = SceneAnimation(session, fps=fps)
+        # Use the session-registered SceneAnimation state manager
+        self.scene_animation = session.get_state_manager("scene animations")
+        self.scene_animation.set_fps(fps)
 
         # Connect signals
         self._connect_widget_signals()
@@ -83,6 +81,9 @@ class SceneTimelineController:
         self.widget.scene_removed.connect(self._on_scene_removed)
         self.widget.scene_moved.connect(self._on_scene_moved)
         self.widget.scene_selected.connect(self._on_scene_selected)
+        self.widget.action_added.connect(self._on_action_added)
+        self.widget.action_removed.connect(self._on_action_removed)
+        self.widget.action_updated.connect(self._on_action_updated)
         self.widget.time_changed.connect(self._on_time_changed)
         self.widget.play_requested.connect(self._on_play_requested)
         self.widget.pause_requested.connect(self._on_pause_requested)
@@ -93,10 +94,12 @@ class SceneTimelineController:
     def _connect_animation_signals(self):
         """Connect signals from SceneAnimation to update the widget."""
         self.scene_animation.signals.time_changed.connect(self._on_animation_time_changed)
+        self.scene_animation.signals.duration_changed.connect(self._on_animation_duration_changed)
         self.scene_animation.signals.playback_started.connect(self._on_animation_started)
         self.scene_animation.signals.playback_stopped.connect(self._on_animation_stopped)
         self.scene_animation.signals.recording_started.connect(self._on_recording_started)
         self.scene_animation.signals.recording_stopped.connect(self._on_recording_stopped)
+        self.scene_animation.signals.timeline_cleared.connect(self._on_animation_timeline_cleared)
 
     # -------------------------------------------------------------------------
     # Widget -> Controller handlers
@@ -127,6 +130,22 @@ class SceneTimelineController:
         """Handle scene selection - restore the scene."""
         if self.session and self.session.scenes.get_scene(scene_name):
             self.session.scenes.restore_scene(scene_name)
+
+    def _on_action_added(self, start_time: float, end_time: float,
+                         action_name: str, config: dict):
+        """Handle action segment added from the widget."""
+        self.scene_animation.add_action_segment(start_time, end_time,
+                                                action_name, config)
+
+    def _on_action_removed(self, index: int):
+        """Handle action segment removed from the widget."""
+        self.scene_animation.remove_action_segment(index)
+
+    def _on_action_updated(self, index: int, start_time: float,
+                           end_time: float, action_name: str, config: dict):
+        """Handle action segment moved, resized, or reconfigured."""
+        self.scene_animation.update_action_segment(index, start_time,
+                                                   end_time, action_name, config)
 
     def _on_time_changed(self, time: float):
         """Handle time scrubber changes for preview."""
@@ -174,6 +193,12 @@ class SceneTimelineController:
         """Handle time updates from animation during playback."""
         self.widget.set_current_time(time)
 
+    def _on_animation_duration_changed(self, duration: float):
+        """Handle duration changes from the animation (e.g. via command)."""
+        self.widget.timeline_scene.duration = duration
+        self.widget.timeline_scene.update()
+        self.widget.timeline_controls.set_duration(duration)
+
     def _on_animation_started(self):
         """Handle animation playback started."""
         self.widget.set_playing_state(True)
@@ -190,12 +215,36 @@ class SceneTimelineController:
         """Handle recording stopped."""
         self.widget.set_recording_state(False)
 
+    def _on_animation_timeline_cleared(self):
+        """Handle the animation timeline being cleared via command.
+
+        Drops the widget-side scene markers and action segments so the
+        GUI matches the now-empty SceneAnimation state. Without this,
+        the next widget-driven sync would push the stale markers back
+        into the animation, effectively undoing the clear.
+        """
+        timeline_scene = self.widget.timeline_scene
+        timeline_scene.scene_markers = []
+        timeline_scene.action_segments = []
+        timeline_scene.selected_scene_marker_id = None
+        timeline_scene.dragging_scene_marker_id = None
+        timeline_scene.potential_drag_scene_marker_id = None
+        timeline_scene.selected_action_segment = None
+        timeline_scene.dragging_action_segment = None
+        timeline_scene.resizing_action_segment = None
+        timeline_scene.update()
+
     # -------------------------------------------------------------------------
     # Helper methods
     # -------------------------------------------------------------------------
 
     def _sync_to_animation(self):
-        """Sync scene markers and action segments from widget to animation."""
+        """Sync scene markers from widget to animation.
+
+        Action segments are kept in sync via individual signals
+        (action_added, action_removed, action_updated), so only
+        scenes need the bulk rebuild here.
+        """
         self.scene_animation.clear_all_scenes()
 
         duration = self.widget.timeline_scene.duration
@@ -208,10 +257,6 @@ class SceneTimelineController:
                 marker.transition_data.get("type", "linear"),
                 marker.transition_data.get("fade_models", False),
             )
-
-        self.scene_animation.action_segments = list(
-            self.widget.timeline_scene.action_segments
-        )
 
     def _get_movie_save_path_and_options(self):
         """Get save path and recording options using dialog."""
