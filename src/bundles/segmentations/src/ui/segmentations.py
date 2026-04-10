@@ -968,7 +968,7 @@ class SegmentationTool(ToolInstance):
             self.session.logger.info("Created segmentation sphere cursor with ID #%s" % cursor.id_string)
 
     def _destroy_2d_segmentation_pucks(self) -> None:
-        seg_cursors = self.segmentation_cursors.values()
+        seg_cursors = list(self.segmentation_cursors.values())
         # We have to check because if we close all volumes the tool's delete method is called
         # which calls this method, which schedules things for deletion twice, and will cause an
         # infinite recursion

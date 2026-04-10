@@ -22,13 +22,19 @@ class _MyAPI(BundleAPI):
         elif class_name == "Animation":
             from .animation import Animation
             return Animation
+        elif class_name == "SceneAnimation":
+            from .scene_animation import SceneAnimation
+            return SceneAnimation
         raise ValueError("Unknown class name '%s'" % class_name)
 
     @staticmethod
     def initialize(session, bundle_info):
-        """Install scene manager into existing session"""
+        """Register animation state managers into the session."""
         from .animation import Animation
         session.add_state_manager("animations", Animation(session))
+
+        from .scene_animation import SceneAnimation
+        session.add_state_manager("scene animations", SceneAnimation(session))
 
     @staticmethod
     def register_command(bi, ci, logger):

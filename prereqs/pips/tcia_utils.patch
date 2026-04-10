@@ -57,13 +57,18 @@
      chunk_size = 10000
      chunked_uids = [uids[i:i + chunk_size] for i in range(0, len(uids), chunk_size)]
  
-@@ -672,6 +668,7 @@
+@@ -672,6 +668,10 @@
      Setting a csv_filename will create the csv even if format isn't specified.
      If `as_zip` is set to True, it skips the unzipping steps.
      """
-+    import pandas as pd
-     # Prep a dataframe for later
-     manifestDF = pd.DataFrame() if format in ["df", "csv"] or csv_filename else None
+-    # Prep a dataframe for later
+-    manifestDF = pd.DataFrame() if format in ["df", "csv"] or csv_filename else None
++    # Prep a dataframe for later if needed
++    if format in ["df", "csv"] or csv_filename:
++        import pandas as pd
++        manifestDF = pd.DataFrame()
++    else:
++        manifestDF = None
  
 @@ -834,6 +831,7 @@
  
