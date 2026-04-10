@@ -53,9 +53,61 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
                 # no conflicts
                 break
             id_num += 1
+    # iteration limt of None means until convergence
+    if iteration_limit != 0:
+        best = full_cols
+        iteration = 1
+        if not ref_chain:
+            ref_chain = aligned[0]
+        from chimerax.atomic import Atoms
+        from chimerax.std_commands import align
+        while True:
+            ref_seq = [s for s in aligned if s.structure == ref_chain.structure][0]
+            # cull columns based on stretch-length criteria
+            stretch = []
+            culled = []
+            for col in full_cols:
+                if not stretch or stretch[-1]+1 == col:
+                    stretch.append(col)
+                    continue
+                if len(stretch) >= min_stretch:
+                    culled.extend(stretch)
+                stretch = [col]
+            if len(stretch) >= min_stretch:
+                culled.extend(stretch)
+            if min_stretch > 1:
+                session.logger.info("%d fully populated columns in at least %d column stetches"
+                    % (len(culled), min_stretch))
+            if len(culled) < 3:
+                session.logger.info("Fewer than 3 fully populated columns; stopping iteration")
+                break
+
+            # match
+            ref_atoms = Atoms(column_atoms(ref_seq, culled))
+            for seq in aligned:
+                if seq.structure == ref_seq.structure:
+                    continue
+                seq_atoms = Atoms(column_atoms(seq, culled))
+                session.logger.info("Matching %s onto %s" % (seq.name, ref_seq.name))
+                prev_aligned = aligned
+                aligned = [copy(chain) for chain in ordered]
+                for prev, cur in zip(prev_aligned, aligned):
+                    cur.name = prev.name
+                align.align(session, seq_atoms, ref_atoms)
+            match_to_align(session, aligned, dist_cutoff, column_criteria, gap_char, circular)
+            full_cols = fully_populated(aligned)
+            session.logger.info("Iteration %d: %d fully populated columns" % (iteration, len(full_cols)))
+            if len(full_cols) > len(best):
+                best = full_cols
+            else:
+                break
+            if iteration_limit and iteration >= iteration_limit:
+                break
+            iteration += 1
+
+    #TODO: lots
     alignment = session.alignments.new_alignment(aligned, ident,
         name="Match\N{RIGHTWARDS ARROW}Align", auto_associate=False, viewer=show_alignment)
-    #TODO: lots
     for orig, aligned in zip(ordered, aligned):
         alignment.associate(orig, seq=aligned)
     for hdr in alignment.headers:
@@ -69,6 +121,14 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
             else:
                 viewer.status("No fully populated columns in alignment", color="blue")
     return alignment
+
+def column_atoms(seq, columns):
+    seq_columns = [seq.gapped_to_ungapped(i) for i in columns]
+    num_residues = seq.num_residues
+    residues = seq.residues
+    if seq.circular:
+        return [r.principal_atom for r in [residues[i % num_residues] for i in seq_columns]]
+    return [r.principal_atom for r in [residues[i] for i in seq_columns]]
 
 def fully_populated(seqs):
     full_cols = []
