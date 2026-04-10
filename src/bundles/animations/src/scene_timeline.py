@@ -350,6 +350,7 @@ class TimelineSceneWidget(QWidget):
     scene_dropped = Signal(str, float)  # scene_name, time
     scene_moved = Signal(str, float, float)  # scene_name, old_time, new_time
     scene_deleted = Signal(str, float)  # scene_name, time (specific instance)
+    scene_transition_changed = Signal(float, dict)  # time, transition_data
     time_clicked = Signal(float)  # time position clicked
     action_added = Signal(float, float, str, dict)  # start, end, name, config
     action_removed = Signal(int)  # index
@@ -1312,9 +1313,9 @@ class TimelineSceneWidget(QWidget):
         marker = self._get_scene_marker_by_id(marker_id)
         if marker is not None:
             marker.transition_data["type"] = transition_type
-
-        # Update the scene animation manager
-        self._sync_to_scene_animation()
+            self.scene_transition_changed.emit(
+                marker.time, dict(marker.transition_data)
+            )
         self.update()
 
     def _set_scene_fade_models_by_id(self, marker_id, fade_models):
@@ -1322,9 +1323,9 @@ class TimelineSceneWidget(QWidget):
         marker = self._get_scene_marker_by_id(marker_id)
         if marker is not None:
             marker.transition_data["fade_models"] = fade_models
-
-        # Update the scene animation manager
-        self._sync_to_scene_animation()
+            self.scene_transition_changed.emit(
+                marker.time, dict(marker.transition_data)
+            )
         self.update()
 
     def _show_action_menu(self, segment_idx, global_pos):
@@ -1462,48 +1463,6 @@ class TimelineSceneWidget(QWidget):
             self.selected_action_segment = None
             self.update()
 
-    def _sync_to_scene_animation(self):
-        """Sync timeline data to scene animation manager"""
-        scene_timeline_widget = self._get_scene_timeline_widget()
-        if scene_timeline_widget:
-            controller = getattr(scene_timeline_widget, "controller", None)
-            scene_animation = getattr(controller, "scene_animation", None)
-            if scene_animation:
-                # Clear all scenes and re-add from our markers to ensure
-                # the animation model matches the timeline exactly
-                scene_animation.clear_all_scenes()
-                for marker in self.scene_markers:
-                    scene_animation.add_scene_at_time(
-                        marker.scene_name,
-                        marker.time,
-                        marker.transition_data.get("type", "linear"),
-                        marker.transition_data.get("fade_models", False),
-                        action=marker.transition_data.get("action", None),
-                    )
-                scene_animation.action_segments = list(self.action_segments)
-
-    def _get_scene_timeline_widget(self):
-        """Find the parent SceneTimelineWidget"""
-        # print(f"DEBUG: Looking for SceneTimelineWidget parent...")
-        parent = self.parent()
-        level = 0
-        while parent:
-            # print(f"DEBUG: Parent level {level}: {parent.__class__.__name__}")
-            if (
-                hasattr(parent, "__class__")
-                and "SceneTimelineWidget" in parent.__class__.__name__
-            ):
-                # print(f"DEBUG: Found SceneTimelineWidget at level {level}")
-                return parent
-            # Also check if this parent has scene_animation directly
-            if hasattr(parent, "scene_animation"):
-                # print(f"DEBUG: Found parent with scene_animation at level {level}: {parent.__class__.__name__}")
-                return parent
-            parent = parent.parent()
-            level += 1
-        # print(f"DEBUG: No suitable parent found")
-        return None
-
     def _draw_transition_curves(self, painter, width, height):
         """Draw visual curves showing transition types between scenes"""
         if len(self.scene_markers) < 2:
@@ -1617,6 +1576,7 @@ class SceneTimelineWidget(QWidget):
     scene_removed = Signal(str, float)  # scene_name, time
     scene_moved = Signal(str, float, float)  # scene_name, old_time, new_time
     scene_selected = Signal(str)  # scene_name
+    scene_transition_changed = Signal(float, dict)  # time, transition_data
     action_added = Signal(float, float, str, dict)  # start, end, name, config
     action_removed = Signal(int)  # index
     action_updated = Signal(int, float, float, str, dict)  # index, start, end, name, config
@@ -1665,6 +1625,9 @@ class SceneTimelineWidget(QWidget):
         self.timeline_scene.scene_dropped.connect(self.on_scene_dropped)
         self.timeline_scene.scene_moved.connect(self.on_scene_moved)
         self.timeline_scene.scene_deleted.connect(self.on_scene_deleted)
+        self.timeline_scene.scene_transition_changed.connect(
+            self.scene_transition_changed
+        )
         self.timeline_scene.time_clicked.connect(self.on_time_clicked)
         self.timeline_scene.action_added.connect(self.action_added)
         self.timeline_scene.action_removed.connect(self.action_removed)

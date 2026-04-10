@@ -224,6 +224,33 @@ class SceneAnimation(StateManager):
             #self.logger.warning(f"No scene found at time {time:.2f}s")
             return False
 
+    def move_scene_at_time(self, old_time: float, new_time: float):
+        """Move the scene entry at old_time to new_time, preserving its
+        scene name and transition data. Any existing entry at new_time is
+        replaced."""
+        entry = None
+        for t, s, td in self.scenes:
+            if t == old_time:
+                entry = (s, td)
+                break
+        if entry is None:
+            return False
+        self.scenes = [
+            (t, s, td) for t, s, td in self.scenes
+            if t != old_time and t != new_time
+        ]
+        self.scenes.append((new_time, entry[0], entry[1]))
+        self.scenes.sort(key=lambda x: x[0])
+        return True
+
+    def set_scene_transition(self, time: float, transition_data: dict):
+        """Replace the transition data for the scene entry at the given time."""
+        for i, (t, s, td) in enumerate(self.scenes):
+            if t == time:
+                self.scenes[i] = (t, s, dict(transition_data))
+                return True
+        return False
+
     def set_duration(self, duration: float):
         """Set the total duration of the animation"""
         if duration <= 0:
@@ -1023,10 +1050,9 @@ class SceneAnimation(StateManager):
         """Remove all scenes and action segments and notify listeners.
 
         This is the public entry point for the ``animations clear`` command.
-        It is distinct from ``clear_all_scenes`` because the latter is also
-        called from ``_sync_to_animation`` paths that immediately repopulate
-        the scene list; emitting ``timeline_cleared`` from there would wipe
-        the GUI mid-sync.
+        ``clear_all_scenes`` is the lower-level primitive used by
+        ``reset_state`` during session resets, where emitting a
+        ``timeline_cleared`` signal would be inappropriate.
         """
         self.clear_all_scenes()
         self.clear_action_segments()

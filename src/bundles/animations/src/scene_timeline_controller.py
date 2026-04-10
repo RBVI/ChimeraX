@@ -81,6 +81,7 @@ class SceneTimelineController:
         self.widget.scene_removed.connect(self._on_scene_removed)
         self.widget.scene_moved.connect(self._on_scene_moved)
         self.widget.scene_selected.connect(self._on_scene_selected)
+        self.widget.scene_transition_changed.connect(self._on_scene_transition_changed)
         self.widget.action_added.connect(self._on_action_added)
         self.widget.action_removed.connect(self._on_action_removed)
         self.widget.action_updated.connect(self._on_action_updated)
@@ -123,13 +124,16 @@ class SceneTimelineController:
 
     def _on_scene_moved(self, scene_name: str, old_time: float, new_time: float):
         """Handle scene marker moved on timeline."""
-        self.scene_animation.remove_scene_at_time(old_time)
-        self.scene_animation.add_scene_at_time(scene_name, new_time)
+        self.scene_animation.move_scene_at_time(old_time, new_time)
 
     def _on_scene_selected(self, scene_name: str):
         """Handle scene selection - restore the scene."""
         if self.session and self.session.scenes.get_scene(scene_name):
             self.session.scenes.restore_scene(scene_name)
+
+    def _on_scene_transition_changed(self, time: float, transition_data: dict):
+        """Handle transition type or fade-models change from the context menu."""
+        self.scene_animation.set_scene_transition(time, transition_data)
 
     def _on_action_added(self, start_time: float, end_time: float,
                          action_name: str, config: dict):
@@ -149,13 +153,11 @@ class SceneTimelineController:
 
     def _on_time_changed(self, time: float):
         """Handle time scrubber changes for preview."""
-        self._sync_to_animation()
         self.scene_animation.preview_at_time(time)
 
     def _on_play_requested(self):
         """Handle play button pressed."""
         current_time = self.widget.timeline_controls.current_time
-        self._sync_to_animation()
         self.scene_animation.play(start_time=current_time)
 
     def _on_pause_requested(self):
@@ -219,9 +221,7 @@ class SceneTimelineController:
         """Handle the animation timeline being cleared via command.
 
         Drops the widget-side scene markers and action segments so the
-        GUI matches the now-empty SceneAnimation state. Without this,
-        the next widget-driven sync would push the stale markers back
-        into the animation, effectively undoing the clear.
+        GUI matches the now-empty SceneAnimation state.
         """
         timeline_scene = self.widget.timeline_scene
         timeline_scene.scene_markers = []
@@ -237,26 +237,6 @@ class SceneTimelineController:
     # -------------------------------------------------------------------------
     # Helper methods
     # -------------------------------------------------------------------------
-
-    def _sync_to_animation(self):
-        """Sync scene markers from widget to animation.
-
-        Action segments are kept in sync via individual signals
-        (action_added, action_removed, action_updated), so only
-        scenes need the bulk rebuild here.
-        """
-        self.scene_animation.clear_all_scenes()
-
-        duration = self.widget.timeline_scene.duration
-        self.scene_animation.set_duration(duration)
-
-        for marker in self.widget.timeline_scene.scene_markers:
-            self.scene_animation.add_scene_at_time(
-                marker.scene_name,
-                marker.time,
-                marker.transition_data.get("type", "linear"),
-                marker.transition_data.get("fade_models", False),
-            )
 
     def _get_movie_save_path_and_options(self):
         """Get save path and recording options using dialog."""
