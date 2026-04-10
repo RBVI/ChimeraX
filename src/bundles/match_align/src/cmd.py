@@ -16,7 +16,7 @@ from chimerax.core.errors import UserError
 
 def make_alignment(session, chains, *, circular=defaults['circular'],
         column_criteria=defaults["column_criteria"], dist_cutoff=defaults["dist_cutoff"],
-        gap_char=defaults["gap_char"], iteration_limit=defaults['iteration_limit'],
+        gap_char=defaults["gap_char"], ident=None, iteration_limit=defaults['iteration_limit'],
         min_stretch=defaults['min_stretch'], ref_chain=None, show_alignment=True):
     if len(chains) < 2:
         raise UserError("Must specifiy at least two chains as basis for alignment")
@@ -27,28 +27,65 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
     if len(chains.structures.unique()) != len(chains):
         raise UserError("Specify only one chain per model")
 
+    cutoff_fmt = "%.1f" if int(dist_cutoff) == dist_cutoff else "%g"
+    cutoff_text = cutoff_fmt % dist_cutoff
+    session.logger.info("Match\N{RIGHTWARDS ARROW}Align cutoff: %s, in column if within cutoff of: %s"
+        % (cutoff_text, column_criteria))
+
     from .make_alignment import match_to_align
     # C++ layer cannot instantiate StructureSeqs, so send in copies that will be modified
     from copy import copy
     ordered = sorted(chains, key=lambda seq: seq.structure.id)
     aligned = [copy(chain) for chain in ordered]
-    print("sending in:")
     for aseq in aligned:
-        print("\t", aseq.name, aseq.characters)
+        aseq.name = aseq.structure.name + " chain " + aseq.chain_id
     match_to_align(session, aligned, dist_cutoff, column_criteria, gap_char, circular)
-    print("getting out:")
-    for aseq in aligned:
-        print("\t", aseq.name, aseq.characters)
+    full_cols = fully_populated(aligned)
+    session.logger.info("%d fully populated columns" % len(full_cols))
+    if ident is None:
+        id_num = 1
+        while True:
+            ident = "MA-%d" % id_num
+            for aln in session.alignments.alignments:
+                if aln.ident == ident:
+                    break
+            else:
+                # no conflicts
+                break
+            id_num += 1
+    alignment = session.alignments.new_alignment(aligned, ident,
+        name="Match\N{RIGHTWARDS ARROW}Align", auto_associate=False, viewer=show_alignment)
     #TODO: lots
-    alignment = session.alignments.new_alignment(aligned, "Match->Align", auto_associate=False,
-        viewer=show_alignment) # for testing
     for orig, aligned in zip(ordered, aligned):
         alignment.associate(orig, seq=aligned)
+    for hdr in alignment.headers:
+        if hdr.ident == "rmsd":
+            hdr.shown = True
+            break
+    for viewer in alignment.viewers:
+        if hasattr(viewer, 'new_region'):
+            if full_cols:
+                viewer.new_region(columns=full_cols, region_type="matched")
+            else:
+                viewer.status("No fully populated columns in alignment", color="blue")
     return alignment
+
+def fully_populated(seqs):
+    full_cols = []
+    seq_chars = [seq.characters for seq in seqs]
+    for col in range(len(seq_chars[0])):
+        for chars in seq_chars:
+            if not chars[col].isalpha():
+                # not fully populated
+                break
+        else:
+            # fully populated
+            full_cols.append(col)
+    return full_cols
 
 def register_command(cmd_name, logger):
     from chimerax.core.commands import CmdDesc, register, NonNegativeFloatArg, EnumOf, CharacterArg, \
-        BoolArg, Or, NoneArg, NonNegativeIntArg, PositiveIntArg
+        BoolArg, Or, NoneArg, NonNegativeIntArg, PositiveIntArg, StringArg
     from chimerax.atomic import UniqueChainsArg, ChainArg
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg)],
@@ -57,6 +94,7 @@ def register_command(cmd_name, logger):
             ('column_criteria', EnumOf(['any', 'all'])),
             ('dist_cutoff', NonNegativeFloatArg),
             ('gap_char', CharacterArg),
+            ('ident', StringArg),
             ('iteration_limit', Or(NonNegativeIntArg, NoneArg)),
             ('min_stretch', PositiveIntArg),
             ('ref_chain', ChainArg),
