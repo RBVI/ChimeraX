@@ -268,5 +268,20 @@ class SceneTimelineController:
         return None, None
 
     def cleanup(self):
-        """Clean up resources when the tool is closed."""
+        """Clean up resources when the tool is closed.
+
+        SceneAnimation is a session-level state manager that outlives the
+        tool, so its signal connections must be torn down explicitly.
+        Otherwise this controller (and its deleted Qt widgets) will keep
+        receiving callbacks after the tool is gone.
+        """
         self.scene_animation.stop_playing()
+        signals = self.scene_animation.signals
+        if signals is not None:
+            signals.time_changed.disconnect(self._on_animation_time_changed)
+            signals.duration_changed.disconnect(self._on_animation_duration_changed)
+            signals.playback_started.disconnect(self._on_animation_started)
+            signals.playback_stopped.disconnect(self._on_animation_stopped)
+            signals.recording_started.disconnect(self._on_recording_started)
+            signals.recording_stopped.disconnect(self._on_recording_stopped)
+            signals.timeline_cleared.disconnect(self._on_animation_timeline_cleared)
