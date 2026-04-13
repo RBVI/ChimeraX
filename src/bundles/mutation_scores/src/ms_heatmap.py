@@ -31,6 +31,7 @@ class MutationScoresHeatmap(ToolInstance):
 
     def __init__(self, session, tool_name = 'Mutation Scores Heatmap'):
 
+        self._include_residue_numbers = []	# If empty then include all residues in heatmap
         self._default_amino_acid_order = 'HRKDEFWYNQILCSTVMAGP'
         self._group_spacing = 1	# Number of blank pixels after each amino acid or score group
         self._last_hover_residues = None		# (Residues, res_colors, atom_colors)
@@ -133,8 +134,8 @@ class MutationScoresHeatmap(ToolInstance):
         self._heatmap_height = rgb.shape[0]
 
         # Add divider lines
-        divider_line_color = (0,0,0) if self._num_scores > 5 else (255,255,255)
         group_size = self._num_scores if self._grouping == 'amino acid' else self._num_amino_acids
+        divider_line_color = (0,0,0) if group_size > 5 else (255,255,255)
         row_step = group_size + self._group_spacing
         for i in range(group_size,rgb.shape[0],row_step):
             rgb[i:i+self._group_spacing,:,:] = divider_line_color
@@ -142,12 +143,12 @@ class MutationScoresHeatmap(ToolInstance):
         if self._gray_missing_structure_residues.enabled:
             mset = self._mutation_set
             if len(mset.associate_chains(self.session)) > 0:
-                res, rnums = mset.associated_residues(tuple(range(1, self._num_residues+1)))
+                res, rnums = mset.associated_residues()
                 struct_res_nums = set(rnums)
-                no_struct_res_nums = [r for r in range(1, self._num_residues+1) if not r in struct_res_nums]
+                no_struct_res_indices = [i for i,r in enumerate(self._residue_numbers) if not r in struct_res_nums]
                 gray_color = -self._grayout_color.color[:3] + 255
-                for r in no_struct_res_nums:
-                    rgb[:,r-1,:] = _shade_gray(rgb[:,r-1,:], gray_color)
+                for i in no_struct_res_indices:
+                    rgb[:,i,:] = _shade_gray(rgb[:,i,:], gray_color)
 
         pixels_per_cell = self._pixels_per_cell.value
         self._score_view.set_image(rgb, pixels_per_cell)
@@ -193,39 +194,49 @@ class MutationScoresHeatmap(ToolInstance):
     def _score_matrix(self):
         scores = None
         mset = self._mutation_set
-        self._num_scores = score_count = len(self._score_names)
+        self._num_scores = num_scores = len(self._score_names)
         aa_to_index = {aa:i for i, aa in enumerate(self._amino_acids)}
         self._num_amino_acids = num_aa = len(aa_to_index)
         self._res_aa = res_aa = {}
         subtract_fit = self._subtract_fit
         sub_score_values = mset.score_values(subtract_fit) if subtract_fit else None
+        aa_grouping = (self._grouping == 'amino acid')
+        group_spacing = 0 if (aa_grouping and num_scores == 1) or (not aa_grouping and num_aa == 1) else 1
+        self._group_spacing = group_spacing
         for snum, score_name in enumerate(self._score_names):
             score_values = mset.score_values(score_name)
             if sub_score_values:
                 score_values = score_values.subtract_fit(sub_score_values)
             if scores is None:
-                # TODO: This may not give maximum res number
-                res_nums = score_values.residue_numbers()
-                self._rmin, self._rmax = rmin, rmax = min(res_nums), max(res_nums)
-                self._num_residues = num_res = rmax-rmin+1
-                dims = ((num_aa, score_count + self._group_spacing)
-                        if self._grouping == 'amino acid' else
-                        (score_count, num_aa + self._group_spacing))
+                # TODO: Could one score have missing residues that another score includes?
+                res_nums = list(score_values.residue_numbers())
+                if self._include_residue_numbers:
+                    res_nums = [r for r in res_nums if r in self._include_residue_numbers]
+                res_nums.sort()
+                self._residue_numbers = res_nums
+                self._residue_number_to_heatmap_index = resnum_to_index = {r:i for i,r in enumerate(res_nums)}
+                num_res = len(res_nums)
+                dims = ((num_aa, num_scores + group_spacing)
+                        if aa_grouping else (num_scores, num_aa + group_spacing))
                 from numpy import zeros, float32
                 self._scores = scores = zeros((num_res,)+dims, float32)
-            sscores = scores[:,:,snum] if self._grouping == 'amino acid' else scores[:,snum,:]
+            sscores = scores[:,:,snum] if aa_grouping else scores[:,snum,:]
             for res_num, from_aa, to_aa, value in score_values.all_values():
-                res_aa[res_num] = from_aa
-                if to_aa in aa_to_index:
-                    aa_index = aa_to_index[to_aa]
-                    sscores[res_num-rmin, aa_index] = value
+                if res_num in resnum_to_index:
+                    res_aa[res_num] = from_aa
+                    if to_aa in aa_to_index:
+                        aa_index = aa_to_index[to_aa]
+                        r_index = resnum_to_index[res_num]
+                        sscores[r_index, aa_index] = value
             if self._normalize.enabled:
                 mean, sdev = score_values.synonymous_mean_and_sdev()
                 sscores -= mean
                 sscores /= sdev
 
         y_size = scores.shape[1]*scores.shape[2]
-        scores_2d = scores.reshape((num_res, y_size)).transpose()[:-1,:]
+        scores_2d = scores.reshape((num_res, y_size)).transpose()
+        if group_spacing > 0:
+            scores_2d = scores_2d[:-group_spacing,:]
         return scores_2d
 
     # ---------------------------------------------------------------------------
@@ -253,25 +264,26 @@ class MutationScoresHeatmap(ToolInstance):
         # Float column index ranges from 0-1 from left to right edge of first pixel.
         c, r = int(round(column_index-0.5)), int(round(row_index-0.5))
         res_num = from_aa = to_aa = score_name = score_value = None
-        num_cols = self._num_residues
         num_aa = len(self._amino_acids)
-        group_size = self._num_scores + self._group_spacing
+        num_scores = self._num_scores
         aa_grouping = (self._grouping == 'amino acid')
-        num_rows = num_aa * group_size
-        rmin = self._rmin
-        if c >= 0 and c < num_cols and r >= 0 and r < num_rows and c+rmin in self._res_aa:
-            res_num = c + rmin
+        group_size = (num_scores if aa_grouping else num_aa) + self._group_spacing
+        num_rows = (num_aa if aa_grouping else num_scores) * group_size
+        res_nums = self._residue_numbers
+        num_cols = len(res_nums)
+        if c >= 0 and c < num_cols and r >= 0 and r < num_rows:
+            res_num = res_nums[c]
             from_aa = self._res_aa[res_num]
             score_num = (r % group_size) if aa_grouping else (r // group_size)
-            if score_num < self._num_scores:
+            if score_num < num_scores:
                 score_name = self._score_names[score_num]
                 aa_index = (r // group_size) if aa_grouping else (r % group_size)
                 if aa_index < num_aa:
                     to_aa = self._amino_acids[aa_index]
                     if aa_grouping:
-                        score_value = self._scores[res_num-rmin, aa_index, score_num]
+                        score_value = self._scores[c, aa_index, score_num]
                     else:
-                        score_value = self._scores[res_num-rmin, score_num, aa_index]
+                        score_value = self._scores[c, score_num, aa_index]
         return res_num, from_aa, to_aa, score_name, score_value
         
     # ---------------------------------------------------------------------------
@@ -281,14 +293,15 @@ class MutationScoresHeatmap(ToolInstance):
             return
         if not self._have_structure:
             return
-        x1,y1 = xy1
-        x2,y2 = xy2
-        rmin, rmax = max(self._rmin,int(min(x1,x2))), min(self._rmax, int(max(x1,x2)))
-        if rmax < rmin:
+        i1,i2 = xy1[0],xy2[0]
+        all_res_nums = self._residue_numbers
+        isize = len(all_res_nums)
+        imin, imax = max(0, int(min(i1,i2))), min(isize-1, int(max(i1,i2)))
+        if imax < imin:
             return
         if not add:
             self._uncolor_dragbox_residues()
-        res_nums = tuple(range(rmin, rmax+1))
+        res_nums = tuple(all_res_nums[imin:imax+1])
         mset = self._mutation_set
         res, rnums = mset.associated_residues(res_nums)
         if len(res) > 0:
@@ -321,7 +334,7 @@ class MutationScoresHeatmap(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _save_image(self, default_suffix = '_heatmap.png'):
+    def _save_image(self, *, default_suffix = '_heatmap.png'):
         from os.path import dirname, join
         filename = self._mutation_set.name + default_suffix
         dir = dirname(self._mutation_set.path)
@@ -337,6 +350,9 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _make_residue_axis_labels(self, residue_step = None):
+        if self._label_every_residue.enabled:
+            self._make_every_residue_axis_labels()
+            return
         pixels_per_cell = self._pixels_per_cell.value
         if residue_step is None:
             if pixels_per_cell == 1:
@@ -347,14 +363,33 @@ class MutationScoresHeatmap(ToolInstance):
                 residue_step = 20
             else:
                 residue_step = 10
-        rmin, rmax = self._rmin, self._rmax
-        imin, imax = (rmin//residue_step) + 1, ((rmax-1)//residue_step)
-        rnums = [rmin] + [i*residue_step for i in range(imin, imax+1)] + [rmax]
-        for r in rnums: 
-            text = str(r)
-            t = self._score_view.scene.addText(text)
+        res_nums = self._residue_numbers
+        iranges = _contiguous_ranges(res_nums)
+        rpad = residue_step // 2
+        for imin, imax in iranges:
+            rmin, rmax = res_nums[imin], res_nums[imax]
+            smin, smax = ((rmin+rpad)//residue_step) + 1, (rmax-(rpad+1))//residue_step
+            rnums = [rmin] if rmax == rmin else [rmin] + [s*residue_step for s in range(smin, smax+1)] + [rmax]
+            for r in rnums: 
+                text = str(r)
+                t = self._score_view.scene.addText(text)
+                rect = t.boundingRect()
+                x = (r-rmin+imin+.5)*pixels_per_cell - rect.width()/2
+                y = self._heatmap_height * pixels_per_cell
+                t.setPos(x, y)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _make_every_residue_axis_labels(self):
+        scene = self._score_view.scene
+        pixels_per_cell = self._pixels_per_cell.value
+        for i,res_num in enumerate(self._residue_numbers):
+            from_aa = self._res_aa[res_num]
+            text = f'{from_aa}{res_num}'
+            t = scene.addText(text)
             rect = t.boundingRect()
-            x = (r-rmin+.5)*pixels_per_cell - rect.width()/2
+            t.setRotation(90)
+            x = (i+.5)*pixels_per_cell + rect.height()/2
             y = self._heatmap_height * pixels_per_cell
             t.setPos(x, y)
 
@@ -424,6 +459,11 @@ class MutationScoresHeatmap(ToolInstance):
         from chimerax.ui.widgets import radio_buttons
         radio_buttons(ga,gs)
         ga.changed.connect(self._draw_graphics)
+
+        # Residue axis labels
+        lr = EntriesRow(f, False, 'Label every residue')
+        self._label_every_residue = ler = lr.values[0]
+        ler.changed.connect(self._draw_graphics)
         
         # Zoom factor for heatmap
         zf = EntriesRow(f, 'Pixels per cell', 1)
@@ -462,7 +502,7 @@ class MutationScoresHeatmap(ToolInstance):
         menu.triggered.connect(self._subtract_fit_changed)
 
         # Highlight mutations with associated structure residues
-        hs = EntriesRow(f, True, 'Gray missing structure residues', ColorButton)
+        hs = EntriesRow(f, False, 'Gray missing structure residues', ColorButton)
         self._gray_missing_structure_residues, self._grayout_color = hs,gc = hs.values
         gc.color = (0.8,0.8,0.8,1.0)	# Gray
         hs.changed.connect(self._set_heatmap_image)
@@ -480,7 +520,15 @@ class MutationScoresHeatmap(ToolInstance):
         self._color_residue_on_hover, self._hover_color = e,c = hc.values
         c.color = (1.0,1.0,0,1.0)	# Yellow
         e.changed.connect(self._color_on_hover_changed)
-        
+
+        # Action buttons
+        from chimerax.ui.widgets import button_row
+        br = button_row(f,
+                       [('Show selected residues', self._show_only_selected_residues),
+                        ('All residues', self._show_all_residues),
+                        ('Save image', self._save_image)],
+                       spacing = 10)
+
         return p
 
     # ---------------------------------------------------------------------------
@@ -528,6 +576,26 @@ class MutationScoresHeatmap(ToolInstance):
     @property
     def _grouping(self):
         return 'amino acid' if self._group_amino_acid.enabled else 'score name'
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _show_only_selected_residues(self):
+        mset = self._mutation_set
+        mset.associate_chains(self.session)
+        res, rnums = mset.associated_residues()
+        sel_rnums = [rnum for r,rnum in zip(res,rnums) if r.selected]
+        if len(sel_rnums) == 0:
+            from chimerax.core.errors import UserError
+            raise UserError('No mutations for selected residues')
+        self._include_residue_numbers = set(sel_rnums)
+        self._draw_graphics()
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _show_all_residues(self):
+        if self._include_residue_numbers:
+            self._include_residue_numbers.clear()
+            self._draw_graphics()
 
     # ---------------------------------------------------------------------------
     #
@@ -641,7 +709,21 @@ class MutationScoresHeatmap(ToolInstance):
     def _show_help(self):
         from chimerax.core.commands import run
         run(self.session, 'help %s' % self.help)
-        
+
+# ---------------------------------------------------------------------------
+#
+def _contiguous_ranges(int_array):
+    ranges = []
+    vprev = None
+    istart = 0
+    for i,v in enumerate(int_array):
+        if vprev is not None and v != vprev+1:
+            ranges.append((istart,i-1))
+            istart = i
+        vprev = v
+    ranges.append((istart,i))
+    return ranges
+
 # ---------------------------------------------------------------------------
 #
 def _add_menu_toggle(menu, text, checked, callback):
@@ -717,13 +799,18 @@ class ScoreView(QGraphicsView):
             self._mouse_down = False
             self._drag(event)
             if self._rectangle_select_callback and self._down_xy:
-                corner1 = self._down_xy
-                corner2 = self._scene_position(event)
+                corner1 = self._scene_to_image(*self._down_xy)
+                up_xy = self._scene_position(event)
+                corner2 = self._scene_to_image(*up_xy)
                 self._rectangle_select_callback(corner1, corner2, add = self._shift_mod)
 
     def _scene_position(self, event):
         p = self.mapToScene(event.pos())
         return p.x(), p.y()
+
+    def _scene_to_image(self, scene_x, scene_y):
+        ip = self._pixmap_item.mapFromScene(scene_x, scene_y)
+        return ip.x(), ip.y()
 
     def _draw_drag_box(self, event):
         x1,y1 = self._down_xy
