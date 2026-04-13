@@ -18,6 +18,48 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
         column_criteria=defaults["column_criteria"], dist_cutoff=defaults["dist_cutoff"],
         gap_char=defaults["gap_char"], ident=None, iteration_limit=defaults['iteration_limit'],
         min_stretch=defaults['min_stretch'], ref_chain=None, show_alignment=True):
+    """Create a sequence alignment based on a 3D structure superposition
+
+       Returns the alignment, the overall RMSD, the Structural Distance Measure score (DOI:
+       10.1007/BF02102452), and the Q-score (DOI: 10.1107/S0907444904026460).  The last three values
+       only apply to fully populated columns, and will be None if there are no fully populated columns.
+
+       'chains' are the chains that should compose the alignment.
+
+       'circular' is whether to consider circular permutations of the chains.
+
+       'column_criteria' should be "all" or "any".  "any" means that residues will be put in the same
+       column is they are within 'dist_cutoff' of any other residue in that column.  "all" means
+       that residues in the same column must be within 'dist_cutoff' of all other residues in that
+       column.
+
+       'gap_char' is the character to use to fill in gaps in the computed alignment.
+
+       'ident' is the identifier to give to the computed alignment (for use in sequence-related
+       commands). If None, use a generated identifier of the form "MA-N" where N is a number that
+       does not conflict with any other alignments.
+
+       'iteration_limit' controls how many iterations to do to find the final alignment.  An iteration
+       takes the fully populated (i.e. no gap characters) columns from the previous alignment, superimposes
+       the structures using those columns, then recomputes an alignment.  Iteration stops when the
+       recomputed alignment has no more fully populated columns than the previous alignment, or if it has
+       less than three fully populated columns.  An iteration_limit that is a positive integer will do no
+       more than that many iterations.  An iteration_limit of zero does no iterations.  An iteration_limit
+       of None iterates until convergence.
+
+       'min_stretch' is the minimum number of consecutive fully populated columns needed for those columns
+       to be considered in the iteration calculation.  Effectively, fully populated columns that are not
+       in a stretch of at least this length are treated as not being fully populated for iteration
+       purposes.
+
+       'ref_chain' is the chain that superpositions go onto during the iteration process.  If None, then
+       the first chain in 'chains'.
+
+       'show_alignment' controls whether the computed alignment is displayed in a viewer.  Typically
+       always True unless being called from a computation-oriented script.
+    """
+    if circular:
+        raise NotImplementedError("Circular permuation support not yet implemented")
     if len(chains) < 2:
         raise UserError("Must specifiy at least two chains as basis for alignment")
     if ref_chain is None:
@@ -53,7 +95,7 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
                 # no conflicts
                 break
             id_num += 1
-    # iteration limt of None means until convergence
+    # iteration limit of None means until convergence
     if iteration_limit != 0:
         best = full_cols
         iteration = 1
@@ -120,8 +162,6 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
                 v = sqrt(numpy.sum(diff * diff) / len(coords[s1]))
                 dsq_sum += v * v
                 rmsd_matrix[(s1,s2)] = rmsd_matrix[(s2,s1)] = v
-        overall_rmsd = sqrt(2 * dsq_sum / (len(aligned) * (len(aligned)-1)))
-        session.logger.info("Overall RMSD: %.3f" % overall_rmsd)
         table_texts = []
         from chimerax.core.logger import html_table_params
         table_texts.append('<table %s>' % html_table_params)
@@ -144,8 +184,39 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
         table_texts.append(' </tbody>')
         table_texts.append('</table>')
         session.logger.info('\n'.join(table_texts), is_html=True)
+        overall_rmsd = sqrt(2 * dsq_sum / (len(aligned) * (len(aligned)-1)))
+        session.logger.info("Overall RMSD: %.3f" % overall_rmsd)
+        seq_lens = [len([r for r in seq.residues if r and r.principal_atom]) for seq in aligned]
+        session.logger.info("Sequence lengths: " + ' '.join(["%d" % sl for sl in seq_lens]))
+        num_aligned = len(full_cols)
 
-    #TODO: lots
+        # Compute/report SDM as per:
+        # 	Comparison of sequence-based and structure-based phylogenetic
+        #		trees of homologous proteins: Inferences on protein evolution
+        #	Balaji S, Srinivasan N.
+        #	J Biosci. 2007 Jan;32(1):83-96.
+        rel_rmsd = overall_rmsd / dist_cutoff
+        srms = 1.0 - rel_rmsd
+        pfte = num_aligned / min(seq_lens)
+        w1 = 1.0 - (pfte + srms) / 2.0
+        w2 = (pfte + srms) / 2.0
+        from math import log
+        sdm = -100.0 * log(w1*pfte + w2*srms)
+        session.logger.info("SDM (cutoff %s): %.3f" % (cutoff_text, sdm))
+
+        # compute/report Q score as per:
+        #	Secondary structure matching (SSM), a new tool for fast
+        #		protein structure alignment in three dimensions
+        #	Krissinel E, Henrick K.
+        #	Acta Crystallogr D Biol Crystallogr. 2004 Dec;
+        #		60(Pt 12 Pt 1):2256-68.
+        rel_rmsd = overall_rmsd / 3.0
+        seq_len_mul = 1.0
+        for seq_len in seq_lens:
+            seq_len_mul *= seq_len
+        q = (num_aligned ** len(aligned)) / ((1.0 + rel_rmsd * rel_rmsd) * seq_len_mul)
+        session.logger.info("Q-score: %.3f" % q)
+
     alignment = session.alignments.new_alignment(aligned, ident,
         name="Match\N{RIGHTWARDS ARROW}Align", auto_associate=False, viewer=show_alignment)
     for orig, aligned in zip(ordered, aligned):
@@ -160,7 +231,9 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
                 viewer.new_region(columns=full_cols, region_type="matched")
             else:
                 viewer.status("No fully populated columns in alignment", color="blue")
-    return alignment
+    if full_cols:
+        return alignment, overall_rmsd, sdm, q
+    return alignment, None, None, None
 
 def column_atoms(seq, columns):
     seq_columns = [seq.gapped_to_ungapped(i) for i in columns]
