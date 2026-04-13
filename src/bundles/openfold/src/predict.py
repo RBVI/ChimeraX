@@ -25,7 +25,7 @@
 def openfold_predict(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
                   protein = [], dna = [], rna = [],
                   ligand_ccd = [], ligand_smiles = [], for_each_smiles_ligand = [],
-                  name = None, samples = 1, seed = 42, results_directory = None,
+                  name = None, samples = 1, seeds = [42], results_directory = None,
                   device = None, precision = None,
                   use_server = False, server_host = None, server_port = None,
                   msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/OpenFoldMSA',
@@ -69,7 +69,7 @@ def openfold_predict(session, sequences = [], ligands = None, exclude_ligands = 
         predictions = _each_ligand_predictions(for_each_ligand, molecular_components, align_to)
             
     br = OpenFoldRun(session, predictions, name = name, run_directory = results_directory,
-                     samples = samples, seed = seed,
+                     samples = samples, seeds = seeds,
                      device = device, precision = precision,
                      use_server = use_server, server_host = server_host, server_port = server_port,
                      msa_only = msa_only, use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
@@ -425,7 +425,7 @@ class OpenFoldMolecule:
 #
 class OpenFoldRun:
     def __init__(self, session, structures, name = None, run_directory = None,
-                 samples = 1, seed = 42,
+                 samples = 1, seeds = [42],
                  device = 'default', precision = None,
                  use_server = False, server_host = None, server_port = None,
                  msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/OpenFoldMSA',
@@ -445,7 +445,7 @@ class OpenFoldRun:
         self._server_host = server_host # Host name, e.g. minsky.cgl.ucsf.edu
         self._server_port = server_port # Port number
         self._precision = precision	# "32-true", "bf16-mixed", "16-true", "bf16-true"
-        self._seed = seed		# Random seed for computation
+        self._seeds = seeds		# Random seeds for computation. Separate inference for each seed.
         self._open = open		# Whether to open predictions when openfold finishes.
 
         from os.path import abspath, isabs
@@ -734,8 +734,9 @@ class OpenFoldRun:
         if self._samples != 5:
             command.append(f'--num_diffusion_samples={self._samples}')
 
-        if self._seed is not None and self._seed != 42:
-            command.append(f'--seed={self._seed}')
+        if self._seeds != [42]:
+            seeds = ",".join(str(seed) for seed in self._seeds)
+            command.append(f'--seeds={seeds}')
 
         command.append(f'--device={self.device}')
 
@@ -914,7 +915,9 @@ class OpenFoldRun:
                 if self._open:
                     models = []
                     for p in self._predictions:
-                        mmcif_paths = [self._mmcif_path(p.name, i+1) for i in range(self._samples)]
+                        mmcif_paths = [self._mmcif_path(p.name, sample=i+1, seed=seed)
+                                       for seed in self._seeds
+                                       for i in range(self._samples)]
                         models.extend(p.open_predictions(self._session, mmcif_paths))
                     self._opened_predictions = models
             success = True
@@ -1010,7 +1013,7 @@ class OpenFoldRun:
     def _predicted_model_exists(self):
         from os.path import join, exists
         for prediction in self._predictions:
-            mmcif_path = self._mmcif_path(prediction.name)
+            mmcif_path = self._mmcif_path(prediction.name, seed=self._seeds[0])
             if exists(mmcif_path):
                 return True
             print ('did not find prediction at', mmcif_path)
@@ -1028,15 +1031,15 @@ class OpenFoldRun:
     def _prediction_ran_out_of_memory(self, stdout):
         return len(self._prediction_cif_files()) == 0 and 'ran out of memory' in stdout
 
-    def _mmcif_path(self, prediction_name, sample=1):
+    def _mmcif_path(self, prediction_name, sample=1, seed=42):
         from os.path import join
-        return join(self._run_directory, prediction_name, f'seed_{self._seed}',
-                    f'{prediction_name}_seed_{self._seed}_sample_{sample}_model.cif')
+        return join(self._run_directory, prediction_name, f'seed_{seed}',
+                    f'{prediction_name}_seed_{seed}_sample_{sample}_model.cif')
 
-    def _confidence_path(self, prediction_name, sample=1):
+    def _confidence_path(self, prediction_name, sample=1, seed=42):
         from os.path import join
-        return join(self._run_directory, prediction_name, f'seed_{self._seed}',
-                    f'{prediction_name}_seed_{self._seed}_sample_{sample}_confidences_aggregated.json')
+        return join(self._run_directory, prediction_name, f'seed_{seed}',
+                    f'{prediction_name}_seed_{seed}_sample_{sample}_confidences_aggregated.json')
 
     @property
     def _results_directory(self):
@@ -1048,7 +1051,9 @@ class OpenFoldRun:
     @property
     def _prediction_directories(self):
         from os.path import join
-        return [join(self._run_directory, p.name, f'seed_{self._seed}') for p in self._predictions]
+        return [join(self._run_directory, p.name, f'seed_{seed}')
+                for seed in self._seeds
+                for p in self._predictions]
 
     @property
     def _msa_directory(self):
@@ -1063,19 +1068,20 @@ class OpenFoldRun:
     def _report_confidence(self, prediction):
         from os.path import join, exists
         lines = []
-        for sample in range(self._samples):
-            conf_path = self._confidence_path(prediction.name, sample+1)
-            results = _read_json(conf_path)
-            if not results:
-                continue
-            ptm = results.get('ptm', -1)
-            iptm = results.get('iptm', -1)
-            iptm_text = f'ipTM {"%.2f" % iptm}' if iptm != 0 else ''
-            plddt = results.get('avg_plddt', -1)
-            parts = [f'Confidence pTM {"%.2f" % ptm}',
-                     iptm_text,
-                     f'pLDDT {"%.0f" % plddt}']
-            lines.append(', '.join(parts))
+        for seed in self._seeds:
+            for sample in range(self._samples):
+                conf_path = self._confidence_path(prediction.name, sample=sample+1, seed=seed)
+                results = _read_json(conf_path)
+                if not results:
+                    continue
+                ptm = results.get('ptm', -1)
+                iptm = results.get('iptm', -1)
+                iptm_text = f'ipTM {"%.2f" % iptm}' if iptm != 0 else ''
+                plddt = results.get('avg_plddt', -1)
+                parts = [f'Confidence pTM {"%.2f" % ptm}',
+                         iptm_text,
+                         f'pLDDT {"%.0f" % plddt}']
+                lines.append(', '.join(parts))
         if lines:
             self._session.logger.info('<br>'.join(lines), is_html = True)
 
@@ -1555,7 +1561,7 @@ class RepeatSequencesArg(Annotation):
 # ------------------------------------------------------------------------------
 #
 def register_openfold_predict_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, SaveFolderNameArg, BoolArg, EnumOf, IntArg, OpenFolderNameArg
+    from chimerax.core.commands import CmdDesc, register, StringArg, SaveFolderNameArg, BoolArg, EnumOf, IntArg, IntsArg, OpenFolderNameArg
     from chimerax.atomic import SequencesArg, ResiduesArg, ChainArg
 
     desc = CmdDesc(
@@ -1570,7 +1576,7 @@ def register_openfold_predict_command(logger):
                    ('for_each_smiles_ligand', NamedLigandsArg),
                    ('name', StringArg),
                    ('samples', IntArg),
-                   ('seed', IntArg),
+                   ('seeds', IntsArg),
                    ('results_directory', SaveFolderNameArg),
                    ('device', EnumOf(['default', 'cpu', 'gpu'])),
                    ('precision', EnumOf(['32-true', 'bf16-mixed', '16-true', 'bf16-true'])),
