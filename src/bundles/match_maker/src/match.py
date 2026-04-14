@@ -662,8 +662,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 by_viewer.setdefault(viewer, []).append(index)
             for viewer, indices in by_viewer.items():
                 indices.sort()
-                name, fill, outline = viewer.MATCHED_REGION_INFO
-                viewer.new_region(name=name, columns=indices, fill=fill, outline=outline)
+                viewer.new_region(columns=indices, region_type="matched")
                 viewer.status("Residues used in final fit iteration are highlighted")
         if verbose:
             for s1, s2 in seq_pairings:

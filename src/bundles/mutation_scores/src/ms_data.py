@@ -172,13 +172,13 @@ class MutationSet(State):
     def _remove_deleted_residues(self):
         self._associated_residues = [(rnum, r) for rnum, r in self._associated_residues if not r.deleted]
 
-    def associated_residues(self, res_nums):
+    def associated_residues(self, res_nums = None):
         rlist = []
         rnums = []
-        res_nums_set = set(res_nums)
+        res_nums_set = set(res_nums) if res_nums is not None else None
         deleted = False
         for rnum, r in self._associated_residues:
-            if rnum in res_nums_set:
+            if res_nums is None or rnum in res_nums_set:
                 if r.deleted:
                     deleted = True
                 else:
@@ -323,6 +323,10 @@ class ScoreValues(State):
         from numpy import mean, std
         return mean(values), std(values)
 
+    def subtract_fit(self, score_values):
+        values = subtract_fit_values(self.all_values(), score_values.all_values())
+        return ScoreValues(values)
+    
     def take_snapshot(self, session, flags):
         return {'mutation_values': self._mutation_values,
                 'per_residue': self.per_residue,
@@ -332,6 +336,23 @@ class ScoreValues(State):
     def restore_snapshot(cls, session, data):
         sv = cls(data['mutation_values'], per_residue = data['per_residue'])
         return sv
+
+def subtract_fit_values(cvalues, svalues):
+    smap = {(res_num,from_aa,to_aa):value for res_num, from_aa, to_aa, value in svalues}
+    x = []
+    y = []
+    for res_num, from_aa, to_aa, value in cvalues:
+        svalue = smap.get((res_num,from_aa,to_aa))
+        if svalue is not None:
+            x.append(svalue)
+            y.append(value)
+    from numpy import polyfit
+    degree = 1
+    m,b = polyfit(x, y, degree)
+    sfvalues = [(res_num, from_aa, to_aa, value - (m*smap[(res_num,from_aa,to_aa)] + b))
+                for res_num, from_aa, to_aa, value in cvalues
+                if (res_num,from_aa,to_aa) in smap]
+    return sfvalues
 
 from chimerax.core.state import StateManager  # For session saving
 class MutationScoresManager(StateManager):

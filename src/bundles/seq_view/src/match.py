@@ -169,9 +169,7 @@ class MatchDialog:
                 collate(aseq, aseq_indices, region_indices, seqs, region_blocks)
             if not region_blocks:
                 self.sv.sesson.logger.warn("No matching occurred; not creating 'match' region")
-            reg_name, fill, outline = self.sv.MATCHED_REGION_INFO
-            reg = self.sv.region_manager.get_region(reg_name, fill=fill, outline=outline, create=True,
-                cover_gaps=True)
+            reg = self.sv.region_manager.get_region(region_type="matched", create=True, cover_gaps=True)
             reg.clear()
             reg.add_blocks(region_blocks)
 

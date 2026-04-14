@@ -713,7 +713,11 @@ class RegionManager:
                     DEL_ASSOC, self._delAssocCB, None)
     """
 
-    def get_region(self, name, sequence=False, **kw):
+    def get_region(self, name=None, sequence=False, region_type=None, **kw):
+        if name is None:
+            if region_type is None:
+                raise ValueError("Must specify either 'name' or 'region_type' to get_region()")
+            name, *ignore = self._region_info_for_type(region_type)
         try:
             create = kw['create']
             del kw['create']
@@ -732,7 +736,7 @@ class RegionManager:
             kw['sequence'] = sequence
         if 'cover_gaps' not in kw:
             kw['cover_gaps'] = False
-        return self.new_region(name=name, **kw)
+        return self.new_region(name=name, region_type=region_type, **kw)
 
     def highlight(self, region, select_on_structures=True):
         if self._highlighted_region:
@@ -897,8 +901,12 @@ class RegionManager:
 
     def new_region(self, name=None, blocks=[], fill=None, outline=None,
             name_prefix="", select=False, assoc_with=None, cover_gaps=True,
-            after="ChimeraX selection", rebuild_table=True,
+            after="ChimeraX selection", rebuild_table=True, region_type=None,
             session_restore=False, sequence=None, **kw):
+        if region_type is not None:
+            name, fill, outline = self._region_info_for_type(region_type)
+        elif region_type is not None:
+            self.seq_canvas.sv.status("Unknown region type '%s'" % region_type, color="orange")
         if not name and not name_prefix:
             # possibly first user-dragged region
             for reg in self.regions:
@@ -1697,6 +1705,11 @@ class RegionManager:
             self._drag_region = None
         if region == self._highlighted_region:
             self._highlighted_region = None
+
+    def _region_info_for_type(self, region_type):
+        if region_type == "matched":
+            return self.seq_canvas.sv.MATCHED_REGION_INFO
+        raise ValueError("Unknown region type '%s'" % region_type)
 
     def _regionResiduesCB(self, event):
         region = self._region(event)

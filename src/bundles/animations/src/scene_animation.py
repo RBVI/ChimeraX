@@ -99,10 +99,12 @@ class SceneAnimationSignals(QObject):
     """Signal emitter for SceneAnimation to avoid metaclass conflicts"""
 
     time_changed = pyqtSignal(float)  # Current playback time
+    duration_changed = pyqtSignal(float)  # Animation duration changed
     playback_started = pyqtSignal()
     playback_stopped = pyqtSignal()
     recording_started = pyqtSignal()
     recording_stopped = pyqtSignal()
+    timeline_cleared = pyqtSignal()  # Scenes and actions cleared by command
 
 
 class SceneAnimation(StateManager):
@@ -122,9 +124,6 @@ class SceneAnimation(StateManager):
         self.session = session
         self.logger = session.logger
 
-        # Create signals object for Qt communication
-        self.signals = SceneAnimationSignals()
-
         # Animation state
         self.duration = self.DEFAULT_DURATION
         self.scenes = []  # List of (time, scene_name, transition_data) tuples
@@ -134,12 +133,20 @@ class SceneAnimation(StateManager):
         self.is_playing = False
         self.is_recording = False
 
-        # Playback (use QTimer like keyframe system for consistency)
-        self.fps = fps  # Match keyframe system FPS
-        self.playback_timer = QTimer()
-        self.playback_timer.timeout.connect(self._advance_playback)
+        # Playback state
+        self.fps = fps
         self.start_time = 0.0
         self.reverse = False
+
+        # Qt objects are only available in GUI mode
+        self._is_gui = hasattr(session, 'ui') and session.ui.is_gui
+        if self._is_gui:
+            self.signals = SceneAnimationSignals()
+            self.playback_timer = QTimer()
+            self.playback_timer.timeout.connect(self._advance_playback)
+        else:
+            self.signals = None
+            self.playback_timer = None
 
         # Legacy support for recording
         self._call_for_n_frames = None
@@ -217,6 +224,33 @@ class SceneAnimation(StateManager):
             #self.logger.warning(f"No scene found at time {time:.2f}s")
             return False
 
+    def move_scene_at_time(self, old_time: float, new_time: float):
+        """Move the scene entry at old_time to new_time, preserving its
+        scene name and transition data. Any existing entry at new_time is
+        replaced."""
+        entry = None
+        for t, s, td in self.scenes:
+            if t == old_time:
+                entry = (s, td)
+                break
+        if entry is None:
+            return False
+        self.scenes = [
+            (t, s, td) for t, s, td in self.scenes
+            if t != old_time and t != new_time
+        ]
+        self.scenes.append((new_time, entry[0], entry[1]))
+        self.scenes.sort(key=lambda x: x[0])
+        return True
+
+    def set_scene_transition(self, time: float, transition_data: dict):
+        """Replace the transition data for the scene entry at the given time."""
+        for i, (t, s, td) in enumerate(self.scenes):
+            if t == time:
+                self.scenes[i] = (t, s, dict(transition_data))
+                return True
+        return False
+
     def set_duration(self, duration: float):
         """Set the total duration of the animation"""
         if duration <= 0:
@@ -228,7 +262,8 @@ class SceneAnimation(StateManager):
         # Remove any scenes beyond the new duration
         self.scenes = [(t, s, td) for t, s, td in self.scenes if t <= duration]
 
-        #self.logger.info(f"Set animation duration to {duration:.2f}s")
+        if self.signals:
+            self.signals.duration_changed.emit(duration)
         return True
 
     def get_effective_end_time(self):
@@ -287,6 +322,12 @@ class SceneAnimation(StateManager):
         self._apply_action_segments(time)
         self._last_active_action_segment = active_action_segment
 
+        # Notify the UI so the playhead tracks the previewed time.
+        # Skip during playback — _advance_playback emits time_changed itself,
+        # and re-emitting here would create a signal loop.
+        if self.signals and not self.is_playing:
+            self.signals.time_changed.emit(time)
+
         # Only log occasionally to avoid spam during playback
         if hasattr(self, "_last_log_time"):
             if time - self._last_log_time > 5.0:  # Log even less frequently
@@ -318,7 +359,8 @@ class SceneAnimation(StateManager):
         self.reverse = reverse
 
         # Emit playback started signal
-        self.signals.playback_started.emit()
+        if self.signals:
+            self.signals.playback_started.emit()
 
         if self.is_recording:
             # When recording, don't use timer - advance only after frames are captured
@@ -333,7 +375,8 @@ class SceneAnimation(StateManager):
             # Normal playback timing
             interval = int(1000 / self.fps)
             self.logger.status("Playing animation...")
-            self.playback_timer.start(interval)
+            if self.playback_timer:
+                self.playback_timer.start(interval)
 
     def _advance_playback(self):
         """Advance animation by one frame (called by QTimer)"""
@@ -366,7 +409,8 @@ class SceneAnimation(StateManager):
         # This will be handled by the frame_drawn trigger in the recording mode
 
         # Emit time change signal for UI updates
-        self.signals.time_changed.emit(next_time)
+        if self.signals:
+            self.signals.time_changed.emit(next_time)
 
     def _setup_recording_sync(self):
         """Set up frame capture synchronization for recording"""
@@ -407,7 +451,8 @@ class SceneAnimation(StateManager):
         self._expected_frame_count += 1
 
         # Emit time change signal for UI updates
-        self.signals.time_changed.emit(next_time)
+        if self.signals:
+            self.signals.time_changed.emit(next_time)
 
         # Wait for the frame to be captured, then advance to next frame
         self._wait_for_frame_capture()
@@ -454,7 +499,8 @@ class SceneAnimation(StateManager):
     def stop_playing(self):
         """Stop playback"""
         # Stop QTimer
-        self.playback_timer.stop()
+        if self.playback_timer:
+            self.playback_timer.stop()
 
         # Legacy support
         if self._call_for_n_frames:
@@ -468,13 +514,14 @@ class SceneAnimation(StateManager):
             self._finish_recording()
 
         # Emit playback stopped signal
-        self.signals.playback_stopped.emit()
+        if self.signals:
+            self.signals.playback_stopped.emit()
         #self.logger.status("Stopped animation")
 
     def set_fps(self, fps: int):
         """Update FPS and restart timer if playing"""
         self.fps = fps
-        if self.is_playing:
+        if self.is_playing and self.playback_timer:
             # Restart timer with new interval
             interval = int(1000 / self.fps)
             self.playback_timer.start(interval)
@@ -538,7 +585,8 @@ class SceneAnimation(StateManager):
             self._expected_frame_count = 0  # Track expected frames during recording
 
             # Emit recording started signal
-            self.signals.recording_started.emit()
+            if self.signals:
+                self.signals.recording_started.emit()
 
             # Play the animation (this will generate frames)
             self.play()
@@ -598,7 +646,8 @@ class SceneAnimation(StateManager):
             self.is_recording = False
             self._record_data = None
             # Emit recording stopped signal
-            self.signals.recording_stopped.emit()
+            if self.signals:
+                self.signals.recording_stopped.emit()
 
     def _get_interpolation_at_time(self, time: float) -> Tuple[str, str, float]:
         """Get interpolation parameters for a specific time with easing"""
@@ -996,7 +1045,44 @@ class SceneAnimation(StateManager):
     def clear_all_scenes(self):
         """Remove all scenes from the animation"""
         self.scenes = []
-        #self.logger.info("Cleared all scenes from animation")
+
+    def clear_timeline(self):
+        """Remove all scenes and action segments and notify listeners.
+
+        This is the public entry point for the ``animations clear`` command.
+        ``clear_all_scenes`` is the lower-level primitive used by
+        ``reset_state`` during session resets, where emitting a
+        ``timeline_cleared`` signal would be inappropriate.
+        """
+        self.clear_all_scenes()
+        self.clear_action_segments()
+        if self.signals:
+            self.signals.timeline_cleared.emit()
+
+    # ------------------------------------------------------------------
+    # Action segment management
+    # ------------------------------------------------------------------
+
+    def add_action_segment(self, start_time, end_time, action_name, config=None):
+        """Add an action segment to the animation."""
+        if config is None:
+            config = ACTION_DEFAULTS.get(action_name, {}).copy()
+        self.action_segments.append((start_time, end_time, action_name, config))
+        self.action_segments.sort(key=lambda x: x[0])
+
+    def remove_action_segment(self, index):
+        """Remove an action segment by index."""
+        if 0 <= index < len(self.action_segments):
+            del self.action_segments[index]
+
+    def update_action_segment(self, index, start_time, end_time, action_name, config):
+        """Replace an action segment at the given index."""
+        if 0 <= index < len(self.action_segments):
+            self.action_segments[index] = (start_time, end_time, action_name, config)
+
+    def clear_action_segments(self):
+        """Remove all action segments from the animation."""
+        self.action_segments = []
 
     def take_snapshot(self, session, flags):
         """Save state for session snapshots"""
@@ -1009,9 +1095,13 @@ class SceneAnimation(StateManager):
         }
 
     def restore_from_data(self, data):
-        """Restore state from snapshot data"""
+        """Restore state from snapshot data.
+
+        Scene validation is deferred because the SceneManager may not have
+        restored its scenes yet when this method runs during session restore.
+        Call validate_scenes() after the full session has been restored.
+        """
         if data.get("version", 0) != self.version:
-            #self.logger.warning(f"Version mismatch in animation data")
             return
 
         self.duration = data.get("duration", self.DEFAULT_DURATION)
@@ -1019,17 +1109,16 @@ class SceneAnimation(StateManager):
         self.action_segments = data.get("action_segments", [])
         self.current_time = data.get("current_time", 0.0)
 
-        # Validate that all scenes still exist
+    def validate_scenes(self):
+        """Remove any scenes whose backing Scene no longer exists.
+
+        Should be called after the full session has been restored so
+        that session.scenes is fully populated.
+        """
         valid_scenes = []
         for time, scene_name, transition_data in self.scenes:
             if self.session.scenes.get_scene(scene_name):
                 valid_scenes.append((time, scene_name, transition_data))
-            else:
-                pass
-                #self.logger.warning(
-                #    f"Scene '{scene_name}' no longer exists, removing from animation"
-                #)
-
         self.scenes = valid_scenes
 
     @staticmethod

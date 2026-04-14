@@ -210,7 +210,7 @@ class Alignment(State):
         self.observers.append(observer)
 
     def associate(self, models, seq=None, force=True, min_length=10, reassoc=False,
-            keep_intrinsic=False):
+            keep_intrinsic=False, silent=False):
         """associate models with sequences
 
            'models' is normally a list of AtomicStructures, but it can be a Chain or None.
@@ -299,8 +299,9 @@ class Alignment(State):
                         gaps = " %sor gap%s" % (s2, s3)
                     else:
                         gaps = ""
-                    status("Associated %s %s to %s with %d mismatch%s%s" % (struct_name,
-                        sseq.name, best_match_map.align_seq.name, best_errors, s1, gaps), log=True)
+                    if not silent:
+                        status("Associated %s %s to %s with %d mismatch%s%s" % (struct_name,
+                            sseq.name, best_match_map.align_seq.name, best_errors, s1, gaps), log=True)
                 self.prematched_assoc_structure(best_match_map, best_errors, reassoc)
                 new_match_maps.append(best_match_map)
                 nonlocal associated
@@ -390,15 +391,16 @@ class Alignment(State):
                 for sseq in sseqs:
                     # aseqs are already sorted by length...
                     for aseq in aseqs:
-                        status("Using Needleman-Wunsch to test-associate"
-                            " %s %s with %s\n" % (struct_name, sseq.name, aseq.name))
+                        if not silent:
+                            status("Using Needleman-Wunsch to test-associate"
+                                " %s %s with %s\n" % (struct_name, sseq.name, aseq.name))
                         match_map, errors = nw_assoc(self.session, aseq, sseq)
                         if best_errors is None or errors < best_errors:
                             best_match_map = match_map
                             best_errors = errors
                 if best_match_map:
                     do_assoc(add_gaps=True)
-                else:
+                elif not silent:
                     status("No reasonable association found for %s %s" % (struct_name, sseq.name))
 
         if new_match_maps:

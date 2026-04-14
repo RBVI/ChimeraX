@@ -1065,11 +1065,12 @@ def picked_3d_label(session, win_x, win_y):
     pick = None
     from chimerax.core.models import PickedModel
     for m in session.models.list(type = ObjectLabels):
-        mtf = m.parent.scene_position.inverse()
-        mxyz1, mxyz2 =  mtf*xyz1, mtf*xyz2
-        p = m.first_intercept(mxyz1, mxyz2)
-        if isinstance(p, PickedModel) and (pick is None or p.distance < pick.distance):
-            pick = p
+        if m.parents_displayed:
+            mtf = m.parent.scene_position.inverse()
+            mxyz1, mxyz2 =  mtf*xyz1, mtf*xyz2
+            p = m.first_intercept(mxyz1, mxyz2)
+            if isinstance(p, PickedModel) and (pick is None or p.distance < pick.distance):
+                pick = p
 
     if pick:
         # Return ObjectLabel instance
