@@ -207,6 +207,7 @@ class MutationScoresHeatmap(ToolInstance):
         aa_grouping = (self._grouping == 'amino acid')
         group_spacing = 0 if (aa_grouping and num_scores == 1) or (not aa_grouping and num_aa == 1) else 1
         self._group_spacing = group_spacing
+        cant_normalize = []
         for snum, score_name in enumerate(self._score_names):
             score_values = mset.score_values(score_name)
             if sub_score_values:
@@ -234,8 +235,24 @@ class MutationScoresHeatmap(ToolInstance):
                         sscores[r_index, aa_index] = value
             if self._normalize.enabled:
                 mean, sdev = score_values.synonymous_mean_and_sdev()
-                sscores -= mean
-                sscores /= sdev
+                if mean is None or sdev is None or sdev == 0:
+                    cant_normalize.append((score_name, sdev))
+                else:
+                    sscores -= mean
+                    sscores /= sdev
+
+        if cant_normalize:
+            score_names = ', '.join(score_name for score_name, sdev in cant_normalize)
+            sdevs = [sdev for score_name, sdev in cant_normalize]
+            if None in sdevs and 0 in sdevs:
+                reason = 'there are none or standard deviation is 0'
+            elif None in sdevs:
+                reason = 'there are none'
+            else:
+                reason = 'standard deviation is 0'
+            self.session.logger.error(f'Cannot normalize {score_names} by synonymous mutation values since {reason}.  Heatmap normalization has been turned off.')
+            self._normalize.enabled = False
+            return self._score_matrix()
 
         y_size = scores.shape[1]*scores.shape[2]
         scores_2d = scores.reshape((num_res, y_size)).transpose()
