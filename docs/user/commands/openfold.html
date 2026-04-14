@@ -127,7 +127,7 @@ with CUDA 12.6 support is installed before openfold.
 [&nbsp;<b>device</b>&nbsp;&nbsp;<b>default</b>&nbsp;|&nbsp;cpu&nbsp;|&nbsp;gpu&nbsp;]
 [&nbsp;<b>precision</b>&nbsp;&nbsp;32-true&nbsp;|&nbsp;16-true&nbsp;|&nbsp;bf16-true&nbsp;|&nbsp;bf16-mixed&nbsp;]
 [&nbsp;<b>samples</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
-[&nbsp;<b>seed</b>&nbsp;&nbsp;<i>K</i>&nbsp;]
+[&nbsp;<b>seeds</b>&nbsp;&nbsp;<i>seed-list</i>&nbsp;]
 [&nbsp;<b>useMsaCache</b>&nbsp;&nbsp;<b>true</b>&nbsp;&nbsp;false&nbsp;]
 [&nbsp;<b>msaOnly</b>&nbsp;&nbsp;true&nbsp;&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>open</b>&nbsp;&nbsp;<b>true</b>&nbsp;&nbsp;false&nbsp;]
@@ -232,10 +232,11 @@ otherwise <b>32-true</b>.
 &ndash; number of predictions (default <b>1</b>). This is what OpenFold calls 
 "diffusion samples." Creating additional structures takes much less time 
 than creating the first structure.
-</li><li><b>seed</b>&nbsp;&nbsp;<i>K</i>
+</li><li><b>seeds</b>&nbsp;&nbsp;<i>seed-list</i>
 <br>
-&ndash; random number seed (an integer) to initialize the calculation.
-Runs with different seeds will give different results.
+&ndash; provide a comma-separated list of one or more random-number seeds 
+(integers) to initialize the calculation. A prediction will be made with
+each seed. The default seed is <b>42</b>.
 </li><li><b>useMsaCache</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 &ndash; whether to cache (and potentially reuse) the deep sequence alignments 
@@ -434,6 +435,6 @@ server process and force quit from it.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-February 2026</address>
+April 2026</address>
 
 </body></html>
