@@ -132,9 +132,9 @@ class MutationScoresHeatmap(ToolInstance):
     def _set_heatmap_image(self):
         if self._mutation_set is None:
             return
-        score_matrix = self._score_matrix()
+        score_matrix, missing = self._score_matrix()
         colormap = self._colormap()
-        rgb = matrix_to_rgb(score_matrix, colormap)
+        rgb = matrix_to_rgb(score_matrix, missing, colormap)
         self._heatmap_height = rgb.shape[0]
 
         # Add divider lines
@@ -221,11 +221,13 @@ class MutationScoresHeatmap(ToolInstance):
                 self._residue_numbers = res_nums
                 self._residue_number_to_heatmap_index = resnum_to_index = {r:i for i,r in enumerate(res_nums)}
                 num_res = len(res_nums)
-                dims = ((num_aa, num_scores + group_spacing)
-                        if aa_grouping else (num_scores, num_aa + group_spacing))
-                from numpy import zeros, float32
-                self._scores = scores = zeros((num_res,)+dims, float32)
+                dims = ((num_res, num_aa, num_scores + group_spacing)
+                        if aa_grouping else (num_res, num_scores, num_aa + group_spacing))
+                from numpy import zeros, ones, float32
+                self._scores = scores = zeros(dims, float32)
+                self._missing_scores = missing_scores = ones(dims, bool)
             sscores = scores[:,:,snum] if aa_grouping else scores[:,snum,:]
+            smissing = missing_scores[:,:,snum] if aa_grouping else missing_scores[:,snum,:]
             for res_num, from_aa, to_aa, value in score_values.all_values():
                 if res_num in resnum_to_index:
                     res_aa[res_num] = from_aa
@@ -233,6 +235,7 @@ class MutationScoresHeatmap(ToolInstance):
                         aa_index = aa_to_index[to_aa]
                         r_index = resnum_to_index[res_num]
                         sscores[r_index, aa_index] = value
+                        smissing[r_index, aa_index] = False
             if self._normalize.enabled:
                 mean, sdev = score_values.synonymous_mean_and_sdev()
                 if mean is None or sdev is None or sdev == 0:
@@ -256,18 +259,21 @@ class MutationScoresHeatmap(ToolInstance):
 
         y_size = scores.shape[1]*scores.shape[2]
         scores_2d = scores.reshape((num_res, y_size)).transpose()
+        missing_2d = missing_scores.reshape((num_res, y_size)).transpose()
         if group_spacing > 0:
             scores_2d = scores_2d[:-group_spacing,:]
-        return scores_2d
+            missing_2d = missing_2d[:-group_spacing,:]
+        return scores_2d, missing_2d
 
     # ---------------------------------------------------------------------------
     #
     def _report_cell_info(self, column_index, row_index):
         res_num, from_aa, to_aa, score_name, score_value = self._cell_info(column_index, row_index)
-        if score_value is None:
+        if res_num is None or from_aa is None or score_name is None or to_aa is None:
             msg = ''
         else:
-            msg = f'{from_aa}{res_num}{to_aa} {score_name} {"%.2f"%score_value}'
+            value = 'missing' if score_value is None else ('%.2f' % score_value)
+            msg = f'{from_aa}{res_num}{to_aa} {score_name} {value}'
         self._info_label.setText(msg)
 
         if res_num is not None and self._color_residue_on_hover.enabled and self._have_structure:
@@ -302,9 +308,11 @@ class MutationScoresHeatmap(ToolInstance):
                 if aa_index < num_aa:
                     to_aa = self._amino_acids[aa_index]
                     if aa_grouping:
-                        score_value = self._scores[c, aa_index, score_num]
+                        missing = self._missing_scores[c, aa_index, score_num]
+                        score_value = None if missing else self._scores[c, aa_index, score_num]
                     else:
-                        score_value = self._scores[c, score_num, aa_index]
+                        missing = self._missing_scores[c, score_num, aa_index]
+                        score_value = None if missing else self._scores[c, score_num, aa_index]
         return res_num, from_aa, to_aa, score_name, score_value
         
     # ---------------------------------------------------------------------------
@@ -504,7 +512,11 @@ class MutationScoresHeatmap(ToolInstance):
             cv.return_pressed.connect(self._changed_colormap)
         for cc in (c1,c2,c3):
             cc.color_changed.connect(self._changed_colormap)
-
+        nv = EntriesRow(f, 'No value color', ColorButton)
+        self._missing_value_color = nvc = nv.values[0]
+        nvc.color = 'black'
+        nvc.color_changed.connect(self._changed_colormap)
+        
         # Normalize scores
         ns = EntriesRow(f, True, 'Normalize scores to synonymous mean 0, standard deviation 1')
         self._normalize = nv = ns.values[0]
@@ -635,7 +647,8 @@ class MutationScoresHeatmap(ToolInstance):
         values = [cv.value for cv in self._colormap_values]
         from chimerax.core.colors import rgba8_to_rgba, Colormap
         colors = [rgba8_to_rgba(cc.color) for cc in self._colormap_colors]
-        colormap = Colormap(values, colors)
+        no_value_color = rgba8_to_rgba(self._missing_value_color.color)
+        colormap = Colormap(values, colors, color_no_value = no_value_color)
         self._colormaps[self._colormap_name] = [values, colors]
         return colormap
     
@@ -746,6 +759,7 @@ class MutationScoresHeatmap(ToolInstance):
                 'colormaps': self._colormaps,
                 'colormap_values': [cv.value for cv in self._colormap_values],
                 'colormap_colors': [cc.color for cc in self._colormap_colors],
+                'missing_value_color': self._missing_value_color.color,
                 'normalize_scores': self._normalize.enabled,
                 'subtract_fit': self._use_subtract_fit.enabled,
                 'subtract_fit_score_name': self._subtract_score.value,
@@ -780,6 +794,7 @@ class MutationScoresHeatmap(ToolInstance):
             cv.value = value
         for cc, color in zip(hm._colormap_colors, data['colormap_colors']):
             cc.color = color
+        hm._missing_value_color.color = data['missing_value_color']
         hm._normalize.enabled = data['normalize_scores']
         hm._use_subtract_fit.enabled = data['subtract_fit']
         hm._subtract_score.value = data['subtract_fit_score_name']
@@ -976,8 +991,15 @@ class ScoreView(QGraphicsView):
 
 # -----------------------------------------------------------------------------
 #
-def matrix_to_rgb(matrix, colormap):
+def matrix_to_rgb(matrix, missing, colormap):
     rgb_flat = colormap.interpolated_rgba8(matrix.ravel())[:,:3]
+    if missing.any():
+        if colormap.color_no_value is None:
+            no_value_color = (0,0,0)
+        else:
+            from chimerax.core.colors import rgba_to_rgba8
+            no_value_color = rgba_to_rgba8(colormap.color_no_value)[:3]
+        rgb_flat[missing.ravel()] = no_value_color
     n,m = matrix.shape
     rgb = rgb_flat.reshape((n,m,3)).copy()
     return rgb
