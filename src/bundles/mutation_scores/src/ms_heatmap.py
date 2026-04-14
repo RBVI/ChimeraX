@@ -90,6 +90,8 @@ class MutationScoresHeatmap(ToolInstance):
     #
     def _draw_graphics(self):
         self._score_view.clear_scene()
+        if self._mutation_set is None:
+            return
         self._set_heatmap_image()
         self._make_residue_axis_labels()
         if self._grouping == 'amino acid':
@@ -128,6 +130,8 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _set_heatmap_image(self):
+        if self._mutation_set is None:
+            return
         score_matrix = self._score_matrix()
         colormap = self._colormap()
         rgb = matrix_to_rgb(score_matrix, colormap)
@@ -559,7 +563,7 @@ class MutationScoresHeatmap(ToolInstance):
     def _mutation_set(self):
         mset_name = self._mutation_set_menu.value
         from .ms_data import mutation_scores
-        mset = mutation_scores(self.session, mset_name)
+        mset = mutation_scores(self.session, mset_name, raise_error = False)
         return mset
 
     # ---------------------------------------------------------------------------
@@ -709,6 +713,73 @@ class MutationScoresHeatmap(ToolInstance):
     def _show_help(self):
         from chimerax.core.commands import run
         run(self.session, 'help %s' % self.help)
+        
+    # ---------------------------------------------------------------------------
+    # Session save and restore.
+    #
+    SESSION_SAVE = True
+    def take_snapshot(self, session, flags):
+        data = {'mutation_set_name': self._mutation_set_menu.value,
+                'score_names': self._score_name_filter.value,
+                'amino_acids': self._amino_acid_order.value,
+                'grouping': self._grouping,
+                'include_residue_numbers': self._include_residue_numbers,
+                'label_every_residue': self._label_every_residue.enabled,
+                'pixels_per_cell': self._pixels_per_cell.value,
+                'colormaps': self._colormaps,
+                'colormap_values': [cv.value for cv in self._colormap_values],
+                'colormap_colors': [cc.color for cc in self._colormap_colors],
+                'normalize_scores': self._normalize.enabled,
+                'subtract_fit': self._use_subtract_fit.enabled,
+                'subtract_fit_score_name': self._subtract_score.value,
+                'gray_missing': self._gray_missing_structure_residues.value,
+                'grayout_color': self._grayout_color.color,
+                'drag_to_color': self._drag_color_enabled.value,
+                'dragbox_color': self._dragbox_color.color,
+                'dragbox_linewidth': self._dragbox_linewidth.value,
+                # TODO: Would be nice to restore colored drag boxes.
+                'color_residue_on_hover': self._color_residue_on_hover.enabled,
+                'hover_color': self._hover_color.color,
+                'options_shown': self._options_panel.shown,
+                'view_size': (self._score_view.width(), self._score_view.height()),
+                'version': '1'}
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        hm = cls(session)
+        hm._mutation_set_menu.value = data['mutation_set_name']
+        hm._score_name_filter.value = data['score_names']
+        hm._amino_acid_order.value = data['amino_acids']
+        if data['grouping'] == 'amino acid':
+            hm._group_amino_acid.enabled = True
+        else:
+            hm._group_score_name.enabled = True
+        hm._include_residue_numbers = data['include_residue_numbers']
+        hm._label_every_residue.enabled = data['label_every_residue']
+        hm._pixels_per_cell.value = data['pixels_per_cell']
+        hm._colormaps = data['colormaps']
+        for cv, value in zip(hm._colormap_values, data['colormap_values']):
+            cv.value = value
+        for cc, color in zip(hm._colormap_colors, data['colormap_colors']):
+            cc.color = color
+        hm._normalize.enabled = data['normalize_scores']
+        hm._use_subtract_fit.enabled = data['subtract_fit']
+        hm._subtract_score.value = data['subtract_fit_score_name']
+        hm._gray_missing_structure_residues.value = data['gray_missing']
+        hm._grayout_color.color = data['grayout_color']
+        hm._drag_color_enabled.value = data['drag_to_color']
+        hm._dragbox_color.color = data['dragbox_color']
+        hm._dragbox_linewidth.value = data['dragbox_linewidth']
+        hm._color_residue_on_hover.enabled = data['color_residue_on_hover']
+        hm._hover_color.color = data['hover_color']
+        if data['options_shown']:
+            hm._options_panel.toggle_panel_display()
+        hm._score_view._initial_size_hint = data['view_size']
+        if hm._mutation_set is None:
+            hm._after_session_restore = session.ui.timer(0, hm._draw_graphics)
+        print ('heatmap restore data', data)
+        return hm
 
 # ---------------------------------------------------------------------------
 #
@@ -756,6 +827,7 @@ class ScoreView(QGraphicsView):
         self._rectangle_select_callback = rectangle_select_cb
         self.dragbox_color = (255,255,0)
         self.dragbox_linewidth = 3
+        self._initial_size_hint = None
 
         from Qt.QtWidgets import QGraphicsScene
         self.scene = gs = QGraphicsScene(self)
@@ -766,11 +838,18 @@ class ScoreView(QGraphicsView):
             self.setMouseTracking(True)
 
     def sizeHint(self):
-        rect = self.scene.itemsBoundingRect()
-        size = rect.size().toSize()
+        if self._initial_size_hint is None:
+            rect = self.scene.itemsBoundingRect()
+            size = rect.size().toSize()
+        else:
+            w,h = self._initial_size_hint
+            from Qt.QtCore import QSize
+            size = QSize(w,h)
         return size
 
     def mousePressEvent(self, event):
+        if self._pixmap_item is None:
+            return
         from Qt.QtCore import Qt
         self._shift_mod = shift = (event.modifiers() == Qt.KeyboardModifier.ShiftModifier)
         self._mouse_down = True
@@ -781,6 +860,8 @@ class ScoreView(QGraphicsView):
 
     def mouseMoveEvent(self, event):
         if self._report_cell_info_callback is None:
+            return
+        if self._pixmap_item is None:
             return
         # This gives event handler is for QAbstractScrollArea and the event is in viewport() coordinates.
         # We need the event in QGraphicsView coordinates which differ by 1 pixel in x,y.
@@ -795,6 +876,8 @@ class ScoreView(QGraphicsView):
         self._draw_drag_box(event)
 
     def mouseReleaseEvent(self, event):
+        if self._pixmap_item is None:
+            return
         if self._mouse_down:
             self._mouse_down = False
             self._drag(event)
