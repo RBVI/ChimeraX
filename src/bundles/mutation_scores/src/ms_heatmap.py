@@ -29,15 +29,18 @@ class MutationScoresHeatmap(ToolInstance):
 
     help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
 
-    def __init__(self, session, tool_name = 'Mutation Scores Heatmap'):
+    def __init__(self, session, tool_name = 'Mutation Scores Heatmap', name = None):
 
+        self.name = name
         self._include_residue_numbers = []	# If empty then include all residues in heatmap
         self._default_amino_acid_order = 'HRKDEFWYNQILCSTVMAGP'
         self._group_spacing = 1	# Number of blank pixels after each amino acid or score group
         self._last_hover_residues = None		# (Residues, res_colors, atom_colors)
         self._last_dragbox_residues = []		# List of (Residues, res_colors, atom_colors)
+        self._block_drawing = False
         
         ToolInstance.__init__(self, session, tool_name)
+        self.display_name = tool_name if name is None else f'{tool_name} {name}'
 
         from chimerax.ui import MainToolWindow
         tw = MainToolWindow(self)
@@ -89,6 +92,8 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _draw_graphics(self):
+        if self._block_drawing:
+            return
         self._score_view.clear_scene()
         if self._mutation_set is None:
             return
@@ -130,7 +135,7 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _set_heatmap_image(self):
-        if self._mutation_set is None:
+        if self._mutation_set is None or self._block_drawing:
             return
         score_matrix, missing = self._score_matrix()
         colormap = self._colormap()
@@ -625,6 +630,20 @@ class MutationScoresHeatmap(ToolInstance):
         
     # ---------------------------------------------------------------------------
     #
+    def _set_residues(self, residues):
+        rset = set(residues)
+        mset = self._mutation_set
+        mset.associate_chains(self.session)
+        res, rnums = mset.associated_residues()
+        rnums = [rnum for r,rnum in zip(res,rnums) if r in rset]
+        if len(rnums) == 0:
+            from chimerax.core.errors import UserError
+            raise UserError('No mutations for selected residues')
+        self._include_residue_numbers = set(rnums)
+        self._draw_graphics()
+        
+    # ---------------------------------------------------------------------------
+    #
     def _show_all_residues(self):
         if self._include_residue_numbers:
             self._include_residue_numbers.clear()
@@ -779,39 +798,69 @@ class MutationScoresHeatmap(ToolInstance):
     @classmethod
     def restore_snapshot(cls, session, data):
         hm = cls(session)
-        hm._mutation_set_menu.value = data['mutation_set_name']
-        hm._score_name_filter.value = data['score_names']
-        hm._amino_acid_order.value = data['amino_acids']
-        if data['grouping'] == 'amino acid':
-            hm._group_amino_acid.enabled = True
-        else:
-            hm._group_score_name.enabled = True
-        hm._include_residue_numbers = data['include_residue_numbers']
-        hm._label_every_residue.enabled = data['label_every_residue']
-        hm._pixels_per_cell.value = data['pixels_per_cell']
-        hm._colormaps = data['colormaps']
-        for cv, value in zip(hm._colormap_values, data['colormap_values']):
-            cv.value = value
-        for cc, color in zip(hm._colormap_colors, data['colormap_colors']):
-            cc.color = color
-        hm._missing_value_color.color = data['missing_value_color']
-        hm._normalize.enabled = data['normalize_scores']
-        hm._use_subtract_fit.enabled = data['subtract_fit']
-        hm._subtract_score.value = data['subtract_fit_score_name']
-        hm._gray_missing_structure_residues.value = data['gray_missing']
-        hm._grayout_color.color = data['grayout_color']
-        hm._drag_color_enabled.value = data['drag_to_color']
-        hm._dragbox_color.color = data['dragbox_color']
-        hm._dragbox_linewidth.value = data['dragbox_linewidth']
-        hm._color_residue_on_hover.enabled = data['color_residue_on_hover']
-        hm._hover_color.color = data['hover_color']
-        if data['options_shown']:
-            hm._options_panel.toggle_panel_display()
-        hm._score_view._initial_size_hint = data['view_size']
+        hm.configure(data)
         if hm._mutation_set is None:
             hm._after_session_restore = session.ui.timer(0, hm._draw_graphics)
-        print ('heatmap restore data', data)
         return hm
+
+    def configure(self, settings):
+        self._block_drawing = True
+        if 'mutation_set_name' in settings:
+            self._mutation_set_menu.value = settings['mutation_set_name']
+        if 'score_names' in settings:
+            self._score_name_filter.value = settings['score_names']
+        if 'amino_acids' in settings:
+            self._amino_acid_order.value = settings['amino_acids']
+        if 'grouping' in settings:
+            if settings['grouping'] == 'amino acid':
+                self._group_amino_acid.enabled = True
+            else:
+                self._group_score_name.enabled = True
+        if 'include_residue_numbers' in settings:
+            self._include_residue_numbers = settings['include_residue_numbers']
+        if 'residues' in settings:
+            self._set_residues(settings['residues'])
+        if 'label_every_residue' in settings:
+            self._label_every_residue.enabled = settings['label_every_residue']
+        if 'pixels_per_cell' in settings:
+            self._pixels_per_cell.value = settings['pixels_per_cell']
+        if 'colormaps' in settings:
+            self._colormaps = settings['colormaps']
+        if 'colormap_values' in settings:
+            for cv, value in zip(self._colormap_values, settings['colormap_values']):
+                cv.value = value
+        if 'colormap_colors' in settings:
+            for cc, color in zip(self._colormap_colors, settings['colormap_colors']):
+                cc.color = color
+        if 'missing_value_color' in settings:
+            self._missing_value_color.color = settings['missing_value_color']
+        if 'normalize_scores' in settings:
+            self._normalize.enabled = settings['normalize_scores']
+        if 'subtract_fit' in settings:
+            self._use_subtract_fit.enabled = settings['subtract_fit']
+        if 'subtract_fit_score_name' in settings:
+            self._subtract_score.value = settings['subtract_fit_score_name']
+        if 'gray_missing' in settings:
+            self._gray_missing_structure_residues.value = settings['gray_missing']
+        if 'grayout_color' in settings:
+            self._grayout_color.color = settings['grayout_color']
+        if 'drag_to_color' in settings:
+            self._drag_color_enabled.value = settings['drag_to_color']
+        if 'dragbox_color' in settings:
+            self._dragbox_color.color = settings['dragbox_color']
+        if 'dragbox_linewidth' in settings:
+            self._dragbox_linewidth.value = settings['dragbox_linewidth']
+        if 'color_residue_on_hover' in settings:
+            self._color_residue_on_hover.enabled = settings['color_residue_on_hover']
+        if 'hover_color' in settings:
+            self._hover_color.color = settings['hover_color']
+        if 'options_shown' in settings:
+            if settings['options_shown'] != self._options_panel.shown:
+                self._options_panel.toggle_panel_display()
+        if 'view_size' in settings:
+            self._score_view._initial_size_hint = settings['view_size']
+        self._block_drawing = False
+        self._draw_graphics()
 
 # ---------------------------------------------------------------------------
 #
@@ -1014,13 +1063,129 @@ def rgb_to_pixmap(rgb):
     pixmap = QPixmap.fromImage(im)
     return pixmap
 
-def mutation_heatmap(session):
-    hm = MutationScoresHeatmap(session)
+# -----------------------------------------------------------------------------
+#
+def mutation_heatmap(session, heatmap_name = None,
+                     mutation_set = None, scores = None, amino_acids = None,
+                     grouping = None, residues = None, label_every_residue = None,
+                     pixels_per_cell = None, palette = None, missing_value_color = None,
+                     normalize_scores = None, subtract_fit = None, gray_missing = None,
+                     grayout_color = None, drag_to_color = None, dragbox_color = None,
+                     dragbox_linewidth = None, color_residue_on_hover = None, hover_color = None,
+                     show_options = None, size = None, save_image = None):
+    settings = {}
+    if mutation_set is not None:
+        from .ms_data import mutation_scores
+        mset = mutation_scores(session, mutation_set)  # Raises error if name not found
+        settings['mutation_set_name'] = mutation_set
+    if scores is not None:
+        settings['score_names'] = scores
+    if amino_acids is not None:
+        settings['amino_acids'] = amino_acids
+    if grouping is not None:
+        settings['grouping'] = grouping
+    if residues is not None:
+        settings['residues'] = residues
+    if label_every_residue is not None:
+        settings['label_every_residue'] = label_every_residue
+    if pixels_per_cell is not None:
+       settings['pixels_per_cell'] = pixels_per_cell
+    if palette is not None:
+        if len(palette.colors) != 4 or not (palette.colors[1] == palette.colors[2]).all():
+            from chimerax.core.errors import UserError
+            raise UserError('Heatmaps requires a palette with 4 colors where the middle two colors are the same')
+        if palette.values_specified:
+            settings['colormap_values'] = palette.data_values
+        from chimerax.core.colors import rgba_to_rgba8
+        settings['colormap_colors'] = [rgba_to_rgba8(color) for color in palette.colors]
+    if missing_value_color is not None:
+        settings['missing_value_color'] = missing_value_color
+    if normalize_scores is not None:
+        settings['normalize_scores'] = normalize_scores
+    if subtract_fit is not None:
+        settings['subtract_fit'] = True
+        settings['subtract_fit_score_name'] = subtract_fit
+    if gray_missing is not None:
+        settings['gray_missing'] = gray_missing
+    if grayout_color is not None:
+        settings['grayout_color'] = grayout_color
+    if drag_to_color is not None:
+        settings['drag_to_color'] = drag_to_color
+    if dragbox_color is not None:
+        settings['dragbox_color'] = dragbox_color
+    if dragbox_linewidth is not None:
+        settings['dragbox_linewidth'] = dragbox_linewidth
+    if color_residue_on_hover is not None:
+        settings['color_residue_on_hover'] = color_residue_on_hover
+    if hover_color is not None:
+        settings['hover_color'] = hover_color
+    if show_options is not None:
+        settings['options_shown'] = show_options
+    if size is not None:
+        settings['view_size'] = size
+
+    hm = None
+    if heatmap_name is not None:
+        hm = _find_named_heatmap(session, heatmap_name)
+    if hm is None:
+        if heatmap_name is None:
+            heatmap_name = _next_heatmap_name(session)
+        hm = MutationScoresHeatmap(session, name = heatmap_name)
+
+    hm.configure(settings)
+
+    if save_image is not None:
+        hm._score_view.save_image(save_image)
+
     return hm
 
+# -----------------------------------------------------------------------------
+#
+def _find_named_heatmap(session, heatmap_name):
+    for tool in session.tools:
+        if isinstance(tool, MutationScoresHeatmap) and tool.name == heatmap_name:
+            return tool
+    return None
+
+# -----------------------------------------------------------------------------
+#
+def _next_heatmap_name(session):
+    names = set(tool.name for tool in session.tools if isinstance(tool, MutationScoresHeatmap) and tool.name)
+    i = 1
+    while str(i) in names:
+        i += 1
+    return str(i)
+
+# -----------------------------------------------------------------------------
+#
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, EnumOf, IntArg, Int2Arg
+    from chimerax.core.commands import ColormapArg, Color8Arg, SaveFileNameArg
+    from chimerax.atomic import ResiduesArg
     desc = CmdDesc(
+        optional = [('heatmap_name', StringArg)],
+        keyword = [('mutation_set', StringArg),
+                   ('scores', StringArg),
+                   ('amino_acids', StringArg),
+                   ('grouping', EnumOf(['amino acid', 'score'])),
+                   ('residues', ResiduesArg),
+                   ('label_every_residue', BoolArg),
+                   ('pixels_per_cell', IntArg),
+                   ('palette', ColormapArg),
+                   ('missing_value_color', Color8Arg),
+                   ('normalize_scores', BoolArg),
+                   ('subtract_fit', StringArg),
+                   ('gray_missing', BoolArg),
+                   ('grayout_color', Color8Arg),
+                   ('drag_to_color', BoolArg),
+                   ('dragbox_color', Color8Arg),
+                   ('dragbox_linewidth', IntArg),
+                   ('color_residue_on_hover', BoolArg),
+                   ('hover_color', Color8Arg),
+                   ('show_options', BoolArg),
+                   ('size', Int2Arg),
+                   ('save_image', SaveFileNameArg),
+                   ],
         synopsis = 'Show a heatmap of mutation scores.'
     )
     register('mutationscores heatmap', desc, mutation_heatmap, logger=logger)
