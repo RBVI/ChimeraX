@@ -139,15 +139,6 @@ def _process_results(session, json_info, search_model, temp_dir, show_tool):
     from chimerax.core.commands import run, StringArg
     from os import path
     collated_info = {}
-    known_column_order = []
-    known_columns = set(known_column_order)
-    column_order = []
-    for known_col in known_column_order:
-        if known_col in json_info['results'][0]:
-            column_order.append(known_col)
-    for col in json_info['results'][0].keys():
-        if col not in known_columns and col != 'file_name':
-            column_order.append(col)
     for result in json_info['results']:
         for k, v in result.items():
             if k == "file_name":
@@ -160,32 +151,69 @@ def _process_results(session, json_info, search_model, temp_dir, show_tool):
                     hide_spec = f"#{s.id_string} & ~ /{ref_cid}"
                     run(session, f"hide {hide_spec} ; ~cartoon {hide_spec} ;"
                         f" matchmaker #{s.id_string}/{ref_cid} to #{search_model.id_string}/{target_cid}")
-                collated_info.setdefault('row name', []).append(identifier)
+                spec = '#%s/%s #%s/%s' % (search_model.id_string, target_cid, s.id_string, ref_cid)
+                collated_info.setdefault('row name', []).append(
+                    '<a href="cxcmd:view %s; sel %s">%s</a>' % (spec, spec, identifier))
+            elif k in ('reference', 'calculated'):
+                for subk, subv in v.items():
+                    collated_info.setdefault(subk, []).append(subv)
             else:
                 collated_info.setdefault(k, []).append(v)
+    known_column_order = { 'main': [], 'reference': [], 'calculated': [] }
+    known_columns = { k: set(v) for k,v in known_column_order.items() }
+    # Don't want these as explicit table columns...
+    known_columns['main'].update(('reference', 'calculated', 'file_name'))
+    column_order = { k: [] for k in known_column_order.keys()}
+    for col_type, known_col_order in known_column_order.items():
+        base = json_info['results'][0]
+        col_dict = base if col_type == "main" else base[col_type]
+        for kcol in known_col_order:
+            if kcol in col_dict:
+                column_order[col_type].append(kcol)
+        known_cols = known_columns[col_type]
+        for col_name in col_dict.keys():
+            if col_name not in known_cols:
+                column_order[col_type].append(col_name)
     table_texts = []
     from chimerax.core.logger import html_table_params
     table_texts.append('<table %s>' % html_table_params)
     table_texts.append(' <thead>')
     table_texts.append('  <tr>')
-    table_texts.append('   <th colspan="%d">Reference chain info</th>' % (len(column_order)+1))
+    table_texts.append('   <th colspan="%d">Reference chain info</th>'
+        % (len(column_order["main"]) + len(column_order["reference"]) + len(column_order["calculated"]) + 1))
     table_texts.append('  </tr>')
     table_texts.append(' </thead>')
     table_texts.append(' <tbody>')
     table_texts.append('  <tr>')
-    table_texts.append('   ' + ' '.join(['<td style="text-align:center">%s</td>' % item
-        for item in (['model']+[col_name.replace('_', ' ') for col_name in column_order])]))
+    table_texts.append('   ' +
+        ' '.join(['<td style="text-align:center" rowspan="2">%s</td>' % item
+            for item in (['model']+[col_name.replace('_', ' ') for col_name in column_order["main"]])]) + ' '
+        + ' '.join(['<td style="text-align:center" colspan="%d">%s</td>' % (len(column_order[cat]), cat)
+            for cat in ["reference", "calculated"]]))
+    table_texts.append('  </tr>')
+    table_texts.append('  <tr>')
+    table_texts.append('   ' +
+        ' '.join(['<td style="text-align:center">%s</td>' % item.replace('_', ' ')
+            for item in column_order["reference"] + column_order["calculated"]]))
     table_texts.append('  </tr>')
     for i, row_name in enumerate(collated_info['row name']):
         table_texts.append('  <tr>')
-        table_texts.append('   ' + ' '.join(['<td style="text-align:center">%s</td>' % item
-            for item in ([row_name]+[collated_info[col_name][i] for col_name in column_order])]))
+        table_texts.append('   ' + ' '.join(['<td style="text-align:center">%s</td>' % process(item)
+            for item in ([row_name]+[collated_info[col_name][i]
+                for col_type in ('main', 'reference', 'calculated')
+                for col_name in column_order[col_type]
+                ])]))
         table_texts.append('  </tr>')
     table_texts.append(' </tbody>')
     table_texts.append('</table>')
     session.logger.info('\n'.join(table_texts), is_html=True)
 
 #NOTE: We don't use a REST server; reference code retained in douse.py
+
+def process(item):
+    if isinstance(item, float) and len(str(item)) > 7 and str(item)[-5:].isdigit():
+        return "%.4f" % item
+    return item
 
 def _run_find_ref_subprocess(session, exe_path, optional_args, model_file_name, positional_args,
         temp_dir, verbose):
