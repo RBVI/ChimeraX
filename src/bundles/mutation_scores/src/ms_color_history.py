@@ -136,7 +136,6 @@ class MutationStructureColoring(ToolInstance):
     def _color_which_chosen(self):
         if self._color_which_menu.value == 'define ranges...':
             show_name_score_ranges_gui(self.session)
-            self._color_which_menu.value = 'all'
 
     def _menu_about_to_show(self, menu):
         menu.clear()
@@ -183,6 +182,8 @@ class MutationStructureColoring(ToolInstance):
             ranges = self._box_ranges(score_name)
         elif which == 'all':
             ranges = None
+        elif which == 'define ranges...':
+            ranges = _get_score_ranges_from_gui(session)
         else:
             ranges = self._named_ranges(which)
 
@@ -682,7 +683,19 @@ def show_name_score_ranges_gui(session):
     nsr = NameScoreRanges.get_singleton(session, create=True)
     nsr.display(True)
     return nsr
-    
+
+def _get_score_ranges_from_gui(session):
+    nsr = NameScoreRanges.get_singleton(session)
+    if nsr is None:
+        return None
+    score_ranges = nsr._score_ranges()
+    if len(score_ranges) == 0:
+        return None
+    ranges = ' and '.join(
+        f'{score_range.score_name} {score_range.compare} {score_range.threshold}'
+        for score_range in score_ranges)
+    return ranges
+
 from chimerax.core.state import StateManager  # Handles session saving
 
 class MutationColorHistory(StateManager):
