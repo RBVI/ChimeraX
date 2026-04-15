@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-MatchAlign" version="1.0"
+<BundleInfo name="ChimeraX-MatchAlign" version="1.0.1"
 	    package="chimerax.match_align" purePython="false"
   	    minSessionVersion="1" maxSessionVersion="1">
 
