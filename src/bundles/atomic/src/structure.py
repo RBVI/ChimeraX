@@ -1774,7 +1774,11 @@ class AtomicStructure(Structure):
                                 " number %s" % (chain_id, seq_id))
                         break
                 else:
-                    res = chain.residues[int(seq_id)-1]
+                    try:
+                        res = chain.residues[int(seq_id)-1]
+                    except IndexError:
+                        session.logger.warning("Bad chain-residue index in mmCIF mm_qa_metric_local_table")
+                        break
                 if not res:
                     continue
                 if res.name != res_name:
