@@ -13,10 +13,10 @@
 
 defaults = {
     'circular': False,
-    'column_criteria': "any",
-    'dist_cutoff': 5.0,
+    'column_criterion': "any",
+    'cutoff_distance': 5.0,
     'gap_char': '.',
-    'iteration_limit': 3,
+    'max_iterations': 3,
     'min_stretch': 3,
 }
 

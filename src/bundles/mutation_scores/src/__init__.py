@@ -172,5 +172,8 @@ class _MutationScoresAPI(BundleAPI):
         elif class_name == 'ScoreRange':
             from .ms_color_history import ScoreRange
             return ScoreRange
+        elif class_name == 'MutationScoresHeatmap':
+            from .ms_heatmap import MutationScoresHeatmap
+            return MutationScoresHeatmap
 
 bundle_api = _MutationScoresAPI()

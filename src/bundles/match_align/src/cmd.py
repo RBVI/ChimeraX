@@ -15,8 +15,8 @@ from .settings import defaults
 from chimerax.core.errors import UserError
 
 def make_alignment(session, chains, *, circular=defaults['circular'],
-        column_criteria=defaults["column_criteria"], dist_cutoff=defaults["dist_cutoff"],
-        gap_char=defaults["gap_char"], ident=None, iteration_limit=defaults['iteration_limit'],
+        column_criterion=defaults["column_criterion"], cutoff_distance=defaults["cutoff_distance"],
+        gap_char=defaults["gap_char"], alignment_id=None, max_iterations=defaults['max_iterations'],
         min_stretch=defaults['min_stretch'], ref_chain=None, show_alignment=True):
     """Create a sequence alignment based on a 3D structure superposition
 
@@ -28,23 +28,23 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
 
        'circular' is whether to consider circular permutations of the chains.
 
-       'column_criteria' should be "all" or "any".  "any" means that residues will be put in the same
-       column is they are within 'dist_cutoff' of any other residue in that column.  "all" means
-       that residues in the same column must be within 'dist_cutoff' of all other residues in that
+       'column_criterion' should be "all" or "any".  "any" means that residues will be put in the same
+       column is they are within 'cutoff_distance' of any other residue in that column.  "all" means
+       that residues in the same column must be within 'cutoff_distance' of all other residues in that
        column.
 
        'gap_char' is the character to use to fill in gaps in the computed alignment.
 
-       'ident' is the identifier to give to the computed alignment (for use in sequence-related
+       'alignment_id' is the identifier to give to the computed alignment (for use in sequence-related
        commands). If None, use a generated identifier of the form "MA-N" where N is a number that
        does not conflict with any other alignments.
 
-       'iteration_limit' controls how many iterations to do to find the final alignment.  An iteration
+       'max_iterations' controls how many iterations to do to find the final alignment.  An iteration
        takes the fully populated (i.e. no gap characters) columns from the previous alignment, superimposes
        the structures using those columns, then recomputes an alignment.  Iteration stops when the
        recomputed alignment has no more fully populated columns than the previous alignment, or if it has
-       less than three fully populated columns.  An iteration_limit that is a positive integer will do no
-       more than that many iterations.  An iteration_limit of zero does no iterations.  An iteration_limit
+       less than three fully populated columns.  An max_iterations that is a positive integer will do no
+       more than that many iterations.  An max_iterations of zero does no iterations.  An max_iterations
        of None iterates until convergence.
 
        'min_stretch' is the minimum number of consecutive fully populated columns needed for those columns
@@ -69,10 +69,10 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
     if len(chains.structures.unique()) != len(chains):
         raise UserError("Specify only one chain per model")
 
-    cutoff_fmt = "%.1f" if int(dist_cutoff) == dist_cutoff else "%g"
-    cutoff_text = cutoff_fmt % dist_cutoff
+    cutoff_fmt = "%.1f" if int(cutoff_distance) == cutoff_distance else "%g"
+    cutoff_text = cutoff_fmt % cutoff_distance
     session.logger.info("Match\N{RIGHTWARDS ARROW}Align cutoff: %s, in column if within cutoff of: %s"
-        % (cutoff_text, column_criteria))
+        % (cutoff_text, column_criterion))
 
     from .make_alignment import match_to_align
     # C++ layer cannot instantiate StructureSeqs, so send in copies that will be modified
@@ -81,22 +81,22 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
     aligned = [copy(chain) for chain in ordered]
     for aseq in aligned:
         aseq.name = aseq.structure.name + " chain " + aseq.chain_id
-    match_to_align(session, aligned, dist_cutoff, column_criteria, gap_char, circular)
+    match_to_align(session, aligned, cutoff_distance, column_criterion, gap_char, circular)
     full_cols = fully_populated(aligned)
     session.logger.info("%d fully populated columns" % len(full_cols))
-    if ident is None:
+    if alignment_id is None:
         id_num = 1
         while True:
-            ident = "MA-%d" % id_num
+            alignment_id = "MA-%d" % id_num
             for aln in session.alignments.alignments:
-                if aln.ident == ident:
+                if aln.ident == alignment_id:
                     break
             else:
                 # no conflicts
                 break
             id_num += 1
     # iteration limit of None means until convergence
-    if iteration_limit != 0:
+    if max_iterations != 0:
         best = full_cols
         iteration = 1
         if not ref_chain:
@@ -135,14 +135,14 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
                 for prev, cur in zip(prev_aligned, aligned):
                     cur.name = prev.name
                 align.align(session, seq_atoms, ref_atoms)
-            match_to_align(session, aligned, dist_cutoff, column_criteria, gap_char, circular)
+            match_to_align(session, aligned, cutoff_distance, column_criterion, gap_char, circular)
             full_cols = fully_populated(aligned)
             session.logger.info("Iteration %d: %d fully populated columns" % (iteration, len(full_cols)))
             if len(full_cols) > len(best):
                 best = full_cols
             else:
                 break
-            if iteration_limit and iteration >= iteration_limit:
+            if max_iterations and iteration >= max_iterations:
                 break
             iteration += 1
 
@@ -195,7 +195,7 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
         #		trees of homologous proteins: Inferences on protein evolution
         #	Balaji S, Srinivasan N.
         #	J Biosci. 2007 Jan;32(1):83-96.
-        rel_rmsd = overall_rmsd / dist_cutoff
+        rel_rmsd = overall_rmsd / cutoff_distance
         srms = 1.0 - rel_rmsd
         pfte = num_aligned / min(seq_lens)
         w1 = 1.0 - (pfte + srms) / 2.0
@@ -217,7 +217,7 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
         q = (num_aligned ** len(aligned)) / ((1.0 + rel_rmsd * rel_rmsd) * seq_len_mul)
         session.logger.info("Q-score: %.3f" % q)
 
-    alignment = session.alignments.new_alignment(aligned, ident,
+    alignment = session.alignments.new_alignment(aligned, alignment_id,
         name="Match\N{RIGHTWARDS ARROW}Align", auto_associate=False, viewer=show_alignment)
     for orig, aligned in zip(ordered, aligned):
         alignment.associate(orig, seq=aligned, silent=True)
@@ -265,11 +265,11 @@ def register_command(cmd_name, logger):
         required = [('chains', UniqueChainsArg)],
         keyword = [
             ('circular', BoolArg),
-            ('column_criteria', EnumOf(['any', 'all'])),
-            ('dist_cutoff', NonNegativeFloatArg),
+            ('column_criterion', EnumOf(['any', 'all'])),
+            ('cutoff_distance', NonNegativeFloatArg),
             ('gap_char', CharacterArg),
-            ('ident', StringArg),
-            ('iteration_limit', Or(NonNegativeIntArg, NoneArg)),
+            ('alignment_id', StringArg),
+            ('max_iterations', Or(NonNegativeIntArg, NoneArg)),
             ('min_stretch', PositiveIntArg),
             ('ref_chain', ChainArg),
             ('show_alignment', BoolArg),
