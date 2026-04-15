@@ -70,7 +70,7 @@ can also be used to show the sequence of a structure chain in the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
 All of the other actions can be accessed from the
 <a href="../tools/sequenceviewer.html#context"><b>Sequence Viewer</b>
-context menu</a>.
+context menu</a>. 
 </p>
 
 <a name="chain"></a>
@@ -189,6 +189,8 @@ Superimpose the specified structures based on the alignment of their
 <a href="../tools/sequenceviewer.html#association">associated</a> sequences.
 The <i>alignment-ID</i> is shown in the title bar of the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window.
+(Conversely, to create a sequence alignment from a structural
+superposition, see <a href="msa3d.html"><b>msa3d</b></a>.)
 </p><p>
 By default (<b>cutoffDistance</b> option not used), 
 structures are fit iteratively with a <i>cutoff</i> of
@@ -224,6 +226,9 @@ The number of atom pairs fitted and the resulting RMSD are reported in the
 of the <a href="../window.html">ChimeraX window</a>. See also:
 <a href="matchmaker.html"><b>matchmaker</b></a>,
 <a href="align.html"><b>align</b></a>
+</p><p>
+To create a sequence alignment from a structural
+superposition, see <a href="msa3d.html"><b>msa3d</b></a>.
 </p>
 
 <a name="expandsel"></a>
@@ -594,7 +599,9 @@ The sequence must cover all of the residues in the structure chain.
 The <b>sequence align</b> command calculates a new alignment of the
 specified protein sequences using a web service hosted by the
 <a href="https://www.rbvi.ucsf.edu/Overview/index.html" target="_blank">UCSF
-RBVI</a>. The result is opened in a new
+RBVI</a>. (To create a sequence alignment from a structural
+superposition instead, see <a href="msa3d.html"><b>msa3d</b></a>.)
+The result is opened in a new
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window,
 except that <b>replace true</b> (default <b>false</b>)
 can be used to specify overwriting an 
@@ -672,6 +679,6 @@ Muscle5: High-accuracy alignment ensembles enable unbiased assessments of sequen
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2026</address>
+April 2026</address>
 
 </body></html>
