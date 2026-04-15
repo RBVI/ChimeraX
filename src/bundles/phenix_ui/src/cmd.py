@@ -42,6 +42,9 @@ def register_command(logger):
     from . import emplace_local
     emplace_local.register_command(logger)
 
+    from . import find_reference
+    find_reference.register_command(logger)
+
     from . import fit_loops
     fit_loops.register_command(logger)
 
