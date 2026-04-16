@@ -29,6 +29,9 @@ class ItemsGenerator:
 
     @property
     def all_values(self):
+        if not hasattr(self, 'value_map'):
+            # initialize
+            self._item_names()
         values = list(self.value_map.keys())
         values.sort(key=self.key_func)
         return values
