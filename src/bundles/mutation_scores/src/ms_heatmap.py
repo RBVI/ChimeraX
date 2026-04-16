@@ -38,7 +38,8 @@ class MutationScoresHeatmap(ToolInstance):
         self._last_hover_residues = None		# (Residues, res_colors, atom_colors)
         self._last_dragbox_residues = []		# List of (Residues, res_colors, atom_colors)
         self._block_drawing = False
-        
+        self._max_axis_font_size = 14
+
         ToolInstance.__init__(self, session, tool_name)
         self.display_name = tool_name if name is None else f'{tool_name} {name}'
 
@@ -417,14 +418,22 @@ class MutationScoresHeatmap(ToolInstance):
     def _make_every_residue_axis_labels(self):
         scene = self._score_view.scene
         pixels_per_cell = self._pixels_per_cell.value
+        font = self._axis_font(pixels_per_cell)
+        font_height = font.pixelSize()
         for i,res_num in enumerate(self._residue_numbers):
+            # Place amino acid type in horizontal text
             from_aa = self._res_aa[res_num]
-            text = f'{from_aa}{res_num}'
-            t = scene.addText(text)
+            t = scene.addText(from_aa, font)
+            rect = t.boundingRect()
+            x = (i+.5)*pixels_per_cell - rect.width()/2
+            y = self._heatmap_height * pixels_per_cell
+            t.setPos(x, y)
+            # Place residue number in vertical text to save space
+            t = scene.addText(str(res_num), font)
             rect = t.boundingRect()
             t.setRotation(90)
             x = (i+.5)*pixels_per_cell + rect.height()/2
-            y = self._heatmap_height * pixels_per_cell
+            y = self._heatmap_height * pixels_per_cell + int(1.5*font_height)
             t.setPos(x, y)
 
     # ---------------------------------------------------------------------------
@@ -434,8 +443,9 @@ class MutationScoresHeatmap(ToolInstance):
         num_scores = self._num_scores
         scores_height = num_scores * pixels_per_cell
         aa_step = (num_scores + self._group_spacing) * pixels_per_cell
+        font = self._axis_font(aa_step)
         for i, aa in enumerate(self._amino_acids):
-            t = self._score_view.scene.addText(aa)
+            t = self._score_view.scene.addText(aa, font)
             rect = t.boundingRect()
             x = -rect.width()
             y = i*aa_step + 0.5*scores_height - rect.height()/2
@@ -448,12 +458,22 @@ class MutationScoresHeatmap(ToolInstance):
         num_aa = self._num_amino_acids
         aa_height = num_aa * pixels_per_cell
         score_step = (num_aa + self._group_spacing) * pixels_per_cell
+        font = self._axis_font(score_step)
         for i, score_name in enumerate(self._score_names):
-            t = self._score_view.scene.addText(score_name)
+            t = self._score_view.scene.addText(score_name, font)
             rect = t.boundingRect()
             x = -rect.width()
             y = i*score_step + 0.5*aa_height - rect.height()/2
             t.setPos(x, y)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _axis_font(self, pixel_height):
+        scene = self._score_view.scene
+        from Qt.QtGui import QFont
+        font = QFont(scene.font())
+        font.setPixelSize(min(pixel_height, self._max_axis_font_size))
+        return font
         
     # ---------------------------------------------------------------------------
     #
