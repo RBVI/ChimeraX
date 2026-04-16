@@ -30,7 +30,7 @@
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
     <ChimeraXClassifier>Command :: msa3d :: Sequence, Structure Comparison :: Generate multiple sequence alignment from structural superposition</ChimeraXClassifier>
-    <!-- <ChimeraXClassifier>Tool :: Matchmaker :: Structure Analysis :: superimpose structures/chains</ChimeraXClassifier> -->
+    <ChimeraXClassifier>Tool :: Match→Align :: Sequence, Structure Analysis :: Generate multiple sequence alignment from structural superposition</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>
