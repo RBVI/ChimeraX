@@ -20,4 +20,9 @@ class MatchAlignAPI(BundleAPI):
         from .cmd import register_command
         register_command(command_name, logger)
 
+    @staticmethod
+    def start_tool(session, tool_name):
+        from .tool import MatchAlignTool
+        return MatchAlignTool(session, tool_name)
+
 bundle_api = MatchAlignAPI()
