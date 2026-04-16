@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-PhenixUI" version="1.5.4"
+<BundleInfo name="ChimeraX-PhenixUI" version="1.6"
 	    package="chimerax.phenix_ui"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -35,6 +35,7 @@
     <ChimeraXClassifier>Command :: phenix barbedWire :: Structure Prediction :: Categorize regions of an AlphaFold prediction</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: phenix douse :: Structure Editing :: Place waters in a map</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: phenix emplaceLocal :: Structure Editing :: Place model in map</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: phenix findReference :: Structure Editing :: Find suitable reference structure for each chain in a given structure</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: phenix fitLoops :: Structure Editing :: Fill in missing structure guided by map</ChimeraXClassifier>
 	<ChimeraXClassifier>Command :: phenix ligandFit :: Structure Editing :: Fit ligand into density</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: phenix location :: Structure Editing :: Set location of Phenix installation</ChimeraXClassifier>
