@@ -39,6 +39,7 @@ class MutationScoresHeatmap(ToolInstance):
         self._last_dragbox_residues = []		# List of (Residues, res_colors, atom_colors)
         self._block_drawing = False
         self._max_axis_font_size = 14
+        self._warn_noninteger_cell_size = True
 
         ToolInstance.__init__(self, session, tool_name)
         self.display_name = tool_name if name is None else f'{tool_name} {name}'
@@ -160,8 +161,23 @@ class MutationScoresHeatmap(ToolInstance):
                 for i in no_struct_res_indices:
                     rgb[:,i,:] = _shade_gray(rgb[:,i,:], gray_color)
 
-        pixels_per_cell = self._pixels_per_cell.value
+        pixels_per_cell = self._cell_size
         self._score_view.set_image(rgb, pixels_per_cell)
+
+    # ---------------------------------------------------------------------------
+    #
+    @property
+    def _cell_size(self):
+        ppc = self._pixels_per_cell.value
+        if ppc is None:
+            # Warn about non-integer cell size just once.
+            if self._warn_noninteger_cell_size:
+                self.session.logger.error('Zoom factor must be an integer')
+                self._warn_noninteger_cell_size = False
+            ppc = 1
+        else:
+            self._warn_noninteger_cell_size = True
+        return max(1, int(ppc))
 
     # ---------------------------------------------------------------------------
     #
@@ -388,7 +404,7 @@ class MutationScoresHeatmap(ToolInstance):
         if self._label_every_residue.enabled:
             self._make_every_residue_axis_labels()
             return
-        pixels_per_cell = self._pixels_per_cell.value
+        pixels_per_cell = self._cell_size
         if residue_step is None:
             if pixels_per_cell == 1:
                 residue_step = 100
@@ -417,7 +433,7 @@ class MutationScoresHeatmap(ToolInstance):
     #
     def _make_every_residue_axis_labels(self):
         scene = self._score_view.scene
-        pixels_per_cell = self._pixels_per_cell.value
+        pixels_per_cell = self._cell_size
         font = self._axis_font(pixels_per_cell)
         font_height = font.pixelSize()
         for i,res_num in enumerate(self._residue_numbers):
@@ -439,7 +455,7 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _make_amino_acid_axis_labels(self):
-        pixels_per_cell = self._pixels_per_cell.value
+        pixels_per_cell = self._cell_size
         num_scores = self._num_scores
         scores_height = num_scores * pixels_per_cell
         aa_step = (num_scores + self._group_spacing) * pixels_per_cell
@@ -454,7 +470,7 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _make_score_name_axis_labels(self):
-        pixels_per_cell = self._pixels_per_cell.value
+        pixels_per_cell = self._cell_size
         num_aa = self._num_amino_acids
         aa_height = num_aa * pixels_per_cell
         score_step = (num_aa + self._group_spacing) * pixels_per_cell
@@ -520,7 +536,7 @@ class MutationScoresHeatmap(ToolInstance):
         ler.changed.connect(self._draw_graphics)
         
         # Zoom factor for heatmap
-        zf = EntriesRow(f, 'Pixels per cell', 1)
+        zf = EntriesRow(f, 'Zoom factor', 1)
         self._pixels_per_cell = ppc = zf.values[0]
         ppc.return_pressed.connect(self._draw_graphics)
         
@@ -794,7 +810,7 @@ class MutationScoresHeatmap(ToolInstance):
                 'grouping': self._grouping,
                 'include_residue_numbers': self._include_residue_numbers,
                 'label_every_residue': self._label_every_residue.enabled,
-                'pixels_per_cell': self._pixels_per_cell.value,
+                'pixels_per_cell': self._cell_size,
                 'colormaps': self._colormaps,
                 'colormap_values': [cv.value for cv in self._colormap_values],
                 'colormap_colors': [cc.color for cc in self._colormap_colors],
