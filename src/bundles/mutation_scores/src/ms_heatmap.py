@@ -181,23 +181,22 @@ class MutationScoresHeatmap(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    @property
-    def _score_names(self, exclude = ['position']):
+    def _filtered_score_names(self, exclude = ['position'], default_all = True):
         mset = self._mutation_set
         score_names = [score_name for score_name in mset.score_names() if score_name not in exclude]
         sf = self._score_name_filter.value
-        snames = sf.strip().split(',')
+        snames = [name.strip() for name in sf.split(',')]
+        filtered_names = []
         if snames:
-            matches = []
             for sname in snames:
                 if sname.startswith('*'):
                     suffix = sname[1:]
-                    matches.extend([score_name for score_name in score_names if score_name.endswith(suffix)])
+                    filtered_names.extend([score_name for score_name in score_names if score_name.endswith(suffix)])
                 elif sname in score_names:
-                    matches.append(sname)
-            if matches:
-                score_names = matches
-        return score_names
+                    filtered_names.append(sname)
+        if len(filtered_names) == 0 and default_all:
+            filtered_names = score_names
+        return filtered_names
 
     # ---------------------------------------------------------------------------
     #
@@ -220,6 +219,7 @@ class MutationScoresHeatmap(ToolInstance):
     def _score_matrix(self):
         scores = None
         mset = self._mutation_set
+        self._score_names = self._filtered_score_names()
         self._num_scores = num_scores = len(self._score_names)
         aa_to_index = {aa:i for i, aa in enumerate(self._amino_acids)}
         self._num_amino_acids = num_aa = len(aa_to_index)
@@ -511,9 +511,9 @@ class MutationScoresHeatmap(ToolInstance):
         menu.triggered.connect(self._draw_graphics)
 
         # Which scores.  Comma-separated list.  *_effect includes all scores with suffix
-        sc = EntriesRow(f, 'Score names', '')
+        sc = EntriesRow(f, 'Score names', '', ('Choose', self._choose_score_names))
         self._score_name_filter = scf = sc.values[0]
-        scf.pixel_width = 300
+        scf.pixel_width = 250
         scf.return_pressed.connect(self._draw_graphics)
 
         # Which amino acids.  String of 1-letter codes.
@@ -604,6 +604,22 @@ class MutationScoresHeatmap(ToolInstance):
                        spacing = 10)
 
         return p
+
+    # ---------------------------------------------------------------------------
+    #
+    def _choose_score_names(self, *, exclude = ['position']):
+        all_score_names = [score_name for score_name in self._mutation_set.score_names()
+                           if score_name not in exclude]
+        current_names = self._filtered_score_names(default_all = False)
+        sc = ScoreChooser.get_singleton(self.session)
+        sc.show_score_checkbuttons(all_score_names, current_names, self._chose_score_names)
+        sc.tool_window.shown = True
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _chose_score_names(self, score_names):
+        self._score_name_filter.value = ','.join(score_names)
+        self._draw_graphics()
 
     # ---------------------------------------------------------------------------
     #
@@ -897,6 +913,72 @@ class MutationScoresHeatmap(ToolInstance):
             self._score_view._initial_size_hint = settings['view_size']
         self._block_drawing = False
         self._draw_graphics()
+
+class ScoreChooser(ToolInstance):
+    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
+
+    def __init__(self, session, tool_name = 'Score Chooser'):
+        self._chosen_score_names = []
+        self._score_checkbutton_rows = []
+        self._max_name_chars_per_line = 50
+
+        ToolInstance.__init__(self, session, tool_name)
+
+        from chimerax.ui import MainToolWindow
+        tw = MainToolWindow(self, close_destroys = False)
+        self.tool_window = tw
+        parent = tw.ui_area
+
+        from chimerax.ui.widgets import vertical_layout
+        vertical_layout(parent, margins = (5,0,0,0))
+
+        tw.manage(placement=None)	# Floating
+
+    @classmethod
+    def get_singleton(cls, session, create=True):
+        from chimerax.core import tools
+        return tools.get_singleton(session, cls, 'Score Chooser', create=create)
+
+    def show_score_checkbuttons(self, all_score_names, current_score_names, chosen_callback):
+        self._chosen_callback = chosen_callback
+
+        chosen = [score_name for score_name in current_score_names if score_name in all_score_names]
+        self._chosen_score_names = chosen
+        
+        for row in self._score_checkbutton_rows:
+            row.frame.deleteLater()
+        self._score_checkbutton_rows.clear()
+
+        i = 0
+        while i < len(all_score_names):
+            row_score_names = []
+            line_args = []
+            row_chars = 0
+            for score_name in all_score_names[i:]:
+                nchar = len(score_name)
+                if len(row_score_names) == 0 or row_chars + nchar <= self._max_name_chars_per_line:
+                    row_score_names.append(score_name)
+                    line_args.append(score_name in chosen)
+                    line_args.append(score_name)
+                    row_chars += nchar
+                    i += 1
+                else:
+                    break
+            from chimerax.ui.widgets import EntriesRow
+            parent = self.tool_window.ui_area
+            score_checkbuttons = EntriesRow(parent, *line_args)
+            self._score_checkbutton_rows.append(score_checkbuttons)
+            for score_name, checkbutton in zip(row_score_names,score_checkbuttons.values):
+                checkbutton.changed.connect(lambda enabled, score_name=score_name:
+                                            self._score_chosen(score_name, enabled))
+
+    def _score_chosen(self, score_name, enabled):
+        chosen = self._chosen_score_names
+        if enabled:
+            chosen.append(score_name)
+        elif score_name in chosen:
+            chosen.remove(score_name)
+        self._chosen_callback(chosen)
 
 # ---------------------------------------------------------------------------
 #
