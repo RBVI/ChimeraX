@@ -180,6 +180,16 @@ If the sequences are easy to align (highly similar),
 the sequence alignments are likely to be correct throughout.
 However, if the sequences are more distantly related,
 parts of the alignments may be incorrect even when the superposition is good.
+When <b>Matchmaker</b> is used
+simply to superimpose structures, this is not important.
+However, if the corresponding sequence alignment is another goal,
+generating a structure-based alignment (after superposition) with
+<a href="../commands/msa3d.html"><b>msa3d</b></a>
+<!-- or the GUI when available -->
+is recommended, especially if the sequences are dissimilar.
+The structure-based sequence alignment will provide better
+statistics for describing structural similarity (RMSD, <i>etc.</i>)
+because more columns will be aligned correctly.
 </p><p>
 **When the fit has been <a href="#restrict">restricted to selected residues</a>,
 the unselected residues of matched chains will still appear in the alignment,
@@ -313,6 +323,6 @@ can be chosen from the model list
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2025</address>
+April 2026</address>
 
 </body></html>
