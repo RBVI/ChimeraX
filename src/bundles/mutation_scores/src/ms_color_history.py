@@ -135,7 +135,7 @@ class MutationStructureColoring(ToolInstance):
 
     def _color_which_chosen(self):
         if self._color_which_menu.value == 'define ranges...':
-            show_name_score_ranges_gui(self.session)
+            show_score_ranges_gui(self.session)
 
     def _menu_about_to_show(self, menu):
         menu.clear()
@@ -355,10 +355,12 @@ def show_structure_coloring_gui(session):
     msc.display(True)
     return msc
 
-class NameScoreRanges(ToolInstance):
+class ScoreRanges(ToolInstance):
     help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
 
-    def __init__(self, session, tool_name = 'Name Mutation Score Ranges'):
+    def __init__(self, session, tool_name = 'Mutation Score Ranges'):
+        self._sdev_threshold = 2	# Default threshold number of standard deviations above or below mean
+
         ToolInstance.__init__(self, session, tool_name)
 
         from chimerax.ui import MainToolWindow
@@ -384,7 +386,7 @@ class NameScoreRanges(ToolInstance):
     @classmethod
     def get_singleton(cls, session, create=True):
         from chimerax.core import tools
-        return tools.get_singleton(session, cls, 'Name Mutation Score Ranges', create=create)
+        return tools.get_singleton(session, cls, 'Mutation Score Ranges', create=create)
 
     def _create_score_range_controls(self, parent):
         from chimerax.ui.widgets import column_frame, EntriesRow, radio_buttons
@@ -529,7 +531,8 @@ class NameScoreRanges(ToolInstance):
         mean, sdev = score_values.synonymous_mean_and_sdev()
         if mean is None or sdev is None:
             mean, sdev = 0,1
-        return mean-2*sdev, mean+2*sdev
+        num_sd = self._sdev_threshold
+        return mean-num_sd*sdev, mean+num_sd*sdev
 
     def _add_score_range(self, score_range):
         from chimerax.ui.widgets import EntriesRow
@@ -679,13 +682,13 @@ class ScoreRange(State):
     def restore_snapshot(cls, session, data):
         return ScoreRange(**data)
 
-def show_name_score_ranges_gui(session):
-    nsr = NameScoreRanges.get_singleton(session, create=True)
+def show_score_ranges_gui(session):
+    nsr = ScoreRanges.get_singleton(session, create=True)
     nsr.display(True)
     return nsr
 
 def _get_score_ranges_from_gui(session):
-    nsr = NameScoreRanges.get_singleton(session)
+    nsr = ScoreRanges.get_singleton(session)
     if nsr is None:
         return None
     score_ranges = nsr._score_ranges()
