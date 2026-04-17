@@ -949,17 +949,26 @@ class ScoreChooser(ToolInstance):
             row.frame.deleteLater()
         self._score_checkbutton_rows.clear()
 
+        groups = self._score_name_groups(all_score_names)
+        score_names = list(all_score_names) + list(groups.keys())
+        checkbuttons = []
         i = 0
-        while i < len(all_score_names):
+        while i < len(score_names):
             row_score_names = []
             line_args = []
             row_chars = 0
-            for score_name in all_score_names[i:]:
+            for score_name in score_names[i:]:
                 nchar = len(score_name)
                 if len(row_score_names) == 0 or row_chars + nchar <= self._max_name_chars_per_line:
                     row_score_names.append(score_name)
-                    line_args.append(score_name in chosen)
-                    line_args.append(score_name)
+                    if score_name in groups:
+                        enabled = True
+                        for name in groups[score_name]:
+                            if name not in chosen:
+                                enabled = False
+                    else:
+                        enabled = (score_name in chosen)
+                    line_args.extend([enabled,score_name])
                     row_chars += nchar
                     i += 1
                 else:
@@ -967,18 +976,43 @@ class ScoreChooser(ToolInstance):
             from chimerax.ui.widgets import EntriesRow
             parent = self.tool_window.ui_area
             score_checkbuttons = EntriesRow(parent, *line_args)
+            checkbuttons.extend(score_checkbuttons.values)
             self._score_checkbutton_rows.append(score_checkbuttons)
             for score_name, checkbutton in zip(row_score_names,score_checkbuttons.values):
-                checkbutton.changed.connect(lambda enabled, score_name=score_name:
-                                            self._score_chosen(score_name, enabled))
+                names = groups.get(score_name, [score_name])
+                checkbutton.widget.clicked.connect(lambda enabled, names=names:
+                                                   self._score_chosen(names, enabled))
 
-    def _score_chosen(self, score_name, enabled):
+        self._checkbuttons = {score_name:checkbutton for score_name, checkbutton in zip(score_names, checkbuttons)}
+
+    def _score_chosen(self, score_names, enabled):
         chosen = self._chosen_score_names
         if enabled:
-            chosen.append(score_name)
-        elif score_name in chosen:
-            chosen.remove(score_name)
+            for score_name in score_names:
+                if score_name not in chosen:
+                    chosen.append(score_name)
+        else:
+            for score_name in score_names:
+                if score_name in chosen:
+                    chosen.remove(score_name)
+        # Make "all_*" set all the individual checkbutton names
+        for score_name in score_names:
+            self._checkbuttons[score_name].value = enabled
         self._chosen_callback(chosen)
+
+    def _score_name_groups(self, all_score_names, suffix_separator = '_'):
+        groups = {}	# Map suffix to list of score names.
+        for score_name in all_score_names:
+            if suffix_separator in score_name:
+                suffix = score_name.rsplit(suffix_separator, maxsplit = 1)[1]
+                if suffix in groups:
+                    groups[suffix].append(score_name)
+                else:
+                    groups[suffix] = [score_name]
+        large_groups = {f'all_{suffix}': score_names
+                        for suffix, score_names in groups.items()
+                        if len(score_names) >= 3}
+        return large_groups
 
 # ---------------------------------------------------------------------------
 #
