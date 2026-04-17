@@ -18,8 +18,7 @@ on:
 
 jobs:
   build-docker:
-    # Use the older Ubuntu runner to match the ubuntu:22.04 base image in Dockerfile.
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       PYOPENGL_PLATFORM: egl
     steps:
@@ -79,16 +78,13 @@ jobs:
           REPO=docker.io/ucsfrbvi/chimerax
           case "${{ inputs.release_type }}" in
             daily|techpreview)
-              # Rolling channel tags: chimerax:daily, chimerax:daily-abc1234
-              TAGS="${REPO}:${{ inputs.release_type }},${REPO}:${{ inputs.release_type }}-${COMMIT_HASH}"
+              TAGS="${REPO}:${{ inputs.release_type }}-amd64,${REPO}:${{ inputs.release_type }}-amd64-${COMMIT_HASH}"
               ;;
             candidate)
-              # Release candidate: chimerax:1.12-rc, chimerax:1.12-rc-abc1234
-              TAGS="${REPO}:${BUILD_VERSION}-rc,${REPO}:${BUILD_VERSION}-rc-${COMMIT_HASH}"
+              TAGS="${REPO}:${BUILD_VERSION}-rc-amd64,${REPO}:${BUILD_VERSION}-rc-amd64-${COMMIT_HASH}"
               ;;
             production)
-              # Production: chimerax:1.12, chimerax:1.12-abc1234, chimerax:latest
-              TAGS="${REPO}:${BUILD_VERSION},${REPO}:${BUILD_VERSION}-${COMMIT_HASH},${REPO}:latest"
+              TAGS="${REPO}:${BUILD_VERSION}-amd64,${REPO}:${BUILD_VERSION}-amd64-${COMMIT_HASH},${REPO}:latest-amd64"
               ;;
             *)
               echo "Unknown release_type: ${{ inputs.release_type }}" >&2
