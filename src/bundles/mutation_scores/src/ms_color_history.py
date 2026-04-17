@@ -359,8 +359,6 @@ class ScoreRanges(ToolInstance):
     help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
 
     def __init__(self, session, tool_name = 'Mutation Score Ranges'):
-        self._sdev_threshold = 2	# Default threshold number of standard deviations above or below mean
-
         ToolInstance.__init__(self, session, tool_name)
 
         from chimerax.ui import MainToolWindow
@@ -396,24 +394,25 @@ class ScoreRanges(ToolInstance):
         mset_names = mutation_scores_names(self.session) + ('set1', 'set2')
         controls = EntriesRow(frame,
                               'Score ranges', True, 'high', False, 'low',
-                              '  Suffix', '',
-                              '  Named', ('new', 'name1'),  # Will be replaced by named ranges when menu posted
                               'Mutations', mset_names)
-        self._high_ranges, self._low_ranges, self._score_name_suffix, self._name_menu, self._mutation_set_menu = controls.values
+        self._high_ranges, self._low_ranges, self._mutation_set_menu = controls.values
         radio_buttons(self._high_ranges, self._low_ranges)
         for checkbutton in (self._high_ranges, self._low_ranges):
             checkbutton.changed.connect(self._range_chosen)
-        snsuffix = self._score_name_suffix
-        snsuffix.widget.returnPressed.connect(self._suffix_changed)
-        snsuffix.pixel_width = 50
-        nmmenu = self._name_menu.widget.menu()
-        nmmenu.triggered.connect(self._name_chosen)
-        nmmenu.aboutToShow.connect(lambda: self._menu_about_to_show(nmmenu))
-        self._mutation_set_menu_label = controls.labels[5]
+        self._mutation_set_menu_label = controls.labels[3]
         msmenu = self._mutation_set_menu.widget.menu()
         msmenu.triggered.connect(self._mutation_set_chosen)
         msmenu.aboutToShow.connect(lambda: self._menu_about_to_show(msmenu))
         self._set_mutation_set_menu_visibility()
+
+        thresh = EntriesRow(frame, 'Threshold +/-', 2.0, 'synonymous standard deviations from mean')
+        self._sdev_threshold_entry = th = thresh.values[0]
+        th.pixel_width = 25
+
+        suffix = EntriesRow(frame, 'Show only score names ending in', '')
+        self._score_name_suffix = snsuffix = suffix.values[0]
+        snsuffix.widget.returnPressed.connect(self._suffix_changed)
+        snsuffix.pixel_width = 100
 
         score_names_frame, sn_layout = column_frame(parent, spacing=0)
         sn_layout.setContentsMargins(20,0,0,0)
@@ -421,6 +420,13 @@ class ScoreRanges(ToolInstance):
         layout.addWidget(score_names_frame, stretch = 1)
         self._score_checkbutton_rows = []
         self._create_score_checkbuttons()
+
+        name_menu = EntriesRow(frame, 'Show named ranges',
+                               ('new', 'name1'))  # Will be replaced by named ranges when menu posted
+        self._name_menu = name_menu.values[0]
+        nmmenu = self._name_menu.widget.menu()
+        nmmenu.triggered.connect(self._name_chosen)
+        nmmenu.aboutToShow.connect(lambda: self._menu_about_to_show(nmmenu))
 
         flines, fl_layout = column_frame(frame, spacing=0)
         self._range_lines_frame = flines
@@ -534,6 +540,11 @@ class ScoreRanges(ToolInstance):
         num_sd = self._sdev_threshold
         return mean-num_sd*sdev, mean+num_sd*sdev
 
+    @property
+    def _sdev_threshold(self):
+        t = self._sdev_threshold_entry.value
+        return 0 if t is None else t
+    
     def _add_score_range(self, score_range):
         from chimerax.ui.widgets import EntriesRow
         sr = EntriesRow(self._range_lines_frame,
