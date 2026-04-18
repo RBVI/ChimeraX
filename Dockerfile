@@ -1,24 +1,24 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 LABEL org.opencontainers.image.source="https://github.com/RBVI/ChimeraX"
 LABEL org.opencontainers.image.description="UCSF ChimeraX headless runtime"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install runtime dependencies. This list mirrors the Ubuntu 22.04 entry in
-# mkubuntu.py (the .deb package dependencies), plus libfftw3-single3,
-# libopenjp2-7, and libxcb-xinerama0 which ChimeraX uses but mkubuntu.py
-# does not currently list for 22.04.
+# Install runtime dependencies. This list mirrors the Ubuntu 24.04 entry in
+# mkubuntu.py (the .deb package dependencies), plus libfftw3-single3 and
+# libopenjp2-7 which ChimeraX uses but mkubuntu.py does not currently list
+# for 24.04.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libasound2 \
-        libatk1.0-0 \
+        libasound2t64 \
+        libatk1.0-0t64 \
         libatomic1 \
         libbz2-1.0 \
         libc6 \
         libcairo-gobject2 \
         libcairo2 \
         libcrypt1 \
-        libcups2 \
+        libcups2t64 \
         libdbus-1-3 \
         libdrm2 \
         libegl1 \
@@ -32,17 +32,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libgdk-pixbuf-2.0-0 \
         libgfortran5 \
         libgl1 \
-        libglib2.0-0 \
+        libglib2.0-0t64 \
         libglu1-mesa \
         libgomp1 \
         libgssapi-krb5-2 \
         libgstreamer-gl1.0-0 \
         libgstreamer-plugins-base1.0-0 \
         libgstreamer1.0-0 \
-        libgtk-3-0 \
+        libgtk-3-0t64 \
         liblzma5 \
         libncursesw6 \
-        libnsl2 \
         libnspr4 \
         libnss3 \
         libopenjp2-7 \
@@ -53,10 +52,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libpulse0 \
         libspeechd2 \
         libsqlite3-0 \
-        libssl3 \
+        libssl3t64 \
         libstdc++6 \
         libtinfo6 \
-        libtirpc3 \
         libuuid1 \
         libwayland-client0 \
         libwayland-cursor0 \
@@ -75,7 +73,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libxcb-shm0 \
         libxcb-sync1 \
         libxcb-xfixes0 \
-        libxcb-xinerama0 \
         libxcb-xkb1 \
         libxcb1 \
         libxcomposite1 \

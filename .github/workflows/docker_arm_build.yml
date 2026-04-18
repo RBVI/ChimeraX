@@ -1,4 +1,4 @@
-name: Build ChimeraX Docker image
+name: Build ChimeraX ARM Docker image
 on:
   workflow_call:
     inputs:
@@ -17,8 +17,8 @@ on:
         required: true
 
 jobs:
-  build-docker:
-    runs-on: ubuntu-24.04
+  build-docker-arm:
+    runs-on: ubuntu-24.04-arm
     env:
       PYOPENGL_PLATFORM: egl
     steps:
@@ -30,32 +30,11 @@ jobs:
         uses: ./utils/ci/consolidated_cache
         with:
           platform: linux
-          architecture: x86_64
+          architecture: arm64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
-      - name: Restore bundles and includes from cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            linux-bundles.tar.gz
-            linux-include.tar.gz
-          key: linux-bundles-x64-${{ inputs.release_type }}-${{ github.sha }}
-      - name: Unpack the bundles tarball to wheels
-        run: |
-          mkdir wheels
-          tar -xvf linux-bundles.tar.gz -C wheels
-      - name: Unpack the include tarball to include
-        run: |
-          tar -xvf linux-include.tar.gz
       - name: Build ChimeraX.app
         run: |
-          make build-dirs
-          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 BUILD_TYPE="${{ inputs.release_type }}" PYQT_LICENSE=commercial make -j$(nproc) -C prereqs install
-          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 BUILD_TYPE="${{ inputs.release_type }}" PYQT_LICENSE=commercial make -j$(nproc) -C prereqs app-install
-          make -C src/apps/ChimeraX install BUILD_TYPE="${{ inputs.release_type }}"
-          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 BUILD_TYPE="${{ inputs.release_type }}" PYQT_LICENSE=commercial make -j$(nproc) install-common-wheels
-          cp -rp include ChimeraX.app
-          make -C src/apps install BUILD_TYPE="${{ inputs.release_type }}"
-          make -C docs install BUILD_TYPE="${{ inputs.release_type }}"
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 BUILD_TYPE="${{ inputs.release_type }}" PYQT_LICENSE=commercial make -j$(nproc) install-rbvi
           make dockerize
       - name: Put the build date, commit, and version in the environment
         run: |
@@ -78,13 +57,16 @@ jobs:
           REPO=docker.io/ucsfrbvi/chimerax
           case "${{ inputs.release_type }}" in
             daily|techpreview)
-              TAGS="${REPO}:${{ inputs.release_type }}-amd64,${REPO}:${{ inputs.release_type }}-amd64-${COMMIT_HASH}"
+              # Rolling channel tags: chimerax:daily-arm64, chimerax:daily-arm64-abc1234
+              TAGS="${REPO}:${{ inputs.release_type }}-arm64,${REPO}:${{ inputs.release_type }}-arm64-${COMMIT_HASH}"
               ;;
             candidate)
-              TAGS="${REPO}:${BUILD_VERSION}-rc-amd64,${REPO}:${BUILD_VERSION}-rc-amd64-${COMMIT_HASH}"
+              # Release candidate: chimerax:1.12-rc-arm64, chimerax:1.12-rc-arm64-abc1234
+              TAGS="${REPO}:${BUILD_VERSION}-rc-arm64,${REPO}:${BUILD_VERSION}-rc-arm64-${COMMIT_HASH}"
               ;;
             production)
-              TAGS="${REPO}:${BUILD_VERSION}-amd64,${REPO}:${BUILD_VERSION}-amd64-${COMMIT_HASH},${REPO}:latest-amd64"
+              # Production: chimerax:1.12-arm64, chimerax:1.12-arm64-abc1234, chimerax:latest-arm64
+              TAGS="${REPO}:${BUILD_VERSION}-arm64,${REPO}:${BUILD_VERSION}-arm64-${COMMIT_HASH},${REPO}:latest-arm64"
               ;;
             *)
               echo "Unknown release_type: ${{ inputs.release_type }}" >&2
