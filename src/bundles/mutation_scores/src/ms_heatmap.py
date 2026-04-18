@@ -73,8 +73,15 @@ class MutationScoresHeatmap(ToolInstance):
         # Draw the heatmap and axis labels
         self._draw_graphics()
 
-        tw.manage(placement=None)	# Start floating
+        # Keep axis labels in view when scrolling heatmap
+        vbar, hbar = sv.verticalScrollBar(), sv.horizontalScrollBar()
+        vbar.valueChanged.connect(self._viewport_change)
+        vbar.rangeChanged.connect(self._viewport_change)
+        hbar.valueChanged.connect(self._viewport_change)
+        hbar.rangeChanged.connect(self._viewport_change)
         
+        tw.manage(placement=None)	# Start floating
+
     # ---------------------------------------------------------------------------
     #
     def _create_graphics_pane(self, parent):
@@ -97,6 +104,7 @@ class MutationScoresHeatmap(ToolInstance):
         if self._block_drawing:
             return
         self._score_view.clear_scene()
+        self._x_axis_group = self._y_axis_group = None
         if self._mutation_set is None:
             return
         self._set_heatmap_image()
@@ -396,7 +404,9 @@ class MutationScoresHeatmap(ToolInstance):
                                                    'Mutation Heatmap Image',
                                                    suggested_path)
         if path:
+            self._full_view_axis_labels()       # Move the axis labels to edges
             self._score_view.save_image(path)
+            self._viewport_change()		# Move axis labels back to edge of viewport
 
     # ---------------------------------------------------------------------------
     #
@@ -417,17 +427,57 @@ class MutationScoresHeatmap(ToolInstance):
         res_nums = self._residue_numbers
         iranges = _contiguous_ranges(res_nums)
         rpad = residue_step // 2
+        scene = self._score_view.scene
+        labels = []
         for imin, imax in iranges:
             rmin, rmax = res_nums[imin], res_nums[imax]
             smin, smax = ((rmin+rpad)//residue_step) + 1, (rmax-(rpad+1))//residue_step
             rnums = [rmin] if rmax == rmin else [rmin] + [s*residue_step for s in range(smin, smax+1)] + [rmax]
             for r in rnums: 
                 text = str(r)
-                t = self._score_view.scene.addText(text)
+                t = scene.addText(text)
+                labels.append(t)
                 rect = t.boundingRect()
                 x = (r-rmin+imin+.5)*pixels_per_cell - rect.width()/2
                 y = self._heatmap_height * pixels_per_cell
                 t.setPos(x, y)
+
+        self._x_axis_group = self._make_axis_group(labels)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _make_axis_group(self, labels):
+        scene = self._score_view.scene
+        xg = scene.createItemGroup(labels)
+        from Qt.QtGui import QBrush, QPen
+        from Qt.QtCore import Qt
+        pen = QPen(Qt.NoPen)	# Don't draw border
+        brush = QBrush(Qt.white)
+        backing_rectangle = scene.addRect(xg.boundingRect(), pen=pen, brush=brush)
+        backing_rectangle.setZValue(-1)
+        xg.addToGroup(backing_rectangle)
+        return xg
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _viewport_change(self):
+        sv = self._score_view
+        size = sv.viewport().size() 
+        p = sv.mapToScene(0, size.height())
+        xg = self._x_axis_group
+        sr = sv.sceneRect()
+        y = p.y() - sr.height()
+        xg.setPos(0, min(0,y))
+        yg = self._y_axis_group
+        x = p.x() - sr.x()
+        yg.setPos(max(0,x), 0)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _full_view_axis_labels(self):
+        # Move the axis labels to edges for saving images.
+        self._x_axis_group.setPos(0,0)
+        self._y_axis_group.setPos(0,0)
 
     # ---------------------------------------------------------------------------
     #
@@ -436,21 +486,26 @@ class MutationScoresHeatmap(ToolInstance):
         pixels_per_cell = self._cell_size
         font = self._axis_font(pixels_per_cell)
         font_height = font.pixelSize()
+        labels = []
         for i,res_num in enumerate(self._residue_numbers):
             # Place amino acid type in horizontal text
             from_aa = self._res_aa[res_num]
             t = scene.addText(from_aa, font)
+            labels.append(t)
             rect = t.boundingRect()
             x = (i+.5)*pixels_per_cell - rect.width()/2
             y = self._heatmap_height * pixels_per_cell
             t.setPos(x, y)
             # Place residue number in vertical text to save space
             t = scene.addText(str(res_num), font)
+            labels.append(t)
             rect = t.boundingRect()
             t.setRotation(90)
             x = (i+.5)*pixels_per_cell + rect.height()/2
             y = self._heatmap_height * pixels_per_cell + int(1.5*font_height)
             t.setPos(x, y)
+
+        self._x_axis_group = self._make_axis_group(labels)
 
     # ---------------------------------------------------------------------------
     #
@@ -460,12 +515,16 @@ class MutationScoresHeatmap(ToolInstance):
         scores_height = num_scores * pixels_per_cell
         aa_step = (num_scores + self._group_spacing) * pixels_per_cell
         font = self._axis_font(aa_step)
+        labels = []
         for i, aa in enumerate(self._amino_acids):
             t = self._score_view.scene.addText(aa, font)
+            labels.append(t)
             rect = t.boundingRect()
             x = -rect.width()
             y = i*aa_step + 0.5*scores_height - rect.height()/2
             t.setPos(x, y)
+
+        self._y_axis_group = self._make_axis_group(labels)
 
     # ---------------------------------------------------------------------------
     #
@@ -475,12 +534,16 @@ class MutationScoresHeatmap(ToolInstance):
         aa_height = num_aa * pixels_per_cell
         score_step = (num_aa + self._group_spacing) * pixels_per_cell
         font = self._axis_font(score_step)
+        labels = []
         for i, score_name in enumerate(self._score_names):
             t = self._score_view.scene.addText(score_name, font)
+            labels.append(t)
             rect = t.boundingRect()
             x = -rect.width()
             y = i*score_step + 0.5*aa_height - rect.height()/2
             t.setPos(x, y)
+
+        self._y_axis_group = self._make_axis_group(labels)
 
     # ---------------------------------------------------------------------------
     #
