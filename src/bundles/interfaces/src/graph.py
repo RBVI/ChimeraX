@@ -28,7 +28,7 @@ from chimerax.core.tools import ToolInstance
 class Plot(ToolInstance):
 
     def __init__(self, session, tool_name, *, title=None, zoom_axes = 'xy', translate_axes = 'xy',
-                 panel_placement = "side"):
+                 panel_placement = "side", initial_size = None):
         self.zoom_axes = zoom_axes
         self.translate_axes = translate_axes
         
@@ -45,7 +45,16 @@ class Plot(ToolInstance):
         self.figure = f = figure.Figure(dpi=100, figsize=(2,2))
 
         from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as Canvas
-        self.canvas = c = Canvas(f)
+        if initial_size is None:
+            make_canvas = Canvas
+        else:
+            w,h = initial_size
+            class CanvasWithSize(Canvas):
+                def sizeHint(self):
+                    from Qt.QtCore import QSize
+                    return QSize(w, h)
+            make_canvas = CanvasWithSize
+        self.canvas = c = make_canvas(f)
         parent.setMinimumHeight(1)  # Matplotlib gives divide by zero error when plot resized to 0 height.
         c.setParent(parent)
 
@@ -56,6 +65,7 @@ class Plot(ToolInstance):
 
         layout.addWidget(c, stretch = 1)
         parent.setLayout(layout)
+
         tw.manage(placement = panel_placement)
 
         self.axes = axes = f.gca()
@@ -194,12 +204,12 @@ class Graph(Plot):
     
     def __init__(self, session, nodes, edges, tool_name, title, hide_ticks = True,
                  drag_select_callback = None, zoom_axes = 'xy', translate_axes = 'xy',
-                 panel_placement = 'side'):
+                 panel_placement = 'side', initial_size = None):
 
         # Create matplotlib panel
         Plot.__init__(self, session, tool_name, title = title,
                       zoom_axes = zoom_axes, translate_axes = translate_axes,
-                      panel_placement = panel_placement)
+                      panel_placement = panel_placement, initial_size = initial_size)
         self.tool_window.fill_context_menu = self._fill_context_menu
 
         self.nodes = nodes

@@ -92,6 +92,13 @@ def open_alpha_missense_scores(session, path, identifier = None, chains = None, 
     nres = len(set(ms.residue_number for ms in mutation_scores))
     msg = f'Fetched AlphaMissense scores {identifier} for {nres} residues'
 
+    if session.ui.is_gui:
+        from .ms_list import show_mutation_scores_list
+        show_mutation_scores_list(session)
+        from .ms_histogram import mutation_scores_histogram
+        mutation_scores_histogram(session, 'amiss', mset.name, scale = 'linear', bins = 50,
+                                  curve = False, synonymous = False, bounds = False, replace = False)
+
     return mset, msg
 
 def parse_alpha_missense_scores(session, lines, score_name = 'amiss'):

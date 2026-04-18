@@ -93,6 +93,10 @@ def open_uniprot_variant_scores(session, path, identifier = None, chains = None,
         sinfo.append(f'{score_name} {v.count()} variants for {len(v.residue_numbers())} residues')
     msg = f'Fetched variant scores {", ".join(sinfo)}'
 
+    if session.ui.is_gui:
+        from .ms_list import show_mutation_scores_list
+        show_mutation_scores_list(session)
+
     return mset, msg
 
 def parse_uniprot_variants(session, variant_info):

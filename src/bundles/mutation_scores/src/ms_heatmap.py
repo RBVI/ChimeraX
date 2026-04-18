@@ -524,7 +524,8 @@ class MutationScoresHeatmap(ToolInstance):
         ao.return_pressed.connect(self._draw_graphics)
 
         # Grouping on vertical axis.
-        gp = EntriesRow(f, 'Group by', True, 'amino acid', False, 'score name')
+        group_by_score = (len(msets) > 0 and len(msets[0].score_names()) > 1)
+        gp = EntriesRow(f, 'Group by', not group_by_score, 'amino acid', group_by_score, 'score name')
         self._group_amino_acid, self._group_score_name = ga,gs = gp.values
         from chimerax.ui.widgets import radio_buttons
         radio_buttons(ga,gs)
@@ -536,7 +537,7 @@ class MutationScoresHeatmap(ToolInstance):
         ler.changed.connect(self._draw_graphics)
         
         # Zoom factor for heatmap
-        zf = EntriesRow(f, 'Zoom factor', 1)
+        zf = EntriesRow(f, 'Zoom factor', 2)
         self._pixels_per_cell = ppc = zf.values[0]
         ppc.return_pressed.connect(self._draw_graphics)
         

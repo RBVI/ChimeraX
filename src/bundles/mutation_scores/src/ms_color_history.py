@@ -55,7 +55,7 @@ class MutationStructureColoring(ToolInstance):
         
         layout.addStretch(1)    # Extra space at end
                 
-        tw.manage(placement=None)	# Floating
+        tw.manage(placement='side')
 
     @classmethod
     def get_singleton(cls, session, create=True):
@@ -127,11 +127,17 @@ class MutationStructureColoring(ToolInstance):
             raise UserError('Press the "Color structure" button, then you can name the coloring')
         self._last_coloring_name = new_coloring_name
 
+    def set_mutation_set(self, mset):
+        self._mutation_set_menu.value = mset.name
+
     def _set_mutation_set_menu_visibility(self):
         from .ms_data import mutation_scores_names
         visible = (len(mutation_scores_names(self.session)) > 1)
         self._mutation_set_menu.widget.setVisible(visible)
         self._mutation_set_menu_label.setVisible(visible)
+
+    def set_coloring_score(self, score_name):
+        self._color_score_menu.value = score_name
 
     def _color_which_chosen(self):
         if self._color_which_menu.value == 'define ranges...':

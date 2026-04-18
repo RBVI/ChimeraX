@@ -73,13 +73,10 @@ class MutationScatterPlot(Graph):
         Graph.__init__(self, session, nodes, edges,
                        tool_name = 'Mutation scores plot', title = 'Mutation scores plot',
                        hide_ticks = False, drag_select_callback = self._rectangle_selected,
-                       panel_placement = None)
+                       panel_placement = None, initial_size = (500,500))
         self.figure.set_layout_engine(layout='constrained')  # Avoid clipping axis labels
 
         parent = self.tool_window.ui_area
-        from types import MethodType
-        from Qt.QtCore import QSize
-        parent.sizeHint = MethodType(lambda p: QSize(500,500), parent)	# Set initial size
         layout = parent.layout()
 
         # Add x-axis, y-axis and mutation set menus.
