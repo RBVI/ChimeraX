@@ -302,7 +302,7 @@ class MutationScoresHeatmap(ToolInstance):
         if res_num is None or from_aa is None or score_name is None or to_aa is None:
             msg = ''
         else:
-            value = 'missing' if score_value is None else ('%.2f' % score_value)
+            value = 'missing' if score_value is None else ('%.2g' % score_value)
             msg = f'{from_aa}{res_num}{to_aa} {score_name} {value}'
         self._info_label.setText(msg)
 
