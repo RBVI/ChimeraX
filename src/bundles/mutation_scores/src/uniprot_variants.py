@@ -115,9 +115,19 @@ def parse_uniprot_variants(session, variant_info):
             continue
         if variant['begin'] != variant['end']:
             continue  # More than one residue in variant
-        if not variant.get('predictions'):
-            continue  # No scores
-        scores = {prediction['predAlgorithmNameType']:prediction['score'] for prediction in variant['predictions']}
+
+        scores = {}
+        if variant.get('predictions'):
+            for prediction in variant['predictions']:
+                scores[prediction['predAlgorithmNameType']] = prediction['score']
+        if variant.get('populationFrequencies'):
+            for popfreq in variant['populationFrequencies']:
+                popname = popfreq.get('populationName')
+                if popname == 'AF':
+                    scores['allele_frequency'] = popfreq['frequency']
+                if popname == 'MAF':
+                    scores['minor_allele_frequency'] = popfreq['frequency']
+
         if scores:
             res_num = int(variant['begin'])
             from_aa = variant['wildType']	# One-letter amino acid code
