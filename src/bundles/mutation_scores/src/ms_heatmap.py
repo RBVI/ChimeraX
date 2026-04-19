@@ -1234,6 +1234,7 @@ class ScoreView(QGraphicsView):
         pixmap = rgb_to_pixmap(rgb)
         self._pixmap_item = pi = scene.addPixmap(pixmap)
         pi.setScale(pixels_per_cell)
+        pi.setZValue(-10)	# Put pixmap below axis labels.
 
     def save_image(self, path):
         size = self.scene.sceneRect().size().toSize()
