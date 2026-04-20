@@ -8,7 +8,6 @@ between complete scene states.
 
 from chimerax.core.state import StateManager
 from chimerax.core.commands.motion import CallForNFrames
-from Qt.QtCore import QObject, Signal as pyqtSignal, QTimer
 from chimerax.core.commands.run import run
 from chimerax.core.errors import UserError
 
@@ -95,16 +94,22 @@ ACTION_DEFAULTS = {
 }
 
 
-class SceneAnimationSignals(QObject):
-    """Signal emitter for SceneAnimation to avoid metaclass conflicts"""
+def _make_signals_class():
+    """Create the SceneAnimationSignals class only when Qt is available."""
+    from Qt.QtCore import QObject, Signal as pyqtSignal
 
-    time_changed = pyqtSignal(float)  # Current playback time
-    duration_changed = pyqtSignal(float)  # Animation duration changed
-    playback_started = pyqtSignal()
-    playback_stopped = pyqtSignal()
-    recording_started = pyqtSignal()
-    recording_stopped = pyqtSignal()
-    timeline_cleared = pyqtSignal()  # Scenes and actions cleared by command
+    class SceneAnimationSignals(QObject):
+        """Signal emitter for SceneAnimation to avoid metaclass conflicts"""
+
+        time_changed = pyqtSignal(float)  # Current playback time
+        duration_changed = pyqtSignal(float)  # Animation duration changed
+        playback_started = pyqtSignal()
+        playback_stopped = pyqtSignal()
+        recording_started = pyqtSignal()
+        recording_stopped = pyqtSignal()
+        timeline_cleared = pyqtSignal()  # Scenes and actions cleared by command
+
+    return SceneAnimationSignals
 
 
 class SceneAnimation(StateManager):
@@ -141,7 +146,9 @@ class SceneAnimation(StateManager):
         # Qt objects are only available in GUI mode
         self._is_gui = hasattr(session, 'ui') and session.ui.is_gui
         if self._is_gui:
-            self.signals = SceneAnimationSignals()
+            from Qt.QtCore import QTimer
+            SignalsClass = _make_signals_class()
+            self.signals = SignalsClass()
             self.playback_timer = QTimer()
             self.playback_timer.timeout.connect(self._advance_playback)
         else:
