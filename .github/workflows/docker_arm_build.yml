@@ -57,16 +57,17 @@ jobs:
           REPO=docker.io/ucsfrbvi/chimerax
           case "${{ inputs.release_type }}" in
             daily|techpreview)
-              # Rolling channel tags: chimerax:daily-arm64, chimerax:daily-arm64-abc1234
-              TAGS="${REPO}:${{ inputs.release_type }}-arm64,${REPO}:${{ inputs.release_type }}-arm64-${COMMIT_HASH}"
+              TAGS="${REPO}:daily-arm64,${REPO}:daily-arm64-${COMMIT_HASH},${REPO}:latest-arm64"
+              ;;
+            techpreview)
+              TAGS="${REPO}:techpreview-arm64,${REPO}:techpreview-arm64-${COMMIT_HASH}"
               ;;
             candidate)
               # Release candidate: chimerax:1.12-rc-arm64, chimerax:1.12-rc-arm64-abc1234
               TAGS="${REPO}:${BUILD_VERSION}-rc-arm64,${REPO}:${BUILD_VERSION}-rc-arm64-${COMMIT_HASH}"
               ;;
             production)
-              # Production: chimerax:1.12-arm64, chimerax:1.12-arm64-abc1234, chimerax:latest-arm64
-              TAGS="${REPO}:${BUILD_VERSION}-arm64,${REPO}:${BUILD_VERSION}-arm64-${COMMIT_HASH},${REPO}:latest-arm64"
+              TAGS="${REPO}:${BUILD_VERSION}-arm64,${REPO}:${BUILD_VERSION}-arm64-${COMMIT_HASH}"
               ;;
             *)
               echo "Unknown release_type: ${{ inputs.release_type }}" >&2

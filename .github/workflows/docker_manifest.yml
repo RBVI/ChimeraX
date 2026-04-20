@@ -38,14 +38,27 @@ jobs:
         run: |
           REPO=docker.io/ucsfrbvi/chimerax
           case "${{ inputs.release_type }}" in
-            daily|techpreview)
-              docker buildx imagetools create -t ${REPO}:${{ inputs.release_type }} \
-                ${REPO}:${{ inputs.release_type }}-amd64 \
-                ${REPO}:${{ inputs.release_type }}-arm64
+            daily)
+              docker buildx imagetools create -t ${REPO}:daily \
+                ${REPO}:daily-amd64 \
+                ${REPO}:daily-arm64
 
-              docker buildx imagetools create -t ${REPO}:${{ inputs.release_type }}-${COMMIT_HASH} \
-                ${REPO}:${{ inputs.release_type }}-amd64-${COMMIT_HASH} \
-                ${REPO}:${{ inputs.release_type }}-arm64-${COMMIT_HASH}
+              docker buildx imagetools create -t ${REPO}:daily-${COMMIT_HASH} \
+                ${REPO}:daily-amd64-${COMMIT_HASH} \
+                ${REPO}:daily-arm64-${COMMIT_HASH}
+
+              docker buildx imagetools create -t ${REPO}:latest \
+                ${REPO}:latest-amd64 \
+                ${REPO}:latest-arm64
+              ;;
+            techpreview)
+              docker buildx imagetools create -t ${REPO}:techpreview \
+                ${REPO}:techpreview-amd64 \
+                ${REPO}:techpreview-arm64
+
+              docker buildx imagetools create -t ${REPO}:techpreview-${COMMIT_HASH} \
+                ${REPO}:techpreview-amd64-${COMMIT_HASH} \
+                ${REPO}:techpreview-arm64-${COMMIT_HASH}
               ;;
             candidate)
               docker buildx imagetools create -t ${REPO}:${BUILD_VERSION}-rc \
@@ -64,10 +77,6 @@ jobs:
               docker buildx imagetools create -t ${REPO}:${BUILD_VERSION}-${COMMIT_HASH} \
                 ${REPO}:${BUILD_VERSION}-amd64-${COMMIT_HASH} \
                 ${REPO}:${BUILD_VERSION}-arm64-${COMMIT_HASH}
-
-              docker buildx imagetools create -t ${REPO}:latest \
-                ${REPO}:latest-amd64 \
-                ${REPO}:latest-arm64
               ;;
             *)
               echo "Unknown release_type: ${{ inputs.release_type }}" >&2
