@@ -607,8 +607,8 @@ class Structure(Model, StructureData):
             changes = self._ALL_CHANGE
             self._atoms_drawing = p = AtomsDrawing('atoms')
             self.add_drawing(p)
-            # Update level of detail of spheres
-            self._level_of_detail.set_atom_sphere_geometry(p)
+            # Set impostor quad geometry (2 triangles per atom instance)
+            p._set_impostor_quad_geometry()
 
         if changes & (self._ADDDEL_CHANGE | self._DISPLAY_CHANGE):
             changes |= self._ALL_CHANGE
@@ -732,9 +732,7 @@ class Structure(Model, StructureData):
         bd = self._bonds_drawing
         if bd:
             lod.set_bond_cylinder_geometry(bd, total_atoms)
-        ad = self._atoms_drawing
-        if ad:
-            lod.set_atom_sphere_geometry(ad, total_atoms)
+        # Atom sphere LOD not needed — AtomsDrawing uses impostor quads
 
     def _update_position(self, trig_name, updated_model):
         need_update = False
@@ -1261,6 +1259,21 @@ class AtomsDrawing(Drawing):
     def __init__(self, name):
         self.visible_atoms = None
         super().__init__(name)
+
+    def _set_impostor_quad_geometry(self):
+        '''Set unit quad geometry for impostor sphere rendering.'''
+        from numpy import array, float32, int32
+        vertices = array([[-1,-1,0], [1,-1,0], [1,1,0], [-1,1,0]], float32)
+        normals = array([[0,0,1], [0,0,1], [0,0,1], [0,0,1]], float32)
+        triangles = array([[0,1,2], [0,2,3]], int32)
+        self.set_geometry(vertices, normals, triangles)
+
+    def _shader_options(self, transparent_only=False, opaque_only=False):
+        sopt = super()._shader_options(transparent_only, opaque_only)
+        from chimerax.graphics.opengl import Render
+        sopt |= Render.SHADER_IMPOSTOR_SPHERE
+        sopt &= ~Render.SHADER_LIGHTING_NORMALS
+        return sopt
 
     def bounds(self):
         cpb = self._cached_position_bounds	# Attribute of Drawing.
