@@ -446,14 +446,20 @@ class MutationScoresHeatmap(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _make_axis_group(self, labels):
+    def _make_axis_group(self, labels, y_range = None):
         scene = self._score_view.scene
         xg = scene.createItemGroup(labels)
         from Qt.QtGui import QBrush, QPen
         from Qt.QtCore import Qt
         pen = QPen(Qt.NoPen)	# Don't draw border
         brush = QBrush(Qt.white)
-        backing_rectangle = scene.addRect(xg.boundingRect(), pen=pen, brush=brush)
+        rect = xg.boundingRect()
+        print('setting y range', y_range)
+        if y_range:
+            ymin, ymax = y_range
+            rect.setY(ymin)
+            rect.setHeight(ymax-ymin)
+        backing_rectangle = scene.addRect(rect, pen=pen, brush=brush)
         backing_rectangle.setZValue(-1)
         xg.addToGroup(backing_rectangle)
         return xg
@@ -524,7 +530,8 @@ class MutationScoresHeatmap(ToolInstance):
             y = i*aa_step + 0.5*scores_height - rect.height()/2
             t.setPos(x, y)
 
-        self._y_axis_group = self._make_axis_group(labels)
+        height = self._heatmap_height * pixels_per_cell
+        self._y_axis_group = self._make_axis_group(labels, y_range = (0, height))
 
     # ---------------------------------------------------------------------------
     #
@@ -543,7 +550,8 @@ class MutationScoresHeatmap(ToolInstance):
             y = i*score_step + 0.5*aa_height - rect.height()/2
             t.setPos(x, y)
 
-        self._y_axis_group = self._make_axis_group(labels)
+        height = self._heatmap_height * pixels_per_cell
+        self._y_axis_group = self._make_axis_group(labels, y_range = (0, height))
 
     # ---------------------------------------------------------------------------
     #
