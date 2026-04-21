@@ -58,7 +58,7 @@ uniform mat4 projection_matrix;
 
 layout(location = 0) in vec3 position;
 
-#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE) || defined(USE_IMPOSTOR_SPHERE)
+#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE) || defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
 out vec3 v;
 #endif
 
@@ -115,7 +115,15 @@ out vec3 impostor_center;   // sphere center in eye space
 out float impostor_radius;  // sphere radius
 #endif
 
-#ifdef USE_INSTANCING
+#ifdef USE_IMPOSTOR_CYLINDER
+out vec3 impostor_cyl_center;      // cylinder center in eye space
+out vec3 impostor_cyl_axis;        // cylinder axis direction (normalized) in eye space
+out float impostor_cyl_radius;     // cylinder radius
+out float impostor_cyl_half_length; // half the cylinder length
+out vec4 impostor_cyl_color2;      // second atom color (packed in matrix bottom row)
+#endif
+
+#if defined(USE_INSTANCING) || defined(USE_IMPOSTOR_CYLINDER)
 layout(location = 5) in mat4 instance_placement;
 #endif
 
@@ -154,7 +162,63 @@ void main(void)
       gl_ClipDistance[i] = dot(vscene_c, clip_planes[i]);
   #endif
 
-#else // not USE_IMPOSTOR_SPHERE
+#elif defined(USE_IMPOSTOR_CYLINDER)
+  // Impostor cylinder: full bond as single instance.
+  // Extract color2 from matrix bottom row before using it for transforms.
+  impostor_cyl_color2 = vec4(instance_placement[0][3], instance_placement[1][3],
+                             instance_placement[2][3], instance_placement[3][3]);
+  // Clean the bottom row for correct affine transforms
+  mat4 cyl_mat = instance_placement;
+  cyl_mat[0][3] = 0.0; cyl_mat[1][3] = 0.0; cyl_mat[2][3] = 0.0; cyl_mat[3][3] = 1.0;
+
+  // Extract cylinder endpoints (unit cylinder, z from -0.5 to +0.5)
+  vec3 p0_eye = (model_view_matrix * cyl_mat * vec4(0, 0, -0.5, 1)).xyz;
+  vec3 p1_eye = (model_view_matrix * cyl_mat * vec4(0, 0, 0.5, 1)).xyz;
+  vec3 cyl_axis_eye = p1_eye - p0_eye;
+  float cyl_len = length(cyl_axis_eye);
+  vec3 cyl_dir = cyl_axis_eye / cyl_len;
+  float cyl_radius = length((model_view_matrix * cyl_mat * vec4(1, 0, 0, 0)).xyz);
+  vec3 cyl_center = (p0_eye + p1_eye) * 0.5;
+  float cyl_half_len = cyl_len * 0.5;
+
+  // Build billboard: expand in both perpendicular directions to cover
+  // the cylinder from any viewing angle. The quad is positioned in
+  // screen space to always enclose the cylinder projection.
+  vec3 cyl_view_dir = normalize(cyl_center);
+  vec3 cyl_cross = cross(cyl_dir, cyl_view_dir);
+  float cyl_cross_len = length(cyl_cross);
+  vec3 cyl_right = cyl_cross_len > 0.001
+    ? cyl_cross / cyl_cross_len
+    : normalize(cross(cyl_dir, vec3(0, 1, 0)));
+  // Screen up direction perpendicular to both right and view
+  vec3 cyl_up = cross(cyl_view_dir, cyl_right);
+
+  // Project cylinder axis onto screen plane to find screen-space extent
+  vec3 axis_screen = cyl_dir - cyl_view_dir * dot(cyl_dir, cyl_view_dir);
+  float axis_screen_len = length(axis_screen);
+  vec3 axis_screen_dir = axis_screen_len > 0.001 ? axis_screen / axis_screen_len : cyl_up;
+  vec3 axis_screen_perp = cross(cyl_view_dir, axis_screen_dir);
+
+  // Expand quad in screen space: along projected axis and perpendicular to it
+  float extent_along = cyl_half_len + cyl_radius;
+  float extent_perp = cyl_radius * 1.1;
+  vec3 cyl_offset = axis_screen_dir * position.y * extent_along
+                   + axis_screen_perp * position.x * extent_perp
+                   + cyl_view_dir * position.x * cyl_radius;  // depth offset for viewing angle
+  vec4 veye = vec4(cyl_center + cyl_offset, 1.0);
+
+  impostor_cyl_center = cyl_center;
+  impostor_cyl_axis = cyl_dir;
+  impostor_cyl_radius = cyl_radius;
+  impostor_cyl_half_length = cyl_half_len;
+
+  #ifdef USE_CLIP_PLANES
+    vec4 vscene_c = model_matrix * cyl_mat * vec4(0, 0, 0, 1);
+    for (int i = 0 ; i < num_clip_planes ; ++i)
+      gl_ClipDistance[i] = dot(vscene_c, clip_planes[i]);
+  #endif
+
+#else // not USE_IMPOSTOR_SPHERE or USE_IMPOSTOR_CYLINDER
 
 #ifdef USE_SHIFT_AND_SCALE
   vec4 vi = vec4(instance_shift_and_scale.w * position + instance_shift_and_scale.xyz, 1);
@@ -186,14 +250,14 @@ void main(void)
   vec4 veye = model_view_matrix * vi;
 #endif
 
-#endif // end USE_IMPOSTOR_SPHERE
+#endif // end USE_IMPOSTOR_SPHERE / USE_IMPOSTOR_CYLINDER
 
-#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE) || defined(USE_IMPOSTOR_SPHERE)
+#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE) || defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
    v = veye.xyz;
 #endif
 
 #ifdef USE_LIGHTING
-  #ifndef USE_IMPOSTOR_SPHERE
+  #if !defined(USE_IMPOSTOR_SPHERE) && !defined(USE_IMPOSTOR_CYLINDER)
   #ifdef USE_LIGHTING_NORMALS
     #ifdef USE_INSTANCING
       vec3 ni = vec3(instance_placement * vec4(normal,0));
@@ -202,7 +266,7 @@ void main(void)
     #endif
     N = normalize((model_view_matrix * vec4(ni,0)).xyz);
   #endif
-  #endif // not USE_IMPOSTOR_SPHERE
+  #endif // not USE_IMPOSTOR_SPHERE/CYLINDER
   #ifdef USE_SHADOW
     #ifdef USE_STEREO_360
       shadow_tex_coord = (shadow_transform * (view_matrix * vec4(vshadow,1))).stp;
