@@ -684,7 +684,8 @@ class Render:
         if depth_only:
             d = ~(self.SHADER_INSTANCING | self.SHADER_SHIFT_AND_SCALE |
                   self.SHADER_TRANSPARENT_ONLY | self.SHADER_OPAQUE_ONLY |
-                  self.SHADER_CLIP_PLANES | self.SHADER_IMPOSTOR_SPHERE)
+                  self.SHADER_CLIP_PLANES | self.SHADER_IMPOSTOR_SPHERE |
+                  self.SHADER_IMPOSTOR_CYLINDER)
         else:
             d = 0
         self.disable_capabilities = d
@@ -1854,7 +1855,7 @@ class Multishadow:
 
         maxs = self.max_multishadows()
         shader.set_integer("shadow_count", min(maxs, len(m)))
-        if shader.capabilities & (Render.SHADER_LIGHTING_NORMALS | Render.SHADER_IMPOSTOR_SPHERE):
+        if shader.capabilities & (Render.SHADER_LIGHTING_NORMALS | Render.SHADER_IMPOSTOR_SPHERE | Render.SHADER_IMPOSTOR_CYLINDER):
             shader.set_float("shadow_depth", self._multishadow_depth)
 
 class Offscreen:
@@ -2170,6 +2171,7 @@ shader_options = (
     "SHADER_VOLUME_RAYCASTING",
     "SHADER_SHOW_DEPTH_BUFFER",
     "SHADER_IMPOSTOR_SPHERE",
+    "SHADER_IMPOSTOR_CYLINDER",
 )
 for i, sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)
