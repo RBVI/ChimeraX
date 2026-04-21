@@ -150,7 +150,7 @@ class MutationScoresHeatmap(ToolInstance):
         score_matrix, missing = self._score_matrix()
         colormap = self._colormap()
         rgb = matrix_to_rgb(score_matrix, missing, colormap)
-        self._heatmap_height = rgb.shape[0]
+        self._heatmap_height, self._heatmap_width = rgb.shape[0:2]
 
         # Add divider lines
         group_size = self._num_scores if self._grouping == 'amino acid' else self._num_amino_acids
@@ -352,7 +352,14 @@ class MutationScoresHeatmap(ToolInstance):
             return
         if not self._have_structure:
             return
-        i1,i2 = xy1[0],xy2[0]
+
+        (i1,j1),(i2,j2) = xy1,xy2
+        w,h = self._heatmap_width, self._heatmap_height
+        if (j1 < 0 and j2 < 0) or (j1 >= h and j2 >= h) or (i1 < 0 and i2 < 0) or (i1 >= w and i2 >= w):
+            # drag box does not intersect heatmap so clear colors.
+            self._uncolor_dragbox_residues()
+            return
+
         all_res_nums = self._residue_numbers
         isize = len(all_res_nums)
         imin, imax = max(0, int(min(i1,i2))), min(isize-1, int(max(i1,i2)))
