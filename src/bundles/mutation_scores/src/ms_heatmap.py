@@ -578,7 +578,7 @@ class MutationScoresHeatmap(ToolInstance):
     #
     def _create_options_gui(self, parent):
         from chimerax.ui.widgets import CollapsiblePanel
-        self._options_panel = p = CollapsiblePanel(parent, title = None)
+        self._options_panel = p = CollapsiblePanel(parent, title = None, shrink_to_fit = False)
         f = p.content_area
 
         # Which mutation set
