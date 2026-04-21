@@ -13,16 +13,7 @@
 
 from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
-
-_ma_settings = None
-
-import inspect
-from .cmd import make_alignment
-cmd_params = inspect.signature(make_alignment).parameters
-cmd_defaults = {
-    kw_name: cmd_params[kw_name].default for kw_name in
-        ['cutoff_distance', 'column_criterion', 'gap_char', 'circular', 'max_iterations']
-}
+from .settings import get_settings, defaults
 
 class MatchAlignTool(ToolInstance):
 
@@ -31,12 +22,7 @@ class MatchAlignTool(ToolInstance):
 
     def __init__(self, session, tool_name):
         ToolInstance.__init__(self, session, tool_name)
-        global _ma_settings
-        if _ma_settings is None:
-            from chimerax.core.settings import Settings
-            class _MatchAlignSettings(Settings):
-                EXPLICIT_SAVE = cmd_defaults
-            _ma_settings = _MatchAlignSettings(self.session, "Match->Align")
+        _ma_settings = get_settings(session)
         from chimerax.ui import MainToolWindow
         self.tool_window = tw = MainToolWindow(self)
         tw.title = "Create Alignment from Superposition"
@@ -77,18 +63,6 @@ class MatchAlignTool(ToolInstance):
             'gap_char':
                 "Character used to depict gaps in the generated alignment",
         }
-        class IterOption(BooleanOption):
-            def get_value(self):
-                return getattr(self.settings, self.attr_name)
-
-            def set_value(self, value):
-                if value == 0:
-                    super().set_value(False)
-                else:
-                    super().set_value(True)
-
-            value = property(get_value, set_value)
-
         # some of the min/max values are there to make the entry areas less wide
         for label, opt_type, attr_name, callback, kw in [
                 ("Residue-residue distance cutoff (angstroms):", FloatOption, 'cutoff_distance', None,
@@ -98,7 +72,7 @@ class MatchAlignTool(ToolInstance):
                 ("Gap character:", SymbolicEnumOption, 'gap_char', None,
                     { 'values': (".", "-", "~"), 'labels': (". (period)", "- (dash)", "~ (tilde)") }),
                 ("Allow for circular permutation", BooleanOption, 'circular', None, {}),
-                ("Iterate superposition/alignment...", IterOption, 'max_iterations', self._iterate_cb, {})]:
+                ("Iterate superposition/alignment...", BooleanOption, 'iterate', self._iterate_cb, {})]:
             opt = opt_type(label, getattr(_ma_settings, attr_name), callback,
                 balloon=tool_tips.get(attr_name, None), attr_name=attr_name, settings=_ma_settings, **kw)
             setattr(self, attr_name + '_option', opt)
@@ -106,7 +80,7 @@ class MatchAlignTool(ToolInstance):
         self.circular_option.enabled = False
         gw, sub_panel = panel.add_option_group(group_label= "Iteration Parameters",
             group_alignment=Qt.AlignCenter)
-        gw.setHidden(self.max_iterations_option.value == 0)
+        gw.setHidden(not self.iterate_option.value)
         gw_layout = QVBoxLayout()
         gw_layout.setContentsMargins(2,2,2,2)
         gw_layout.setSpacing(2)
@@ -117,11 +91,10 @@ class MatchAlignTool(ToolInstance):
             def set_multiple(self):
                 pass
 
-            def _make_widget(self, *, main_option=None):
-                self._main_option = main_option
+            def _make_widget(self):
                 self.widget = layout = QVBoxLayout()
-                layout.setSpacing(2)
-                layout.setContentsMargins(0,0,0,0)
+                layout.setSpacing(1)
+                layout.setContentsMargins(2,2,2,2)
                 self.num_iters_button_group = bg = QButtonGroup()
                 row_layout = QHBoxLayout()
                 row_layout.setSpacing(2)
@@ -129,7 +102,8 @@ class MatchAlignTool(ToolInstance):
                 bg.addButton(self.finite_iter_button)
                 row_layout.addWidget(self.finite_iter_button, alignment=Qt.AlignLeft)
                 self.num_iters = make_int_spinbox(1, 999)
-                self.num_iters.setValue(3)
+                num_iters = self.settings.max_iterations
+                self.num_iters.setValue(defaults['max_iterations'] if num_iters is None else num_iters)
                 row_layout.addWidget(self.num_iters, alignment=Qt.AlignLeft)
                 row_layout.addWidget(QLabel("times"), alignment=Qt.AlignLeft)
                 row_layout.addStretch(1)
@@ -142,9 +116,6 @@ class MatchAlignTool(ToolInstance):
                 layout.addLayout(row_layout)
 
             def get_value(self):
-                if not self.main_option.isChecked():
-                    return 0
-
                 if self.finite_iter_button.isChecked():
                     return self.num_iters.value()
                 return None
@@ -152,14 +123,73 @@ class MatchAlignTool(ToolInstance):
             def set_value(self, value):
                 if value is None:
                     self.infinite_iter_button.setChecked(True)
-                elif value != 0:
+                else:
                     self.finite_iter_button.setChecked(True)
                     self.num_iters.setValue(value)
 
             value = property(get_value, set_value)
 
-        sub_panel.add_option(IterNumOption("Iterate alignment:", _ma_settings.max_iterations,
-            None, attr_name="max_iterations", settings=_ma_settings, main_option=self.max_iterations_option))
+        self.max_iterations_option = IterNumOption("Iterate alignment:", _ma_settings.max_iterations, None,
+            attr_name="max_iterations", settings=_ma_settings)
+        sub_panel.add_option(self.max_iterations_option)
+
+        class SuperimposeOption(Option):
+            def set_multiple(self):
+                pass
+
+            def _make_widget(self):
+                self.widget = layout = QVBoxLayout()
+                layout.setSpacing(1)
+                layout.setContentsMargins(2,2,2,2)
+                self.superimpose_button_group = bg = QButtonGroup()
+                row_layout = QHBoxLayout()
+                self.entire_button = QRadioButton("across entire alignment")
+                bg.addButton(self.entire_button)
+                row_layout.addWidget(self.entire_button, alignment=Qt.AlignLeft)
+                row_layout.addStretch(1)
+                layout.addLayout(row_layout)
+                row_layout = QHBoxLayout()
+                row_layout.setSpacing(2)
+                self.limited_button = QRadioButton("in stretches of at least")
+                bg.addButton(self.limited_button)
+                row_layout.addWidget(self.limited_button, alignment=Qt.AlignLeft)
+                self.stretch_len = make_int_spinbox(1, 999)
+                stretch_len = self.settings.min_stretch
+                self.stretch_len.setValue(defaults['min_stretch'] if stretch_len is None else stretch_len)
+                row_layout.addWidget(self.stretch_len, alignment=Qt.AlignLeft)
+                row_layout.addWidget(QLabel("consecutive columns"), alignment=Qt.AlignLeft)
+                row_layout.addStretch(1)
+                layout.addLayout(row_layout)
+
+            def get_value(self):
+                if self.limited_button.isChecked():
+                    return self.stretch_len.value()
+                return None
+
+            def set_value(self, value):
+                if value is None:
+                    self.entire_button.setChecked(True)
+                else:
+                    self.limited_button.setChecked(True)
+                    self.stretch_len.setValue(value)
+
+            value = property(get_value, set_value)
+
+        self.min_stretch_option = SuperimposeOption("Superimpose full columns:", _ma_settings.min_stretch,
+            None, attr_name="min_stretch", settings=_ma_settings)
+        sub_panel.add_option(self.min_stretch_option)
+
+        from chimerax.atomic.widgets import ChainMenuButton
+        ref_chain_layout = QHBoxLayout()
+        ref_chain_layout.addStretch(1)
+        ref_chain_layout.addWidget(QLabel("Reference chain for matching:"))
+        self.ref_chain_button = ChainMenuButton(session, no_value_button_text="",
+            list_func=lambda cl=self.chain_list: cl.value,
+            autoselect=ChainMenuButton.AUTOSELECT_FIRST)
+        ref_chain_layout.addWidget(self.ref_chain_button)
+        ref_chain_layout.addStretch(1)
+        gw_layout.addLayout(ref_chain_layout)
+
         layout.addWidget(panel, alignment=Qt.AlignCenter)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
@@ -181,35 +211,53 @@ class MatchAlignTool(ToolInstance):
         if not apply:
             self.tool_window.shown = False
             self.session.ui.processEvents()
-        '''
         from chimerax.ui import tool_user_error
-        structures = self.structures_list.value
-        if not structures:
+        chains = self.chain_list.value
+        if len(chains) < 2:
             self.tool_window.shown = True
-            return tool_user_error("No structures chosen")
-        from chimerax.atomic import AtomicStructure
-        from chimerax.core.commands import run, concise_model_spec
-        cmd = "kvfinder %s" % concise_model_spec(self.session, structures, relevant_types=AtomicStructure)
+            return tool_user_error("Must choose at least two chains for alignment")
+        from chimerax.atomic import concise_chain_spec
+        args = [concise_chain_spec(chains)]
+
+        def str_for_val(val):
+            if isinstance(val, bool):
+                return str(val).lower()
+            if isinstance(val, (int, float)):
+                return "%g" % val
+            if val is None:
+                return "none"
+            from chimerax.core.commands import StringArg
+            return StringArg.unparse(val)
+
+        import inspect
+        from .cmd import make_alignment
+        cmd_params = inspect.signature(make_alignment).parameters
         from chimerax.core.commands import camel_case
-        global _launch_settings
-        for attr_name, default_value in self.cmd_defaults.items():
-            cur_val = getattr(_launch_settings, attr_name)
-            if attr_name == "grid_spacing" and (cur_val <= 0.0 or cur_val >= 5.0):
+        for kw_name in defaults.keys():
+            if kw_name == 'iterate':
+                continue
+            default = cmd_params[kw_name].default
+            val = getattr(self, kw_name + '_option').value
+            if kw_name in ('max_iterations', 'min_stretch'):
+                if not self.iterate_option.value:
+                    if kw_name == 'max_iterations':
+                        val = 0
+                    else:
+                        continue
+            if kw_name == 'min_stretch' and val is None:
+                val = 1
+            if val != default:
+                args.extend((camel_case(kw_name), str_for_val(val)))
+        if self.iterate_option.value:
+            ref_chain = self.ref_chain_button.value
+            if not ref_chain:
                 self.tool_window.shown = True
-                return tool_user_error("Grid spacing value must be > 0.0 and < 5.0")
-            if cur_val != default_value:
-                cmd += " " + camel_case(attr_name) + " %g" % cur_val
-        if self.restrict_box.isChecked():
-            cmd += " boxAtoms sel"
-            padding = self.padding_box.value()
-            if padding != self.cmd_defaults["box_pad"]:
-                cmd += " boxPad %g" % padding
-        if self.include_box.isChecked():
-            cmd += " includeAtoms sel"
-        if not self.replace_prev.isChecked():
-            cmd += " replace false"
-        run(self.session, cmd)
-        '''
+                return tool_user_error("Must choose a refence chain for iterative superposition")
+            args.extend(('refChain', ref_chain.atomspec))
+
+        from chimerax.core.commands import run
+        run(self.session, "msa3d " + ' '.join(args))
+
         if not apply:
             self.delete()
 
@@ -219,12 +267,14 @@ class MatchAlignTool(ToolInstance):
             changed_chains.setdefault(chain.structure, []).append(chain)
         for s, chains in changed_chains.items():
             if len(chains) > 1:
-                chains.remove(self._prev_chains[s])
+                if s in self._prev_chains:
+                    chains.remove(self._prev_chains[s])
                 self.chain_list.blockSignals(True)
                 self.chain_list.value = sum(changed_chains.values(), start=[])
                 self.chain_list.blockSignals(False)
                 break
         self._prev_chains = { chain.structure: chain for chain in self.chain_list.value }
+        self.ref_chain_button.refresh()
 
     def _iterate_cb(self, opt):
-        self.iter_param_group.setHidden(self.max_iterations_option.value == 0)
+        self.iter_param_group.setHidden(not self.iterate_option.value)
