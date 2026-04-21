@@ -16,6 +16,7 @@ defaults = {
     'column_criterion': "any",
     'cutoff_distance': 5.0,
     'gap_char': '.',
+    'iterate': False,
     'max_iterations': 3,
     'min_stretch': 3,
 }
