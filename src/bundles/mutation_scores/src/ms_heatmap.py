@@ -475,6 +475,10 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _viewport_change(self):
+        if not self.tool_window.ui_area.isVisible():
+            # Don't move axes before window is mapped because it
+            # then makes the initial window size too small to show full heatmap.
+            return	
         sv = self._score_view
         size = sv.viewport().size() 
         p = sv.mapToScene(0, size.height())
