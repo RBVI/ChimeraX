@@ -678,7 +678,7 @@ def model_symmetry(model):
     else:
         tflist = []
 
-    if len(tflist) <= 1:
+    if tflist is None or len(tflist) <= 1:
         return None
 
     return tflist

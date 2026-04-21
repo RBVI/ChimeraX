@@ -53,14 +53,11 @@ class MutationHistogram(Graph):
         Graph.__init__(self, session, nodes, edges,
                        tool_name = 'Mutation scores histogram', title = 'Mutation scores histogram',
                        hide_ticks = False, drag_select_callback = self._rectangle_selected,
-                       zoom_axes = 'x', translate_axes = 'x', panel_placement = None)
+                       zoom_axes = 'x', translate_axes = 'x', panel_placement = None, initial_size = (500,200))
         self.figure.set_layout_engine(layout='constrained')  # Avoid clipping axis labels
 
         tw = self.tool_window
         parent = tw.ui_area
-        from types import MethodType
-        from Qt.QtCore import QSize
-        parent.sizeHint = MethodType(lambda p: QSize(500,200), parent)	# Set initial size
         layout = parent.layout()
 
         # Add score and mutation set menus.
