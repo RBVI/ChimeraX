@@ -43,6 +43,8 @@ from a structural superposition of the
 Residue types are not used, only their spatial proximities.
 Iterations of refitting the structures using the sequence alignment
 and generating a new sequence alignment can be performed.
+The corresponding tool is
+<a href="../tools/matchalign.html"><b>Match&rarr;Align</b></a>.
 See also:
 <a href="matchmaker.html"><b>matchmaker</b></a>,
 <a href="align.html"><b>align</b></a>,
@@ -128,7 +130,7 @@ Information on any permutations will be sent to the
 <br>
 Maximum number of times to refit the structures based on the output 
 sequence alignment and generate a new sequence alignment, 
-either an integer <i>N</i> &ge; 0 (default <b>3</b>) or the word <b>none</b>.
+either an integer <i>N</i> &ge; 0 (default <b>0</b>) or the word <b>none</b>.
 (no maximum, continue to convergence).
 Regardless of <i>N</i>, iteration will stop at convergence,
 or will not occur at all if there are no fully populated columns in
