@@ -306,14 +306,15 @@ class MutationScoresHeatmap(ToolInstance):
             msg = f'{from_aa}{res_num}{to_aa} {score_name} {value}'
         self._info_label.setText(msg)
 
-        if res_num is not None and self._color_residue_on_hover.enabled and self._have_structure:
+        if self._color_residue_on_hover.enabled and self._have_structure:
             self._uncolor_hover_residues()
-            res, rnums = self._mutation_set.associated_residues([res_num])
-            if len(res) > 0:
-                self._last_hover_residues = (res, res.ribbon_colors, res.atoms.colors)
-                color = self._hover_color.color
-                res.ribbon_colors = color
-                res.atoms.colors = color
+            if res_num is not None:
+                res, rnums = self._mutation_set.associated_residues([res_num])
+                if len(res) > 0:
+                    self._last_hover_residues = (res, res.ribbon_colors, res.atoms.colors)
+                    color = self._hover_color.color
+                    res.ribbon_colors = color
+                    res.atoms.colors = color
             
     # ---------------------------------------------------------------------------
     #
@@ -365,12 +366,13 @@ class MutationScoresHeatmap(ToolInstance):
         imin, imax = max(0, int(min(i1,i2))), min(isize-1, int(max(i1,i2)))
         if imax < imin:
             return
-        if not add:
-            self._uncolor_dragbox_residues()
         res_nums = tuple(all_res_nums[imin:imax+1])
         mset = self._mutation_set
         res, rnums = mset.associated_residues(res_nums)
         if len(res) > 0:
+            self._uncolor_hover_residues()	# Avoid remembering hover colored residue
+            if not add:
+                self._uncolor_dragbox_residues()
             self._last_dragbox_residues.append((res, res.ribbon_colors, res.atoms.colors))
             color = self._dragbox_color.color
             res.ribbon_colors = color
@@ -379,7 +381,7 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _uncolor_dragbox_residues(self):
-        for last_res, last_res_colors, last_atom_colors in self._last_dragbox_residues:
+        for last_res, last_res_colors, last_atom_colors in self._last_dragbox_residues[::-1]:
             last_res.ribbon_colors = last_res_colors
             last_res.atoms.colors = last_atom_colors
         self._last_dragbox_residues.clear()
@@ -461,7 +463,6 @@ class MutationScoresHeatmap(ToolInstance):
         pen = QPen(Qt.NoPen)	# Don't draw border
         brush = QBrush(Qt.white)
         rect = xg.boundingRect()
-        print('setting y range', y_range)
         if y_range:
             ymin, ymax = y_range
             rect.setY(ymin)
