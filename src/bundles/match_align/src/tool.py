@@ -42,12 +42,14 @@ class MatchAlignTool(ToolInstance):
         tw.title = "Create Alignment from Superposition"
         parent = tw.ui_area
         from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QWidget, QGroupBox, QCheckBox
-        from Qt.QtWidgets import QDoubleSpinBox
+        from Qt.QtWidgets import QDoubleSpinBox, QRadioButton, QButtonGroup
         from Qt.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
         layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(2)
 
+        layout.addWidget(QLabel("Chains to align"), alignment=Qt.AlignCenter)
         from chimerax.atomic.widgets import ChainListWidget
         self.chain_list = ChainListWidget(session, selection_mode="multi")
         layout.addWidget(self.chain_list)
@@ -60,84 +62,105 @@ class MatchAlignTool(ToolInstance):
         self.chain_list.value = initial_chains
         self.chain_list.value_changed.connect(self._chains_changed)
         self._prev_chains = { chain.structure: chain for chain in self.chain_list.value }
-        '''
-        structures_widget = QWidget()
-        structures_layout = QHBoxLayout()
-        structures_widget.setLayout(structures_layout)
-        layout.addWidget(structures_widget, alignment=Qt.AlignCenter)
-        structures_layout.addWidget(QLabel("Find cavities in:"), alignment=Qt.AlignRight)
-        from chimerax.atomic.widgets import AtomicStructureListWidget
-        class ShortASLWidget(AtomicStructureListWidget):
-            def sizeHint(self):
-                hint = super().sizeHint()
-                hint.setHeight(hint.height()//2)
-                return hint
-        self.structures_list = ShortASLWidget(session, autoselect=ShortASLWidget.AUTOSELECT_SINGLE)
-        structures_layout.addWidget(self.structures_list, alignment=Qt.AlignRight)
 
-
-        group = QGroupBox("Cavity detection settings")
-        layout.addWidget(group, alignment=Qt.AlignTop|Qt.AlignHCenter)
-        group_layout = QHBoxLayout()
-        group_layout.setContentsMargins(0,0,0,0)
-        group.setLayout(group_layout)
-        from chimerax.ui.options import SettingsPanel, FloatOption
+        from chimerax.ui.options import SettingsPanel, FloatOption, SymbolicEnumOption, BooleanOption
+        from chimerax.ui.options import Option, make_int_spinbox
         self.options_panel = panel = SettingsPanel(sorting=False, scrolled=False)
-        group_layout.addWidget(panel)
         tool_tips = {
-            'probe_in':
-                "A smaller probe that defines the biomolecular surface by rolling around\n"
-                " the target biomolecule. Typically, this is set to the size of a water\n"
-                " molecule (1.4 Å).",
-            'probe_out':
-                "A larger probe that defines inacessibility region, i.e., the cavities,\n"
-                " and by rolling around the target biomolecule. Users can adjust the size\n"
-                " of the probe based on the characteristics of the target structure.",
-            'removal_distance':
-                "A length that is removed from the boundary between the cavity and bulk\n"
-                " (solvent) region.",
-            'volume_cutoff':
-                "A cavity volume filter to exclude cavities with smaller volumes than this\n"
-                " limit. These smaller cavities are typically not relevant for function."
+            'cutoff_distance':
+                "Residues whose principal atom are further apart\n"
+                "than this distance will not be aligned in the\n"
+                "generated sequence alignment",
+            'column_criterion':
+                "Whether a residue needs to match the distance cutoff to all other\n"
+                "residues in its column, or just to one residue in the column",
+            'gap_char':
+                "Character used to depict gaps in the generated alignment",
         }
+        class IterOption(BooleanOption):
+            def get_value(self):
+                return getattr(self.settings, self.attr_name)
+
+            def set_value(self, value):
+                if value == 0:
+                    super().set_value(False)
+                else:
+                    super().set_value(True)
+
+            value = property(get_value, set_value)
+
         # some of the min/max values are there to make the entry areas less wide
-        for label, attr_name, kw in [
-                ("Grid spacing", 'grid_spacing', {'min': 'positive'}),
-                ("Inner probe radius", 'probe_in', {'min': 'positive'}),
-                ("Outer probe radius", 'probe_out', {'min': 'positive'}),
-                ("Exterior trim distance", 'removal_distance', { 'min': -999.9}),
-                ("Minimum cavity volume", 'volume_cutoff', {'min': 0.0})]:
-            opt = FloatOption(label, getattr(_launch_settings, attr_name), None, decimal_places=2,
-                balloon=tool_tips.get(attr_name, None), attr_name=attr_name, settings=_launch_settings,
-                    max=1000.0, **kw)
+        for label, opt_type, attr_name, callback, kw in [
+                ("Residue-residue distance cutoff (angstroms):", FloatOption, 'cutoff_distance', None,
+                    {'min': 0.0, 'max': 99.9}),
+                ("Residue aligned in column if within cutoff of:", SymbolicEnumOption, 'column_criterion',
+                    None, { 'values': ("any", "all"), 'labels': ("at least one other", "all others") }),
+                ("Gap character:", SymbolicEnumOption, 'gap_char', None,
+                    { 'values': (".", "-", "~"), 'labels': (". (period)", "- (dash)", "~ (tilde)") }),
+                ("Allow for circular permutation", BooleanOption, 'circular', None, {}),
+                ("Iterate superposition/alignment...", IterOption, 'max_iterations', self._iterate_cb, {})]:
+            opt = opt_type(label, getattr(_ma_settings, attr_name), callback,
+                balloon=tool_tips.get(attr_name, None), attr_name=attr_name, settings=_ma_settings, **kw)
             setattr(self, attr_name + '_option', opt)
             panel.add_option(opt)
+        self.circular_option.enabled = False
+        gw, sub_panel = panel.add_option_group(group_label= "Iteration Parameters",
+            group_alignment=Qt.AlignCenter)
+        gw.setHidden(self.max_iterations_option.value == 0)
+        gw_layout = QVBoxLayout()
+        gw_layout.setContentsMargins(2,2,2,2)
+        gw_layout.setSpacing(2)
+        gw.setLayout(gw_layout)
+        gw_layout.addWidget(sub_panel)
+        self.iter_param_group = gw
+        class IterNumOption(Option):
+            def set_multiple(self):
+                pass
 
-        restrict_layout = QHBoxLayout()
-        restrict_layout.setContentsMargins(0,0,0,0)
-        restrict_layout.setSpacing(0)
-        restrict_layout.addStretch(1)
-        self.restrict_box = QCheckBox("Restrict search to box around selected atoms with padding ")
-        self.restrict_box.toggled.connect(lambda enabled, s=self: s.padding_box.setEnabled(enabled))
-        restrict_layout.addWidget(self.restrict_box)
-        self.padding_box = QDoubleSpinBox()
-        self.padding_box.setRange(0, 999.9)
-        self.padding_box.setSingleStep(0.5)
-        self.padding_box.setDecimals(1)
-        self.padding_box.setAlignment(Qt.AlignCenter)
-        self.padding_box.setValue(2)
-        self.padding_box.setEnabled(False)
-        restrict_layout.addWidget(self.padding_box)
-        restrict_layout.addStretch(1)
-        layout.addLayout(restrict_layout)
+            def _make_widget(self, *, main_option=None):
+                self._main_option = main_option
+                self.widget = layout = QVBoxLayout()
+                layout.setSpacing(2)
+                layout.setContentsMargins(0,0,0,0)
+                self.num_iters_button_group = bg = QButtonGroup()
+                row_layout = QHBoxLayout()
+                row_layout.setSpacing(2)
+                self.finite_iter_button = QRadioButton("at most")
+                bg.addButton(self.finite_iter_button)
+                row_layout.addWidget(self.finite_iter_button, alignment=Qt.AlignLeft)
+                self.num_iters = make_int_spinbox(1, 999)
+                self.num_iters.setValue(3)
+                row_layout.addWidget(self.num_iters, alignment=Qt.AlignLeft)
+                row_layout.addWidget(QLabel("times"), alignment=Qt.AlignLeft)
+                row_layout.addStretch(1)
+                layout.addLayout(row_layout)
+                row_layout = QHBoxLayout()
+                self.infinite_iter_button = QRadioButton("until convergence")
+                bg.addButton(self.infinite_iter_button)
+                row_layout.addWidget(self.infinite_iter_button, alignment=Qt.AlignLeft)
+                row_layout.addStretch(1)
+                layout.addLayout(row_layout)
 
-        self.include_box = QCheckBox("Include selected atoms as part of macromolecule")
-        layout.addWidget(self.include_box, alignment=Qt.AlignCenter)
+            def get_value(self):
+                if not self.main_option.isChecked():
+                    return 0
 
-        self.replace_prev = QCheckBox("Replace existing results, if any")
-        self.replace_prev.setChecked(True)
-        layout.addWidget(self.replace_prev, alignment=Qt.AlignCenter)
-        '''
+                if self.finite_iter_button.isChecked():
+                    return self.num_iters.value()
+                return None
+
+            def set_value(self, value):
+                if value is None:
+                    self.infinite_iter_button.setChecked(True)
+                elif value != 0:
+                    self.finite_iter_button.setChecked(True)
+                    self.num_iters.setValue(value)
+
+            value = property(get_value, set_value)
+
+        sub_panel.add_option(IterNumOption("Iterate alignment:", _ma_settings.max_iterations,
+            None, attr_name="max_iterations", settings=_ma_settings, main_option=self.max_iterations_option))
+        layout.addWidget(panel, alignment=Qt.AlignCenter)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
@@ -203,3 +226,5 @@ class MatchAlignTool(ToolInstance):
                 break
         self._prev_chains = { chain.structure: chain for chain in self.chain_list.value }
 
+    def _iterate_cb(self, opt):
+        self.iter_param_group.setHidden(self.max_iterations_option.value == 0)
