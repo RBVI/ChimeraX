@@ -142,7 +142,7 @@ void main (void)
 * Shader for rendering scene with lighting.
 */
 
-#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE)
+#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE) || defined(USE_IMPOSTOR_SPHERE)
 in vec3 v;
 #endif
 
@@ -170,6 +170,9 @@ in vec3 vshadow;
 #ifdef USE_SHADOW
 in vec3 shadow_tex_coord;
 uniform sampler2DShadow shadow_map;
+#ifdef USE_IMPOSTOR_SPHERE
+uniform mat4 shadow_transform;  // needed to recompute shadow coord from sphere hit point
+#endif
 #endif
 
 #ifdef USE_MULTISHADOW
@@ -185,6 +188,12 @@ uniform float shadow_depth;
 #endif
 
 #endif  // end USE_LIGHTING
+
+#ifdef USE_IMPOSTOR_SPHERE
+in vec3 impostor_center;
+in float impostor_radius;
+uniform mat4 projection_matrix;
+#endif
 
 #ifdef USE_DEPTH_CUE
 uniform vec3 depth_cue_color;
@@ -369,6 +378,35 @@ void main (void)
   frag_color.a = frag_color.a + (1.0 - frag_color.a) * background_color.a;
 }
 #else
+
+  #ifdef USE_IMPOSTOR_SPHERE
+    // Ray-sphere intersection for impostor sphere rendering.
+    // Construct ray in eye space from interpolated vertex position v.
+    // projection_matrix[3][3] == 0 for perspective, 1 for orthographic.
+    bool impostor_ortho = (projection_matrix[3][3] != 0.0);
+    vec3 ray_origin = impostor_ortho ? vec3(v.xy, impostor_center.z + impostor_radius * 2.0) : vec3(0.0);
+    vec3 ray_dir = impostor_ortho ? vec3(0.0, 0.0, -1.0) : normalize(v);
+
+    // Ray-sphere intersection: solve |ray_origin + t*ray_dir - center|^2 = radius^2
+    vec3 oc = ray_origin - impostor_center;
+    float b_coeff = dot(oc, ray_dir);
+    float c_coeff = dot(oc, oc) - impostor_radius * impostor_radius;
+    float discriminant = b_coeff * b_coeff - c_coeff;
+    if (discriminant < 0.0)
+      discard;
+    float t_hit = -b_coeff - sqrt(discriminant);
+
+    // Intersection point and normal in eye space
+    vec3 impostor_hit = ray_origin + t_hit * ray_dir;
+    vec3 impostor_normal = normalize(impostor_hit - impostor_center);
+
+    // Write correct depth from intersection point.
+    // Apply depth_range to match rasterizer behavior (needed for outline depth test).
+    vec4 impostor_clip_pos = projection_matrix * vec4(impostor_hit, 1.0);
+    float impostor_ndc_z = impostor_clip_pos.z / impostor_clip_pos.w;
+    gl_FragDepth = gl_DepthRange.diff * 0.5 * impostor_ndc_z + gl_DepthRange.near + gl_DepthRange.diff * 0.5;
+  #endif
+
   #ifdef USE_DEPTH_TEXTURE
     // Adjust depth of each fragment in rendering a texture.
     float xscale = tex_depth_scale.x, yscale = tex_depth_scale.y, dscale = tex_depth_scale.z;
@@ -423,7 +461,16 @@ void main (void)
 
   #ifdef USE_LIGHTING
 
-  #ifdef USE_LIGHTING_NORMALS
+  #ifdef USE_IMPOSTOR_SPHERE
+    // Normal and lighting factors from ray-sphere intersection
+    vec3 N1 = impostor_normal;
+    vec3 v1 = normalize(impostor_hit);
+
+    float key_factor = max(-dot(N1,key_light_direction),0.0);
+    float fill_factor = max(-dot(N1,fill_light_direction),0.0);
+    vec3 R = normalize(reflect(key_light_direction,N1));
+    float specular_factor = pow(max(-dot(R,v1),0.0), key_light_specular_exponent);
+  #elif defined(USE_LIGHTING_NORMALS)
     // Unit normal, with two-sided lighting.
     vec3 N1 = normalize(N) * (gl_FrontFacing ? 1.0 : -1.0);
     // vec3 N1 = normalize(N);  // single-sided lighting
@@ -442,7 +489,11 @@ void main (void)
   #endif
 
   #ifdef USE_SHADOW
+    #ifdef USE_IMPOSTOR_SPHERE
+    float shadow = texture(shadow_map, (shadow_transform * vec4(impostor_hit, 1)).stp);
+    #else
     float shadow = texture(shadow_map, shadow_tex_coord);
+    #endif
   #else
     float shadow = 1;
   #endif
@@ -463,11 +514,13 @@ void main (void)
         mat4 stf = shadow_transforms[i];
         #ifdef USE_STEREO_360
           vec3 shadow_tex_coord = (stf*vec4(vshadow,1)).stp;
+        #elif defined(USE_IMPOSTOR_SPHERE)
+          vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;  // DEBUG: use quad position like mesh spheres
         #else
           vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
           // vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
         #endif
-        #ifdef USE_LIGHTING_NORMALS
+        #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_LIGHTING_NORMALS)
           vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
           float diffuse = max(-dot(N1,light_direction),0.0);
   	      // float diffuse = max(-dot(nscene,light_direction),0.0);
@@ -477,7 +530,11 @@ void main (void)
         mshadow += diffuse * texture(multishadow_map, shadow_tex_coord);
       }
     mshadow /= 0.25*shadow_count;
+    #ifdef USE_IMPOSTOR_SPHERE
     vec3 Iamb = fcolor.rgb * ambient_color * mshadow;
+    #else
+    vec3 Iamb = fcolor.rgb * ambient_color * mshadow;
+    #endif
 
   #else
 
@@ -500,7 +557,11 @@ void main (void)
   #endif // end USE_LIGHTING
 
   #ifdef USE_DEPTH_CUE
+    #ifdef USE_IMPOSTOR_SPHERE
+    float d = -impostor_hit.z;  // Distance from eye to sphere surface.
+    #else
     float d = -v.z;	// Distance from eye to fragment.
+    #endif
     float dim = (depth_cue_range.y - d) / (depth_cue_range.y - depth_cue_range.x);
     Ifrag = mix(depth_cue_color, Ifrag, clamp(dim,0.0,1.0));
   #endif
@@ -508,7 +569,7 @@ void main (void)
     // transparency
     float a = fcolor.a;
   #ifdef USE_LIGHTING
-    #ifdef USE_LIGHTING_NORMALS
+    #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_LIGHTING_NORMALS)
       a = (a >= 1 ? 1.0 : 1.0 - pow(max(1.0-a,0.0), 1.0/max(abs(dot(v1,N1)),0.01)));
     #endif
   #endif
