@@ -14,9 +14,11 @@
 from .settings import defaults
 from chimerax.core.errors import UserError
 
+max_iterations_default = 0 if not defaults['iterate'] else defaults['max_iterations']
+
 def make_alignment(session, chains, *, circular=defaults['circular'],
         column_criterion=defaults["column_criterion"], cutoff_distance=defaults["cutoff_distance"],
-        gap_char=defaults["gap_char"], alignment_id=None, max_iterations=defaults['max_iterations'],
+        gap_char=defaults["gap_char"], alignment_id=None, max_iterations=max_iterations_default,
         min_stretch=defaults['min_stretch'], ref_chain=None, show_alignment=True):
     """Create a sequence alignment based on a 3D structure superposition
 
