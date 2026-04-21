@@ -1,0 +1,85 @@
+name: Create multi-arch Docker manifest
+on:
+  workflow_call:
+    inputs:
+      release_type:
+        type: string
+        required: true
+      branch:
+        type: string
+        required: false
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+
+jobs:
+  create-manifest:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch || 'develop' }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Put the commit and version in the environment
+        run: |
+          export COMMIT_HASH=$(git rev-parse --short HEAD)
+          export BUILD_VERSION=$(cat src/bundles/core/Makefile | grep VERSION | head -n 1 | cut -d'=' -f2 | sed -e 's/ //g')
+          echo "COMMIT_HASH=$COMMIT_HASH" >> $GITHUB_ENV
+          echo "BUILD_VERSION=$BUILD_VERSION" >> $GITHUB_ENV
+      - name: Create and push multi-arch manifests
+        run: |
+          REPO=docker.io/ucsfrbvi/chimerax
+          case "${{ inputs.release_type }}" in
+            daily)
+              docker buildx imagetools create -t ${REPO}:daily \
+                ${REPO}:daily-amd64 \
+                ${REPO}:daily-arm64
+
+              docker buildx imagetools create -t ${REPO}:daily-${COMMIT_HASH} \
+                ${REPO}:daily-amd64-${COMMIT_HASH} \
+                ${REPO}:daily-arm64-${COMMIT_HASH}
+
+              docker buildx imagetools create -t ${REPO}:latest \
+                ${REPO}:latest-amd64 \
+                ${REPO}:latest-arm64
+              ;;
+            techpreview)
+              docker buildx imagetools create -t ${REPO}:techpreview \
+                ${REPO}:techpreview-amd64 \
+                ${REPO}:techpreview-arm64
+
+              docker buildx imagetools create -t ${REPO}:techpreview-${COMMIT_HASH} \
+                ${REPO}:techpreview-amd64-${COMMIT_HASH} \
+                ${REPO}:techpreview-arm64-${COMMIT_HASH}
+              ;;
+            candidate)
+              docker buildx imagetools create -t ${REPO}:${BUILD_VERSION}-rc \
+                ${REPO}:${BUILD_VERSION}-rc-amd64 \
+                ${REPO}:${BUILD_VERSION}-rc-arm64
+
+              docker buildx imagetools create -t ${REPO}:${BUILD_VERSION}-rc-${COMMIT_HASH} \
+                ${REPO}:${BUILD_VERSION}-rc-amd64-${COMMIT_HASH} \
+                ${REPO}:${BUILD_VERSION}-rc-arm64-${COMMIT_HASH}
+              ;;
+            production)
+              docker buildx imagetools create -t ${REPO}:${BUILD_VERSION} \
+                ${REPO}:${BUILD_VERSION}-amd64 \
+                ${REPO}:${BUILD_VERSION}-arm64
+
+              docker buildx imagetools create -t ${REPO}:${BUILD_VERSION}-${COMMIT_HASH} \
+                ${REPO}:${BUILD_VERSION}-amd64-${COMMIT_HASH} \
+                ${REPO}:${BUILD_VERSION}-arm64-${COMMIT_HASH}
+              ;;
+            *)
+              echo "Unknown release_type: ${{ inputs.release_type }}" >&2
+              exit 1
+              ;;
+          esac

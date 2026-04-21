@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def open_mutation_scores_csv(session, path, name = None, show_plot = True, chains = None, allow_mismatches = False):
+def open_mutation_scores_csv(session, path, name = None, show_plot = False, chains = None, allow_mismatches = False):
     mset = _read_mutation_scores_csv(path, name = name)
 
     if chains:
@@ -52,7 +52,11 @@ def open_mutation_scores_csv(session, path, name = None, show_plot = True, chain
         x_score_name, y_score_name = mset.score_names()[:2]
         from .ms_scatter_plot import mutation_scores_scatter_plot
         mutation_scores_scatter_plot(session, x_score_name, y_score_name, mset.name, replace = False)
-        
+
+    if not show_plot and session.ui.is_gui:
+        from .ms_list import show_mutation_scores_list
+        show_mutation_scores_list(session)
+
     return mset, message
 
 def _read_mutation_scores_csv(path, name = None):

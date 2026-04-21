@@ -38,7 +38,9 @@ class MutationScoresHeatmap(ToolInstance):
         self._last_hover_residues = None		# (Residues, res_colors, atom_colors)
         self._last_dragbox_residues = []		# List of (Residues, res_colors, atom_colors)
         self._block_drawing = False
-        
+        self._max_axis_font_size = 14
+        self._warn_noninteger_cell_size = True
+
         ToolInstance.__init__(self, session, tool_name)
         self.display_name = tool_name if name is None else f'{tool_name} {name}'
 
@@ -71,8 +73,15 @@ class MutationScoresHeatmap(ToolInstance):
         # Draw the heatmap and axis labels
         self._draw_graphics()
 
-        tw.manage(placement=None)	# Start floating
+        # Keep axis labels in view when scrolling heatmap
+        vbar, hbar = sv.verticalScrollBar(), sv.horizontalScrollBar()
+        vbar.valueChanged.connect(self._viewport_change)
+        vbar.rangeChanged.connect(self._viewport_change)
+        hbar.valueChanged.connect(self._viewport_change)
+        hbar.rangeChanged.connect(self._viewport_change)
         
+        tw.manage(placement=None)	# Start floating
+
     # ---------------------------------------------------------------------------
     #
     def _create_graphics_pane(self, parent):
@@ -95,6 +104,7 @@ class MutationScoresHeatmap(ToolInstance):
         if self._block_drawing:
             return
         self._score_view.clear_scene()
+        self._x_axis_group = self._y_axis_group = None
         if self._mutation_set is None:
             return
         self._set_heatmap_image()
@@ -159,28 +169,42 @@ class MutationScoresHeatmap(ToolInstance):
                 for i in no_struct_res_indices:
                     rgb[:,i,:] = _shade_gray(rgb[:,i,:], gray_color)
 
-        pixels_per_cell = self._pixels_per_cell.value
+        pixels_per_cell = self._cell_size
         self._score_view.set_image(rgb, pixels_per_cell)
 
     # ---------------------------------------------------------------------------
     #
     @property
-    def _score_names(self, exclude = ['position']):
+    def _cell_size(self):
+        ppc = self._pixels_per_cell.value
+        if ppc is None:
+            # Warn about non-integer cell size just once.
+            if self._warn_noninteger_cell_size:
+                self.session.logger.error('Zoom factor must be an integer')
+                self._warn_noninteger_cell_size = False
+            ppc = 1
+        else:
+            self._warn_noninteger_cell_size = True
+        return max(1, int(ppc))
+
+    # ---------------------------------------------------------------------------
+    #
+    def _filtered_score_names(self, exclude = ['position'], default_all = True):
         mset = self._mutation_set
         score_names = [score_name for score_name in mset.score_names() if score_name not in exclude]
         sf = self._score_name_filter.value
-        snames = sf.strip().split(',')
+        snames = [name.strip() for name in sf.split(',')]
+        filtered_names = []
         if snames:
-            matches = []
             for sname in snames:
                 if sname.startswith('*'):
                     suffix = sname[1:]
-                    matches.extend([score_name for score_name in score_names if score_name.endswith(suffix)])
+                    filtered_names.extend([score_name for score_name in score_names if score_name.endswith(suffix)])
                 elif sname in score_names:
-                    matches.append(sname)
-            if matches:
-                score_names = matches
-        return score_names
+                    filtered_names.append(sname)
+        if len(filtered_names) == 0 and default_all:
+            filtered_names = score_names
+        return filtered_names
 
     # ---------------------------------------------------------------------------
     #
@@ -203,6 +227,7 @@ class MutationScoresHeatmap(ToolInstance):
     def _score_matrix(self):
         scores = None
         mset = self._mutation_set
+        self._score_names = self._filtered_score_names()
         self._num_scores = num_scores = len(self._score_names)
         aa_to_index = {aa:i for i, aa in enumerate(self._amino_acids)}
         self._num_amino_acids = num_aa = len(aa_to_index)
@@ -277,7 +302,7 @@ class MutationScoresHeatmap(ToolInstance):
         if res_num is None or from_aa is None or score_name is None or to_aa is None:
             msg = ''
         else:
-            value = 'missing' if score_value is None else ('%.2f' % score_value)
+            value = 'missing' if score_value is None else ('%.2g' % score_value)
             msg = f'{from_aa}{res_num}{to_aa} {score_name} {value}'
         self._info_label.setText(msg)
 
@@ -379,7 +404,9 @@ class MutationScoresHeatmap(ToolInstance):
                                                    'Mutation Heatmap Image',
                                                    suggested_path)
         if path:
+            self._full_view_axis_labels()       # Move the axis labels to edges
             self._score_view.save_image(path)
+            self._viewport_change()		# Move axis labels back to edge of viewport
 
     # ---------------------------------------------------------------------------
     #
@@ -387,7 +414,7 @@ class MutationScoresHeatmap(ToolInstance):
         if self._label_every_residue.enabled:
             self._make_every_residue_axis_labels()
             return
-        pixels_per_cell = self._pixels_per_cell.value
+        pixels_per_cell = self._cell_size
         if residue_step is None:
             if pixels_per_cell == 1:
                 residue_step = 100
@@ -400,60 +427,132 @@ class MutationScoresHeatmap(ToolInstance):
         res_nums = self._residue_numbers
         iranges = _contiguous_ranges(res_nums)
         rpad = residue_step // 2
+        scene = self._score_view.scene
+        labels = []
         for imin, imax in iranges:
             rmin, rmax = res_nums[imin], res_nums[imax]
             smin, smax = ((rmin+rpad)//residue_step) + 1, (rmax-(rpad+1))//residue_step
             rnums = [rmin] if rmax == rmin else [rmin] + [s*residue_step for s in range(smin, smax+1)] + [rmax]
             for r in rnums: 
                 text = str(r)
-                t = self._score_view.scene.addText(text)
+                t = scene.addText(text)
+                labels.append(t)
                 rect = t.boundingRect()
                 x = (r-rmin+imin+.5)*pixels_per_cell - rect.width()/2
                 y = self._heatmap_height * pixels_per_cell
                 t.setPos(x, y)
 
+        self._x_axis_group = self._make_axis_group(labels)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _make_axis_group(self, labels):
+        scene = self._score_view.scene
+        xg = scene.createItemGroup(labels)
+        from Qt.QtGui import QBrush, QPen
+        from Qt.QtCore import Qt
+        pen = QPen(Qt.NoPen)	# Don't draw border
+        brush = QBrush(Qt.white)
+        backing_rectangle = scene.addRect(xg.boundingRect(), pen=pen, brush=brush)
+        backing_rectangle.setZValue(-1)
+        xg.addToGroup(backing_rectangle)
+        return xg
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _viewport_change(self):
+        sv = self._score_view
+        size = sv.viewport().size() 
+        p = sv.mapToScene(0, size.height())
+        xg = self._x_axis_group
+        sr = sv.sceneRect()
+        y = p.y() - sr.height()
+        xg.setPos(0, min(0,y))
+        yg = self._y_axis_group
+        x = p.x() - sr.x()
+        yg.setPos(max(0,x), 0)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _full_view_axis_labels(self):
+        # Move the axis labels to edges for saving images.
+        self._x_axis_group.setPos(0,0)
+        self._y_axis_group.setPos(0,0)
+
     # ---------------------------------------------------------------------------
     #
     def _make_every_residue_axis_labels(self):
         scene = self._score_view.scene
-        pixels_per_cell = self._pixels_per_cell.value
+        pixels_per_cell = self._cell_size
+        font = self._axis_font(pixels_per_cell)
+        font_height = font.pixelSize()
+        labels = []
         for i,res_num in enumerate(self._residue_numbers):
+            # Place amino acid type in horizontal text
             from_aa = self._res_aa[res_num]
-            text = f'{from_aa}{res_num}'
-            t = scene.addText(text)
+            t = scene.addText(from_aa, font)
+            labels.append(t)
+            rect = t.boundingRect()
+            x = (i+.5)*pixels_per_cell - rect.width()/2
+            y = self._heatmap_height * pixels_per_cell
+            t.setPos(x, y)
+            # Place residue number in vertical text to save space
+            t = scene.addText(str(res_num), font)
+            labels.append(t)
             rect = t.boundingRect()
             t.setRotation(90)
             x = (i+.5)*pixels_per_cell + rect.height()/2
-            y = self._heatmap_height * pixels_per_cell
+            y = self._heatmap_height * pixels_per_cell + int(1.5*font_height)
             t.setPos(x, y)
+
+        self._x_axis_group = self._make_axis_group(labels)
 
     # ---------------------------------------------------------------------------
     #
     def _make_amino_acid_axis_labels(self):
-        pixels_per_cell = self._pixels_per_cell.value
+        pixels_per_cell = self._cell_size
         num_scores = self._num_scores
         scores_height = num_scores * pixels_per_cell
         aa_step = (num_scores + self._group_spacing) * pixels_per_cell
+        font = self._axis_font(aa_step)
+        labels = []
         for i, aa in enumerate(self._amino_acids):
-            t = self._score_view.scene.addText(aa)
+            t = self._score_view.scene.addText(aa, font)
+            labels.append(t)
             rect = t.boundingRect()
             x = -rect.width()
             y = i*aa_step + 0.5*scores_height - rect.height()/2
             t.setPos(x, y)
 
+        self._y_axis_group = self._make_axis_group(labels)
+
     # ---------------------------------------------------------------------------
     #
     def _make_score_name_axis_labels(self):
-        pixels_per_cell = self._pixels_per_cell.value
+        pixels_per_cell = self._cell_size
         num_aa = self._num_amino_acids
         aa_height = num_aa * pixels_per_cell
         score_step = (num_aa + self._group_spacing) * pixels_per_cell
+        font = self._axis_font(score_step)
+        labels = []
         for i, score_name in enumerate(self._score_names):
-            t = self._score_view.scene.addText(score_name)
+            t = self._score_view.scene.addText(score_name, font)
+            labels.append(t)
             rect = t.boundingRect()
             x = -rect.width()
             y = i*score_step + 0.5*aa_height - rect.height()/2
             t.setPos(x, y)
+
+        self._y_axis_group = self._make_axis_group(labels)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _axis_font(self, pixel_height):
+        scene = self._score_view.scene
+        from Qt.QtGui import QFont
+        font = QFont(scene.font())
+        font.setPixelSize(min(pixel_height, self._max_axis_font_size))
+        return font
         
     # ---------------------------------------------------------------------------
     #
@@ -475,9 +574,9 @@ class MutationScoresHeatmap(ToolInstance):
         menu.triggered.connect(self._draw_graphics)
 
         # Which scores.  Comma-separated list.  *_effect includes all scores with suffix
-        sc = EntriesRow(f, 'Score names', '')
+        sc = EntriesRow(f, 'Score names', '', ('Choose', self._choose_score_names))
         self._score_name_filter = scf = sc.values[0]
-        scf.pixel_width = 300
+        scf.pixel_width = 250
         scf.return_pressed.connect(self._draw_graphics)
 
         # Which amino acids.  String of 1-letter codes.
@@ -488,7 +587,8 @@ class MutationScoresHeatmap(ToolInstance):
         ao.return_pressed.connect(self._draw_graphics)
 
         # Grouping on vertical axis.
-        gp = EntriesRow(f, 'Group by', True, 'amino acid', False, 'score name')
+        group_by_score = (len(msets) > 0 and len(msets[0].score_names()) > 1)
+        gp = EntriesRow(f, 'Group by', not group_by_score, 'amino acid', group_by_score, 'score name')
         self._group_amino_acid, self._group_score_name = ga,gs = gp.values
         from chimerax.ui.widgets import radio_buttons
         radio_buttons(ga,gs)
@@ -500,7 +600,7 @@ class MutationScoresHeatmap(ToolInstance):
         ler.changed.connect(self._draw_graphics)
         
         # Zoom factor for heatmap
-        zf = EntriesRow(f, 'Pixels per cell', 1)
+        zf = EntriesRow(f, 'Zoom factor', 2)
         self._pixels_per_cell = ppc = zf.values[0]
         ppc.return_pressed.connect(self._draw_graphics)
         
@@ -568,6 +668,22 @@ class MutationScoresHeatmap(ToolInstance):
                        spacing = 10)
 
         return p
+
+    # ---------------------------------------------------------------------------
+    #
+    def _choose_score_names(self, *, exclude = ['position']):
+        all_score_names = [score_name for score_name in self._mutation_set.score_names()
+                           if score_name not in exclude]
+        current_names = self._filtered_score_names(default_all = False)
+        sc = ScoreChooser.get_singleton(self.session)
+        sc.show_score_checkbuttons(all_score_names, current_names, self._chose_score_names)
+        sc.tool_window.shown = True
+        
+    # ---------------------------------------------------------------------------
+    #
+    def _chose_score_names(self, score_names):
+        self._score_name_filter.value = ','.join(score_names)
+        self._draw_graphics()
 
     # ---------------------------------------------------------------------------
     #
@@ -774,7 +890,7 @@ class MutationScoresHeatmap(ToolInstance):
                 'grouping': self._grouping,
                 'include_residue_numbers': self._include_residue_numbers,
                 'label_every_residue': self._label_every_residue.enabled,
-                'pixels_per_cell': self._pixels_per_cell.value,
+                'pixels_per_cell': self._cell_size,
                 'colormaps': self._colormaps,
                 'colormap_values': [cv.value for cv in self._colormap_values],
                 'colormap_colors': [cc.color for cc in self._colormap_colors],
@@ -861,6 +977,106 @@ class MutationScoresHeatmap(ToolInstance):
             self._score_view._initial_size_hint = settings['view_size']
         self._block_drawing = False
         self._draw_graphics()
+
+class ScoreChooser(ToolInstance):
+    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
+
+    def __init__(self, session, tool_name = 'Score Chooser'):
+        self._chosen_score_names = []
+        self._score_checkbutton_rows = []
+        self._max_name_chars_per_line = 50
+
+        ToolInstance.__init__(self, session, tool_name)
+
+        from chimerax.ui import MainToolWindow
+        tw = MainToolWindow(self, close_destroys = False)
+        self.tool_window = tw
+        parent = tw.ui_area
+
+        from chimerax.ui.widgets import vertical_layout
+        vertical_layout(parent, margins = (5,0,0,0))
+
+        tw.manage(placement=None)	# Floating
+
+    @classmethod
+    def get_singleton(cls, session, create=True):
+        from chimerax.core import tools
+        return tools.get_singleton(session, cls, 'Score Chooser', create=create)
+
+    def show_score_checkbuttons(self, all_score_names, current_score_names, chosen_callback):
+        self._chosen_callback = chosen_callback
+
+        chosen = [score_name for score_name in current_score_names if score_name in all_score_names]
+        self._chosen_score_names = chosen
+        
+        for row in self._score_checkbutton_rows:
+            row.frame.deleteLater()
+        self._score_checkbutton_rows.clear()
+
+        groups = self._score_name_groups(all_score_names)
+        score_names = list(all_score_names) + list(groups.keys())
+        checkbuttons = []
+        i = 0
+        while i < len(score_names):
+            row_score_names = []
+            line_args = []
+            row_chars = 0
+            for score_name in score_names[i:]:
+                nchar = len(score_name)
+                if len(row_score_names) == 0 or row_chars + nchar <= self._max_name_chars_per_line:
+                    row_score_names.append(score_name)
+                    if score_name in groups:
+                        enabled = True
+                        for name in groups[score_name]:
+                            if name not in chosen:
+                                enabled = False
+                    else:
+                        enabled = (score_name in chosen)
+                    line_args.extend([enabled,score_name])
+                    row_chars += nchar
+                    i += 1
+                else:
+                    break
+            from chimerax.ui.widgets import EntriesRow
+            parent = self.tool_window.ui_area
+            score_checkbuttons = EntriesRow(parent, *line_args)
+            checkbuttons.extend(score_checkbuttons.values)
+            self._score_checkbutton_rows.append(score_checkbuttons)
+            for score_name, checkbutton in zip(row_score_names,score_checkbuttons.values):
+                names = groups.get(score_name, [score_name])
+                checkbutton.widget.clicked.connect(lambda enabled, names=names:
+                                                   self._score_chosen(names, enabled))
+
+        self._checkbuttons = {score_name:checkbutton for score_name, checkbutton in zip(score_names, checkbuttons)}
+
+    def _score_chosen(self, score_names, enabled):
+        chosen = self._chosen_score_names
+        if enabled:
+            for score_name in score_names:
+                if score_name not in chosen:
+                    chosen.append(score_name)
+        else:
+            for score_name in score_names:
+                if score_name in chosen:
+                    chosen.remove(score_name)
+        # Make "all_*" set all the individual checkbutton names
+        for score_name in score_names:
+            self._checkbuttons[score_name].value = enabled
+        self._chosen_callback(chosen)
+
+    def _score_name_groups(self, all_score_names, suffix_separator = '_'):
+        groups = {}	# Map suffix to list of score names.
+        for score_name in all_score_names:
+            if suffix_separator in score_name:
+                suffix = score_name.rsplit(suffix_separator, maxsplit = 1)[1]
+                if suffix in groups:
+                    groups[suffix].append(score_name)
+                else:
+                    groups[suffix] = [score_name]
+        large_groups = {f'all_{suffix}': score_names
+                        for suffix, score_names in groups.items()
+                        if len(score_names) >= 3}
+        return large_groups
 
 # ---------------------------------------------------------------------------
 #
@@ -1018,6 +1234,7 @@ class ScoreView(QGraphicsView):
         pixmap = rgb_to_pixmap(rgb)
         self._pixmap_item = pi = scene.addPixmap(pixmap)
         pi.setScale(pixels_per_cell)
+        pi.setZValue(-10)	# Put pixmap below axis labels.
 
     def save_image(self, path):
         size = self.scene.sceneRect().size().toSize()
