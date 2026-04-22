@@ -29,7 +29,7 @@ class MutationScoresHeatmap(ToolInstance):
 
     help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
 
-    def __init__(self, session, tool_name = 'Mutation Scores Heatmap', name = None):
+    def __init__(self, session, tool_name = 'Mutation Scores Heatmap', name = None, draw = True):
 
         self.name = name
         self._include_residue_numbers = []	# If empty then include all residues in heatmap
@@ -71,7 +71,8 @@ class MutationScoresHeatmap(ToolInstance):
         layout.addWidget(options)
 
         # Draw the heatmap and axis labels
-        self._draw_graphics()
+        if draw:
+            self._draw_graphics()
 
         # Keep axis labels in view when scrolling heatmap
         vbar, hbar = sv.verticalScrollBar(), sv.horizontalScrollBar()
@@ -1367,7 +1368,7 @@ def mutation_heatmap(session, heatmap_name = None,
     if hm is None:
         if heatmap_name is None:
             heatmap_name = _next_heatmap_name(session)
-        hm = MutationScoresHeatmap(session, name = heatmap_name)
+        hm = MutationScoresHeatmap(session, name = heatmap_name, draw = False)
 
     hm.configure(settings)
 
