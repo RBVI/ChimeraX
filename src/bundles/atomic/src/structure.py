@@ -607,8 +607,8 @@ class Structure(Model, StructureData):
             changes = self._ALL_CHANGE
             self._atoms_drawing = p = AtomsDrawing('atoms')
             self.add_drawing(p)
-            # Update level of detail of spheres
-            self._level_of_detail.set_atom_sphere_geometry(p)
+            # Set impostor quad geometry (2 triangles per atom instance)
+            p._set_impostor_quad_geometry()
 
         if changes & (self._ADDDEL_CHANGE | self._DISPLAY_CHANGE):
             changes |= self._ALL_CHANGE
@@ -650,8 +650,8 @@ class Structure(Model, StructureData):
             changes = self._ALL_CHANGE
             self._bonds_drawing = p = BondsDrawing('bonds', PickedBond, PickedBonds)
             self.add_drawing(p)
-            # Update level of detail of cylinders
-            self._level_of_detail.set_bond_cylinder_geometry(p)
+            # Set impostor quad geometry (2 triangles per bond instance)
+            p._set_impostor_quad_geometry()
 
         if changes & (self._ADDDEL_CHANGE | self._DISPLAY_CHANGE):
             changes |= self._ALL_CHANGE
@@ -662,14 +662,35 @@ class Structure(Model, StructureData):
 
         bonds = p.visible_bonds
 
-        if changes & self._SHAPE_CHANGE:
-            p.positions = bonds.halfbond_cylinder_placements(p.positions.opengl_matrices())
+        if changes & self._SHAPE_CHANGE or changes & self._COLOR_CHANGE:
+            # Full-bond placements: N matrices (not 2N half-bond matrices)
+            ba1, ba2 = bonds.atoms
+            xyz1, xyz2 = ba1.coords, ba2.coords
+            radii = bonds.radii
 
-        if changes & self._COLOR_CHANGE:
-            p.colors = bonds.half_colors
+            n = len(xyz1)
+            from numpy import empty, float32
+            matrices = empty((n, 4, 4), float32)
+
+            from chimerax.geometry import cylinder_rotations
+            cylinder_rotations(xyz1, xyz2, radii, matrices)
+            # Set translation to bond midpoint
+            matrices[:, 3, :3] = 0.5 * (xyz1 + xyz2)
+
+            # Pack atom2 color into bottom row of each matrix (row 3)
+            # OpenGL array layout: matrices[instance, column, row]
+            c1, c2 = ba1.colors, ba2.colors  # Nx4 RGBA uint8
+            matrices[:, 0, 3] = c2[:, 0] / 255.0
+            matrices[:, 1, 3] = c2[:, 1] / 255.0
+            matrices[:, 2, 3] = c2[:, 2] / 255.0
+            matrices[:, 3, 3] = c2[:, 3] / 255.0
+
+            from chimerax.geometry import Places
+            p.positions = Places(opengl_array=matrices)
+            p.colors = c1  # atom1 colors as primary instance color
 
         if changes & self._SELECT_CHANGE:
-            p.highlighted_positions = _selected_bond_cylinders(bonds)
+            p.highlighted_positions = bonds.selected if bonds.num_selected > 0 else None
 
     def _get_autochain(self):
         return self._auto_chain_trace
@@ -728,13 +749,8 @@ class Structure(Model, StructureData):
     display = property(_get_display, _set_display)
 
     def _update_level_of_detail(self, total_atoms):
-        lod = self._level_of_detail
-        bd = self._bonds_drawing
-        if bd:
-            lod.set_bond_cylinder_geometry(bd, total_atoms)
-        ad = self._atoms_drawing
-        if ad:
-            lod.set_atom_sphere_geometry(ad, total_atoms)
+        # LOD not needed — AtomsDrawing and BondsDrawing use impostor quads
+        pass
 
     def _update_position(self, trig_name, updated_model):
         need_update = False
@@ -1262,6 +1278,21 @@ class AtomsDrawing(Drawing):
         self.visible_atoms = None
         super().__init__(name)
 
+    def _set_impostor_quad_geometry(self):
+        '''Set unit quad geometry for impostor sphere rendering.'''
+        from numpy import array, float32, int32
+        vertices = array([[-1,-1,0], [1,-1,0], [1,1,0], [-1,1,0]], float32)
+        normals = array([[0,0,1], [0,0,1], [0,0,1], [0,0,1]], float32)
+        triangles = array([[0,1,2], [0,2,3]], int32)
+        self.set_geometry(vertices, normals, triangles)
+
+    def _shader_options(self, transparent_only=False, opaque_only=False):
+        sopt = super()._shader_options(transparent_only, opaque_only)
+        from chimerax.graphics.opengl import Render
+        sopt |= Render.SHADER_IMPOSTOR_SPHERE
+        sopt &= ~Render.SHADER_LIGHTING_NORMALS
+        return sopt
+
     def bounds(self):
         cpb = self._cached_position_bounds	# Attribute of Drawing.
         if cpb is not None:
@@ -1367,6 +1398,34 @@ class BondsDrawing(Drawing):
         self._pick_class = pick_class
         self._picks_class = picks_class
         super().__init__(name)
+        self.impostor_dashes = 0  # 0 = solid, >0 = dashed pseudobond
+
+    def _set_impostor_quad_geometry(self):
+        '''Set unit quad geometry for impostor cylinder rendering.'''
+        from numpy import array, float32, int32
+        vertices = array([[-1,-1,0], [1,-1,0], [1,1,0], [-1,1,0]], float32)
+        normals = array([[0,0,1], [0,0,1], [0,0,1], [0,0,1]], float32)
+        triangles = array([[0,1,2], [0,2,3]], int32)
+        self.set_geometry(vertices, normals, triangles)
+        self._use_impostor_cylinder = True
+
+    def _shader_options(self, transparent_only=False, opaque_only=False):
+        sopt = super()._shader_options(transparent_only, opaque_only)
+        if getattr(self, '_use_impostor_cylinder', False):
+            from chimerax.graphics.opengl import Render
+            sopt |= Render.SHADER_IMPOSTOR_CYLINDER | Render.SHADER_INSTANCING
+            sopt &= ~(Render.SHADER_LIGHTING_NORMALS | Render.SHADER_SHIFT_AND_SCALE)
+        return sopt
+
+    def _force_instancing(self):
+        '''Impostor cylinders always need instancing for the placement matrix.'''
+        return getattr(self, '_use_impostor_cylinder', False)
+
+    def set_shader_options(self, renderer):
+        super().set_shader_options(renderer)
+        p = renderer.current_shader_program
+        if p is not None and p.capabilities & renderer.SHADER_IMPOSTOR_CYLINDER:
+            p.set_integer("impostor_dashes", self.impostor_dashes)
 
     def bounds(self):
         cpb = self._cached_position_bounds	# Attribute of Drawing.
@@ -2578,9 +2637,17 @@ def _bonds_planes_pick(drawing, planes):
     if drawing is None or not drawing.display:
         return None
 
-    hb_xyz = drawing.positions.array()[:,:,3]	# Half-bond centers
-    n = len(hb_xyz)//2
-    xyz = 0.5*(hb_xyz[:n] + hb_xyz[n:])	# Bond centers
+    pxyz = drawing.positions.array()[:,:,3]
+    vb = drawing.visible_bonds
+    if vb is not None and len(pxyz) == len(vb):
+        # Impostor cylinder layout: one placement per bond whose
+        # translation is already the bond center.
+        xyz = pxyz
+    else:
+        # Tessellated half-bond layout: two cylinder placements per
+        # bond, first N for the atom1 halves, second N for atom2.
+        n = len(pxyz)//2
+        xyz = 0.5*(pxyz[:n] + pxyz[n:])	# Bond centers
     from chimerax import geometry
     pmask = geometry.points_within_planes(xyz, planes)
     return pmask
