@@ -97,6 +97,8 @@ class MatchMakerTool(ToolInstance):
         from chimerax.alignment_algs.options import SeqAlignmentAlgOption
         self.options.add_option("Alignment", BooleanOption("Show pairwise sequence alignment(s)", None, None,
             attr_name="show_alignment", settings=settings))
+        self.options.add_option("Alignment", BooleanOption("After fitting, compute multiple sequence"
+            " alignment...", None, None, attr_name="start_match_align", settings=settings))
         self.options.add_option("Alignment", SeqAlignmentAlgOption("Sequence alignment algorithm",
             None, None, attr_name="alignment_algorithm", settings=settings))
         from chimerax.sim_matrices.options import SimilarityMatrixNameOption
@@ -290,6 +292,10 @@ class MatchMakerTool(ToolInstance):
         show_alignment = settings.show_alignment
         if show_alignment != defaults['show_alignment']:
             cmd += ' showAlignment ' + BoolArg.unparse(show_alignment)
+
+        start_match_align = settings.start_match_align
+        if start_match_align != defaults['start_match_align']:
+            cmd += ' startMatchAlign ' + BoolArg.unparse(start_match_align)
 
         compute_ss = settings.compute_ss
         if compute_ss != defaults['compute_ss']:

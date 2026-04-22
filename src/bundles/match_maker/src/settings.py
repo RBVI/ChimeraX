@@ -28,6 +28,7 @@ defaults = {
     'chain_pairing': CP_BEST_BEST,
     'alignment_algorithm': AA_NEEDLEMAN_WUNSCH,
     'show_alignment': False,
+    'start_match_align': False,
     'matrix': "BLOSUM-62",
     'gap_open': 12,
     'gap_extend': 1,
