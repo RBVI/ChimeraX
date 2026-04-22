@@ -59,7 +59,7 @@ class MutationScoresList(ToolInstance):
                         ('Heatmap', self._show_heatmap),
                         ('Scatterplot', self._show_scatterplot),
                         ('Histogram', self._show_histogram),
-                        ('Color Structure', self._show_color_structure),
+                        ('Color structure', self._show_color_structure),
                          ('Close data', self._close_data),
                          ('Help', self._show_help),
                         spacing = 5)

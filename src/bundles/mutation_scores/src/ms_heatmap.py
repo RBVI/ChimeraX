@@ -29,7 +29,7 @@ class MutationScoresHeatmap(ToolInstance):
 
     help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
 
-    def __init__(self, session, tool_name = 'Mutation Scores Heatmap', name = None):
+    def __init__(self, session, tool_name = 'Mutation Scores Heatmap', name = None, draw = True):
 
         self.name = name
         self._include_residue_numbers = []	# If empty then include all residues in heatmap
@@ -71,7 +71,8 @@ class MutationScoresHeatmap(ToolInstance):
         layout.addWidget(options)
 
         # Draw the heatmap and axis labels
-        self._draw_graphics()
+        if draw:
+            self._draw_graphics()
 
         # Keep axis labels in view when scrolling heatmap
         vbar, hbar = sv.verticalScrollBar(), sv.horizontalScrollBar()
@@ -150,7 +151,7 @@ class MutationScoresHeatmap(ToolInstance):
         score_matrix, missing = self._score_matrix()
         colormap = self._colormap()
         rgb = matrix_to_rgb(score_matrix, missing, colormap)
-        self._heatmap_height = rgb.shape[0]
+        self._heatmap_height, self._heatmap_width = rgb.shape[0:2]
 
         # Add divider lines
         group_size = self._num_scores if self._grouping == 'amino acid' else self._num_amino_acids
@@ -306,14 +307,15 @@ class MutationScoresHeatmap(ToolInstance):
             msg = f'{from_aa}{res_num}{to_aa} {score_name} {value}'
         self._info_label.setText(msg)
 
-        if res_num is not None and self._color_residue_on_hover.enabled and self._have_structure:
+        if self._color_residue_on_hover.enabled and self._have_structure:
             self._uncolor_hover_residues()
-            res, rnums = self._mutation_set.associated_residues([res_num])
-            if len(res) > 0:
-                self._last_hover_residues = (res, res.ribbon_colors, res.atoms.colors)
-                color = self._hover_color.color
-                res.ribbon_colors = color
-                res.atoms.colors = color
+            if res_num is not None:
+                res, rnums = self._mutation_set.associated_residues([res_num])
+                if len(res) > 0:
+                    self._last_hover_residues = (res, res.ribbon_colors, res.atoms.colors)
+                    color = self._hover_color.color
+                    res.ribbon_colors = color
+                    res.atoms.colors = color
             
     # ---------------------------------------------------------------------------
     #
@@ -352,18 +354,26 @@ class MutationScoresHeatmap(ToolInstance):
             return
         if not self._have_structure:
             return
-        i1,i2 = xy1[0],xy2[0]
+
+        (i1,j1),(i2,j2) = xy1,xy2
+        w,h = self._heatmap_width, self._heatmap_height
+        if (j1 < 0 and j2 < 0) or (j1 >= h and j2 >= h) or (i1 < 0 and i2 < 0) or (i1 >= w and i2 >= w):
+            # drag box does not intersect heatmap so clear colors.
+            self._uncolor_dragbox_residues()
+            return
+
         all_res_nums = self._residue_numbers
         isize = len(all_res_nums)
         imin, imax = max(0, int(min(i1,i2))), min(isize-1, int(max(i1,i2)))
         if imax < imin:
             return
-        if not add:
-            self._uncolor_dragbox_residues()
         res_nums = tuple(all_res_nums[imin:imax+1])
         mset = self._mutation_set
         res, rnums = mset.associated_residues(res_nums)
         if len(res) > 0:
+            self._uncolor_hover_residues()	# Avoid remembering hover colored residue
+            if not add:
+                self._uncolor_dragbox_residues()
             self._last_dragbox_residues.append((res, res.ribbon_colors, res.atoms.colors))
             color = self._dragbox_color.color
             res.ribbon_colors = color
@@ -372,7 +382,7 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _uncolor_dragbox_residues(self):
-        for last_res, last_res_colors, last_atom_colors in self._last_dragbox_residues:
+        for last_res, last_res_colors, last_atom_colors in self._last_dragbox_residues[::-1]:
             last_res.ribbon_colors = last_res_colors
             last_res.atoms.colors = last_atom_colors
         self._last_dragbox_residues.clear()
@@ -446,14 +456,19 @@ class MutationScoresHeatmap(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _make_axis_group(self, labels):
+    def _make_axis_group(self, labels, y_range = None):
         scene = self._score_view.scene
         xg = scene.createItemGroup(labels)
         from Qt.QtGui import QBrush, QPen
         from Qt.QtCore import Qt
         pen = QPen(Qt.NoPen)	# Don't draw border
         brush = QBrush(Qt.white)
-        backing_rectangle = scene.addRect(xg.boundingRect(), pen=pen, brush=brush)
+        rect = xg.boundingRect()
+        if y_range:
+            ymin, ymax = y_range
+            rect.setY(ymin)
+            rect.setHeight(ymax-ymin)
+        backing_rectangle = scene.addRect(rect, pen=pen, brush=brush)
         backing_rectangle.setZValue(-1)
         xg.addToGroup(backing_rectangle)
         return xg
@@ -461,6 +476,10 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _viewport_change(self):
+        if not self.tool_window.ui_area.isVisible():
+            # Don't move axes before window is mapped because it
+            # then makes the initial window size too small to show full heatmap.
+            return	
         sv = self._score_view
         size = sv.viewport().size() 
         p = sv.mapToScene(0, size.height())
@@ -524,7 +543,8 @@ class MutationScoresHeatmap(ToolInstance):
             y = i*aa_step + 0.5*scores_height - rect.height()/2
             t.setPos(x, y)
 
-        self._y_axis_group = self._make_axis_group(labels)
+        height = self._heatmap_height * pixels_per_cell
+        self._y_axis_group = self._make_axis_group(labels, y_range = (0, height))
 
     # ---------------------------------------------------------------------------
     #
@@ -543,7 +563,8 @@ class MutationScoresHeatmap(ToolInstance):
             y = i*score_step + 0.5*aa_height - rect.height()/2
             t.setPos(x, y)
 
-        self._y_axis_group = self._make_axis_group(labels)
+        height = self._heatmap_height * pixels_per_cell
+        self._y_axis_group = self._make_axis_group(labels, y_range = (0, height))
 
     # ---------------------------------------------------------------------------
     #
@@ -558,7 +579,7 @@ class MutationScoresHeatmap(ToolInstance):
     #
     def _create_options_gui(self, parent):
         from chimerax.ui.widgets import CollapsiblePanel
-        self._options_panel = p = CollapsiblePanel(parent, title = None)
+        self._options_panel = p = CollapsiblePanel(parent, title = None, shrink_to_fit = False)
         f = p.content_area
 
         # Which mutation set
@@ -1347,7 +1368,7 @@ def mutation_heatmap(session, heatmap_name = None,
     if hm is None:
         if heatmap_name is None:
             heatmap_name = _next_heatmap_name(session)
-        hm = MutationScoresHeatmap(session, name = heatmap_name)
+        hm = MutationScoresHeatmap(session, name = heatmap_name, draw = False)
 
     hm.configure(settings)
 

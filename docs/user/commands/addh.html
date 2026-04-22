@@ -55,8 +55,13 @@ and/or to match their bond partners.
 <a name="hbond"></a>
 The <b>hbond</b> option (default <b>true</b>) controls 
 whether H-bond formation should also be considered.
-Considering H-bonds increases calculation time and may not
-produce a globally optimal network of H-bonds.
+Considering H-bonds increases the calculation time;
+placement prioritizes the shorter and more obvious interactions
+but also preserves longer H-bonds where possible.
+Although hydrogens are placed to avoid clashes and form hydrogen bonds,
+they are not energy-minimized, and
+a globally optimal network in terms of the number of H-bonds or
+total H-bonding energy is not necessarily found.
 </p><p>
 <a name="inIsolation"></a>
 The <b>inIsolation</b> option (default <b>true</b>) indicates using
@@ -145,6 +150,6 @@ hydrogen addition will have no effect.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2022</address>
+April 2026</address>
 
 </body></html>

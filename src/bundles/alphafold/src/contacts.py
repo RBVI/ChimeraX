@@ -45,7 +45,7 @@ def alphafold_contacts(session, atoms, to_atoms = None, distance = 3, max_pae = 
     # Get structure containing residues.
     if len(atoms) == 0:
         from chimerax.core.errors import UserError        
-        raise UserError(f'No alphafold specified for {method} contacts')
+        raise UserError(f'No atoms specified for {method} contacts')
     s = atoms[0].structure
 
     # If to_residues not specified use all other residues in same structure.

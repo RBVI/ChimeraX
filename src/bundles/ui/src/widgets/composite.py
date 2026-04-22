@@ -255,7 +255,9 @@ class MenuEntry:
 
 from Qt.QtWidgets import QWidget
 class CollapsiblePanel(QWidget):
-    def __init__(self, parent=None, title='', margins = None):
+    def __init__(self, parent=None, title='', margins = None, shrink_to_fit = True):
+        self.shrink_to_fit = shrink_to_fit	# When closing collapsible panel should window size be reduced.
+        
         QWidget.__init__(self, parent=parent)
 
         from Qt.QtWidgets import QFrame, QToolButton, QGridLayout, QSizePolicy
@@ -329,7 +331,7 @@ class CollapsiblePanel(QWidget):
         h = c.sizeHint().height() if shown else 0
         c.setMaximumHeight(h)
         c.setMinimumHeight(h)
-        if not shown:
+        if not shown and self.shrink_to_fit:
             # Resize dock widget to reclaim spaced used by popup.
             _resize_dock_widget(self)
 
