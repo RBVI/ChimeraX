@@ -32,6 +32,7 @@ and generating a new sequence alignment can be performed.
 The corresponding command is
 <a href="../commands/msa3d.html"><b>msa3d</b></a>.
 See also:
+<a href="sequenceviewer.html"><b>Sequence Viewer</b></a>,
 <a href="matchmaker.html"><b>Matchmaker</b></a>,
 <a href="../commands/align.html"><b>align</b></a>,
 <a href="../commands/sequence.html#align"><b>sequence align</b></a>,
@@ -52,14 +53,83 @@ Meng EC, Pettersen EF, Couch GS, Huang CC, Ferrin TE.
 section of the <b>Tools</b> menu and manipulated like other panels
 (<a href="../window.html#panels">more...</a>). 
 </p><p>
-** Documentation in progress **
-<!--
+Chains to be included in the sequence alignment should be chosen from
+the top section of the panel.
+</p><ul>
+<li><a name="cutoff"><b>Residue-residue distance cutoff (angstroms)</b></a>
+(default <b>5.0</b>) &ndash; maximum CA-CA distance (C4'-C4' for nucleic acids)
+for defining membership in a column of the output sequence alignment
+</li><li><b>Residue aligned in column if within cutoff of:</b>
+  <ul>
+  <li><b>at least one other</b> (default)
+  </li><li><b>all others</b>
+  </li></ul>
+&ndash; how the <a href="#cutoff">cutoff</a> should be applied;
+equivalent for alignments of only two chains
+</li><li><b>Gap character</b> 
+&ndash; how to show gaps in the output sequence alignment
+  <ul>
+  <li> <b>.</b> (period)
+  </li><li> <b>-</b> (dash)
+  </li><li> <b>~</b> (tilde)
+  </li></ul>
+</li><li>
+<font color="brown">**not yet implemented**
+<b>Allow for circular permutation</b> &ndash; whether to double sequences
+as needed to simultaneously align the N-terminal region of one protein
+with the C-terminal region of the other and vice versa.  Doubling
+the sequence of one of a pair of proteins related by
+<b><i>circular permutation</i></b> is required because
+<b>Match&rarr;Align</b> enforces N &rarr; C chain directionality.
+Information on any permutations will be sent to the
+<a href="log.html"><b>Log</b></a>.
+</font>
+</li><li><b>Iterate superposition/alignment...</b> whether to perform
+one or more cycles of refitting the structures using the sequence alignment
+and generating a new sequence alignment from the adjusted superposition.
+Superpositions will not be adjusted unless iteration is turned on.
+Only the final superposition and final sequence alignment will be shown.
+The number of fully populated columns in any intermediate
+sequence alignments and corresponding match statistics will be reported
+in the <a href="log.html"><b>Log</b></a>.
+When this option is turned on, the <b>Iteration Parameters</b> are shown:
+<blockquote>
+ <ul>
+ <li><b>Iterate alignment</b>:
+    <ul>
+    <li><b>at most [<i>N</i>] times</b> (default <b>3</b>)
+    &ndash; refit and then generate a new sequence alignment <i>N</i> times
+    (or fewer, if convergence is reached)
+    </li><li><b>until convergence</b>
+   &ndash; refit and then generate a new sequence
+   alignment until the number of fully populated columns no longer increases
+    </li></ul>
+ </li><li><b>Superimpose full columns</b>:
+    <ul>
+    <li><b>across entire alignment</b> &ndash; refit the structures
+    using all fully populated columns of the sequence alignment
+    </li><li><b>in stretches of at least [<i>L</i>] consecutive columns</b>
+     (default <b>3</b>) &ndash; refit the structures using only the fully
+     populated columns in consecutive stretches of <i>L</i> or more
+    </li></ul>
+ </li><li><b>Reference chain for matching</b> [<i>chain</i>]
+  &ndash; which structure should remain fixed as the others are matched to it
+ </li></ul>
+</blockquote>
+</li>
+</ul>
+<p>
+<b>Save</b> saves the current <b>Match&rarr;Align</b> settings as
+<a href="../preferences.html#other">user preferences</a>.
+<b>Reset</b> restores the factory defaults without changing what was saved,
+whereas <b>Restore</b> populates the dialog with the last-saved settings.
 </p><p>
 Clicking <b>OK</b> or <b>Apply</b> will start the calculation
 with or without closing the dialog, respectively.
 <b>Close</b> simply closes the dialog, while <b>Help</b> opens
 this page in the <a href="helpviewer.html"><b>Help Viewer</b></a>.
--->
+The output multiple sequence alignment is automatically shown in the
+<a href="sequenceviewer.html"><b>Sequence Viewer</b></a>.
 </p>
 
 <hr>
