@@ -843,7 +843,8 @@ class Drawing:
             r.set_ambient_texture_transform(self.ambient_texture_transform)
 
         pos = self.positions
-        use_instancing = (len(pos) > 1 or pos.shift_and_scale_array() is not None)
+        use_instancing = (len(pos) > 1 or pos.shift_and_scale_array() is not None
+                          or getattr(self, '_force_instancing', lambda: False)())
         spos = self.parent.get_scene_positions(displayed_only=True) if use_instancing else self.get_scene_positions(displayed_only=True)
         for p in spos:
             # TODO: Optimize this to use same 4x4 opengl matrix each call.
@@ -951,8 +952,9 @@ class Drawing:
             c = self.colors if self._vertex_colors is None else None
             pm = self._position_mask()
             pmsel = self._position_mask(True)
-            ds.update_instance_buffers(p, c, pm)
-            dss.update_instance_buffers(p, c, pmsel)
+            fi = getattr(self, '_force_instancing', lambda: False)()
+            ds.update_instance_buffers(p, c, pm, force_instancing=fi)
+            dss.update_instance_buffers(p, c, pmsel, force_instancing=fi)
 
         # Update buffers shared by drawing and highlight
         for b in self._vertex_buffers:
@@ -1862,9 +1864,11 @@ class _DrawShape:
             ib.append(b)
         return ib
 
-    def update_instance_buffers(self, positions, colors, position_mask):
+    def update_instance_buffers(self, positions, colors, position_mask,
+                                force_instancing=False):
 
-        self.update_instance_arrays(positions, colors, position_mask)
+        self.update_instance_arrays(positions, colors, position_mask,
+                                    force_instancing=force_instancing)
 
         ib = self.instance_buffers
         if len(ib) == 0:
@@ -1873,11 +1877,12 @@ class _DrawShape:
         for b in ib:
             self.buffer_needs_update(b)
 
-    def update_instance_arrays(self, positions, colors, position_mask):
+    def update_instance_arrays(self, positions, colors, position_mask,
+                               force_instancing=False):
         sas = positions.shift_and_scale_array()
         np = len(positions)
-        im = positions.opengl_matrices() if sas is None and np > 1 else None
-        ic = colors if np > 1 or sas is not None else None
+        im = positions.opengl_matrices() if sas is None and (np > 1 or force_instancing) else None
+        ic = colors if np > 1 or sas is not None or force_instancing else None
         if ic is not None and len(ic) != np:
             # If instance colors array is not same length as positions, resize colors.
             import numpy

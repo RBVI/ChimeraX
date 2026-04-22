@@ -1398,6 +1398,7 @@ class BondsDrawing(Drawing):
         self._pick_class = pick_class
         self._picks_class = picks_class
         super().__init__(name)
+        self.impostor_dashes = 0  # 0 = solid, >0 = dashed pseudobond
 
     def _set_impostor_quad_geometry(self):
         '''Set unit quad geometry for impostor cylinder rendering.'''
@@ -1406,13 +1407,25 @@ class BondsDrawing(Drawing):
         normals = array([[0,0,1], [0,0,1], [0,0,1], [0,0,1]], float32)
         triangles = array([[0,1,2], [0,2,3]], int32)
         self.set_geometry(vertices, normals, triangles)
+        self._use_impostor_cylinder = True
 
     def _shader_options(self, transparent_only=False, opaque_only=False):
         sopt = super()._shader_options(transparent_only, opaque_only)
-        from chimerax.graphics.opengl import Render
-        sopt |= Render.SHADER_IMPOSTOR_CYLINDER
-        sopt &= ~Render.SHADER_LIGHTING_NORMALS
+        if getattr(self, '_use_impostor_cylinder', False):
+            from chimerax.graphics.opengl import Render
+            sopt |= Render.SHADER_IMPOSTOR_CYLINDER | Render.SHADER_INSTANCING
+            sopt &= ~(Render.SHADER_LIGHTING_NORMALS | Render.SHADER_SHIFT_AND_SCALE)
         return sopt
+
+    def _force_instancing(self):
+        '''Impostor cylinders always need instancing for the placement matrix.'''
+        return getattr(self, '_use_impostor_cylinder', False)
+
+    def set_shader_options(self, renderer):
+        super().set_shader_options(renderer)
+        p = renderer.current_shader_program
+        if p is not None and p.capabilities & renderer.SHADER_IMPOSTOR_CYLINDER:
+            p.set_integer("impostor_dashes", self.impostor_dashes)
 
     def bounds(self):
         cpb = self._cached_position_bounds	# Attribute of Drawing.
