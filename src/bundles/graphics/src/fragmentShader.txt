@@ -202,6 +202,7 @@ in float impostor_cyl_radius;
 in float impostor_cyl_half_length;
 in vec4 impostor_cyl_color2;
 uniform mat4 projection_matrix;
+uniform int impostor_dashes;  // 0 = solid, >0 = number of dashes
 #endif
 
 #ifdef USE_DEPTH_CUE
@@ -473,6 +474,39 @@ void main (void)
       }
     }
     if (!cyl_hit_found) discard;
+
+    // Dashed pseudobonds: discard fragments in gaps between dashes
+    if (impostor_dashes > 0) {
+      float cyl_pos_along = dot(impostor_hit - impostor_cyl_center, impostor_cyl_axis);
+      float cyl_frac = (cyl_pos_along / impostor_cyl_half_length) * 0.5 + 0.5;
+      float dash_pos = cyl_frac * float(impostor_dashes) + 0.75;
+      float dash_frac = fract(dash_pos);
+      if (dash_frac > 0.5) {
+        // Wall hit is in a gap — try dash edge caps
+        // Find nearest dash edges (transitions at fract = 0.0 and 0.5)
+        bool dash_cap_hit = false;
+        float edge_offsets[2] = float[](0.5 - dash_frac, 1.0 - dash_frac);
+        for (int ei = 0; ei < 2; ++ei) {
+          float edge_dash = dash_pos + edge_offsets[ei];
+          float edge_frac = (edge_dash - 0.75) / float(impostor_dashes);
+          float edge_along = (edge_frac * 2.0 - 1.0) * impostor_cyl_half_length;
+          // Ray-plane intersection at this axis position
+          float cap_denom = dot(cyl_ray_dir, impostor_cyl_axis);
+          if (abs(cap_denom) < 0.0001) continue;
+          float cap_t = (edge_along - dot(cyl_ray_origin - impostor_cyl_center, impostor_cyl_axis)) / cap_denom;
+          if (cap_t < 0.0) continue;
+          vec3 cap_pt = cyl_ray_origin + cap_t * cyl_ray_dir;
+          vec3 cap_radial = cap_pt - impostor_cyl_center - edge_along * impostor_cyl_axis;
+          if (dot(cap_radial, cap_radial) <= impostor_cyl_radius * impostor_cyl_radius) {
+            impostor_hit = cap_pt;
+            impostor_normal = sign(edge_offsets[ei]) * impostor_cyl_axis;
+            dash_cap_hit = true;
+            break;
+          }
+        }
+        if (!dash_cap_hit) discard;
+      }
+    }
 
     // Write correct depth
     vec4 cyl_clip_pos = projection_matrix * vec4(impostor_hit, 1.0);

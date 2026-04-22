@@ -206,7 +206,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
         if d is None:
             from .structure import BondsDrawing, PickedPseudobond, PickedPseudobonds
             d = self._pbond_drawing = BondsDrawing('pbonds', PickedPseudobond, PickedPseudobonds)
-            self.update_cylinder_sides()
+            d._set_impostor_quad_geometry()
             self.add_drawing(d)
             d._visible_atoms = None
             changes = self._ALL_CHANGE
@@ -226,15 +226,41 @@ class PseudobondGroup(PseudobondGroupData, Model):
         pbonds = d.visible_bonds
         bond_atoms = d._visible_atoms
 
-        if changes & self._SHAPE_CHANGE:
-            d.positions = self._update_positions(pbonds, bond_atoms)
-            
-        if changes & self._COLOR_CHANGE:
-            d.colors = pbonds.half_colors
-            
+        if changes & self._SHAPE_CHANGE or changes & self._COLOR_CHANGE:
+            ba1, ba2 = bond_atoms
+            if self._global_group:
+                to_pbg = self.scene_position.inverse()
+                axyz0, axyz1 = to_pbg*ba1.pb_scene_coords, to_pbg*ba2.pb_scene_coords
+            else:
+                axyz0, axyz1 = ba1.pb_coords, ba2.pb_coords
+
+            from numpy import empty, float32, asarray
+            axyz0 = asarray(axyz0, dtype=float32)
+            axyz1 = asarray(axyz1, dtype=float32)
+            radii = asarray(pbonds.radii, dtype=float32)
+            n = len(axyz0)
+
+            matrices = empty((n, 4, 4), float32)
+            from chimerax.geometry import cylinder_rotations
+            cylinder_rotations(axyz0, axyz1, radii, matrices)
+            matrices[:, 3, :3] = 0.5 * (axyz0 + axyz1)
+
+            # Half-bond colors: first N = atom1 side, second N = atom2 side
+            hc = pbonds.half_colors  # 2N x 4
+            c1, c2 = hc[:n], hc[n:]
+            # Pack color2 in bottom row of matrix
+            matrices[:, 0, 3] = c2[:, 0] / 255.0
+            matrices[:, 1, 3] = c2[:, 1] / 255.0
+            matrices[:, 2, 3] = c2[:, 2] / 255.0
+            matrices[:, 3, 3] = c2[:, 3] / 255.0
+
+            from chimerax.geometry import Places
+            d.positions = Places(opengl_array=matrices)
+            d.colors = c1  # atom1 side color as primary
+            d.impostor_dashes = self._dashes
+
         if changes & self._SELECT_CHANGE:
-            from . import structure as s
-            d.highlighted_positions = s._selected_bond_cylinders(pbonds)
+            d.highlighted_positions = pbonds.selected if pbonds.num_selected > 0 else None
 
     def update_cylinder_sides(self):
         d = self._pbond_drawing
