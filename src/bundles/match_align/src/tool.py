@@ -17,7 +17,7 @@ from .settings import get_settings, defaults
 
 class MatchAlignTool(ToolInstance):
 
-    #help = "help:user/tools/findcavities.html"
+    help = "help:user/tools/matchalign.html"
     SESSION_SAVE = False
 
     def __init__(self, session, tool_name):
