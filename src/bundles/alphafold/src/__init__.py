@@ -34,7 +34,7 @@ class _AlphaFoldBundle(BundleAPI):
         elif tool_name == 'AlphaFold Coloring':
             from . import colorgui
             return colorgui.show_alphafold_coloring_panel(session)
-        elif tool_name == 'AlphaFold Error Plot':
+        elif tool_name in ('AlphaFold Error Plot', 'Predicted Aligned Error Plot'):
             from . import pae
             return pae.show_alphafold_error_plot_panel(session)
 
