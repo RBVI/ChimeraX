@@ -446,6 +446,7 @@ class ObjectLabels(Model):
         for o in objects:
             if o not in ol:
                 ol[o] = lo = label_class(o, view, **settings)
+                lo.custom_image = None
                 self._labels.append(lo)
             elif settings:
                 lo = ol[o]
@@ -720,7 +721,8 @@ class ObjectLabels(Model):
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):
-        lattrs = ('object', 'text', 'offset', 'color', 'background', 'size', 'height', 'font', 'position')
+        lattrs = ('object', 'text', 'offset', 'color', 'background', 'size', 'height', 'font', 'position',
+            'custom_image')
         lstate = tuple({attr:getattr(l, attr) for attr in lattrs if hasattr(l, attr)}
                        for l in self._labels)
         data = {'model state': Model.take_snapshot(self, session, flags),
@@ -746,8 +748,8 @@ class ObjectLabels(Model):
         v = self.session.main_view
         for ls in data['labels state']:
             o = ls['object']
-            kw = {attr:ls[attr] for attr in ('text', 'offset', 'color', 'background',
-                                             'size', 'height', 'font', 'position') if attr in ls}
+            kw = {attr:ls[attr] for attr in ('text', 'offset', 'color', 'background', 'size',
+                                        'height', 'font', 'position', 'custom_image') if attr in ls}
             cls = label_class(o)
             ol[o] = l = cls(o, v, **kw)
             self._labels.append(l)
@@ -775,7 +777,7 @@ class ObjectLabel:
 
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None, attribute = None,
-                 size = 48, height = 'default', font = 'Arial'):
+                 size = 48, height = 'default', font = 'Arial', custom_image=None):
 
         self.object = object
         self.view = view	# View is used to update label position to face camera
@@ -800,9 +802,22 @@ class ObjectLabel:
             
         self.height = height	# None or height in world coords.  If None used fixed screen size.
         self._pixel_size = (100,10)	# Size of label in pixels, derived from size attribute
+        # so that bundles can show custom non-text labels
+        self.custom_image = custom_image
 
         self.font = font
         
+    @property
+    def custom_image(self):
+        return self._custom_image
+
+    @custom_image.setter
+    def custom_image(self, image):
+        self._custom_image = image
+        if image is not None:
+            h, w = image.shape[:2]
+            self._label_size = w, h
+
     def default_text(self):
         '''Override this to define the default label text for object.'''
         return ''
@@ -894,6 +909,8 @@ class ObjectLabel:
         return self.location() is None
 
     def _label_image(self):
+        if self.custom_image is not None:
+            return self.custom_image
         s = self.size
         rgba8 = tuple(self.color)
         bg = self.background
@@ -931,13 +948,9 @@ class ObjectLabel:
 # -----------------------------------------------------------------------------
 #
 class AtomLabel(ObjectLabel):
-    def __init__(self, object, view, offset = None, text = None,
-                 color = None, background = None, attribute = None,
-                 size = 48, height = 'default', font = 'Arial'):
+    def __init__(self, object, view, **kw):
         self.atom = object
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text,
-                 color=color, background=background, attribute=attribute,
-                 size=size, height=height, font=font)
+        ObjectLabel.__init__(self, object, view, **kw)
     def default_text(self):
         aname = self.atom.name
         return aname if aname else ('%d' % self.atom.residue.number)
@@ -953,14 +966,10 @@ class AtomLabel(ObjectLabel):
 # -----------------------------------------------------------------------------
 #
 class ResidueLabel(ObjectLabel):
-    def __init__(self, object, view, offset = None, text = None,
-                 color = None, background = None, attribute = None,
-                 size = 48, height = 'default', font = 'Arial', position = None):
+    def __init__(self, object, view, position=None, **kw):
         self.residue = object
         self.position = position
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text,
-                 color=color, background=background, attribute=attribute,
-                 size=size, height=height, font=font)
+        ObjectLabel.__init__(self, object, view, **kw)
     def default_text(self):
         r = self.residue
         return '%s %d%s' % (r.name, r.number, r.insertion_code)
@@ -980,13 +989,9 @@ class ResidueLabel(ObjectLabel):
 # -----------------------------------------------------------------------------
 #
 class EdgeLabel(ObjectLabel):
-    def __init__(self, object, view, offset = None, text = None,
-                 color = None, background = None, attribute = None,
-                 size = 48, height = 'default', font = 'Arial'):
+    def __init__(self, object, view, **kw):
         self.pseudobond = object
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text,
-                 color=color, background=background, attribute=attribute,
-                 size=size, height=height, font=font)
+        ObjectLabel.__init__(self, object, view, **kw)
     def default_text(self):
         dm = self.pseudobond.session.pb_dist_monitor
         return dm.distance_format % self.pseudobond.length
@@ -1021,16 +1026,12 @@ class PseudobondLabel(EdgeLabel):
 # -----------------------------------------------------------------------------
 #
 class ModelLabel(ObjectLabel):
-    def __init__(self, object, view, offset = None, text = None,
-                 color = None, background = None, attribute = None,
-                 size = 48, height = 'model default', font = 'Arial'):
+    def __init__(self, object, view, height = 'model default', **kw):
         self.model = object
         self._location_initialized = False
         self._location = (0,0,0)
         self._default_offset = (0,0,0)
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text,
-                 color=color, background=background, attribute=attribute,
-                 size=size, height=height, font=font)
+        ObjectLabel.__init__(self, object, view, height=height, **kw)
     def default_text(self):
         return self.model.name
     def default_offset(self):
