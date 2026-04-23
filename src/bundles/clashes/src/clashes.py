@@ -38,7 +38,8 @@ def find_clashes(session, test_atoms,
         intra_res=False,
         intra_mol=True,
         res_separation=None,
-        restrict="any"):
+        restrict="any",
+        short_circuit=False):
     """Detect steric clashes/contacts
 
        'test_atoms' should be an Atoms collection.
@@ -72,6 +73,9 @@ def find_clashes(session, test_atoms,
        If res_separation is not None, it should be a positive integer -- in which
        case for residues in the same chain, clashes/contacts are ignored unless
        the residues are at least that far apart in the sequence.
+
+       If 'short_circuit' is True, this function will return as soon as any clash or
+       contact is detected, instead of looking for all clashes/contacts.
 
        Returns a dictionary keyed on atoms, with values that are
        dictionaries keyed on clashing atom with value being the clash value.
@@ -204,6 +208,12 @@ def find_clashes(session, test_atoms,
                 continue
             clashes.setdefault(a, {})[nb] = clash
             clashes.setdefault(nb, {})[a] = clash
+            if short_circuit:
+                break
+        else:
+            # not short circuited
+            continue
+        break
     return clashes
 
 from chimerax.atomic import Element
