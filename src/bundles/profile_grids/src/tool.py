@@ -119,6 +119,9 @@ class ProfileGridsTool(ToolInstance):
             setattr(settings, "scroll_to_sel", checked))
         menu.addAction(action)
 
+        action = QAction("Label Residues...", cell_menu)
+        action.triggered.connect(lambda *args, f=self.grid_canvas.label_residues: f())
+
         import sys
         if sys.platform == "darwin":
             action = QAction("Suppress Horizontal Scrollbar", menu)

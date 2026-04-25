@@ -253,6 +253,14 @@ class GridCanvas:
         self.displayed_headers.remove(header)
         self._update_scene_rects()
 
+    def label_residues(self):
+        if not hasattr(self, 'label_tool'):
+            from .label_tool import LabelTool
+            self.label_tool = LabelTool(self,
+                self.pg.tool_window.create_child_window("Label Residues", close_destroys=False))
+            self.label_tool.tool_window.manage(None)
+        self.label_tool.tool_window.shown = True
+
     def layout_alignment(self):
         #NOTE: maybe group each header line (QGraphicsItemGroup) to make them easier to move
         rows, columns = self.grid_data.shape
