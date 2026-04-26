@@ -108,8 +108,12 @@ class View:
         r = self._render
         if r is None:
             # Select renderer based on context type
-            from .opengl import Render
-            self._render = r = Render(graphics_context)
+            if hasattr(graphics_context, '_vulkan'):
+                from .vulkan import VulkanRender
+                self._render = r = VulkanRender(graphics_context)
+            else:
+                from .opengl import Render
+                self._render = r = Render(graphics_context)
             r.lighting = self._lighting
             r.material = self._material
             r.silhouette = self._silhouette
