@@ -9,6 +9,8 @@
     <DataFile>vertexShader.txt</DataFile>
     <DataFile>fragmentShader.txt</DataFile>
     <DataFile>_graphics.*</DataFile>
+    <DataFile>_metal.*</DataFile>
+    <DataFile>shaders/*.metal</DataFile>
   </DataFiles>
   <Categories>
     <Category name="Graphics"/>
@@ -24,6 +26,21 @@
     <Library platform="windows">opengl32.lib</Library>
     <Library platform="linux">GL</Library>
     <Framework>OpenGL</Framework>
+  </CModule>
+  <CModule name="_metal" platform="mac">
+    <SourceFile>_metal/module.cpp</SourceFile>
+    <SourceFile>_metal/metal_context.m</SourceFile>
+    <SourceFile>_metal/metal_buffer.m</SourceFile>
+    <SourceFile>_metal/metal_pipeline.m</SourceFile>
+    <SourceFile>_metal/metal_texture.m</SourceFile>
+    <SourceFile>_metal/metal_raytracing.m</SourceFile>
+    <CompileArgument>-ObjC++</CompileArgument>
+    <CompileArgument>-std=c++17</CompileArgument>
+    <CompileArgument>-stdlib=libc++</CompileArgument>
+    <Framework>Metal</Framework>
+    <Framework>QuartzCore</Framework>
+    <Framework>AppKit</Framework>
+    <IncludeDir>_metal</IncludeDir>
   </CModule>
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.3dev2021"/>

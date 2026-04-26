@@ -806,6 +806,13 @@ class Drawing:
         if self.vertices is None:
             return
 
+        # Check if renderer supports direct drawing (Metal path)
+        if hasattr(renderer, 'draw_drawing'):
+            sopt = self._shader_options(transparent_only, opaque_only)
+            renderer.draw_drawing(self, sopt, highlighted_only)
+            return
+
+        # OpenGL path
         self._opengl_context = renderer.opengl_context
 
         if len(self._vertex_buffers) == 0:
@@ -1580,13 +1587,20 @@ def draw_depth(renderer, drawings, opaque_only = True):
     '''
     r = renderer
     dc = r.disable_capabilities
+    depth_only = hasattr(r, 'draw_depth_only')
     r.disable_shader_capabilities(r.SHADER_LIGHTING | r.SHADER_SHADOW | r.SHADER_MULTISHADOW |
                                   r.SHADER_DEPTH_CUE | r.SHADER_TEXTURE_2D | r.SHADER_TEXTURE_3D |
                                   r.SHADER_COLORMAP)
-    draw_opaque(r, drawings)
-    if not opaque_only:
-        draw_transparent(r, drawings)
-    r.disable_shader_capabilities(dc)
+    if depth_only:
+        r.draw_depth_only(True)
+    try:
+        draw_opaque(r, drawings)
+        if not opaque_only:
+            draw_transparent(r, drawings)
+    finally:
+        if depth_only:
+            r.draw_depth_only(False)
+        r.disable_shader_capabilities(dc)
 
 
 def draw_overlays(drawings, renderer, scale = (1,1)):

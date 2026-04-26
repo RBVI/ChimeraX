@@ -104,22 +104,27 @@ class View:
     def render(self):
         return self._render
     
-    def initialize_rendering(self, opengl_context):
+    def initialize_rendering(self, graphics_context):
         r = self._render
         if r is None:
-            from .opengl import Render
-            self._render = r = Render(opengl_context)
+            # Select renderer based on context type
+            if hasattr(graphics_context, '_metal'):
+                from .metal import MetalRender
+                self._render = r = MetalRender(graphics_context)
+            else:
+                from .opengl import Render
+                self._render = r = Render(graphics_context)
             r.lighting = self._lighting
             r.material = self._material
             r.silhouette = self._silhouette
-            pscale = opengl_context.pixel_scale()
+            pscale = graphics_context.pixel_scale()
             self.silhouette.thickness = pscale
             self.highlight_thickness = pscale
-        elif opengl_context is r.opengl_context:
+        elif hasattr(r, 'opengl_context') and graphics_context is r.opengl_context:
             # OpenGL context switched between stereo and mono mode
             self._opengl_initialized = False
         else:
-            raise ValueError("OpenGL context is already set")
+            raise ValueError("Graphics context is already set")
 
     def _use_opengl(self):
         if self._render is None:
@@ -185,18 +190,23 @@ class View:
             r.update_lighting_parameters()
         r.activate_lighting()
 
-        self._draw_scene(camera, drawings)
+        try:
+            self._draw_scene(camera, drawings)
 
-        camera.combine_rendered_camera_views(r)
+            camera.combine_rendered_camera_views(r)
 
-        if self._overlays:
-            odrawings = sum([o.all_drawings(displayed_only = True) for o in self._overlays], [])
-            from .drawing import draw_overlays
-            draw_overlays(odrawings, r)
+            if self._overlays:
+                odrawings = sum([o.all_drawings(displayed_only = True) for o in self._overlays], [])
+                from .drawing import draw_overlays
+                draw_overlays(odrawings, r)
 
-        if use_calllist:
-            gllist.call_opengl_list(self, trace=True)
-        
+            if use_calllist:
+                gllist.call_opengl_list(self, trace=True)
+        finally:
+            # Ensure Metal encoder is always ended, even on exception
+            if hasattr(r, 'end_frame'):
+                r.end_frame()
+
         if swap_buffers:
             if camera.do_swap_buffers():
                 r.swap_buffers()
@@ -205,77 +215,53 @@ class View:
                 r.done_current()
 
     def _draw_scene(self, camera, drawings):
-
         r = self._render
         self.clip_planes.enable_clip_plane_graphics(r, camera.position)
         mdraw = [self.drawing] if drawings is None else drawings
-        (opaque_drawings, transparent_drawings,
-         highlight_drawings, on_top_drawings) = self._drawings_by_pass(mdraw)
-        no_drawings = (len(opaque_drawings) == 0 and
-                       len(transparent_drawings) == 0 and
-                       len(highlight_drawings) == 0 and
-                       len(on_top_drawings) == 0)
+        (opaque, transparent, highlight, on_top) = self._drawings_by_pass(mdraw)
 
-        offscreen = r.offscreen if r.offscreen.enabled else None
-        if highlight_drawings and r.outline.offscreen_outline_needed:
-            offscreen = r.offscreen
-        if offscreen and r.current_framebuffer() is not r.default_framebuffer():
-            offscreen = None  # Already using an offscreen framebuffer
-            
-        silhouette = self.silhouette
+        from .render_graph import PassContext
+        ctx = PassContext(
+            renderer=r, camera=camera, view=self,
+            opaque_drawings=opaque,
+            transparent_drawings=transparent,
+            highlight_drawings=highlight,
+            on_top_drawings=on_top,
+        )
+        if not hasattr(self, '_render_graph'):
+            self._render_graph = self._build_render_graph()
+        self._render_graph.execute(ctx)
 
-        shadow, multishadow = self._compute_shadowmaps(opaque_drawings, transparent_drawings, camera)
-            
-        from .drawing import draw_depth, draw_opaque, draw_transparent, draw_highlight_outline, draw_on_top
-        for vnum in range(camera.number_of_views()):
-            camera.set_render_target(vnum, r)
-            if no_drawings:
-                camera.draw_background(vnum, r)
-                continue
-            if offscreen:
-                offscreen.start(r)
-            if silhouette.enabled:
-                silhouette.start_silhouette_drawing(r)
-            camera.draw_background(vnum, r)
-            self._update_projection(camera, vnum)
-            if r.recording_opengl:
-                from . import gllist
-                cp = gllist.ViewMatrixFunc(self, vnum)
-            else:
-                cp = camera.get_position(vnum)
-            self._view_matrix = vm = cp.inverse(is_orthonormal = True)
-            r.set_view_matrix(vm)
-            if shadow:
-                r.shadow.set_shadow_view(cp)
-            if multishadow:
-                r.multishadow.set_multishadow_view(cp)
-                # Initial depth pass optimization to avoid lighting
-                # calculation on hidden geometry
-                if opaque_drawings:
-                    draw_depth(r, opaque_drawings)
-                    r.allow_equal_depth(True)
-            self._start_timing()
-            if opaque_drawings:
-                draw_opaque(r, opaque_drawings)
-            if highlight_drawings:
-                r.outline.set_outline_mask()       # copy depth to outline framebuffer
-            if transparent_drawings:
-                if silhouette.enabled:
-                    # Draw opaque object silhouettes behind transparent surfaces
-                    silhouette.draw_silhouette(r)
-                draw_transparent(r, transparent_drawings)
-            self._finish_timing()
-            if multishadow:
-                r.allow_equal_depth(False)
-            if silhouette.enabled:
-                silhouette.finish_silhouette_drawing(r)
-            if highlight_drawings:
-                draw_highlight_outline(r, highlight_drawings, color = self._highlight_color,
-                                       pixel_width = self._highlight_width)
-            if on_top_drawings:
-                draw_on_top(r, on_top_drawings)
-            if offscreen:
-                offscreen.finish(r)
+    def _build_render_graph(self):
+        from .render_graph import RenderGraph
+        from .render_passes import (
+            ShadowMapPass, OffscreenStartPass, SilhouetteStartPass,
+            BackgroundPass, ViewSetupPass, DepthPrepass, OpaquePass,
+            GTAOPass, RTAOPass, PathTracePass,
+            OutlineMaskPass, SilhouetteDrawPass,
+            TransparentPass, DepthResetPass, SilhouetteFinishPass,
+            HighlightOutlinePass, OnTopPass, OffscreenFinishPass,
+        )
+        g = RenderGraph()
+        g.add_pre_view(ShadowMapPass())
+        g.add_per_view(OffscreenStartPass())
+        g.add_per_view(SilhouetteStartPass())
+        g.add_per_view(BackgroundPass())
+        g.add_per_view(ViewSetupPass())
+        g.add_per_view(DepthPrepass())
+        g.add_per_view(OpaquePass())
+        g.add_per_view(GTAOPass())
+        g.add_per_view(RTAOPass())
+        g.add_per_view(PathTracePass())
+        g.add_per_view(OutlineMaskPass())
+        g.add_per_view(SilhouetteDrawPass())
+        g.add_per_view(TransparentPass())
+        g.add_per_view(DepthResetPass())
+        g.add_per_view(SilhouetteFinishPass())
+        g.add_per_view(HighlightOutlinePass())
+        g.add_per_view(OnTopPass())
+        g.add_per_view(OffscreenFinishPass())
+        return g
 
     def _drawings_by_pass(self, drawings):
         pass_drawings = {}

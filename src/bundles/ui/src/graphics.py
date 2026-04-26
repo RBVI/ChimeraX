@@ -26,15 +26,20 @@ class GraphicsWindow(QWindow):
         from Qt.QtWidgets import QWidget
         self.widget = w = QWidget.createWindowContainer(self, parent)
         w.setAcceptDrops(True)
-        # If Vulkan or Metal were to be supported this would have to change
-        # and then maybe the multitouch code would also have to change if
-        # NSView* no longer accepted the surface type
-        self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
+        import os, sys
+        use_metal = (sys.platform == 'darwin' and
+                     os.environ.get('CHIMERAX_GRAPHICS_BACKEND', '').lower() == 'metal')
 
-        if opengl_context is None:
+        if use_metal:
+            self.setSurfaceType(QSurface.SurfaceType.MetalSurface)
+            from chimerax.graphics.metal import MetalContext
+            oc = MetalContext(self, ui.primaryScreen())
+        elif opengl_context is None:
+            self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
             from chimerax.graphics import OpenGLContext
             oc = OpenGLContext(self, ui.primaryScreen(), use_stereo = stereo)
         else:
+            self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
             from chimerax.graphics import OpenGLError
             try:
                 opengl_context.enable_stereo(stereo, window = self)

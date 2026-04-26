@@ -672,6 +672,7 @@ void main (void)
     // total color
     vec3 Ifrag = Iamb + Idiff + Ispec;
 
+
   #ifdef USE_TEXTURE_3D_AMBIENT
     Ifrag *= texture(tex3d, ambient_tex_coord).r;
   #endif

@@ -204,7 +204,7 @@ void main(void)
   float extent_perp = cyl_radius * 1.1;
   vec3 cyl_offset = axis_screen_dir * position.y * extent_along
                    + axis_screen_perp * position.x * extent_perp
-                   + cyl_view_dir * position.x * cyl_radius;  // depth offset for viewing angle
+                   - cyl_view_dir * cyl_radius;  // push billboard forward for depth_greater
   vec4 veye = vec4(cyl_center + cyl_offset, 1.0);
 
   impostor_cyl_center = cyl_center;

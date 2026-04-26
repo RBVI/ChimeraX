@@ -638,7 +638,13 @@ class LightingPreviewWidget(QWindow):
         self.lighting_gui = lighting_gui
         self.widget = QWidget.createWindowContainer(self, parent)
         self.widget.setMinimumSize(360, 360)
-        self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
+        import os, sys
+        use_metal = (sys.platform == 'darwin' and
+                     os.environ.get('CHIMERAX_GRAPHICS_BACKEND', '').lower() == 'metal')
+        if use_metal:
+            self.setSurfaceType(QSurface.SurfaceType.MetalSurface)
+        else:
+            self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
 
         # Create sphere drawing
         self.sphere = SphereDrawing()
@@ -651,9 +657,20 @@ class LightingPreviewWidget(QWindow):
         self.sphere.add_drawing(self.key_arrow)
         self.sphere.add_drawing(self.fill_arrow)
 
-        # Create view with sphere
+        # Create view with sphere.
+        # For Metal, create a separate context for the preview window so
+        # rendering doesn't interfere with the main window's layer.
         self.view = View(drawing=self.sphere, window_size=(360, 360))
-        self.view.initialize_rendering(session.main_view.render.opengl_context)
+        self._own_context = None
+        import os, sys as _sys
+        use_metal = (_sys.platform == 'darwin' and
+                     os.environ.get('CHIMERAX_GRAPHICS_BACKEND', '').lower() == 'metal')
+        if use_metal:
+            from chimerax.graphics.metal import MetalContext
+            self._own_context = MetalContext(self, session.ui.primaryScreen())
+            self.view.initialize_rendering(self._own_context)
+        else:
+            self.view.initialize_rendering(session.main_view.render.opengl_context)
         self.view.background_color = (40, 40, 40, 255)
         # Zoom out enough to show sphere (radius 1) plus arrows with comfortable margin
         self.view.camera.position = Place(origin=(0, 0, 6))
@@ -689,6 +706,9 @@ class LightingPreviewWidget(QWindow):
     def close(self):
         self.sphere.delete()
         self.view.delete()
+        if self._own_context is not None:
+            self._own_context.delete()
+            self._own_context = None
         QWindow.destroy(self)
 
     def exposeEvent(self, event):
@@ -787,7 +807,13 @@ class LightingPreviewWidget(QWindow):
         # Update arrows and sync GUI
         self.update_arrow_directions()
         self.view.update_lighting = True
-        self.render()
+        if self._own_context is None:
+            # OpenGL: shared context, render synchronously.
+            self.render()
+        else:
+            # Metal: defer preview render to avoid GPU contention
+            # with the main window. Just request an update.
+            self._needs_render = True
         self.lighting_gui._sync_from_session()
 
     def mouseReleaseEvent(self, event):
@@ -862,13 +888,23 @@ class LightingPreviewWidget(QWindow):
 
     def _do_render(self):
         """Actually render the preview."""
-        ww, wh = self.main_view.window_size
         width, height = self.view.window_size
-        if ww <= 0 or wh <= 0 or width <= 0 or height <= 0:
+        if width <= 0 or height <= 0:
             return
         if self.view is None or self.view.render is None:
             return
 
+        if self._own_context is not None:
+            # Metal: own context, no switching needed.
+            try:
+                self.view.draw()
+            except Exception:
+                pass
+            return
+
+        ww, wh = self.main_view.window_size
+        if ww <= 0 or wh <= 0:
+            return
         mvwin = self.view.render.use_shared_context(self)
         try:
             self.view.draw()
