@@ -9,6 +9,7 @@
     <DataFile>vertexShader.txt</DataFile>
     <DataFile>fragmentShader.txt</DataFile>
     <DataFile>_graphics.*</DataFile>
+    <DataFile>shaders/*.metal</DataFile>
   </DataFiles>
   <Categories>
     <Category name="Graphics"/>
