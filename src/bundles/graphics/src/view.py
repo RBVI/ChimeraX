@@ -108,7 +108,10 @@ class View:
         r = self._render
         if r is None:
             # Select renderer based on context type
-            if hasattr(graphics_context, '_metal'):
+            if hasattr(graphics_context, '_vulkan'):
+                from .vulkan import VulkanRender
+                self._render = r = VulkanRender(graphics_context)
+            elif hasattr(graphics_context, '_metal'):
                 from .metal import MetalRender
                 self._render = r = MetalRender(graphics_context)
             else:

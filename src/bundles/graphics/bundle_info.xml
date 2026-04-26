@@ -10,7 +10,11 @@
     <DataFile>fragmentShader.txt</DataFile>
     <DataFile>_graphics.*</DataFile>
     <DataFile>_metal.*</DataFile>
+    <DataFile>_vulkan.*</DataFile>
     <DataFile>shaders/*.metal</DataFile>
+    <DataFile>shaders/*.glsl</DataFile>
+    <DataFile>shaders/*.vert</DataFile>
+    <DataFile>shaders/*.frag</DataFile>
   </DataFiles>
   <Categories>
     <Category name="Graphics"/>
@@ -41,6 +45,15 @@
     <Framework>QuartzCore</Framework>
     <Framework>AppKit</Framework>
     <IncludeDir>_metal</IncludeDir>
+  </CModule>
+  <CModule name="_vulkan">
+    <SourceFile>_vulkan/module.cpp</SourceFile>
+    <SourceFile>_vulkan/vulkan_context.cpp</SourceFile>
+    <SourceFile>_vulkan/vulkan_buffer.cpp</SourceFile>
+    <SourceFile>_vulkan/vulkan_texture.cpp</SourceFile>
+    <SourceFile>_vulkan/vulkan_pipeline.cpp</SourceFile>
+    <CompileArgument>-std=c++17</CompileArgument>
+    <IncludeDir>_vulkan</IncludeDir>
   </CModule>
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.3dev2021"/>
