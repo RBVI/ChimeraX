@@ -581,11 +581,11 @@ class BundleBuilder:
         for e in self._get_elements(ce, "SourceFile"):
             c.add_source_file(BundleBuilder._get_element_text(e))
         for e in self._get_elements(ce, "IncludeDir"):
-            c.add_include_dir(BundleBuilder._get_element_text(e))
+            c.add_include_dir(os.path.expandvars(BundleBuilder._get_element_text(e)))
         for e in self._get_elements(ce, "Library"):
-            c.add_library(BundleBuilder._get_element_text(e))
+            c.add_library(os.path.expandvars(BundleBuilder._get_element_text(e)))
         for e in self._get_elements(ce, "LibraryDir"):
-            c.add_library_dir(BundleBuilder._get_element_text(e))
+            c.add_library_dir(os.path.expandvars(BundleBuilder._get_element_text(e)))
         for e in self._get_elements(ce, "CompileArgument"):
             c.add_compile_argument(BundleBuilder._get_element_text(e))
         if sys.platform == "darwin":

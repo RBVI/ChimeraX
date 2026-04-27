@@ -362,6 +362,11 @@ class MetalRender:
     def current_framebuffer(self):
         return _StubFramebuffer(self)
 
+    def create_framebuffer(self, name, width, height, alpha=False):
+        # Metal offscreen framebuffer not yet implemented. Return a
+        # stub object so view.image_rgba doesn't crash on activate().
+        return _StubFramebuffer(self)
+
     def push_framebuffer(self, fb):
         self._framebuffer_stack.append(fb)
 
@@ -449,6 +454,19 @@ class MetalRender:
         draw()
 
     def draw_xor_rectangle(self, *args, **kw):
+        pass
+
+    # Volume raycasting is not yet ported to Metal. Fall back to drawing
+    # the bounding-box geometry through the standard mesh path so the
+    # volume's extent is at least visible.
+    def draw_volume_raycast(self, drawing, draw_pass):
+        from .drawing import Drawing
+        Drawing.draw(drawing, self, draw_pass)
+
+    def set_volume_parameters(self, step, full_region_min, full_region_max):
+        pass
+
+    def set_bounding_box_planes(self, max_corner, min_corner):
         pass
 
     @property
@@ -1509,6 +1527,49 @@ fragment float4 test_fragment(VertexOut in [[stage_in]])
             format=4,
             linear_filter=1,
             depth_compare=0,
+        )
+
+    def destroy_texture(self, texture):
+        """Backend-agnostic wrapper used by RenderPass cleanup."""
+        if texture is not None:
+            self._metal.destroy_texture(texture=texture)
+
+    def create_data_buffer(self, data):
+        """Backend-agnostic wrapper used by RenderPass for color/data SSBOs."""
+        return self._metal.create_buffer(context=self._ctx, data=data)
+
+    def destroy_data_buffer(self, buf):
+        if buf is not None:
+            self._metal.destroy_buffer(buffer=buf)
+
+    # Metal has the bilateral-blur fragment shader; RTAOPass uses it.
+    supports_rtao_blur = True
+
+    def draw_rtao_composite(self, ao_tex):
+        """Multiply ao_tex.r into the bound color attachment via SRC_ALPHA
+        blending. Backend-specific so the per-API shader-name conventions
+        stay encapsulated here."""
+        self.draw_fullscreen_quad(
+            ao_tex, "rtao.metal",
+            "rtao_composite_vertex", "rtao_composite_fragment",
+        )
+
+    def begin_pt_blit_pass(self):
+        """Restart the main render pass with a cleared color attachment so
+        the path-traced image fully replaces the rasterised scene."""
+        self._metal.end_render_pass(context=self._ctx)
+        r, g, b, a = self._background_color
+        self._metal.begin_render_pass(
+            context=self._ctx,
+            clear_r=r, clear_g=g, clear_b=b, clear_a=a,
+            clear_depth=0, load_color=0, load_depth=1,
+        )
+
+    def draw_pt_blit(self, color_tex):
+        """Fullscreen blit of the path-tracer color texture."""
+        self.draw_fullscreen_quad(
+            color_tex, "pathtracer.metal",
+            "pt_blit_vertex", "pt_blit_fragment",
         )
 
     def begin_color_pass(self, texture, width, height, clear=True):

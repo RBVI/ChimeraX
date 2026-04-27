@@ -17,23 +17,42 @@
 extern "C"
 PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
 {
-    long ctx_ptr;
+    Py_ssize_t ctx_ptr;
     const char* vert_source;
     const char* frag_source;
     int has_depth;
     PyObject* constants;
     int depth_only = 0;
     int color_write = 1;
+    int instance_colors = 1;  // 1 = color buffer is per-instance (impostors);
+                              // 0 = per-vertex (meshes / ribbons).
+    int face_culling = 1;     // 1 = cull back faces; 0 = render both sides
+                              // (volume planes, transparent surfaces).
+    int blend_op_max = 0;     // 0 = ADD, 1 = MAX (max intensity projection).
+    int blend_premult = 0;    // 0 = src=SRC_ALPHA, 1 = src=ONE (used when
+                              // dim_transparent_voxels is off).
+    int depth_write = 1;      // 0 = leave depth buffer untouched (transparent
+                              // volume planes), 1 = write depth.
+    int topology = 0;         // 0 = triangle list (Solid), 1 = line list
+                              // (Mesh display style), 2 = point list (Dot).
     static const char* kwlist[] = {"context", "vert_source", "frag_source",
                                    "has_depth", "constants",
-                                   "depth_only", "color_write", NULL};
+                                   "depth_only", "color_write",
+                                   "instance_colors", "face_culling",
+                                   "blend_op_max", "blend_premult",
+                                   "depth_write", "topology", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("lssiO|ii"), (char**)kwlist,
+            const_cast<char*>("nssiO|iiiiiiii"), (char**)kwlist,
             &ctx_ptr, &vert_source, &frag_source, &has_depth,
-            &constants, &depth_only, &color_write))
+            &constants, &depth_only, &color_write, &instance_colors,
+            &face_culling, &blend_op_max, &blend_premult, &depth_write,
+            &topology))
         return NULL;
 
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
+    VK_TRACE("create_pipeline has_depth=%d depth_only=%d color_write=%d instance_colors=%d face_culling=%d blend_max=%d premult=%d depth_write=%d topology=%d",
+             has_depth, depth_only, color_write, instance_colors, face_culling,
+             blend_op_max, blend_premult, depth_write, topology);
 
     // ------------------------------------------------------------------
     //  Build specialization constant data from the Python list.
@@ -149,11 +168,15 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     // ------------------------------------------------------------------
     //  Vertex input state (matching the Metal backend layout).
     // ------------------------------------------------------------------
+    VkVertexInputRate color_rate = instance_colors
+        ? VK_VERTEX_INPUT_RATE_INSTANCE
+        : VK_VERTEX_INPUT_RATE_VERTEX;
+
     VkVertexInputBindingDescription bindings[] = {
         { 10, 12, VK_VERTEX_INPUT_RATE_VERTEX },    // position
-        { 11,  8, VK_VERTEX_INPUT_RATE_VERTEX },    // texcoord
+        { 11, 12, VK_VERTEX_INPUT_RATE_VERTEX },    // texcoord (vec3: xy=2D, xyz=3D)
         { 12, 12, VK_VERTEX_INPUT_RATE_VERTEX },    // normal
-        { 13,  4, VK_VERTEX_INPUT_RATE_INSTANCE },   // color (RGBA8)
+        { 13,  4, color_rate },                     // color (RGBA8)
         { 14, 16, VK_VERTEX_INPUT_RATE_INSTANCE },   // shift_and_scale
         { 15, 64, VK_VERTEX_INPUT_RATE_INSTANCE },   // instance matrix (4x float4)
     };
@@ -161,8 +184,8 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     VkVertexInputAttributeDescription attributes[] = {
         // binding 10: position
         { 0, 10, VK_FORMAT_R32G32B32_SFLOAT, 0 },
-        // binding 11: texcoord
-        { 1, 11, VK_FORMAT_R32G32_SFLOAT, 0 },
+        // binding 11: texcoord (vec3 - .xy used for 2D textures, .xyz for 3D)
+        { 1, 11, VK_FORMAT_R32G32B32_SFLOAT, 0 },
         // binding 12: normal
         { 2, 12, VK_FORMAT_R32G32B32_SFLOAT, 0 },
         // binding 13: color (normalized byte4)
@@ -186,9 +209,16 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     // ------------------------------------------------------------------
     //  Input assembly.
     // ------------------------------------------------------------------
+    VkPrimitiveTopology vk_topology;
+    switch (topology) {
+        case 1:  vk_topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST; break;
+        case 2:  vk_topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST; break;
+        default: vk_topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; break;
+    }
+
     VkPipelineInputAssemblyStateCreateInfo input_assembly{};
     input_assembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    input_assembly.topology = vk_topology;
     input_assembly.primitiveRestartEnable = VK_FALSE;
 
     // ------------------------------------------------------------------
@@ -207,7 +237,7 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     rasterization.depthClampEnable = VK_FALSE;
     rasterization.rasterizerDiscardEnable = VK_FALSE;
     rasterization.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterization.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterization.cullMode = face_culling ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_NONE;
     rasterization.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterization.depthBiasEnable = VK_FALSE;
     rasterization.lineWidth = 1.0f;
@@ -226,8 +256,11 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     VkPipelineDepthStencilStateCreateInfo depth_stencil{};
     depth_stencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depth_stencil.depthTestEnable = has_depth ? VK_TRUE : VK_FALSE;
-    depth_stencil.depthWriteEnable = has_depth ? VK_TRUE : VK_FALSE;
-    depth_stencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    depth_stencil.depthWriteEnable = (has_depth && depth_write) ? VK_TRUE : VK_FALSE;
+    // LESS_OR_EQUAL so a depth pre-pass + color pass workflow (which writes
+    // identical frag_depth values in both passes) doesn't reject the color
+    // pass for fragments that exactly match the prepass-written depth.
+    depth_stencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
     depth_stencil.depthBoundsTestEnable = VK_FALSE;
     depth_stencil.stencilTestEnable = VK_FALSE;
 
@@ -236,12 +269,16 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     // ------------------------------------------------------------------
     VkPipelineColorBlendAttachmentState blend_attachment{};
     blend_attachment.blendEnable = VK_TRUE;
-    blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    VkBlendFactor src_factor = blend_premult
+        ? VK_BLEND_FACTOR_ONE
+        : VK_BLEND_FACTOR_SRC_ALPHA;
+    VkBlendOp blend_op = blend_op_max ? VK_BLEND_OP_MAX : VK_BLEND_OP_ADD;
+    blend_attachment.srcColorBlendFactor = src_factor;
     blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
-    blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    blend_attachment.colorBlendOp = blend_op;
+    blend_attachment.srcAlphaBlendFactor = src_factor;
     blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+    blend_attachment.alphaBlendOp = blend_op;
     blend_attachment.colorWriteMask = color_write
         ? (VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
            VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT)
@@ -311,7 +348,7 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     vk_pipeline->pipeline = pipeline;
     vk_pipeline->layout = ctx->shared_pipeline_layout;
 
-    return PyLong_FromLong(reinterpret_cast<long>(vk_pipeline));
+    return PyLong_FromSsize_t(reinterpret_cast<Py_ssize_t>(vk_pipeline));
 }
 
 // ---------------------------------------------------------------------------
@@ -321,15 +358,16 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
 extern "C"
 PyObject* vulkan_set_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
 {
-    long ctx_ptr, pipeline_ptr;
+    Py_ssize_t ctx_ptr, pipeline_ptr;
     static const char* kwlist[] = {"context", "pipeline", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("ll"), (char**)kwlist,
+            const_cast<char*>("nn"), (char**)kwlist,
             &ctx_ptr, &pipeline_ptr))
         return NULL;
 
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
     VulkanPipeline* pipeline = reinterpret_cast<VulkanPipeline*>(pipeline_ptr);
+    VK_TRACE("set_pipeline %p", (void*)pipeline);
 
     VkCommandBuffer cmd = ctx->frames[ctx->current_frame].command_buffer;
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->pipeline);

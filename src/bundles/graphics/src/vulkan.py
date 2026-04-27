@@ -30,10 +30,11 @@ class VulkanContext:
         self._screen = screen
         self._vulkan = _vulkan
 
-        # Get native surface handle from Qt
-        surface_handle = int(graphics_window.winId())
-        self._ctx = _vulkan.create_context(surface_handle=surface_handle)
+        # Get native window handle from Qt (HWND on Windows).
+        window_handle = int(graphics_window.winId())
+        self._ctx = _vulkan.create_context(window_handle=window_handle)
         self._device_name = _vulkan.device_name(context=self._ctx)
+        self._max_3d_texture_size = _vulkan.max_3d_texture_size(context=self._ctx)
 
         # Shader/pipeline programs cache (keyed by capabilities bitmask)
         self.shader_programs = {}
@@ -139,35 +140,337 @@ class VulkanBuffer:
             self._handle = None
 
 
+class VulkanFramebuffer:
+    """Offscreen Vulkan render target used for image capture.
+
+    Mirrors the shape of the OpenGL Framebuffer class (name, width,
+    height, alpha, activate(), delete()) so view.image_rgba can use either
+    interchangeably via Render.create_framebuffer(...).
+
+    Construction defers the underlying VkImage / VkRenderPass creation
+    until activate() is first called, so failed sizes can be detected
+    cheaply (matches OpenGL's Framebuffer.activate -> bool semantics).
+    """
+
+    def __init__(self, name, render, width, height, alpha=False):
+        self.name = name
+        self.width = width
+        self.height = height
+        self.alpha = alpha
+        self.viewport = (0, 0, width, height)
+        self._render = render
+        self._handle = None      # OffscreenFramebuffer* (C side)
+        self._deleted = False
+
+    def activate(self):
+        if self._handle is not None:
+            return True
+        if self._deleted:
+            return False
+        m = self._render._vulkan
+        ctx = self._render._ctx
+        try:
+            self._handle = m.create_offscreen_framebuffer(
+                context=ctx,
+                width=int(self.width),
+                height=int(self.height),
+                alpha=1 if self.alpha else 0,
+            )
+        except Exception:
+            self._handle = None
+            return False
+        return self._handle is not None
+
+    def delete(self):
+        if self._handle is not None:
+            try:
+                self._render._vulkan.destroy_offscreen_framebuffer(
+                    context=self._render._ctx, framebuffer=self._handle,
+                )
+            except Exception:
+                pass
+            self._handle = None
+        self._deleted = True
+
+
+# Module-level reference to the active VulkanRender. Set by VulkanRender's
+# constructor; consulted by VulkanTexture so plain `Texture(...)` calls
+# from backend-agnostic Python code (e.g. chimerax.map.image3d) can find a
+# VkDevice without an explicit handle.
+_active_vulkan_render = None
+
+
+def _set_active_vulkan_render(render):
+    global _active_vulkan_render
+    _active_vulkan_render = render
+
+
+# Format codes shared with the C side (see vulkan_texture.cpp).
+_FORMAT_RGBA8       = 0
+_FORMAT_R8          = 1
+_FORMAT_DEPTH32F    = 2
+_FORMAT_DEPTH32F_S8 = 3
+_FORMAT_R32F        = 4
+_FORMAT_R16_UNORM   = 5
+_FORMAT_R16_SFLOAT  = 6
+_FORMAT_R16_SNORM   = 7
+_FORMAT_R8_SNORM    = 8
+
+
+def _expand_to_rgba8(arr):
+    """If `arr` has a trailing channel axis with 2 (LA) or 3 (RGB)
+    components and uint8 dtype, return an equivalent RGBA8 array. Mirrors
+    the OpenGL behaviour where GL_LUMINANCE_ALPHA / GL_RGB textures expand
+    to vec4 when sampled."""
+    import numpy as np
+    if arr.dtype != np.uint8 or arr.ndim < 2:
+        return arr
+    last = arr.shape[-1]
+    if last == 4:
+        return arr
+    if last == 3:
+        # Add fully-opaque alpha.
+        out = np.empty(arr.shape[:-1] + (4,), dtype=np.uint8)
+        out[..., :3] = arr
+        out[..., 3] = 255
+        return out
+    if last == 2:
+        # Luminance + alpha -> RGB=L, A=A.
+        out = np.empty(arr.shape[:-1] + (4,), dtype=np.uint8)
+        out[..., 0] = arr[..., 0]
+        out[..., 1] = arr[..., 0]
+        out[..., 2] = arr[..., 0]
+        out[..., 3] = arr[..., 1]
+        return out
+    return arr
+
+
+def _infer_format_from_data(data):
+    """Pick a (format_code, components) for a numpy data array.
+
+    Mirrors the OpenGL Texture's shape/dtype inference so volume code
+    (image3d.py) gets the same semantics on Vulkan."""
+    import numpy as np
+    arr = np.asarray(data)
+    last = arr.shape[-1] if arr.ndim > 1 else 1
+    # If the trailing axis is not a typical channel count, treat the data
+    # as single-channel.
+    components = last if last in (1, 2, 3, 4) else 1
+    if components == 4 and arr.dtype == np.uint8:
+        return _FORMAT_RGBA8, 4
+    if components == 1:
+        if arr.dtype == np.uint8:
+            return _FORMAT_R8, 1
+        if arr.dtype == np.int8:
+            return _FORMAT_R8_SNORM, 1
+        if arr.dtype == np.uint16:
+            return _FORMAT_R16_UNORM, 1
+        if arr.dtype == np.int16:
+            return _FORMAT_R16_SNORM, 1
+        if arr.dtype == np.float16:
+            return _FORMAT_R16_SFLOAT, 1
+        if arr.dtype == np.float32:
+            return _FORMAT_R32F, 1
+    # Fallback: convert to RGBA8 (the caller is expected to have run
+    # _expand_to_rgba8 first to upgrade 2-/3-channel uint8 arrays).
+    return _FORMAT_RGBA8, 4
+
+
 class VulkanTexture:
-    """Wraps a Vulkan texture."""
+    """
+    Vulkan-backed texture implementing the chimerax.graphics.Texture
+    protocol.  Construction is lazy: the underlying VkImage is allocated on
+    the first `initialize_*`, `reload_texture`, or `bind_texture` call so
+    callers that build a Texture from a numpy array still work.
+    """
 
-    def __init__(self):
-        self.dimension = 2
-        self.size = (0, 0)
-        self.is_cubemap = False
-        self.linear_interpolation = True
-        self._handle = None
+    def __init__(
+        self,
+        data=None,
+        dimension=2,
+        cube_map=False,
+        linear_interpolation=True,
+        clamp_to_edge=False,
+    ):
+        self.data = data
+        self.dimension = dimension
+        self.is_cubemap = cube_map
+        self.linear_interpolation = linear_interpolation
+        self.clamp_to_edge = clamp_to_edge
+        self.size = None
+        self._handle = None         # opaque pointer to TextureWithDevice
+        self._format_code = None    # one of _FORMAT_* above
+        self._components = None
+        self._render = _active_vulkan_render
+        # Compatibility with code that probes Texture.id:
+        self.id = None
 
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+    def _ensure_render(self):
+        if self._render is None:
+            self._render = _active_vulkan_render
+        return self._render
+
+    def _size_xyz(self, size):
+        # Texture protocol uses (w,) / (w,h) / (w,h,d). Pad to 3.
+        if self.dimension == 1:
+            return (int(size[0]), 1, 1)
+        if self.dimension == 2:
+            return (int(size[0]), int(size[1]), 1)
+        return (int(size[0]), int(size[1]), int(size[2]))
+
+    def _allocate(self, size, format_code, components):
+        if self._handle is not None:
+            return
+        r = self._ensure_render()
+        if r is None:
+            return
+        w, h, d = self._size_xyz(size)
+        m = r._vulkan
+        ctx = r._ctx
+        is_depth = format_code in (_FORMAT_DEPTH32F, _FORMAT_DEPTH32F_S8)
+        self._handle = m.create_texture(
+            context=ctx,
+            width=w,
+            height=h,
+            format=format_code,
+            linear_filter=1 if self.linear_interpolation else 0,
+            depth_compare=1 if is_depth else 0,
+            dimension=self.dimension,
+            depth=d,
+        )
+        self.size = tuple(size)
+        self._format_code = format_code
+        self._components = components
+        self.id = self._handle
+
+    def _size_from_shape(self, shape, components):
+        # OpenGL Texture stores shape as (Z, Y, X[, C]) for 3D, (Y, X[, C])
+        # for 2D, (X[, C]) for 1D. Drop the channel axis (if any) and
+        # reverse so size is (W,) / (W, H) / (W, H, D) — what the C-side
+        # create_texture expects. The trailing channel axis is present
+        # whenever shape has one more dimension than the texture dimension,
+        # regardless of channel count (e.g. single-channel L8 plane data
+        # arrives as (H, W, 1), not (H, W)).
+        if len(shape) > self.dimension:
+            shape = shape[:-1]
+        return tuple(shape[::-1])
+
+    def _allocate_from_data(self, data):
+        import numpy as np
+        arr = _expand_to_rgba8(np.asarray(data))
+        format_code, components = _infer_format_from_data(arr)
+        size = self._size_from_shape(arr.shape, components)
+        self._allocate(size, format_code, components)
+
+    def _upload(self, data):
+        if self._handle is None:
+            return
+        r = self._ensure_render()
+        if r is None:
+            return
+        import numpy as np
+        # Expansion (LA/RGB -> RGBA) and contiguous repack so the staging
+        # buffer copies the same number of bytes the texture format expects.
+        arr = np.ascontiguousarray(_expand_to_rgba8(np.asarray(data)))
+        r._vulkan.update_texture(texture=self._handle, data=arr)
+
+    # ------------------------------------------------------------------
+    # Texture protocol
+    # ------------------------------------------------------------------
     def initialize_rgba(self, size):
-        self.size = size
-        self.dimension = 2
+        self._allocate(size, _FORMAT_RGBA8, 4)
+
+    def initialize_8_bit(self, size):
+        self._allocate(size, _FORMAT_R8, 1)
 
     def initialize_depth(self, size, depth_compare_mode=True):
-        self.size = size
-        self.dimension = 2
-
-    def bind_texture(self, texture_unit=None):
-        pass
-
-    def unbind_texture(self, texture_unit=None):
-        pass
+        self._allocate(size, _FORMAT_DEPTH32F, 1)
 
     def reload_texture(self, data, now=False):
+        # Re-derive the intended format/size from the actual data so we
+        # don't try to copy (e.g.) 2-byte-per-texel uint16 data into an
+        # RGBA8 texture that initialize_rgba allocated with a wrong
+        # assumption. If the existing texture doesn't match, destroy and
+        # re-allocate. (Mirrors OpenGL Texture.fill_opengl_texture.)
+        import numpy as np
+        arr = _expand_to_rgba8(np.ascontiguousarray(data))
+        new_format, new_components = _infer_format_from_data(arr)
+        new_size = self._size_from_shape(arr.shape, new_components)
+        if self._handle is not None:
+            if (self._format_code != new_format
+                    or tuple(self.size or ()) != new_size):
+                self.delete_texture()
+        if self._handle is None:
+            self._allocate(new_size, new_format, new_components)
+        self._upload(arr)
+
+    def bind_texture(self, tex_unit=None, texture_unit=None):
+        # Some callers use `tex_unit`, others `texture_unit`.
+        unit = tex_unit if tex_unit is not None else texture_unit
+        # Lazy-init from constructor data on first bind.
+        if self._handle is None and self.data is not None:
+            d = self.data
+            self.data = None
+            self._allocate_from_data(d)
+            self._upload(d)
+        if self._handle is None:
+            return
+        # Default binding based on dimension matches the mesh shader's set 1
+        # layout (see mesh.frag): tex2d=0, tex3d=1, texcube=2,
+        # shadow=3, multishadow=4, ambient_tex3d=5, colormap_tex=6.
+        if unit is None:
+            if self.is_cubemap:
+                unit = 2
+            elif self.dimension == 1:
+                unit = 6
+            elif self.dimension == 3:
+                unit = 1
+            else:
+                unit = 0
+        r = self._ensure_render()
+        if r is None:
+            return
+        r._vulkan.set_fragment_texture(
+            context=r._ctx, texture=self._handle, index=int(unit)
+        )
+
+    def unbind_texture(self, tex_unit=None, texture_unit=None):
+        # Vulkan descriptor sets are rebound per-draw via flush_descriptors,
+        # so explicit unbind is a no-op here.
         pass
 
+    def normalization(self):
+        """Scale factor mapping a source data value to the [-1,1] / [0,1]
+        range a sampler returns for this texture's format.  Volume rendering
+        relies on this for `colormap_range` so the shader sees pre-scaled
+        offsets.  Mirrors opengl.Texture.normalization()."""
+        norms = {
+            _FORMAT_RGBA8:      1.0 / 255.0,
+            _FORMAT_R8:         1.0 / 255.0,
+            _FORMAT_R8_SNORM:   1.0 / 127.0,
+            _FORMAT_R16_UNORM:  1.0 / 65535.0,
+            _FORMAT_R16_SNORM:  1.0 / 32767.0,
+            _FORMAT_R16_SFLOAT: 1.0,
+            _FORMAT_R32F:       1.0,
+            _FORMAT_DEPTH32F:   1.0,
+            _FORMAT_DEPTH32F_S8: 1.0,
+        }
+        return norms.get(self._format_code, 1.0)
+
     def delete_texture(self):
+        if self._handle is None:
+            return
+        r = self._ensure_render()
+        if r is None:
+            self._handle = None
+            self.id = None
+            return
+        r._vulkan.destroy_texture(texture=self._handle)
         self._handle = None
+        self.id = None
 
 
 class VulkanRender:
@@ -184,6 +487,20 @@ class VulkanRender:
         self._ctx = vulkan_context._ctx
         # Compatibility: Drawing._draw_geometry accesses renderer.opengl_context
         self.opengl_context = vulkan_context
+
+        # Register as the active Vulkan render so plain `Texture(...)` calls
+        # from backend-agnostic code find a VkDevice.  Also point
+        # `chimerax.graphics.Texture` at VulkanTexture so volume code that
+        # does `from chimerax.graphics import Texture` picks it up.
+        _set_active_vulkan_render(self)
+        try:
+            import chimerax.graphics as _g
+            _g.set_texture_class(VulkanTexture)
+        except (ImportError, AttributeError):
+            # set_texture_class may not exist if running against an older
+            # graphics package; that's fine — set_active_vulkan_render is
+            # still the primary mechanism.
+            pass
         self._width = 800
         self._height = 600
         self._in_frame = False
@@ -192,6 +509,19 @@ class VulkanRender:
         self._depth_only_rendering = False
         self._depth_prepass_rendering = False
         self._sphere_ao_active = False
+        # OpenGL's initial state is GL_CULL_FACE disabled, and ChimeraX
+        # only turns it on for two specific things (volume backing cube
+        # and 3D ray-cast cube).  Vulkan bakes cull state into the
+        # pipeline, so default off and cache per cull flag.
+        self._face_culling_enabled = False
+        # Pipeline-baked blend / depth-write state for volume rendering.
+        # `_blend_op_max` -> BLEND_OP_MAX (maximum intensity projection).
+        # `_blend_premult` -> srcFactor=ONE (transparent voxels not dimmed).
+        # `_depth_write_enabled` -> write depth (transparent volume planes
+        # disable this so they don't occlude later geometry).
+        self._blend_op_max = False
+        self._blend_premult = False
+        self._depth_write_enabled = True
 
         # Capability system (same constants as OpenGL backend)
         from .renderer import (
@@ -363,16 +693,83 @@ class VulkanRender:
     def current_framebuffer(self):
         return _StubFramebuffer(self)
 
+    def create_framebuffer(self, name, width, height, alpha=False):
+        """Factory for an offscreen render target. Mirrors
+        opengl.Framebuffer's constructor signature so view.image_rgba can
+        ask the active renderer for an image-capture target without
+        depending on backend specifics."""
+        return VulkanFramebuffer(name, self, width, height, alpha=alpha)
+
     def push_framebuffer(self, fb):
         self._framebuffer_stack.append(fb)
+        # If this is a VulkanFramebuffer, hand its handle to the C side so
+        # the next begin_frame / begin_render_pass / end_frame use it
+        # instead of the swapchain. Other framebuffer types (e.g. legacy
+        # opengl ones some shadow / blend code may push) are tracked but
+        # don't redirect the swapchain path.
+        if isinstance(fb, VulkanFramebuffer) and fb._handle is not None:
+            self._vulkan.set_active_offscreen(
+                context=self._ctx, framebuffer=fb._handle)
+            self.set_viewport(0, 0, fb.width, fb.height)
 
     def pop_framebuffer(self):
+        fb = None
         if self._framebuffer_stack:
-            return self._framebuffer_stack.pop()
-        return None
+            fb = self._framebuffer_stack.pop()
+        # Reactivate whatever offscreen target sits at the top of the
+        # stack (if any), otherwise clear the offscreen state so the
+        # swapchain path resumes. Reset the viewport to match the new
+        # active target so subsequent draws use the right pixel space.
+        new_handle = 0
+        new_size = (self._width, self._height)
+        for f in reversed(self._framebuffer_stack):
+            if isinstance(f, VulkanFramebuffer) and f._handle is not None:
+                new_handle = f._handle
+                new_size = (f.width, f.height)
+                break
+        self._vulkan.set_active_offscreen(context=self._ctx, framebuffer=new_handle)
+        self.set_viewport(0, 0, new_size[0], new_size[1])
+        return fb
 
     def rendering_to_screen(self):
         return len(self._framebuffer_stack) == 0
+
+    def frame_buffer_image(self, w, h, rgba=None, front_buffer=False):
+        """Read back the active render target as a (h, w, 4) uint8 RGBA
+        numpy array. Origin is top-left from Vulkan's perspective; the
+        OpenGL contract is bottom-left, so we flip vertically before
+        returning to match what view.image_rgba expects.
+
+        Only works while a VulkanFramebuffer of size (w, h) is active --
+        i.e. the caller did push_framebuffer(fb) and view.draw rendered
+        into it. Reading the swapchain isn't supported here."""
+        if rgba is None:
+            rgba = np.zeros((h, w, 4), dtype=np.uint8)
+        else:
+            rgba.fill(0)
+
+        active = None
+        for f in reversed(self._framebuffer_stack):
+            if isinstance(f, VulkanFramebuffer) and f._handle is not None:
+                active = f
+                break
+        if active is None or active.width != w or active.height != h:
+            return rgba
+
+        try:
+            # C side writes (h, w, 4) row-major top-down.
+            self._vulkan.read_framebuffer(
+                context=self._ctx, framebuffer=active._handle, data=rgba,
+            )
+        except Exception as e:
+            import sys
+            print(f"Vulkan frame_buffer_image error: {e}",
+                  file=sys.stderr, flush=True)
+            return rgba
+
+        # OpenGL convention is row 0 = bottom; view.image() flips again
+        # for PIL. Match that so callers don't see an upside-down image.
+        return rgba[::-1, :, :]
 
     def set_offscreen_color_bits(self, bits):
         pass
@@ -421,25 +818,28 @@ class VulkanRender:
         pass
 
     def enable_backface_culling(self, enable):
-        pass
+        self._face_culling_enabled = bool(enable)
 
     def enable_blending(self, enable):
         pass
 
     def blend_alpha(self, alpha_factor=True):
-        pass
+        # alpha_factor=False switches src factor from SRC_ALPHA to ONE
+        # (used by volume planes when dim_transparent_voxels is off).
+        self._blend_premult = not bool(alpha_factor)
 
     def blend_add(self, f):
         pass
 
     def blend_max(self, enable):
-        pass
+        # Maximum intensity projection: BLEND_OP_MAX instead of ADD.
+        self._blend_op_max = bool(enable)
 
     def enable_xor(self, enable):
         pass
 
     def write_depth(self, write):
-        pass
+        self._depth_write_enabled = bool(write)
 
     def depth_invert(self, invert):
         pass
@@ -451,6 +851,37 @@ class VulkanRender:
 
     def draw_xor_rectangle(self, *args, **kw):
         pass
+
+    # ------------------------------------------------------------------
+    # Volume raycasting. Mirrors the OpenGL backend's draw_volume_raycast:
+    # flip the SHADER_VOLUME_RAYCASTING capability bit, render the
+    # bounding-box geometry (the fragment shader reconstructs eye-space
+    # rays from gl_FragCoord and walks the 3D texture), then restore
+    # state. set_volume_parameters / set_bounding_box_planes are still
+    # invoked by VolumeRaycastDrawing.set_shader_options, so we cache
+    # them here and read them when building the raycast UBO in
+    # _draw_single.
+    # ------------------------------------------------------------------
+    def draw_volume_raycast(self, drawing, draw_pass):
+        from .drawing import Drawing
+        from .renderer import SHADER_VOLUME_RAYCASTING, SHADER_DEPTH_CUE
+        self.enable_backface_culling(True)
+        prev_caps = self.enable_capabilities
+        self.enable_capabilities = (prev_caps | SHADER_VOLUME_RAYCASTING) & ~SHADER_DEPTH_CUE
+        try:
+            Drawing.draw(drawing, self, draw_pass)
+        finally:
+            self.enable_capabilities = prev_caps
+            self.enable_backface_culling(False)
+
+    def set_volume_parameters(self, step, full_region_min, full_region_max):
+        self._raycast_step_size = step
+        self._raycast_full_region_min = full_region_min
+        self._raycast_full_region_max = full_region_max
+
+    def set_bounding_box_planes(self, max_corner, min_corner):
+        self._raycast_bbox_max = max_corner
+        self._raycast_bbox_min = min_corner
 
     @property
     def current_viewport(self):
@@ -762,6 +1193,11 @@ void main() {
     # -------------------------------------------------------------------
 
     def render_size(self):
+        # Active offscreen framebuffer overrides window size so projection
+        # matrix / viewport setup match the capture target.
+        for f in reversed(self._framebuffer_stack):
+            if isinstance(f, VulkanFramebuffer):
+                return (f.width, f.height)
         return (self._width, self._height)
 
     def set_viewport(self, x, y, w, h):
@@ -845,7 +1281,34 @@ void main() {
     # -------------------------------------------------------------------
 
     def set_colormap(self, colormap, colormap_range, data_texture):
-        pass
+        # Bind the 1D colormap texture at set 1 binding 6 and upload the
+        # (offset, scale) pair to the ColormapRangeBlock UBO at set 0
+        # binding 5. Matches mesh.frag/impostor_*.frag's expected layout.
+        if colormap is not None:
+            colormap.bind_texture(tex_unit=6)
+        # Match OpenGL Render.set_colormap: pre-scale by the data texture's
+        # sampler normalization so the shader's
+        #   cmap_u = (sample - x) * y
+        # recovers (data_value - v0) / (v1 - v0).
+        v0, v1 = colormap_range
+        s = data_texture.normalization() if data_texture is not None else 1.0
+        denom = s * (v1 - v0)
+        x = s * float(v0)
+        y = (1.0 / denom) if denom != 0.0 else 0.0
+        data = np.array([float(x), float(y), 0.0, 0.0], dtype=np.float32)
+        m = self._vulkan
+        ctx = self._ctx
+        if getattr(self, "_colormap_range_buf", None) is None:
+            self._colormap_range_buf = m.create_buffer(context=ctx, data=data)
+        else:
+            try:
+                m.update_buffer(buffer=self._colormap_range_buf, data=data)
+            except RuntimeError:
+                m.destroy_buffer(buffer=self._colormap_range_buf)
+                self._colormap_range_buf = m.create_buffer(context=ctx, data=data)
+        m.set_descriptor_buffer(
+            context=ctx, buffer=self._colormap_range_buf, index=5, offset=0,
+        )
 
     def set_ambient_texture_transform(self, transform):
         pass
@@ -875,8 +1338,6 @@ void main() {
             traceback.print_exc(file=sys.stderr)
 
     def _draw_drawing_impl(self, drawing, capabilities, highlighted_only=False):
-        import sys
-
         vertices = drawing.vertices
         triangles = drawing.triangles
         if vertices is None or triangles is None:
@@ -899,16 +1360,70 @@ void main() {
 
     def _draw_single(self, drawing, capabilities):
         """Issue Vulkan draw call for one scene position."""
-        import sys
-
         m = self._vulkan
         ctx = self._ctx
+
+        # Apply renderer-level capability mask up-front so downstream
+        # branches (raycast detection, pipeline selection, UBO upload)
+        # see the same bits self.shader(capabilities) ends up using.
+        # Without this, draw_volume_raycast set the SHADER_VOLUME_RAYCASTING
+        # bit on enable_capabilities but _draw_single read the unmodified
+        # `capabilities` argument and fell through to the mesh shader.
+        capabilities = (capabilities | self.enable_capabilities) & ~self.disable_capabilities
 
         vertices = drawing.vertices
         triangles = drawing.triangles
 
-        # Check for sphere-sphere AO data on this drawing.
-        from .renderer import SHADER_IMPOSTOR_SPHERE, SHADER_IMPOSTOR_CYLINDER
+        # Get/init the per-drawing buffer cache up-front so the topology /
+        # element-array computation can memoize derived data here. Without
+        # this, Mesh display style recomputes edges via the masked_edges()
+        # C call every single frame, which dominates frame time on large
+        # iso-surfaces.
+        draw_id = id(drawing)
+        bufs = self._drawing_buffers.get(draw_id)
+        if bufs is None:
+            bufs = {}
+            self._drawing_buffers[draw_id] = bufs
+
+        # Pick primitive topology and the matching index array from the
+        # drawing's display style. Mesh derives unique edges from the
+        # triangle index buffer; Dot uses the unique vertex set. Impostor
+        # shaders always render their own triangle geometry, so they keep
+        # triangle topology regardless of display_style. Volume raycast
+        # also stays on triangle topology (it draws the volume's bounding
+        # box; the fragment shader does the per-pixel ray traversal).
+        from .renderer import (SHADER_IMPOSTOR_SPHERE, SHADER_IMPOSTOR_CYLINDER,
+                               SHADER_VOLUME_RAYCASTING)
+        from .drawing import Drawing as _D
+        style = getattr(drawing, "display_style", _D.Solid)
+        impostor = bool(capabilities & (SHADER_IMPOSTOR_SPHERE | SHADER_IMPOSTOR_CYLINDER))
+        raycast = bool(capabilities & SHADER_VOLUME_RAYCASTING)
+        if impostor or raycast or style == _D.Solid:
+            elements = triangles
+            topology = 0
+        elif style == _D.Mesh:
+            tm = getattr(drawing, "triangle_mask", None)
+            em = getattr(drawing, "edge_mask", None)
+            edges_key = (id(triangles), id(tm), id(em))
+            elements = bufs.get("_mesh_edges")
+            if elements is None or bufs.get("_mesh_edges_key") != edges_key:
+                elements = drawing.masked_edges
+                bufs["_mesh_edges"] = elements
+                bufs["_mesh_edges_key"] = edges_key
+            topology = 1
+        elif style == _D.Dot:
+            dot_key = id(triangles)
+            elements = bufs.get("_dot_indices")
+            if elements is None or bufs.get("_dot_indices_key") != dot_key:
+                elements = np.unique(triangles)
+                bufs["_dot_indices"] = elements
+                bufs["_dot_indices_key"] = dot_key
+            topology = 2
+        else:
+            elements = triangles
+            topology = 0
+        if elements is None or len(elements) == 0:
+            return
 
         self._sphere_ao_active = (
             not self._depth_only_rendering
@@ -924,18 +1439,31 @@ void main() {
             or shader._pipeline_depth_only != self._depth_only_rendering
             or shader._pipeline_depth_prepass != self._depth_prepass_rendering
             or getattr(shader, "_pipeline_sphere_ao", False) != self._sphere_ao_active
+            or getattr(shader, "_pipeline_face_culling", True) != self._face_culling_enabled
+            or getattr(shader, "_pipeline_blend_op_max", False) != self._blend_op_max
+            or getattr(shader, "_pipeline_blend_premult", False) != self._blend_premult
+            or getattr(shader, "_pipeline_depth_write", True) != self._depth_write_enabled
+            or getattr(shader, "_pipeline_topology", 0) != topology
         ):
-            if capabilities & SHADER_IMPOSTOR_SPHERE:
+            if capabilities & SHADER_VOLUME_RAYCASTING:
                 self._ensure_shader_pipeline(
-                    shader, "impostor_sphere", "sphere_vertex", "sphere_fragment"
+                    shader, "raycast", "raycast_vertex", "raycast_fragment",
+                    topology=topology,
+                )
+            elif capabilities & SHADER_IMPOSTOR_SPHERE:
+                self._ensure_shader_pipeline(
+                    shader, "impostor_sphere", "sphere_vertex", "sphere_fragment",
+                    topology=topology,
                 )
             elif capabilities & SHADER_IMPOSTOR_CYLINDER:
                 self._ensure_shader_pipeline(
-                    shader, "impostor_cylinder", "cylinder_vertex", "cylinder_fragment"
+                    shader, "impostor_cylinder", "cylinder_vertex", "cylinder_fragment",
+                    topology=topology,
                 )
             else:
                 self._ensure_shader_pipeline(
-                    shader, "mesh", "mesh_vertex", "mesh_fragment"
+                    shader, "mesh", "mesh_vertex", "mesh_fragment",
+                    topology=topology,
                 )
         if shader._pipeline is None:
             return  # Cannot render without a pipeline
@@ -943,65 +1471,137 @@ void main() {
         m = self._vulkan
         ctx = self._ctx
 
+        # Bind any texture/colormap the drawing exposes. Mirrors the work
+        # Drawing._draw_geometry does in the OpenGL path; with Vulkan we
+        # never reach that code because Drawing routes to draw_drawing.
+        # 2D plane volumes store one texture per slice in `multitexture`;
+        # `texture` is None in that case and we draw each slice separately
+        # (handled at the draw_indexed call below).
+        tex = getattr(drawing, "texture", None)
+        mtex = getattr(drawing, "multitexture", None)
+        if tex is not None:
+            tex.bind_texture()
+        cmap = getattr(drawing, "colormap", None)
+        if cmap is not None:
+            if tex is not None:
+                self.set_colormap(cmap, drawing.colormap_range, tex)
+            elif mtex:
+                self.set_colormap(cmap, drawing.colormap_range, mtex[0])
+        atex = getattr(drawing, "ambient_texture", None)
+        if atex is not None:
+            # Ambient 3D texture goes to set 1 binding 5 in mesh.frag.
+            atex.bind_texture(tex_unit=5)
+            tform = getattr(drawing, "ambient_texture_transform", None)
+            if tform is not None:
+                self.set_ambient_texture_transform(tform)
+
+        # Mirror the OpenGL Drawing._draw_geometry path: give the drawing
+        # a chance to push per-draw state into the renderer. For volume
+        # raycast this populates _raycast_step_size / _raycast_bbox_min /
+        # _raycast_full_region_min etc., which the raycast UBO build below
+        # consumes.
+        try:
+            drawing.set_shader_options(self)
+        except Exception:
+            pass
+
+        # Build and bind the volume-raycast UBO at set 0 binding 6 if the
+        # raycast pipeline is active. Done per draw because the inverse
+        # view/projection matrices change every frame as the camera moves.
+        if raycast:
+            self._upload_raycast_uniforms(bufs)
+
         m.set_pipeline(context=ctx, pipeline=shader._pipeline)
         self._set_current_depth_state()
         self._bind_dummy_vertex_buffers()
 
-        # Create or update vertex buffer
-        draw_id = id(drawing)
-        bufs = self._drawing_buffers.get(draw_id)
-        if bufs is None:
-            bufs = {}
-            self._drawing_buffers[draw_id] = bufs
+        # Per-vertex / per-instance buffer upload helper. Each call uploads
+        # the source array's bytes to a GPU buffer; skip both the upload
+        # AND the make_data array conversion when the source array's
+        # identity hasn't changed since the last frame. ChimeraX rebuilds
+        # arrays on real changes (vertex_colors = ...), so id() catches
+        # the common case where geometry is static. Without this
+        # short-circuit, a static iso-surface in Mesh display style
+        # re-uploads every buffer every frame.
+        def _upload(name, count_key, source, make_data, vk_index):
+            srcid = id(source)
+            srclen = len(source)
+            if (name in bufs
+                    and bufs.get(name + "_srcid") == srcid
+                    and bufs.get(count_key) == srclen):
+                m.set_vertex_buffer(context=ctx, buffer=bufs[name],
+                                    index=vk_index, offset=0)
+                return
+            data = make_data()
+            if name in bufs and bufs.get(count_key) == srclen:
+                m.update_buffer(buffer=bufs[name], data=data)
+            else:
+                if name in bufs:
+                    m.destroy_buffer(buffer=bufs[name])
+                bufs[name] = m.create_buffer(context=ctx, data=data)
+                bufs[count_key] = srclen
+            bufs[name + "_srcid"] = srcid
+            m.set_vertex_buffer(context=ctx, buffer=bufs[name],
+                                index=vk_index, offset=0)
 
-        # Vertex positions (buffer index 0)
-        vdata = np.ascontiguousarray(vertices, dtype=np.float32)
-        if "vertices" not in bufs or bufs.get("vcount") != len(vertices):
-            if "vertices" in bufs:
-                m.destroy_buffer(buffer=bufs["vertices"])
-            bufs["vertices"] = m.create_buffer(context=ctx, data=vdata)
-            bufs["vcount"] = len(vertices)
-        else:
-            m.update_buffer(buffer=bufs["vertices"], data=vdata)
+        _upload("vertices", "vcount", vertices,
+                lambda: np.ascontiguousarray(vertices, dtype=np.float32), 10)
 
-        # Index buffer
-        idata = np.ascontiguousarray(triangles.reshape(-1), dtype=np.uint32)
-        if "indices" not in bufs or bufs.get("icount") != len(idata):
-            if "indices" in bufs:
-                m.destroy_buffer(buffer=bufs["indices"])
-            bufs["indices"] = m.create_buffer(context=ctx, data=idata)
-            bufs["icount"] = len(idata)
-        else:
-            m.update_buffer(buffer=bufs["indices"], data=idata)
+        # Index buffer. `elements` is the topology-specific index array:
+        # (N,3) triangles for Solid, (M,2) edges for Mesh, (P,) points for
+        # Dot. The element-array identity is stable across frames (the Mesh
+        # edges are memoized above), so we can short-circuit the upload.
+        elements_id = id(elements)
+        if not (bufs.get("indices") is not None
+                and bufs.get("_indices_srcid") == elements_id
+                and bufs.get("itopology") == topology):
+            idata = np.ascontiguousarray(np.asarray(elements).reshape(-1),
+                                         dtype=np.uint32)
+            idata_len = len(idata)
+            if ("indices" not in bufs
+                    or bufs.get("icount") != idata_len
+                    or bufs.get("itopology") != topology):
+                if "indices" in bufs:
+                    m.destroy_buffer(buffer=bufs["indices"])
+                bufs["indices"] = m.create_buffer(context=ctx, data=idata)
+                bufs["icount"] = idata_len
+                bufs["itopology"] = topology
+            else:
+                m.update_buffer(buffer=bufs["indices"], data=idata)
+            bufs["_indices_srcid"] = elements_id
 
-        # Vertex data uses buffer indices 10+ to avoid conflict with uniform buffers 0-3
-        m.set_vertex_buffer(context=ctx, buffer=bufs["vertices"], index=10, offset=0)
-
-        # Normals (buffer index 2)
+        # Normals (buffer index 12)
         normals = drawing.normals
         if normals is not None:
-            ndata = np.ascontiguousarray(normals, dtype=np.float32)
-            if "normals" not in bufs or bufs.get("ncount") != len(normals):
-                if "normals" in bufs:
-                    m.destroy_buffer(buffer=bufs["normals"])
-                bufs["normals"] = m.create_buffer(context=ctx, data=ndata)
-                bufs["ncount"] = len(normals)
-            else:
-                m.update_buffer(buffer=bufs["normals"], data=ndata)
-            m.set_vertex_buffer(context=ctx, buffer=bufs["normals"], index=12, offset=0)
+            _upload("normals", "ncount", normals,
+                    lambda: np.ascontiguousarray(normals, dtype=np.float32), 12)
 
-        # Per-instance colors (buffer index 3)
-        colors = drawing.colors
+        # Texture coordinates (vertex binding 11). Pipeline binding 11 is
+        # vec3 (12-byte stride): .xy is sampled for 2D textures, .xyz for 3D
+        # / cubemap. Drawings expose either (N,2) tex coords (planes,
+        # outline images) or (N,3) (volume ray-cast box); pad the 2D case
+        # to 3 floats so the stride matches the binding.
+        tcoords = getattr(drawing, "texture_coordinates", None)
+        if tcoords is not None:
+            def _make_tdata():
+                tarr = np.asarray(tcoords, dtype=np.float32)
+                if tarr.ndim == 2 and tarr.shape[1] == 2:
+                    pad = np.zeros((tarr.shape[0], 1), dtype=np.float32)
+                    tarr = np.concatenate((tarr, pad), axis=1)
+                return np.ascontiguousarray(tarr)
+            _upload("tcoords", "tccount", tcoords, _make_tdata, 11)
+
+        # Color buffer at vertex binding 13. Drawings expose two color
+        # arrays: per-vertex (ribbons / meshes via `vertex_colors`) and
+        # per-instance (atoms / cylinders via `colors`). Prefer
+        # vertex_colors when present so meshes get a per-vertex stride
+        # buffer matching the per-vertex pipeline binding rate set by the
+        # mesh shader path.
+        vcolors = getattr(drawing, "vertex_colors", None)
+        colors = vcolors if vcolors is not None else drawing.colors
         if colors is not None and len(colors) > 0:
-            cdata = np.ascontiguousarray(colors, dtype=np.uint8)
-            if "colors" not in bufs or bufs.get("ccount") != len(colors):
-                if "colors" in bufs:
-                    m.destroy_buffer(buffer=bufs["colors"])
-                bufs["colors"] = m.create_buffer(context=ctx, data=cdata)
-                bufs["ccount"] = len(colors)
-            else:
-                m.update_buffer(buffer=bufs["colors"], data=cdata)
-            m.set_vertex_buffer(context=ctx, buffer=bufs["colors"], index=13, offset=0)
+            _upload("colors", "ccount", colors,
+                    lambda: np.ascontiguousarray(colors, dtype=np.uint8), 13)
 
         # Upload Uniforms struct to buffer 0 (vertex + fragment)
         udata = self._build_uniforms(drawing)
@@ -1099,15 +1699,109 @@ void main() {
                 context=ctx, buffer=drawing._ao_neighbor_buffer, index=4, offset=0
             )
 
-        # Draw
-        index_count = triangles.size
-        m.draw_indexed(
-            context=ctx,
-            index_buffer=bufs["indices"],
-            primitive_type=0,
-            index_count=index_count,
-            index_offset=0,
-            instance_count=instance_count,
+        # Draw. For 2D plane volumes with `multitexture`, bind each slice's
+        # texture and draw its 6-index quad in turn. Index buffer holds the
+        # quad triangles for all slices concatenated; each slice gets
+        # total_indices / num_textures indices. Multitexture is only used
+        # for Solid-style volume planes, so we use the triangle count.
+        # `icount` is whatever the index buffer was last (re)allocated with.
+        index_count = bufs["icount"]
+        if mtex:
+            nt = len(mtex)
+            ne = index_count // nt
+            reverse = bool(getattr(drawing, "multitexture_reverse_order", False))
+            order = range(nt - 1, -1, -1) if reverse else range(nt)
+            for ti in order:
+                mtex[ti].bind_texture()
+                m.draw_indexed(
+                    context=ctx,
+                    index_buffer=bufs["indices"],
+                    primitive_type=0,
+                    index_count=ne,
+                    index_offset=ti * ne,
+                    instance_count=instance_count,
+                )
+        else:
+            m.draw_indexed(
+                context=ctx,
+                index_buffer=bufs["indices"],
+                primitive_type=0,
+                index_count=index_count,
+                index_offset=0,
+                instance_count=instance_count,
+            )
+
+    def _upload_raycast_uniforms(self, bufs):
+        """Pack the volume-raycast UBO and bind it at set 0 binding 6.
+
+        The raycast fragment shader needs the inverse view + projection
+        matrices to reconstruct an eye-space ray from gl_FragCoord, plus
+        the volume's bounding box (world coords), the data-extent region
+        used to map world coords back into [0,1] texture space, the ray
+        step size, the window size (also for gl_FragCoord -> NDC), and
+        the scene background color so the composite has somewhere to
+        blend the leftover alpha onto. set_volume_parameters /
+        set_bounding_box_planes (called via drawing.set_shader_options
+        just above) feed the bbox + region; everything else lives on the
+        renderer.
+        """
+        m = self._vulkan
+        ctx = self._ctx
+
+        # Inverse view (camera -> scene). Place objects expose .inverse().
+        vm = self.current_view_matrix
+        if vm is None:
+            inv_view = np.eye(4, dtype=np.float32)
+        else:
+            try:
+                inv_view = np.asarray(vm.inverse().opengl_matrix(), dtype=np.float32)
+            except Exception:
+                inv_view = np.eye(4, dtype=np.float32)
+
+        # Inverse projection (clip -> view) for the (already Vulkan-flipped)
+        # current projection matrix.
+        pm = self.current_projection_matrix
+        if pm is None:
+            inv_proj = np.eye(4, dtype=np.float32)
+        else:
+            try:
+                inv_proj = np.linalg.inv(np.asarray(pm, dtype=np.float32))
+            except np.linalg.LinAlgError:
+                inv_proj = np.eye(4, dtype=np.float32)
+
+        bg = self._background_color
+        if bg is None:
+            bg = (0.0, 0.0, 0.0, 0.0)
+        bbox_min = getattr(self, "_raycast_bbox_min", (-1.0, -1.0, -1.0))
+        bbox_max = getattr(self, "_raycast_bbox_max", (1.0, 1.0, 1.0))
+        full_min = getattr(self, "_raycast_full_region_min", bbox_min)
+        full_max = getattr(self, "_raycast_full_region_max", bbox_max)
+        step = float(getattr(self, "_raycast_step_size", 0.01))
+        win_w, win_h = self.render_size()
+
+        # std140 layout: each row below is 16 bytes (one float4-equivalent).
+        parts = [
+            np.asarray(inv_view, dtype=np.float32).reshape(-1),
+            np.asarray(inv_proj, dtype=np.float32).reshape(-1),
+            np.asarray(bg, dtype=np.float32).reshape(-1),
+            np.array([bbox_min[0], bbox_min[1], bbox_min[2], step], dtype=np.float32),
+            np.array([bbox_max[0], bbox_max[1], bbox_max[2], 0.0], dtype=np.float32),
+            np.array([full_min[0], full_min[1], full_min[2], 0.0], dtype=np.float32),
+            np.array([full_max[0], full_max[1], full_max[2], 0.0], dtype=np.float32),
+            np.array([float(win_w), float(win_h), 0.0, 0.0], dtype=np.float32),
+        ]
+        data = np.ascontiguousarray(np.concatenate(parts))
+
+        if "raycast_ubo" not in bufs:
+            bufs["raycast_ubo"] = m.create_buffer(context=ctx, data=data)
+        else:
+            try:
+                m.update_buffer(buffer=bufs["raycast_ubo"], data=data)
+            except RuntimeError:
+                m.destroy_buffer(buffer=bufs["raycast_ubo"])
+                bufs["raycast_ubo"] = m.create_buffer(context=ctx, data=data)
+        m.set_descriptor_buffer(
+            context=ctx, buffer=bufs["raycast_ubo"], index=6, offset=0,
         )
 
     def _bind_dummy_vertex_buffers(self):
@@ -1120,7 +1814,10 @@ void main() {
         m = self._vulkan
         ctx = self._ctx
         if self._dummy_float_buffer is None:
-            fdata = np.zeros((16,), dtype=np.float32)
+            # Stride 12 (vec3) on bindings 11/12; the shader may read up to
+            # one entry per vertex on impostor primitives that emit a fan
+            # of vertices.  Size generously so we never read past the end.
+            fdata = np.zeros((1024,), dtype=np.float32)
             self._dummy_float_buffer = m.create_buffer(context=ctx, data=fdata)
         if self._dummy_color_buffer is None:
             cdata = np.array([255, 255, 255, 255], dtype=np.uint8)
@@ -1216,8 +1913,14 @@ void main() {
         data = np.concatenate([p.reshape(-1) for p in parts]).astype(np.float32)
         return np.ascontiguousarray(data)
 
-    def _ensure_shader_pipeline(self, shader, shader_name, vertex_func, fragment_func):
-        """Compile a shader pipeline from the shaders/ directory."""
+    def _ensure_shader_pipeline(self, shader, shader_name, vertex_func, fragment_func,
+                                topology=0):
+        """Compile a shader pipeline from the shaders/ directory.
+
+        topology: 0 = triangle list, 1 = line list, 2 = point list. Vulkan
+        bakes topology into the pipeline, so each display style needs its
+        own pipeline variant.
+        """
         caps = shader.capabilities
         # Build function constants from capabilities
         from .renderer import (
@@ -1261,15 +1964,27 @@ void main() {
         constants[17] = 1 if self._depth_prepass_rendering else 0
         constants[18] = 1 if self._sphere_ao_active else 0
 
-        # Cache key includes shader name, constants, and depth-only/prepass flags.
+        # Cache key includes shader name, constants, depth-only/prepass
+        # flags, and the cull/blend/depth-write state baked into the pipeline.
         const_key = tuple(constants)
         depth_only = self._depth_only_rendering
         depth_prepass = self._depth_prepass_rendering
-        cache_key = (shader_name, const_key, depth_only, depth_prepass)
+        face_culling = self._face_culling_enabled
+        blend_op_max = self._blend_op_max
+        blend_premult = self._blend_premult
+        depth_write = self._depth_write_enabled
+        cache_key = (shader_name, const_key, depth_only, depth_prepass,
+                     face_culling, blend_op_max, blend_premult, depth_write,
+                     topology)
         if cache_key in self._pipeline_cache:
             shader._pipeline = self._pipeline_cache[cache_key]
             shader._pipeline_depth_only = depth_only
             shader._pipeline_depth_prepass = depth_prepass
+            shader._pipeline_face_culling = face_culling
+            shader._pipeline_blend_op_max = blend_op_max
+            shader._pipeline_blend_premult = blend_premult
+            shader._pipeline_depth_write = depth_write
+            shader._pipeline_topology = topology
             return
         try:
             import os, sys
@@ -1290,6 +2005,10 @@ void main() {
             vert_src = vert_src.replace('#include "common.glsl"', common_src)
             frag_src = frag_src.replace('#include "common.glsl"', common_src)
 
+            # Mesh shader uses per-vertex colors (e.g. ribbons); the
+            # impostor shaders use per-instance colors (one per atom/bond).
+            instance_colors = 0 if shader_name == "mesh" else 1
+
             create_pipeline_kw = dict(
                 context=self._ctx,
                 vert_source=vert_src,
@@ -1297,6 +2016,12 @@ void main() {
                 has_depth=1,
                 constants=constants,
                 depth_only=1 if depth_only else 0,
+                instance_colors=instance_colors,
+                face_culling=1 if face_culling else 0,
+                blend_op_max=1 if blend_op_max else 0,
+                blend_premult=1 if blend_premult else 0,
+                depth_write=1 if depth_write else 0,
+                topology=int(topology),
             )
             if depth_prepass:
                 try:
@@ -1314,6 +2039,11 @@ void main() {
             shader._pipeline_depth_only = depth_only
             shader._pipeline_depth_prepass = depth_prepass
             shader._pipeline_sphere_ao = self._sphere_ao_active
+            shader._pipeline_face_culling = face_culling
+            shader._pipeline_blend_op_max = blend_op_max
+            shader._pipeline_blend_premult = blend_premult
+            shader._pipeline_depth_write = depth_write
+            shader._pipeline_topology = topology
         except Exception as e:
             import sys
 
@@ -1325,6 +2055,11 @@ void main() {
             shader._pipeline_depth_only = depth_only
             shader._pipeline_depth_prepass = depth_prepass
             shader._pipeline_sphere_ao = self._sphere_ao_active
+            shader._pipeline_face_culling = face_culling
+            shader._pipeline_blend_op_max = blend_op_max
+            shader._pipeline_blend_premult = blend_premult
+            shader._pipeline_depth_write = depth_write
+            shader._pipeline_topology = topology
 
     # -------------------------------------------------------------------
     # Stereo
@@ -1354,7 +2089,14 @@ void main() {
         verts = np.array(
             [[-1, -1, 0], [1, -1, 0], [1, 1, 0], [-1, 1, 0]], dtype=np.float32
         )
-        tcoords = np.array([[0, 1], [1, 1], [1, 0], [0, 0]], dtype=np.float32)
+        # Vulkan NDC has Y pointing DOWN, and texture V=0 is at the top.
+        # Map vertex (-1,-1) (top-left of screen) -> (0,0) (top-left of
+        # texture), so a postprocess sampler reads the texel that the
+        # compute kernel wrote at the same window pixel. Padding to vec3
+        # to match the binding-11 stride declared in vulkan_pipeline.cpp.
+        tcoords = np.array(
+            [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]], dtype=np.float32
+        )
         indices = np.array([0, 1, 2, 0, 2, 3], dtype=np.uint32)
         self._quad_vbuf = m.create_buffer(context=ctx, data=verts)
         self._quad_tcbuf = m.create_buffer(context=ctx, data=tcoords)
@@ -1381,6 +2123,10 @@ void main() {
             frag_source = f.read()
 
         try:
+            # Fullscreen quads are wound clockwise in Vulkan NDC (Y is
+            # down) so back-face culling with the default CCW front-face
+            # would cull every triangle. Disable culling for postprocess
+            # passes — they always cover the full viewport.
             handle = self._vulkan.create_pipeline(
                 context=self._ctx,
                 vert_source=vert_source,
@@ -1388,11 +2134,23 @@ void main() {
                 has_depth=1 if has_depth else 0,
                 constants=[0] * 20,
                 depth_only=0,
+                face_culling=0,
             )
         except Exception as e:
             import sys
 
-            print(f"Vulkan postprocess pipeline error: {e}", file=sys.stderr)
+            # Loud failure: previously this silently returned None and
+            # the caller silently skipped the draw, hiding shader bugs.
+            # Echo to stderr AND vulkan_trace.log so post-mortems don't
+            # have to guess why a post-process pass produced no output.
+            msg = (f"Vulkan postprocess pipeline FAILED for "
+                   f"'{shader_file}' ({vertex_func}/{fragment_func}): {e}")
+            print(msg, file=sys.stderr)
+            try:
+                with open("vulkan_trace.log", "a") as tf:
+                    tf.write(msg + "\n")
+            except Exception:
+                pass
             handle = None
         self._postprocess_pipelines[key] = handle
         return handle
@@ -1486,18 +2244,24 @@ void main() {
         return self._vulkan.get_depth_texture(context=self._ctx)
 
     def create_color_texture(self, width, height):
-        """Create an R8 texture for post-processing output."""
+        """Create an RGBA8 texture usable as a color attachment AND a
+        compute-shader storage image.
+
+        RGBA8 (not R8) because R8_UNORM isn't a core-required STORAGE_IMAGE
+        format; RTAO writes into this texture from a compute kernel.
+        """
         return self._vulkan.create_texture(
             context=self._ctx,
             width=width,
             height=height,
-            format=1,
+            format=0,
             linear_filter=1,
             depth_compare=0,
+            storage=1,
         )
 
     def create_r32f_texture(self, width, height):
-        """Create an R32Float texture for high-precision accumulation."""
+        """Create an R32Float storage texture (RTAO ping-pong accumulation)."""
         return self._vulkan.create_texture(
             context=self._ctx,
             width=width,
@@ -1505,6 +2269,66 @@ void main() {
             format=4,
             linear_filter=1,
             depth_compare=0,
+            storage=1,
+        )
+
+    def destroy_texture(self, texture):
+        """Backend-agnostic wrapper used by RenderPass cleanup."""
+        if texture is not None:
+            self._vulkan.destroy_texture(texture=texture)
+
+    def create_data_buffer(self, data):
+        """Backend-agnostic wrapper used by RenderPass for color/data SSBOs."""
+        return self._vulkan.create_buffer(context=self._ctx, data=data)
+
+    def destroy_data_buffer(self, buf):
+        if buf is not None:
+            self._vulkan.destroy_buffer(buffer=buf)
+
+    # The blur pass currently has no Vulkan port; RTAOPass falls back to
+    # temporal accumulation alone when this is False.
+    supports_rtao_blur = False
+
+    def draw_rtao_composite(self, ao_tex):
+        """Multiply ao_tex.r into the bound color attachment via SRC_ALPHA
+        blending (output = vec4(0,0,0, 1-ao)). Backend-specific so the
+        per-API shader-name conventions stay encapsulated here."""
+        self.draw_fullscreen_quad(
+            ao_tex,
+            "rtao_composite",   # rtao_composite.vert / rtao_composite.frag
+            "main",             # GLSL entry is always main; arg ignored
+            "main",
+        )
+
+    def begin_pt_blit_pass(self):
+        """Restart the main render pass with a clear color (so the path-traced
+        image fully replaces the rasterised scene) but preserve depth."""
+        self._vulkan.end_render_pass(context=self._ctx)
+        r, g, b, a = self._background_color
+        self._vulkan.begin_render_pass(
+            context=self._ctx,
+            clear_r=r, clear_g=g, clear_b=b, clear_a=a,
+            clear_depth=0, load_color=0, load_depth=1,
+        )
+
+    def draw_pt_blit(self, color_tex):
+        """Fullscreen blit of the path-tracer color texture."""
+        self.draw_fullscreen_quad(
+            color_tex,
+            "pt_blit",          # pt_blit.vert / pt_blit.frag
+            "main", "main",
+        )
+
+    def draw_pt_denoise(self, color_tex, depth_tex, uniforms_data):
+        """Cross-bilateral denoise of the path-tracer output. Reads
+        ``color_tex`` (path-traced rgb) and ``depth_tex`` (rasterised
+        impostor depth as the edge-stop), writes the blurred result to
+        the currently-bound color attachment."""
+        self.draw_fullscreen_quad_two_textures(
+            color_tex, depth_tex,
+            "pt_denoise",
+            "main", "main",
+            uniforms_data=uniforms_data,
         )
 
     def begin_color_pass(self, texture, width, height, clear=True):
@@ -1551,7 +2375,10 @@ void main() {
         sphere_data : ndarray, shape (N, 4), dtype float32
             Per-sphere (x, y, z, radius) in world space.
         """
-        # Destroy previous AS.
+        # Destroy previous AS. The C destroy frees every owned buffer
+        # (sphere/cylinder data + AS storage), so clear *all* the cached
+        # handles — leaving _rtao_cylinder_buffer set after a no-cylinder
+        # rebuild would dangle into the next dispatch.
         if self._rtao_accel_struct is not None:
             self._vulkan.destroy_accel_struct(
                 accel_struct=self._rtao_accel_struct,
@@ -1559,6 +2386,7 @@ void main() {
             )
             self._rtao_accel_struct = None
             self._rtao_sphere_buffer = None
+            self._rtao_cylinder_buffer = None
 
         data = np.ascontiguousarray(sphere_data, dtype=np.float32)
         as_ptr, sb_ptr = self._vulkan.build_sphere_accel(
@@ -1678,7 +2506,13 @@ void main() {
         self._pt_pipeline_compiled = True
 
     def create_rgba_texture(self, width, height):
-        """Create an RGBA8 texture for path tracer output."""
+        """Create an RGBA8 storage texture for path-tracer output.
+
+        storage=1 is required because the path-tracer compute kernel binds
+        these as `image2D` and writes directly via imageStore. Without the
+        STORAGE_IMAGE usage bit, the writes hit undefined memory and
+        produce garbage (a few rows of corruption + black elsewhere).
+        """
         return self._vulkan.create_texture(
             context=self._ctx,
             width=width,
@@ -1686,6 +2520,7 @@ void main() {
             format=0,
             linear_filter=1,
             depth_compare=0,
+            storage=1,
         )
 
     def dispatch_pathtracer(
@@ -1750,11 +2585,16 @@ void main() {
         )
 
     def supports_ray_tracing(self):
-        """Check if the Vulkan device supports ray tracing."""
+        """True iff the selected Vulkan device exposed
+        VK_KHR_acceleration_structure + VK_KHR_ray_query at context creation."""
         try:
-            return hasattr(self._vulkan, "build_sphere_accel")
+            return bool(self._vulkan.supports_ray_tracing(context=self._ctx))
         except Exception:
             return False
+
+    def max_3d_texture_size(self):
+        """Largest 3D texture dimension supported by the device."""
+        return self._context._max_3d_texture_size
 
 
 # ---------------------------------------------------------------------------
@@ -1784,11 +2624,14 @@ class VulkanShadow:
         ld = normalize_vector(light_direction)
         lv = translation(center - radius * ld) * orthonormal_frame(-ld)
         lvinv = lv.inverse(is_orthonormal=True)
-        # Vulkan Y is already inverted by the projection matrix, so the
-        # shadow texture coordinate transform does not need a Y flip.
+        # Vulkan stores texture row 0 at the top of the image (V=0 = top),
+        # which is the opposite of OpenGL. Flip Y in the scene-to-texture
+        # transform so the shadow lookup samples the correct row. The
+        # projection-matrix Y flip in set_projection_matrix is a separate
+        # NDC-coordinate adjustment and does not cancel this out.
         stf = (
             translation((0.5, 0.5, -depth_bias))
-            * scale((0.5 / radius, 0.5 / radius, -0.5 / radius))
+            * scale((0.5 / radius, -0.5 / radius, -0.5 / radius))
             * lvinv
         )
         return lvinv, stf
@@ -1869,11 +2712,12 @@ class VulkanMultishadow:
         ld = normalize_vector(light_direction)
         lv = translation(center - radius * ld) * orthonormal_frame(-ld)
         lvinv = lv.inverse(is_orthonormal=True)
-        # Vulkan Y is already inverted by the projection matrix, so the
-        # shadow texture coordinate transform does not need a Y flip.
+        # Y flip in the scene-to-texture transform: Vulkan textures store
+        # V=0 at the top (opposite of OpenGL). See VulkanShadow for the
+        # full explanation.
         stf = (
             translation((0.5, 0.5, -depth_bias))
-            * scale((0.5 / radius, 0.5 / radius, -0.5 / radius))
+            * scale((0.5 / radius, -0.5 / radius, -0.5 / radius))
             * lvinv
         )
         sx, sy = width / texture_size, height / texture_size

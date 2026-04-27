@@ -15,6 +15,7 @@
     <DataFile>shaders/*.glsl</DataFile>
     <DataFile>shaders/*.vert</DataFile>
     <DataFile>shaders/*.frag</DataFile>
+    <DataFile>shaders/*.comp</DataFile>
   </DataFiles>
   <Categories>
     <Category name="Graphics"/>
@@ -52,8 +53,24 @@
     <SourceFile>_vulkan/vulkan_buffer.cpp</SourceFile>
     <SourceFile>_vulkan/vulkan_texture.cpp</SourceFile>
     <SourceFile>_vulkan/vulkan_pipeline.cpp</SourceFile>
-    <CompileArgument>-std=c++17</CompileArgument>
+    <SourceFile>_vulkan/vulkan_framebuffer.cpp</SourceFile>
+    <SourceFile>_vulkan/vulkan_dummies.cpp</SourceFile>
+    <SourceFile>_vulkan/vulkan_raytracing.cpp</SourceFile>
+    <SourceFile>_vulkan/vk_shader.cpp</SourceFile>
+    <SourceFile>_vulkan/VkBootstrap.cpp</SourceFile>
+    <CompileArgument platform="windows">/std:c++17</CompileArgument>
+    <CompileArgument platform="linux,mac">-std=c++17</CompileArgument>
     <IncludeDir>_vulkan</IncludeDir>
+    <IncludeDir platform="windows">${VULKAN_SDK}/Include</IncludeDir>
+    <IncludeDir platform="windows">${VULKAN_SDK}/Include/vma</IncludeDir>
+    <IncludeDir platform="linux">${VULKAN_SDK}/include</IncludeDir>
+    <IncludeDir platform="linux">${VULKAN_SDK}/include/vma</IncludeDir>
+    <LibraryDir platform="windows">${VULKAN_SDK}/Lib</LibraryDir>
+    <LibraryDir platform="linux">${VULKAN_SDK}/lib</LibraryDir>
+    <Library platform="windows">vulkan-1.lib</Library>
+    <Library platform="windows">shaderc_combined.lib</Library>
+    <Library platform="linux">vulkan</Library>
+    <Library platform="linux">shaderc_combined</Library>
   </CModule>
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.3dev2021"/>

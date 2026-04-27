@@ -539,18 +539,14 @@ class RTAOPass(RenderPass):
 
         res = ctx.resources
         if res.needs_resize("rtao_ao", w, h):
-            old = res.remove("rtao_ao")
-            if old is not None:
-                r._metal.destroy_texture(texture=old)
+            r.destroy_texture(res.remove("rtao_ao"))
             res.put("rtao_ao", r.create_color_texture(w, h), width=w, height=h)
             self._accum_count = 0
         ao_tex = res.get("rtao_ao")
 
         for name in ("rtao_accum_0", "rtao_accum_1"):
             if res.needs_resize(name, w, h):
-                old = res.remove(name)
-                if old is not None:
-                    r._metal.destroy_texture(texture=old)
+                r.destroy_texture(res.remove(name))
                 res.put(name, r.create_r32f_texture(w, h), width=w, height=h)
                 self._accum_count = 0
         prev_tex = res.get(f"rtao_accum_{self._ping}")
@@ -595,39 +591,37 @@ class RTAOPass(RenderPass):
         )
         self._ping = 1 - self._ping
 
-        # --- Bilateral blur pass: denoise the AO ---
-        if res.needs_resize("rtao_blurred", w, h):
-            old = res.remove("rtao_blurred")
-            if old is not None:
-                r._metal.destroy_texture(texture=old)
-            res.put("rtao_blurred", r.create_color_texture(w, h),
-                    width=w, height=h)
-        blurred_tex = res.get("rtao_blurred")
+        # --- Optional bilateral blur pass: denoise the AO ---
+        # The Vulkan backend doesn't yet have a blur fragment shader, so it
+        # falls back to temporal-accumulation-only denoise (controlled by
+        # renderer.supports_rtao_blur).
+        composite_tex = ao_tex
+        if getattr(r, "supports_rtao_blur", True):
+            if res.needs_resize("rtao_blurred", w, h):
+                r.destroy_texture(res.remove("rtao_blurred"))
+                res.put("rtao_blurred", r.create_color_texture(w, h),
+                        width=w, height=h)
+            blurred_tex = res.get("rtao_blurred")
 
-        depth_tex = r.get_scene_depth_texture()
-        if depth_tex is not None:
-            blur_uniforms = np.zeros(4, dtype=np.float32)
-            blur_uniforms[0] = 1.0 / w   # texel_size.x
-            blur_uniforms[1] = 1.0 / h   # texel_size.y
-            blur_uniforms[2] = 0.005      # depth_threshold
-            blur_data = np.ascontiguousarray(blur_uniforms)
+            depth_tex = r.get_scene_depth_texture()
+            if depth_tex is not None:
+                blur_uniforms = np.zeros(4, dtype=np.float32)
+                blur_uniforms[0] = 1.0 / w   # texel_size.x
+                blur_uniforms[1] = 1.0 / h   # texel_size.y
+                blur_uniforms[2] = 0.005      # depth_threshold
+                blur_data = np.ascontiguousarray(blur_uniforms)
 
-            r.begin_color_pass(blurred_tex, w, h, clear=True)
-            r.draw_fullscreen_quad_two_textures(
-                ao_tex, depth_tex,
-                "rtao.metal", "rtao_blur_vertex", "rtao_blur_fragment",
-                uniforms_data=blur_data)
-            r._metal.end_render_pass(context=r._ctx)
-            composite_tex = blurred_tex
-        else:
-            composite_tex = ao_tex
+                r.begin_color_pass(blurred_tex, w, h, clear=True)
+                r.draw_fullscreen_quad_two_textures(
+                    ao_tex, depth_tex,
+                    "rtao.metal", "rtao_blur_vertex", "rtao_blur_fragment",
+                    uniforms_data=blur_data)
+                r._metal.end_render_pass(context=r._ctx)
+                composite_tex = blurred_tex
 
         # --- Composite: multiply AO into the scene color buffer ---
         r.restart_main_pass()
-        r.draw_fullscreen_quad(
-            composite_tex, "rtao.metal",
-            "rtao_composite_vertex", "rtao_composite_fragment"
-        )
+        r.draw_rtao_composite(composite_tex)
 
         # Request another frame while accumulating.  Setting the drawing
         # manager's flag works because dm.clear_changes() already ran at
@@ -695,7 +689,7 @@ class PathTracePass(RenderPass):
         return (
             hasattr(r, "supports_ray_tracing")
             and r.supports_ray_tracing()
-            and getattr(r.lighting, "pathtrace", False)
+            and r.lighting.pathtrace
         )
 
     def execute(self, ctx):
@@ -723,30 +717,23 @@ class PathTracePass(RenderPass):
 
         # Upload sphere colors.
         color_bytes = np.ascontiguousarray(sphere_colors, dtype=np.uint8)
-        if self._color_buffer is not None:
-            r._metal.destroy_buffer(buffer=self._color_buffer)
-        self._color_buffer = r._metal.create_buffer(
-            context=r._ctx, data=color_bytes
-        )
+        r.destroy_data_buffer(self._color_buffer)
+        self._color_buffer = r.create_data_buffer(color_bytes)
 
         # Upload cylinder colors.
         if cyl_colors is not None and len(cyl_colors) > 0:
             cyl_color_bytes = np.ascontiguousarray(cyl_colors, dtype=np.uint8)
-            if self._cyl_color_buffer is not None:
-                r._metal.destroy_buffer(buffer=self._cyl_color_buffer)
-            self._cyl_color_buffer = r._metal.create_buffer(
-                context=r._ctx, data=cyl_color_bytes
-            )
+            r.destroy_data_buffer(self._cyl_color_buffer)
+            self._cyl_color_buffer = r.create_data_buffer(cyl_color_bytes)
         else:
+            r.destroy_data_buffer(self._cyl_color_buffer)
             self._cyl_color_buffer = None
 
         # Ensure RGBA textures for output and ping-pong accumulation.
         res = ctx.resources
         for name in ("pt_color", "pt_accum_0", "pt_accum_1"):
             if res.needs_resize(name, w, h):
-                old = res.remove(name)
-                if old is not None:
-                    r._metal.destroy_texture(texture=old)
+                r.destroy_texture(res.remove(name))
                 res.put(name, r.create_rgba_texture(w, h), width=w, height=h)
                 self._accum_count = 0
         color_tex = res.get("pt_color")
@@ -815,27 +802,43 @@ class PathTracePass(RenderPass):
             fill_light_intensity=lp.fill_light_intensity,
             ambient_color=ambient,
             background_color=bg,
-            max_bounces=int(getattr(lp, "pt_max_bounces", 2)),
+            max_bounces=int(lp.pt_max_bounces),
         )
         self._ping = 1 - self._ping
 
+        # Cross-bilateral denoise: smooths Monte-Carlo speckle inside
+        # each atom while the rasterised depth buffer keeps silhouettes
+        # sharp. Falls back to a direct blit if the renderer doesn't
+        # expose a denoise pass (Metal — TODO) or the scene depth tex
+        # isn't available.
+        depth_tex = (r.get_scene_depth_texture()
+                     if hasattr(r, "get_scene_depth_texture") else None)
+        denoise_tex = None
+        if (depth_tex is not None
+                and hasattr(r, "draw_pt_denoise")):
+            if res.needs_resize("pt_denoised", w, h):
+                r.destroy_texture(res.remove("pt_denoised"))
+                res.put("pt_denoised", r.create_color_texture(w, h),
+                        width=w, height=h)
+            denoise_tex = res.get("pt_denoised")
+
+            denoise_uniforms = np.zeros(4, dtype=np.float32)
+            denoise_uniforms[0] = 1.0 / w     # texel_size.x
+            denoise_uniforms[1] = 1.0 / h     # texel_size.y
+            denoise_uniforms[2] = float(lp.pt_denoise_threshold)
+            denoise_data = np.ascontiguousarray(denoise_uniforms)
+
+            r.begin_color_pass(denoise_tex, w, h, clear=True)
+            r.draw_pt_denoise(color_tex, depth_tex, denoise_data)
+            r._vulkan.end_render_pass(context=r._ctx)
+
         # Blit the result to the framebuffer.  Clear color (don't load
         # the rasterized scene) so the path-traced image fully replaces it.
-        r._metal.end_render_pass(context=r._ctx)
-        bg_r, bg_g, bg_b, bg_a = r._background_color
-        r._metal.begin_render_pass(
-            context=r._ctx,
-            clear_r=bg_r, clear_g=bg_g, clear_b=bg_b, clear_a=bg_a,
-            clear_depth=0, load_color=0, load_depth=1)
-        r.draw_fullscreen_quad(
-            color_tex,
-            "pathtracer.metal",
-            "pt_blit_vertex",
-            "pt_blit_fragment",
-        )
+        r.begin_pt_blit_pass()
+        r.draw_pt_blit(denoise_tex if denoise_tex is not None else color_tex)
 
         # Keep accumulating.
-        max_accum = int(getattr(lp, "pt_max_accum", 512))
+        max_accum = int(lp.pt_max_accum)
         if self._accum_count < max_accum:
             ctx.view._drawing_manager.redraw_needed = True
 

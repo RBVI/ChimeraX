@@ -909,6 +909,12 @@ class Render:
 
     # -- Framebuffer stack ----------------------------------------------------
 
+    def create_framebuffer(self, name, width, height, alpha=False):
+        """Factory for an offscreen render target. Mirror of the same
+        method on the Vulkan / Metal renderers so view.image_rgba can
+        request a capture target without depending on backend specifics."""
+        return Framebuffer(name, self.opengl_context, width, height, alpha=alpha)
+
     def push_framebuffer(self, fb):
         self.framebuffer_stack.append(fb)
         fb.activate()
@@ -1644,6 +1650,29 @@ class Render:
 
     def finish_rendering(self):
         GL.glFinish()
+
+    def draw_volume_raycast(self, drawing, draw_pass):
+        """Issue a volume-raycast draw of `drawing`'s bounding box.
+
+        Owns the renderer-state shuffle (capability bit, depth-cue gating,
+        backface culling, raycast-only background/window-size uniforms)
+        that the raycast fragment shader needs. The actual fragment-side
+        ray traversal happens via the standard Drawing.draw call once the
+        SHADER_VOLUME_RAYCASTING bit is on, so the bounding-box geometry
+        gets rasterized through the raycast shader."""
+        from .drawing import Drawing
+        self.enable_backface_culling(True)
+        self.enable_capabilities |= self.SHADER_VOLUME_RAYCASTING
+        depth_cue_enabled = self.enable_capabilities & self.SHADER_DEPTH_CUE
+        self.enable_capabilities &= ~self.SHADER_DEPTH_CUE
+        self._set_raycasting_background()
+        self._set_window_params()
+        try:
+            Drawing.draw(drawing, self, draw_pass)
+        finally:
+            self.enable_capabilities &= ~self.SHADER_VOLUME_RAYCASTING
+            self.enable_capabilities &= depth_cue_enabled
+            self.enable_backface_culling(False)
 
     def _set_raycasting_background(self):
         p = self.current_shader_program
@@ -2714,6 +2743,20 @@ class Lighting:
         self.move_lights_with_camera = True
         "Whether lights are attached to camera, or fixed in the scene."
 
+        self.pathtrace = False
+        "Whether the Vulkan path tracer replaces rasterised rendering."
+
+        self.pt_max_bounces = 2
+        "Path tracer maximum indirect bounces per primary ray."
+
+        self.pt_max_accum = 2048
+        "Path tracer maximum temporal-accumulation frames before stop."
+
+        self.pt_denoise_threshold = 0.0005
+        """Path tracer denoise depth-edge threshold. Smaller values keep
+        more silhouette detail; larger values let the bilateral blur
+        cross deeper depth discontinuities."""
+
         self.shadows = False
         "Does key light cast shadows."
 
@@ -2752,11 +2795,13 @@ class Lighting:
         """Number of AO rays per pixel (0 = disabled, 8 = typical).
         Uses Metal ray tracing with a sphere acceleration structure."""
 
-        self.rtao_radius = 5.0
-        "Maximum AO ray distance in world units (Angstroms)."
+        self.rtao_radius = 25.0
+        "Maximum AO ray distance in world units (Angstroms). Tuned to "
+        "match the visual depth of the multishadow AO approximation."
 
-        self.rtao_intensity = 1.5
-        "AO darkening strength multiplier."
+        self.rtao_intensity = 1.0
+        "AO darkening strength multiplier. 1.0 keeps the linear "
+        "occlusion fraction; values >1 boost contrast."
 
 
 class Material:
