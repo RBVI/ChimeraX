@@ -163,8 +163,8 @@ def fetch_pdb_info(entry_chain_list):
     )
     req = Request(
         "https://data.rcsb.org/graphql",
-        data=query.encode("utf-8"),
-        headers={"Content-Type": "application/graphql"},
+        data=json.dumps({"query": query}).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
     )
     f = urlopen(req)
     data = f.read()
