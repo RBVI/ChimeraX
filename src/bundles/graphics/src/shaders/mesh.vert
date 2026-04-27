@@ -53,7 +53,10 @@ layout(constant_id = 17) const bool USE_DEPTH_PREPASS = false;
 //  Vertex inputs -- attribute locations mirror Metal attribute indices.
 // ---------------------------------------------------------------------------
 layout(location = 0) in vec3 position;
-layout(location = 1) in vec2 tex_coord;
+// Texture coordinate is uploaded as 3 floats; .xy is used for 2D textures
+// and the full vec3 for 3D / cubemap textures (matches OpenGL's
+// USE_TEXTURE_3D layout).
+layout(location = 1) in vec3 tex_coord;
 layout(location = 2) in vec3 normal;
 layout(location = 3) in vec4 vcolor;
 layout(location = 4) in vec4 shift_and_scale;
@@ -126,12 +129,12 @@ void main() {
 
     // 2-D texture coordinate.
     if (USE_TEXTURE_2D) {
-        frag_tex_coord_2d = tex_coord;
+        frag_tex_coord_2d = tex_coord.xy;
     }
 
     // 3-D texture coordinate (also used for cubemap).
     if (USE_TEXTURE_3D || USE_TEXTURE_CUBEMAP) {
-        frag_tex_coord_3d = vec3(tex_coord, normal.x);
+        frag_tex_coord_3d = tex_coord;
     }
 
     gl_Position = u.projection_matrix * veye;

@@ -270,7 +270,7 @@ class CameraState:
 
 class LightingState:
 
-    version = 1
+    version = 2
     save_attrs = [
         'key_light_direction',
         'key_light_color',
@@ -291,6 +291,11 @@ class LightingState:
         'multishadow',
         'multishadow_map_size',
         'multishadow_depth_bias',
+        # v2: path tracer parameters.
+        'pathtrace',
+        'pt_max_bounces',
+        'pt_max_accum',
+        'pt_denoise_threshold',
         ]
 
     # Continuous attrs (RGB tuples and floats) — straight linear interpolation.

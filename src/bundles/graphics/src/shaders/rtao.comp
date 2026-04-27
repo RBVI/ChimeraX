@@ -1,0 +1,214 @@
+// rtao.comp -- Ray-Traced Ambient Occlusion compute shader (Vulkan port of
+// rtao.metal). Casts short hemisphere rays from each visible surface point
+// against an AABB acceleration structure of impostor spheres; intersection
+// is done analytically inline using ray queries (no shader binding table).
+//
+// Bindings:
+//   set 0 binding 0  uniform RTAOUniforms
+//   set 0 binding 1  acceleration structure
+//   set 0 binding 2  storage buffer  spheres (vec4 = xyz + radius)
+//   set 0 binding 3  combined image  scene depth (R32F sampled)
+//   set 0 binding 4  storage image   ao output  (RGBA8 unorm)
+//   set 0 binding 5  combined image  prev accumulation (R32F sampled)
+//   set 0 binding 6  storage image   accum output     (R32F)
+
+#version 460
+#extension GL_EXT_ray_query : require
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform RTAOUniforms {
+    mat4  inv_projection;
+    mat4  inv_view;
+    uvec2 size;            // .x = width, .y = height
+    float ao_radius;
+    float intensity;
+    int   num_rays;
+    uint  frame;
+    uint  accum_count;
+    float _pad;
+} u;
+
+layout(set = 0, binding = 1) uniform accelerationStructureEXT tlas;
+
+layout(set = 0, binding = 2, std430) readonly buffer SphereBuffer {
+    vec4 spheres[];
+};
+
+layout(set = 0, binding = 3) uniform sampler2D depth_tex;
+layout(set = 0, binding = 4, rgba8) uniform writeonly image2D ao_tex;
+layout(set = 0, binding = 5) uniform sampler2D prev_tex;
+layout(set = 0, binding = 6, r32f) uniform writeonly image2D accum_tex;
+
+// ---------------------------------------------------------------------------
+//  Same hash + cosine-hemisphere sampler as rtao.metal.
+// ---------------------------------------------------------------------------
+float hash_f(uint seed) {
+    seed = (seed ^ 61u) ^ (seed >> 16u);
+    seed *= 9u;
+    seed = seed ^ (seed >> 4u);
+    seed *= 0x27d4eb2du;
+    seed = seed ^ (seed >> 15u);
+    return float(seed) / float(0xFFFFFFFFu);
+}
+
+vec3 random_hemisphere_dir(uint pixel_seed, uint ray_index, vec3 N) {
+    uint seed = pixel_seed * 1973u + ray_index * 6133u + 1u;
+    float u1 = hash_f(seed);
+    float u2 = hash_f(seed * 2654435761u);
+
+    float r = sqrt(u1);
+    float theta = 2.0 * 3.14159265358979 * u2;
+    float x = r * cos(theta);
+    float y = r * sin(theta);
+    float z = sqrt(max(0.0, 1.0 - u1));
+
+    vec3 up = abs(N.y) < 0.999 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+    vec3 tangent = normalize(cross(up, N));
+    vec3 bitangent = cross(N, tangent);
+    return tangent * x + bitangent * y + N * z;
+}
+
+// Reconstruct view-space position from NDC + depth. inv_proj maps clip->view.
+vec3 reconstruct_position(vec2 uv, float depth, mat4 inv_proj) {
+    vec4 clip = vec4(uv * 2.0 - 1.0, depth, 1.0);
+    vec4 view = inv_proj * clip;
+    return view.xyz / view.w;
+}
+
+// Min-difference normal reconstruction from depth. Same algorithm as
+// rtao.metal: compare which neighbor is closer in depth and pick that
+// side for the derivative, so silhouettes don't bleed normals across.
+vec3 reconstruct_normal(ivec2 tid, vec3 pos, mat4 inv_proj,
+                        uint width, uint height) {
+    vec2 texel = vec2(1.0 / float(width), 1.0 / float(height));
+    vec2 uv = (vec2(tid) + 0.5) * texel;
+    // Vulkan: window-Y direction matches NDC-Y direction (both point down,
+    // unlike OpenGL/Metal where Y is flipped). The Vulkan projection
+    // matrix in vulkan.py.set_projection_matrix already negates the Y row,
+    // so the inverse maps Vulkan NDC -> view space directly. Do NOT flip
+    // uv.y here — that was the Metal compatibility shim and would send AO
+    // rays from world-space mirror positions that miss the geometry.
+
+    float d_l = texelFetch(depth_tex, ivec2(max(tid.x - 1, 0), tid.y), 0).x;
+    float d_r = texelFetch(depth_tex, ivec2(min(tid.x + 1, int(width)  - 1), tid.y), 0).x;
+    float d_u = texelFetch(depth_tex, ivec2(tid.x, max(tid.y - 1, 0)), 0).x;
+    float d_d = texelFetch(depth_tex, ivec2(tid.x, min(tid.y + 1, int(height) - 1)), 0).x;
+    float d   = texelFetch(depth_tex, tid, 0).x;
+
+    vec3 pos_l = reconstruct_position(uv - vec2(texel.x, 0), d_l, inv_proj);
+    vec3 pos_r = reconstruct_position(uv + vec2(texel.x, 0), d_r, inv_proj);
+    // tid.y - 1 is the pixel ABOVE; with no Y flip in Vulkan, that pixel's
+    // uv has uv.y - texel.y (uv increases downward in Vulkan).
+    vec3 pos_u = reconstruct_position(uv - vec2(0, texel.y), d_u, inv_proj);
+    vec3 pos_d = reconstruct_position(uv + vec2(0, texel.y), d_d, inv_proj);
+
+    vec3 dx = (abs(d_r - d) < abs(d_l - d)) ? (pos_r - pos) : (pos - pos_l);
+    vec3 dy = (abs(d_u - d) < abs(d_d - d)) ? (pos_u - pos) : (pos - pos_d);
+    return normalize(cross(dx, dy));
+}
+
+// Inline ray-sphere test for AO occlusion queries. Returns the front
+// root in (tmin, tmax] or -1 on miss / origin-inside-sphere.
+//
+// Discriminant via perpendicular distance from sphere centre to ray
+// rather than the classical b² - (|oc|² - r²): at zoomed-out scales
+// both terms are ~D² and their difference is r², which loses precision
+// catastrophically in FP32. The perp form keeps the working magnitude
+// near r. Same change as pathtracer.comp ray_sphere.
+//
+// No back-surface (-b + s) fallback. Reconstructing pos_world from the
+// depth buffer is FP32-noisy at far D, and the ~0.01 Å outward offset
+// in main() doesn't always compensate — origin can land just inside
+// the source atom. With a back-root fallback that case returns the
+// exit t > 0, any_hit commits, AO collapses to zero, pixel goes black.
+// Front-root-only means an inside-sphere ray simply misses (correct
+// for AO: never self-occlude against the surface we came from).
+float ray_sphere(vec3 origin, vec3 dir, vec4 sphere, float tmin, float tmax) {
+    vec3 oc = origin - sphere.xyz;
+    float b = dot(oc, dir);
+    vec3 perp = oc - dir * b;
+    float disc = sphere.w * sphere.w - dot(perp, perp);
+    if (disc < 0.0) return -1.0;
+    float s = sqrt(disc);
+    float t = -b - s;
+    if (t > tmin && t < tmax) return t;
+    return -1.0;
+}
+
+// ---------------------------------------------------------------------------
+//  Run a single AO ray. Returns true if the ray hits any sphere within
+//  ao_radius. Uses TerminateOnFirstHit so the query stops at the first
+//  confirmed intersection — the BVH still accelerates the search.
+// ---------------------------------------------------------------------------
+bool any_hit(vec3 origin, vec3 dir, float tmax) {
+    rayQueryEXT rq;
+    rayQueryInitializeEXT(rq, tlas,
+        gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT,
+        0xFFu, origin, 0.0, dir, tmax);
+
+    while (rayQueryProceedEXT(rq)) {
+        // We only registered AABB geometry, so every candidate is an AABB
+        // hit waiting for analytical confirmation.
+        if (rayQueryGetIntersectionTypeEXT(rq, false)
+            == gl_RayQueryCandidateIntersectionAABBEXT) {
+            uint prim = rayQueryGetIntersectionPrimitiveIndexEXT(rq, false);
+            float t = ray_sphere(origin, dir, spheres[prim], 0.0, tmax);
+            if (t > 0.0) {
+                rayQueryGenerateIntersectionEXT(rq, t);
+            }
+        }
+    }
+    return rayQueryGetIntersectionTypeEXT(rq, true)
+        != gl_RayQueryCommittedIntersectionNoneEXT;
+}
+
+void main() {
+    ivec2 tid = ivec2(gl_GlobalInvocationID.xy);
+    if (uint(tid.x) >= u.size.x || uint(tid.y) >= u.size.y)
+        return;
+
+    float depth = texelFetch(depth_tex, tid, 0).x;
+    if (depth >= 0.9999) {
+        // Background: write fully unoccluded into both targets so the
+        // composite multiplies by 1 and the ping-pong stays well-defined.
+        imageStore(ao_tex, tid, vec4(1.0));
+        imageStore(accum_tex, tid, vec4(1.0, 0.0, 0.0, 0.0));
+        return;
+    }
+
+    // No Y flip: Vulkan window-Y matches NDC-Y (see reconstruct_normal).
+    vec2 uv = (vec2(tid) + 0.5) / vec2(u.size);
+
+    vec3 pos_view = reconstruct_position(uv, depth, u.inv_projection);
+    vec3 N_view = reconstruct_normal(tid, pos_view, u.inv_projection,
+                                     u.size.x, u.size.y);
+
+    // Transform to world (the AS lives in world space).
+    vec3 pos_world = (u.inv_view * vec4(pos_view, 1.0)).xyz;
+    vec3 N_world = normalize((u.inv_view * vec4(N_view, 0.0)).xyz);
+
+    uint pixel_seed = (uint(tid.x) + uint(tid.y) * u.size.x) ^ (u.frame * 7919u);
+    vec3 origin = pos_world + N_world * 0.01;
+
+    int occluded = 0;
+    for (int i = 0; i < u.num_rays; i++) {
+        vec3 dir = random_hemisphere_dir(pixel_seed, uint(i), N_world);
+        if (any_hit(origin, dir, u.ao_radius))
+            occluded++;
+    }
+
+    float visibility = 1.0 - float(occluded) / float(u.num_rays);
+    float ao = clamp(1.0 - u.intensity * (1.0 - visibility), 0.0, 1.0);
+
+    if (u.accum_count > 1u) {
+        // Read previous frame's value via texelFetch — the texture is in
+        // SHADER_READ_ONLY layout and bound as a sampler2D.
+        float prev = texelFetch(prev_tex, tid, 0).r;
+        float w = 1.0 / float(u.accum_count);
+        ao = mix(prev, ao, w);
+    }
+
+    imageStore(ao_tex, tid, vec4(ao, ao, ao, 1.0));
+    imageStore(accum_tex, tid, vec4(ao, 0.0, 0.0, 0.0));
+}

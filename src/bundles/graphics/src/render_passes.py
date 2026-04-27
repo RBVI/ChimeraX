@@ -403,6 +403,428 @@ class OnTopPass(RenderPass):
         draw_on_top(ctx.renderer, ctx.on_top_drawings)
 
 
+class RTAOPass(RenderPass):
+    """Ray-Traced Ambient Occlusion.
+
+    Builds a Metal acceleration structure from all visible atom spheres,
+    then dispatches a compute kernel that casts short AO rays from each
+    visible surface point.  Produces true 3D occlusion — no faceting,
+    no screen-space artifacts, correct burial darkening.
+    """
+
+    name = "rtao"
+    _frame_counter = 0
+    _accum_count = 0
+    _last_atom_count = 0
+    _last_view_matrix = None
+    _last_proj_matrix = None
+    _ping = 0  # ping-pong index: 0 or 1
+
+    def enabled(self, ctx):
+        r = ctx.renderer
+        return (
+            hasattr(r, "supports_ray_tracing")
+            and r.supports_ray_tracing()
+            and getattr(r.lighting, "rtao", 0) > 0
+        )
+
+    def execute(self, ctx):
+        import numpy as np
+
+        r = ctx.renderer
+        lp = r.lighting
+        w, h = r.render_size()
+        if w == 0 or h == 0:
+            return
+
+        sphere_data = self._collect_spheres(ctx)
+        if sphere_data is None or len(sphere_data) == 0:
+            return
+
+        if len(sphere_data) != self._last_atom_count:
+            r.build_sphere_acceleration_structure(sphere_data)
+            self._last_atom_count = len(sphere_data)
+            self._accum_count = 0  # scene changed, reset accumulation
+
+        res = ctx.resources
+        if res.needs_resize("rtao_ao", w, h):
+            r.destroy_texture(res.remove("rtao_ao"))
+            res.put("rtao_ao", r.create_color_texture(w, h), width=w, height=h)
+            self._accum_count = 0
+        ao_tex = res.get("rtao_ao")
+
+        for name in ("rtao_accum_0", "rtao_accum_1"):
+            if res.needs_resize(name, w, h):
+                r.destroy_texture(res.remove(name))
+                res.put(name, r.create_r32f_texture(w, h), width=w, height=h)
+                self._accum_count = 0
+        prev_tex = res.get(f"rtao_accum_{self._ping}")
+        accum_tex = res.get(f"rtao_accum_{1 - self._ping}")
+
+        pm = r.current_projection_matrix
+        cp = ctx.camera_position  # camera position = inverse view matrix
+        if pm is None or cp is None:
+            return
+        inv_proj = np.linalg.inv(np.asarray(pm, dtype=np.float32))
+        inv_view = np.asarray(cp.opengl_matrix(), dtype=np.float32)
+
+        # Reset accumulation when the camera or projection changes.
+        if (
+            self._last_view_matrix is None
+            or not np.allclose(inv_view, self._last_view_matrix, atol=1e-6)
+            or not np.allclose(inv_proj, self._last_proj_matrix, atol=1e-6)
+        ):
+            self._accum_count = 0
+        self._last_view_matrix = inv_view.copy()
+        self._last_proj_matrix = inv_proj.copy()
+
+        num_rays = int(getattr(lp, "rtao", 8))
+        ao_radius = getattr(lp, "rtao_radius", 5.0)
+        intensity = getattr(lp, "rtao_intensity", 1.5)
+        self._frame_counter += 1
+        self._accum_count += 1
+
+        r._ensure_rtao_pipeline()
+
+        r.dispatch_rtao(
+            ao_tex,
+            prev_tex,
+            accum_tex,
+            inv_proj,
+            inv_view,
+            ao_radius=ao_radius,
+            intensity=intensity,
+            num_rays=num_rays,
+            frame=self._frame_counter,
+            accum_count=self._accum_count,
+        )
+        self._ping = 1 - self._ping
+
+        # --- Composite: multiply AO into the scene color buffer ---
+        r.restart_main_pass()
+        r.draw_rtao_composite(ao_tex)
+
+        # Request another frame while accumulating.  Setting the drawing
+        # manager's flag works because dm.clear_changes() already ran at
+        # the start of this frame, so the flag persists to the next
+        # check_for_drawing_change() call.
+        max_accum = max(8192 // num_rays, 1)
+        if self._accum_count < max_accum:
+            ctx.view._drawing_manager.redraw_needed = True
+
+    @staticmethod
+    def _collect_spheres(ctx):
+        """Collect all visible atom spheres as (x, y, z, radius) in world space."""
+        import numpy as np
+
+        all_spheres = []
+        for drawing in ctx.opaque_drawings:
+            sas = drawing.positions.shift_and_scale_array()
+            if sas is None or len(sas) == 0:
+                continue
+            coords = sas[:, :3].copy()
+            radii = sas[:, 3:4].copy()
+
+            # shift_and_scale positions are in parent-local space.
+            # The rendering code sets model_matrix = parent.scene_position
+            # for instanced drawings, so we must apply that same transform
+            # to get world-space coordinates for the acceleration structure.
+            if drawing.parent is not None:
+                scene_pos = drawing.parent.get_scene_positions(displayed_only=True)
+                if not scene_pos.is_identity():
+                    p = scene_pos[0]
+                    rot = np.asarray(p.matrix[:3, :3], dtype=np.float64)
+                    trans = np.asarray(p.matrix[:3, 3], dtype=np.float64)
+                    coords = (coords @ rot.T) + trans
+
+            all_spheres.append(np.hstack([coords, radii]))
+
+        if not all_spheres:
+            return None
+        return np.vstack(all_spheres).astype(np.float32)
+
+
+class PathTracePass(RenderPass):
+    """Full path tracer for impostor spheres.
+
+    Replaces rasterized rendering with a compute-kernel path tracer
+    that casts primary rays, shadow rays, and bounce rays against the
+    sphere acceleration structure.  Accumulates over frames for
+    progressive refinement.
+    """
+
+    name = "pathtrace"
+    _frame_counter = 0
+    _accum_count = 0
+    _last_atom_count = 0
+    _last_view_matrix = None
+    _last_proj_matrix = None
+    _last_lighting_key = None
+    _last_geom_key = None
+    _ping = 0
+    _color_buffer = None
+    _cyl_color_buffer = None
+
+    def enabled(self, ctx):
+        r = ctx.renderer
+        return (
+            hasattr(r, "supports_ray_tracing")
+            and r.supports_ray_tracing()
+            and r.lighting.pathtrace
+        )
+
+    def execute(self, ctx):
+        import numpy as np
+
+        r = ctx.renderer
+        lp = r.lighting
+        w, h = r.render_size()
+        if w == 0 or h == 0:
+            return
+
+        sphere_data, sphere_colors, cyl_data, cyl_colors = \
+            self._collect_geometry(ctx)
+        if sphere_data is None or len(sphere_data) == 0:
+            return
+
+        geom_key = (len(sphere_data), len(cyl_data) if cyl_data is not None else 0)
+        if geom_key != self._last_geom_key:
+            if cyl_data is not None and len(cyl_data) > 0:
+                r.build_mixed_acceleration_structure(sphere_data, cyl_data)
+            else:
+                r.build_sphere_acceleration_structure(sphere_data)
+            self._last_geom_key = geom_key
+            self._accum_count = 0
+
+        # Upload sphere colors.
+        color_bytes = np.ascontiguousarray(sphere_colors, dtype=np.uint8)
+        r.destroy_data_buffer(self._color_buffer)
+        self._color_buffer = r.create_data_buffer(color_bytes)
+
+        # Upload cylinder colors.
+        if cyl_colors is not None and len(cyl_colors) > 0:
+            cyl_color_bytes = np.ascontiguousarray(cyl_colors, dtype=np.uint8)
+            r.destroy_data_buffer(self._cyl_color_buffer)
+            self._cyl_color_buffer = r.create_data_buffer(cyl_color_bytes)
+        else:
+            r.destroy_data_buffer(self._cyl_color_buffer)
+            self._cyl_color_buffer = None
+
+        # Ensure RGBA textures for output and ping-pong accumulation.
+        res = ctx.resources
+        for name in ("pt_color", "pt_accum_0", "pt_accum_1"):
+            if res.needs_resize(name, w, h):
+                r.destroy_texture(res.remove(name))
+                res.put(name, r.create_rgba_texture(w, h), width=w, height=h)
+                self._accum_count = 0
+        color_tex = res.get("pt_color")
+        prev_tex = res.get(f"pt_accum_{self._ping}")
+        accum_tex = res.get(f"pt_accum_{1 - self._ping}")
+
+        pm = r.current_projection_matrix
+        cp = ctx.camera_position
+        if pm is None or cp is None:
+            return
+        inv_proj = np.linalg.inv(np.asarray(pm, dtype=np.float32))
+        inv_view = np.asarray(cp.opengl_matrix(), dtype=np.float32)
+
+        # Light directions: ChimeraX convention is direction light travels
+        # (away from source); shader expects direction toward the light.
+        kld = -np.array(lp.key_light_direction, dtype=np.float64)
+        key_light_world = cp.transform_vector(kld)
+        key_light_world = key_light_world / np.linalg.norm(key_light_world)
+
+        fld = -np.array(lp.fill_light_direction, dtype=np.float64)
+        fill_light_world = cp.transform_vector(fld)
+        fill_light_world = fill_light_world / np.linalg.norm(fill_light_world)
+
+        bg = r._background_color[:3]
+        ambient = tuple(
+            lp.ambient_light_intensity * c for c in lp.ambient_light_color
+        )
+
+        # Reset accumulation on camera, projection, or lighting change.
+        lighting_key = (
+            tuple(float(x) for x in key_light_world),
+            float(lp.key_light_intensity),
+            tuple(float(x) for x in fill_light_world),
+            float(lp.fill_light_intensity),
+            tuple(float(x) for x in ambient),
+            tuple(float(x) for x in bg),
+        )
+        if (
+            self._last_view_matrix is None
+            or not np.allclose(inv_view, self._last_view_matrix, atol=1e-6)
+            or not np.allclose(inv_proj, self._last_proj_matrix, atol=1e-6)
+            or lighting_key != self._last_lighting_key
+        ):
+            self._accum_count = 0
+        self._last_view_matrix = inv_view.copy()
+        self._last_proj_matrix = inv_proj.copy()
+        self._last_lighting_key = lighting_key
+
+        self._frame_counter += 1
+        self._accum_count += 1
+
+        r._ensure_pt_pipeline()
+        r.dispatch_pathtracer(
+            color_tex,
+            prev_tex,
+            accum_tex,
+            self._color_buffer,
+            self._cyl_color_buffer,
+            inv_proj,
+            inv_view,
+            frame=self._frame_counter,
+            accum_count=self._accum_count,
+            key_light_dir=tuple(key_light_world),
+            key_light_intensity=lp.key_light_intensity,
+            fill_light_dir=tuple(fill_light_world),
+            fill_light_intensity=lp.fill_light_intensity,
+            ambient_color=ambient,
+            background_color=bg,
+            max_bounces=int(lp.pt_max_bounces),
+        )
+        self._ping = 1 - self._ping
+
+        # Cross-bilateral denoise: smooths Monte-Carlo speckle inside
+        # each atom while the rasterised depth buffer keeps silhouettes
+        # sharp. Falls back to a direct blit if the renderer doesn't
+        # expose a denoise pass (Metal — TODO) or the scene depth tex
+        # isn't available.
+        depth_tex = (r.get_scene_depth_texture()
+                     if hasattr(r, "get_scene_depth_texture") else None)
+        denoise_tex = None
+        if (depth_tex is not None
+                and hasattr(r, "draw_pt_denoise")):
+            if res.needs_resize("pt_denoised", w, h):
+                r.destroy_texture(res.remove("pt_denoised"))
+                res.put("pt_denoised", r.create_color_texture(w, h),
+                        width=w, height=h)
+            denoise_tex = res.get("pt_denoised")
+
+            denoise_uniforms = np.zeros(4, dtype=np.float32)
+            denoise_uniforms[0] = 1.0 / w     # texel_size.x
+            denoise_uniforms[1] = 1.0 / h     # texel_size.y
+            denoise_uniforms[2] = float(lp.pt_denoise_threshold)
+            denoise_data = np.ascontiguousarray(denoise_uniforms)
+
+            r.begin_color_pass(denoise_tex, w, h, clear=True)
+            r.draw_pt_denoise(color_tex, depth_tex, denoise_data)
+            r._vulkan.end_render_pass(context=r._ctx)
+
+        # Blit the result to the framebuffer.  Clear color (don't load
+        # the rasterized scene) so the path-traced image fully replaces it.
+        r.begin_pt_blit_pass()
+        r.draw_pt_blit(denoise_tex if denoise_tex is not None else color_tex)
+
+        # Keep accumulating.
+        max_accum = int(lp.pt_max_accum)
+        if self._accum_count < max_accum:
+            ctx.view._drawing_manager.redraw_needed = True
+
+    @staticmethod
+    def _collect_geometry(ctx):
+        """Collect spheres and cylinders with colors in world space.
+
+        Returns (sphere_data, sphere_colors, cylinder_data, cylinder_colors).
+        """
+        import numpy as np
+        from .renderer import SHADER_IMPOSTOR_SPHERE, SHADER_IMPOSTOR_CYLINDER
+
+        all_spheres = []
+        all_sphere_colors = []
+        all_cyls = []
+        all_cyl_colors = []
+
+        for drawing in ctx.opaque_drawings:
+            # Determine world transform for this drawing.
+            parent_rot = None
+            parent_trans = None
+            if drawing.parent is not None:
+                scene_pos = drawing.parent.get_scene_positions(
+                    displayed_only=True
+                )
+                if not scene_pos.is_identity():
+                    p = scene_pos[0]
+                    parent_rot = np.asarray(p.matrix[:3, :3], dtype=np.float64)
+                    parent_trans = np.asarray(p.matrix[:3, 3], dtype=np.float64)
+
+            sas = drawing.positions.shift_and_scale_array()
+            if sas is not None and len(sas) > 0:
+                # Sphere impostor drawing.
+                coords = sas[:, :3].copy()
+                radii = sas[:, 3:4].copy()
+                if parent_rot is not None:
+                    coords = (coords @ parent_rot.T) + parent_trans
+
+                all_spheres.append(np.hstack([coords, radii]))
+
+                colors = drawing.colors
+                if colors is not None and len(colors) == len(sas):
+                    all_sphere_colors.append(colors)
+                else:
+                    all_sphere_colors.append(
+                        np.full((len(sas), 4), 255, dtype=np.uint8)
+                    )
+                continue
+
+            # Check for cylinder impostor (bond/pseudobond drawings have
+            # impostor_dashes attribute and use instance matrices).
+            if not hasattr(drawing, 'impostor_dashes'):
+                continue
+            matrices = drawing.positions.opengl_matrices()
+            if matrices is not None and len(matrices) > 0:
+                # Each 4x4 matrix transforms a unit cylinder (Z, -0.5..+0.5).
+                # Column 3 row 0-2 = translation (center).
+                # Column 2 row 0-2 = Z axis (cylinder direction * length).
+                # Column 0 row 0-2 length = radius.
+                # The 4th row carries the second atom color (packed).
+                n = len(matrices)
+                cyl_data = np.zeros((n, 8), dtype=np.float32)
+
+                for i in range(n):
+                    m = matrices[i]
+                    # opengl_matrices() stores columns as rows:
+                    # m[0] = X axis, m[1] = Y axis, m[2] = Z axis, m[3] = translation
+                    # (the w-component m[j,3] carries packed color2, not geometry)
+                    center = m[3, :3].copy()
+                    axis = m[2, :3].copy()
+                    radius = np.linalg.norm(m[0, :3])
+
+                    p0 = center - 0.5 * axis
+                    p1 = center + 0.5 * axis
+
+                    if parent_rot is not None:
+                        p0 = (parent_rot @ p0) + parent_trans
+                        p1 = (parent_rot @ p1) + parent_trans
+
+                    cyl_data[i, :3] = p0
+                    cyl_data[i, 3] = radius
+                    cyl_data[i, 4:7] = p1
+
+                all_cyls.append(cyl_data)
+
+                # Cylinder colors: use drawing.colors (first atom color).
+                colors = drawing.colors
+                if colors is not None and len(colors) == n:
+                    all_cyl_colors.append(colors)
+                else:
+                    all_cyl_colors.append(
+                        np.full((n, 4), 200, dtype=np.uint8)
+                    )
+
+        sphere_data = (np.vstack(all_spheres).astype(np.float32)
+                       if all_spheres else None)
+        sphere_colors = (np.vstack(all_sphere_colors).astype(np.uint8)
+                         if all_sphere_colors else None)
+        cyl_data = (np.vstack(all_cyls).astype(np.float32)
+                    if all_cyls else None)
+        cyl_colors = (np.vstack(all_cyl_colors).astype(np.uint8)
+                      if all_cyl_colors else None)
+        return sphere_data, sphere_colors, cyl_data, cyl_colors
+
+
 class OffscreenFinishPass(RenderPass):
     """Composite offscreen framebuffer back to the screen."""
 

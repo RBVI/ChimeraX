@@ -19,6 +19,7 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_destroy_context(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_resize_drawable(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_device_name(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_max_3d_texture_size(PyObject* self, PyObject* args, PyObject* kwds);
 
 // Frame lifecycle
 PyObject* vulkan_begin_frame(PyObject* self, PyObject* args, PyObject* kwds);
@@ -41,6 +42,7 @@ PyObject* vulkan_destroy_buffer(PyObject* self, PyObject* args, PyObject* kwds);
 
 // Texture management
 PyObject* vulkan_create_texture(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_update_texture(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_destroy_texture(PyObject* self, PyObject* args, PyObject* kwds);
 
 // Draw commands
@@ -54,8 +56,24 @@ PyObject* vulkan_set_viewport(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_set_depth_stencil_state(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_set_cull_mode(PyObject* self, PyObject* args, PyObject* kwds);
 
+// Offscreen framebuffer (image capture)
+PyObject* vulkan_create_offscreen_framebuffer(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_destroy_offscreen_framebuffer(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_set_active_offscreen(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_read_framebuffer(PyObject* self, PyObject* args, PyObject* kwds);
+
 // Query
 PyObject* vulkan_get_depth_texture(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_supports_ray_tracing(PyObject* self, PyObject* args, PyObject* kwds);
+
+// Ray tracing (RTAO + path tracer; see vulkan_raytracing.cpp)
+PyObject* vulkan_build_sphere_accel(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_build_mixed_accel(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_destroy_accel_struct(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_compile_rtao(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_dispatch_rtao(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_compile_pathtracer(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_dispatch_pathtracer(PyObject* self, PyObject* args, PyObject* kwds);
 
 #ifdef __cplusplus
 }

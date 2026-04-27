@@ -8,16 +8,8 @@
 
 #include <cstring>
 
-// ---------------------------------------------------------------------------
-//  Extended buffer struct that carries the VMA allocator handle so that
-//  update and destroy can map/free memory without needing the context.
-//  The base VulkanBuffer sits at offset 0, so a pointer to this struct
-//  can be safely reinterpret_cast to VulkanBuffer*.
-// ---------------------------------------------------------------------------
-struct BufferWithAllocator {
-    VulkanBuffer base;
-    VmaAllocator allocator;
-};
+// BufferWithAllocator is declared in vulkan_internal.h so the
+// deferred-deletion queue can free buffers without a back-reference here.
 
 // ---------------------------------------------------------------------------
 //  Buffer create / update / destroy
@@ -25,15 +17,16 @@ struct BufferWithAllocator {
 
 extern "C"
 PyObject* vulkan_create_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
-    long ctx_ptr;
+    Py_ssize_t ctx_ptr;
     Py_buffer py_buf;
     static const char* kwlist[] = {"context", "data", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("ly*"), (char**)kwlist, &ctx_ptr, &py_buf))
+            const_cast<char*>("ny*"), (char**)kwlist, &ctx_ptr, &py_buf))
         return NULL;
 
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
     Py_ssize_t data_len = py_buf.len;
+    VK_TRACE("create_buffer size=%zd", (Py_ssize_t)data_len);
 
     VkBufferCreateInfo buffer_info = {};
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -77,17 +70,19 @@ PyObject* vulkan_create_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
     bwa->base.allocation = allocation;
     bwa->base.size = static_cast<VkDeviceSize>(data_len);
     bwa->allocator = ctx->allocator;
+    bwa->ctx = ctx;
+    VK_TRACE("create_buffer done bwa=%p", (void*)bwa);
 
-    return PyLong_FromLong(reinterpret_cast<long>(bwa));
+    return PyLong_FromSsize_t(reinterpret_cast<Py_ssize_t>(bwa));
 }
 
 extern "C"
 PyObject* vulkan_update_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
-    long buf_ptr;
+    Py_ssize_t buf_ptr;
     Py_buffer py_buf;
     static const char* kwlist[] = {"buffer", "data", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("ly*"), (char**)kwlist, &buf_ptr, &py_buf))
+            const_cast<char*>("ny*"), (char**)kwlist, &buf_ptr, &py_buf))
         return NULL;
 
     VulkanBuffer* buf = reinterpret_cast<VulkanBuffer*>(buf_ptr);
@@ -119,17 +114,19 @@ PyObject* vulkan_update_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
 
 extern "C"
 PyObject* vulkan_destroy_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
-    long buf_ptr;
+    Py_ssize_t buf_ptr;
     static const char* kwlist[] = {"buffer", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("l"), (char**)kwlist, &buf_ptr))
+            const_cast<char*>("n"), (char**)kwlist, &buf_ptr))
         return NULL;
 
     BufferWithAllocator* bwa = reinterpret_cast<BufferWithAllocator*>(buf_ptr);
-    VulkanBuffer* buf = &bwa->base;
 
-    vmaDestroyBuffer(bwa->allocator, buf->buffer, buf->allocation);
-    delete bwa;
+    // Queue for destruction once any in-flight frame that could reference
+    // this buffer has retired. deferred_delete_slot routes to the slot
+    // currently in flight (or being recorded), so the next reuse of that
+    // slot's fence is what gates the actual vkDestroyBuffer.
+    bwa->ctx->pending_deletes[deferred_delete_slot(bwa->ctx)].buffers.push_back(bwa);
 
     Py_RETURN_NONE;
 }
@@ -140,12 +137,12 @@ PyObject* vulkan_destroy_buffer(PyObject* self, PyObject* args, PyObject* kwds) 
 
 extern "C"
 PyObject* vulkan_set_vertex_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
-    long ctx_ptr, buf_ptr;
-    int binding, offset;
-    static const char* kwlist[] = {"context", "buffer", "binding", "offset", NULL};
+    Py_ssize_t ctx_ptr, buf_ptr;
+    int index, offset;
+    static const char* kwlist[] = {"context", "buffer", "index", "offset", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("llii"), (char**)kwlist,
-            &ctx_ptr, &buf_ptr, &binding, &offset))
+            const_cast<char*>("nnii"), (char**)kwlist,
+            &ctx_ptr, &buf_ptr, &index, &offset))
         return NULL;
 
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
@@ -153,7 +150,7 @@ PyObject* vulkan_set_vertex_buffer(PyObject* self, PyObject* args, PyObject* kwd
 
     VkCommandBuffer cmd = ctx->frames[ctx->current_frame].command_buffer;
     VkDeviceSize vk_offset = static_cast<VkDeviceSize>(offset);
-    vkCmdBindVertexBuffers(cmd, static_cast<uint32_t>(binding), 1,
+    vkCmdBindVertexBuffers(cmd, static_cast<uint32_t>(index), 1,
                            &buf->buffer, &vk_offset);
 
     Py_RETURN_NONE;
@@ -161,36 +158,38 @@ PyObject* vulkan_set_vertex_buffer(PyObject* self, PyObject* args, PyObject* kwd
 
 extern "C"
 PyObject* vulkan_set_descriptor_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
-    long ctx_ptr, buf_ptr;
-    int binding, offset;
-    static const char* kwlist[] = {"context", "buffer", "binding", "offset", NULL};
+    Py_ssize_t ctx_ptr, buf_ptr;
+    int index, offset;
+    static const char* kwlist[] = {"context", "buffer", "index", "offset", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("llii"), (char**)kwlist,
-            &ctx_ptr, &buf_ptr, &binding, &offset))
+            const_cast<char*>("nnii"), (char**)kwlist,
+            &ctx_ptr, &buf_ptr, &index, &offset))
         return NULL;
 
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
     VulkanBuffer* buf = reinterpret_cast<VulkanBuffer*>(buf_ptr);
 
-    if (binding < 0 || binding >= static_cast<int>(MAX_UBO_BINDINGS)) {
+    if (index < 0 || index >= static_cast<int>(MAX_UBO_BINDINGS)) {
         PyErr_Format(PyExc_ValueError,
-                     "UBO binding %d out of range [0, %u)", binding, MAX_UBO_BINDINGS);
+                     "UBO index %d out of range [0, %u)", index, MAX_UBO_BINDINGS);
         return NULL;
     }
 
-    ctx->bound_ubo_buffers[binding] = buf;
+    ctx->bound_ubo_buffers[index] = buf;
     ctx->descriptor_dirty = true;
+    VK_TRACE("set_descriptor_buffer index=%d buf=%p size=%zd",
+             index, (void*)buf, (Py_ssize_t)buf->size);
 
     Py_RETURN_NONE;
 }
 
 extern "C"
 PyObject* vulkan_set_fragment_texture(PyObject* self, PyObject* args, PyObject* kwds) {
-    long ctx_ptr, tex_ptr;
+    Py_ssize_t ctx_ptr, tex_ptr;
     int index;
     static const char* kwlist[] = {"context", "texture", "index", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("lli"), (char**)kwlist,
+            const_cast<char*>("nni"), (char**)kwlist,
             &ctx_ptr, &tex_ptr, &index))
         return NULL;
 
@@ -205,6 +204,7 @@ PyObject* vulkan_set_fragment_texture(PyObject* self, PyObject* args, PyObject* 
 
     ctx->bound_textures[index] = tex;
     ctx->descriptor_dirty = true;
+    VK_TRACE("set_fragment_texture index=%d tex=%p", index, (void*)tex);
 
     Py_RETURN_NONE;
 }
@@ -220,43 +220,85 @@ static void flush_descriptors(VulkanContext* ctx) {
     uint32_t frame = ctx->current_frame;
     VkCommandBuffer cmd = ctx->frames[frame].command_buffer;
 
-    // Collect UBO descriptor writes for set 0.
+    // Allocate fresh descriptor sets out of the per-frame pool. We never
+    // reuse a set within a single command buffer recording: vkCmdBindDescriptorSets
+    // captures the descriptor set state, and updating that set later
+    // would invalidate the recorded binding (Vulkan disallows it without
+    // the UPDATE_AFTER_BIND extension). The pool is reset at the start
+    // of every frame so allocations stay cheap.
+    VkDescriptorSetLayout layouts[2] = {
+        ctx->descriptor_set_layout_ubo,
+        ctx->descriptor_set_layout_textures,
+    };
+    VkDescriptorSet sets[2] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+    {
+        VkDescriptorSetAllocateInfo alloc{};
+        alloc.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        alloc.descriptorPool = ctx->descriptor_pools[frame];
+        alloc.descriptorSetCount = 2;
+        alloc.pSetLayouts = layouts;
+        VkResult r = vkAllocateDescriptorSets(ctx->device, &alloc, sets);
+        if (r != VK_SUCCESS) {
+            // Pool exhausted — caller will see no binding update this draw,
+            // but at least the previously bound set stays valid.
+            return;
+        }
+    }
+
+    // Write descriptors for EVERY layout binding (set 0 + set 1) on every
+    // flush. User-bound resources go into the slots that have them; the
+    // remaining slots are filled with the per-type dummy resources
+    // created in vulkan_dummies.cpp. Vulkan validation requires every
+    // shader-statically-referenced binding to have a valid descriptor;
+    // skipping the write because "the shader's runtime path doesn't
+    // sample" is not enough -- the SPIR-V's descriptor declaration
+    // counts as static use, even when a specialization-constant if-gate
+    // compiles the actual access away.
     VkDescriptorBufferInfo buffer_infos[MAX_UBO_BINDINGS] = {};
     VkWriteDescriptorSet writes[MAX_UBO_BINDINGS + MAX_TEXTURE_BINDINGS] = {};
     uint32_t write_count = 0;
 
     for (uint32_t i = 0; i < MAX_UBO_BINDINGS; i++) {
-        if (!ctx->bound_ubo_buffers[i])
-            continue;
         VulkanBuffer* buf = ctx->bound_ubo_buffers[i];
-        buffer_infos[i].buffer = buf->buffer;
-        buffer_infos[i].offset = 0;
-        buffer_infos[i].range = buf->size;
+        if (buf) {
+            buffer_infos[i].buffer = buf->buffer;
+            buffer_infos[i].offset = 0;
+            buffer_infos[i].range = buf->size;
+        } else if (set0_descriptor_type(i) == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER) {
+            buffer_infos[i].buffer = ctx->dummy.ssbo_buffer;
+            buffer_infos[i].offset = 0;
+            buffer_infos[i].range = VK_WHOLE_SIZE;
+        } else {
+            buffer_infos[i].buffer = ctx->dummy.ubo_buffer;
+            buffer_infos[i].offset = 0;
+            buffer_infos[i].range = VK_WHOLE_SIZE;
+        }
 
         VkWriteDescriptorSet& w = writes[write_count++];
         w.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        w.dstSet = ctx->ubo_descriptor_sets[frame];
+        w.dstSet = sets[0];
         w.dstBinding = i;
         w.dstArrayElement = 0;
         w.descriptorCount = 1;
-        w.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        w.descriptorType = set0_descriptor_type(i);
         w.pBufferInfo = &buffer_infos[i];
     }
 
-    // Collect texture descriptor writes for set 1.
     VkDescriptorImageInfo image_infos[MAX_TEXTURE_BINDINGS] = {};
 
     for (uint32_t i = 0; i < MAX_TEXTURE_BINDINGS; i++) {
-        if (!ctx->bound_textures[i])
-            continue;
         VulkanTexture* tex = ctx->bound_textures[i];
-        image_infos[i].sampler = tex->sampler;
-        image_infos[i].imageView = tex->image_view;
-        image_infos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        if (tex) {
+            image_infos[i].sampler = tex->sampler;
+            image_infos[i].imageView = tex->image_view;
+            image_infos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        } else {
+            dummy_image_info_for_binding(ctx, i, image_infos[i]);
+        }
 
         VkWriteDescriptorSet& w = writes[write_count++];
         w.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        w.dstSet = ctx->texture_descriptor_sets[frame];
+        w.dstSet = sets[1];
         w.dstBinding = i;
         w.dstArrayElement = 0;
         w.descriptorCount = 1;
@@ -267,11 +309,20 @@ static void flush_descriptors(VulkanContext* ctx) {
     if (write_count > 0)
         vkUpdateDescriptorSets(ctx->device, write_count, writes, 0, nullptr);
 
-    // Bind both descriptor sets.
-    VkDescriptorSet sets[2] = {
-        ctx->ubo_descriptor_sets[frame],
-        ctx->texture_descriptor_sets[frame],
-    };
+    {
+        // Summarize what's bound — useful for diagnosing missing bindings
+        // for shadow / multishadow descriptors.
+        char ubo_state[MAX_UBO_BINDINGS + 1];
+        for (uint32_t i = 0; i < MAX_UBO_BINDINGS; ++i)
+            ubo_state[i] = ctx->bound_ubo_buffers[i] ? '1' : '0';
+        ubo_state[MAX_UBO_BINDINGS] = '\0';
+        char tex_state[MAX_TEXTURE_BINDINGS + 1];
+        for (uint32_t i = 0; i < MAX_TEXTURE_BINDINGS; ++i)
+            tex_state[i] = ctx->bound_textures[i] ? '1' : '0';
+        tex_state[MAX_TEXTURE_BINDINGS] = '\0';
+        VK_TRACE("flush_descriptors set0=%s set1=%s", ubo_state, tex_state);
+    }
+
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS,
                             ctx->shared_pipeline_layout,
                             0, 2, sets, 0, nullptr);
@@ -285,18 +336,20 @@ static void flush_descriptors(VulkanContext* ctx) {
 
 extern "C"
 PyObject* vulkan_draw_indexed(PyObject* self, PyObject* args, PyObject* kwds) {
-    long ctx_ptr, index_buf_ptr;
+    Py_ssize_t ctx_ptr, index_buf_ptr;
     int primitive_type, index_count, index_offset, instance_count;
     static const char* kwlist[] = {"context", "index_buffer", "primitive_type",
                                    "index_count", "index_offset", "instance_count", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("lliiii"), (char**)kwlist,
+            const_cast<char*>("nniiii"), (char**)kwlist,
             &ctx_ptr, &index_buf_ptr, &primitive_type,
             &index_count, &index_offset, &instance_count))
         return NULL;
 
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
     VulkanBuffer* idx_buf = reinterpret_cast<VulkanBuffer*>(index_buf_ptr);
+    VK_TRACE("draw_indexed prim=%d count=%d offset=%d inst=%d in_pass=%d",
+             primitive_type, index_count, index_offset, instance_count, ctx->in_render_pass ? 1 : 0);
 
     if (!ctx->in_render_pass)
         Py_RETURN_NONE;
@@ -306,9 +359,11 @@ PyObject* vulkan_draw_indexed(PyObject* self, PyObject* args, PyObject* kwds) {
     // Flush any pending descriptor set updates.
     flush_descriptors(ctx);
 
-    // Bind the index buffer (always 32-bit unsigned indices).
-    VkDeviceSize idx_offset = static_cast<VkDeviceSize>(index_offset) * sizeof(uint32_t);
-    vkCmdBindIndexBuffer(cmd, idx_buf->buffer, idx_offset, VK_INDEX_TYPE_UINT32);
+    // Bind the index buffer at offset 0 and use firstIndex on the draw.
+    // This is equivalent to binding with a byte offset and firstIndex=0,
+    // but avoids re-binding the index buffer per draw inside a multitexture
+    // loop (some drivers misbehave with repeated index-buffer binds).
+    vkCmdBindIndexBuffer(cmd, idx_buf->buffer, 0, VK_INDEX_TYPE_UINT32);
 
     // Issue the draw call.  Primitive topology is baked into the pipeline
     // state, so the primitive_type parameter is not used here.
@@ -316,7 +371,7 @@ PyObject* vulkan_draw_indexed(PyObject* self, PyObject* args, PyObject* kwds) {
     vkCmdDrawIndexed(cmd,
                      static_cast<uint32_t>(index_count),
                      static_cast<uint32_t>(instance_count),
-                     0,   // firstIndex
+                     static_cast<uint32_t>(index_offset),  // firstIndex
                      0,   // vertexOffset
                      0);  // firstInstance
 
@@ -329,12 +384,12 @@ PyObject* vulkan_draw_indexed(PyObject* self, PyObject* args, PyObject* kwds) {
 
 extern "C"
 PyObject* vulkan_set_depth_stencil_state(PyObject* self, PyObject* args, PyObject* kwds) {
-    long ctx_ptr;
+    Py_ssize_t ctx_ptr;
     int depth_write, depth_test, compare_func;
     static const char* kwlist[] = {"context", "depth_write", "depth_test",
                                    "compare_func", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("liii"), (char**)kwlist,
+            const_cast<char*>("niii"), (char**)kwlist,
             &ctx_ptr, &depth_write, &depth_test, &compare_func))
         return NULL;
 

@@ -46,6 +46,19 @@ from .camera360 import Mono360Camera, Stereo360Camera, DomeCamera
 from .crossfade import CrossFade, MotionBlur
 
 from .opengl import Texture, Lighting, Material
+
+
+def set_texture_class(cls):
+    """Replace the module-level `Texture` with a backend-specific class.
+
+    The Vulkan and Metal backends call this from their renderer's __init__
+    so that backend-agnostic code that does `from chimerax.graphics import
+    Texture` picks up the right implementation. Imports inside functions
+    re-resolve the attribute on each call, so the swap takes effect for
+    any subsequent `Texture(...)` construction without restarting Python.
+    """
+    global Texture
+    Texture = cls
 from .opengl import OffScreenRenderingContext, OpenGLContext
 from .opengl import remember_current_opengl_context, restore_current_opengl_context
 from .opengl import Render, OpenGLError, OpenGLVersionError

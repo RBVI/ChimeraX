@@ -13,38 +13,51 @@
 
 from Qt.QtGui import QWindow, QSurface
 
+
 class GraphicsWindow(QWindow):
     """
     The graphics window that displays the three-dimensional models.
     """
 
-    def __init__(self, parent, ui, stereo = False, opengl_context = None):
+    def __init__(self, parent, ui, stereo=False, opengl_context=None):
         self.session = ui.session
         self.view = ui.session.main_view
 
         QWindow.__init__(self)
         from Qt.QtWidgets import QWidget
+
         self.widget = w = QWidget.createWindowContainer(self, parent)
         w.setAcceptDrops(True)
+        import os, sys
 
-        if opengl_context is None:
+        backend = os.environ.get("CHIMERAX_GRAPHICS_BACKEND", "").lower()
+        use_vulkan = sys.platform != "darwin" and backend == "vulkan"
+        if use_vulkan:
+            self.setSurfaceType(QSurface.SurfaceType.VulkanSurface)
+            from chimerax.graphics.vulkan import VulkanContext
+
+            oc = VulkanContext(self, ui.primaryScreen())
+        elif opengl_context is None:
             self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
             from chimerax.graphics import OpenGLContext
-            oc = OpenGLContext(self, ui.primaryScreen(), use_stereo = stereo)
+
+            oc = OpenGLContext(self, ui.primaryScreen(), use_stereo=stereo)
         else:
             self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
             from chimerax.graphics import OpenGLError
+
             try:
-                opengl_context.enable_stereo(stereo, window = self)
+                opengl_context.enable_stereo(stereo, window=self)
             except OpenGLError as e:
                 from chimerax.core.errors import UserError
+
                 raise UserError(str(e))
             oc = opengl_context
 
         self.opengl_context = oc
         self.view.initialize_rendering(oc)
 
-        self.popup = Popup(self)        # For display of atom spec balloons
+        self.popup = Popup(self)  # For display of atom spec balloons
 
     def event(self, event):
         # QWindow does not have drag and drop methods to handle file dropped on app
@@ -52,7 +65,8 @@ class GraphicsWindow(QWindow):
         if self.handle_drag_and_drop(event):
             return True
         from Qt.QtCore import QEvent
-        if event.type() == QEvent.Type.Show and not getattr(self, '_first_show', False):
+
+        if event.type() == QEvent.Type.Show and not getattr(self, "_first_show", False):
             self._first_show = True
             self.session.ui.mouse_modes.set_graphics_window(self)
             self._check_opengl()
@@ -62,7 +76,11 @@ class GraphicsWindow(QWindow):
         r = self.view.render
         log = self.session.logger
         from chimerax.graphics import OpenGLVersionError, OpenGLError
-        from chimerax.graphics import remember_current_opengl_context, restore_current_opengl_context
+        from chimerax.graphics import (
+            remember_current_opengl_context,
+            restore_current_opengl_context,
+        )
+
         cc = remember_current_opengl_context()
         try:
             success = r.make_current()
@@ -76,7 +94,7 @@ class GraphicsWindow(QWindow):
         if success:
             e = r.check_for_opengl_errors()
             if e:
-                msg = 'There was an OpenGL graphics error while starting up.  This is usually a problem with the system graphics driver, and the only way to remedy it is to update the graphics driver. ChimeraX will probably not function correctly with the current graphics driver.'
+                msg = "There was an OpenGL graphics error while starting up.  This is usually a problem with the system graphics driver, and the only way to remedy it is to update the graphics driver. ChimeraX will probably not function correctly with the current graphics driver."
                 msg += '\n\n\t"%s"' % e
                 log.error(msg)
                 success = False
@@ -88,35 +106,39 @@ class GraphicsWindow(QWindow):
 
     def _check_for_bad_intel_driver(self):
         import sys
-        if sys.platform != 'win32':
+
+        if sys.platform != "win32":
             return
         from chimerax.ui.widgets import HtmlView
+
         if HtmlView.require_native_window:
             return  # Already applied this fix.
         r = self.view.render
-        if r.opengl_vendor() == 'Intel':
+        if r.opengl_vendor() == "Intel":
             ver = r.opengl_version()
             try:
-                build = int(ver.split('.')[-1])
+                build = int(ver.split(".")[-1])
             except Exception:
                 return
-            if 'Build 26.20.100.' in ver and 6708 < build < 8280:
+            if "Build 26.20.100." in ver and 6708 < build < 8280:
                 # This is to work around ChimeraX bug #2537 where the entire
                 # GUI becomes blank with some 2019 Intel graphics drivers.
 
                 # TODO: This fix may fail if HtmlView widgets are created
                 #       before the graphics is checked.  Worked in tests on one machine.
                 HtmlView.require_native_window = True
-                msg = ('Your computer has Intel graphics driver %d with a known bug '
-                       'that causes all Qt user interface panels to be blank. '
-                       'ChimeraX can partially fix this but may make some panel '
-                       'titlebars and edges black.  Hopefully newer '
-                       'Intel graphics drivers will fix this.' % build)
+                msg = (
+                    "Your computer has Intel graphics driver %d with a known bug "
+                    "that causes all Qt user interface panels to be blank. "
+                    "ChimeraX can partially fix this but may make some panel "
+                    "titlebars and edges black.  Hopefully newer "
+                    "Intel graphics drivers will fix this." % build
+                )
                 self.session.logger.warning(msg)
 
     def handle_drag_and_drop(self, event):
         ui = self.session.ui
-        if hasattr(ui, 'main_window'):
+        if hasattr(ui, "main_window"):
             mw = ui.main_window
             from Qt.QtGui import QDragEnterEvent, QDropEvent
             if isinstance(event, QDragEnterEvent):
@@ -132,8 +154,10 @@ class GraphicsWindow(QWindow):
     # to a devicePixelRatio = 1 screen on Windows 10.
     def size(self):
         return self.widget.size()
+
     def width(self):
         return self.widget.width()
+
     def height(self):
         return self.widget.height()
 
@@ -145,12 +169,13 @@ class GraphicsWindow(QWindow):
         v.redraw_needed = True
 
         if self.session.ui.main_window is None:
-            return	# main window not yet initialized.
+            return  # main window not yet initialized.
         if not self.is_drawable:
-            return	# Window is not yet exposed so can't use opengl
+            return  # Window is not yet exposed so can't use opengl
 
         # Avoid flickering when resizing by drawing immediately.
         from chimerax.graphics import OpenGLVersionError
+
         try:
             self.session.update_loop.update_graphics_now()
         except OpenGLVersionError as e:
@@ -159,29 +184,33 @@ class GraphicsWindow(QWindow):
 
     @property
     def is_drawable(self):
-        '''
+        """
         Whether graphics window can be drawn to using OpenGL.
         False until window has been created by the native window toolkit.
-        '''
+        """
         return self.isExposed()
 
     def exposeEvent(self, event):
         self.view.redraw_needed = True
 
-from Qt.QtWidgets import QLabel
-class Popup(QLabel):
 
+from Qt.QtWidgets import QLabel
+
+
+class Popup(QLabel):
     def __init__(self, graphics_window):
         from Qt.QtCore import Qt
+
         QLabel.__init__(self)
         import sys
-        if sys.platform == 'darwin':
+
+        if sys.platform == "darwin":
             # Don't use a Qt.ToolTip which can do undesired auto-hiding on Mac. Bug #2140
             # But on Linux these flags cause huge non-updating balloons, and on Windows
             # the balloon takes the focus (Qt 5.12.4).
             # These flags also cause problems on Mac if ChimeraX is fullscreen, the
             # balloon replaces the entire gui, ChimeraX bug #2210.
-#            win_flags = Qt.FramelessWindowHint | Qt.WindowTransparentForInput | Qt.WindowDoesNotAcceptFocus
+            #            win_flags = Qt.FramelessWindowHint | Qt.WindowTransparentForInput | Qt.WindowDoesNotAcceptFocus
             win_flags = Qt.WindowType.ToolTip
         else:
             win_flags = Qt.WindowType.ToolTip
@@ -191,5 +220,6 @@ class Popup(QLabel):
     def show_text(self, text, position):
         self.setText(text)
         from Qt.QtCore import QPoint
+
         self.move(self.graphics_window.mapToGlobal(QPoint(*position)))
         self.show()

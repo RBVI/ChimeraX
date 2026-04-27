@@ -237,6 +237,7 @@ class View:
         from .render_passes import (
             ShadowMapPass, OffscreenStartPass, SilhouetteStartPass,
             BackgroundPass, ViewSetupPass, DepthPrepass, OpaquePass,
+            RTAOPass, PathTracePass,
             OutlineMaskPass, SilhouetteDrawPass,
             TransparentPass, DepthResetPass, SilhouetteFinishPass,
             HighlightOutlinePass, OnTopPass, OffscreenFinishPass,
@@ -249,6 +250,8 @@ class View:
         g.add_per_view(ViewSetupPass())
         g.add_per_view(DepthPrepass())
         g.add_per_view(OpaquePass())
+        g.add_per_view(RTAOPass())
+        g.add_per_view(PathTracePass())
         g.add_per_view(OutlineMaskPass())
         g.add_per_view(SilhouetteDrawPass())
         g.add_per_view(TransparentPass())
@@ -448,15 +451,20 @@ class View:
 
         w, h = self._window_size_matching_aspect(width, height)
 
+        # Renderer-agnostic offscreen framebuffer. Each backend (OpenGL,
+        # Vulkan) returns its own implementation.
         # TODO: For recording videos would be useful not to recreate framebuffer on every frame.
-        from .opengl import Framebuffer
-        fb = Framebuffer('image capture', self.render.opengl_context, w, h,
-                         alpha = transparent_background)
+        r = self._render
+        if hasattr(r, 'create_framebuffer'):
+            fb = r.create_framebuffer('image capture', w, h, alpha=transparent_background)
+        else:
+            from .opengl import Framebuffer
+            fb = Framebuffer('image capture', r.opengl_context, w, h,
+                             alpha=transparent_background)
         if not fb.activate():
             fb.delete()
             return None         # Image size exceeds framebuffer limits
 
-        r = self._render
         r.push_framebuffer(fb)
 
         if camera is None:

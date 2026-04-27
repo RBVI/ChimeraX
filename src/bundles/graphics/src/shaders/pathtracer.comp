@@ -1,0 +1,345 @@
+// pathtracer.comp -- Path tracer for sphere + cylinder impostors. Vulkan
+// port of pathtracer.metal. Uses ray queries with two AABB geometries:
+//   geometry 0 = spheres,   primitive data = vec4(xyz, radius)
+//   geometry 1 = cylinders, primitive data = vec4(p0,r), vec4(p1, _)
+// Direct illumination via shadow rays to a key light, indirect via
+// cosine-weighted hemisphere bounces with Russian roulette and an
+// environment fallback. Temporal accumulation matches Metal.
+
+#version 460
+#extension GL_EXT_ray_query : require
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform PTUniforms {
+    mat4  inv_projection;
+    mat4  inv_view;
+    uvec2 size;             // .x=width, .y=height
+    uint  frame;
+    uint  accum_count;
+    vec4  key_light_dir;    // .xyz toward light, .w intensity
+    vec4  fill_light_dir;   // unused but kept for layout parity with Metal
+    vec4  ambient_color;    // unused; bounces approximate ambient
+    vec4  background_color; // primary-ray miss color
+    int   max_bounces;
+    float _pad0;
+    float _pad1;
+    float _pad2;
+} u;
+
+layout(set = 0, binding = 1) uniform accelerationStructureEXT tlas;
+
+layout(set = 0, binding = 2, std430) readonly buffer SphereBuffer {
+    vec4 spheres[];
+};
+
+struct Cylinder {
+    vec4 p0_r;   // .xyz = endpoint 0, .w = radius
+    vec4 p1;     // .xyz = endpoint 1
+};
+layout(set = 0, binding = 3, std430) readonly buffer CylinderBuffer {
+    Cylinder cylinders[];
+};
+
+// Per-primitive RGBA8 colors packed as uints.
+layout(set = 0, binding = 4, std430) readonly buffer SphereColorBuffer {
+    uint sphere_colors[];
+};
+layout(set = 0, binding = 5, std430) readonly buffer CylinderColorBuffer {
+    uint cylinder_colors[];
+};
+
+layout(set = 0, binding = 6, rgba8) uniform writeonly image2D color_tex;
+layout(set = 0, binding = 7) uniform sampler2D prev_tex;
+layout(set = 0, binding = 8, rgba8) uniform writeonly image2D accum_tex;
+
+// ---------------------------------------------------------------------------
+//  Hash + cosine hemisphere sampler (same as rtao.comp).
+// ---------------------------------------------------------------------------
+float hash_f(uint seed) {
+    seed = (seed ^ 61u) ^ (seed >> 16u);
+    seed *= 9u;
+    seed = seed ^ (seed >> 4u);
+    seed *= 0x27d4eb2du;
+    seed = seed ^ (seed >> 15u);
+    return float(seed) / float(0xFFFFFFFFu);
+}
+
+vec3 cosine_hemisphere(uint pixel_seed, uint ray_index, vec3 N) {
+    uint seed = pixel_seed * 1973u + ray_index * 6133u + 1u;
+    float u1 = hash_f(seed);
+    float u2 = hash_f(seed * 2654435761u);
+
+    float r = sqrt(u1);
+    float theta = 2.0 * 3.14159265358979 * u2;
+    float x = r * cos(theta);
+    float y = r * sin(theta);
+    float z = sqrt(max(0.0, 1.0 - u1));
+
+    vec3 up = abs(N.y) < 0.999 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+    vec3 tangent = normalize(cross(up, N));
+    vec3 bitangent = cross(N, tangent);
+    return tangent * x + bitangent * y + N * z;
+}
+
+// ---------------------------------------------------------------------------
+//  Inline ray-sphere and capped-cylinder intersection. Same Inigo Quilez
+//  capped cylinder formulation as Metal.
+// ---------------------------------------------------------------------------
+float ray_sphere(vec3 ro, vec3 rd, vec4 sph, float tmin, float tmax) {
+    // Discriminant computed via the perpendicular distance from the
+    // sphere centre to the ray, not via the classical b² - (|oc|² - r²).
+    // When the camera is far from the atom (zoomed-out cellular views,
+    // where D >> r), b² and |oc|² are both ~D² and their difference is
+    // r² — i.e. catastrophic cancellation in FP32. The perp formulation
+    // computes a small vector first and squares it, which keeps the
+    // working magnitudes near r and avoids the cancellation. Silhouette
+    // pixels stop randomly false-missing.
+    vec3 oc = ro - sph.xyz;
+    float b = dot(oc, rd);
+    vec3 perp = oc - rd * b;
+    float disc = sph.w * sph.w - dot(perp, perp);
+    if (disc < 0.0) return -1.0;
+    float s = sqrt(disc);
+    float t = -b - s;
+    if (t > tmin && t < tmax) return t;
+    t = -b + s;
+    if (t > tmin && t < tmax) return t;
+    return -1.0;
+}
+
+float capped_cyl_isect(vec3 ro, vec3 rd, vec3 a, vec3 b, float r) {
+    vec3 ba = b - a;
+    vec3 oc = ro - a;
+    float baba = dot(ba, ba);
+    float bard = dot(ba, rd);
+    float baoc = dot(ba, oc);
+
+    float k2 = baba - bard * bard;
+    float k1 = baba * dot(oc, rd) - baoc * bard;
+    float k0 = baba * dot(oc, oc) - baoc * baoc - r * r * baba;
+
+    float h = k1 * k1 - k2 * k0;
+    if (h < 0.0) return -1.0;
+    h = sqrt(h);
+
+    float t = (-k1 - h) / k2;
+    float y = baoc + t * bard;
+    if (y > 0.0 && y < baba) return t;
+
+    float cap = (y <= 0.0) ? 0.0 : baba;
+    t = (cap - baoc) / bard;
+    if (abs(k2 * t + k1) < h) return t;
+
+    t = (-k1 + h) / k2;
+    y = baoc + t * bard;
+    if (y > 0.0 && y < baba) return t;
+    return -1.0;
+}
+
+float ray_cylinder(vec3 ro, vec3 rd, uint primId, float tmin, float tmax) {
+    Cylinder c = cylinders[primId];
+    float t = capped_cyl_isect(ro, rd, c.p0_r.xyz, c.p1.xyz, c.p0_r.w);
+    return (t > tmin && t < tmax) ? t : -1.0;
+}
+
+// ---------------------------------------------------------------------------
+//  Surface normal helpers.
+// ---------------------------------------------------------------------------
+vec3 sphere_normal(vec3 hit, uint primId) {
+    return normalize(hit - spheres[primId].xyz);
+}
+
+vec3 cylinder_normal(vec3 hit, uint primId) {
+    Cylinder c = cylinders[primId];
+    vec3 ba = c.p1.xyz - c.p0_r.xyz;
+    float baba = dot(ba, ba);
+    float t_axis = dot(hit - c.p0_r.xyz, ba) / baba;
+    if (t_axis <= 0.001) return normalize(-ba);
+    if (t_axis >= 0.999) return normalize(ba);
+    vec3 axis_pt = c.p0_r.xyz + ba * t_axis;
+    return normalize(hit - axis_pt);
+}
+
+vec3 unpack_color(uint c) {
+    return vec3(float(c & 0xffu), float((c >> 8) & 0xffu),
+                float((c >> 16) & 0xffu)) / 255.0;
+}
+
+vec3 environment(vec3 dir) {
+    float t = 0.5 * (dir.y + 1.0);
+    return mix(vec3(0.2), vec3(0.6, 0.75, 0.95), t);
+}
+
+// ---------------------------------------------------------------------------
+//  Closest-hit ray query: walks AABB candidates, runs analytical sphere or
+//  cylinder intersection, and lets the runtime track the minimum t. Returns
+//  geom + prim + t via out params (or false on miss).
+// ---------------------------------------------------------------------------
+bool closest_hit(vec3 ro, vec3 rd, float tmin, float tmax,
+                 out uint geom, out uint prim, out float t_hit)
+{
+    rayQueryEXT rq;
+    rayQueryInitializeEXT(rq, tlas, gl_RayFlagsOpaqueEXT, 0xFFu,
+                          ro, tmin, rd, tmax);
+
+    // Track closest t ourselves and only call GenerateIntersection with
+    // a strictly-closer candidate. Per spec the runtime is supposed to
+    // commit-if-closer, but on this driver it commits whatever was
+    // generated last — so for an unordered BVH walk a far candidate
+    // generated after a near one would replace the near one and the
+    // committed (geom, prim) would point at an atom behind the actual
+    // front-most hit. Capping ray_sphere/ray_cylinder's tmax with
+    // closest_t also lets the analytical test reject far roots up front.
+    float closest_t = tmax;
+
+    while (rayQueryProceedEXT(rq)) {
+        if (rayQueryGetIntersectionTypeEXT(rq, false)
+            == gl_RayQueryCandidateIntersectionAABBEXT) {
+            uint g = rayQueryGetIntersectionGeometryIndexEXT(rq, false);
+            uint p = rayQueryGetIntersectionPrimitiveIndexEXT(rq, false);
+            float t = (g == 0u) ? ray_sphere(ro, rd, spheres[p], tmin, closest_t)
+                                : ray_cylinder(ro, rd, p, tmin, closest_t);
+            if (t > 0.0 && t < closest_t) {
+                closest_t = t;
+                rayQueryGenerateIntersectionEXT(rq, t);
+            }
+        }
+    }
+
+    if (rayQueryGetIntersectionTypeEXT(rq, true)
+        == gl_RayQueryCommittedIntersectionNoneEXT)
+        return false;
+
+    geom  = rayQueryGetIntersectionGeometryIndexEXT(rq, true);
+    prim  = rayQueryGetIntersectionPrimitiveIndexEXT(rq, true);
+    t_hit = rayQueryGetIntersectionTEXT(rq, true);
+    return true;
+}
+
+// Any-hit shadow ray: terminates on first confirmed intersection.
+bool any_hit(vec3 ro, vec3 rd, float tmax) {
+    rayQueryEXT rq;
+    rayQueryInitializeEXT(rq, tlas,
+        gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT,
+        0xFFu, ro, 0.0, rd, tmax);
+
+    while (rayQueryProceedEXT(rq)) {
+        if (rayQueryGetIntersectionTypeEXT(rq, false)
+            == gl_RayQueryCandidateIntersectionAABBEXT) {
+            uint g = rayQueryGetIntersectionGeometryIndexEXT(rq, false);
+            uint p = rayQueryGetIntersectionPrimitiveIndexEXT(rq, false);
+            float t = (g == 0u) ? ray_sphere(ro, rd, spheres[p], 0.0, tmax)
+                                : ray_cylinder(ro, rd, p, 0.0, tmax);
+            if (t > 0.0) {
+                rayQueryGenerateIntersectionEXT(rq, t);
+            }
+        }
+    }
+    return rayQueryGetIntersectionTypeEXT(rq, true)
+        != gl_RayQueryCommittedIntersectionNoneEXT;
+}
+
+void main() {
+    ivec2 tid = ivec2(gl_GlobalInvocationID.xy);
+    if (uint(tid.x) >= u.size.x || uint(tid.y) >= u.size.y)
+        return;
+
+    // ---- Camera ray ----
+    // No Y flip: Vulkan's projection matrix already negates the Y row,
+    // and Vulkan window-Y / NDC-Y both point down — so window pixel
+    // (x, y) maps directly to NDC ((x/w)*2-1, (y/h)*2-1).
+    //
+    // Origin at the actual camera (view-space origin), NOT the near
+    // plane: ChimeraX's near plane is tuned right in front of the
+    // visible scene, so for the closest atoms the near plane lies
+    // inside the sphere. A near-plane origin then puts ro inside the
+    // sphere, and ray_sphere returns the back-surface exit point —
+    // the visual effect is each front-most sphere being sliced flat
+    // along the near plane (its "billboard"). Originating from the
+    // camera itself avoids that.
+    vec2 uv = (vec2(tid) + 0.5) / vec2(u.size);
+    vec2 ndc = uv * 2.0 - 1.0;
+
+    vec3 ro_world = (u.inv_view * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+    vec4 vf = u.inv_projection * vec4(ndc, 1.0, 1.0);
+    vf /= vf.w;
+    vec3 rt_world = (u.inv_view * vec4(vf.xyz, 1.0)).xyz;
+    vec3 rd_world = normalize(rt_world - ro_world);
+
+    uint pixel_seed = (uint(tid.x) + uint(tid.y) * u.size.x) ^ (u.frame * 7919u);
+    uint ray_counter = 0u;
+
+    // ===========================================================
+    //  DIAGNOSTIC PHASE 3: visualize the surface normal as RGB.
+    //  Each sphere should look like a smooth colored ball with the
+    //  full RGB gradient (positive X red, positive Y green, positive
+    //  Z blue, mapped to [0,1] via N*0.5+0.5). If we see flat patches
+    //  of color per sphere or a sharp seam splitting each sphere,
+    //  the normal is being computed incorrectly.
+    // ===========================================================
+    // (Diagnostics removed — chain validated end-to-end:
+    //  blit covers full screen, intersection returns clean hit
+    //  silhouettes, geometry IDs are correct, normals smooth.)
+
+    vec3 throughput = vec3(1.0);
+    vec3 radiance   = vec3(0.0);
+    vec3 origin = ro_world;
+    vec3 dir    = rd_world;
+
+    for (int bounce = 0; bounce <= u.max_bounces; bounce++) {
+        uint geom, prim;
+        float t_hit;
+        bool hit = closest_hit(origin, dir, 0.001, 1e10, geom, prim, t_hit);
+        if (!hit) {
+            if (bounce == 0) radiance = u.background_color.xyz;
+            else radiance += throughput * environment(dir);
+            break;
+        }
+
+        vec3 hit_point = origin + dir * t_hit;
+        vec3 N;
+        vec3 albedo;
+        if (geom == 0u) {
+            N = sphere_normal(hit_point, prim);
+            albedo = unpack_color(sphere_colors[prim]);
+        } else {
+            N = cylinder_normal(hit_point, prim);
+            albedo = unpack_color(cylinder_colors[prim]);
+        }
+
+        // Direct lighting: shadow ray to key light, accept any blocker.
+        vec3 key_dir = u.key_light_dir.xyz;
+        float key_int = u.key_light_dir.w;
+        float NdotL = max(dot(N, key_dir), 0.0);
+        if (NdotL > 0.0) {
+            vec3 sh_origin = hit_point + N * 0.002;
+            if (!any_hit(sh_origin, key_dir, 1e10))
+                radiance += throughput * albedo * NdotL * key_int;
+        }
+
+        // Russian roulette after first bounce.
+        if (bounce > 0) {
+            float p = max(max(throughput.r, throughput.g), throughput.b);
+            if (hash_f(pixel_seed * 3571u + uint(bounce) * 997u) > p) break;
+            throughput /= p;
+        }
+
+        // Indirect bounce: cosine-weighted hemisphere; the cos/PDF cancels
+        // with the Lambertian BRDF, so just scale throughput by albedo.
+        throughput *= albedo;
+        origin = hit_point + N * 0.002;
+        dir = cosine_hemisphere(pixel_seed, ray_counter++, N);
+    }
+
+    vec3 color = radiance;
+    if (u.accum_count > 1u) {
+        vec3 prev = texelFetch(prev_tex, tid, 0).rgb;
+        float w = 1.0 / float(u.accum_count);
+        color = mix(prev, color, w);
+    }
+
+    vec4 out_color = vec4(color, 1.0);
+    imageStore(color_tex, tid, out_color);
+    imageStore(accum_tex, tid, out_color);
+}
