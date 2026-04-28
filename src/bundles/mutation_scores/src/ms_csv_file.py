@@ -23,7 +23,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def open_mutation_scores_csv(session, path, name = None, show_plot = False, chains = None, allow_mismatches = False):
-    mset = _read_mutation_scores_csv(path, name = name)
+    mset = _read_mutation_scores_csv(path, name = name, logger = session.logger)
 
     if chains:
         mset.set_associated_chains(chains, allow_mismatches = allow_mismatches)
@@ -59,13 +59,14 @@ def open_mutation_scores_csv(session, path, name = None, show_plot = False, chai
 
     return mset, message
 
-def _read_mutation_scores_csv(path, name = None):
+def _read_mutation_scores_csv(path, name = None, logger = None):
     with open(path, 'r') as f:
         lines = f.readlines()
     headings = [h.strip() for h in lines[0].split(',')]
     hgvs_column = _hgvs_column(headings)
     mscores = []
     mut = set()
+    hgvs_ignored = []
     from .ms_data import MutationScores    
     for i, line in enumerate(lines[1:]):
         if line.strip() == '':
@@ -77,6 +78,7 @@ def _read_mutation_scores_csv(path, name = None):
         hgvs = fields[hgvs_column]
         res_num, res_type, res_type2 = _parse_hgvs(hgvs, line_num = i+2)
         if res_type2 is None:
+            hgvs_ignored.append(hgvs)
             continue
         if (res_num, res_type, res_type2) in mut:
             from chimerax.core.errors import UserError
@@ -89,6 +91,13 @@ def _read_mutation_scores_csv(path, name = None):
     name = splitext(basename(path))[0] if name is None else name
     from .ms_data import MutationSet
     mset = MutationSet(name, mscores, path = path)
+
+    if hgvs_ignored and logger:
+        ignored = ", ".join(hgvs_ignored[:10])
+        if len(hgvs_ignored) > 10:
+            ignored += ' ...'
+        from chimerax.core.errors import UserError
+        logger.info(f'Ignored {len(hgvs_ignored)} variants not of form p.<from_aa><num><to_aa>: {ignored}')
 
     return mset
 
@@ -117,22 +126,25 @@ def _parse_hgvs(hgvs, line_num):
     var = hgvs[2:]
     if var.startswith('(') and var.endswith(')'):
         var = var[1:-1]
-    if 'del' in var or 'ins' in var or '_' in var or 'Ter' in var:
-        return None, None, None
     try:
         if var[1].isdigit():
             # One-letter codes
             res_type = var[0]
             res_num = int(var[1:-1])
             res_type2 = var[-1]
+            if res_type2 == '=':
+                res_type2 = res_type
         else:
             # 3-letter coes
             res_type = aa_3_to_1[var[:3]]
-            res_num = int(var[3:-3])
-            res_type2 = aa_3_to_1[var[-3:]]
+            if var.endswith('='):
+                res_num = int(var[3:-1])
+                res_type2 = res_type
+            else:
+                res_num = int(var[3:-3])
+                res_type2 = aa_3_to_1[var[-3:]]
     except (IndexError, ValueError, KeyError):
-        from chimerax.core.errors import UserError
-        raise UserError(f'Line {line_num} has hgvs field "{hgvs}" not of form p.<from_aa><num><to_aa>')
+        return None, None, None
     return res_num, res_type, res_type2
 
 def _parse_scores(headings, fields):
