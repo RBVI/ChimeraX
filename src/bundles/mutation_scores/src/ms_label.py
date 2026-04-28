@@ -61,7 +61,6 @@ def _residues_by_chain(residues):
     return [(c, Residues(res)) for c,res in cres.items()]
 
 def label_residue(residue, mutation_colors, no_data_color, height = 1.5, offset = (0,0,3), on_top = False):
-    # Replace _label_image method of ObjectLabel to supply my own RGBA array
     from chimerax.label.label3d import labels_model, ResidueLabel
     lm = labels_model(residue.structure, create = True)
     view = residue.structure.session.main_view
@@ -69,7 +68,6 @@ def label_residue(residue, mutation_colors, no_data_color, height = 1.5, offset 
     lm.add_labels([residue], ResidueLabel, view, settings, on_top)
     title = f'{residue.one_letter_code}{residue.number}'
     rgba = label_rgba(title, mutation_colors, no_data_color)
-    rlabels = lm.labels([residue])
     _set_residue_label_image(residue, rgba)
 
 def _set_residue_label_image(residue, rgba):
