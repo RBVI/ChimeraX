@@ -722,6 +722,12 @@ def system_summary():
 
 def _win32_info():
     try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SOFTWARE\Microsoft\Windows NT\CurrentVersion') as key:
+            update_build_revision = f".{winreg.QueryValueEx(key, 'UBR')[0]}"
+    except Exception:
+        update_build_revision = ""
+    try:
         import wmi
         w = wmi.WMI()
         pi = w.CIM_Processor()[0]
@@ -732,7 +738,7 @@ def _win32_info():
         info = f"""
 Manufacturer: {csi.Manufacturer}
 Model: {csi.Model}
-OS: {os_name} (Build {osi.BuildNumber})
+OS: {os_name} (Build {osi.BuildNumber}{update_build_revision})
 Memory: {int(csi.TotalPhysicalMemory):,}
 MaxProcessMemory: {int(osi.MaxProcessMemorySize):,}
 CPU: {pi.NumberOfLogicalProcessors} {pi.Name}
