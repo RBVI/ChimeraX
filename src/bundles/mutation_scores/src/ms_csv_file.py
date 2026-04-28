@@ -93,11 +93,8 @@ def _read_mutation_scores_csv(path, name = None, logger = None):
     mset = MutationSet(name, mscores, path = path)
 
     if hgvs_ignored and logger:
-        ignored = ", ".join(hgvs_ignored[:10])
-        if len(hgvs_ignored) > 10:
-            ignored += ' ...'
-        from chimerax.core.errors import UserError
-        logger.info(f'Ignored {len(hgvs_ignored)} variants not of form p.<from_aa><num><to_aa>: {ignored}')
+        message = _classify_ignored(hgvs_ignored)
+        logger.info(message)
 
     return mset
 
@@ -155,3 +152,21 @@ def _parse_scores(headings, fields):
         except ValueError:
             continue
     return scores
+
+def _classify_ignored(hgvs_ignored):
+    double = [hgvs for hgvs in hgvs_ignored if hgvs.count(';') == 1]
+    deletions = [hgvs for hgvs in hgvs_ignored if hgvs.endswith('del') or hgvs.endswith('del)')]
+    insertions = [hgvs for hgvs in hgvs_ignored if 'ins' in hgvs]
+    stop = [hgvs for hgvs in hgvs_ignored if 'Ter' in hgvs or '*' in hgvs]
+    types = []
+    categorized = set(double + deletions + insertions + stop)
+    other = [hgvs for hgvs in hgvs_ignored if hgvs not in categorized]
+    for type, name in [(double, 'double mutants'), (deletions, 'deletions'), (insertions, 'insertions'),
+                       (stop, 'stop codons'), (other, 'other')]:
+        if len(type) > 0:
+            cat = f'{len(type)} {name} {", ".join(type[:3])}'
+            if len(type) > 3:
+                cat += ' ...'
+            types.append(cat)
+    message = f'Ignored {len(hgvs_ignored)} variants: {", ".join(types)}'
+    return message
