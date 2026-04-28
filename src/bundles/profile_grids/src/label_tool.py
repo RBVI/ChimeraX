@@ -37,11 +37,29 @@ class LabelTool:
         from chimerax.ui.widgets import ColorButton
         layout = QVBoxLayout()
         layout.setSpacing(2)
-        layout.addWidget(QLabel("Color by <i>N</i>-fold change in chosen sequences"
-            " relative to entire alignment"), alignment=Qt.AlignCenter)
+        layout.addWidget(QLabel("Label residues with residue-type prevalence information"),
+            alignment=Qt.AlignCenter)
 
-        layout.addLayout(self._layout_main_colors(True))
+        chains_layout = QHBoxLayout()
+        chains_layout.setSpacing(2)
+        layout.addLayout(chains_layout)
+        chains_layout.addStretch(1)
+        chains_layout.addWidget(QLabel("Chains:"))
+        from chimerax.atomic import Residues
+        from chimerax.atomic.widgets import ChainListWidget
+        self.chain_list = ChainListWidget(grid.pg.session, filter_func=lambda c, aln=grid.alignment:
+            c in Residues(aln.associated_residues()).chains)
+        # Update on association change completely handled by grid's alignment_notification routine
+        chains_layout.addWidget(self.chain_list)
+        chains_layout.addStretch(1)
 
+        self.sel_restrict_box = QCheckBox("Also limit to selected residues, if any")
+        self.sel_restrict_box.setChecked(grid.pg.settings.selected_only)
+        layout.addWidget(self.sel_restrict_box, alignment=Qt.AlignCenter)
+
+        #layout.addLayout(self._layout_main_colors(True))
+
+        '''
         chosen_layout = QHBoxLayout()
         chosen_layout.setContentsMargins(0,0,0,0)
         chosen_layout.addStretch(1)
@@ -106,6 +124,7 @@ class LabelTool:
         button_layout.addWidget(apply_but)
         button_layout.addWidget(QLabel(" above settings"))
         button_layout.addStretch(2)
+        '''
 
         tool_window.ui_area.setLayout(layout)
 

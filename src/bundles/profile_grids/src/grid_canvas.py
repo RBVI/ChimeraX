@@ -179,6 +179,8 @@ class GridCanvas:
         alignment = self.alignment
         if note_name == alignment.NOTE_MOD_ASSOC:
             self.update_selection()
+            if hasattr(self, 'label_tool'):
+                self.label_tool.chain_list.refresh()
         '''
         if note_name == self.alignment.NOTE_REF_SEQ:
             self.lead_block.rerule()
