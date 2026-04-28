@@ -61,22 +61,9 @@ class ProfileGridsTool(ToolInstance):
         if note_name == alignment.NOTE_DESTROYED:
             self.delete()
             return
-        '''
-        if note_name == alignment.NOTE_MOD_ASSOC:
-            if hasattr(self, 'associations_tool'):
-                self.associations_tool._assoc_mod(note_data)
-        elif note_name == alignment.NOTE_PRE_DEL_SEQS:
-            self.region_browser._pre_remove_lines(note_data)
-            for seq in note_data:
-                if seq in self._feature_browsers:
-                    self._feature_browsers[seq].tool_window.destroy()
-                    del self._feature_browsers[seq]
-        elif note_name == alignment.NOTE_DESTROYED:
-            self.delete()
-        elif note_name == alignment.NOTE_COMMAND:
+        if note_name == alignment.NOTE_COMMAND:
             from .cmd import run
             run(self.session, self, note_data)
-        '''
 
         self.grid_canvas.alignment_notification(note_name, note_data)
 
