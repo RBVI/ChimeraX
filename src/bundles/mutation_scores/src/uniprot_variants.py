@@ -115,6 +115,8 @@ def parse_uniprot_variants(session, variant_info):
             continue
         if variant['begin'] != variant['end']:
             continue  # More than one residue in variant
+        if 'mutatedType' not in variant:
+            continue  # Frameshift mutants don't have mutatedType
 
         scores = {}
         if variant.get('predictions'):
