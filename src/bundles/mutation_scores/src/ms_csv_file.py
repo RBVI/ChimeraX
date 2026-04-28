@@ -63,6 +63,7 @@ def _read_mutation_scores_csv(path, name = None):
     with open(path, 'r') as f:
         lines = f.readlines()
     headings = [h.strip() for h in lines[0].split(',')]
+    hgvs_column = _hgvs_column(headings)
     mscores = []
     mut = set()
     from .ms_data import MutationScores    
@@ -73,15 +74,10 @@ def _read_mutation_scores_csv(path, name = None):
         if len(fields) != len(headings):
             from chimerax.core.errors import UserError
             raise UserError(f'Line {i+2} has wrong number of comma-separated fields, got {len(fields)}, but there are {len(headings)} headings')
-        hgvs = fields[0]
-        if not hgvs.startswith('p.(') or not hgvs.endswith(')'):
-            from chimerax.core.errors import UserError
-            raise UserError(f'Line {i+2} has hgvs field "{hgvs}" not starting with "p.(" and ending with ")"')
-        if 'del' in hgvs or 'ins' in hgvs or '_' in hgvs:
+        hgvs = fields[hgvs_column]
+        res_num, res_type, res_type2 = _parse_hgvs(hgvs, line_num = i+2)
+        if res_type2 is None:
             continue
-        res_type = hgvs[3]
-        res_num = int(hgvs[4:-2])
-        res_type2 = hgvs[-2]
         if (res_num, res_type, res_type2) in mut:
             from chimerax.core.errors import UserError
             raise UserError(f'Duplicated mutation "{hgvs}" at line {i+2}')
@@ -95,6 +91,49 @@ def _read_mutation_scores_csv(path, name = None):
     mset = MutationSet(name, mscores, path = path)
 
     return mset
+
+def _hgvs_column(headings):
+    hgvs_column = None
+    hgvs_names = ('hgvs', 'hgvs_pro', 'variants')
+    for hgvs_column_name in hgvs_names:
+        if hgvs_column_name in headings:
+            hgvs_column = headings.index(hgvs_column_name)
+            break
+    if hgvs_column is None:
+        from chimerax.core.errors import UserError
+        raise UserError('Did not find variant column ({", ".join(hgvs_names)}) in first line headings ({", ".join(headings)})')
+    return hgvs_column
+
+
+aa_3_to_1 = {'Cys':'C', 'Asp':'D', 'Ser':'S', 'Gln':'Q', 'Lys':'K',
+             'Ile':'I', 'Pro':'P', 'Thr':'T', 'Phe':'F', 'Asn':'N', 
+             'Gly':'G', 'His':'H', 'Leu':'L', 'Arg':'R', 'Trp':'W', 
+             'Ala':'A', 'Val':'V', 'Glu':'E', 'Tyr':'Y', 'Met':'M'}
+
+def _parse_hgvs(hgvs, line_num):
+    if not hgvs.startswith('p.'):
+        from chimerax.core.errors import UserError
+        raise UserError(f'Line {line_num} has hgvs field "{hgvs}" not starting with "p."')
+    var = hgvs[2:]
+    if var.startswith('(') and var.endswith(')'):
+        var = var[1:-1]
+    if 'del' in var or 'ins' in var or '_' in var or 'Ter' in var:
+        return None, None, None
+    try:
+        if var[1].isdigit():
+            # One-letter codes
+            res_type = var[0]
+            res_num = int(var[1:-1])
+            res_type2 = var[-1]
+        else:
+            # 3-letter coes
+            res_type = aa_3_to_1[var[:3]]
+            res_num = int(var[3:-3])
+            res_type2 = aa_3_to_1[var[-3:]]
+    except (IndexError, ValueError, KeyError):
+        from chimerax.core.errors import UserError
+        raise UserError(f'Line {line_num} has hgvs field "{hgvs}" not of form p.<from_aa><num><to_aa>')
+    return res_num, res_type, res_type2
 
 def _parse_scores(headings, fields):
     scores = {}
