@@ -53,6 +53,8 @@ def fetch_uniprot_variants(session, uniprot_id, identifier = None,
     path = fetch_file(session, url, f'UniProt variants {uniprot_id}',
                           file_name, save_dir, ignore_cache = ignore_cache)
 
+    if identifier is None:
+        identifier = f'{uniprot_id}_variants'
     mset, msg = open_uniprot_variant_scores(session, path, identifier = identifier,
                                             chains = chains, allow_mismatches = allow_mismatches)
     return mset, msg
@@ -96,10 +98,11 @@ def open_uniprot_variant_scores(session, path, identifier = None, chains = None,
     if session.ui.is_gui:
         from .ms_list import show_mutation_scores_list
         show_mutation_scores_list(session)
+        heatmap_name = mset_name
         from chimerax.core.colors import Colormap
         colormap = Colormap([0,.4,.6,1], [(0,0,1,0),(1,1,1,1),(1,1,1,1),(1,0,0,1)])
         from .ms_heatmap import mutation_heatmap
-        mutation_heatmap(session, 'uniprot_variants', mutation_set = mset.name, normalize_scores = False,
+        mutation_heatmap(session, heatmap_name, mutation_set = mset.name, normalize_scores = False,
                          pixels_per_cell = 10, palette = colormap, missing_value_color = (180,180,180,255),
                          label_every_residue = True)
 
