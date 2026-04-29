@@ -30,7 +30,7 @@ registry = RegisteredCommandInfo()
 # temporarily puts a copy of the Profile Grid instance into
 # the global namespace as '_pg'
 
-def label_cmd(session, residues=None, *, height=1.5, no_data_color=(180,180,180,255), offset=(0,0,3),
+def label_cmd(session, residues=None, *, height=1.5, bg_color=(180,180,180,255), offset=(0,0,3),
         on_top=False, palette=None, range_=None):
     from chimerax.core.errors import UserError
     alignment = _pg.alignment
@@ -49,9 +49,10 @@ def label_cmd(session, residues=None, *, height=1.5, no_data_color=(180,180,180,
         palette, *ignore = ColormapArg.parse("0,white:1,blue", session)
 
     res_to_col = {}
-    for mms in alignment.match_maps.values():
+    for aseq, mms in alignment.match_maps.items():
         for mm in mms.values():
-            res_to_col.update(mm.res_to_pos)
+            for r, pos in mm.res_to_pos.items():
+                res_to_col[r] = aseq.ungapped_to_gapped(pos)
     from chimerax.surface.colorvol import _use_full_range, _colormap_with_range
     numeric_range = (0.0, 1.0) if _use_full_range(range_, palette) else range_
     colormap = _colormap_with_range(palette, numeric_range)
@@ -75,12 +76,12 @@ def label_cmd(session, residues=None, *, height=1.5, no_data_color=(180,180,180,
             displayed_row += 1
 
         rlabels = lm.labels([r])
-        rlabels[0].custom_image = _label_rgba(r, cell_data, no_data_color)
+        rlabels[0].custom_image = _label_rgba(r, cell_data, bg_color)
         lms.add(lm)
     for lm in lms:
         lm.update_labels()
 
-def _label_rgba(res, cell_data, no_data_color):
+def _label_rgba(res, cell_data, bg_color):
     from Qt.QtGui import QImage, QPainter, QFont, QColor, QBrush, QPen, QFontMetrics
     wc, hc = 40, 40  # Cell size in pixels
     font_size = 40
@@ -105,7 +106,7 @@ def _label_rgba(res, cell_data, no_data_color):
 
     # Title
     from chimerax.core.colors import contrast_with
-    pbr.setColor(QColor(*no_data_color))
+    pbr.setColor(QColor(*bg_color))
     p.fillRect(0, 0, w, hc, pbr)
     f = QFont(font)
     f.setPixelSize(font_size)
@@ -115,7 +116,7 @@ def _label_rgba(res, cell_data, no_data_color):
     small_xpad, small_ypad = xpad/2, ypad/2
     small_fm = QFontMetrics(small_f)
     p.setFont(f)
-    p.setPen(QColor(*[round(c*255) for c in contrast_with(no_data_color)]))
+    p.setPen(QColor(*[round(c*255) for c in contrast_with(bg_color)]))
     p.drawText(wc+xpad, hc-ypad, f"{res.one_letter_code}{res.number}")
 
     # Grid cells
@@ -127,7 +128,7 @@ def _label_rgba(res, cell_data, no_data_color):
                 text, color = cell_data[r * cols + c]
             except IndexError:
                 text = None
-                color = no_data_color
+                color = bg_color
             pbr.setColor(QColor(*tuple(color)))
             p.setPen(ppen)
             p.fillRect(x, y, wc, hc, pbr)
@@ -164,7 +165,7 @@ from chimerax.atomic import ResiduesArg
 register("label",
     CmdDesc(
         required=[('residues', Or(ResiduesArg, EmptyArg))],
-        keyword=[('height', FloatArg), ('no_data_color', Color8Arg), ('offset', Float3Arg),
+        keyword=[('height', FloatArg), ('bg_color', Color8Arg), ('offset', Float3Arg),
             ('on_top', BoolArg), ('palette', ColormapArg), ('range', ColormapRangeArg)],
         synopsis='Label residues with grid data'),
     label_cmd, registry=registry)

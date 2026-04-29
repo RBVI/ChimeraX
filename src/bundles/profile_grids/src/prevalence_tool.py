@@ -423,22 +423,18 @@ class PrevalenceTool:
             while len(self._main_widgets) < num_waypoints:
                 row = len(self._main_widgets)
                 prev_row = self._main_widgets[row-1]
-                label1 = QLabel(prev_row.label1.text())
-                self._dynamic_layout.addWidget(label1, row, 0)
                 factor_box = QDoubleSpinBox()
                 factor_box.setRange(0.0, 999.9)
                 factor_box.setDecimals(1)
                 factor_box.setSingleStep(0.5)
                 factor_box.setAlignment(Qt.AlignRight)
                 factor_box.setSuffix("x")
-                self._dynamic_layout.addWidget(factor_box, row, 1)
-                label2 = QLabel(prev_row.label2.text())
-                self._dynamic_layout.addWidget(label2, row, 2)
+                self._dynamic_layout.addWidget(factor_box, row, 0)
                 color_button = ColorButton(pause_delay=0.5)
                 color_button.color = prev_row.color_button.color
                 color_button.color_pause.connect(self._update_palette_chooser)
-                self._dynamic_layout.addWidget(color_button, row, 3)
-                row_widgets = PrevalenceTuple(label1, factor_box, label2, color_button)
+                self._dynamic_layout.addWidget(color_button, row, 1)
+                row_widgets = PrevalenceTuple(factor_box, color_button)
                 self._main_widgets.append(row_widgets)
         else:
             return

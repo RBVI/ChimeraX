@@ -32,6 +32,7 @@ class MutationScoresHeatmap(ToolInstance):
     def __init__(self, session, tool_name = 'Mutation Scores Heatmap', name = None, draw = True):
 
         self.name = name
+        self._score_names = []			# Names of shown scores
         self._include_residue_numbers = []	# If empty then include all residues in heatmap
         self._default_amino_acid_order = 'HRKDEFWYNQILCSTVMAGP'
         self._group_spacing = 1	# Number of blank pixels after each amino acid or score group
@@ -858,7 +859,7 @@ class MutationScoresHeatmap(ToolInstance):
             for res_num, from_aa, to_aa, value in score_values.all_values():
                 values.append(value)
         from numpy import mean, std
-        return mean(values), std(values)
+        return (mean(values), std(values)) if len(values) >= 1 else (0,1)
 
     # ---------------------------------------------------------------------------
     #
@@ -963,6 +964,9 @@ class MutationScoresHeatmap(ToolInstance):
             self._pixels_per_cell.value = settings['pixels_per_cell']
         if 'colormaps' in settings:
             self._colormaps = settings['colormaps']
+        if 'normalize_scores' in settings:
+            # Change normalize setting before setting colormap
+            self._normalize.enabled = settings['normalize_scores']
         if 'colormap_values' in settings:
             for cv, value in zip(self._colormap_values, settings['colormap_values']):
                 cv.value = value
@@ -971,8 +975,6 @@ class MutationScoresHeatmap(ToolInstance):
                 cc.color = color
         if 'missing_value_color' in settings:
             self._missing_value_color.color = settings['missing_value_color']
-        if 'normalize_scores' in settings:
-            self._normalize.enabled = settings['normalize_scores']
         if 'subtract_fit' in settings:
             self._use_subtract_fit.enabled = settings['subtract_fit']
         if 'subtract_fit_score_name' in settings:
