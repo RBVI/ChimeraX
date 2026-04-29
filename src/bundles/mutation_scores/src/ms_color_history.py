@@ -1060,6 +1060,13 @@ def _rename_coloring_and_attribute(session, coloring_name, new_name):
     return True
 
 def _rename_residue_attribute(chains, attribute_name, new_name):
+    # Remove current residue attribute with new_name.
+    for chain in chains:
+        for r in chain.residues:
+            if hasattr(r, new_name):
+                delattr(r, new_name)
+                count += 1
+    # Set new attribute and remove old attribute.
     count = 0
     for chain in chains:
         for r in chain.residues:
