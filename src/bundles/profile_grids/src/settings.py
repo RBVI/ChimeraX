@@ -39,8 +39,9 @@ prevalence_defaults = {
 }
 
 label_defaults = {
+    "label_background": (180, 180, 180, 255),
     "label_palette": [(0.0, "white"), (1.0, "blue")],
-    "selected_only": True,
+    "label_selected_only": True,
 }
 
 from  chimerax.core.settings import Settings
