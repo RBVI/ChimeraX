@@ -1065,7 +1065,6 @@ def _rename_residue_attribute(chains, attribute_name, new_name):
         for r in chain.residues:
             if hasattr(r, new_name):
                 delattr(r, new_name)
-                count += 1
     # Set new attribute and remove old attribute.
     count = 0
     for chain in chains:
