@@ -387,12 +387,32 @@ is assigned to the <a href="#associated">associated structure</a> residues.
 If the coloring is subsequently <a href="#previous-colorings">named/saved</a>,
 the attribute name is changed to match the name of the score.
 </p><p>
+<table class="clRight">
+<tbody><tr><td><img border="1" src="ranges.png" alt="define ranges dialog" 
+width="400px">
+</td></tr>
+</tbody></table>
 There are typically several different mutations at the same
 residue position, whereas a single value per position is needed for coloring.
 This single value per position can be calculated based on
 a <b>filter mutations</b> setting of <b>all</b> mutations
-(<i>i.e.</i>, unfiltered) or only those enclosed in a <b>drag box</b>
-drawn on the plot, and can be computed as one of:
+(<i>i.e.</i>, unfiltered) or only those enclosed in a 
+<b>drag box on scatterplot</b> (specific ranges of values of the two scores
+shown in the <a href="#scatterplot">scatterplot</a>), or <b>define ranges...</b>
+to choose only specific ranges of one or more scores
+in the <b>Mutation Score Ranges</b> dialog.
+</p><p>
+For example, in the image of the <b>Mutation Score Ranges</b> dialog on the 
+right, only mutations with <b>dox</b> and <b>mtx</b> greater than 2 standard 
+deviations from the mean would be included. A name for the range set 
+can be entered for later use, and will be listed in the <b>Show named ranges</b>
+menu in this dialog and the <b>filter mutations</b> menu in the 
+<b>Mutation Structure Coloring</b> dialog.
+If the <b>low</b> were checked instead of <b>high</b>, values lower than
+the specified threshold (number of standard deviations from the mean)
+would be included instead.
+</p><p>
+The single value per position can be computed as one of:
 </p>
 <ul>
 <li><b>mean</b> &ndash; average of values
