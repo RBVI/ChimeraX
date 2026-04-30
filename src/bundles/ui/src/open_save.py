@@ -18,7 +18,7 @@ open_save: open/save dialogs
 TODO
 """
 
-from Qt.QtWidgets import QFileDialog, QSizePolicy
+from Qt.QtWidgets import QFileDialog, QSizePolicy, QPushButton, QMenu
 from Qt.QtCore import Qt
 class SaveDialog(QFileDialog):
     use_native = False
@@ -131,3 +131,125 @@ class OpenDialog(QFileDialog):
         if not paths:
             return None
         return paths
+
+from chimerax.core.settings import Settings
+class SaveQGraphicsDialogSettings(Settings):
+    AUTO_SAVE = {
+        "dpi": None,
+        "save_area": "visible",
+        "save_format": "PNG",
+        #"transparent_background": False,
+    }
+
+# Cribbed from chimerax.ui.open_save.SaveDialog, but since we need to save the formats
+# ourselves and save some formats that might be unknown to ChimeraX (depending on what
+# QImage can save), we provide our own dialog
+from Qt.QtWidgets import QFileDialog
+class SaveQGraphicsDialog(QFileDialog):
+    self.format_info = {
+        "bmp": ("BMP", "Windows bitmap", "bmp"),
+        "jfif": ("JFIF", "JPEG File Interchange Format", "jfif"),
+        "jp2": ("JP2", "JPEG 2000", "jp2"),
+        "jpeg": ("JPEG", "Joint Photographic Experts Group", "jpg *.jpeg"),
+        "png": ("PNG", "Portable Network Graphics", "png"),
+        "tiff": ("TIFF", "Tagged Image File Format", "tiff"),
+        "webp": ("WebP", "WebP", "webp"),
+    }
+    def __init__(self, session, view, *args, depiction_name="scene", **kw):
+        self.view = view
+        from Qt.QtGui import QImageWriter
+        available_fmt_info = []
+        for fmt in QImageWriter.supportedFormats():
+            try:
+                available_fmt_info.append(self.format_info[str(fmt)])
+            except KeyError:
+                continue
+        name_filters = ["%s [%s] (*.%s)" % self.fmt_info for fmt_info in available_fmt_info]
+        self.filter_to_info = {flt: info for flt, info in zip(name_filters, available_fmt_info)}
+        fmt_to_filter = { info[0]: flt for flt, info in self.filter_to_info.items() }
+        super().__init__(parent, *args, **kw)
+        self.setFileMode(QFileDialog.AnyFile)
+        self.setAcceptMode(QFileDialog.AcceptSave)
+        self.setOption(QFileDialog.DontUseNativeDialog)
+        self.setNameFilters(name_filters)
+        if not hasattr(self.__class__, "settings"):
+            self.__class__.settings = SaveQGraphicsDialogSettings(session, "QGraphics save dialog")
+        try:
+            self.selectNameFilter(fmt_to_filter[self.settings.save_format])
+        except KeyError:
+            self.selectNameFilter(fmt_to_filter["PNG"])
+
+        custom_area = QFrame(self)
+        custom_area.setFrameStyle(QFrame.Panel | QFrame.Raised)
+        custom_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        layout = self.layout()
+        row = layout.rowCount()
+        layout.addWidget(custom_area, row, 0, 1, -1)
+        custom_layout = QHBoxLayout()
+        custom_area.setLayout(custom_layout)
+        custom_layout.addStretch(1)
+        self.area_descriptions = {
+            "all": f"entire {depiction_name}",
+            "visible": "visible region"
+        }
+        save_area_layout = QHBoxLayout()
+        custom_layout.addLayout(save_area_layout)
+        save_area_layout.addWidget(QLabel("Save"))
+        self.save_area_button = QPushButton(self.area_descriptions[self.settings.save_area])
+        menu = QMenu(self.save_area_button)
+        for area in ["all", "visible"]:
+            menu.addAction(self.area_descriptions[area])
+        menu.triggered.connect(lambda action, but=self.save_area_button: but.setText(action.text()))
+        save_area_layout.addWidget(self.save_area_button)
+        '''
+        self._transparent_checkbox = QCheckBox("Transparent background")
+        self._transparent_checkbox.setChecked(self.settings.transparent_background)
+        custom_layout.addWidget(self._transparent_checkbox)
+        custom_layout.addStretch(1)
+        '''
+        custom_layout.addWidget(QLabel("DPI:"))
+        self._dpi_entry = QLineEdit()
+        self._dpi_entry.setAlignment(Qt.AlignCenter)
+        self._dpi_entry.setPlaceholderText("default")
+        self._dpi_entry.setMaximumWidth(50)
+        validator = QIntValidator()
+        validator.setBottom(1)
+        self._dpi_entry.setValidator(validator)
+        if self.settings.dpi is not None:
+            self._dpi_entry.setText(str(self.settings.dpi))
+        custom_layout.addWidget(self._dpi_entry)
+        custom_layout.addStretch(1)
+
+    @property
+    def dpi(self):
+        if self._dpi_entry.hasAcceptableInput():
+            return int(self._dpi_entry.text())
+        return None
+
+    def exec(self):
+        ok = super().exec()
+        if not ok:
+            return ok
+        #TODO
+
+    @property
+    def path(self):
+        paths = self.selectedFiles()
+        if not paths:
+            return None
+        path = paths[0]
+        name_filter = self.selectedNameFilter()
+        fmt_name, fmt_desc, suffix_info = self.filter_to_info[name_filter]
+        self.settings.save_format = fmt_name
+        #self.settings.transparent_background = self.transparent_background
+        self.settings.dpi = self.dpi
+        suffix = '.' + (suffix_info[:suffix_info.index(' ')] if ' ' in suffix_info else suffix_info)
+        if path.endswith(suffix):
+            return path
+        return path + suffix
+
+    '''
+    @property
+    def transparent_background(self):
+        return self._transparent_checkbox.isChecked()
+    '''
