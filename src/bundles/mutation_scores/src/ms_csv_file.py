@@ -23,7 +23,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def open_mutation_scores_csv(session, path, name = None, show_plot = False, chains = None, allow_mismatches = False):
-    mset = _read_mutation_scores_csv(path, name = name)
+    mset = _read_mutation_scores_csv(path, name = name, logger = session.logger)
 
     if chains:
         mset.set_associated_chains(chains, allow_mismatches = allow_mismatches)
@@ -59,12 +59,14 @@ def open_mutation_scores_csv(session, path, name = None, show_plot = False, chai
 
     return mset, message
 
-def _read_mutation_scores_csv(path, name = None):
+def _read_mutation_scores_csv(path, name = None, logger = None):
     with open(path, 'r') as f:
         lines = f.readlines()
     headings = [h.strip() for h in lines[0].split(',')]
+    hgvs_column = _hgvs_column(headings)
     mscores = []
     mut = set()
+    hgvs_ignored = []
     from .ms_data import MutationScores    
     for i, line in enumerate(lines[1:]):
         if line.strip() == '':
@@ -73,15 +75,11 @@ def _read_mutation_scores_csv(path, name = None):
         if len(fields) != len(headings):
             from chimerax.core.errors import UserError
             raise UserError(f'Line {i+2} has wrong number of comma-separated fields, got {len(fields)}, but there are {len(headings)} headings')
-        hgvs = fields[0]
-        if not hgvs.startswith('p.(') or not hgvs.endswith(')'):
-            from chimerax.core.errors import UserError
-            raise UserError(f'Line {i+2} has hgvs field "{hgvs}" not starting with "p.(" and ending with ")"')
-        if 'del' in hgvs or 'ins' in hgvs or '_' in hgvs:
+        hgvs = fields[hgvs_column]
+        res_num, res_type, res_type2 = _parse_hgvs(hgvs, line_num = i+2)
+        if res_type2 is None:
+            hgvs_ignored.append(hgvs)
             continue
-        res_type = hgvs[3]
-        res_num = int(hgvs[4:-2])
-        res_type2 = hgvs[-2]
         if (res_num, res_type, res_type2) in mut:
             from chimerax.core.errors import UserError
             raise UserError(f'Duplicated mutation "{hgvs}" at line {i+2}')
@@ -94,7 +92,57 @@ def _read_mutation_scores_csv(path, name = None):
     from .ms_data import MutationSet
     mset = MutationSet(name, mscores, path = path)
 
+    if hgvs_ignored and logger:
+        message = _classify_ignored(hgvs_ignored)
+        logger.info(message)
+
     return mset
+
+def _hgvs_column(headings):
+    hgvs_column = None
+    hgvs_names = ('hgvs', 'hgvs_pro', 'variants')
+    for hgvs_column_name in hgvs_names:
+        if hgvs_column_name in headings:
+            hgvs_column = headings.index(hgvs_column_name)
+            break
+    if hgvs_column is None:
+        from chimerax.core.errors import UserError
+        raise UserError('Did not find variant column ({", ".join(hgvs_names)}) in first line headings ({", ".join(headings)})')
+    return hgvs_column
+
+
+aa_3_to_1 = {'Cys':'C', 'Asp':'D', 'Ser':'S', 'Gln':'Q', 'Lys':'K',
+             'Ile':'I', 'Pro':'P', 'Thr':'T', 'Phe':'F', 'Asn':'N', 
+             'Gly':'G', 'His':'H', 'Leu':'L', 'Arg':'R', 'Trp':'W', 
+             'Ala':'A', 'Val':'V', 'Glu':'E', 'Tyr':'Y', 'Met':'M'}
+
+def _parse_hgvs(hgvs, line_num):
+    if not hgvs.startswith('p.'):
+        from chimerax.core.errors import UserError
+        raise UserError(f'Line {line_num} has hgvs field "{hgvs}" not starting with "p."')
+    var = hgvs[2:]
+    if var.startswith('(') and var.endswith(')'):
+        var = var[1:-1]
+    try:
+        if var[1].isdigit():
+            # One-letter codes
+            res_type = var[0]
+            res_num = int(var[1:-1])
+            res_type2 = var[-1]
+            if res_type2 == '=':
+                res_type2 = res_type
+        else:
+            # 3-letter coes
+            res_type = aa_3_to_1[var[:3]]
+            if var.endswith('='):
+                res_num = int(var[3:-1])
+                res_type2 = res_type
+            else:
+                res_num = int(var[3:-3])
+                res_type2 = aa_3_to_1[var[-3:]]
+    except (IndexError, ValueError, KeyError):
+        return None, None, None
+    return res_num, res_type, res_type2
 
 def _parse_scores(headings, fields):
     scores = {}
@@ -104,3 +152,21 @@ def _parse_scores(headings, fields):
         except ValueError:
             continue
     return scores
+
+def _classify_ignored(hgvs_ignored):
+    double = [hgvs for hgvs in hgvs_ignored if hgvs.count(';') == 1]
+    deletions = [hgvs for hgvs in hgvs_ignored if hgvs.endswith('del') or hgvs.endswith('del)')]
+    insertions = [hgvs for hgvs in hgvs_ignored if 'ins' in hgvs]
+    stop = [hgvs for hgvs in hgvs_ignored if 'Ter' in hgvs or '*' in hgvs]
+    types = []
+    categorized = set(double + deletions + insertions + stop)
+    other = [hgvs for hgvs in hgvs_ignored if hgvs not in categorized]
+    for type, name in [(double, 'double mutants'), (deletions, 'deletions'), (insertions, 'insertions'),
+                       (stop, 'stop codons'), (other, 'other')]:
+        if len(type) > 0:
+            cat = f'{len(type)} {name} {", ".join(type[:3])}'
+            if len(type) > 3:
+                cat += ' ...'
+            types.append(cat)
+    message = f'Ignored {len(hgvs_ignored)} variants: {", ".join(types)}'
+    return message

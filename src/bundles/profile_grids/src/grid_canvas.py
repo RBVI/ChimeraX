@@ -179,6 +179,8 @@ class GridCanvas:
         alignment = self.alignment
         if note_name == alignment.NOTE_MOD_ASSOC:
             self.update_selection()
+            if hasattr(self, 'label_tool'):
+                self.label_tool.chain_list.refresh()
         '''
         if note_name == self.alignment.NOTE_REF_SEQ:
             self.lead_block.rerule()
@@ -252,6 +254,14 @@ class GridCanvas:
                 self.header_label_items[disp_hdr].moveBy(0, -height)
         self.displayed_headers.remove(header)
         self._update_scene_rects()
+
+    def label_residues(self):
+        if not hasattr(self, 'label_tool'):
+            from .label_tool import LabelTool
+            self.label_tool = LabelTool(self,
+                self.pg.tool_window.create_child_window("Label Residues", close_destroys=False))
+            self.label_tool.tool_window.manage(None)
+        self.label_tool.tool_window.shown = True
 
     def layout_alignment(self):
         #NOTE: maybe group each header line (QGraphicsItemGroup) to make them easier to move
