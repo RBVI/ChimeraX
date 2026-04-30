@@ -794,7 +794,7 @@ def add_error_hints(error_type: str, error_msg: str, command: str) -> str:
     
     return full_error
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def get_atomspec_guide() -> str:
     """Get the complete guide for ChimeraX atomspec (object specification) syntax.
     
@@ -983,7 +983,7 @@ aromatic-ring & :phe,tyr  # Aromatic ring carbons in Phe and Tyr
 For more details, see: https://www.cgl.ucsf.edu/chimerax/docs/user/commands/atomspec.html
     """
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def run_command(command: str, session_id: Optional[int] = None) -> str:
     """Execute any ChimeraX command directly. Use this tool if you don't find another tool
     that suits your needs.
@@ -1022,7 +1022,7 @@ async def run_command(command: str, session_id: Optional[int] = None) -> str:
     
     return format_chimerax_response(result, context)
 
-#@mcp.tool()
+#@mcp.tool(structured_output=False)
 async def open_structure(identifier: str, format: str = "auto-detect", fetch_emdb_map: bool = False, session_id: Optional[int] = None) -> str:
     """Open a molecular structure file or fetch from PDB
 
@@ -1160,7 +1160,7 @@ def _format_single_model_info(model: dict) -> list:
     
     return output
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def list_models(session_id: Optional[int] = None) -> str:
     """List all models currently loaded in ChimeraX with key details.
 
@@ -1237,7 +1237,7 @@ async def list_models(session_id: Optional[int] = None) -> str:
         context = "\n".join(output)
         return format_chimerax_response(result, context)
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def get_shown(session_id: Optional[int] = None) -> str:
     """Get information about what is currently shown.
         
@@ -1320,7 +1320,7 @@ async def get_shown(session_id: Optional[int] = None) -> str:
         return '{"models": []}'
 
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def get_model_info(model_id: str, session_id: Optional[int] = None) -> str:
     """Get detailed information about a specific model, including details about
     all its chains. You can call this to get all chain identifications in one go.
@@ -1492,7 +1492,7 @@ async def _get_chain_info_helper(model_id: str, chain_id: str, session_id: Optio
     
     return output, combined_result
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def get_chain_info(model_id: str, chain_id: str, session_id: Optional[int] = None) -> str:
     """Get detailed information about a specific chain in a model
     
@@ -1515,7 +1515,7 @@ async def get_chain_info(model_id: str, chain_id: str, session_id: Optional[int]
     return format_chimerax_response(result, context)
 
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def color_models(color: str, target: str = "all", session_id: Optional[int] = None) -> str:
     """Color models or parts of models
     
@@ -1538,7 +1538,7 @@ async def color_models(color: str, target: str = "all", session_id: Optional[int
     
     return format_chimerax_response(result, context)
 
-# @mcp.tool()
+# @mcp.tool(structured_output=False)
 async def save_image(filename: str, width: int = 1920, height: int = 1080, supersample: int = 3, session_id: Optional[int] = None) -> str:
     """Save a screenshot of the current view
 
@@ -1559,7 +1559,7 @@ async def save_image(filename: str, width: int = 1920, height: int = 1080, super
     return format_chimerax_response(result, context)
 
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def superpose_residue(
     source_model: str,
     source_chain: str,
@@ -1624,7 +1624,7 @@ async def superpose_residue(
     
     return format_chimerax_response(combined_result, context)
 
-# @mcp.tool()
+# @mcp.tool(structured_output=False)
 async def show_hide_objects(
     action: str,
     atomspec: str,
@@ -1744,7 +1744,7 @@ async def show_hide_objects(
 
 # Instance management tools
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def list_chimerax_instances() -> str:
     """List all running ChimeraX instances"""
     instances = await list_running_instances()
@@ -1760,7 +1760,7 @@ async def list_chimerax_instances() -> str:
 
     return result
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def start_new_chimerax_session(session_name: Optional[str] = None, port: Optional[int] = None) -> str:
     """Start a new ChimeraX instance/session
 
@@ -1806,7 +1806,7 @@ async def start_new_chimerax_session(session_name: Optional[str] = None, port: O
     else:
         return f"Failed to start ChimeraX session on port {port}"
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def check_chimerax_status(session_id: Optional[int] = None) -> str:
     """Check if ChimeraX is running and accessible
 
@@ -1829,7 +1829,7 @@ async def check_chimerax_status(session_id: Optional[int] = None) -> str:
         else:
             return f"ChimeraX is not running on port {port} and executable not found in common locations."
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def set_default_session(session_id: int) -> str:
     """Set the default ChimeraX session for commands without explicit session_id
 
@@ -1850,7 +1850,7 @@ async def set_default_session(session_id: int) -> str:
 
     return f"Default session changed from port {old_default} to port {session_id} ({session_name})"
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def list_chimerax_commands() -> str:
     """List all available ChimeraX commands.
     
@@ -1872,7 +1872,7 @@ async def list_chimerax_commands() -> str:
     result += "Use get_command_documentation(command) to get detailed documentation for any command."
     return result
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def get_command_documentation(command: str) -> str:
     """Get detailed documentation for a specific ChimeraX command.
     
