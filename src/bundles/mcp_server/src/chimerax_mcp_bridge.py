@@ -1060,10 +1060,9 @@ async def run_command(command: str, session_id: Optional[int] = None) -> str:
     '''
 
     result = await run_chimerax_command(command, session_id)
-    session_info = f" on session {session_id}" if session_id else ""
-    context = f"Command executed{session_info}: {command}"
+    context = f"[session {session_id}]" if session_id else ""
     
-    return format_chimerax_response(result, context)
+    return format_chimerax_response(result, context, command=command)
 
 #@mcp.tool(structured_output=False)
 async def open_structure(identifier: str, format: str = "auto-detect", fetch_emdb_map: bool = False, session_id: Optional[int] = None) -> str:
@@ -1098,12 +1097,9 @@ async def open_structure(identifier: str, format: str = "auto-detect", fetch_emd
         command += " fetchEmdbMap true"
 
     result = await run_chimerax_command(command, session_id)
-    session_info = f" in session {session_id}" if session_id else ""
-    context = f"Opened structure: {identifier}{session_info}"
-    if fetch_emdb_map:
-        context += " (with EMDB map)"
+    context = f"[session {session_id}]" if session_id else ""
     
-    return format_chimerax_response(result, context)
+    return format_chimerax_response(result, context, command=command)
 
 def _format_single_model_info(model: dict) -> list:
     """Helper function to format a single model's information into lines of text.
@@ -1272,13 +1268,13 @@ async def list_models(session_id: Optional[int] = None) -> str:
             output.extend(model_lines)
         
         context = "\n".join(output)
-        return format_chimerax_response(result, context)
+        return format_chimerax_response(result, context, command="info")
     else:
         output = [f"Models{session_info}:"]
         output.append("No models loaded")
         
         context = "\n".join(output)
-        return format_chimerax_response(result, context)
+        return format_chimerax_response(result, context, command="info")
 
 @mcp.tool(structured_output=False)
 async def get_shown(session_id: Optional[int] = None) -> str:
@@ -1576,10 +1572,9 @@ async def color_models(color: str, target: str = "all", session_id: Optional[int
     """
     command = f"color {target} {color}"
     result = await run_chimerax_command(command, session_id)
-    session_info = f" in session {session_id}" if session_id else ""
-    context = f"Colored {target} with {color}{session_info}"
+    context = f"[session {session_id}]" if session_id else ""
     
-    return format_chimerax_response(result, context)
+    return format_chimerax_response(result, context, command=command)
 
 # @mcp.tool(structured_output=False)
 async def save_image(filename: str, width: int = 1920, height: int = 1080, supersample: int = 3, session_id: Optional[int] = None) -> str:
@@ -1596,10 +1591,9 @@ async def save_image(filename: str, width: int = 1920, height: int = 1080, super
     """
     command = f"save {filename} width {width} height {height} supersample {supersample}"
     result = await run_chimerax_command(command, session_id)
-    session_info = f" from session {session_id}" if session_id else ""
-    context = f"Saved image: {filename}{session_info} ({width}x{height}, supersample {supersample})"
+    context = f"[session {session_id}]" if session_id else ""
     
-    return format_chimerax_response(result, context)
+    return format_chimerax_response(result, context, command=command)
 
 
 @mcp.tool(structured_output=False)
@@ -1940,13 +1934,14 @@ async def get_command_documentation(command: str) -> str:
         if " " not in stripped:
             return html_doc
 
+    usage_command = f"usage {stripped}"
     try:
-        result = await run_chimerax_command(f"usage {stripped}")
+        result = await run_chimerax_command(usage_command)
     except Exception as e:
         if html_doc.startswith("No documentation found") or html_doc.startswith("Documentation not found"):
             return f"No documentation found for command: {command} (usage fallback also failed: {e})"
         return html_doc
-    return format_chimerax_response(result, context=f"# ChimeraX Command: {stripped}\n")
+    return format_chimerax_response(result, context=f"# ChimeraX Command: {stripped}\n", command=usage_command)
 
 # Cleanup function for aiohttp session
 async def cleanup():
