@@ -754,6 +754,19 @@ def add_error_hints(error_type: str, error_msg: str, command: str) -> str:
         hints.append("→ Check that you've included all required arguments")
         hints.append("→ Verify keyword spelling and order")
     
+    # ===== Hierarchical (Incomplete) Command =====
+    # Real ChimeraX error: "Incomplete command: <prefix>" raised by cli when a command
+    # is a category with sub-actions (e.g. `isolde validate`, `clipper`, `volume`) and
+    # the user supplied only the prefix without picking a sub-action.
+    elif "incomplete command" in error_lower:
+        cmd_parts = command.strip().split()
+        root_cmd = cmd_parts[0] if cmd_parts else "unknown"
+        full_cmd = command.strip() or root_cmd
+        
+        hints.append(f"\n\n🔍 HINT: '{full_cmd}' is incomplete — '{root_cmd}' is a hierarchical command with sub-actions.")
+        hints.append(f"→ Run `help {full_cmd}` via run_command to see the available sub-actions and their arguments.")
+        hints.append(f"→ Then re-run with the full sub-command, e.g. {full_cmd} <subaction> [args].")
+    
     # ===== File/Path Errors =====
     elif any(pattern in error_lower for pattern in [
         "cannot open",
