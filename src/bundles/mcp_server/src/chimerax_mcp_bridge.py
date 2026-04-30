@@ -52,6 +52,7 @@ Session Management Behavior:
 
 import logging
 import os
+import re
 import sys
 import asyncio
 import aiohttp
@@ -554,7 +555,48 @@ async def run_chimerax_command(command: str, port: Optional[int] = None) -> dict
             raise
         raise Exception(f"Error communicating with ChimeraX: {e}")
 
-def format_chimerax_response(result: dict, context: str = "") -> str:
+_CXCMD_LINK_RE = re.compile(r'^\[.+?\]\(cxcmd:.+?\)$')
+_LEADING_SEMICOLON_RE = re.compile(r'^\s*;\s*')
+_BLANK_LINE_RUN_RE = re.compile(r'\n{3,}')
+
+
+def _clean_log_message(msg: str, command: Optional[str]) -> Optional[str]:
+    """Clean a single ChimeraX log message, returning None if it should be dropped.
+
+    Drops:
+    - empty / whitespace-only messages
+    - clickable command echoes like `[cmd](cxcmd:cmd)` (single-link form)
+    - markdown-link-heavy messages (>=2 markdown links starting with `[`)
+    - plain-text echoes equal to the command we just executed
+
+    Cleans:
+    - strips a leading `;` / `; ` continuation marker that ChimeraX inserts
+      when concatenating log lines.
+    """
+    msg_stripped = msg.strip()
+    if not msg_stripped:
+        return None
+
+    # Drop the clickable command echo `[cmd](cxcmd:cmd)` (single-link form).
+    if _CXCMD_LINK_RE.match(msg_stripped):
+        return None
+
+    # Drop markdown-link-heavy command echoes (legacy filter, multi-link form).
+    if msg_stripped.startswith('[') and msg_stripped.count('](') >= 2:
+        return None
+
+    # Drop plain-text echoes of the command itself.
+    if command and msg_stripped == command.strip():
+        return None
+
+    # Strip leading "; " continuation marker.
+    cleaned = _LEADING_SEMICOLON_RE.sub('', msg)
+    if not cleaned.strip():
+        return None
+    return cleaned
+
+
+def format_chimerax_response(result: dict, context: str = "", command: Optional[str] = None) -> str:
     """Format structured ChimeraX response into readable string
     
     Implements a cascading fallback strategy:
@@ -565,6 +607,8 @@ def format_chimerax_response(result: dict, context: str = "") -> str:
     Args:
         result: Dict with 'return_values', 'json_values', and 'logs' keys
         context: Optional context string to prepend to output
+        command: Optional command string that was executed; used to drop
+            ChimeraX's own command-echo log lines from the output.
     
     Returns:
         Formatted string with context and log messages/return values organized by level
@@ -583,15 +627,11 @@ def format_chimerax_response(result: dict, context: str = "") -> str:
     for level in ["error", "warning", "info", "note", "debug"]:
         messages = logs.get(level, [])
         if messages:
-            # Filter out empty messages and markdown-heavy command echoes
             filtered_messages = []
             for msg in messages:
-                if msg.strip():
-                    # Skip messages that are primarily markdown links (command echoes)
-                    # These typically start with markdown link syntax and contain multiple links
-                    msg_stripped = msg.strip()
-                    if not (msg_stripped.startswith('[') and msg_stripped.count('](') >= 2):
-                        filtered_messages.append(msg)
+                cleaned = _clean_log_message(msg, command)
+                if cleaned is not None:
+                    filtered_messages.append(cleaned)
             if filtered_messages:
                 output.append(f"{level.upper()}: {'; '.join(filtered_messages)}")
                 has_log_content = True
@@ -634,7 +674,10 @@ def format_chimerax_response(result: dict, context: str = "") -> str:
     elif not output:  # Nothing at all
         return "Command completed successfully"
     
-    return "\n".join(output)
+    joined = "\n".join(output)
+    # Collapse runs of >=3 newlines (which arise when individual log messages
+    # already contain trailing blank lines) down to a single blank line.
+    return _BLANK_LINE_RUN_RE.sub("\n\n", joined).strip()
 
 def add_error_hints(error_type: str, error_msg: str, command: str) -> str:
     """Add contextual hints to ChimeraX error messages to guide agents.
