@@ -50,6 +50,7 @@ Session Management Behavior:
 5. check_chimerax_status() only checks, never starts ChimeraX
 """
 
+import logging
 import os
 import sys
 import asyncio
@@ -61,12 +62,11 @@ import time
 import platform
 from typing import Optional
 
+logger = logging.getLogger("chimerax-bridge")
+
 # ChimeraX connection settings
 CHIMERAX_HOST = 'localhost'
 DEFAULT_CHIMERAX_PORT = 8080
-
-# Debug settings
-DEBUG = False  # Set to True to enable debug logging to /tmp/
 
 # Global state for managing multiple ChimeraX instances
 _instances = {}  # port -> instance info
@@ -233,10 +233,10 @@ async def check_existing_rest_server() -> tuple[bool, int]:
                             port_match = re.search(r'port (\d+)', result)
                             if port_match:
                                 rest_port = int(port_match.group(1))
-                                print(f"Found existing REST server on port {rest_port}", file=sys.stderr)
+                                logger.info("Found existing REST server on port %d", rest_port)
                                 return True, rest_port
                         elif "not running" in result:
-                            print(f"ChimeraX on port {check_port} has no REST server running", file=sys.stderr)
+                            logger.info("ChimeraX on port %d has no REST server running", check_port)
                             return False, check_port
             except:
                 continue
@@ -260,12 +260,12 @@ async def start_chimerax(port: Optional[int] = None, session_name: Optional[str]
     if not force_new and port == _default_port:
         has_rest, existing_port = await check_existing_rest_server()
         if has_rest:
-            print(f"Using existing ChimeraX REST server on port {existing_port} (default port: {_default_port})", file=sys.stderr)
+            logger.info("Using existing ChimeraX REST server on port %d (default port: %d)", existing_port, _default_port)
             return True, existing_port
 
     # Check if already running on this port
     if await is_chimerax_running(port):
-        print(f"ChimeraX is already running on port {port}", file=sys.stderr)
+        logger.info("ChimeraX is already running on port %d", port)
         return True, port
 
     # If port is taken but not by ChimeraX, find a new one
@@ -279,11 +279,11 @@ async def start_chimerax(port: Optional[int] = None, session_name: Optional[str]
 
     chimerax_path = find_chimerax_executable()
     if not chimerax_path:
-        print("ChimeraX executable not found. Please install ChimeraX or add it to PATH.", file=sys.stderr)
+        logger.error("ChimeraX executable not found. Please install ChimeraX or add it to PATH.")
         return False, port
 
     try:
-        print(f"Starting ChimeraX from {chimerax_path} on port {port}...", file=sys.stderr)
+        logger.info("Starting ChimeraX from %s on port %d...", chimerax_path, port)
 
         if platform.system() == "Windows":
             # Windows doesn't have fork, use subprocess with DETACHED_PROCESS
@@ -293,7 +293,7 @@ async def start_chimerax(port: Optional[int] = None, session_name: Optional[str]
         else:
             # Unix-like systems: use double-fork
             if not start_chimerax_daemon(port):
-                print("Failed to start ChimeraX daemon", file=sys.stderr)
+                logger.error("Failed to start ChimeraX daemon")
                 return False, port
 
         # Register the instance
@@ -308,16 +308,16 @@ async def start_chimerax(port: Optional[int] = None, session_name: Optional[str]
         for _ in range(30):
             await asyncio.sleep(1)
             if await is_chimerax_running(port):
-                print(f"ChimeraX started successfully on port {port}!", file=sys.stderr)
+                logger.info("ChimeraX started successfully on port %d!", port)
                 _instances[port]["status"] = "running"
                 return True, port
 
-        print("Timeout waiting for ChimeraX to start", file=sys.stderr)
+        logger.error("Timeout waiting for ChimeraX to start")
         _instances[port]["status"] = "failed"
         return False, port
 
     except Exception as e:
-        print(f"Failed to start ChimeraX: {e}", file=sys.stderr)
+        logger.error("Failed to start ChimeraX: %s", e)
         if port in _instances:
             _instances[port]["status"] = "failed"
         return False, port
@@ -444,7 +444,7 @@ async def find_best_chimerax_instance() -> int:
 
     # First check if default port is running
     if await is_chimerax_running(_default_port):
-        print(f"Using default ChimeraX instance on port {_default_port}", file=sys.stderr)
+        logger.info("Using default ChimeraX instance on port %d", _default_port)
         return _default_port
 
     # Quick scan for any running ChimeraX instances (common ports only)
@@ -456,12 +456,13 @@ async def find_best_chimerax_instance() -> int:
 
         if await is_chimerax_running(port):
             # Found one! But DON'T change the default - just use it for this operation
-            print(f"WARNING: Found ChimeraX instance on port {port}, but default is still {_default_port}. "
-                  f"Use set_default_session({port}) if you want to make this the default.", file=sys.stderr)
+            logger.warning("Found ChimeraX instance on port %d, but default is still %d. "
+                          "Use set_default_session(%d) if you want to make this the default.",
+                          port, _default_port, port)
             return port
 
     # No instances found, return default port (will trigger auto-start)
-    print(f"No ChimeraX instances found, will try to start on port {_default_port}", file=sys.stderr)
+    logger.info("No ChimeraX instances found, will try to start on port %d", _default_port)
     return _default_port
 
 async def _execute_command_request(session, url: str, command: str) -> dict:
@@ -485,22 +486,11 @@ async def _execute_command_request(session, url: str, command: str) -> dict:
             # Parse JSON response
             data = await response.json()
             
-            # DEBUG: Write full response to file
-            if DEBUG:
-                import json
-                import time
-                debug_file = f"/tmp/chimerax_response_{int(time.time() * 1000)}.json"
-                try:
-                    with open(debug_file, 'w') as f:
-                        json.dump({
-                            "command": command,
-                            "url": url,
-                            "raw_response": data
-                        }, f, indent=2)
-                    print(f"DEBUG: Full response written to {debug_file}", file=sys.stderr)
-                except Exception as e:
-                    print(f"DEBUG: Failed to write debug file: {e}", file=sys.stderr)
-            
+            if logger.isEnabledFor(logging.DEBUG):
+                import json as _json
+                logger.debug("Response for %r (url=%s): %s",
+                             command, url, _json.dumps(data, indent=2))
+
             # Check for errors - raise exception if present
             if data.get("error") is not None:
                 error_info = data["error"]
@@ -1773,7 +1763,7 @@ async def start_new_chimerax_session(session_name: Optional[str] = None, port: O
     if port is None:
         # Find an available port, starting from the default
         port = find_available_port(_default_port)
-        print(f"No port specified, found available port: {port}", file=sys.stderr)
+        logger.info("No port specified, found available port: %d", port)
 
     # Check if already running on this port
     if await is_chimerax_running(port):
@@ -1788,7 +1778,7 @@ async def start_new_chimerax_session(session_name: Optional[str] = None, port: O
         return f"ChimeraX is already running on port {port} (session: {existing_session}). To start a new session, use port {available_port} instead."
 
     # Force a new instance - always use force_new=True to avoid reusing existing instances
-    print(f"Starting new ChimeraX instance on port {port} (force_new=True)", file=sys.stderr)
+    logger.info("Starting new ChimeraX instance on port %d (force_new=True)", port)
     success, actual_port = await start_chimerax(port, session_name, force_new=True)
     if success:
         # Use the requested session name, or get from instances if not provided
