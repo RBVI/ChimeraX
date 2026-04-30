@@ -993,7 +993,7 @@ async def run_command(command: str, session_id: Optional[int] = None) -> str:
     - Common atomspecs: #1 (model), #1/A (chain), #1/A:100 (residue), @ca (atom type), HC (nonpolar hydrogens), #1/A & ligand (ligands in chain A of model 1), `ligand | (ligand :< 5)` (ligand and residues within 5 Å of ligand), `#1/A:100 :< 6` (residues within 6 Å of residue 100 in chain A of model 1)
     
     To see a list of all commands, use the list_commands() tool.
-    For command syntax help, use get_command_documentation(command_name).
+    For command syntax help, use get_command_documentation(command).
 
     Frequently-used commands:
     - volume #2 step 1 sdLevel 5.0 transparency 0.5 - display map #2 with step size 1, surface level 5.0 standard deviations (sigma), transparency 50%
@@ -1869,19 +1869,41 @@ async def list_chimerax_commands() -> str:
             break
 
     result += f"\nTotal: {len(commands)} commands available\n"
-    result += "Use get_command_documentation(command_name) to get detailed documentation for any command."
+    result += "Use get_command_documentation(command) to get detailed documentation for any command."
     return result
 
 @mcp.tool()
-async def get_command_documentation(command_name: str) -> str:
+async def get_command_documentation(command: str) -> str:
     """Get detailed documentation for a specific ChimeraX command.
     
-    Use this to learn the correct syntax, arguments, and usage for a specific command.
+    Tries the local HTML reference docs first (rich output for core commands like
+    `open`, `color`, etc.), then falls back to running `usage <command>` against
+    the live ChimeraX session. The fallback works for bundle-provided commands
+    (e.g. `isolde`) and hierarchical sub-paths (e.g. `isolde validate`).
     
     Args:
-        command_name: Name of the ChimeraX command (e.g., 'open', 'color', 'save')
+        command: Name of the ChimeraX command (e.g., 'open', 'color',
+            'isolde', 'isolde validate'). Multi-word inputs are supported and
+            preferred for hierarchical commands, since their sub-actions only
+            show up in the live `usage` output.
     """
-    return get_command_doc(command_name)
+    stripped = command.strip()
+    if not stripped:
+        return "No command specified."
+
+    root = stripped.split()[0]
+    html_doc = get_command_doc(root)
+    if not html_doc.startswith("No documentation found") and not html_doc.startswith("Documentation not found"):
+        if " " not in stripped:
+            return html_doc
+
+    try:
+        result = await run_chimerax_command(f"usage {stripped}")
+    except Exception as e:
+        if html_doc.startswith("No documentation found") or html_doc.startswith("Documentation not found"):
+            return f"No documentation found for command: {command} (usage fallback also failed: {e})"
+        return html_doc
+    return format_chimerax_response(result, context=f"# ChimeraX Command: {stripped}\n")
 
 # Cleanup function for aiohttp session
 async def cleanup():
