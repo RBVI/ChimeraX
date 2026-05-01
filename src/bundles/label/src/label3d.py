@@ -755,6 +755,94 @@ class ObjectLabels(Model):
             self._labels.append(l)
         self._count_pixel_sized_labels()
 
+    def restore_scene(self, data):
+        super().restore_scene(data['model state'])
+        self.on_top = data['on_top']
+        if 'orient' in data:
+            label_orient(self.session, data['orient'])
+        for lstate, label in zip(data['labels state'], self._labels):
+            for attr in ('offset', 'color', 'background', 'size', 'height'):
+                if attr in lstate:
+                    setattr(label, attr, lstate[attr])
+            for attr in ('text', 'font', 'position'):
+                if attr in lstate:
+                    setattr(label, attr, lstate[attr])
+        self.update_labels()
+
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        super().interpolate_scene(scene1_data['model state'], scene2_data['model state'],
+                                  fraction, switchover=switchover)
+
+        from numpy import rint, array, uint8
+
+        source = scene2_data if switchover else scene1_data
+        self.on_top = source['on_top']
+
+        # Interpolate orient angle
+        orient1 = scene1_data.get('orient', 0)
+        orient2 = scene2_data.get('orient', 0)
+        label_orient(self.session, (1 - fraction) * orient1 + fraction * orient2)
+
+        ls1 = scene1_data['labels state']
+        ls2 = scene2_data['labels state']
+        for i, label in enumerate(self._labels):
+            if i >= len(ls1) or i >= len(ls2):
+                break
+            s1, s2 = ls1[i], ls2[i]
+            src = s2 if switchover else s1
+
+            # Interpolate offset (3-tuple of floats)
+            off1 = s1.get('offset')
+            off2 = s2.get('offset')
+            if off1 is not None and off2 is not None:
+                label.offset = tuple((1 - fraction) * off1[j] + fraction * off2[j]
+                                     for j in range(len(off1)))
+            elif 'offset' in src:
+                label.offset = src['offset']
+
+            # Interpolate color (uint8 RGBA)
+            c1 = s1.get('color')
+            c2 = s2.get('color')
+            if c1 is not None and c2 is not None:
+                c1, c2 = array(c1, dtype=uint8), array(c2, dtype=uint8)
+                interp_c = (1 - fraction) * c1.astype(float) + fraction * c2.astype(float)
+                label.color = array(rint(interp_c), dtype=uint8)
+            elif 'color' in src:
+                label.color = src['color']
+
+            # Interpolate background color
+            bg1 = s1.get('background')
+            bg2 = s2.get('background')
+            if bg1 is not None and bg2 is not None:
+                bg1, bg2 = array(bg1, dtype=uint8), array(bg2, dtype=uint8)
+                interp_bg = (1 - fraction) * bg1.astype(float) + fraction * bg2.astype(float)
+                label.background = array(rint(interp_bg), dtype=uint8)
+            else:
+                label.background = src.get('background')
+
+            # Interpolate size (int)
+            sz1 = s1.get('size')
+            sz2 = s2.get('size')
+            if sz1 is not None and sz2 is not None:
+                label.size = round((1 - fraction) * sz1 + fraction * sz2)
+            elif 'size' in src:
+                label.size = src['size']
+
+            # Interpolate height (float or None)
+            h1 = s1.get('height')
+            h2 = s2.get('height')
+            if h1 is not None and h2 is not None:
+                label.height = (1 - fraction) * h1 + fraction * h2
+            else:
+                label.height = src.get('height')
+
+            # Discrete attributes
+            for attr in ('text', 'font', 'position'):
+                if attr in src:
+                    setattr(label, attr, src[attr])
+
+        self.update_labels()
+
 # -----------------------------------------------------------------------------
 #
 def label_class(object):
