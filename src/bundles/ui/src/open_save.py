@@ -18,7 +18,8 @@ open_save: open/save dialogs
 TODO
 """
 
-from Qt.QtWidgets import QFileDialog, QSizePolicy, QPushButton, QMenu
+from Qt.QtWidgets import (QFileDialog, QSizePolicy, QPushButton, QMenu, QFrame, QHBoxLayout, QLabel,
+    QLineEdit)
 from Qt.QtCore import Qt
 class SaveDialog(QFileDialog):
     use_native = False
@@ -53,7 +54,6 @@ class SaveDialog(QFileDialog):
     @property
     def custom_area(self):
         if self._custom_area is None:
-            from Qt.QtWidgets import QFrame
             self._custom_area = QFrame(self)
             self._custom_area.setFrameStyle(QFrame.Panel | QFrame.Raised)
             self._custom_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -146,7 +146,7 @@ class SaveQGraphicsDialogSettings(Settings):
 # QImage can save), we provide our own dialog
 from Qt.QtWidgets import QFileDialog
 class SaveQGraphicsDialog(QFileDialog):
-    self.format_info = {
+    format_info = {
         "bmp": ("BMP", "Windows bitmap", "bmp"),
         "jfif": ("JFIF", "JPEG File Interchange Format", "jfif"),
         "jp2": ("JP2", "JPEG 2000", "jp2"),
@@ -156,18 +156,20 @@ class SaveQGraphicsDialog(QFileDialog):
         "webp": ("WebP", "WebP", "webp"),
     }
     def __init__(self, session, view, *args, depiction_name="scene", **kw):
+        super().__init__(view, *args, **kw)
+        self.session = session
         self.view = view
-        from Qt.QtGui import QImageWriter
+        self.depiction_name = depiction_name
+        from Qt.QtGui import QImageWriter, QIntValidator
         available_fmt_info = []
-        for fmt in QImageWriter.supportedFormats():
+        for fmt in QImageWriter.supportedImageFormats():
             try:
-                available_fmt_info.append(self.format_info[str(fmt)])
+                available_fmt_info.append(self.format_info[bytes(fmt).decode('utf8')])
             except KeyError:
                 continue
-        name_filters = ["%s [%s] (*.%s)" % self.fmt_info for fmt_info in available_fmt_info]
+        name_filters = ["%s [%s] (*.%s)" % fmt_info for fmt_info in available_fmt_info]
         self.filter_to_info = {flt: info for flt, info in zip(name_filters, available_fmt_info)}
         fmt_to_filter = { info[0]: flt for flt, info in self.filter_to_info.items() }
-        super().__init__(parent, *args, **kw)
         self.setFileMode(QFileDialog.AnyFile)
         self.setAcceptMode(QFileDialog.AcceptSave)
         self.setOption(QFileDialog.DontUseNativeDialog)
@@ -200,6 +202,7 @@ class SaveQGraphicsDialog(QFileDialog):
         for area in ["all", "visible"]:
             menu.addAction(self.area_descriptions[area])
         menu.triggered.connect(lambda action, but=self.save_area_button: but.setText(action.text()))
+        self.save_area_button.setMenu(menu)
         save_area_layout.addWidget(self.save_area_button)
         '''
         self._transparent_checkbox = QCheckBox("Transparent background")
@@ -229,24 +232,53 @@ class SaveQGraphicsDialog(QFileDialog):
     def exec(self):
         ok = super().exec()
         if not ok:
-            return ok
-        #TODO
+            return False
+        path, fmt_name = self.file_info
+        if path is None:
+            return False
+        #self.settings.transparent_background = self.transparent_background
+        self.settings.dpi = dpi = self.dpi
+        self.settings.save_area = save_area = self.save_area
+        from Qt.QtGui import QImage, QPainter
+        if save_area == "visible":
+            source = self.view
+            image_size = self.view.viewport().rect().size()
+        else:
+            source = self.view.scene()
+            image_size = source.sceneRect().toAlignedRect().size()
+        #NOTE: investigate if I need to multiply toSize() by device pixel ratio
+        image = QImage(image_size, QImage.Format_ARGB32)
+        if dpi is not None:
+            dpm = round(dpi * 39.3701)
+            image.setDotsPerMeterX(dpm)
+            image.setDotsPerMeterY(dpm)
+        source.render(QPainter(image))
+        if image.save(path, fmt_name.lower()):
+            self.session.logger.info("Saved %s image to %s" % (self.depiction_name, path))
+            return True
+        self.session.logger.info("Failed to save %s image to %s" % (self.depiction_name, path))
+        return False
 
     @property
-    def path(self):
+    def file_info(self):
         paths = self.selectedFiles()
         if not paths:
-            return None
+            return None, None
         path = paths[0]
         name_filter = self.selectedNameFilter()
         fmt_name, fmt_desc, suffix_info = self.filter_to_info[name_filter]
         self.settings.save_format = fmt_name
-        #self.settings.transparent_background = self.transparent_background
-        self.settings.dpi = self.dpi
         suffix = '.' + (suffix_info[:suffix_info.index(' ')] if ' ' in suffix_info else suffix_info)
         if path.endswith(suffix):
-            return path
-        return path + suffix
+            return path, fmt_name
+        return path + suffix, fmt_name
+
+    @property
+    def save_area(self):
+        but_text = self.save_area_button.text()
+        for key, text in self.area_descriptions.items():
+            if but_text in (key, text):
+                return key
 
     '''
     @property

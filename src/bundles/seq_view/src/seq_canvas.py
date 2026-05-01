@@ -1144,55 +1144,11 @@ class SeqCanvas:
         '''Used to restore header state, now done by alignment'''
         pass
 
-    """TODO
-    def saveEPS(self, fileName, colorMode, rotate, extent, hideNodes):
-        if self.tree:
-            savedNodeDisplay = self.nodesShown
-            self.showNodes(not hideNodes)
-        mainFileName = fileName
-        msg = ""
-        twoCanvas = self._labelCanvas(grid=0) != self.mainCanvas
-        import os.path
-        if twoCanvas:
-            twoCanvas = True
-            if fileName.endswith(".eps"):
-                base = fileName[:-4]
-                tail = ".eps"
-            else:
-                base = fileName
-                tail = ""
-            mainFileName = base + "-alignment" + tail
-            labelFileName = base + "-names" + tail
-            msg = "Sequence names and main alignment saved" \
-                " as separate files\nSequence names saved" \
-                " to %s\n" % os.path.split(labelFileName)[1]
-
-        msg += "Alignment saved to %s\n" % os.path.split(
-                            mainFileName)[1]
-        mainKw = labelKw = {}
-        if extent == "all":
-            left, top, right, bottom = self.mainCanvas.bbox("all")
-            if twoCanvas:
-                ll, lt, lr, lb = self.labelCanvas.bbox("all")
-                top = min(top, lt)
-                bottom = max(bottom, lb)
-                labelKw = {
-                    'x': ll, 'y': top,
-                    'width': lr-ll, 'height': bottom-top
-                }
-            mainKw = {
-                'x': left, 'y': top,
-                'width': right-left, 'height': bottom-top
-            }
-        self.mainCanvas.postscript(colormode=colorMode,
-                file=mainFileName, rotate=rotate, **mainKw)
-        if twoCanvas:
-            self.labelCanvas.postscript(colormode=colorMode,
-                file=labelFileName, rotate=rotate, **labelKw)
-        if self.tree:
-            self.showNodes(savedNodeDisplay)
-        self.sv.status(msg)
-    """
+    def save_image(self):
+        from chimerax.ui.open_save import SaveQGraphicsDialog
+        if self.wrap_okay():
+            SaveQGraphicsDialog(self.sv.session, self.main_view, depiction_name="alignment").exec()
+            return
 
     def show_header(self, header):
         self.lead_block.show_header(header)
@@ -2792,42 +2748,6 @@ class SeqBlock:
         # on letter
         return row
 
-    def show_left_numbering(self, show_numbering):
-        if show_numbering:
-            delta = self.numbering_widths[0]
-            for ruler_text in self.ruler_texts:
-                ruler_text.moveBy(delta, 0)
-            numbered_lines = [l for l in self.lines if line_numbering_start(l) is not None]
-            for line in numbered_lines:
-                self.numbering_texts[line][0] = self._make_numbering(line, 0)
-            self._move_lines(self.lines, 0, delta, 0)
-        else:
-            delta = 0 - self.numbering_widths[0]
-            for ruler_text in self.ruler_texts:
-                ruler_text.moveBy(delta, 0)
-            for texts in self.numbering_texts.values():
-                if not texts[0]:
-                    continue
-                self.main_scene.removeItem(texts[0])
-                texts[0] = None
-            self._move_lines(self.lines, 0, delta, 0)
-        if self.next_block:
-            self.next_block.show_left_numbering(show_numbering)
-
-    def show_right_numbering(self, show_numbering):
-        if show_numbering:
-            numbered_lines = [l for l in self.lines if line_numbering_start(l) is not None]
-            for line in numbered_lines:
-                self.numbering_texts[line][1] = self._make_numbering(line, 1)
-        else:
-            for texts in self.numbering_texts.values():
-                if not texts[1]:
-                    continue
-                self.main_scene.removeItem(texts[1])
-                texts[1] = None
-        if self.next_block:
-            self.next_block.show_right_numbering(show_numbering)
-
     def set_ruler_display(self, show_ruler, push_down=0):
         if show_ruler == self.show_ruler:
             return
@@ -2877,6 +2797,42 @@ class SeqBlock:
         self.bottom_y += push_down
         if self.next_block:
             self.next_block.show_header(header, push_down=push_down)
+
+    def show_left_numbering(self, show_numbering):
+        if show_numbering:
+            delta = self.numbering_widths[0]
+            for ruler_text in self.ruler_texts:
+                ruler_text.moveBy(delta, 0)
+            numbered_lines = [l for l in self.lines if line_numbering_start(l) is not None]
+            for line in numbered_lines:
+                self.numbering_texts[line][0] = self._make_numbering(line, 0)
+            self._move_lines(self.lines, 0, delta, 0)
+        else:
+            delta = 0 - self.numbering_widths[0]
+            for ruler_text in self.ruler_texts:
+                ruler_text.moveBy(delta, 0)
+            for texts in self.numbering_texts.values():
+                if not texts[0]:
+                    continue
+                self.main_scene.removeItem(texts[0])
+                texts[0] = None
+            self._move_lines(self.lines, 0, delta, 0)
+        if self.next_block:
+            self.next_block.show_left_numbering(show_numbering)
+
+    def show_right_numbering(self, show_numbering):
+        if show_numbering:
+            numbered_lines = [l for l in self.lines if line_numbering_start(l) is not None]
+            for line in numbered_lines:
+                self.numbering_texts[line][1] = self._make_numbering(line, 1)
+        else:
+            for texts in self.numbering_texts.values():
+                if not texts[1]:
+                    continue
+                self.main_scene.removeItem(texts[1])
+                texts[1] = None
+        if self.next_block:
+            self.next_block.show_right_numbering(show_numbering)
 
     """TODO
     def showNodes(self, show):
