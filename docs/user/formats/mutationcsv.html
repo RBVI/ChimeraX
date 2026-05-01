@@ -25,6 +25,7 @@ ChimeraX can read the results of deep mutational scanning
 from a <b><i>mutation scores file</i></b>
 (format name <b>ms</b>, filename suffix <b>.csv</b>) 
 for visualization and analysis with the
+<a href="../tools/mutationscores.html"><b>Mutation Scores</b></a> tool and/or
 <a href="../commands/mutationscores.html"><b>mutationscores</b></a> command.
 Deep mutational scanning generally involves mutating each position in a
 protein to all 20 standard amino acids and evaluating the large number
@@ -59,28 +60,23 @@ p.(V6del)
 ChimeraX currently offers no way to visualize the deletions and will
 ignore such lines. 
 </p><p>
+Opening a mutation scores file automatically shows the
+<a href="../tools/mutationscores.html"><b>Mutation Scores</b></a> tool.
 </p><p>
-Opening a mutation scores file automatically shows a 
-<a href="../commands/mutationscores.html#scatterplot">scatter plot</a> 
-of the mutants with the first two scores as the axes,
-or a <a href="../commands/mutationscores.html#histogram">histogram</a>
-if the file only contains one kind of score.
-The menus below the plot can be used
-to change which scores are plotted and for which mutation set.
-</p><p>
-Opening a mutation scores file automatically associates the data with a
-structure chain open in ChimeraX, if its sequence and residue numbering
-match that in the file.  However, if more than one matching chain is present,
-the <a href="../commands/open.html#local"><b>open</b></a> command
-<a href="../commands/open.html#chain"><b>chain</b></a> option
-can be used to specify which to use.
-Alternatively, the scores can be associated with a structure later with the
-<a href="../commands/mutationscores.html#structure"><b>mutationscores
-structure</b></a> command.
+By default, mutation scores are automatically associated with each
+open structure chain that has exactly the same sequence and residue
+numbering (as in the mutation data) the first time some analysis action
+is performed, such as interacting with a plot.
+However, specific structure chains to associate can be designated with the
+<a href="../commands/open.html#chains"><b>chains</b></a> option of the
+<a href="../commands/open.html"><b>open</b></a> command
+at the time of opening the mutation data, or later (after opening the data) 
+with <a href="../commands/mutationscores.html#structure"><b>mutationscores
+structure</b></a>.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2024</address>
+April 2026</address>
 
 </body></html>

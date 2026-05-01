@@ -21,8 +21,10 @@ or derivations thereof.
 
 <h3><a href="../index.html#commands">Command</a>: sequence</h3>
 <p>
-The <b>sequence</b> subcommands perform actions related to the
+The <b>sequence</b> subcommands perform actions related to sequences in the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+or
+<a href="../tools/profilegrid.html"><b>Profile Grid</b></a>
 and associated structures:
 </p>
 <ul>
@@ -63,6 +65,10 @@ to a structure chain
 &ndash; replace the sequence data of a structure chain with its
 associated sequence in the 
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+</li><li><a href="#grid"><b>sequence grid</b></a>
+&ndash; label structure residues 
+with color-coded grids of residue prevalences 
+from <a href="../tools/profilegrid.html"><b>Profile Grid</b></a>
 </li></ul>
 <p>
 The <a href="../menu.html#tools"><b>Tools</b> menu</a> 
@@ -676,6 +682,59 @@ Muscle5: High-accuracy alignment ensembles enable unbiased assessments of sequen
 <i>Nat Commun.</i> 2022 Nov 15;13(1):6968.
 </blockquote>
 </li></ul>
+
+<a name="grid"></a>
+<p class="nav">
+[<a href="#top">back to top: sequence</a>]
+</p>
+<h3>Label Structure Residues with Prevalences from Profile Grid</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sequence grid</b> &nbsp;<i>alignment-ID</i>&nbsp;
+<b>label</b> &nbsp;<a href="atomspec.html#hierarchy"><i>residue-spec</i></a>&nbsp;
+[&nbsp;<a href="color.html#palette"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
+[&nbsp;<a href="color.html#range"><b>range</b></a>&nbsp;&nbsp;<i>low,high</i>&nbsp;|&nbsp;full&nbsp;]
+[&nbsp;<b>bgColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]
+[&nbsp;<b>offset</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
+[&nbsp;<b>onTop</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</blockquote>
+<table class="clRight">
+<tbody><tr><td><img border="1" src="profilegridlabel.png" alt="profile grid
+prevalence labels" title="2b1l /B:81-83, PFAM redoxin filt90" width="200px"></a>
+</td></tr>
+</tbody></table>
+<p>
+Label residues of structure chains 
+<a href="../tools/sequenceviewer.html#association">associated</a>
+with an alignment in <a href="../tools/profilegrid.html"><b>Profile Grid</b></a>
+with color-coded grids of residue-type prevalences.
+The <i>alignment-ID</i> can be specified if more than one
+<a href="../tools/profilegrid.html"><b>Profile Grid</b></a> is present.
+The label grids show the prevalences of the 20 standard amino acids and gap
+at the corresponding column in the alignment, by default coloring from
+white to blue with increasing prevalence:
+</p>
+  <blockquote>
+<b><a href="color.html#palette">palette</a> 0,white:1,blue
+&nbsp;<a href="color.html#range">range</a> 0.0,1.0</b>
+  </blockquote>
+<p>
+The <b>bgColor</b> is used behind the label text and for filling in
+empty cells in the last row of the label (default <b>#B4B4B4</b>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="#B4B4B4" width="10px" title="#B4B4B4"></td>
+</tr></tbody></table>).
+<p>
+The label <b>height</b>&nbsp;&nbsp;<i>h</i> defaults to <b>1.5</b> &Aring;.
+The <b>offset</b>&nbsp;&nbsp;<i>x,y,z</i> is the position of the
+lower left corner of the grid relative to the residue's &alpha;-carbon
+along X, Y, and Z in <a href="view.html#screencoords">screen coordinates</a>
+(default <b>0,0,3</b> &Aring;). The <b>onTop</b> setting is whether
+to draw the labels on top of other objects regardless of their
+relative positions in 3D (default <b>false</b>).
+The labels can be removed with <a href="label.html#delete"><b>label delete</b></a>.
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
