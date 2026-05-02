@@ -336,6 +336,7 @@ class SceneAnimation(StateManager):
         # the base scene state. During sequential playback the scene state
         # won't change every frame, but actions still need to update.
         self._apply_action_segments(time)
+        self._apply_trajectory_at_time(scene1, scene2, fraction)
         self._last_active_action_segment = active_action_segment
 
         # Notify the UI so the playhead tracks the previewed time.
@@ -901,6 +902,80 @@ class SceneAnimation(StateManager):
             self._segment_angles.clear()
         if hasattr(self, '_wobble_last_fraction'):
             self._wobble_last_fraction.clear()
+
+    def _apply_trajectory_at_time(self, scene1_name, scene2_name, fraction):
+        """Drive a morph trajectory's active coordset between two scenes.
+
+        Reads each scene's saved ``active_coordset_id`` for the auto-picked
+        morph trajectory and linearly interpolates between them at
+        ``fraction``. At a steady scene (``scene1_name == scene2_name``)
+        snaps to that scene's captured frame.
+        """
+        if not scene1_name or not scene2_name:
+            return
+
+        from .trajectory import find_morph_trajectory, interpolate_trajectory_ids
+        traj = find_morph_trajectory(self.session)
+        if traj is None:
+            return
+
+        s1 = self.session.scenes.get_scene(scene1_name)
+        s2 = self.session.scenes.get_scene(scene2_name)
+        if s1 is None or s2 is None:
+            return
+
+        id_a = self._get_scene_coordset_id(s1, traj)
+        id_b = self._get_scene_coordset_id(s2, traj)
+        if id_a is None or id_b is None:
+            return
+
+        interpolate_trajectory_ids(traj, id_a, id_b, fraction)
+
+    def _get_scene_coordset_id(self, scene, traj):
+        """Return the saved active_coordset_id for ``traj`` in ``scene``, or None.
+
+        ``AtomicStructure.take_snapshot`` wraps the ``Structure`` SCENE dict
+        under ``'structure state'``; plain ``Structure`` puts it at the top.
+        """
+        info = scene.scene_models.get(traj)
+        if info is None:
+            return None
+        _, scene_data = info
+        if not isinstance(scene_data, dict):
+            return None
+        inner = scene_data.get('structure state', scene_data)
+        return inner.get('structure', {}).get('active_coordset_id')
+
+    def _get_trajectory_fraction(self, time: float) -> float:
+        """Compute a global trajectory fraction in [0, 1] across all scenes.
+
+        Within each scene-to-scene segment, applies that segment's easing
+        function so the morph progresses with the same feel as the scene
+        transition. Before the first scene returns 0; after the last, 1.
+        """
+        sorted_scenes = sorted(self.scenes, key=lambda x: x[0])
+        n = len(sorted_scenes)
+        if n < 2:
+            return 0.0
+        if time <= sorted_scenes[0][0]:
+            return 0.0
+        if time >= sorted_scenes[-1][0]:
+            return 1.0
+
+        for i in range(n - 1):
+            t1, _, _ = sorted_scenes[i]
+            t2, _, transition2 = sorted_scenes[i + 1]
+            if t1 <= time <= t2:
+                seg_dur = t2 - t1
+                local = (time - t1) / seg_dur if seg_dur > 0 else 0.0
+                local = max(0.0, min(1.0, local))
+                transition_type = (transition2 or {}).get("type", "linear")
+                easing = TRANSITION_TYPES.get(transition_type, EasingFunctions.linear)
+                local_eased = easing(local)
+                base = i / (n - 1)
+                step = 1.0 / (n - 1)
+                return base + local_eased * step
+        return 1.0
 
     def _reset_action_tracking(self):
         """Reset action segment tracking state.
