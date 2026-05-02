@@ -105,6 +105,15 @@ class ViewState:
         return v
 
     @staticmethod
+    def interpolate_scene(view, session, data1, data2, fraction):
+        """Interpolate ViewState appearance attributes between two SCENE-flag
+        snapshots and apply onto ``view`` at ``fraction`` in [0, 1]."""
+        import numpy as np
+        bg1 = data1.get('background_color')
+        bg2 = data2.get('background_color')
+        if bg1 is not None and bg2 is not None:
+            view.background_color = (1.0 - fraction) * np.asarray(bg1) + fraction * np.asarray(bg2)
+    @staticmethod
     def restore_scene(view, session, scene_data):
         """
         Scenes interface implementation

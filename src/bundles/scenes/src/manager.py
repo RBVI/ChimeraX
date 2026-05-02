@@ -272,6 +272,15 @@ class SceneManager(StateManager):
             _interpolate_camera(v1, v2, fraction, current_view.camera)
             _interpolate_clip_planes(v1, v2, fraction, current_view)
 
+        # Interpolate ViewState appearance attributes (background, lighting,
+        # material) that aren't covered by the camera/clip interpolation above.
+        view_state = self.session.snapshot_methods(current_view)
+        if view_state is not None and hasattr(view_state, 'interpolate_scene'):
+            d1 = getattr(scene1, 'main_view_data', None)
+            d2 = getattr(scene2, 'main_view_data', None)
+            if d1 is not None and d2 is not None:
+                view_state.interpolate_scene(current_view, self.session, d1, d2, fraction)
+
         # Interpolate model-specific scene data
         current_models = self.session.scenes.scene_relevant_models
         for model in current_models:
