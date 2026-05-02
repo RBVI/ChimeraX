@@ -231,6 +231,14 @@ class SceneManager(StateManager):
             self.restore_scene(scene2_name)
             return
 
+        # Seed an interpolation with scene1's full state.
+        # Without seeding, anything will keep whatever
+        # state it had when the user last scrubbed elsewhere — so e.g. models
+        # hidden by scene2 stay hidden even when scrubbing back into the
+        # transition. scene1.restore_scene() is called directly to avoid
+        # firing the RESTORED trigger on every interpolation frame.
+        scene1.restore_scene()
+
         # Get view data for interpolation
         v1 = scene1.named_view
         v2 = scene2.named_view
