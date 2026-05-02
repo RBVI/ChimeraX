@@ -1240,6 +1240,10 @@ class TimelineSceneWidget(QWidget):
         # Add delete option at the top
         delete_action = menu.addAction(f"Delete '{scene_name}' from Timeline")
         delete_action.triggered.connect(lambda: self.scene_deleted.emit(scene_name, scene_time))
+
+        # Restore camera option
+        restore_camera_action = menu.addAction("Restore Camera")
+        restore_camera_action.triggered.connect(lambda: self._restore_scene_camera(scene_name))
         menu.addSeparator()
 
         # Transition type submenu
@@ -1277,6 +1281,21 @@ class TimelineSceneWidget(QWidget):
             transition_key = action.property("transition_key")
             marker_id = action.property("marker_id")
             self._set_scene_transition_type_by_id(marker_id, transition_key)
+
+    def _restore_scene_camera(self, scene_name):
+        """Restore only the camera position from the named scene via 'view matrix camera'."""
+        session = self._get_session()
+        if session is None:
+            return
+        scene = session.scenes.get_scene(scene_name)
+        if scene is None:
+            return
+        camera_position = scene.named_view.camera.get("position")
+        if camera_position is None:
+            return
+        matrix_str = ",".join("%.5g" % x for x in tuple(camera_position.matrix.flat))
+        from chimerax.core.commands import run
+        run(session, f"view matrix camera {matrix_str}")
 
     def _get_scene_transition_data(self, scene_name):
         """Get transition data for a scene (first match by name)"""
