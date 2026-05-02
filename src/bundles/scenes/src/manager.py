@@ -197,9 +197,7 @@ class SceneManager(StateManager):
         scene1_name: str,
         scene2_name: str,
         fraction: float,
-        fade_models: bool = False,
     ):
-#       print(f"DEBUG: interpolate_scenes called: {scene1_name} -> {scene2_name}, fraction={fraction:.3f}")
         """
         Interpolate between two scenes at the given fraction.
 
@@ -207,7 +205,6 @@ class SceneManager(StateManager):
             scene1_name (str): Name of the first scene
             scene2_name (str): Name of the second scene
             fraction (float): Interpolation fraction (0.0 = scene1, 1.0 = scene2)
-            fade_models (bool): Whether to apply fade effects to appearing/disappearing models
         """
         scene1 = self.get_scene(scene1_name)
         scene2 = self.get_scene(scene2_name)
@@ -293,10 +290,7 @@ class SceneManager(StateManager):
                     # Use model's interpolation (will use custom if available, or base Model implementation)
                     model.interpolate_scene(scene1_data, scene2_data, fraction, switchover=(fraction >= 0.5))
 
-        # Handle model fading if enabled
-        if fade_models:
-            # print(f"DEBUG: Applying model fade effects")
-            self._apply_model_fade(scene1, scene2, fraction)
+        self._apply_model_fade(scene1, scene2, fraction)
 
     def _apply_model_fade(self, scene1, scene2, fraction):
         """Apply fade in/out effects for models appearing/disappearing between scenes"""

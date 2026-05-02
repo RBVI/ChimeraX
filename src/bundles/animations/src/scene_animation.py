@@ -94,6 +94,17 @@ ACTION_DEFAULTS = {
 }
 
 
+_LEGACY_TRANSITION_KEYS = ("fade_models",)
+
+
+def _strip_legacy_transition_keys(transition_data):
+    if not isinstance(transition_data, dict):
+        return transition_data
+    if not any(key in transition_data for key in _LEGACY_TRANSITION_KEYS):
+        return transition_data
+    return {k: v for k, v in transition_data.items() if k not in _LEGACY_TRANSITION_KEYS}
+
+
 def _make_signals_class():
     """Create the SceneAnimationSignals class only when Qt is available."""
     from Qt.QtCore import QObject, Signal as pyqtSignal
@@ -132,7 +143,7 @@ class SceneAnimation(StateManager):
         # Animation state
         self.duration = self.DEFAULT_DURATION
         self.scenes = []  # List of (time, scene_name, transition_data) tuples
-        # transition_data = {'type': 'linear', 'fade_models': False}
+        # transition_data = {'type': 'linear'}
         self.action_segments = []  # List of (start_time, end_time, action_name) tuples for rock/roll
         self.current_time = 0.0
         self.is_playing = False
@@ -168,7 +179,6 @@ class SceneAnimation(StateManager):
         scene_name: str,
         time: float,
         transition_type: str = "linear",
-        fade_models: bool = False,
         action: str = None,
     ):
         """Add a scene at a specific time with transition settings and optional action (rock/roll)"""
@@ -194,7 +204,6 @@ class SceneAnimation(StateManager):
         # Create transition data
         transition_data = {
             "type": transition_type,
-            "fade_models": fade_models,
             "action": action  # Can be "rock", "roll", or None
         }
 
@@ -756,10 +765,7 @@ class SceneAnimation(StateManager):
 
         if scene1 and scene2:
             scene2_data = self._get_scene_transition_data(scene2)
-            fade_models = scene2_data.get("fade_models", False) if scene2_data else False
-            self.session.scenes.interpolate_scenes(
-                scene1, scene2, fraction, fade_models=fade_models
-            )
+            self.session.scenes.interpolate_scenes(scene1, scene2, fraction)
             action = scene2_data.get("action") if scene2_data else None
             if action:
                 self._apply_action(action, fraction)
@@ -945,10 +951,9 @@ class SceneAnimation(StateManager):
     ):
         """
         Prepare model fading when we're at an exact scene timestamp.
-        This ensures that models appearing in the next scene with fade_models=True
-        are made visible with zero opacity at the current scene's timestamp.
+        This ensures that models appearing in the next scene are made visible
+        with zero opacity at the current scene's timestamp.
         """
-        # Find if there's a next scene with model fading enabled
         sorted_scenes = sorted(self.scenes, key=lambda x: x[0])
 
         current_scene_index = None
@@ -963,23 +968,9 @@ class SceneAnimation(StateManager):
             # No next scene or this is the last scene
             return
 
-        # Get the next scene
-        next_time, next_scene_name, next_transition_data = sorted_scenes[
+        next_time, next_scene_name, _next_transition_data = sorted_scenes[
             current_scene_index + 1
         ]
-
-        # Check if the next scene has model fading enabled
-        fade_models = (
-            next_transition_data.get("fade_models", False)
-            if next_transition_data
-            else False
-        )
-
-        if not fade_models:
-            # Next scene doesn't have fading enabled
-            return
-
-        # print(f"DEBUG: Preparing model fading at scene '{current_scene_name}' timestamp {current_time:.2f}s for next scene '{next_scene_name}'")
 
         # Get scene objects
         current_scene = self.session.scenes.get_scene(current_scene_name)
@@ -1112,7 +1103,10 @@ class SceneAnimation(StateManager):
             return
 
         self.duration = data.get("duration", self.DEFAULT_DURATION)
-        self.scenes = data.get("scenes", [])
+        self.scenes = [
+            (time, scene_name, _strip_legacy_transition_keys(transition_data))
+            for time, scene_name, transition_data in data.get("scenes", [])
+        ]
         self.action_segments = data.get("action_segments", [])
         self.current_time = data.get("current_time", 0.0)
 

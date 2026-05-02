@@ -400,7 +400,7 @@ class TimelineSceneWidget(QWidget):
     def add_scene_marker(self, time, scene_name, transition_data=None):
         """Add a scene marker at the specified time"""
         if transition_data is None:
-            transition_data = {"type": "linear", "fade_models": False}
+            transition_data = {"type": "linear"}
 
         # Get scene thumbnail from session
         thumbnail_pixmap = self._get_scene_thumbnail(scene_name)
@@ -1234,11 +1234,6 @@ class TimelineSceneWidget(QWidget):
         current_type = (
             current_transition.get("type", "linear") if current_transition else "linear"
         )
-        current_fade = (
-            current_transition.get("fade_models", False)
-            if current_transition
-            else False
-        )
 
         menu = QMenu(self)
 
@@ -1273,17 +1268,6 @@ class TimelineSceneWidget(QWidget):
             action.triggered.connect(self._on_transition_action_triggered)
             transition_menu.addAction(action)
 
-        menu.addSeparator()
-
-        # Fade models option
-        fade_action = QAction("Fade Models", menu)
-        fade_action.setCheckable(True)
-        fade_action.setChecked(current_fade)
-        fade_action.triggered.connect(
-            lambda checked, mid=marker_id: self._set_scene_fade_models_by_id(mid, checked)
-        )
-        menu.addAction(fade_action)
-
         menu.exec(global_pos)
 
     def _on_transition_action_triggered(self):
@@ -1313,16 +1297,6 @@ class TimelineSceneWidget(QWidget):
         marker = self._get_scene_marker_by_id(marker_id)
         if marker is not None:
             marker.transition_data["type"] = transition_type
-            self.scene_transition_changed.emit(
-                marker.time, dict(marker.transition_data)
-            )
-        self.update()
-
-    def _set_scene_fade_models_by_id(self, marker_id, fade_models):
-        """Set fade models option for a specific scene instance"""
-        marker = self._get_scene_marker_by_id(marker_id)
-        if marker is not None:
-            marker.transition_data["fade_models"] = fade_models
             self.scene_transition_changed.emit(
                 marker.time, dict(marker.transition_data)
             )
@@ -1565,7 +1539,7 @@ class TimelineSceneWidget(QWidget):
 
         marker.time = new_time
         if marker.transition_data is None:
-            marker.transition_data = {"type": "linear", "fade_models": False}
+            marker.transition_data = {"type": "linear"}
         self._sort_scene_markers()
 
 
