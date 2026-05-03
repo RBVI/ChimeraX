@@ -761,7 +761,6 @@ class SceneAnimation(StateManager):
         if scene1 == scene2:
             if scene1:
                 self.session.scenes.restore_scene(scene1)
-                self._prepare_model_fading_at_scene_timestamp(scene1, time)
             return
 
         if scene1 and scene2:
@@ -1020,92 +1019,6 @@ class SceneAnimation(StateManager):
             and self._action_only_center_of_rotation_method is not None
         ):
             view.center_of_rotation_method = self._action_only_center_of_rotation_method
-
-    def _prepare_model_fading_at_scene_timestamp(
-        self, current_scene_name: str, current_time: float
-    ):
-        """
-        Prepare model fading when we're at an exact scene timestamp.
-        This ensures that models appearing in the next scene are made visible
-        with zero opacity at the current scene's timestamp.
-        """
-        sorted_scenes = sorted(self.scenes, key=lambda x: x[0])
-
-        current_scene_index = None
-        for i, (time, name, _) in enumerate(sorted_scenes):
-            if (
-                name == current_scene_name and abs(time - current_time) < 0.001
-            ):  # Small tolerance for float comparison
-                current_scene_index = i
-                break
-
-        if current_scene_index is None or current_scene_index >= len(sorted_scenes) - 1:
-            # No next scene or this is the last scene
-            return
-
-        next_time, next_scene_name, _next_transition_data = sorted_scenes[
-            current_scene_index + 1
-        ]
-
-        # Get scene objects
-        current_scene = self.session.scenes.get_scene(current_scene_name)
-        next_scene = self.session.scenes.get_scene(next_scene_name)
-
-        if not current_scene or not next_scene:
-            return
-
-        # Find models that are visible in the next scene but not in the current scene
-        current_visible_models = self._get_visible_models_in_scene(current_scene)
-        next_visible_models = self._get_visible_models_in_scene(next_scene)
-
-        appearing_models = next_visible_models - current_visible_models
-
-        # print(f"DEBUG: Found {len(appearing_models)} models that will appear in next scene")
-
-        # Make appearing models visible with zero opacity
-        for model in appearing_models:
-            if hasattr(model, "display"):
-                # Make sure the model is visible but fully transparent
-                model.display = True
-
-                # For atomic models, we need to handle atoms.colors
-                if hasattr(model, "atoms") and len(model.atoms) > 0:
-                    atoms = model.atoms
-                    # Get atom colors and set alpha to 0 (fully transparent)
-                    c = atoms.colors
-                    c[:, 3] = 0
-                    atoms.colors = c
-                    # print(f"DEBUG: Prepared atomic model for fade-in: set {len(atoms)} atom alphas to 0")
-
-                # For non-atomic models, try the simple color approach
-                elif hasattr(model, "color"):
-                    try:
-                        r, g, b, a = model.color
-                        model.color = (r, g, b, 0)  # Fully transparent (0-255 range)
-                        # print(f"DEBUG: Prepared non-atomic model for fade-in: set to visible with full transparency")
-                    except:
-                        pass
-                    # print(f"DEBUG: Could not set color on model {model}")
-                else:
-                    pass
-                # print(f"DEBUG: Model {model} has no atoms or color attribute")
-
-    def _get_visible_models_in_scene(self, scene):
-        """Get the set of models that are actually visible in a scene"""
-        visible_models = set()
-
-        if not hasattr(scene, "named_view") or not hasattr(
-            scene.named_view, "positions"
-        ):
-            return visible_models
-
-        # Models are visible in a scene if they have positions stored in the named_view
-        # This follows the logic in scene.restore_scene() where models not in named_view.positions
-        # get model.display = False (i.e., hidden)
-        for model in scene.named_view.positions.keys():
-            visible_models.add(model)
-
-        return visible_models
 
     def get_scene_list(self) -> List[Tuple[float, str]]:
         """Get list of all scenes with their times (for compatibility)"""

@@ -461,7 +461,17 @@ class Model(State, Drawing):
         when 'switchover' is True.  If no parts of the model are interpolable then
         you needn't implement this method (restore_scene() is sufficient).
 
+        Either ``scene1_data`` or ``scene2_data`` may be ``None``, meaning the model
+        was absent (or hidden) in that scene. Subclasses with a meaningful concept
+        of opacity should fade alpha during such transitions; the base implementation
+        simply snaps to whichever side has data so the model becomes visible.
         '''
+        if scene1_data is None and scene2_data is None:
+            return
+        if scene1_data is None or scene2_data is None:
+            target = scene2_data if scene1_data is None else scene1_data
+            self.restore_scene(target)
+            return
         for attr_name, val in scene1_data.items():
             if attr_name in scene2_data:
                 #TODO: do something better for colors

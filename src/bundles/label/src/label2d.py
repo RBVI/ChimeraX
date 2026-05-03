@@ -735,6 +735,12 @@ class LabelModel(Model):
         pass
 
     def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        if scene1_data is None and scene2_data is None:
+            return
+        if scene1_data is None or scene2_data is None:
+            target = scene2_data if scene1_data is None else scene1_data
+            self.restore_scene(target)
+            return
         from chimerax.core.colors import Color
         params = {}
         scene2_params = LabelModel._label_restore_parameters(scene2_data, label_change)

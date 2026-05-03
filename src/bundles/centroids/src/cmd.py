@@ -61,7 +61,9 @@ class CentroidModel(Structure, SimpleMeasurable):
         super().restore_scene(scene_data['base data'])
 
     def interpolate_scene(self, scene1_data, scene2_data, *args, **kw):
-        super().interpolate_scene(scene1_data['base data'], scene2_data['base data'], *args, **kw)
+        s1 = scene1_data['base data'] if scene1_data is not None else None
+        s2 = scene2_data['base data'] if scene2_data is not None else None
+        super().interpolate_scene(s1, s2, *args, **kw)
 
 from . import centroid
 
