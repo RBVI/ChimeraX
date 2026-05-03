@@ -633,7 +633,14 @@ def format_chimerax_response(result: dict, context: str = "", command: Optional[
                 if cleaned is not None:
                     filtered_messages.append(cleaned)
             if filtered_messages:
-                output.append(f"{level.upper()}: {'; '.join(filtered_messages)}")
+                # Use '\n\n' (not '; ') as the separator: many ChimeraX log
+                # messages are multi-line markdown chunks (e.g. the per-model
+                # title / chain / non-standard-residue sections that follow
+                # an `open`), and a literal '; ' between them produced stray
+                # leading-semicolon lines in the rendered output. Trailing
+                # newlines inside individual messages plus this separator
+                # collapse to a single blank line via _BLANK_LINE_RUN_RE.
+                output.append(f"{level.upper()}:\n" + "\n\n".join(filtered_messages))
                 has_log_content = True
     
     # Priority 2: If no log content, try json values
