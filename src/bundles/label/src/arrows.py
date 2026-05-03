@@ -396,8 +396,20 @@ class Arrows(Model):
         if scene1_data is None and scene2_data is None:
             return
         if scene1_data is None or scene2_data is None:
+            # Arrows are hidden on one side. Apply the present side's state
+            # then scale per-arrow alpha so they fade in/out.
             target = scene2_data if scene1_data is None else scene1_data
             self.restore_scene(target)
+            alpha_factor = fraction if scene1_data is None else (1.0 - fraction)
+            for arrow in self._arrows:
+                arrow.visibility = True
+                color = arrow.color
+                if color is None:
+                    color = arrow.drawing.arrow_color
+                color = list(color)
+                color[3] = max(0, min(255, round(color[3] * alpha_factor)))
+                arrow.color = tuple(color)
+                arrow.update_drawing()
             return
         super().interpolate_scene(scene1_data['model state'], scene2_data['model state'],
                                   fraction, switchover=switchover)
@@ -409,6 +421,13 @@ class Arrows(Model):
                 break
             s1, s2 = as1[i], as2[i]
             src = s2 if switchover else s1
+
+            viz1 = s1.get('visibility', arrow.visibility)
+            viz2 = s2.get('visibility', arrow.visibility)
+            if viz1 != viz2:
+                self._interpolate_arrow_visibility_fade(arrow, s1, s2, fraction, switchover)
+                arrow.update_drawing()
+                continue
 
             # Interpolate weight (float)
             w1 = s1.get('weight', arrow.weight)
@@ -437,6 +456,29 @@ class Arrows(Model):
             arrow.visibility = src.get('visibility', arrow.visibility)
 
             arrow.update_drawing()
+
+    def _interpolate_arrow_visibility_fade(self, arrow, s1, s2, fraction, switchover):
+        # Mirror _InterpolateArrow: when visibility differs, keep the arrow
+        # drawn during the transition and fade alpha instead of popping.
+        if switchover:
+            for attr in ('color', 'weight', 'start', 'end', 'head_style', 'visibility'):
+                if attr in s2:
+                    setattr(arrow, attr, s2[attr])
+            return
+        becoming_visible = s2.get('visibility', arrow.visibility)
+        visible_state = s2 if becoming_visible else s1
+        alpha_factor = fraction if becoming_visible else (1 - fraction)
+        for attr in ('weight', 'start', 'end', 'head_style'):
+            if attr in visible_state:
+                setattr(arrow, attr, visible_state[attr])
+        color = visible_state.get('color')
+        if color is None:
+            color = list(arrow.drawing.arrow_color)
+        else:
+            color = list(color)
+        color[3] = max(0, min(255, round(color[3] * alpha_factor)))
+        arrow.color = tuple(color)
+        arrow.visibility = True
 
 
 def find_arrow(session, name):
