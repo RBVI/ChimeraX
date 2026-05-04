@@ -49,6 +49,9 @@ class _SNFGAPI(BundleAPI):
         elif class_name == 'SNFGShapesDrawing':
             from .snfg import SNFGShapesDrawing
             return SNFGShapesDrawing
+        elif class_name == 'SNFGConnectionsDrawing':
+            from .snfg import SNFGConnectionsDrawing
+            return SNFGConnectionsDrawing
         return None
 
 
