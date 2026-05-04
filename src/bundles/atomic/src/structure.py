@@ -276,7 +276,10 @@ class Structure(Model, StructureData):
         Model.restore_scene(self, scene_data['model state'])
         # Need to restore Structure.active_coordset_id before Atoms.coords
         for attr_name, val in scene_data.get('structure', {}).items():
+            if getattr(self, attr_name) == val:
+                continue
             setattr(self, attr_name, val)
+        from numpy import array_equal
         for target, attr_names in [
                 ('atoms', self.ATOM_SCENE_ATTRS),
                 ('bonds', self.BOND_SCENE_ATTRS),
@@ -285,10 +288,18 @@ class Structure(Model, StructureData):
             values = scene_data.get(target, {})
             for attr_name in attr_names:
                 if attr_name in values:
+                    new_val = values[attr_name]
+                    # Skip the assignment when the new value matches the
+                    # current state. The collection setters always fire
+                    # graphics-change notifications, which during animation
+                    # playback would invalidate the camera-only render fast
+                    # path every frame and force AO to recompute.
+                    if array_equal(getattr(collection, attr_name), new_val):
+                        continue
                     try:
-                        setattr(collection, attr_name, values[attr_name])
+                        setattr(collection, attr_name, new_val)
                     except ValueError:
-                        if len(collection) < len(values[attr_name]):
+                        if len(collection) < len(new_val):
                             self.session.logger.warning(f"{target.capitalize()} have been deleted"
                                 f" from {self} since scene was saved.  Cannot restore"
                                 f" {self} completely.  Do not delete {target} involved in pre-existing"
@@ -325,7 +336,7 @@ class Structure(Model, StructureData):
         interp_data = {}
         switch_data = scene2_data if switchover else scene1_data
         # prevent writing into original scene dictionaries...
-        from numpy import rint, uint8, array
+        from numpy import rint, uint8, array, array_equal, ndarray
         for attr_level, attr_info in switch_data.items():
             interp_info = {}
             for attr_name, attr_vals in attr_info.items():
@@ -340,8 +351,23 @@ class Structure(Model, StructureData):
                             # one or both scenes don't have cs_id info
                             pass
                     try:
-                        interp_val = (1-fraction) * scene1_data[attr_level][attr_name] \
-                            + fraction * scene2_data[attr_level][attr_name]
+                        s1_val = scene1_data[attr_level][attr_name]
+                        s2_val = scene2_data[attr_level][attr_name]
+                        # Skip the lerp when both scenes hold the same value.
+                        # Otherwise floating-point jitter from
+                        # (1-f)*x + f*x produces a not-quite-x result, the
+                        # downstream dedupe in restore_scene fails, and we
+                        # invalidate the camera-only render fast path every
+                        # frame even though nothing actually changed.
+                        if (isinstance(s1_val, ndarray) and isinstance(s2_val, ndarray)
+                                and array_equal(s1_val, s2_val)):
+                            interp_val = s1_val
+                        elif (not isinstance(s1_val, ndarray)
+                                and not isinstance(s2_val, ndarray)
+                                and s1_val == s2_val):
+                            interp_val = s1_val
+                        else:
+                            interp_val = (1-fraction) * s1_val + fraction * s2_val
                     except KeyError:
                         # Once scene only has a subset of the attributes of the other
                         try:
