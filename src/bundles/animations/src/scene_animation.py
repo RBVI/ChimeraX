@@ -94,6 +94,17 @@ ACTION_DEFAULTS = {
 }
 
 
+_LEGACY_TRANSITION_KEYS = ("fade_models",)
+
+
+def _strip_legacy_transition_keys(transition_data):
+    if not isinstance(transition_data, dict):
+        return transition_data
+    if not any(key in transition_data for key in _LEGACY_TRANSITION_KEYS):
+        return transition_data
+    return {k: v for k, v in transition_data.items() if k not in _LEGACY_TRANSITION_KEYS}
+
+
 def _make_signals_class():
     """Create the SceneAnimationSignals class only when Qt is available."""
     from Qt.QtCore import QObject, Signal as pyqtSignal
@@ -132,7 +143,7 @@ class SceneAnimation(StateManager):
         # Animation state
         self.duration = self.DEFAULT_DURATION
         self.scenes = []  # List of (time, scene_name, transition_data) tuples
-        # transition_data = {'type': 'linear', 'fade_models': False}
+        # transition_data = {'type': 'linear'}
         self.action_segments = []  # List of (start_time, end_time, action_name) tuples for rock/roll
         self.current_time = 0.0
         self.is_playing = False
@@ -168,7 +179,6 @@ class SceneAnimation(StateManager):
         scene_name: str,
         time: float,
         transition_type: str = "linear",
-        fade_models: bool = False,
         action: str = None,
     ):
         """Add a scene at a specific time with transition settings and optional action (rock/roll)"""
@@ -194,7 +204,6 @@ class SceneAnimation(StateManager):
         # Create transition data
         transition_data = {
             "type": transition_type,
-            "fade_models": fade_models,
             "action": action  # Can be "rock", "roll", or None
         }
 
@@ -327,6 +336,7 @@ class SceneAnimation(StateManager):
         # the base scene state. During sequential playback the scene state
         # won't change every frame, but actions still need to update.
         self._apply_action_segments(time)
+        self._apply_trajectory_at_time(scene1, scene2, fraction)
         self._last_active_action_segment = active_action_segment
 
         # Notify the UI so the playhead tracks the previewed time.
@@ -751,15 +761,11 @@ class SceneAnimation(StateManager):
         if scene1 == scene2:
             if scene1:
                 self.session.scenes.restore_scene(scene1)
-                self._prepare_model_fading_at_scene_timestamp(scene1, time)
             return
 
         if scene1 and scene2:
             scene2_data = self._get_scene_transition_data(scene2)
-            fade_models = scene2_data.get("fade_models", False) if scene2_data else False
-            self.session.scenes.interpolate_scenes(
-                scene1, scene2, fraction, fade_models=fade_models
-            )
+            self.session.scenes.interpolate_scenes(scene1, scene2, fraction)
             action = scene2_data.get("action") if scene2_data else None
             if action:
                 self._apply_action(action, fraction)
@@ -896,6 +902,80 @@ class SceneAnimation(StateManager):
         if hasattr(self, '_wobble_last_fraction'):
             self._wobble_last_fraction.clear()
 
+    def _apply_trajectory_at_time(self, scene1_name, scene2_name, fraction):
+        """Drive a morph trajectory's active coordset between two scenes.
+
+        Reads each scene's saved ``active_coordset_id`` for the auto-picked
+        morph trajectory and linearly interpolates between them at
+        ``fraction``. At a steady scene (``scene1_name == scene2_name``)
+        snaps to that scene's captured frame.
+        """
+        if not scene1_name or not scene2_name:
+            return
+
+        from .trajectory import find_morph_trajectory, interpolate_trajectory_ids
+        traj = find_morph_trajectory(self.session)
+        if traj is None:
+            return
+
+        s1 = self.session.scenes.get_scene(scene1_name)
+        s2 = self.session.scenes.get_scene(scene2_name)
+        if s1 is None or s2 is None:
+            return
+
+        id_a = self._get_scene_coordset_id(s1, traj)
+        id_b = self._get_scene_coordset_id(s2, traj)
+        if id_a is None or id_b is None:
+            return
+
+        interpolate_trajectory_ids(traj, id_a, id_b, fraction)
+
+    def _get_scene_coordset_id(self, scene, traj):
+        """Return the saved active_coordset_id for ``traj`` in ``scene``, or None.
+
+        ``AtomicStructure.take_snapshot`` wraps the ``Structure`` SCENE dict
+        under ``'structure state'``; plain ``Structure`` puts it at the top.
+        """
+        info = scene.scene_models.get(traj)
+        if info is None:
+            return None
+        _, scene_data = info
+        if not isinstance(scene_data, dict):
+            return None
+        inner = scene_data.get('structure state', scene_data)
+        return inner.get('structure', {}).get('active_coordset_id')
+
+    def _get_trajectory_fraction(self, time: float) -> float:
+        """Compute a global trajectory fraction in [0, 1] across all scenes.
+
+        Within each scene-to-scene segment, applies that segment's easing
+        function so the morph progresses with the same feel as the scene
+        transition. Before the first scene returns 0; after the last, 1.
+        """
+        sorted_scenes = sorted(self.scenes, key=lambda x: x[0])
+        n = len(sorted_scenes)
+        if n < 2:
+            return 0.0
+        if time <= sorted_scenes[0][0]:
+            return 0.0
+        if time >= sorted_scenes[-1][0]:
+            return 1.0
+
+        for i in range(n - 1):
+            t1, _, _ = sorted_scenes[i]
+            t2, _, transition2 = sorted_scenes[i + 1]
+            if t1 <= time <= t2:
+                seg_dur = t2 - t1
+                local = (time - t1) / seg_dur if seg_dur > 0 else 0.0
+                local = max(0.0, min(1.0, local))
+                transition_type = (transition2 or {}).get("type", "linear")
+                easing = TRANSITION_TYPES.get(transition_type, EasingFunctions.linear)
+                local_eased = easing(local)
+                base = i / (n - 1)
+                step = 1.0 / (n - 1)
+                return base + local_eased * step
+        return 1.0
+
     def _reset_action_tracking(self):
         """Reset action segment tracking state.
 
@@ -939,107 +1019,6 @@ class SceneAnimation(StateManager):
             and self._action_only_center_of_rotation_method is not None
         ):
             view.center_of_rotation_method = self._action_only_center_of_rotation_method
-
-    def _prepare_model_fading_at_scene_timestamp(
-        self, current_scene_name: str, current_time: float
-    ):
-        """
-        Prepare model fading when we're at an exact scene timestamp.
-        This ensures that models appearing in the next scene with fade_models=True
-        are made visible with zero opacity at the current scene's timestamp.
-        """
-        # Find if there's a next scene with model fading enabled
-        sorted_scenes = sorted(self.scenes, key=lambda x: x[0])
-
-        current_scene_index = None
-        for i, (time, name, _) in enumerate(sorted_scenes):
-            if (
-                name == current_scene_name and abs(time - current_time) < 0.001
-            ):  # Small tolerance for float comparison
-                current_scene_index = i
-                break
-
-        if current_scene_index is None or current_scene_index >= len(sorted_scenes) - 1:
-            # No next scene or this is the last scene
-            return
-
-        # Get the next scene
-        next_time, next_scene_name, next_transition_data = sorted_scenes[
-            current_scene_index + 1
-        ]
-
-        # Check if the next scene has model fading enabled
-        fade_models = (
-            next_transition_data.get("fade_models", False)
-            if next_transition_data
-            else False
-        )
-
-        if not fade_models:
-            # Next scene doesn't have fading enabled
-            return
-
-        # print(f"DEBUG: Preparing model fading at scene '{current_scene_name}' timestamp {current_time:.2f}s for next scene '{next_scene_name}'")
-
-        # Get scene objects
-        current_scene = self.session.scenes.get_scene(current_scene_name)
-        next_scene = self.session.scenes.get_scene(next_scene_name)
-
-        if not current_scene or not next_scene:
-            return
-
-        # Find models that are visible in the next scene but not in the current scene
-        current_visible_models = self._get_visible_models_in_scene(current_scene)
-        next_visible_models = self._get_visible_models_in_scene(next_scene)
-
-        appearing_models = next_visible_models - current_visible_models
-
-        # print(f"DEBUG: Found {len(appearing_models)} models that will appear in next scene")
-
-        # Make appearing models visible with zero opacity
-        for model in appearing_models:
-            if hasattr(model, "display"):
-                # Make sure the model is visible but fully transparent
-                model.display = True
-
-                # For atomic models, we need to handle atoms.colors
-                if hasattr(model, "atoms") and len(model.atoms) > 0:
-                    atoms = model.atoms
-                    # Get atom colors and set alpha to 0 (fully transparent)
-                    c = atoms.colors
-                    c[:, 3] = 0
-                    atoms.colors = c
-                    # print(f"DEBUG: Prepared atomic model for fade-in: set {len(atoms)} atom alphas to 0")
-
-                # For non-atomic models, try the simple color approach
-                elif hasattr(model, "color"):
-                    try:
-                        r, g, b, a = model.color
-                        model.color = (r, g, b, 0)  # Fully transparent (0-255 range)
-                        # print(f"DEBUG: Prepared non-atomic model for fade-in: set to visible with full transparency")
-                    except:
-                        pass
-                    # print(f"DEBUG: Could not set color on model {model}")
-                else:
-                    pass
-                # print(f"DEBUG: Model {model} has no atoms or color attribute")
-
-    def _get_visible_models_in_scene(self, scene):
-        """Get the set of models that are actually visible in a scene"""
-        visible_models = set()
-
-        if not hasattr(scene, "named_view") or not hasattr(
-            scene.named_view, "positions"
-        ):
-            return visible_models
-
-        # Models are visible in a scene if they have positions stored in the named_view
-        # This follows the logic in scene.restore_scene() where models not in named_view.positions
-        # get model.display = False (i.e., hidden)
-        for model in scene.named_view.positions.keys():
-            visible_models.add(model)
-
-        return visible_models
 
     def get_scene_list(self) -> List[Tuple[float, str]]:
         """Get list of all scenes with their times (for compatibility)"""
@@ -1112,7 +1091,10 @@ class SceneAnimation(StateManager):
             return
 
         self.duration = data.get("duration", self.DEFAULT_DURATION)
-        self.scenes = data.get("scenes", [])
+        self.scenes = [
+            (time, scene_name, _strip_legacy_transition_keys(transition_data))
+            for time, scene_name, transition_data in data.get("scenes", [])
+        ]
         self.action_segments = data.get("action_segments", [])
         self.current_time = data.get("current_time", 0.0)
 

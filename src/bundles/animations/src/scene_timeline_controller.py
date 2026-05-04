@@ -132,7 +132,7 @@ class SceneTimelineController:
             self.session.scenes.restore_scene(scene_name)
 
     def _on_scene_transition_changed(self, time: float, transition_data: dict):
-        """Handle transition type or fade-models change from the context menu."""
+        """Handle transition type change from the context menu."""
         self.scene_animation.set_scene_transition(time, transition_data)
 
     def _on_action_added(self, start_time: float, end_time: float,

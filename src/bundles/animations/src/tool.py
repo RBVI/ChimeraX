@@ -229,3 +229,7 @@ class AnimationsTool(ToolInstance):
 
         timeline_scene.action_segments = list(scene_anim.action_segments)
         timeline_scene.update()
+
+        if scene_anim.scenes:
+            first_scene_name = min(scene_anim.scenes, key=lambda s: s[0])[1]
+            self.session.scenes.restore_scene(first_scene_name)

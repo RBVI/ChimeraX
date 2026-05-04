@@ -300,6 +300,26 @@ class Structure(Model, StructureData):
             self.ribbon_xs_mgr.set_state_from_snapshot(self.session, ribbon_data)
 
     def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        if scene1_data is None and scene2_data is None:
+            return
+        if scene1_data is None or scene2_data is None:
+            # Fade in (scene1 absent) or fade out (scene2 absent): apply the
+            # present scene's full state, then scale per-atom/bond/residue alpha.
+            target = scene2_data if scene1_data is None else scene1_data
+            alpha_scale = fraction if scene1_data is None else (1.0 - fraction)
+            Structure.restore_scene(self, target)
+            from numpy import rint, uint8
+            for collection_attr, color_attr in (
+                    ('atoms', 'colors'),
+                    ('bonds', 'colors'),
+                    ('residues', 'ribbon_colors')):
+                collection = getattr(self, collection_attr)
+                if len(collection) == 0:
+                    continue
+                colors = getattr(collection, color_attr)
+                colors[:, 3] = rint(colors[:, 3].astype('float32') * alpha_scale).astype(uint8)
+                setattr(collection, color_attr, colors)
+            return
         Model.interpolate_scene(self, scene1_data['model state'], scene2_data['model state'], fraction,
             switchover=switchover)
         interp_data = {}
@@ -1593,8 +1613,9 @@ class AtomicStructure(Structure):
         Structure.restore_scene(self, scene_data['structure state'])
 
     def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
-        Structure.interpolate_scene(self, scene1_data['structure state'], scene2_data['structure state'],
-            fraction, switchover=switchover)
+        s1 = scene1_data['structure state'] if scene1_data is not None else None
+        s2 = scene2_data['structure state'] if scene2_data is not None else None
+        Structure.interpolate_scene(self, s1, s2, fraction, switchover=switchover)
 
     def set_state_from_snapshot(self, session, data):
         version = data.get('AtomicStructure version', 1)

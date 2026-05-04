@@ -1930,6 +1930,12 @@ class Volume(Model):
         fraction: Interpolation fraction (0.0 = scene1, 1.0 = scene2)
         switchover: If True, use threshold behavior for non-interpolable attributes
     '''
+    if scene1_data is None and scene2_data is None:
+      return
+    if scene1_data is None or scene2_data is None:
+      target = scene2_data if scene1_data is None else scene1_data
+      self.restore_scene(target)
+      return
     # Start by restoring scene1 as base state
     from .session import set_map_state
     set_map_state(scene1_data, self, notify=True)

@@ -386,6 +386,12 @@ class PseudobondGroup(PseudobondGroupData, Model):
         Interpolate pseudobond group state between two scenes.
         Most pseudobond attributes use threshold behavior since they're not easily interpolable.
         """
+        if scene1_data is None and scene2_data is None:
+            return
+        if scene1_data is None or scene2_data is None:
+            target = scene2_data if scene1_data is None else scene1_data
+            self.restore_scene(target)
+            return
         # Interpolate model state (display, selection, etc.)
         Model.interpolate_scene(self, scene1_data['model state'], scene2_data['model state'],
                                fraction, switchover=switchover)
