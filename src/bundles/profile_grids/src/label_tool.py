@@ -29,7 +29,7 @@ class LabelTool:
     def __init__(self, grid, tool_window):
         self.grid = grid
         self.tool_window = tool_window
-        #tool_window.help = "help:user/tools/profilegrid.html#context"
+        tool_window.help = "help:user/tools/profilegrid.html#gridlabel"
         self._prev_chosen_cells = None
 
         from Qt.QtWidgets import QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QPushButton
@@ -83,11 +83,12 @@ class LabelTool:
         bbox.accepted.connect(self.label_residues)
         # Since ApplyRole is not AcceptRole, simply connecting to the Apply button won't dismiss the dialog
         bbox.button(qbbox.Apply).clicked.connect(lambda *args, fc=self.label_residues: fc(apply=True))
-        if getattr(self, 'help', None) is None:
+        if getattr(tool_window, 'help', None) is None:
             bbox.button(qbbox.Help).setEnabled(False)
         else:
             from chimerax.core.commands import run
-            bbox.helpRequested.connect(lambda *, run=run, ses=grid.pg.session: run(ses, "help " + self.help))
+            bbox.helpRequested.connect(lambda *, run=run, ses=grid.pg.session, tw=tool_window:
+                run(ses, "help " + tw.help))
         layout.addWidget(bbox)
 
         tool_window.ui_area.setLayout(layout)
