@@ -313,19 +313,31 @@ class SceneAnimation(StateManager):
 
         # Check if the scene state changed from what we're currently displaying
         scene_changed = True
+        pair_changed = True
         if hasattr(self, "_last_scene_state"):
             if self._last_scene_state == (scene1, scene2, fraction):
                 scene_changed = False
+                pair_changed = False
             elif self._last_scene_state[:2] != (scene1, scene2):
                 self._last_action_angle = 0.0
+            else:
+                pair_changed = False
+
+        # Action segments apply transient transforms on top of the base scene
+        # state; when the active segment changes the previous frame's overlay
+        # is no longer valid, so re-seed scene1.
+        action_changed = previous_active_action_segment != active_action_segment
+        seed_scene = pair_changed or action_changed
 
         base_state_restored = False
         if not self.scenes and active_action_segment is None:
             self._ensure_action_only_base_state()
             self._restore_action_only_base_state()
             base_state_restored = True
-        elif scene_changed or previous_active_action_segment != active_action_segment:
-            self._restore_preview_base_state(scene1, scene2, fraction, time)
+        elif scene_changed or action_changed:
+            self._restore_preview_base_state(
+                scene1, scene2, fraction, time, seed=seed_scene
+            )
             base_state_restored = True
 
         if base_state_restored:
@@ -750,9 +762,15 @@ class SceneAnimation(StateManager):
         return None
 
     def _restore_preview_base_state(
-        self, scene1: str, scene2: str, fraction: float, time: float
+        self, scene1: str, scene2: str, fraction: float, time: float,
+        *, seed: bool = False
     ):
-        """Restore the base state for the current preview time before actions."""
+        """Restore the base state for the current preview time before actions.
+
+        ``seed`` is forwarded to ``interpolate_scenes`` and should be True
+        whenever the scene graph isn't already known to reflect scene1 — i.e.
+        on a scene-pair boundary or after a scrub jump.
+        """
         if not self.scenes:
             self._ensure_action_only_base_state()
             self._restore_action_only_base_state()
@@ -765,7 +783,7 @@ class SceneAnimation(StateManager):
 
         if scene1 and scene2:
             scene2_data = self._get_scene_transition_data(scene2)
-            self.session.scenes.interpolate_scenes(scene1, scene2, fraction)
+            self.session.scenes.interpolate_scenes(scene1, scene2, fraction, seed=seed)
             action = scene2_data.get("action") if scene2_data else None
             if action:
                 self._apply_action(action, fraction)

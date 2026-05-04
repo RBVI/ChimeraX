@@ -197,6 +197,8 @@ class SceneManager(StateManager):
         scene1_name: str,
         scene2_name: str,
         fraction: float,
+        *,
+        seed: bool = False,
     ):
         """
         Interpolate between two scenes at the given fraction.
@@ -205,6 +207,13 @@ class SceneManager(StateManager):
             scene1_name (str): Name of the first scene
             scene2_name (str): Name of the second scene
             fraction (float): Interpolation fraction (0.0 = scene1, 1.0 = scene2)
+            seed (bool): When True, restore scene1's full state before applying
+                the interpolation. Needed when the caller can't guarantee that
+                the scene graph already reflects scene1 — e.g. on the first
+                frame of a transition or after a scrub jump — because some
+                per-model interpolators only touch attributes present in both
+                scenes and would otherwise leave stale values from wherever
+                the user was previously parked.
         """
         scene1 = self.get_scene(scene1_name)
         scene2 = self.get_scene(scene2_name)
@@ -228,13 +237,13 @@ class SceneManager(StateManager):
             self.restore_scene(scene2_name)
             return
 
-        # Seed an interpolation with scene1's full state.
-        # Without seeding, anything will keep whatever
-        # state it had when the user last scrubbed elsewhere — so e.g. models
-        # hidden by scene2 stay hidden even when scrubbing back into the
-        # transition. scene1.restore_scene() is called directly to avoid
-        # firing the RESTORED trigger on every interpolation frame.
-        scene1.restore_scene()
+        # Seed scene1's full state when the caller flags it. Without seeding,
+        # attrs only present in scene1 (e.g. models hidden by scene2) keep
+        # whatever value they had when the user last scrubbed elsewhere.
+        # scene1.restore_scene() is called directly to avoid firing the
+        # RESTORED trigger on every interpolation frame.
+        if seed:
+            scene1.restore_scene()
 
         # Get view data for interpolation
         v1 = scene1.named_view
