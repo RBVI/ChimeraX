@@ -279,7 +279,22 @@ class SNFGShapesDrawing(AtomicShapeDrawing):
     @classmethod
     def restore_snapshot(cls, session, data):
         """Restore from session."""
-        d = super().restore_snapshot(session, data)
+        # AtomicShapeDrawing.restore_snapshot hardcodes ``AtomicShapeDrawing('')``,
+        # so delegating to super() would drop the SNFGShapesDrawing subclass
+        # (and methods like apply_shape_sizes) on session reload. Build the
+        # right type ourselves and replay the AtomicShapeDrawing state restore.
+        from chimerax.graphics.gsession import DrawingState
+        from chimerax.atomic.shapedrawing import _AtomicShape
+        d = cls()
+        DrawingState.set_state_from_snapshot(d, session, data['drawing'])
+        d._shapes = [_AtomicShape(*args) for args in data['shapes']]
+        d._selected_shapes.update([d._shapes[i] for i in data['selected']])
+        if any(s.atoms for s in d._shapes):
+            def post_shape_handler(trigger, trigger_data, drawing=d):
+                from chimerax.core.triggerset import DEREGISTER
+                drawing._add_handler_if_needed()
+                return DEREGISTER
+            session.triggers.add_handler("end restore session", post_shape_handler)
         d._shape_residues = data.get('shape_residues', [])
         d._shape_centroids = data.get('shape_centroids', [])
         d._shape_sizes = list(data.get('shape_sizes', []))
@@ -367,14 +382,17 @@ class SNFGShapesDrawing(AtomicShapeDrawing):
 class SNFGConnectionsDrawing(Surface):
     """Drawing for the connection lines between SNFG symbols.
 
-    The drawing always exists when SNFG shapes are shown. Its visibility is
-    controlled by the alpha component of ``color`` rather than ``display``,
-    so scene interpolation can fade it in/out smoothly when one scene has
-    sugar atoms hidden (connections shown) and the other has them visible
-    (connections invisible).
+    Visibility is controlled by ``display`` like a normal Model child, so the
+    parent ``SNFGModel.display`` correctly cascades and scene interpolation
+    flips connections on/off cleanly at the scene-pair switchover rather than
+    risking a brief mid-transition flash from a stale alpha value.
     """
 
-    SCENE_VERSION = 1
+    SCENE_VERSION = 2
+    # The connection geometry is built procedurally at runtime, so the base
+    # Model snapshot path won't capture it unless we opt in to save the
+    # underlying Drawing state (vertices/triangles/normals).
+    SESSION_SAVE_DRAWING = True
 
     def __init__(self, session, name="SNFG connections"):
         super().__init__(name, session)
@@ -384,7 +402,6 @@ class SNFGConnectionsDrawing(Surface):
         if flags == State.SCENE:
             return {
                 'model state': Model.take_snapshot(self, session, flags),
-                'connections_color': tuple(int(c) for c in self.color),
                 'connections_scene_version': SNFGConnectionsDrawing.SCENE_VERSION,
             }
         return super().take_snapshot(session, flags)
@@ -399,34 +416,16 @@ class SNFGConnectionsDrawing(Surface):
 
     def restore_scene(self, scene_data):
         Model.restore_scene(self, scene_data['model state'])
-        color = scene_data.get('connections_color')
-        if color is not None:
-            self.color = tuple(int(c) for c in color)
 
-    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
-        if scene1_data is None and scene2_data is None:
-            return
-        if scene1_data is None or scene2_data is None:
-            target = scene2_data if scene1_data is None else scene1_data
-            alpha_scale = fraction if scene1_data is None else (1.0 - fraction)
-            self.restore_scene(target)
-            color = list(self.color)
-            color[3] = max(0, min(255, int(round(color[3] * alpha_scale))))
-            self.color = tuple(color)
-            return
-        Model.interpolate_scene(self, scene1_data['model state'], scene2_data['model state'],
-                                fraction, switchover=switchover)
-        c1 = scene1_data.get('connections_color')
-        c2 = scene2_data.get('connections_color')
-        if c1 is not None and c2 is not None:
-            blended = [(1.0 - fraction) * a + fraction * b for a, b in zip(c1, c2)]
-            self.color = tuple(max(0, min(255, int(round(v)))) for v in blended)
+    # No custom interpolate_scene: visibility is in ``display`` (handled by
+    # Model.interpolate_scene's dedupe-exempt setattr) and color is constant.
 
 
 class SNFGModel(Model):
     """Container model for all SNFG drawings associated with a structure."""
 
     SCENE_VERSION = 1
+    SESSION_VERSION = 1
 
     def __init__(self, session, structure):
         super().__init__("SNFG symbols", session)
@@ -455,7 +454,46 @@ class SNFGModel(Model):
                 'snfg_residue_sizes': sizes,
                 'snfg_scene_version': SNFGModel.SCENE_VERSION,
             }
-        return super().take_snapshot(session, flags)
+        data = super().take_snapshot(session, flags)
+        data['snfg_session_version'] = SNFGModel.SESSION_VERSION
+        data['structure'] = self.structure
+        data['hidden_residues'] = list(self._hidden_residues)
+        data['shapes_drawing'] = self._shapes_drawing.take_snapshot(session, flags)
+        # Don't store a reference to _connections_drawing here: it's a child
+        # Model whose own snapshot already references this SNFGModel as its
+        # parent, and a back-reference would create a save-DAG cycle. We
+        # rediscover it from child_models() after the model tree is restored.
+        return data
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        structure = data.get('structure')
+        inst = cls(session, structure)
+        Model.set_state_from_snapshot(inst, session, data)
+        inst._hidden_residues = set(data.get('hidden_residues', []))
+        shapes_data = data.get('shapes_drawing')
+        if shapes_data is not None:
+            inst.remove_drawing(inst._shapes_drawing)
+            inst._shapes_drawing = SNFGShapesDrawing.restore_snapshot(session, shapes_data)
+            inst.add([inst._shapes_drawing])
+        # _connections_drawing will be re-linked once children finish restoring;
+        # see _link_connections_drawing(), called lazily.
+        return inst
+
+    def _link_connections_drawing(self):
+        """Find the SNFGConnectionsDrawing among our children and bind it.
+
+        Used after session restore (where we don't store a back-reference to
+        avoid a save-DAG cycle) and any other path where the child Model is
+        present but ``_connections_drawing`` is None.
+        """
+        if self._connections_drawing is not None:
+            return self._connections_drawing
+        for d in self.child_drawings():
+            if isinstance(d, SNFGConnectionsDrawing):
+                self._connections_drawing = d
+                return d
+        return None
 
     def restore_scene(self, scene_data):
         Model.restore_scene(self, scene_data['model state'])
@@ -578,6 +616,9 @@ class SNFGModel(Model):
         is controlled by the alpha component of ``color`` (0 or 255) so that
         scene interpolation can fade the tubes in/out.
         """
+        # After session restore _connections_drawing is None even when the
+        # child Model is back in place; rebind it before use.
+        self._link_connections_drawing()
         # Find connections between sugar residues
         connections = []
         sugar_residues = set(self._shapes_drawing.residues())
@@ -609,13 +650,9 @@ class SNFGModel(Model):
                 seen.add(pair)
                 unique_connections.append(conn)
 
-        target_alpha = 255 if visible else 0
-
         if not unique_connections:
             if self._connections_drawing is not None:
-                color = list(self._connections_drawing.color)
-                color[3] = target_alpha
-                self._connections_drawing.color = tuple(color)
+                self._connections_drawing.display = visible
             return
 
         vertices, triangles = _cylinder_connections(unique_connections, radius=0.2)
@@ -627,9 +664,7 @@ class SNFGModel(Model):
             self._connections_drawing = SNFGConnectionsDrawing(self.session)
             self.add([self._connections_drawing])
         self._connections_drawing.set_geometry(vertices, normals, triangles)
-        color = list(self._connections_drawing.color)
-        color[3] = target_alpha
-        self._connections_drawing.color = tuple(color)
+        self._connections_drawing.display = visible
 
 
 def _cylinder_connections(connections, radius=0.2, divisions=8):
