@@ -472,10 +472,29 @@ class Model(State, Drawing):
             target = scene2_data if scene1_data is None else scene1_data
             self.restore_scene(target)
             return
+        from numpy import array_equal
         for attr_name, val in scene1_data.items():
             if attr_name in scene2_data:
                 #TODO: do something better for colors
-                setattr(self, attr_name, scene2_data[attr_name] if switchover else val)
+                new_val = scene2_data[attr_name] if switchover else val
+                # Skip the assignment when nothing actually changes — keeps
+                # camera-only animation playback off the slow re-render path
+                # (which otherwise recomputes AO every frame). Scene data
+                # carries non-attribute keys like 'version', so fall through
+                # to setattr when the current value can't be read. array_equal
+                # handles scalars, arrays, and mixed cases without tripping the
+                # numpy "truth value is ambiguous" error that bare == raises
+                # when one side is array-like.
+                # 'display' is exempted from the dedupe: its setter has
+                # side effects (_scene_positions_changed, redraw_needed) that
+                # downstream code (e.g. SNFG) appears to depend on firing every
+                # frame even when the value hasn't changed.
+                try:
+                    if array_equal(val, new_val):
+                        continue
+                except (TypeError, ValueError):
+                    pass
+                setattr(self, attr_name, new_val)
 
     def save_geometry(self, session, flags):
         '''
