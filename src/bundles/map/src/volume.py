@@ -1930,52 +1930,133 @@ class Volume(Model):
         fraction: Interpolation fraction (0.0 = scene1, 1.0 = scene2)
         switchover: If True, use threshold behavior for non-interpolable attributes
     '''
+    from .session import set_map_state
     if scene1_data is None and scene2_data is None:
       return
     if scene1_data is None or scene2_data is None:
+      # Fade in (scene1 absent) or fade out (scene2 absent). Apply the
+      # present scene's state, then scale the image colormap alpha. Surface
+      # fade is handled by VolumeSurface.interpolate_scene on each child.
       target = scene2_data if scene1_data is None else scene1_data
-      self.restore_scene(target)
+      alpha_scale = fraction if scene1_data is None else (1.0 - fraction)
+      faded = dict(target)
+      colors = target.get('image_colors')
+      if colors:
+        faded['image_colors'] = [_scale_alpha(c, alpha_scale) for c in colors]
+      set_map_state(faded, self, notify=True)
+      self.update_drawings()
       return
-    # Start by restoring scene1 as base state
-    from .session import set_map_state
+
+    # Both scenes present. Seed scene1, then overwrite with interpolated values.
+    # notify=True so downstream listeners (image render, GUI) refresh — needed
+    # so region/rendering-option changes actually propagate to the GPU during
+    # scrubbing. The callbacks fire again at the end for the lerped state.
     set_map_state(scene1_data, self, notify=True)
 
-    # Get volume states from both scenes
-    volume_state1 = scene1_data.get('volume state', scene1_data)
-    volume_state2 = scene2_data.get('volume state', scene2_data)
+    s1, s2 = scene1_data, scene2_data
 
-    # Interpolate volume region (the main feature)
-    region1 = volume_state1.get('region')
-    region2 = volume_state2.get('region')
-
-    if region1 and region2 and region1 != region2:
-        # Extract region parameters
+    # Region: lerp ijk_min/ijk_max, switchover step.
+    region1 = s1.get('region')
+    region2 = s2.get('region')
+    if region1 and region2:
+      if region1 != region2:
         ijk_min1, ijk_max1, ijk_step1 = region1
         ijk_min2, ijk_max2, ijk_step2 = region2
-
-        # Interpolate region bounds
-        ijk_min_interp = [
-            int(round(min1 + fraction * (min2 - min1)))
-            for min1, min2 in zip(ijk_min1, ijk_min2)
-        ]
-        ijk_max_interp = [
-            int(round(max1 + fraction * (max2 - max1)))
-            for max1, max2 in zip(ijk_max1, ijk_max2)
-        ]
-
-        # For step size, use threshold behavior since interpolating steps is problematic
+        ijk_min_interp = [int(round(a + fraction * (b - a)))
+                          for a, b in zip(ijk_min1, ijk_min2)]
+        ijk_max_interp = [int(round(a + fraction * (b - a)))
+                          for a, b in zip(ijk_max1, ijk_max2)]
         ijk_step_interp = ijk_step2 if (switchover or fraction >= 0.5) else ijk_step1
-
-        # Apply the interpolated region
         self.new_region(ijk_min_interp, ijk_max_interp, ijk_step_interp,
-                       adjust_step=False, adjust_voxel_limit=False)
+                        adjust_step=False, adjust_voxel_limit=False)
 
-        # Make sure volume updates its rendering
-        self._drawings_need_update()
-    elif region1 != region2:
-        # One or both regions missing - use threshold behavior
-        if switchover or fraction >= 0.5:
-            set_map_state(volume_state2, self, notify=True)
+    # Rendering options used for the other crop-like display modes —
+    # orthoplane positions and tilted-slab parameters. set_map_state above
+    # installed scene1's values; mutate the same RenderingOptions object so
+    # the next draw picks up the lerped values.
+    ro = self.rendering_options
+    ro1 = s1.get('rendering_options') or {}
+    ro2 = s2.get('rendering_options') or {}
+
+    op1 = ro1.get('orthoplane_positions')
+    op2 = ro2.get('orthoplane_positions')
+    if op1 is not None and op2 is not None and op1 != op2:
+      ro.orthoplane_positions = tuple(
+        int(round(a + fraction * (b - a))) for a, b in zip(op1, op2))
+
+    for attr in ('tilted_slab_offset', 'tilted_slab_spacing'):
+      v1 = ro1.get(attr)
+      v2 = ro2.get(attr)
+      if v1 is not None and v2 is not None:
+        setattr(ro, attr, v1 + fraction * (v2 - v1))
+
+    ax1 = ro1.get('tilted_slab_axis')
+    ax2 = ro2.get('tilted_slab_axis')
+    if ax1 is not None and ax2 is not None and tuple(ax1) != tuple(ax2):
+      ro.tilted_slab_axis = tuple(
+        a + fraction * (b - a) for a, b in zip(ax1, ax2))
+
+    pc1 = ro1.get('tilted_slab_plane_count')
+    pc2 = ro2.get('tilted_slab_plane_count')
+    if pc1 is not None and pc2 is not None and pc1 != pc2:
+      ro.tilted_slab_plane_count = pc2 if (switchover or fraction >= 0.5) else pc1
+
+    # image_levels: list of (threshold, scale) pairs.
+    levels1 = s1.get('image_levels')
+    levels2 = s2.get('image_levels')
+    if levels1 and levels2 and len(levels1) == len(levels2):
+      self.image_levels = [
+        (a[0] + fraction * (b[0] - a[0]),
+         a[1] + fraction * (b[1] - a[1]))
+        for a, b in zip(levels1, levels2)
+      ]
+    elif (switchover or fraction >= 0.5) and levels2 is not None:
+      self.image_levels = list(levels2)
+
+    # image_colors: list of (r,g,b,a).
+    colors1 = s1.get('image_colors')
+    colors2 = s2.get('image_colors')
+    if colors1 and colors2 and len(colors1) == len(colors2):
+      self.image_colors = [_lerp_color(a, b, fraction) for a, b in zip(colors1, colors2)]
+    elif (switchover or fraction >= 0.5) and colors2 is not None:
+      self.image_colors = list(colors2)
+
+    # Scalar attributes.
+    for attr in ('transparency_depth', 'image_brightness_factor'):
+      v1 = s1.get(attr)
+      v2 = s2.get(attr)
+      if v1 is not None and v2 is not None:
+        setattr(self, attr, v1 + fraction * (v2 - v1))
+      elif (switchover or fraction >= 0.5) and v2 is not None:
+        setattr(self, attr, v2)
+
+    # Display: switchover.
+    disp1 = s1.get('display')
+    disp2 = s2.get('display')
+    if disp1 is not None and disp2 is not None and disp1 != disp2:
+      self.display = disp2 if (switchover or fraction >= 0.5) else disp1
+
+    self.call_change_callbacks(('thresholds changed',
+                                'colors changed',
+                                'rendering options changed'))
+    # Run the volume update synchronously instead of queuing on
+    # 'graphics update'. Queuing means the renderer sees the lerped state
+    # one frame late, and during scrubbing every interpolate_scene call
+    # re-seeds scene1 first, so a deferred update can lose the per-tick
+    # mutations entirely.
+    self.update_drawings()
+
+# -----------------------------------------------------------------------------
+# Helpers for Volume scene interpolation.
+#
+def _lerp_color(c1, c2, f):
+  c1 = tuple(c1) + (1.0,) * (4 - len(c1))
+  c2 = tuple(c2) + (1.0,) * (4 - len(c2))
+  return tuple(c1[i] + f * (c2[i] - c1[i]) for i in range(4))
+
+def _scale_alpha(c, s):
+  c = tuple(c) + (1.0,) * (4 - len(c))
+  return (c[0], c[1], c[2], c[3] * s)
 
 # -----------------------------------------------------------------------------
 #
@@ -2497,6 +2578,102 @@ class VolumeSurface(Surface):
       remask()
     else:
       self.triangle_mask = None
+
+  def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+    if scene1_data is None and scene2_data is None:
+      return
+    if scene1_data is None or scene2_data is None:
+      # Fade in or fade out: restore present scene, then scale alpha.
+      target = scene2_data if scene1_data is None else scene1_data
+      alpha_scale = fraction if scene1_data is None else (1.0 - fraction)
+      self.restore_scene(target)
+      vc = self.vertex_colors
+      if vc is not None:
+        from numpy import rint, uint8
+        vc = vc.copy()
+        vc[:, 3] = rint(vc[:, 3].astype('float32') * alpha_scale).astype(uint8)
+        self.vertex_colors = vc
+      else:
+        r, g, b, a = self.rgba
+        self.rgba = (r, g, b, a * alpha_scale)
+      return
+    # Apply base model attrs first (display, selected, model_color). The
+    # model_color setattr writes through to self.color, which would clobber
+    # our rgba lerp if we did this after — so do it first, then overwrite
+    # color with the interpolated rgba.
+    ms1 = scene1_data.get('model state')
+    ms2 = scene2_data.get('model state')
+    if ms1 is not None and ms2 is not None:
+      Model.interpolate_scene(self, ms1, ms2, fraction, switchover=switchover)
+    l1 = scene1_data.get('level')
+    l2 = scene2_data.get('level')
+    if l1 is not None and l2 is not None:
+      self.level = l1 + fraction * (l2 - l1)
+    self._interpolate_surface_color(scene1_data, scene2_data, fraction, switchover)
+    mesh1 = scene1_data.get('show_mesh')
+    mesh2 = scene2_data.get('show_mesh')
+    if mesh1 is not None and mesh2 is not None and mesh1 != mesh2:
+      self.show_mesh = mesh2 if (switchover or fraction >= 0.5) else mesh1
+
+  def _interpolate_surface_color(self, s1, s2, fraction, switchover):
+    """Lerp surface color across the four (uniform | per-vertex) combinations.
+
+    Per-vertex coloring may come from a stored vertex_colors array or an
+    auto_recolor_vertices callable (e.g. surface coloring by a structure
+    attribute). When either side is per-vertex, both endpoints are
+    materialized as (N,4) uint8 arrays and lerped per-vertex.
+    """
+    rgba1 = s1.get('rgba')
+    rgba2 = s2.get('rgba')
+    arv1 = s1.get('auto_recolor_vertices')
+    arv2 = s2.get('auto_recolor_vertices')
+    vc1_stored = s1.get('vertex_colors')
+    vc2_stored = s2.get('vertex_colors')
+
+    side1_per_vertex = arv1 is not None or vc1_stored is not None
+    side2_per_vertex = arv2 is not None or vc2_stored is not None
+
+    if not side1_per_vertex and not side2_per_vertex:
+      if rgba1 is not None and rgba2 is not None:
+        self.rgba = _lerp_color(rgba1, rgba2, fraction)
+      return
+
+    colors1 = self._endpoint_vertex_colors(arv1, vc1_stored, rgba1)
+    colors2 = self._endpoint_vertex_colors(arv2, vc2_stored, rgba2)
+
+    if (colors1 is None or colors2 is None
+        or len(colors1) != len(colors2)):
+      # Geometry mismatch (different vertex counts e.g. from different
+      # contour levels) — fall back to switchover.
+      target = s2 if (switchover or fraction >= 0.5) else s1
+      self.restore_scene(target)
+      return
+
+    from numpy import rint, uint8
+    blended = (1 - fraction) * colors1.astype('float32') + fraction * colors2.astype('float32')
+    self.vertex_colors = rint(blended).astype(uint8)
+
+  def _endpoint_vertex_colors(self, auto_recolor, vertex_colors_stored, rgba):
+    """Materialize a scene endpoint's coloring as a per-vertex (N,4) uint8 array."""
+    if vertex_colors_stored is not None:
+      return vertex_colors_stored
+    nv = 0 if self.vertices is None else len(self.vertices)
+    if nv == 0:
+      return None
+    if auto_recolor is not None:
+      saved_arv = self.auto_recolor_vertices
+      self.auto_recolor_vertices = auto_recolor
+      try:
+        auto_recolor()
+        colors = self._vertex_colors
+      finally:
+        self.auto_recolor_vertices = saved_arv
+      return None if colors is None else colors.copy()
+    if rgba is None:
+      return None
+    from numpy import full, uint8
+    color255 = tuple(int(min(255, max(0, 255*c))) for c in rgba)
+    return full((nv, 4), color255, dtype=uint8)
 
 # -----------------------------------------------------------------------------
 #

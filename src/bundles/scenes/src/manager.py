@@ -437,6 +437,11 @@ class SceneManager(StateManager):
                         )
                         if isinstance(model_state, dict):
                             display_value = model_state.get("display")
+                    # Volume scene data is a flat dict from state_from_map
+                    # with no nested 'model state' — display sits at the top
+                    # level alongside region, rendering_options, etc.
+                    if display_value is None and "display" in scene_data:
+                        display_value = scene_data["display"]
 
                 if display_value is True:
                     visible_models.add(model)
