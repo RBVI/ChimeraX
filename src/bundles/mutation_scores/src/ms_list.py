@@ -26,7 +26,7 @@ from chimerax.core.tools import ToolInstance
 
 from chimerax.core.tools import ToolInstance
 class MutationScoresList(ToolInstance):
-    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
+    help = 'help:user/tools/mutationscores.html'
 
     def __init__(self, session, tool_name = 'Mutation Scores'):
         self._selection_order = {}  # Maps (mset, score_name) to counter for ordering selections

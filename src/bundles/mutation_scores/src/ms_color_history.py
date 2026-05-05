@@ -24,7 +24,7 @@
 
 from chimerax.core.tools import ToolInstance
 class MutationStructureColoring(ToolInstance):
-    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
+    help = 'help:user/tools/mutationscores.html#coloring'
 
     def __init__(self, session, tool_name = 'Mutation Structure Coloring'):
         self._temporary_coloring_name = 'last_mutation_coloring'
@@ -362,7 +362,7 @@ def show_structure_coloring_gui(session):
     return msc
 
 class ScoreRanges(ToolInstance):
-    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
+    help = 'help:user/tools/mutationscores.html#coloring'
 
     def __init__(self, session, tool_name = 'Mutation Score Ranges'):
         ToolInstance.__init__(self, session, tool_name)
@@ -866,7 +866,7 @@ class MutationColorHistory(StateManager):
 
 from chimerax.core.tools import ToolInstance
 class MutationColorHistoryPanel(ToolInstance):
-    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
+    help = 'help:user/tools/mutationscores.html#coloring'
 
     def __init__(self, session, tool_name = 'Mutation Coloring History'):
         mch = _mutation_color_history(session, create = True)
