@@ -41,7 +41,7 @@ def mutation_scores_histogram(session, score_name, mutation_set = None,
 from chimerax.interfaces.graph import Graph
 class MutationHistogram(Graph):
 
-    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html#histograms'
+    help = 'help:user/tools/mutationscores.html#histogram'
 
     def __init__(self, session):
         self.mutation_set_name = ''

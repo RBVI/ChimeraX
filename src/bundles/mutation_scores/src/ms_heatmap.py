@@ -27,7 +27,7 @@
 from chimerax.core.tools import ToolInstance
 class MutationScoresHeatmap(ToolInstance):
 
-    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
+    help = 'help:user/tools/mutationscores.html#heatmap'
 
     def __init__(self, session, tool_name = 'Mutation Scores Heatmap', name = None, draw = True):
 
@@ -993,7 +993,7 @@ class MutationScoresHeatmap(ToolInstance):
         self._draw_graphics()
 
 class ScoreChooser(ToolInstance):
-    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
+    help = 'help:user/tools/mutationscores.html#heatmap'
 
     def __init__(self, session, tool_name = 'Score Chooser'):
         self._chosen_score_names = []
