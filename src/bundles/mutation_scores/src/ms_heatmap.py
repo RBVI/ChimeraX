@@ -318,7 +318,8 @@ class MutationScoresHeatmap(ToolInstance):
                     color = self._hover_color.color
                     res.ribbon_colors = color
                     res.atoms.colors = color
-            
+        return msg
+
     # ---------------------------------------------------------------------------
     #
     def _cell_info(self, column_index, row_index):
@@ -1125,7 +1126,6 @@ def _shade_gray(rgb_array, gray):
 from Qt.QtWidgets import QGraphicsView
 class ScoreView(QGraphicsView):
     def __init__(self, parent, report_cell_info_cb=None, rectangle_select_cb=None):
-        QGraphicsView.__init__(self, parent)
         self._report_cell_info_callback = report_cell_info_cb
         self._pixmap_item = None
         self._mouse_down = False
@@ -1137,6 +1137,10 @@ class ScoreView(QGraphicsView):
         self.dragbox_color = (255,255,0)
         self.dragbox_linewidth = 3
         self._initial_size_hint = None
+
+        QGraphicsView.__init__(self, parent)
+        from Qt.QtCore import Qt
+        self.setAttribute(Qt.WA_AlwaysShowToolTips)
 
         from Qt.QtWidgets import QGraphicsScene
         self.scene = gs = QGraphicsScene(self)
@@ -1176,11 +1180,22 @@ class ScoreView(QGraphicsView):
         # We need the event in QGraphicsView coordinates which differ by 1 pixel in x,y.
         gv_point = self.mapFromGlobal(event.globalPosition())  # Map from viewport to graphics view.
         x,y = self.graphics_view_to_image_position(gv_point)
-        self._report_cell_info_callback(x,y)
+        message = self._report_cell_info_callback(x,y)
 
         if self._mouse_down:
             self._drag(event)
+        else:
+            self._hover(event, message)
 
+    def _hover(self, event, message):
+        scene_pos = tuple(self._scene_position(event))
+        image_pos = self._scene_to_image(*scene_pos)
+        from Qt.QtWidgets import QToolTip
+        if message:
+            QToolTip.showText(event.globalPosition().toPoint(), message)
+        else:
+            QToolTip.hideText()
+        
     def _drag(self, event):
         self._draw_drag_box(event)
 
