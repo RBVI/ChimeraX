@@ -1147,8 +1147,12 @@ class SeqCanvas:
     def save_image(self):
         from chimerax.ui.open_save import SaveQGraphicsDialog
         if self.wrap_okay():
-            SaveQGraphicsDialog(self.sv.session, self.main_view, depiction_name="alignment").exec()
-            return
+            view_info = self.main_view
+            kw = {}
+        else:
+            view_info = [[self.label_view, self.main_view]]
+            kw = { 'view_names': ['sequence names', 'sequences'] }
+        SaveQGraphicsDialog(self.sv.session, view_info, depiction_name="alignment", **kw).exec()
 
     def show_header(self, header):
         self.lead_block.show_header(header)

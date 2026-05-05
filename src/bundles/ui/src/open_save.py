@@ -19,7 +19,7 @@ TODO
 """
 
 from Qt.QtWidgets import (QFileDialog, QSizePolicy, QPushButton, QMenu, QFrame, QHBoxLayout, QLabel,
-    QLineEdit)
+    QLineEdit, QGraphicsView, QVBoxLayout)
 from Qt.QtCore import Qt
 class SaveDialog(QFileDialog):
     use_native = False
@@ -155,10 +155,29 @@ class SaveQGraphicsDialog(QFileDialog):
         "tiff": ("TIFF", "Tagged Image File Format", "tiff"),
         "webp": ("WebP", "WebP", "webp"),
     }
-    def __init__(self, session, view, *args, depiction_name="scene", **kw):
-        super().__init__(view, *args, **kw)
+    def __init__(self, session, view_info, *args, depiction_name="scene", view_names=None, **kw):
+        ''' Save an image of one or more QGraphicsViews
+
+        'view_info' is either a single QGraphicsView, or a rectangular array of views that need to
+        be "glued together" to form the final image.  If the latter, it is a series of rows (top to
+        bottom) that contain QGraphicsViews (left to right).
+
+        'depiction_name' is describes the overall image (e.g. "sequence alignment").
+
+        'view_names' are descriptions of each of the component QGraphicsViews if 'view_info' was an array.
+        '''
+        if isinstance(view_info, QGraphicsView):
+            num_views = 1
+        else:
+            num_views = len(view_info) * len(view_info[0])
+            if num_views == 1:
+                view_info = view_info[0][0]
+            elif view_names and num_views != len(view_names):
+                raise ValueError("Number of view names (%d) does not match number of views (%d)"
+                    % (len(view_names), num_views))
+        super().__init__(view_info if num_views == 1 else view_info[-1][-1], *args, **kw)
         self.session = session
-        self.view = view
+        self.view_info = view_info
         self.depiction_name = depiction_name
         from Qt.QtGui import QImageWriter, QIntValidator
         available_fmt_info = []
@@ -187,16 +206,29 @@ class SaveQGraphicsDialog(QFileDialog):
         layout = self.layout()
         row = layout.rowCount()
         layout.addWidget(custom_area, row, 0, 1, -1)
-        custom_layout = QHBoxLayout()
+        custom_layout = QVBoxLayout()
         custom_area.setLayout(custom_layout)
-        custom_layout.addStretch(1)
+        if num_views > 1:
+            text = "%d views " % num_views
+            if view_names:
+                text += '(' + ', '.join(view_names) + ') '
+            text += "will be joined together to form the final image."
+            explanation = QLabel(text)
+            explanation.setWordWrap(True)
+            explanation.setAlignment(Qt.AlignHCenter)
+            custom_layout.addWidget(explanation)
+        widget_layout = QHBoxLayout()
+        widget_layout.setSpacing(0)
+        custom_layout.addLayout(widget_layout)
+        widget_layout.addStretch(1)
         self.area_descriptions = {
             "all": f"entire {depiction_name}",
             "visible": "visible region"
         }
         save_area_layout = QHBoxLayout()
-        custom_layout.addLayout(save_area_layout)
-        save_area_layout.addWidget(QLabel("Save"))
+        save_area_layout.setSpacing(0)
+        widget_layout.addLayout(save_area_layout)
+        save_area_layout.addWidget(QLabel("Save "))
         self.save_area_button = QPushButton(self.area_descriptions[self.settings.save_area])
         menu = QMenu(self.save_area_button)
         for area in ["all", "visible"]:
@@ -210,7 +242,8 @@ class SaveQGraphicsDialog(QFileDialog):
         custom_layout.addWidget(self._transparent_checkbox)
         custom_layout.addStretch(1)
         '''
-        custom_layout.addWidget(QLabel("DPI:"))
+        widget_layout.addStretch(1)
+        widget_layout.addWidget(QLabel("DPI: "))
         self._dpi_entry = QLineEdit()
         self._dpi_entry.setAlignment(Qt.AlignCenter)
         self._dpi_entry.setPlaceholderText("default")
@@ -220,8 +253,8 @@ class SaveQGraphicsDialog(QFileDialog):
         self._dpi_entry.setValidator(validator)
         if self.settings.dpi is not None:
             self._dpi_entry.setText(str(self.settings.dpi))
-        custom_layout.addWidget(self._dpi_entry)
-        custom_layout.addStretch(1)
+        widget_layout.addWidget(self._dpi_entry)
+        widget_layout.addStretch(1)
 
     @property
     def dpi(self):
@@ -241,10 +274,10 @@ class SaveQGraphicsDialog(QFileDialog):
         self.settings.save_area = save_area = self.save_area
         from Qt.QtGui import QImage, QPainter
         if save_area == "visible":
-            source = self.view
-            image_size = self.view.viewport().rect().size()
+            source = self.view_info
+            image_size = self.view_info.viewport().rect().size()
         else:
-            source = self.view.scene()
+            source = self.view_info.scene()
             image_size = source.sceneRect().toAlignedRect().size()
         #NOTE: investigate if I need to multiply toSize() by device pixel ratio
         image = QImage(image_size, QImage.Format_ARGB32)
