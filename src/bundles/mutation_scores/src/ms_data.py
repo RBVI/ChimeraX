@@ -323,6 +323,13 @@ class ScoreValues(State):
         from numpy import mean, std
         return mean(values), std(values)
 
+    def mean_and_sdev(self):
+        values = [value for res_num, from_aa, to_aa, value in self._mutation_values]
+        if len(values) == 0:
+            return None, None
+        from numpy import mean, std
+        return mean(values), std(values)
+
     def subtract_fit(self, score_values):
         values = subtract_fit_values(self.all_values(), score_values.all_values())
         return ScoreValues(values)
