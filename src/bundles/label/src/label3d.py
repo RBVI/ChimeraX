@@ -463,7 +463,24 @@ class ObjectLabels(Model):
     def update_labels(self):
         self._texture_needs_update = True
         self.redraw_needed()
-            
+
+    def _scale_labels_alpha(self, alpha_factor):
+        # Scale the alpha of every child label's text and background so the
+        # group fades in/out together when the parent ObjectLabels is missing
+        # from one side of a scene transition. Caller is expected to have just
+        # applied a restore_scene of the present-side state; the next scene
+        # commit will overwrite these temporary values.
+        for label in self._labels:
+            c = list(label.color)
+            c[3] = max(0, min(255, round(c[3] * alpha_factor)))
+            label.color = tuple(c)
+            bg = label.background
+            if bg is not None:
+                bg = list(bg)
+                bg[3] = max(0, min(255, round(bg[3] * alpha_factor)))
+                label.background = tuple(bg)
+        self.update_labels()
+
     def _count_pixel_sized_labels(self):
         self._num_pixel_labels = len([l for l in self._labels if l.height is None])
         
@@ -773,8 +790,13 @@ class ObjectLabels(Model):
         if scene1_data is None and scene2_data is None:
             return
         if scene1_data is None or scene2_data is None:
+            # The ObjectLabels parent is missing from one side. Apply the
+            # present side's state and fade every child label's alpha together
+            # so the group appears/disappears smoothly instead of popping.
             target = scene2_data if scene1_data is None else scene1_data
             self.restore_scene(target)
+            alpha_factor = fraction if scene1_data is None else (1.0 - fraction)
+            self._scale_labels_alpha(alpha_factor)
             return
         super().interpolate_scene(scene1_data['model state'], scene2_data['model state'],
                                   fraction, switchover=switchover)
@@ -816,15 +838,27 @@ class ObjectLabels(Model):
             elif 'color' in src:
                 label.color = src['color']
 
-            # Interpolate background color
+            # Interpolate background. background=None means no rectangle drawn,
+            # so when one side is None we fade alpha against the set side's RGB
+            # rather than snap at switchover. An alpha that rounds to 0 collapses
+            # back to None so the no-background path doesn't add label padding.
             bg1 = s1.get('background')
             bg2 = s2.get('background')
-            if bg1 is not None and bg2 is not None:
-                bg1, bg2 = array(bg1, dtype=uint8), array(bg2, dtype=uint8)
-                interp_bg = (1 - fraction) * bg1.astype(float) + fraction * bg2.astype(float)
+            if bg1 is None and bg2 is None:
+                label.background = None
+            elif bg1 is not None and bg2 is not None:
+                a1, a2 = array(bg1, dtype=uint8), array(bg2, dtype=uint8)
+                interp_bg = (1 - fraction) * a1.astype(float) + fraction * a2.astype(float)
                 label.background = array(rint(interp_bg), dtype=uint8)
             else:
-                label.background = src.get('background')
+                if bg1 is None:
+                    src_bg = array(bg2, dtype=uint8).astype(float)
+                    src_bg[3] *= fraction
+                else:
+                    src_bg = array(bg1, dtype=uint8).astype(float)
+                    src_bg[3] *= 1 - fraction
+                rgba = array(rint(src_bg), dtype=uint8)
+                label.background = None if rgba[3] == 0 else rgba
 
             # Interpolate size (int)
             sz1 = s1.get('size')
