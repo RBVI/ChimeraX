@@ -117,6 +117,7 @@ class MutationScoresHeatmap(ToolInstance):
             self._make_score_name_axis_labels()
         scene = self._score_view.scene
         scene.setSceneRect(scene.itemsBoundingRect())
+        self._viewport_change()	# Position axes labels at edge of plot
 
     # ---------------------------------------------------------------------------
     #
@@ -436,22 +437,24 @@ class MutationScoresHeatmap(ToolInstance):
             else:
                 residue_step = 10
         res_nums = self._residue_numbers
-        iranges = _contiguous_ranges(res_nums)
-        rpad = residue_step // 2
+        nres = len(res_nums)
         scene = self._score_view.scene
         labels = []
-        for imin, imax in iranges:
-            rmin, rmax = res_nums[imin], res_nums[imax]
-            smin, smax = ((rmin+rpad)//residue_step) + 1, (rmax-(rpad+1))//residue_step
-            rnums = [rmin] if rmax == rmin else [rmin] + [s*residue_step for s in range(smin, smax+1)] + [rmax]
-            for r in rnums: 
-                text = str(r)
-                t = scene.addText(text)
-                labels.append(t)
-                rect = t.boundingRect()
-                x = (r-rmin+imin+.5)*pixels_per_cell - rect.width()/2
-                y = self._heatmap_height * pixels_per_cell
-                t.setPos(x, y)
+        i = 0
+        while i < nres:
+            if i + residue_step//2 >= nres:
+                i = nres-1
+            r = res_nums[i]
+            text = str(r)
+            t = scene.addText(text)
+            labels.append(t)
+            rect = t.boundingRect()
+            x = (i+.5)*pixels_per_cell - rect.width()/2
+            y = self._heatmap_height * pixels_per_cell
+            t.setPos(x, y)
+            if i == nres-1:
+                break
+            i = min(i+residue_step, nres-1)
 
         self._x_axis_group = self._make_axis_group(labels)
 
@@ -1100,20 +1103,6 @@ class ScoreChooser(ToolInstance):
                         for suffix, score_names in groups.items()
                         if len(score_names) >= 3}
         return large_groups
-
-# ---------------------------------------------------------------------------
-#
-def _contiguous_ranges(int_array):
-    ranges = []
-    vprev = None
-    istart = 0
-    for i,v in enumerate(int_array):
-        if vprev is not None and v != vprev+1:
-            ranges.append((istart,i-1))
-            istart = i
-        vprev = v
-    ranges.append((istart,i))
-    return ranges
 
 # ---------------------------------------------------------------------------
 #
