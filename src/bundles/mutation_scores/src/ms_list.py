@@ -53,6 +53,10 @@ class MutationScoresList(ToolInstance):
         lw.itemClicked.connect(self._list_item_clicked)
         layout.addWidget(lw)
         self._update_list()
+        from . import ms_data
+        ms_data.create_mutation_set_add_remove_triggers(session.triggers,
+                                                        self._mutation_set_added,
+                                                        self._mutation_set_removed)
 
         from chimerax.ui.widgets import EntriesRow
         br = EntriesRow(parent,
@@ -72,6 +76,16 @@ class MutationScoresList(ToolInstance):
         from chimerax.core import tools
         return tools.get_singleton(session, cls, 'Mutation Scores', create=create)
 
+    def _mutation_set_added(self, trigger_name, mset):
+        if self.tool_window is None:
+            return 'delete handler'
+        self._update_list()
+
+    def _mutation_set_removed(self, trigger_name, mset):
+        if self.tool_window is None:
+            return 'delete handler'
+        self._update_list()
+        
     def _update_list(self):
         mset_list = self._mutation_set_list
         from .ms_data import mutation_all_scores
@@ -176,7 +190,6 @@ class MutationScoresList(ToolInstance):
         from .ms_data import mutation_scores_close
         for mset in msets:
             mutation_scores_close(self.session, mset.name)
-        self._update_list()
 
     def _show_help(self):
         self._run_command('help %s' % self.help)
@@ -204,6 +217,5 @@ class MutationScoresList(ToolInstance):
 
 def show_mutation_scores_list(session):
     msl = MutationScoresList.get_singleton(session, create=True)
-    msl._update_list()
     msl.display(True)
     return msl
