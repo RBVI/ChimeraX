@@ -131,7 +131,7 @@ class AttrRegistration:
         if attr_name not in session_attrs:
             session_attrs.add(attr_name)
 
-    def deregister(self, session, attr_name, registrant):
+    def deregister(self, session, attr_name, registrant, *, unregistered_okay=True):
         if attr_name in self.reg_attr_info:
             prev_registrant, prev_type_info = self.reg_attr_info[attr_name]
             if prev_registrant == registrant:
@@ -140,7 +140,7 @@ class AttrRegistration:
                 raise BadDeregistration(
                     "%s cannot deregister attribute %s registered by different source (%s)" % (registrant,
                     attr_name, prev_registrant))
-        else:
+        elif not unregistered_okay:
             raise BadDeregistration("%s cannot deregister un-registered attribute %s"
                 % (registrant, attr_name))
 
