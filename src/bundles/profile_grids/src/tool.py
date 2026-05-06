@@ -112,6 +112,10 @@ class ProfileGridsTool(ToolInstance):
             s._menu_of_seqs(m, "", s.alignment.seqs,
             lambda seq, *, aln=s.alignment: aln.add_fixed_header(seq.name, seq.characters)))
 
+        action = QAction("Save Image...", menu)
+        action.triggered.connect(lambda: self.grid_canvas.save_image())
+        menu.addAction(action)
+
         action = QAction("Scroll To Show New Selection If Needed", menu)
         action.setCheckable(True)
         action.setChecked(self.settings.scroll_to_sel)
