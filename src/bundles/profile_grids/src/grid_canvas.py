@@ -452,6 +452,13 @@ class GridCanvas:
         check_box = self.mouse_selects if state['mouse selects'] else self.mouse_chooses
         check_box.setChecked(True)
 
+    def save_image(self):
+        from chimerax.ui.open_save import SaveQGraphicsDialog
+        SaveQGraphicsDialog(self.pg.session,
+            [[self.header_label_view, self.header_view], [self.main_label_view, self.main_view]],
+            view_names=["header names", "headers", "residue types", "profile grid"],
+            depiction_name="profile grid").exec()
+
     def seqs_from_cells(self):
         from chimerax.core.errors import UserError
         if not self.chosen_cells:
