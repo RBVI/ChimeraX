@@ -117,7 +117,9 @@ def _label_rgba(res, cell_data, bg_color):
     small_fm = QFontMetrics(small_f)
     p.setFont(f)
     p.setPen(QColor(*[round(c*255) for c in contrast_with(bg_color)]))
-    p.drawText(wc+xpad, hc-ypad, f"{res.one_letter_code}{res.number}")
+    title = f"{res.one_letter_code}{res.number}"
+    title_width = fm.horizontalAdvance(title)
+    p.drawText((w - title_width)//2, hc-ypad, title)
     res_code = res.one_letter_code
     f.setBold(True)
     bfm = QFontMetrics(f)
