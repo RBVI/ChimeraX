@@ -117,14 +117,16 @@ are chosen) as a <a href="#scatterplot">scatterplot</a>
 <p>
 A heatmap shows mutation score values with colors. By default,
 low values are blue, those near the synonymous mean are white, 
-and high values are red. Black squares indicate missing data.
+and high values are red. Black squares indicate missing data
+or divider lines between different scores in the same heatmap.
 </p><p>
 Residue positions along the chain are plotted on the horizontal axis, and 
 amino acid types along the vertical axis.
-Pausing the cursor over the heatmap reports the mutation name,
-score name, and value in the status area next to the <b>Help</b> button.
+Moving the cursor over the heatmap reports the mutation name,
+score name, and value in a pop-up balloon (transiently) and in
+the status area next to the <b>Help</b> button.
 </p><p>
-Clicking <b>Options</b> shows/hides several settings; it may be necessary to
+Clicking <b>Options</b> shows/hides several settings;
 press return after entering a new value to update the plot:
 </p>
 <ul>
@@ -164,10 +166,13 @@ if <a href="#normalize"><b>Normalize scores</b></a> is <b>on</b>)
 <b>Normalize scores</b> (default <b>on</b>) 
 &ndash; whether to express scores in standard deviations above (positive) 
 or below (negative) the mean, with mean and standard deviation computed 
-separately for each score using synonymous mutations only; otherwise, 
+separately for each score using synonymous mutations only, or if there are
+no synonymous mutations, all mutations; otherwise, 
 the raw values from the data file will be used.
-Only a single colormap is allowed for the whole heatmap, so if
-raw scores are used, all of the scores should have comparable ranges.
+Only a single colormap is allowed for the whole heatmap, so if raw scores 
+are used, all of the scores in the heatmap should have comparable ranges,
+either inherently or because they were normalized prior to being written
+to the input file.
 </li><li><b>Subtract fit</b> (default <b>off</b>)
 &ndash; all scores can have a linear fit using a specified score subtracted.
 For instance, for a membrane receptor with scores representing activity in 
@@ -176,7 +181,7 @@ surface expression score can be subtracted to compensate for different
 abundance of the receptor on the cell membrane.
 A least-squares fit is used between drug and surface score.
 </li><li><b>Gray missing structure residues</b> (default <b>off</b>)
-&ndash; whether to use the specified color 
+&ndash; whether to modulate the heatmap cell color with the specified color 
 (default <b>#CCCCCC</b>
 <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td bgcolor="#CCCCCC" width="10px" title="#CCCCCC"></td></tr></tbody></table>)
@@ -410,7 +415,10 @@ menu in this dialog and the <b>filter mutations</b> menu in the
 <b>Mutation Structure Coloring</b> dialog.
 If the <b>low</b> were checked instead of <b>high</b>, values lower than
 the specified threshold (number of standard deviations from the mean)
-would be included instead.
+would be included instead. Both <b>low</b> and <b>high</b> can be checked
+for the same score to limit it at both extremes; in that case, the
+threshold values should be adjusted from the defaults so that the lower
+limit is below the upper limit.
 </p><p>
 The single value per position can be computed as one of:
 </p>
@@ -443,8 +451,14 @@ Choices of <b>palette</b> for coloring by mutation scores include:
 </li></ul>
 <p>
 The colors are in low &rarr; high value order in the names above, and
-the thresholds are placed to span four standard deviations centered on the mean.
+the thresholds are placed to span four standard deviations centered on the mean:
 </p>
+<ul>
+<li>at -2 and +2 standard deviations from the mean for two-color palettes</li>
+<li>at -2, -2/3, +2/3, and +2 standard deviations from the mean
+for four-color palettes</li>
+</ul>
+<p>
 Clicking <b>Adjust colors</b> shows the
 <a href="render.html"><b>Render by Attribute</b></a> tool
 for interactively moving the thresholds and/or changing their colors.

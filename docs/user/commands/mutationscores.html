@@ -174,9 +174,12 @@ Data value units are standard deviations above (positive) or below (negative)
 the mean if <b>normalizeScores</b> is <b>true</b> (default);
 otherwise, the raw values from the data file will be used. 
 The mean and standard deviation are computed separately for each score 
-using synonymous mutations only. Since only a single colormap is used
+using synonymous mutations only, or if there are
+no synonymous mutations, all mutations. Since only a single colormap is used
 for the whole heatmap, if raw scores are used, all of the scores should 
-have comparable ranges. The <b>subtractFit</b> option allows subtracting
+have comparable ranges, either inherently or because they were normalized 
+prior to being written to the input file.
+The <b>subtractFit</b> option allows subtracting
 from all scores a linear fit using a specified score.
 For instance, for a membrane receptor with scores representing activity in
 the presence of different drugs, a linear fit of drug score versus a cell
@@ -191,7 +194,7 @@ indicates whether to use the <b>grayoutColor</b>
 (default <b>#CCCCCC</b>
 <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td bgcolor="#CCCCCC" width="10px" title="#CCCCCC"></td></tr></tbody></table>)
-for heatmap cells where
+to modulate the heatmap cell color where
 the <a href="#associated">associated</a> atomic structure is missing residues.
 If multiple chains are associated, then mutations are grayed if none of the
 chains have the mutated residue. The <b>dragToColor</b> option 
@@ -236,6 +239,7 @@ The names of open sets can be listed in the
 and a set can be closed with
 <a href="#list"><b>mutationscores close</b></a>.
 </p><p>
+Currently, a heatmap can only include scores from a single mutation set.
 See <a href="../tools/mutationscores.html#heatmap">heatmap details</a>.
 </p>
 </blockquote>
