@@ -24,10 +24,19 @@
 
 from chimerax.viewdock import RATING_KEY, DEFAULT_RATING
 
+encodings = ['utf-8', 'utf-16', 'utf-32']
+
 def open_mol2(session, path, file_name, auto_style, atomic):
     from chimerax.io import open_input
-    with open_input(path, encoding='utf-8') as stream:
-        p = Mol2Parser(session, stream, file_name, auto_style, atomic)
+    for encoding in encodings:
+        try:
+            with open_input(path, encoding=encoding) as stream:
+                p = Mol2Parser(session, stream, file_name, auto_style, atomic)
+        except UnicodeError:
+            if encoding == encodings[-1]:
+                raise
+        else:
+            break
     structures = p.structures
     from chimerax.core.commands import plural_form
     num_structures = len(structures)

@@ -1,3 +1,5 @@
+# vim: set expandtab ts=4 sw=4:
+
 # === UCSF ChimeraX Copyright ===
 # Copyright 2025 Regents of the University of California. All rights reserved.
 # The ChimeraX application is provided pursuant to the ChimeraX license
@@ -23,7 +25,7 @@
 from chimerax.viewdock import RATING_KEY, DEFAULT_RATING
 
 def open_pdbqt(*args):
-    encodings = ['utf-8', 'utf-16', 'utf-32']
+    from .io import encodings
     for encoding in encodings:
         try:
            return  _open_pdbqt(*args, encoding)
