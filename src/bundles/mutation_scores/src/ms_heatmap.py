@@ -340,8 +340,11 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _dragged_box(self, xy1, xy2, add = False):
-        if not self._drag_color_enabled.value:
+        color_enabled = self._drag_color_enabled.value
+        select_enabled = self._drag_select_enabled.value
+        if not color_enabled and not select_enabled:
             return
+
         if not self._have_structure:
             return
 
@@ -364,10 +367,15 @@ class MutationScoresHeatmap(ToolInstance):
             self._uncolor_hover_residues()	# Avoid remembering hover colored residue
             if not add:
                 self._uncolor_dragbox_residues()
-            self._last_dragbox_residues.append((res, res.ribbon_colors, res.atoms.colors))
-            color = self._dragbox_color.color
-            res.ribbon_colors = color
-            res.atoms.colors = color
+            if color_enabled:
+                self._last_dragbox_residues.append((res, res.ribbon_colors, res.atoms.colors))
+                color = self._dragbox_color.color
+                res.ribbon_colors = color
+                res.atoms.colors = color
+            if select_enabled:
+                if not add:
+                    self.session.selection.clear()
+                res.atoms.selected = True
 
     # ---------------------------------------------------------------------------
     #
@@ -660,8 +668,9 @@ class MutationScoresHeatmap(ToolInstance):
         gc.color_changed.connect(self._set_heatmap_image)
 
         # Color by dragging box
-        dc = EntriesRow(f, True, 'Drag box to color structure', ColorButton, 'linewidth', 3)
-        self._drag_color_enabled, self._dragbox_color, self._dragbox_linewidth = e,c,lw = dc.values
+        dc = EntriesRow(f, 'Drag box to', False, 'select or', True, 'color structure', ColorButton, 'linewidth', 3)
+        self._drag_select_enabled, self._drag_color_enabled = dc.values[:2]
+        self._dragbox_color, self._dragbox_linewidth = c,lw = dc.values[2:]
         c.color = (1.0,1.0,0,1.0)	# Yellow
         c.color_changed.connect(self._dragbox_color_changed)
         lw.widget.editingFinished.connect(self._dragbox_linewidth_changed)
@@ -914,6 +923,7 @@ class MutationScoresHeatmap(ToolInstance):
                 'gray_missing': self._gray_missing_structure_residues.value,
                 'grayout_color': self._grayout_color.color,
                 'drag_to_color': self._drag_color_enabled.value,
+                'drag_to_select': self._drag_select_enabled.value,
                 'dragbox_color': self._dragbox_color.color,
                 'dragbox_linewidth': self._dragbox_linewidth.value,
                 # TODO: Would be nice to restore colored drag boxes.
@@ -976,6 +986,8 @@ class MutationScoresHeatmap(ToolInstance):
             self._grayout_color.color = settings['grayout_color']
         if 'drag_to_color' in settings:
             self._drag_color_enabled.value = settings['drag_to_color']
+        if 'drag_to_select' in settings:
+            self._drag_select_enabled.value = settings['drag_to_select']
         if 'dragbox_color' in settings:
             self._dragbox_color.color = settings['dragbox_color']
         if 'dragbox_linewidth' in settings:
