@@ -36,8 +36,8 @@ class MutationScoresHeatmap(ToolInstance):
         self._include_residue_numbers = []	# If empty then include all residues in heatmap
         self._default_amino_acid_order = 'HRKDEFWYNQILCSTVMAGP'
         self._group_spacing = 1	# Number of blank pixels after each amino acid or score group
-        self._last_hover_residues = None		# (Residues, res_colors, atom_colors)
-        self._last_dragbox_residues = []		# List of (Residues, res_colors, atom_colors)
+        self._last_hover_residues = None		# ResidueColoring instance
+        self._last_dragbox_residues = []		# List of ResidueColoring instances
         self._block_drawing = False
         self._max_axis_font_size = 14
         self._warn_noninteger_cell_size = True
@@ -301,10 +301,8 @@ class MutationScoresHeatmap(ToolInstance):
             if res_num is not None:
                 res, rnums = self._mutation_set.associated_residues([res_num])
                 if len(res) > 0:
-                    self._last_hover_residues = (res, res.ribbon_colors, res.atoms.colors)
                     color = self._hover_color.color
-                    res.ribbon_colors = color
-                    res.atoms.colors = color
+                    self._last_hover_residues = ResidueColoring(res, color)
         return msg
 
     # ---------------------------------------------------------------------------
@@ -375,10 +373,8 @@ class MutationScoresHeatmap(ToolInstance):
             if not add:
                 self._uncolor_dragbox_residues()
             if color_enabled:
-                self._last_dragbox_residues.append((res, res.ribbon_colors, res.atoms.colors))
                 color = self._dragbox_color.color
-                res.ribbon_colors = color
-                res.atoms.colors = color
+                self._last_dragbox_residues.append(ResidueColoring(res, color))
             if select_enabled:
                 if not add:
                     self.session.selection.clear()
@@ -387,9 +383,8 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _uncolor_dragbox_residues(self):
-        for last_res, last_res_colors, last_atom_colors in self._last_dragbox_residues[::-1]:
-            last_res.ribbon_colors = last_res_colors
-            last_res.atoms.colors = last_atom_colors
+        for res_coloring in self._last_dragbox_residues[::-1]:
+            res_coloring.uncolor()
         self._last_dragbox_residues.clear()
 
     # ---------------------------------------------------------------------------
@@ -731,9 +726,7 @@ class MutationScoresHeatmap(ToolInstance):
     #
     def _uncolor_hover_residues(self):
         if self._last_hover_residues:
-            last_res, last_res_colors, last_atom_colors = self._last_hover_residues
-            last_res.ribbon_colors = last_res_colors
-            last_res.atoms.colors = last_atom_colors
+            self._last_hover_residues.uncolor()
             self._last_hover_residues = None
         
     # ---------------------------------------------------------------------------
@@ -1127,6 +1120,38 @@ def _shade_gray(rgb_array, gray):
     from numpy import clip, int32
     return clip(rgb_array.astype(int32) - gray, 0, 255).astype(rgb_array.dtype)
     
+# ---------------------------------------------------------------------------
+#
+class ResidueColoring:
+    def __init__(self, residues, color):
+        self._residues = residues	# Residues instance
+        self._residues_tuple = tuple(residues)	# Use for uncoloring if residues get deleted.
+        self._residue_colors = residues.ribbon_colors
+        self._atoms = atoms = residues.atoms
+        self._atoms_tuple = tuple(atoms)
+        self._atom_colors = atoms.colors
+        residues.ribbon_colors = color
+        atoms.colors = color
+    def uncolor(self):
+        self._uncolor_residues()
+        self._uncolor_atoms()
+    def _uncolor_residues(self):
+        if len(self._residues) == len(self._residue_colors):
+            self._residues.ribbon_colors = self._residue_colors
+        else:
+            # Some residues were deleted.
+            for r,c in zip(self._residues_tuple, self._residue_colors):
+                if not r.deleted:
+                    r.ribbon_color = c
+    def _uncolor_atoms(self):
+        if len(self._atoms) == len(self._atom_colors):
+            self._atoms.colors = self._atom_colors
+        else:
+            # Some atoms were deleted.
+            for a,c in zip(self._atoms_tuple, self._atom_colors):
+                if not a.deleted:
+                    a.color = c
+                
 # ---------------------------------------------------------------------------
 #
 from Qt.QtWidgets import QGraphicsView
