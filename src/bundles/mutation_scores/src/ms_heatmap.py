@@ -1313,7 +1313,7 @@ def mutation_heatmap(session, heatmap_name = None,
                      grouping = None, residues = None, label_every_residue = None,
                      pixels_per_cell = None, palette = None, missing_value_color = None,
                      normalize_scores = None, subtract_fit = None, gray_missing = None,
-                     grayout_color = None, drag_to_color = None, dragbox_color = None,
+                     grayout_color = None, drag_to_select = None, drag_to_color = None, dragbox_color = None,
                      dragbox_linewidth = None, color_residue_on_hover = None, hover_color = None,
                      show_options = None, size = None, save_image = None):
     settings = {}
@@ -1352,6 +1352,8 @@ def mutation_heatmap(session, heatmap_name = None,
         settings['gray_missing'] = gray_missing
     if grayout_color is not None:
         settings['grayout_color'] = grayout_color
+    if drag_to_select is not None:
+        settings['drag_to_select'] = drag_to_select
     if drag_to_color is not None:
         settings['drag_to_color'] = drag_to_color
     if dragbox_color is not None:
@@ -1420,6 +1422,7 @@ def register_command(logger):
                    ('subtract_fit', StringArg),
                    ('gray_missing', BoolArg),
                    ('grayout_color', Color8Arg),
+                   ('drag_to_select', BoolArg),
                    ('drag_to_color', BoolArg),
                    ('dragbox_color', Color8Arg),
                    ('dragbox_linewidth', IntArg),
