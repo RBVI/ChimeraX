@@ -3,7 +3,9 @@
 """
 ChimeraX MCP Bridge (Python)
 
-This bridges Claude (via MCP protocol) to ChimeraX REST servers.
+Bridges any MCP-capable AI assistant (Claude Desktop, Cursor, VS Code
+Copilot, Claude Code, etc.) to one or more ChimeraX REST servers using
+the Model Context Protocol (MCP).
 Uses the official MCP Python SDK for robust protocol handling.
 Supports M-to-N architecture: multiple agents controlling multiple ChimeraX instances.
 
@@ -18,8 +20,13 @@ Prerequisites:
 1. Install the ChimeraX MCP server bundle in ChimeraX
 2. ChimeraX will be auto-started when needed
 
-Usage with Claude Desktop:
-Add to your claude_desktop_config.json:
+The recommended way to register this bridge with a host is the ChimeraX
+command `mcp setup [host claude|cursor|vscode|all]`, which writes the
+correct config file for that host. The configurations below are shown
+for reference.
+
+Example client configuration (Claude Desktop's claude_desktop_config.json,
+or Cursor's mcp.json):
 {
   "mcpServers": {
     "chimerax": {
@@ -29,6 +36,19 @@ Add to your claude_desktop_config.json:
         "CHIMERAX_REST_HOST": "localhost",
         "CHIMERAX_REST_PORT": "8080"
       }
+    }
+  }
+}
+
+For VS Code Copilot the equivalent file is .vscode/mcp.json (workspace)
+or the user-profile mcp.json. Its schema uses the top-level "servers"
+key and requires "type": "stdio" on each entry:
+{
+  "servers": {
+    "chimerax": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["/path/to/chimerax_mcp_bridge.py"]
     }
   }
 }
