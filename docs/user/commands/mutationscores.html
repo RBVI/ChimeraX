@@ -125,6 +125,7 @@ into 2D with UMAP
 [&nbsp;<b>dragToColor</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>dragboxColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>dragboxLinewidth</b>&nbsp;&nbsp;<i>pixels</i>&nbsp;]
+[&nbsp;<b>dragToSelect</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>colorResidueOnHover</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>hoverColor</b>&nbsp;&nbsp;<i>color</i>&nbsp;]
 [&nbsp;<b>showOptions</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -208,7 +209,12 @@ By holding the <b>Shift</b> key, multiple boxes can be drawn on
 the heatmap, and they can be different colors. Clicking on a mutation
 will color a single residue, and clicking outside the heatmap
 (such as on the axes) will clear the boxes and revert the residues
-to their original colors. The <b>colorResidueOnHover</b> option 
+to their original colors. If <b>dragToSelect</b> is true (default <b>false</b>),
+dragging a box clears the current <a href="../selection.html">selection</a>
+and selects the associated residues.
+If the <b>Shift</b> key is held while dragging, the residues are
+added to the selection instead of replacing it.
+The <b>colorResidueOnHover</b> option specifies
 whether placing the mouse over the heatmap colors the
 <a href="#associated">associated</a> structure residues
 (default <b>off</b>, with <b>hoverColor</b> of <b>yellow</b>

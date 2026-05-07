@@ -187,8 +187,8 @@ for heatmap cells where
 the <a href="#associated">associated</a> atomic structure is missing residues.
 If multiple chains are associated, then mutations are grayed if none of the 
 chains have the mutated residue.
-</li><li><b>Drag box to color structure</b> (default <b>on</b> with color
-<b>yellow</b>
+</li><li><b>Drag box to select or color structure</b>
+(default <b>color structure</b> with color <b>yellow</b>
 <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td bgcolor="yellow" width="10px" title="yellow"></td></tr></tbody></table>
 and <b>linewidth</b> of <b>3</b>)
@@ -198,7 +198,11 @@ By holding the <b>Shift</b> key, multiple boxes can be drawn on
 the heatmap, and they can be different colors. Clicking on a mutation
 will color a single residue, and clicking outside the heatmap 
 (such as on the axes) will clear the boxes and revert the residues 
-to their original colors.
+to their original colors. If <b>select</b> is enabled,
+dragging a box clears the current <a href="../selection.html">selection</a>
+and selects the associated residues.
+If the <b>Shift</b> key is held while dragging, the residues are 
+added to the selection instead of replacing it. 
 </li><li><b>Hover colors structure residue</b> (default <b>off</b>)
 &ndash; whether placing the mouse over the heatmap colors the
 <a href="#associated">associated</a> structure residues the specified color
