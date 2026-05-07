@@ -299,10 +299,10 @@ class SceneAnimation(StateManager):
 
     def preview_at_time(self, time: float):
         """Preview the animation at a specific time"""
-        if time < 0 or time > self.duration:
+        if time < 0:
             return
-
-        self.current_time = time
+        if not self.is_playing:
+            self.current_time = time
 
         # Find the appropriate scene or transition
         scene1, scene2, fraction = self._get_interpolation_at_time(time)
