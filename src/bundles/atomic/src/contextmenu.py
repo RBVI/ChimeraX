@@ -57,6 +57,25 @@ class DeleteObjectsMenuEntry(SelectContextMenuAction):
         from chimerax.core.commands import run
         run(ses, 'delete %ss sel' % self.type)
 
+class SelectInterveningResiduesMenuEntry(SelectContextMenuAction):
+    def label(self, ses):
+        return "Select Intervening Residues"
+    def criteria(self, ses):
+        from chimerax.atomic import selected_residues
+        sel_res = selected_residues(ses)
+        if len(sel_res) != 2:
+            return False
+        r1, r2 = sel_res
+        if r1.chain != r2.chain or r1.chain is None:
+            return False
+        existing = r1.chain.existing_residues
+        i1 = existing.index(r1)
+        i2 = existing.index(r2)
+        return abs(i1-i2) > 1
+    def callback(self, ses):
+        from chimerax.core.commands import run
+        run(ses, "ks ri")
+
 def _num_selected_objects(ses, type):
     from chimerax.atomic import selected_atoms, selected_bonds, selected_pseudobonds
     sel_objects = {'atom':selected_atoms,
@@ -66,6 +85,7 @@ def _num_selected_objects(ses, type):
 
 def add_selection_context_menu_items(session):
     from chimerax.mouse_modes import SelectMouseMode
+    SelectMouseMode.register_menu_entry(SelectInterveningResiduesMenuEntry())
     for type in ('atom', 'bond', 'pseudobond'):
         SelectMouseMode.register_menu_entry(HideObjectsMenuEntry(type))
         SelectMouseMode.register_menu_entry(DeleteObjectsMenuEntry(type))
