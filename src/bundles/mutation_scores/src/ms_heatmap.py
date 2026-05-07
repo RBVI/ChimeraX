@@ -340,16 +340,26 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _dragged_box(self, xy1, xy2, add = False):
-        if not self._drag_color_enabled.value:
+        color_enabled = self._drag_color_enabled.value
+        select_enabled = self._drag_select_enabled.value
+        if not color_enabled and not select_enabled:
             return
+
         if not self._have_structure:
             return
 
-        (i1,j1),(i2,j2) = xy1,xy2
-        w,h = self._heatmap_width, self._heatmap_height
-        if (j1 < 0 and j2 < 0) or (j1 >= h and j2 >= h) or (i1 < 0 and i2 < 0) or (i1 >= w and i2 >= w):
+        if xy1 is None or xy2 is None:
+            outside = True
+        else:
+            (i1,j1),(i2,j2) = xy1,xy2
+            w,h = self._heatmap_width, self._heatmap_height
+            outside = ((j1 < 0 and j2 < 0) or (j1 >= h and j2 >= h) or
+                       (i1 < 0 and i2 < 0) or (i1 >= w and i2 >= w))
+        if outside:
             # drag box does not intersect heatmap so clear colors.
             self._uncolor_dragbox_residues()
+            if select_enabled:
+                self.session.selection.clear()
             return
 
         all_res_nums = self._residue_numbers
@@ -364,10 +374,15 @@ class MutationScoresHeatmap(ToolInstance):
             self._uncolor_hover_residues()	# Avoid remembering hover colored residue
             if not add:
                 self._uncolor_dragbox_residues()
-            self._last_dragbox_residues.append((res, res.ribbon_colors, res.atoms.colors))
-            color = self._dragbox_color.color
-            res.ribbon_colors = color
-            res.atoms.colors = color
+            if color_enabled:
+                self._last_dragbox_residues.append((res, res.ribbon_colors, res.atoms.colors))
+                color = self._dragbox_color.color
+                res.ribbon_colors = color
+                res.atoms.colors = color
+            if select_enabled:
+                if not add:
+                    self.session.selection.clear()
+                res.atoms.selected = True
 
     # ---------------------------------------------------------------------------
     #
@@ -660,8 +675,9 @@ class MutationScoresHeatmap(ToolInstance):
         gc.color_changed.connect(self._set_heatmap_image)
 
         # Color by dragging box
-        dc = EntriesRow(f, True, 'Drag box to color structure', ColorButton, 'linewidth', 3)
-        self._drag_color_enabled, self._dragbox_color, self._dragbox_linewidth = e,c,lw = dc.values
+        dc = EntriesRow(f, 'Drag box to', False, 'select or', True, 'color structure', ColorButton, 'linewidth', 3)
+        self._drag_select_enabled, self._drag_color_enabled = dc.values[:2]
+        self._dragbox_color, self._dragbox_linewidth = c,lw = dc.values[2:]
         c.color = (1.0,1.0,0,1.0)	# Yellow
         c.color_changed.connect(self._dragbox_color_changed)
         lw.widget.editingFinished.connect(self._dragbox_linewidth_changed)
@@ -914,6 +930,7 @@ class MutationScoresHeatmap(ToolInstance):
                 'gray_missing': self._gray_missing_structure_residues.value,
                 'grayout_color': self._grayout_color.color,
                 'drag_to_color': self._drag_color_enabled.value,
+                'drag_to_select': self._drag_select_enabled.value,
                 'dragbox_color': self._dragbox_color.color,
                 'dragbox_linewidth': self._dragbox_linewidth.value,
                 # TODO: Would be nice to restore colored drag boxes.
@@ -976,6 +993,8 @@ class MutationScoresHeatmap(ToolInstance):
             self._grayout_color.color = settings['grayout_color']
         if 'drag_to_color' in settings:
             self._drag_color_enabled.value = settings['drag_to_color']
+        if 'drag_to_select' in settings:
+            self._drag_select_enabled.value = settings['drag_to_select']
         if 'dragbox_color' in settings:
             self._dragbox_color.color = settings['dragbox_color']
         if 'dragbox_linewidth' in settings:
@@ -1193,9 +1212,16 @@ class ScoreView(QGraphicsView):
             self._mouse_down = False
             self._drag(event)
             if self._rectangle_select_callback and self._down_xy:
-                corner1 = self._scene_to_image(*self._down_xy)
                 up_xy = self._scene_position(event)
-                corner2 = self._scene_to_image(*up_xy)
+                click_on_pixmap = True
+                if up_xy == self._down_xy and self.itemAt(event.pos()) is not self._pixmap_item:
+                    # Click on axis labels instead of pixmap.
+                    click_on_pixmap = False
+                if click_on_pixmap:
+                    corner1 = self._scene_to_image(*self._down_xy)
+                    corner2 = self._scene_to_image(*up_xy)
+                else:
+                    corner1 = corner2 = None
                 self._rectangle_select_callback(corner1, corner2, add = self._shift_mod)
 
     def _scene_position(self, event):
@@ -1301,7 +1327,7 @@ def mutation_heatmap(session, heatmap_name = None,
                      grouping = None, residues = None, label_every_residue = None,
                      pixels_per_cell = None, palette = None, missing_value_color = None,
                      normalize_scores = None, subtract_fit = None, gray_missing = None,
-                     grayout_color = None, drag_to_color = None, dragbox_color = None,
+                     grayout_color = None, drag_to_select = None, drag_to_color = None, dragbox_color = None,
                      dragbox_linewidth = None, color_residue_on_hover = None, hover_color = None,
                      show_options = None, size = None, save_image = None):
     settings = {}
@@ -1340,6 +1366,8 @@ def mutation_heatmap(session, heatmap_name = None,
         settings['gray_missing'] = gray_missing
     if grayout_color is not None:
         settings['grayout_color'] = grayout_color
+    if drag_to_select is not None:
+        settings['drag_to_select'] = drag_to_select
     if drag_to_color is not None:
         settings['drag_to_color'] = drag_to_color
     if dragbox_color is not None:
@@ -1408,6 +1436,7 @@ def register_command(logger):
                    ('subtract_fit', StringArg),
                    ('gray_missing', BoolArg),
                    ('grayout_color', Color8Arg),
+                   ('drag_to_select', BoolArg),
                    ('drag_to_color', BoolArg),
                    ('dragbox_color', Color8Arg),
                    ('dragbox_linewidth', IntArg),
