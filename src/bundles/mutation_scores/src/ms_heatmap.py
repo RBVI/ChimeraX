@@ -348,11 +348,18 @@ class MutationScoresHeatmap(ToolInstance):
         if not self._have_structure:
             return
 
-        (i1,j1),(i2,j2) = xy1,xy2
-        w,h = self._heatmap_width, self._heatmap_height
-        if (j1 < 0 and j2 < 0) or (j1 >= h and j2 >= h) or (i1 < 0 and i2 < 0) or (i1 >= w and i2 >= w):
+        if xy1 is None or xy2 is None:
+            outside = True
+        else:
+            (i1,j1),(i2,j2) = xy1,xy2
+            w,h = self._heatmap_width, self._heatmap_height
+            outside = ((j1 < 0 and j2 < 0) or (j1 >= h and j2 >= h) or
+                       (i1 < 0 and i2 < 0) or (i1 >= w and i2 >= w))
+        if outside:
             # drag box does not intersect heatmap so clear colors.
             self._uncolor_dragbox_residues()
+            if select_enabled:
+                self.session.selection.clear()
             return
 
         all_res_nums = self._residue_numbers
@@ -1205,9 +1212,16 @@ class ScoreView(QGraphicsView):
             self._mouse_down = False
             self._drag(event)
             if self._rectangle_select_callback and self._down_xy:
-                corner1 = self._scene_to_image(*self._down_xy)
                 up_xy = self._scene_position(event)
-                corner2 = self._scene_to_image(*up_xy)
+                click_on_pixmap = True
+                if up_xy == self._down_xy and self.itemAt(event.pos()) is not self._pixmap_item:
+                    # Click on axis labels instead of pixmap.
+                    click_on_pixmap = False
+                if click_on_pixmap:
+                    corner1 = self._scene_to_image(*self._down_xy)
+                    corner2 = self._scene_to_image(*up_xy)
+                else:
+                    corner1 = corner2 = None
                 self._rectangle_select_callback(corner1, corner2, add = self._shift_mod)
 
     def _scene_position(self, event):
