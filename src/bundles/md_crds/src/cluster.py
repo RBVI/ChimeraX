@@ -25,6 +25,22 @@
 class ClusterError(ValueError):
     pass
 
+from chimerax.core.state import State
+class Clustering(State):
+    def __init__(self, frames, representative):
+        self.frames = frames
+        self.representative = representative
+
+    @staticmethod
+    def restore_snapshot(session, data):
+        return Clustering(data['frames'], data['representative'])
+
+    def take_snapshot(self, session, flags):
+        return {
+            'frames': self.frames,
+            'representative': self.representative,
+        }
+
 def cluster(structure, atoms, frame_nums, *, test_abort=None, status=None):
     num_frames = len(frame_nums)
     if status:
@@ -109,10 +125,6 @@ def cluster(structure, atoms, frame_nums, *, test_abort=None, status=None):
     expand_same = {}
     for frame2, frame1 in same_as.items():
         expand_same.setdefault(frame1, []).append(frame2)
-    class Clustering:
-        def __init__(self, frames, representative):
-            self.frames = frames
-            self.representative = representative
     clusterings = []
     for cluster in dist_clust.clusters:
         fns = []

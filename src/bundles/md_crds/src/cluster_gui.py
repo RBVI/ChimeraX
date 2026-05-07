@@ -142,6 +142,12 @@ class TableEntry:
             for rect in self.rects:
                 rect.setBrush(brush)
 
+    def session_info(self):
+        return {
+            'clustering': self.clustering,
+            'rgba': self.rgba,
+        }
+
 class ClusterResults:
     scene_pixel_height = 100
     scene_aspect = 4.0
@@ -198,8 +204,10 @@ class ClusterResults:
                 super().resizeEvent(event)
                 self.fitInView(0.0, 0.0, _width, _height)
         self.view = ResizingView(self.scene)
-        self._setup_scene()
-        self._update_indicator()
+        if clusterings:
+            # not a session restore
+            self._setup_scene()
+            self._update_indicator()
         layout.addWidget(self.view)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
@@ -218,6 +226,26 @@ class ClusterResults:
         tw.ui_area.parent().layout().addWidget(bbox)
 
         tw.manage(None)
+
+    def restore_session_info(self, session_info):
+        entries = []
+        for entry_info in session_info['table_data']:
+            entry = TableEntry(entry_info['clustering'], self)
+            entry.rgba = entry_info['rgba']
+            entries.append(entry)
+        self.table.data = entries
+        # do these two calls before restoring the table state, since that might change the selected row
+        # and cause a redraw
+        self._setup_scene()
+        self._update_indicator()
+        self.table.process_session_info(session_info['table_state'])
+
+    def session_info(self):
+        return {
+            'structure': self.structure,
+            'table_data': [entry.session_info() for entry in self.table.data],
+            'table_state': self.table.session_info(),
+        }
 
     def _changes_cb(self, trig_name, data):
         s, changes = data
@@ -337,3 +365,25 @@ def show_cluster_results(main_tool_window, structure, clusterings):
     results_dialogs.append(
         ClusterResults(main_tool_window.create_child_window("Clustering Results", statusbar=True),
             structure, clusterings))
+
+def cluster_dialog_session_info(main_tool_window):
+    inst = main_tool_window.tool_instance
+    inst_windows = _md_tool_windows.get(inst, {})
+    try:
+        clusterings = inst_windows["cluster results"]
+    except KeyError:
+        return None
+    return [clustering.session_info() for clustering in clusterings]
+
+def restore_cluster_info(main_tool_window, info):
+    inst = main_tool_window.tool_instance
+    inst_windows = _md_tool_windows.setdefault(inst, {})
+    try:
+        results_dialogs = inst_windows["cluster results"]
+    except KeyError:
+        results_dialogs = inst_windows["cluster results"] = []
+    for session_info in info:
+        results = ClusterResults(main_tool_window.create_child_window("Clustering Results", statusbar=True),
+            session_info.pop('structure'), [])
+        results.restore_session_info(session_info)
+        results_dialogs.append(results)

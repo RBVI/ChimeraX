@@ -114,7 +114,21 @@ class PlotDialog:
 
     def restore_session_info(self, info):
         self.tool_window.shown = info['shown']
-        #TODO: restore table info
+        for provider, table_info in info['table_data'].items():
+            table = self._tables[provider]
+            entry_data, table_state = table_info
+            table_entries = []
+            for entry_datum in entry_data:
+                entry = TableEntry(self, provider, entry_datum['atoms'], ref_frame=entry_datum['ref_frame'],
+                    from_session=True)
+                entry.rgba = entry_datum['rgba']
+                entry._shown = entry_datum['shown']
+                entry._values = entry_datum['values']
+                table_entries.append(entry)
+            table.data = table_entries
+            table.process_session_info(table_state)
+            self._update_plot(provider)
+
         for index in range(0, self.plot_tabs.count()):
             if self.plot_tabs.tabText(index) == info['tab']:
                 self.plot_tabs.setCurrentIndex(index)
@@ -517,6 +531,7 @@ class TableEntry:
         mgr = plot_dialog.mgr
         self.provider_name = provider_name
         self.atoms = atoms
+        self._ref_frame = ref_frame
         if from_session:
             return
         from chimerax.core.colors import distinguish_from
@@ -527,7 +542,6 @@ class TableEntry:
         if ref_frame is not None:
             kw["ref_frame"] = ref_frame
         self._values = mgr.get_values(provider_name, structure=plot_dialog.structure, atoms=atoms, **kw)
-        self._ref_frame = ref_frame
 
     @property
     def num_atoms(self):
