@@ -283,19 +283,17 @@ class SceneAnimation(StateManager):
         return True
 
     def get_effective_end_time(self):
-        """Get the effective end time for recording (1 second after last scene)
+        """Get the effective end time for recording.
 
-        Returns the time 1 second after the last scene marker, or the full duration
-        if there are no scenes.
+        Always at least the full animation duration. With the
+        ``recording_tail`` preference enabled (the default), recording runs an
+        extra 1 second past ``duration`` so the trailing transition has time
+        to finish.
         """
-        if not self.scenes:
-            return self.duration
-
-        # Find the last scene time
-        last_scene_time = max(t for t, _, _ in self.scenes)
-
-        # Return 1 second after the last scene
-        return last_scene_time + 1.0
+        from .settings import get_settings
+        if get_settings(self.session).recording_tail:
+            return self.duration + 1.0
+        return self.duration
 
     def preview_at_time(self, time: float):
         """Preview the animation at a specific time"""
