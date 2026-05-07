@@ -20,8 +20,6 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Animations</h3>
-<h3>*&nbsp;in progress; smooth transitions have not been implemented
-for many aspects of a scene&nbsp;*</h3>
 <p>
 <b>Animations</b> is a timeline-based graphical interface for creating
 movies from a series of <a href="scenes.html">scenes</a> and other
@@ -48,6 +46,8 @@ width="750px"></a></td></tr>
 <a href="#playback">Playback and Scrubber</a>
 <br>
 <a href="#transitions">Transitions between Scenes</a>
+<br>
+<a href="#trajectories">Trajectory Playback</a>
 <br>
 <a href="#recording">Recording a Movie</a>
 <br>
@@ -171,6 +171,32 @@ on the timeline with line shapes and labels below the scene thumbnails.
   </li><li><b>Ease In-Out (Cubic)</b>
   </ul>
 </ul>
+
+<a name="trajectories"></a>
+<p class="nav">
+[<a href="#top">back to top: Animations</a>]
+</p>
+<h4>Trajectory Playback</h4>
+<p>
+Playback of part or all of a <a href="../trajectories.html">trajectory</a>
+(such as from <a href="../commands/morph.html">morphing</a>)
+can be included in the animation by:
+</p>
+<ol>
+<li>creating a scene in which the trajectory model is showing the first
+frame in the desired playback
+</li>
+<li>creating a scene in which the trajectory model is showing the last
+frame in the desired playback
+</li>
+<li>placing both of those scenes on the animation timeline;
+the trajectory frame number will be interpolated between them.
+Playback can be in either direction depending on the order in
+which the two scenes are placed in the timeline.
+</li>
+</ol>
+<p>
+</p>
 
 <a name="recording"></a>
 <p class="nav">
