@@ -30,6 +30,10 @@ class _AnimationsSettings(Settings):
         "recording_resolution": "1080p",  # Default to 1080p
         "animation_mode": "scene",  # Default to scene mode ('keyframe' or 'scene')
         "playback_fps": 60,  # Playback frame rate
+        # Record one extra second past the end of the timeline so the
+        # trailing transition has time to finish. When False, recording stops
+        # at ``duration`` exactly.
+        "recording_tail": True,
     }
     AUTO_SAVE = {}
 
@@ -51,7 +55,9 @@ class AnimationsPreferencesDialog:
 
     def __init__(self, session, parent=None):
         from Qt.QtWidgets import QDialog, QVBoxLayout
-        from chimerax.ui.options import SettingsPanel, SymbolicEnumOption
+        from chimerax.ui.options import (
+            BooleanOption, SettingsPanel, SymbolicEnumOption,
+        )
 
         self.session = session
         self.settings = get_settings(session)
@@ -100,6 +106,16 @@ class AnimationsPreferencesDialog:
                 callback=None,
                 labels=["24 FPS", "48 FPS", "60 FPS", "120 FPS"],
                 values=[24, 48, 60, 120],
+            )
+        )
+
+        self.panel.add_option(
+            BooleanOption(
+                name="Record 1 second past end of timeline",
+                default=None,
+                attr_name="recording_tail",
+                settings=self.settings,
+                callback=None,
             )
         )
 
