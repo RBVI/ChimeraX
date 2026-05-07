@@ -788,6 +788,20 @@ class SceneAnimation(StateManager):
             if action:
                 self._apply_action(action, fraction)
 
+    def _action_rotation_center(self):
+        """Center for rock/roll/precess rotation axes.
+
+        The bounding box center of visible drawings produces the most natural
+        result. The view's ``center_of_rotation`` (used for mouse-driven turn)
+        sits on the front-center pivot, which drifts off the scene's
+        geometric center when zoomed in or when the scene is off-axis.
+        Falls back to ``center_of_rotation`` only when nothing is displayed.
+        """
+        bounds = self.session.view.drawing_bounds()
+        if bounds is not None:
+            return bounds.center()
+        return self.session.view.center_of_rotation
+
     def _apply_action(self, action: str, fraction: float):
         """Apply rock/roll action during transition"""
         if action not in ACTION_TYPES:
@@ -818,7 +832,8 @@ class SceneAnimation(StateManager):
         # Apply incremental rotation to the view
         # Use ChimeraX's turn command to rotate the view
         if abs(delta_angle) > 0.01:  # Only apply if there's a meaningful change
-            run(self.session, f"turn {axis} {delta_angle} center view")
+            center = self._action_rotation_center()
+            run(self.session, f"turn {axis} {delta_angle} center {center[0]},{center[1]},{center[2]}", log=False)
 
     def _apply_action_segments(self, time: float):
         """Apply rock/roll actions from action segments at the current time"""
@@ -842,8 +857,10 @@ class SceneAnimation(StateManager):
                     axis = config.get("axis", "y")
                     count = config.get("count", 1)
 
-                    # Get center of rotation from the current view
-                    center = self.session.view.center_of_rotation
+                    # Use the bounding-box center so the rotation axis passes
+                    # through the scene's geometric center rather than the
+                    # view's front-center pivot (see _action_rotation_center).
+                    center = self._action_rotation_center()
 
                     # Track state per segment to handle multiple segments
                     segment_key = (start_time, end_time, action_name)
