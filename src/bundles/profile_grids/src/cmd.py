@@ -117,7 +117,13 @@ def _label_rgba(res, cell_data, bg_color):
     small_fm = QFontMetrics(small_f)
     p.setFont(f)
     p.setPen(QColor(*[round(c*255) for c in contrast_with(bg_color)]))
-    p.drawText(wc+xpad, hc-ypad, f"{res.one_letter_code}{res.number}")
+    title = f"{res.one_letter_code}{res.number}"
+    title_width = fm.horizontalAdvance(title)
+    p.drawText((w - title_width)//2, hc-ypad, title)
+    res_code = res.one_letter_code
+    f.setBold(True)
+    bfm = QFontMetrics(f)
+    f.setBold(False)
 
     # Grid cells
     for r in range(rows):
@@ -137,7 +143,12 @@ def _label_rgba(res, cell_data, bg_color):
             # text
             p.setPen(QColor(*[round(c*255) for c in contrast_with([c/255 for c in color])]))
             if len(text) == 1:
-                metrics = fm
+                if text == res_code:
+                    f.setBold(True)
+                    metrics = bfm
+                else:
+                    f.setBold(False)
+                    metrics = fm
                 p.setFont(f)
                 xp, yp = xpad, ypad
             else:

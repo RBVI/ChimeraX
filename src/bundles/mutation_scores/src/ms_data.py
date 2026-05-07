@@ -363,9 +363,10 @@ def subtract_fit_values(cvalues, svalues):
 
 from chimerax.core.state import StateManager  # For session saving
 class MutationScoresManager(StateManager):
-    def __init__(self):
+    def __init__(self, session):
+        self._session = session
         self._scores = {}	# Maps name to MutationSet
-
+        create_mutation_set_add_remove_triggers(session.triggers)
     def mutation_set(self, mutation_set_name):
         return self._scores.get(mutation_set_name)
     def scores(self, mutation_set_name, allow_abbreviation = False):
@@ -380,9 +381,12 @@ class MutationScoresManager(StateManager):
         return s
     def add_scores(self, mutation_set):
         self._scores[mutation_set.name] = mutation_set
+        self._session.triggers.activate_trigger('mutation set added', mutation_set)
     def remove_scores(self, mutation_set_name):
-        if mutation_set_name in self._scores:
+        mutation_set = self._scores.get(mutation_set_name)
+        if mutation_set:
             del self._scores[mutation_set_name]
+            self._session.triggers.activate_trigger('mutation set removed', mutation_set)
             return True
         return False
     def all_scores(self):
@@ -394,16 +398,27 @@ class MutationScoresManager(StateManager):
                 'version': 1}
     @classmethod
     def restore_snapshot(cls, session, data):
-        msm = cls()
-        msm._scores = data['scores']
+        msm = mutation_scores_manager(session)
+        for mset in data['scores'].values():
+            msm.add_scores(mset)
         return msm
     def reset_state(self, session):
         self._scores.clear()
 
+def create_mutation_set_add_remove_triggers(triggers, added_callback = None, removed_callback = None):
+    if not triggers.has_trigger('mutation set added'):
+        triggers.add_trigger('mutation set added')
+    if not triggers.has_trigger('mutation set removed'):
+        triggers.add_trigger('mutation set removed')
+    if added_callback:
+        triggers.add_handler('mutation set added', added_callback)
+    if removed_callback:
+        triggers.add_handler('mutation set removed', removed_callback)
+        
 def mutation_scores_manager(session, create = True):
     msm = getattr(session, 'mutation_scores_manager', None)
     if msm is None and create:
-        session.mutation_scores_manager = msm = MutationScoresManager()
+        session.mutation_scores_manager = msm = MutationScoresManager(session)
     return msm
 
 def mutation_scores(session, mutation_set, raise_error = True):

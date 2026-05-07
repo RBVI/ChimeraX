@@ -74,6 +74,7 @@ class SceneTimelineController:
         # Connect signals
         self._connect_widget_signals()
         self._connect_animation_signals()
+        self._scene_deleted_handler = self._connect_scene_manager_signals()
 
     def _connect_widget_signals(self):
         """Connect signals from the widget to controller handlers."""
@@ -101,6 +102,19 @@ class SceneTimelineController:
         self.scene_animation.signals.recording_started.connect(self._on_recording_started)
         self.scene_animation.signals.recording_stopped.connect(self._on_recording_stopped)
         self.scene_animation.signals.timeline_cleared.connect(self._on_animation_timeline_cleared)
+
+    def _connect_scene_manager_signals(self):
+        """Listen for scene deletions in the scenes manager so the timeline
+        drops any markers referencing a scene that no longer exists."""
+        from chimerax.scenes.triggers import add_handler, DELETED
+        return add_handler(DELETED, self._on_scene_manager_deleted)
+
+    def _on_scene_manager_deleted(self, _trigger_name, scene_name):
+        """Remove all timeline entries for a scene that was deleted from the
+        scenes manager (e.g. via the Scenes GUI delete button)."""
+        if not self.scene_animation.remove_scene(scene_name):
+            return
+        self.widget.timeline_scene.remove_scene_marker(scene_name)
 
     # -------------------------------------------------------------------------
     # Widget -> Controller handlers
@@ -265,3 +279,8 @@ class SceneTimelineController:
             signals.recording_started.disconnect(self._on_recording_started)
             signals.recording_stopped.disconnect(self._on_recording_stopped)
             signals.timeline_cleared.disconnect(self._on_animation_timeline_cleared)
+
+        if self._scene_deleted_handler is not None:
+            from chimerax.scenes.triggers import remove_handler
+            remove_handler(self._scene_deleted_handler)
+            self._scene_deleted_handler = None
