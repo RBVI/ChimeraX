@@ -331,7 +331,6 @@ class MutationScatterPlot(Graph):
         if mset is None:
             nres = []
         else:
-            mset.associate_chains(self.session)
             res, rnums = mset.associated_residues(res_nums)
             nres = []
             for r, rnum in zip(res, rnums):

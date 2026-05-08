@@ -143,7 +143,7 @@ class MutationScoresHeatmap(ToolInstance):
     #
     @property
     def _have_structure(self):
-        return len(self._mutation_set.associate_chains(self.session)) > 0
+        return len(self._mutation_set.associated_chains()) > 0
     
     # ---------------------------------------------------------------------------
     #
@@ -164,7 +164,7 @@ class MutationScoresHeatmap(ToolInstance):
 
         if self._gray_missing_structure_residues.enabled:
             mset = self._mutation_set
-            if len(mset.associate_chains(self.session)) > 0:
+            if len(mset.associated_chains()) > 0:
                 res, rnums = mset.associated_residues()
                 struct_res_nums = set(rnums)
                 no_struct_res_indices = [i for i,r in enumerate(self._residue_numbers) if not r in struct_res_nums]
@@ -391,7 +391,6 @@ class MutationScoresHeatmap(ToolInstance):
     #
     def _select_residue(self, res_num):
         mset = self._mutation_set
-        mset.associate_chains(self.session)
         res,rnums = mset.associated_residues([res_num])
         if len(res) == 0:
             self.session.logger.info(f'No associated structure residues for residue number {res_num}')
@@ -757,7 +756,6 @@ class MutationScoresHeatmap(ToolInstance):
     #
     def _show_only_selected_residues(self):
         mset = self._mutation_set
-        mset.associate_chains(self.session)
         res, rnums = mset.associated_residues()
         sel_rnums = [rnum for r,rnum in zip(res,rnums) if r.selected]
         if len(sel_rnums) == 0:
@@ -771,7 +769,6 @@ class MutationScoresHeatmap(ToolInstance):
     def _set_residues(self, residues):
         rset = set(residues)
         mset = self._mutation_set
-        mset.associate_chains(self.session)
         res, rnums = mset.associated_residues()
         rnums = [rnum for r,rnum in zip(res,rnums) if r in rset]
         if len(rnums) == 0:

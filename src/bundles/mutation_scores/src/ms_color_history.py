@@ -173,7 +173,7 @@ class MutationStructureColoring(ToolInstance):
         mutation_set_name = self._mutation_set_menu.value
         session = self.session
         scores = mutation_scores(session, mutation_set_name)
-        if len(scores.associate_chains(session)) == 0:
+        if len(scores.associated_chains()) == 0:
             from chimerax.core.errors import UserError
             raise UserError(f'There are no structures associated with mutations {mutation_set_name}')
 
