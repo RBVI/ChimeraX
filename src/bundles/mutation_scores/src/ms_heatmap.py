@@ -110,6 +110,7 @@ class MutationScoresHeatmap(ToolInstance):
         if self._mutation_set is None:
             return
         self._set_heatmap_image()
+        self._make_divider_lines()
         self._make_residue_axis_labels()
         if self._grouping == 'amino acid':
             self._make_amino_acid_axis_labels()
@@ -155,9 +156,9 @@ class MutationScoresHeatmap(ToolInstance):
         rgb = matrix_to_rgb(score_matrix, missing, colormap)
         self._heatmap_height, self._heatmap_width = rgb.shape[0:2]
 
-        # Add divider lines
+        # Add divider line blank rows
         group_size = self._num_scores if self._grouping == 'amino acid' else self._num_amino_acids
-        divider_line_color = (0,0,0) if group_size > 5 else (255,255,255)
+        divider_line_color = (255,255,255)	# White
         row_step = group_size + self._group_spacing
         for i in range(group_size,rgb.shape[0],row_step):
             rgb[i:i+self._group_spacing,:,:] = divider_line_color
@@ -174,6 +175,24 @@ class MutationScoresHeatmap(ToolInstance):
 
         pixels_per_cell = self._cell_size
         self._score_view.set_image(rgb, pixels_per_cell)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _make_divider_lines(self):
+        if self._group_spacing == 0:
+            return
+
+        group_size = self._num_scores if self._grouping == 'amino acid' else self._num_amino_acids
+        row_step = group_size + self._group_spacing
+        pixels_per_cell = self._cell_size
+        scene = self._score_view.scene
+        from Qt.QtGui import QPen
+        from Qt.QtCore import Qt
+        pen = QPen(Qt.black)
+        for row in range(group_size, self._heatmap_height, row_step):
+            x1, x2 = 0, self._heatmap_width*pixels_per_cell
+            y1 = y2 = (row+.5)*pixels_per_cell
+            line = scene.addLine(x1,y1,x2,y2,pen)
 
     # ---------------------------------------------------------------------------
     #
