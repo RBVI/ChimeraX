@@ -70,8 +70,10 @@ Supported hosts and the resulting config files are:
     <a href="https://www.cursor.com/" target="_blank">Cursor</a>
     (global config, applied to every project):
     <ul>
-    <li>on Mac/Linux: ~/.cursor/mcp.json
-    </li><li>on Windows: ~/AppData/Roaming/Cursor/mcp.json
+    <li>on all platforms: ~/.cursor/mcp.json
+    (Cursor's
+    <a href="https://cursor.com/docs/mcp" target="_blank">documentation</a>
+    specifies this same path on Mac, Linux, and Windows)
     </li></ul>
   </li><li><b>vscode</b> &ndash;
     <a href="https://code.visualstudio.com/" target="_blank">VS Code</a>
@@ -124,7 +126,7 @@ request, <i>e.g.</i>, &ldquo;Show me a conotoxin protein in ChimeraX&rdquo;
 <ol>
 <li>Install <a href="https://www.cursor.com/" target="_blank">Cursor</a>
 and run it at least once so that the <code>~/.cursor</code> directory
-(<code>%APPDATA%\Cursor</code> on Windows) is created.
+is created (this is the same path on Mac, Linux, and Windows).
 </li><li>In ChimeraX, run <b>mcp setup host cursor</b>. This writes
 ChimeraX's bridge entry into Cursor's global <code>mcp.json</code>.
 </li><li>Restart Cursor (or use Cursor's "Reload MCP servers" action) and

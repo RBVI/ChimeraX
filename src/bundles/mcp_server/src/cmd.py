@@ -7,7 +7,10 @@ from chimerax.core.errors import UserError
 #   label:           human-readable name used in messages
 #   config_dirs:     per-platform directory that contains the config file;
 #                    the directory must exist (= the host is installed/has
-#                    been launched at least once) before we will write to it
+#                    been launched at least once) before we will write to it.
+#                    On Windows, values that start with "~" are expanded
+#                    against %USERPROFILE% (via os.path.expanduser); other
+#                    values are joined with %APPDATA%.
 #   filename:        name of the config file in that directory
 #   schema:          top-level JSON key under which MCP server entries live
 #                    ("mcpServers" for Claude Desktop / Cursor, "servers"
@@ -28,9 +31,12 @@ _HOSTS = {
     "cursor": {
         "label": "Cursor",
         "config_dirs": {
+            # Cursor's docs state that ~/.cursor/mcp.json is the global
+            # config location on all platforms, including Windows
+            # (https://cursor.com/docs/mcp).
             "darwin": "~/.cursor",
             "linux":  "~/.cursor",
-            "win32":  "Cursor",  # joined with %APPDATA%
+            "win32":  "~/.cursor",  # expanded against %USERPROFILE%
         },
         "filename": "mcp.json",
         "schema":   "mcpServers",
@@ -199,6 +205,15 @@ def _resolve_config_dir(host):
         if 'win32' not in config_dirs:
             raise UserError(
                 f'{host["label"]} is not supported on Windows by mcp setup.')
+        win_dir = config_dirs['win32']
+        # Some hosts (e.g. Cursor) put their global config under the user
+        # profile (~/.cursor/mcp.json on all platforms), not under %APPDATA%.
+        # Treat values starting with "~" as home-relative and let
+        # os.path.expanduser pick up %USERPROFILE%; everything else is a
+        # subdirectory under %APPDATA%.
+        if win_dir.startswith('~'):
+            from os.path import expanduser, normpath
+            return normpath(expanduser(win_dir))
         from os import environ
         appdata_dir = environ.get('APPDATA')
         if not appdata_dir:
@@ -206,7 +221,7 @@ def _resolve_config_dir(host):
                 f'Could not determine {host["label"]} configuration directory '
                 f'because APPDATA environment variable not set')
         from os.path import join, normpath
-        return normpath(join(appdata_dir, config_dirs['win32']))
+        return normpath(join(appdata_dir, win_dir))
     else:
         # Linux / other
         linux_dir = config_dirs.get('linux')
