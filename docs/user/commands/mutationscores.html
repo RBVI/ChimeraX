@@ -528,20 +528,28 @@ has not revealed any striking patterns.
 <a href="#top" class="nounder">&bull;</a>
 <a name="structure"></a>
 <b>mutationscores structure</b>
-&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
+[&nbsp;list&nbsp;|&nbsp;clear&nbsp;|&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
+[&nbsp;<b>add</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;]
+[&nbsp;<b>remove</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;]
 [&nbsp;<b>allowMismatches</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignSequences</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;|&nbsp;<i>alignment-ID</i>&nbsp;|&nbsp;<i>sequence</i>&nbsp;]
 [&nbsp;<b>minimumPercentIdentity</b>&nbsp;&nbsp;<i>percent-ID</i>&nbsp;]
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
 Designate one or more structure chains to be associated with the mutation 
-scores for further analysis.
-Otherwise, the mutation scores will be associated automatically with each
+scores for further analysis, or <b>list</b> the currently associated chains, 
+or <b>clear</b> (remove) the current associations.
+Without use of this command to manually control associations,
+the mutation scores will be associated automatically with each
 open structure chain that has exactly the same sequence and residue
 numbering (as in the mutation data) the first time some analysis action 
 is performed, such as interacting with a scatter plot.
+If the <b>add</b> option is used, the newly associated chains will be added 
+to the currently associated chains. If the <b>add</b> option is not given,
+chains that meet the matching criteria replace the currently associated chains. 
+The <b>remove</b> option allows disassociating specified chains.
 Multiple structure chains can be associated per 
-<a href="#mutationSet">mutation set</a>. 
+<a href="#mutationSet">mutation set</a>.
 If the chain does not have exactly the same residue types as the wild type 
 in the mutation data, however, <b>allowMismatches true</b> is needed to
 force the association, and if the residue numbering is different, the
