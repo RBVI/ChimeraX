@@ -92,7 +92,7 @@ def mutation_scores_define(session, score_name = None, from_score_name = None, m
 
     # Set residue attribute
     if set_attribute:
-        chains = scores.associate_chains(session)
+        chains = scores.associated_chains()
         # Remove old values for same attribute name.
         for chain in chains:
             for r in chain.existing_residues:

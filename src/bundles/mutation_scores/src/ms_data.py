@@ -94,14 +94,19 @@ class MutationSet(State):
         seq = Sequence(characters = seq_chars)
         return seq
         
-    def associate_chains(self, session, report = True):
-        if len(self.associated_chains()) == 0:
-            chains = _find_matching_chains(session, self.residue_number_to_amino_acid())
-            self._associated_chains = chains
-            self._associated_residues = [(r.number, r) for chain in chains for r in chain.existing_residues]
-            if report and len(chains) > 0:
-                _report_associated_chains(self, session.logger)
-        return self._associated_chains
+    def associate_chains(self, chains, add = True):
+        new_chains = [c for c in chains if c not in self._associated_chains]
+        added_chains = _find_matching_chains(new_chains, self.residue_number_to_amino_acid())
+        if not add:
+            # Clear current associations
+            self._associated_chains.clear()
+            self._associated_residues.clear()
+            
+        self._associated_chains.extend(added_chains)
+        ares = [(r.number, r) for chain in added_chains for r in chain.existing_residues]
+        self._associated_residues.extend(ares)
+
+        return added_chains
 
     def associated_chains(self):
         self._remove_deleted_chains()
@@ -247,18 +252,13 @@ class MutationSet(State):
         ms._computed_scores = data['computed_scores']
         return ms
 
-def _find_matching_chains(session, resnum_to_aa):
-    from chimerax.atomic import AtomicStructure
-    structs = session.models.list(type = AtomicStructure)
+def _find_matching_chains(chains, resnum_to_aa):
     mchains = []
-    for s in structs:
-        chains = list(s.chains)
-        chains.sort(key = lambda c: c.chain_id)
-        for c in chains:
-            cres = c.existing_residues
-            matches, mismatches = _residue_type_matches(cres, cres.numbers, resnum_to_aa)
-            if len(mismatches) == 0 and matches > 0:
-                mchains.append(c)
+    for c in chains:
+        cres = c.existing_residues
+        matches, mismatches = _residue_type_matches(cres, cres.numbers, resnum_to_aa)
+        if len(mismatches) == 0 and matches > 0:
+            mchains.append(c)
     return mchains
         
 def _residue_type_matches(residues, res_nums, resnum_to_aa):
@@ -394,7 +394,14 @@ class MutationScoresManager(StateManager):
     def __init__(self, session):
         self._session = session
         self._scores = {}	# Maps name to MutationSet
-        create_mutation_set_add_remove_triggers(session.triggers)
+
+        triggers = session.triggers
+        create_mutation_set_add_remove_triggers(triggers)
+
+        # Update associated structure
+        triggers.add_handler('add models', self._structure_opened)
+        triggers.add_handler('remove models', self._structure_closed)
+
     def mutation_set(self, mutation_set_name):
         return self._scores.get(mutation_set_name)
     def scores(self, mutation_set_name, allow_abbreviation = False):
@@ -410,6 +417,9 @@ class MutationScoresManager(StateManager):
     def add_scores(self, mutation_set):
         self._scores[mutation_set.name] = mutation_set
         self._session.triggers.activate_trigger('mutation set added', mutation_set)
+        chains = mutation_set.associate_chains(_all_chains(self._session))
+        if chains:
+            self._session.logger.info(self._associate_message(mutation_set, chains))
     def remove_scores(self, mutation_set_name):
         mutation_set = self._scores.get(mutation_set_name)
         if mutation_set:
@@ -421,6 +431,31 @@ class MutationScoresManager(StateManager):
         return tuple(self._scores.values())
     def names(self):
         return tuple(self._scores.keys())
+
+    def _structure_opened(self, trigger_name, models):
+        self._update_associated_chains(models, 'add')
+    def _structure_closed(self, trigger_name, models):
+        self._update_associated_chains(models, 'remove')
+    def _update_associated_chains(self, models, add_or_remove):
+        if self.all_scores():
+            chains = _structure_chains(models)
+            if chains:
+                messages = []
+                for mset in self.all_scores():
+                    if add_or_remove == 'add':
+                        achains = mset.associate_chains(chains)
+                        if achains:
+                            messages.append(self._associate_message(mset, achains))
+                    elif add_or_remove == 'remove':
+                        mset.remove_associated_chains(chains)
+                if messages:
+                    log = models[0].session.logger
+                    log.info('\n'.join(messages))
+    def _associate_message(self, mset, chains):
+        from chimerax.atomic import concise_chain_spec
+        cspec = concise_chain_spec(chains)
+        return f'Associated {len(chains)} chains {cspec} with mutations {mset.name}'
+
     def take_snapshot(self, session, flags):
         return {'scores': self._scores,
                 'version': 1}
@@ -432,6 +467,21 @@ class MutationScoresManager(StateManager):
         return msm
     def reset_state(self, session):
         self._scores.clear()
+
+def _structure_chains(models):
+    from chimerax.atomic import AtomicStructure
+    structures = [m for m in models if isinstance(m, AtomicStructure)]
+    chains = []
+    for s in structures:
+        chains.extend(list(s.chains))
+    return chains
+
+def _all_chains(session):
+    chains = []
+    from chimerax.atomic import AtomicStructure
+    for s in session.models.list(type = AtomicStructure):
+        chains.extend(s.chains)
+    return chains
 
 def create_mutation_set_add_remove_triggers(triggers, added_callback = None, removed_callback = None):
     if not triggers.has_trigger('mutation set added'):
@@ -521,7 +571,7 @@ def mutation_scores_structure(session, chains = None, add = None, remove = None,
                                pairing = pairing, replace = not add)
 
 def _report_associated_chains(mset, logger):
-    chains = [chain for chain in mset.associated_chains()]
+    chains = mset.associated_chains()
     from chimerax.atomic import concise_chain_spec
     cspec = concise_chain_spec(chains)
     logger.status(f'Mutation set {mset.name} has {len(chains)} associated chains {cspec}.', log=True)

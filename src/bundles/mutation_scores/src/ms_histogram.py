@@ -179,7 +179,6 @@ class MutationHistogram(Graph):
         score_values = mset.score_values(score_name)
         res_nums = set([res_num for res_num, from_aa, to_aa, value in score_values.all_values()
                         if value >= xmin and value <= xmax])
-        mset.associate_chains(self.session)
         res, rnums = mset.associated_residues(res_nums)
 
         if len(res) > 0:
