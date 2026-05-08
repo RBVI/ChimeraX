@@ -63,14 +63,15 @@ of one kind of score. Each type of plot has controls for changing
 which scores are plotted and for which mutation set.
 </p><p>
 <a name="associated"></a>
-By default, mutation scores are automatically <b><i>associated</i></b> with each
-open structure chain that has exactly the same sequence and residue
-numbering (as in the mutation data) the first time some analysis action
-is performed, such as interacting with a plot.
+By default, mutation scores are automatically <b><i>associated</i></b> with 
+each structure chain that has exactly the same sequence and residue
+numbering (as in the mutation data) when the mutation data or structures
+are opened.
 However, specific structure chains to associate can be designated with the
 <a href="open.html#chains"><b>chains</b></a> option of the
 <a href="open.html"><b>open</b></a> command
-at the time of opening the mutation data, or later (after opening the data) 
+at the time of opening the mutation data, or the associations
+can be adjusted manually later (after opening the files) 
 with <a href="#structure"><b>mutationscores structure</b></a>.
 </p><p>
 See also: 
@@ -539,11 +540,12 @@ has not revealed any striking patterns.
 Designate one or more structure chains to be associated with the mutation 
 scores for further analysis, or <b>list</b> the currently associated chains, 
 or <b>clear</b> (remove) the current associations.
-Without use of this command to manually control associations,
-the mutation scores will be associated automatically with each
-open structure chain that has exactly the same sequence and residue
-numbering (as in the mutation data) the first time some analysis action 
-is performed, such as interacting with a scatter plot.
+By default, without any of use of this command,
+mutation scores are automatically <b><i>associated</i></b> with 
+each structure chain that has exactly the same sequence and residue
+numbering (as in the mutation data) when the mutation data or structures
+are opened.
+However, this command can be used to manually adjust the associations.
 If the <b>add</b> option is used, the newly associated chains will be added 
 to the currently associated chains. If the <b>add</b> option is not given,
 chains that meet the matching criteria replace the currently associated chains. 
