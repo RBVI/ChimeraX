@@ -166,6 +166,9 @@ class SaveQGraphicsDialog(QFileDialog):
         'depiction_name' is describes the overall image (e.g. "sequence alignment").
 
         'view_names' are descriptions of each of the component QGraphicsViews if 'view_info' was an array.
+
+        The exec() method runs the dialog and returns a boolean indicating if the file was successfully
+        saved.
         '''
         if isinstance(view_info, QGraphicsView):
             num_views = 1

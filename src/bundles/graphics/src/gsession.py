@@ -141,8 +141,15 @@ class ViewState:
         # is None. Set it to True, let the camera be restored, and then delete the option, so it reads None again.
 
         session.restore_options['restore camera'] = True
+
+        # Window-size restore on scenes is governed by a separate setting from session restore.
+        from chimerax.core.core_settings import settings
+        old_resize_window_value = session.restore_options.get('resize window', False)
+        session.restore_options['resize window'] = settings.resize_window_on_scene_restore
+
         ViewState.set_state_from_snapshot(view, session, scene_data)
         del session.restore_options['restore camera']
+        session.restore_options['resize window'] = old_resize_window_value
 
         return view
 

@@ -486,15 +486,22 @@ class TimelineSceneWidget(QWidget):
         default_pixmap.fill(QColor(100, 100, 100))
         return default_pixmap
 
-    def _get_scene_at_position(self, x):
-        """Get marker id of the scene marker at the click position, or None."""
+    def _get_scene_at_position(self, x, y=None):
+        """Get marker id of the scene marker at the click position, or None.
+
+        Iterates in reverse paint order so the topmost (last-drawn) overlapping
+        marker is returned. When y is provided, only hits within the thumbnail
+        vertical bounds (25-55) count; clicks above or below fall through to
+        the playhead.
+        """
+        if y is not None and (y < 25 or y > 55):
+            return None
+
         width = self.width()
 
-        # Check each scene marker to see if click is within its bounds
-        for marker in self.scene_markers:
+        for marker in reversed(self.scene_markers):
             marker_x = int((marker.time / self.duration) * width)
 
-            # Check if click is within the thumbnail bounds (40px wide, centered on marker_x)
             thumb_left = marker_x - 20
             thumb_right = marker_x + 20
 
@@ -918,7 +925,7 @@ class TimelineSceneWidget(QWidget):
                 return
 
             # Check if we clicked on a scene marker
-            clicked_scene_marker_id = self._get_scene_at_position(x)
+            clicked_scene_marker_id = self._get_scene_at_position(x, y)
             if clicked_scene_marker_id is not None:
                 # Select the scene for potential deletion
                 self.selected_scene_marker_id = clicked_scene_marker_id
@@ -1153,9 +1160,10 @@ class TimelineSceneWidget(QWidget):
         if event.button() == Qt.LeftButton:
             # Calculate click position
             x = event.position().x()
+            y = event.position().y()
 
             # Check if we double-clicked on a scene marker
-            clicked_marker_id = self._get_scene_at_position(x)
+            clicked_marker_id = self._get_scene_at_position(x, y)
             if clicked_marker_id is not None:
                 marker = self._get_scene_marker_by_id(clicked_marker_id)
                 scene_name = marker.scene_name if marker is not None else None
