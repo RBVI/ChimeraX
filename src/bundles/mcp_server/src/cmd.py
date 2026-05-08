@@ -1,5 +1,61 @@
-from chimerax.core.commands import CmdDesc, register, IntArg, BoolArg
+from chimerax.core.commands import CmdDesc, register, IntArg, BoolArg, EnumOf
 from chimerax.core.errors import UserError
+
+
+# Table of MCP-capable AI assistants ("hosts") this bundle knows how to
+# configure. Each entry describes:
+#   label:           human-readable name used in messages
+#   config_dirs:     per-platform directory that contains the config file;
+#                    the directory must exist (= the host is installed/has
+#                    been launched at least once) before we will write to it.
+#                    On Windows, values that start with "~" are expanded
+#                    against %USERPROFILE% (via os.path.expanduser); other
+#                    values are joined with %APPDATA%.
+#   filename:        name of the config file in that directory
+#   schema:          top-level JSON key under which MCP server entries live
+#                    ("mcpServers" for Claude Desktop / Cursor, "servers"
+#                    for VS Code Copilot)
+#   needs_type_stdio: whether each server entry must include "type": "stdio"
+#                    (true for VS Code Copilot's mcp.json schema)
+_HOSTS = {
+    "claude": {
+        "label": "Claude Desktop",
+        "config_dirs": {
+            "darwin": "~/Library/Application Support/Claude",
+            "win32":  "Claude",  # joined with %APPDATA%
+        },
+        "filename": "claude_desktop_config.json",
+        "schema":   "mcpServers",
+        "needs_type_stdio": False,
+    },
+    "cursor": {
+        "label": "Cursor",
+        "config_dirs": {
+            # Cursor's docs state that ~/.cursor/mcp.json is the global
+            # config location on all platforms, including Windows
+            # (https://cursor.com/docs/mcp).
+            "darwin": "~/.cursor",
+            "linux":  "~/.cursor",
+            "win32":  "~/.cursor",  # expanded against %USERPROFILE%
+        },
+        "filename": "mcp.json",
+        "schema":   "mcpServers",
+        "needs_type_stdio": False,
+    },
+    "vscode": {
+        "label": "VS Code Copilot",
+        "config_dirs": {
+            "darwin": "~/Library/Application Support/Code/User",
+            "linux":  "~/.config/Code/User",
+            "win32":  "Code/User",  # joined with %APPDATA%
+        },
+        "filename": "mcp.json",
+        "schema":   "servers",
+        "needs_type_stdio": True,
+    },
+}
+
+_HOST_CHOICES = list(_HOSTS.keys()) + ["all"]
 
 
 def mcp_start(session, port=8080):
@@ -93,10 +149,13 @@ def mcp_stop(session):
 
 
 def mcp_info(session):
-    """Show MCP server status and configuration"""
+    """Show MCP server status and AI-assistant host configuration"""
 
-    # Check Claude Desktop configuration file
-    config_status = _check_claude_configuration(session)
+    # Per-host configuration status
+    host_lines = []
+    for host_id in _HOSTS:
+        host_lines.append(_check_host_configuration(host_id))
+    config_status = "<br>".join(host_lines)
 
     # Check REST server status and configuration
     rest_server = _get_rest_server()
@@ -107,7 +166,7 @@ def mcp_info(session):
 
         rest_status = f"REST server is running on port {port}<br>"
         if not (json_enabled and log_enabled):
-            rest_status += "<br>&nbsp;&nbsp;💡 Run 'mcp start' to enable JSON and logging required MCP"
+            rest_status += "<br>&nbsp;&nbsp;💡 Run 'mcp start' to enable JSON and logging required by MCP"
     else:
         rest_status = f"REST server is not running, start it with ChimeraX command 'mcp start'"
 
@@ -116,78 +175,235 @@ def mcp_info(session):
 
     return status_info
 
-def _check_claude_configuration(session):
+
+def _check_host_configuration(host_id):
+    """Return a single-line status string for the given AI-assistant host."""
+    host = _HOSTS[host_id]
+    label = host["label"]
     try:
-        msg = mcp_setup(session, check_only = True)
+        msg = _setup_host(None, host_id, check_only=True)
+        return f"{label}: {msg}"
     except UserError as e:
-        msg = str(e)
-    return msg
+        return f"{label}: {str(e)}"
 
-def mcp_setup(session, config_file_name = 'claude_desktop_config.json', check_only = False):
-    "Write Claude Desktop configuration file to allow it to control ChimeraX using MCP."
 
+def _resolve_config_dir(host):
+    """Resolve the platform-specific config directory for a host descriptor.
+
+    Returns the absolute path, or raises UserError if this platform is not
+    supported for that host.
+    """
     from sys import platform
+    config_dirs = host["config_dirs"]
     if platform == 'darwin':
+        if 'darwin' not in config_dirs:
+            raise UserError(
+                f'{host["label"]} is not supported on macOS by mcp setup.')
         from os.path import expanduser
-        config_dir = expanduser('~/Library/Application Support/Claude')
+        return expanduser(config_dirs['darwin'])
     elif platform == 'win32':
+        if 'win32' not in config_dirs:
+            raise UserError(
+                f'{host["label"]} is not supported on Windows by mcp setup.')
+        win_dir = config_dirs['win32']
+        # Some hosts (e.g. Cursor) put their global config under the user
+        # profile (~/.cursor/mcp.json on all platforms), not under %APPDATA%.
+        # Treat values starting with "~" as home-relative and let
+        # os.path.expanduser pick up %USERPROFILE%; everything else is a
+        # subdirectory under %APPDATA%.
+        if win_dir.startswith('~'):
+            from os.path import expanduser, normpath
+            return normpath(expanduser(win_dir))
         from os import environ
         appdata_dir = environ.get('APPDATA')
         if not appdata_dir:
-            from chimerax.core.errors import UserError
-            raise UserError('Could not determine Claude Desktop configuration directory because APPDATA environment variable not set')
-        from os.path import join
-        config_dir = join(appdata_dir, 'Claude')
+            raise UserError(
+                f'Could not determine {host["label"]} configuration directory '
+                f'because APPDATA environment variable not set')
+        from os.path import join, normpath
+        return normpath(join(appdata_dir, win_dir))
     else:
-        from chimerax.core.errors import UserError
-        raise UserError(f'Location of Claude Desktop configuration directory on "{platform}" is unknown')
+        # Linux / other
+        linux_dir = config_dirs.get('linux')
+        if linux_dir is None:
+            raise UserError(
+                f'Location of {host["label"]} configuration directory on '
+                f'"{platform}" is unknown')
+        from os.path import expanduser
+        return expanduser(linux_dir)
 
-    from os.path import isdir
+
+def mcp_setup(session, host="claude", check_only=False):
+    """Write a configuration file for an MCP-capable AI assistant so it can
+    control ChimeraX using MCP.
+
+    host: one of 'claude' (Claude Desktop, default), 'cursor', 'vscode'
+          (VS Code Copilot), or 'all' to configure every host whose
+          configuration directory is present on this machine.
+    """
+    if host == "all":
+        results = []
+        for host_id in _HOSTS:
+            try:
+                msg = _setup_host(session, host_id, check_only=check_only)
+                if msg is not None:
+                    results.append(f"{_HOSTS[host_id]['label']}: {msg}")
+            except UserError as e:
+                results.append(f"{_HOSTS[host_id]['label']}: {e}")
+        if check_only:
+            return "\n".join(results)
+        for r in results:
+            session.logger.info(r)
+        return
+
+    if host not in _HOSTS:
+        raise UserError(
+            f'Unknown host "{host}". Choose one of: '
+            f'{", ".join(sorted(_HOSTS.keys()))}, all')
+
+    return _setup_host(session, host, check_only=check_only)
+
+
+def _load_host_config(path):
+    """Read a host's MCP config file, tolerating empty files and JSONC.
+
+    Cursor and VS Code both accept JSONC (// line comments, /* */ block
+    comments, and trailing commas) for their mcp.json. ChimeraX does not
+    bundle a JSONC parser, so we strip those constructs ourselves before
+    a second parse attempt.
+
+    Returns (config_data, had_jsonc).
+    Raises ValueError with a friendly message if the file cannot be parsed
+    even after JSONC cleanup.
+    """
+    import json
+    import re
+    with open(path, 'r') as f:
+        text = f.read()
+    if not text.strip():
+        return {}, False
+    try:
+        return json.loads(text), False
+    except json.JSONDecodeError:
+        # Block comments first (so a // inside /* ... */ doesn't confuse us).
+        cleaned = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+        # Line comments. The (^|[^:]) guard avoids stripping `://` inside
+        # URLs (e.g. Cursor entries with "url": "http://...").
+        cleaned = re.sub(r"(^|[^:])//[^\n]*", r"\1", cleaned)
+        # Trailing commas before } or ].
+        cleaned = re.sub(r",(\s*[}\]])", r"\1", cleaned)
+        try:
+            return json.loads(cleaned), True
+        except json.JSONDecodeError as e:
+            raise ValueError(
+                f'Could not parse "{path}" as JSON or JSONC: {e}')
+
+
+def _setup_host(session, host_id, check_only=False):
+    """Write (or check) the configuration file for one host.
+
+    When check_only is True, returns a status string and never modifies any
+    files (session may be None in this mode).
+    """
+    host = _HOSTS[host_id]
+    config_dir = _resolve_config_dir(host)
+
+    from os.path import isdir, isfile, join
     if not isdir(config_dir):
-        from chimerax.core.errors import UserError
-        raise UserError(f'The Claude Desktop configuration directory "{config_dir}" does not exist.  You need to install Claude Desktop on your computer and run it before configuring it for use with ChimeraX.')
+        raise UserError(
+            f'The {host["label"]} configuration directory "{config_dir}" '
+            f'does not exist. You need to install {host["label"]} on your '
+            f'computer and run it once before configuring it for use with '
+            f'ChimeraX.')
 
-    from os.path import join, isfile
-    config_path = join(config_dir, config_file_name)
-    if isfile(config_path):
-        with open(config_path, 'r') as f:
-            import json
-            config_data = json.load(f)
-        mcp_config = config_data.get('mcpServers')
-        if mcp_config:
-            if 'chimerax' in mcp_config:
-                command_path = mcp_config['chimerax']['command']
+    config_path = join(config_dir, host["filename"])
+    schema_key = host["schema"]
+
+    had_jsonc = False
+    config_existed = isfile(config_path)
+    if config_existed:
+        try:
+            config_data, had_jsonc = _load_host_config(config_path)
+        except ValueError as e:
+            if check_only:
+                return f'existing config file could not be parsed: {e}'
+            raise UserError(
+                f'{host["label"]} configuration file "{config_path}" could '
+                f'not be parsed: {e}. Fix or remove it before running '
+                f'"mcp setup".')
+        if not config_data:
+            config_data = {schema_key: {}}
+        servers = config_data.get(schema_key)
+        if servers:
+            if 'chimerax' in servers:
+                command_path = servers['chimerax'].get('command', '')
                 config_chimerax_path = _chimerax_directory_from_executable(command_path)
                 import sys
                 current_chimerax_path = _chimerax_directory_from_executable(sys.executable)
                 if config_chimerax_path == current_chimerax_path:
-                    msg = f'The Claude Desktop configuration file "{config_path}" is already set up to use ChimeraX.'
+                    msg = f'configured to use this ChimeraX (file "{config_path}")'
                     if check_only:
                         return msg
-                    from chimerax.core.errors import UserError
-                    raise UserError(msg)
-                msg = f'Claude is configured to use a different ChimeraX version {config_chimerax_path}.'
+                    raise UserError(
+                        f'The {host["label"]} configuration file '
+                        f'"{config_path}" is already set up to use ChimeraX.')
+                msg = (f'configured to use a different ChimeraX version '
+                       f'{config_chimerax_path}')
                 if check_only:
                     return msg
-                msg += f' The configuration will be updated to use the ChimeraX you are now running {current_chimerax_path}'
-                session.logger.info(msg)
+                session.logger.info(
+                    f'{host["label"]} {msg}. The configuration will be '
+                    f'updated to use the ChimeraX you are now running '
+                    f'{current_chimerax_path}')
         else:
-            config_data['mcpServers'] = {}
+            config_data[schema_key] = {}
     else:
-        config_data = {'mcpServers': {}}
+        config_data = {schema_key: {}}
 
     if check_only:
-        return 'Claude Desktop is not configured to use ChimeraX.  Run the ChimeraX command "mcp setup" to write the Claude Desktop configuration file.'
+        return (f'not configured to use ChimeraX. Run the ChimeraX command '
+                f'"mcp setup host {host_id}" to write the {host["label"]} '
+                f'configuration file.')
 
-    config_data['mcpServers']['chimerax'] = _mcp_configuration_data()
+    config_data[schema_key]['chimerax'] = _mcp_configuration_data(host)
+
+    # Snapshot the previous file before we overwrite it, so the user can
+    # restore comments / original formatting if anything looks off.
+    backup_path = None
+    if config_existed:
+        import shutil
+        backup_path = config_path + '.bak'
+        try:
+            shutil.copyfile(config_path, backup_path)
+        except OSError as e:
+            session.logger.warning(
+                f'Could not create backup "{backup_path}" before rewriting '
+                f'{host["label"]} config: {e}')
+            backup_path = None
 
     with open(config_path, 'w') as f:
         import json
         json.dump(config_data, f, indent=4)
 
-    session.logger.info(f'Updated Claude Desktop configuration file {config_path} to use ChimeraX')
+    session.logger.info(
+        f'Updated {host["label"]} configuration file {config_path} to use '
+        f'ChimeraX')
 
-def _mcp_configuration_data():
+    if had_jsonc:
+        bak_msg = (f' The previous contents are saved at "{backup_path}".'
+                   if backup_path else '')
+        session.logger.warning(
+            f'{host["label"]} configuration file "{config_path}" contained '
+            f'comments or trailing commas; ChimeraX has rewritten it as '
+            f'strict JSON and comments are no longer preserved.{bak_msg}')
+
+
+def _mcp_configuration_data(host):
+    """Build the per-host MCP server entry for ChimeraX.
+
+    Adds "type": "stdio" for hosts (e.g. VS Code Copilot) whose schema
+    requires it.
+    """
     # Get the bridge script path
     from os.path import dirname, join, realpath
     bundle_dir = dirname(__file__)
@@ -201,12 +417,16 @@ def _mcp_configuration_data():
         python_executable_dir = join(dirname(python_executable_dir), 'bin')
     python_executable_name = 'python.exe' if platform == 'win32' else f'python{version_info.major}.{version_info.minor}'
     python_path = join(python_executable_dir, python_executable_name)
-    
+
     mcp_config = {
         'command': python_path,
         'args': [bridge_path]
     }
+    if host.get("needs_type_stdio"):
+        # Insert "type" first for nicer JSON ordering
+        mcp_config = {'type': 'stdio', **mcp_config}
     return mcp_config
+
 
 def _chimerax_directory_from_executable(exec_path):
     from sys import platform
@@ -216,7 +436,8 @@ def _chimerax_directory_from_executable(exec_path):
     for count in range(num_levels):
         path = dirname(path)
     return path
-        
+
+
 mcp_start_desc = CmdDesc(
     optional=[("port", IntArg)],
     synopsis="Start REST server for MCP bridge connections (default port: 8080)",
@@ -224,9 +445,14 @@ mcp_start_desc = CmdDesc(
 
 mcp_stop_desc = CmdDesc(synopsis="Stop the REST server")
 
-mcp_info_desc = CmdDesc(synopsis="Show MCP bridge status and configuration")
+mcp_info_desc = CmdDesc(synopsis="Show MCP bridge status and AI-assistant host configuration")
 
-mcp_setup_desc = CmdDesc(synopsis="Write Claude Desktop configuration file to allow it to control ChimeraX using MCP.")
+mcp_setup_desc = CmdDesc(
+    keyword=[("host", EnumOf(_HOST_CHOICES))],
+    synopsis="Write a configuration file for an MCP-capable AI assistant "
+             "(Claude Desktop, Cursor, VS Code Copilot) so it can control "
+             "ChimeraX using MCP.",
+)
 
 
 def register_commands(logger):
