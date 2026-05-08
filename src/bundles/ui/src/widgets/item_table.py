@@ -622,24 +622,7 @@ class ItemTable(QTableView):
             self._arrange_col_checkboxes()
         scroll_to = None
         if session_info:
-            version, selected, column_display, highlighted, sort_info, *version_args = session_info
-            if self._allow_user_sorting and sort_info is not None:
-                col_num, order = sort_info
-                self.sortByColumn(col_num, qt_enum_from_int(Qt.SortOrder, order))
-            sel_model = self.selectionModel()
-            for i in selected:
-                index = self._table_model.index(i,0)
-                if self._allow_user_sorting:
-                    index = self.model().mapFromSource(index)
-                sel_model.select(index, sel_model.Rows | sel_model.Select)
-                scroll_to = index
-            self.highlight([self._data[i] for i in highlighted])
-            for c in self._columns:
-                self.update_column(c, display=column_display.get(c.title, True))
-            if version >= 2:
-                header_info, *version_args = version_args
-                from Qt.QtCore import QByteArray
-                self.horizontalHeader().restoreState(QByteArray(header_info))
+            self.process_session_info(session_info)
 
         self.selectionModel().selectionChanged.connect(self._relay_selection_change)
         for i, col in enumerate(self._columns):
@@ -654,6 +637,27 @@ class ItemTable(QTableView):
 
         if scroll_to is not None:
             QTimer.singleShot(10, lambda s=self, i=scroll_to: s.scrollTo(i))
+
+    def process_session_info(self, session_info):
+        # normally called by launch(), but sometimes you have already launched the table, so...
+        version, selected, column_display, highlighted, sort_info, *version_args = session_info
+        if self._allow_user_sorting and sort_info is not None:
+            col_num, order = sort_info
+            self.sortByColumn(col_num, qt_enum_from_int(Qt.SortOrder, order))
+        sel_model = self.selectionModel()
+        for i in selected:
+            index = self._table_model.index(i,0)
+            if self._allow_user_sorting:
+                index = self.model().mapFromSource(index)
+            sel_model.select(index, sel_model.Rows | sel_model.Select)
+            scroll_to = index
+        self.highlight([self._data[i] for i in highlighted])
+        for c in self._columns:
+            self.update_column(c, display=column_display.get(c.title, True))
+        if version >= 2:
+            header_info, *version_args = version_args
+            from Qt.QtCore import QByteArray
+            self.horizontalHeader().restoreState(QByteArray(header_info))
 
     def scroll_to(self, datum):
         """ Scroll the table to ensure that the given data item is visible """
