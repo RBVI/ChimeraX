@@ -417,6 +417,9 @@ class MutationScoresManager(StateManager):
     def add_scores(self, mutation_set):
         self._scores[mutation_set.name] = mutation_set
         self._session.triggers.activate_trigger('mutation set added', mutation_set)
+        chains = mutation_set.associate_chains(_all_chains(self._session))
+        if chains:
+            self._session.logger.info(self._associate_message(mutation_set, chains))
     def remove_scores(self, mutation_set_name):
         mutation_set = self._scores.get(mutation_set_name)
         if mutation_set:
@@ -442,14 +445,16 @@ class MutationScoresManager(StateManager):
                     if add_or_remove == 'add':
                         achains = mset.associate_chains(chains)
                         if achains:
-                            from chimerax.atomic import concise_chain_spec
-                            cspec = concise_chain_spec(achains)
-                            messages.append(f'Associated {len(achains)} chains {cspec} with mutations {mset.name}')
+                            messages.append(self._associate_message(mset, achains))
                     elif add_or_remove == 'remove':
                         mset.remove_associated_chains(chains)
                 if messages:
                     log = models[0].session.logger
                     log.info('\n'.join(messages))
+    def _associate_message(self, mset, chains):
+        from chimerax.atomic import concise_chain_spec
+        cspec = concise_chain_spec(chains)
+        return f'Associated {len(chains)} chains {cspec} with mutations {mset.name}'
 
     def take_snapshot(self, session, flags):
         return {'scores': self._scores,
@@ -469,6 +474,13 @@ def _structure_chains(models):
     chains = []
     for s in structures:
         chains.extend(list(s.chains))
+    return chains
+
+def _all_chains(session):
+    chains = []
+    from chimerax.atomic import AtomicStructure
+    for s in session.models.list(type = AtomicStructure):
+        chains.extend(s.chains)
     return chains
 
 def create_mutation_set_add_remove_triggers(triggers, added_callback = None, removed_callback = None):
