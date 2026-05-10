@@ -392,6 +392,48 @@ class Structure(Model, StructureData):
                     interp_val = attr_vals
                 interp_info[attr_name] = interp_val
             interp_data[attr_level] = interp_info
+        # Fade per-element displays changes via alpha. Without this, atoms,
+        # bonds, or ribbon/ring residues that are shown in one scene but
+        # hidden in the other pop at switchover because *_displays is a bool
+        # array and isn't in simply_interpolable_attrs. The toolbar "Hide
+        # atoms" button flips per-atom displays (not model.display), so the
+        # model-level fade above doesn't catch this case.
+        from numpy import logical_or, logical_and, logical_not
+        for collection_key, display_attr, color_attr in (
+                ('atoms', 'displays', 'colors'),
+                ('bonds', 'displays', 'colors'),
+                ('residues', 'ribbon_displays', 'ribbon_colors'),
+                ('residues', 'ring_displays', 'ring_colors')):
+            d1 = scene1_data.get(collection_key, {}).get(display_attr)
+            d2 = scene2_data.get(collection_key, {}).get(display_attr)
+            if d1 is None or d2 is None or d1.shape != d2.shape:
+                continue
+            if array_equal(d1, d2):
+                continue
+            fade_in = logical_and(logical_not(d1), d2)
+            fade_out = logical_and(d1, logical_not(d2))
+            if not (fade_in.any() or fade_out.any()):
+                continue
+            c1 = scene1_data[collection_key].get(color_attr)
+            c2 = scene2_data[collection_key].get(color_attr)
+            if c1 is None or c2 is None or c1.shape != c2.shape:
+                continue
+            if (collection_key not in interp_data
+                    or color_attr not in interp_data[collection_key]):
+                continue
+            # Override the lerp'd colors only for rows where displays differ:
+            # use the source scene's color (the other side's color is from a
+            # hidden element and not meaningful) and scale alpha by the
+            # appropriate fraction. Force union display so fading rows draw.
+            cur_colors = interp_data[collection_key][color_attr].astype('float32', copy=True)
+            if fade_in.any():
+                cur_colors[fade_in] = c2[fade_in].astype('float32')
+                cur_colors[fade_in, 3] *= fraction
+            if fade_out.any():
+                cur_colors[fade_out] = c1[fade_out].astype('float32')
+                cur_colors[fade_out, 3] *= (1.0 - fraction)
+            interp_data[collection_key][color_attr] = array(rint(cur_colors), dtype=uint8)
+            interp_data[collection_key][display_attr] = logical_or(d1, d2)
         Structure.restore_scene(self, interp_data)
 
     def set_state_from_snapshot(self, session, data):
