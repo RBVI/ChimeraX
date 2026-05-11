@@ -11,6 +11,7 @@ dependencies = [
 	"ChimeraX-Core ~=1.10dev"
 	, "ChimeraX-UI ~=1.42"
 	, "ChimeraX-StdCommands ~=1.19"
+	, "ChimeraX-gltf ~=1.0"
 ]
 
 dynamic = ["classifiers", "requires-python", "version"]
@@ -60,3 +61,11 @@ description = "Rename a scene."
 [tool.chimerax.command."scenes list"]
 category = "General"
 description = "List current scenes in the log."
+
+[tool.chimerax.command."scenes export html"]
+category = "General"
+description = "Export a scene to a standalone HTML page with embedded glTF."
+
+[tool.chimerax.command."scenes export storyboard"]
+category = "General"
+description = "Export multiple scenes as a clickable HTML storyboard."

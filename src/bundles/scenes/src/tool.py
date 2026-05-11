@@ -38,6 +38,8 @@ from Qt.QtWidgets import (
     QGroupBox,
     QPushButton,
     QApplication,
+    QMenu,
+    QFileDialog,
 )
 from Qt.QtGui import QPixmap, QDrag
 from Qt.QtCore import Qt, QMimeData, QPoint
@@ -144,11 +146,26 @@ class ScenesTool(ToolInstance):
         self.delete_button.clicked.connect(self.delete_button_clicked)
         self.delete_button.setEnabled(False)
 
+        # Export drops down a small menu so we don't burn two button slots
+        # for what users will reach for less often than save/restore.
+        self.export_button = QPushButton("Export...")
+        export_menu = QMenu(self.export_button)
+        self.export_scene_action = export_menu.addAction(
+            "Selected scene to HTML...")
+        self.export_scene_action.triggered.connect(self.export_scene_clicked)
+        self.export_scene_action.setEnabled(False)
+        self.export_storyboard_action = export_menu.addAction(
+            "Storyboard to HTML...")
+        self.export_storyboard_action.triggered.connect(
+            self.export_storyboard_clicked)
+        self.export_button.setMenu(export_menu)
+
         # Add the buttons to the action buttons layout
         self.action_buttons_layout.addWidget(self.save_button)
         self.action_buttons_layout.addWidget(self.update_button)
         self.action_buttons_layout.addWidget(self.rename_button)
         self.action_buttons_layout.addWidget(self.delete_button)
+        self.action_buttons_layout.addWidget(self.export_button)
 
         self.main_layout.addLayout(self.action_buttons_layout)
 
@@ -199,6 +216,7 @@ class ScenesTool(ToolInstance):
         self.update_button.setEnabled(highlighting)
         self.rename_button.setEnabled(highlighting)
         self.delete_button.setEnabled(highlighting)
+        self.export_scene_action.setEnabled(highlighting)
 
     def scene_deleted_cb(self, trigger_name, scene_name):
         """
@@ -212,6 +230,7 @@ class ScenesTool(ToolInstance):
         self.update_button.setEnabled(bool(highlighted_item))
         self.rename_button.setEnabled(bool(highlighted_item))
         self.delete_button.setEnabled(bool(highlighted_item))
+        self.export_scene_action.setEnabled(bool(highlighted_item))
 
     def save_button_clicked(self):
         """
@@ -262,6 +281,46 @@ class ScenesTool(ToolInstance):
             )
         else:
             tool_user_error(f"No scene chosen in scene list")
+
+    def export_scene_clicked(self):
+        """
+        Export the highlighted scene as a self-contained HTML file.
+        """
+        highlighted_scene = self.scroll_area.get_highlighted_scene()
+        if not highlighted_scene:
+            tool_user_error("No scene chosen in scene list")
+            return
+        scene_name = highlighted_scene.get_name()
+        path, _ = QFileDialog.getSaveFileName(
+            self.tool_window.ui_area,
+            "Export Scene to HTML",
+            f"{scene_name}.html",
+            "HTML files (*.html)",
+        )
+        if not path:
+            return
+        run(
+            self.session,
+            f"scenes export html {StringArg.unparse(scene_name)} {StringArg.unparse(path)}",
+        )
+
+    def export_storyboard_clicked(self):
+        """
+        Export all saved scenes as an HTML storyboard directory.
+        """
+        if not self.session.scenes.get_scenes():
+            tool_user_error("No scenes to export")
+            return
+        path = QFileDialog.getExistingDirectory(
+            self.tool_window.ui_area,
+            "Choose Storyboard Output Directory",
+        )
+        if not path:
+            return
+        run(
+            self.session,
+            f"scenes export storyboard {StringArg.unparse(path)}",
+        )
 
     def delete(self):
         """

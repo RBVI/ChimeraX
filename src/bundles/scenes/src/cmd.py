@@ -24,7 +24,10 @@
 
 from typing import Optional
 
-from chimerax.core.commands import register, CmdDesc, StringArg, FloatArg
+from chimerax.core.commands import (
+    register, CmdDesc, StringArg, FloatArg, SaveFolderNameArg, SaveFileNameArg,
+    ListOf,
+)
 
 def register_commands(logger):
     register("scenes save", save_scene_desc, save_scene)
@@ -32,6 +35,8 @@ def register_commands(logger):
     register("scenes restore", restore_scene_desc, restore_scene)
     register("scenes rename", rename_scene_desc, rename_scene)
     register("scenes list", list_scenes_desc, list_scenes)
+    register("scenes export html", export_html_desc, export_html)
+    register("scenes export storyboard", export_storyboard_desc, export_storyboard)
 
 
 def save_scene(session, scene_name: Optional[str] = None) -> None:
@@ -85,4 +90,33 @@ def list_scenes(session):
 
 list_scenes_desc = CmdDesc(
     synopsis="List all saved scenes."
+)
+
+
+def export_html(session, scene_name, path):
+    """Export 'scene_name' to a standalone HTML page with embedded glTF
+    geometry. ``path`` may be either a .html file (a sidecar .glb is written
+    alongside) or a directory (index.html + scene.glb are created inside)."""
+    from .html_export import export_scene_html
+    export_scene_html(session, scene_name, path)
+
+
+export_html_desc = CmdDesc(
+    required=[("scene_name", StringArg), ("path", SaveFileNameArg)],
+    synopsis="Export a scene to a standalone HTML page (with sidecar glTF)."
+)
+
+
+def export_storyboard(session, path, scenes=None):
+    """Export multiple scenes as a clickable storyboard HTML page. Output
+    goes into the directory at ``path``: index.html + one .glb per scene.
+    If ``scenes`` is omitted, all saved scenes are exported."""
+    from .html_export import export_storyboard_html
+    export_storyboard_html(session, path, scene_names=scenes)
+
+
+export_storyboard_desc = CmdDesc(
+    required=[("path", SaveFolderNameArg)],
+    keyword=[("scenes", ListOf(StringArg))],
+    synopsis="Export scenes as a clickable HTML storyboard."
 )
