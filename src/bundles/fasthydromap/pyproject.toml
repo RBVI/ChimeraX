@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools", "ChimeraX-BundleBuilder"]
+build-backend = "chimerax.bundle_builder.cx_pep517"
+
+[project]
+name = "ChimeraX-FastHydroMap"
+license = "MIT"
+authors = [{ name = "Samuel Lobo" }]
+description = "Run FastHydroMap from ChimeraX and color structures by predicted Fdewet"
+dependencies = [
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-Atomic >=1.66",
+  "ChimeraX-PDB >=2.0",
+  "ChimeraX-Surface >=1.0",
+]
+
+dynamic = ["classifiers", "requires-python", "version"]
+
+[project.readme]
+content-type = "text"
+text = """Install FastHydroMap from PyPI into a managed ChimeraX environment and color atomic structures by predicted Fdewet."""
+
+[project.urls]
+Home = "https://www.rbvi.ucsf.edu/chimerax/"
+
+[tool.setuptools.dynamic]
+version = { attr = "src.__version__" }
+
+[tool.chimerax]
+min-session-version = 1
+max-session-version = 1
+categories = ["Structure Analysis"]
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
+
+[tool.chimerax.command.fasthydromap]
+category = "Structure Analysis"
+description = "Predict per-residue Fdewet with FastHydroMap"
+
+[tool.chimerax.command."fasthydromap install"]
+category = "Structure Analysis"
+description = "Install FastHydroMap from PyPI in a managed ChimeraX environment"
