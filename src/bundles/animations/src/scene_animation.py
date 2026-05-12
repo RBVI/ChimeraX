@@ -148,6 +148,11 @@ class SceneAnimation(StateManager):
         self.current_time = 0.0
         self.is_playing = False
         self.is_recording = False
+        # Guard against re-entrant preview_at_time. Qt processEvents inside
+        # windowsize.window_size can dispatch a queued scrub mouseMoveEvent
+        # mid-restore, which otherwise re-enters scene restore and corrupts
+        # session.restore_options.
+        self._previewing = False
 
         # Playback state
         self.fps = fps
@@ -283,87 +288,95 @@ class SceneAnimation(StateManager):
         return True
 
     def get_effective_end_time(self):
-        """Get the effective end time for recording (1 second after last scene)
+        """Get the effective end time for recording.
 
-        Returns the time 1 second after the last scene marker, or the full duration
-        if there are no scenes.
+        Always at least the full animation duration. With the
+        ``recording_tail`` preference enabled (the default), recording runs an
+        extra 1 second past ``duration`` so the trailing transition has time
+        to finish.
         """
-        if not self.scenes:
-            return self.duration
-
-        # Find the last scene time
-        last_scene_time = max(t for t, _, _ in self.scenes)
-
-        # Return 1 second after the last scene
-        return last_scene_time + 1.0
+        from .settings import get_settings
+        if get_settings(self.session).recording_tail:
+            return self.duration + 1.0
+        return self.duration
 
     def preview_at_time(self, time: float):
         """Preview the animation at a specific time"""
-        if time < 0 or time > self.duration:
+        if self._previewing:
+            # Re-entered via Qt event dispatch (e.g. processEvents inside
+            # windowsize.window_size during scene restore). Drop the inner
+            # call — the next mouseMoveEvent after the outer call returns
+            # will trigger a fresh preview at the latest scrub position.
             return
+        self._previewing = True
+        try:
+            if time < 0:
+                return
+            if not self.is_playing:
+                self.current_time = time
 
-        self.current_time = time
-
-        # Find the appropriate scene or transition
-        scene1, scene2, fraction = self._get_interpolation_at_time(time)
-        active_action_segment = self._get_active_action_segment_index(time)
-        previous_active_action_segment = getattr(
-            self, "_last_active_action_segment", None
-        )
-
-        # Check if the scene state changed from what we're currently displaying
-        scene_changed = True
-        pair_changed = True
-        if hasattr(self, "_last_scene_state"):
-            if self._last_scene_state == (scene1, scene2, fraction):
-                scene_changed = False
-                pair_changed = False
-            elif self._last_scene_state[:2] != (scene1, scene2):
-                self._last_action_angle = 0.0
-            else:
-                pair_changed = False
-
-        # Action segments apply transient transforms on top of the base scene
-        # state; when the active segment changes the previous frame's overlay
-        # is no longer valid, so re-seed scene1.
-        action_changed = previous_active_action_segment != active_action_segment
-        seed_scene = pair_changed or action_changed
-
-        base_state_restored = False
-        if not self.scenes and active_action_segment is None:
-            self._ensure_action_only_base_state()
-            self._restore_action_only_base_state()
-            base_state_restored = True
-        elif scene_changed or action_changed:
-            self._restore_preview_base_state(
-                scene1, scene2, fraction, time, seed=seed_scene
+            # Find the appropriate scene or transition
+            scene1, scene2, fraction = self._get_interpolation_at_time(time)
+            active_action_segment = self._get_active_action_segment_index(time)
+            previous_active_action_segment = getattr(
+                self, "_last_active_action_segment", None
             )
-            base_state_restored = True
 
-        if base_state_restored:
-            self._reset_action_tracking()
-            self._last_scene_state = (scene1, scene2, fraction)
+            # Check if the scene state changed from what we're currently displaying
+            scene_changed = True
+            pair_changed = True
+            if hasattr(self, "_last_scene_state"):
+                if self._last_scene_state == (scene1, scene2, fraction):
+                    scene_changed = False
+                    pair_changed = False
+                elif self._last_scene_state[:2] != (scene1, scene2):
+                    self._last_action_angle = 0.0
+                else:
+                    pair_changed = False
 
-        # Apply action segments after scene restore so they layer on top of
-        # the base scene state. During sequential playback the scene state
-        # won't change every frame, but actions still need to update.
-        self._apply_action_segments(time)
-        self._apply_trajectory_at_time(scene1, scene2, fraction)
-        self._last_active_action_segment = active_action_segment
+            # Action segments apply transient transforms on top of the base scene
+            # state; when the active segment changes the previous frame's overlay
+            # is no longer valid, so re-seed scene1.
+            action_changed = previous_active_action_segment != active_action_segment
+            seed_scene = pair_changed or action_changed
 
-        # Notify the UI so the playhead tracks the previewed time.
-        # Skip during playback — _advance_playback emits time_changed itself,
-        # and re-emitting here would create a signal loop.
-        if self.signals and not self.is_playing:
-            self.signals.time_changed.emit(time)
+            base_state_restored = False
+            if not self.scenes and active_action_segment is None:
+                self._ensure_action_only_base_state()
+                self._restore_action_only_base_state()
+                base_state_restored = True
+            elif scene_changed or action_changed:
+                self._restore_preview_base_state(
+                    scene1, scene2, fraction, time, seed=seed_scene
+                )
+                base_state_restored = True
 
-        # Only log occasionally to avoid spam during playback
-        if hasattr(self, "_last_log_time"):
-            if time - self._last_log_time > 5.0:  # Log even less frequently
-                #self.logger.info(f"Previewing animation at {time:.2f}s")
+            if base_state_restored:
+                self._reset_action_tracking()
+                self._last_scene_state = (scene1, scene2, fraction)
+
+            # Apply action segments after scene restore so they layer on top of
+            # the base scene state. During sequential playback the scene state
+            # won't change every frame, but actions still need to update.
+            self._apply_action_segments(time)
+            self._apply_trajectory_at_time(scene1, scene2, fraction)
+            self._last_active_action_segment = active_action_segment
+
+            # Notify the UI so the playhead tracks the previewed time.
+            # Skip during playback — _advance_playback emits time_changed itself,
+            # and re-emitting here would create a signal loop.
+            if self.signals and not self.is_playing:
+                self.signals.time_changed.emit(time)
+
+            # Only log occasionally to avoid spam during playback
+            if hasattr(self, "_last_log_time"):
+                if time - self._last_log_time > 5.0:  # Log even less frequently
+                    #self.logger.info(f"Previewing animation at {time:.2f}s")
+                    self._last_log_time = time
+            else:
                 self._last_log_time = time
-        else:
-            self._last_log_time = time
+        finally:
+            self._previewing = False
 
     def play(self, start_time: float = 0.0, reverse: bool = False):
         """Play the animation from start_time"""
@@ -788,6 +801,20 @@ class SceneAnimation(StateManager):
             if action:
                 self._apply_action(action, fraction)
 
+    def _action_rotation_center(self):
+        """Center for rock/roll/precess rotation axes.
+
+        The bounding box center of visible drawings produces the most natural
+        result. The view's ``center_of_rotation`` (used for mouse-driven turn)
+        sits on the front-center pivot, which drifts off the scene's
+        geometric center when zoomed in or when the scene is off-axis.
+        Falls back to ``center_of_rotation`` only when nothing is displayed.
+        """
+        bounds = self.session.view.drawing_bounds()
+        if bounds is not None:
+            return bounds.center()
+        return self.session.view.center_of_rotation
+
     def _apply_action(self, action: str, fraction: float):
         """Apply rock/roll action during transition"""
         if action not in ACTION_TYPES:
@@ -818,7 +845,8 @@ class SceneAnimation(StateManager):
         # Apply incremental rotation to the view
         # Use ChimeraX's turn command to rotate the view
         if abs(delta_angle) > 0.01:  # Only apply if there's a meaningful change
-            run(self.session, f"turn {axis} {delta_angle} center view")
+            center = self._action_rotation_center()
+            run(self.session, f"turn {axis} {delta_angle} center {center[0]},{center[1]},{center[2]}", log=False)
 
     def _apply_action_segments(self, time: float):
         """Apply rock/roll actions from action segments at the current time"""
@@ -842,8 +870,10 @@ class SceneAnimation(StateManager):
                     axis = config.get("axis", "y")
                     count = config.get("count", 1)
 
-                    # Get center of rotation from the current view
-                    center = self.session.view.center_of_rotation
+                    # Use the bounding-box center so the rotation axis passes
+                    # through the scene's geometric center rather than the
+                    # view's front-center pivot (see _action_rotation_center).
+                    center = self._action_rotation_center()
 
                     # Track state per segment to handle multiple segments
                     segment_key = (start_time, end_time, action_name)

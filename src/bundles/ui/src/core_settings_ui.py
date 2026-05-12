@@ -101,6 +101,14 @@ class CoreSettingsPanel:
             None,
             'Whether to resize main window when restoring a session to the size it had when the session was saved.',
             True),
+        'resize_window_on_scene_restore': (
+            'Resize graphics window on scene restore',
+            'Window',
+            BooleanOption,
+            None,
+            None,
+            'Whether to resize main window when restoring a scene to the size it had when the scene was saved.',
+            True),
         'toolshed_update_interval': (
             "Toolshed update interval",
             "Toolshed",

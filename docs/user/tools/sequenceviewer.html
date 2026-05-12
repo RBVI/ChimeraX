@@ -113,7 +113,6 @@ and they can be manipulated like other panels in ChimeraX
 Each <b>Sequence Viewer</b> window has a 
 <a href="../window.html#context-menu">context menu</a> 
 with choices including:
-</p><p>
 </p><ul>
 <li><b>File</b>
   <ul>
@@ -121,6 +120,22 @@ with choices including:
   [various <a href="../commands/save.html#seqformats">sequence file formats</a>]
   &ndash; save to file; 
   see also <a href="../commands/save.html#sequence"><b>save</b></a>
+  </li><li><b>Save Image...</b> open browser dialog for saving the 
+alignment to an image file, with settings:
+   <ul>
+   <li>file name and location
+   </li><li>image file type (several choices, initial default <b>PNG</b>)
+<!--
+   </li><li><b>View spacing</b> (initial default <b>2</b>)
+&ndash; pixel spacing between the four sections
+(header names, headers, sequence names, and sequences)
+that will be composited together to create a single image
+-->
+   </li><li><b>Save</b> how much of the alignment to include in the image,
+either the currently <b>visible region</b> (initial default) or the
+<b>entire alignment</b>
+   </li><li><b>DPI</b> &ndash; image resolution in pixels per inch
+   </li></ul>
   </li><li><b>Load Sequence Coloring File...</b> open a
   <a href="../formats/scf.html">sequence coloring file</a>
   to create <a href="#regions">regions</a> and color 
@@ -939,6 +954,6 @@ with a position or to only some fraction of those structures.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-July 2025</address>
+May 2026</address>
 
 </body></html>

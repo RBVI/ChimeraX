@@ -116,7 +116,7 @@ class CoordinateSetSlider(Slider):
             'movie_framerate': self.movie_framerate,
             'steady_atoms': self._player.steady_atoms,
             'compute_ss': self._player.compute_ss,
-            #'analysis_info': get_session_info(self.tool_window),
+            'analysis_info': get_session_info(self.tool_window),
             'version': self.version
         }
         return data
@@ -128,7 +128,7 @@ class CoordinateSetSlider(Slider):
                                   movie_framerate = data['movie_framerate'],
                                   steady_atoms = data['steady_atoms'],
                                   compute_ss = data['compute_ss'])
-        if hasattr(data, 'analysis_info'):
+        if 'analysis_info' in data:
             from chimerax.md_crds.gui import restore_session_info
             restore_session_info(css.tool_window, data['analysis_info'])
         return css

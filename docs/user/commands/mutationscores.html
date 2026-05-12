@@ -63,14 +63,15 @@ of one kind of score. Each type of plot has controls for changing
 which scores are plotted and for which mutation set.
 </p><p>
 <a name="associated"></a>
-By default, mutation scores are automatically <b><i>associated</i></b> with each
-open structure chain that has exactly the same sequence and residue
-numbering (as in the mutation data) the first time some analysis action
-is performed, such as interacting with a plot.
+By default, mutation scores are automatically <b><i>associated</i></b> with 
+each structure chain that has exactly the same sequence and residue
+numbering (as in the mutation data) when the mutation data or structures
+are opened.
 However, specific structure chains to associate can be designated with the
 <a href="open.html#chains"><b>chains</b></a> option of the
 <a href="open.html"><b>open</b></a> command
-at the time of opening the mutation data, or later (after opening the data) 
+at the time of opening the mutation data, or the associations
+can be adjusted manually later (after opening the files) 
 with <a href="#structure"><b>mutationscores structure</b></a>.
 </p><p>
 See also: 
@@ -125,6 +126,7 @@ into 2D with UMAP
 [&nbsp;<b>dragToColor</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>dragboxColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
 [&nbsp;<b>dragboxLinewidth</b>&nbsp;&nbsp;<i>pixels</i>&nbsp;]
+[&nbsp;<b>dragToSelect</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>colorResidueOnHover</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>hoverColor</b>&nbsp;&nbsp;<i>color</i>&nbsp;]
 [&nbsp;<b>showOptions</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -208,7 +210,12 @@ By holding the <b>Shift</b> key, multiple boxes can be drawn on
 the heatmap, and they can be different colors. Clicking on a mutation
 will color a single residue, and clicking outside the heatmap
 (such as on the axes) will clear the boxes and revert the residues
-to their original colors. The <b>colorResidueOnHover</b> option 
+to their original colors. If <b>dragToSelect</b> is true (default <b>false</b>),
+dragging a box clears the current <a href="../selection.html">selection</a>
+and selects the associated residues.
+If the <b>Shift</b> key is held while dragging, the residues are
+added to the selection instead of replacing it.
+The <b>colorResidueOnHover</b> option specifies
 whether placing the mouse over the heatmap colors the
 <a href="#associated">associated</a> structure residues
 (default <b>off</b>, with <b>hoverColor</b> of <b>yellow</b>
@@ -522,20 +529,29 @@ has not revealed any striking patterns.
 <a href="#top" class="nounder">&bull;</a>
 <a name="structure"></a>
 <b>mutationscores structure</b>
-&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
+[&nbsp;list&nbsp;|&nbsp;clear&nbsp;|&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
+[&nbsp;<b>add</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;]
+[&nbsp;<b>remove</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;]
 [&nbsp;<b>allowMismatches</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignSequences</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;|&nbsp;<i>alignment-ID</i>&nbsp;|&nbsp;<i>sequence</i>&nbsp;]
 [&nbsp;<b>minimumPercentIdentity</b>&nbsp;&nbsp;<i>percent-ID</i>&nbsp;]
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
 Designate one or more structure chains to be associated with the mutation 
-scores for further analysis.
-Otherwise, the mutation scores will be associated automatically with each
-open structure chain that has exactly the same sequence and residue
-numbering (as in the mutation data) the first time some analysis action 
-is performed, such as interacting with a scatter plot.
+scores for further analysis, or <b>list</b> the currently associated chains, 
+or <b>clear</b> (remove) the current associations.
+By default, without any of use of this command,
+mutation scores are automatically <b><i>associated</i></b> with 
+each structure chain that has exactly the same sequence and residue
+numbering (as in the mutation data) when the mutation data or structures
+are opened.
+However, this command can be used to manually adjust the associations.
+If the <b>add</b> option is used, the newly associated chains will be added 
+to the currently associated chains. If the <b>add</b> option is not given,
+chains that meet the matching criteria replace the currently associated chains. 
+The <b>remove</b> option allows disassociating specified chains.
 Multiple structure chains can be associated per 
-<a href="#mutationSet">mutation set</a>. 
+<a href="#mutationSet">mutation set</a>.
 If the chain does not have exactly the same residue types as the wild type 
 in the mutation data, however, <b>allowMismatches true</b> is needed to
 force the association, and if the residue numbering is different, the

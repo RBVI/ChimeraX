@@ -36,8 +36,8 @@ class MutationScoresHeatmap(ToolInstance):
         self._include_residue_numbers = []	# If empty then include all residues in heatmap
         self._default_amino_acid_order = 'HRKDEFWYNQILCSTVMAGP'
         self._group_spacing = 1	# Number of blank pixels after each amino acid or score group
-        self._last_hover_residues = None		# (Residues, res_colors, atom_colors)
-        self._last_dragbox_residues = []		# List of (Residues, res_colors, atom_colors)
+        self._last_hover_residues = None		# ResidueColoring instance
+        self._last_dragbox_residues = []		# List of ResidueColoring instances
         self._block_drawing = False
         self._max_axis_font_size = 14
         self._warn_noninteger_cell_size = True
@@ -110,6 +110,7 @@ class MutationScoresHeatmap(ToolInstance):
         if self._mutation_set is None:
             return
         self._set_heatmap_image()
+        self._make_divider_lines()
         self._make_residue_axis_labels()
         if self._grouping == 'amino acid':
             self._make_amino_acid_axis_labels()
@@ -143,7 +144,7 @@ class MutationScoresHeatmap(ToolInstance):
     #
     @property
     def _have_structure(self):
-        return len(self._mutation_set.associate_chains(self.session)) > 0
+        return len(self._mutation_set.associated_chains()) > 0
     
     # ---------------------------------------------------------------------------
     #
@@ -155,16 +156,16 @@ class MutationScoresHeatmap(ToolInstance):
         rgb = matrix_to_rgb(score_matrix, missing, colormap)
         self._heatmap_height, self._heatmap_width = rgb.shape[0:2]
 
-        # Add divider lines
+        # Add divider line blank rows
         group_size = self._num_scores if self._grouping == 'amino acid' else self._num_amino_acids
-        divider_line_color = (0,0,0) if group_size > 5 else (255,255,255)
+        divider_line_color = (255,255,255)	# White
         row_step = group_size + self._group_spacing
         for i in range(group_size,rgb.shape[0],row_step):
             rgb[i:i+self._group_spacing,:,:] = divider_line_color
 
         if self._gray_missing_structure_residues.enabled:
             mset = self._mutation_set
-            if len(mset.associate_chains(self.session)) > 0:
+            if len(mset.associated_chains()) > 0:
                 res, rnums = mset.associated_residues()
                 struct_res_nums = set(rnums)
                 no_struct_res_indices = [i for i,r in enumerate(self._residue_numbers) if not r in struct_res_nums]
@@ -174,6 +175,24 @@ class MutationScoresHeatmap(ToolInstance):
 
         pixels_per_cell = self._cell_size
         self._score_view.set_image(rgb, pixels_per_cell)
+
+    # ---------------------------------------------------------------------------
+    #
+    def _make_divider_lines(self):
+        if self._group_spacing == 0:
+            return
+
+        group_size = self._num_scores if self._grouping == 'amino acid' else self._num_amino_acids
+        row_step = group_size + self._group_spacing
+        pixels_per_cell = self._cell_size
+        scene = self._score_view.scene
+        from Qt.QtGui import QPen
+        from Qt.QtCore import Qt
+        pen = QPen(Qt.black)
+        for row in range(group_size, self._heatmap_height, row_step):
+            x1, x2 = 0, self._heatmap_width*pixels_per_cell
+            y1 = y2 = (row+.5)*pixels_per_cell
+            line = scene.addLine(x1,y1,x2,y2,pen)
 
     # ---------------------------------------------------------------------------
     #
@@ -301,10 +320,8 @@ class MutationScoresHeatmap(ToolInstance):
             if res_num is not None:
                 res, rnums = self._mutation_set.associated_residues([res_num])
                 if len(res) > 0:
-                    self._last_hover_residues = (res, res.ribbon_colors, res.atoms.colors)
                     color = self._hover_color.color
-                    res.ribbon_colors = color
-                    res.atoms.colors = color
+                    self._last_hover_residues = ResidueColoring(res, color)
         return msg
 
     # ---------------------------------------------------------------------------
@@ -348,11 +365,18 @@ class MutationScoresHeatmap(ToolInstance):
         if not self._have_structure:
             return
 
-        (i1,j1),(i2,j2) = xy1,xy2
-        w,h = self._heatmap_width, self._heatmap_height
-        if (j1 < 0 and j2 < 0) or (j1 >= h and j2 >= h) or (i1 < 0 and i2 < 0) or (i1 >= w and i2 >= w):
+        if xy1 is None or xy2 is None:
+            outside = True
+        else:
+            (i1,j1),(i2,j2) = xy1,xy2
+            w,h = self._heatmap_width, self._heatmap_height
+            outside = ((j1 < 0 and j2 < 0) or (j1 >= h and j2 >= h) or
+                       (i1 < 0 and i2 < 0) or (i1 >= w and i2 >= w))
+        if outside:
             # drag box does not intersect heatmap so clear colors.
             self._uncolor_dragbox_residues()
+            if select_enabled:
+                self.session.selection.clear()
             return
 
         all_res_nums = self._residue_numbers
@@ -368,10 +392,8 @@ class MutationScoresHeatmap(ToolInstance):
             if not add:
                 self._uncolor_dragbox_residues()
             if color_enabled:
-                self._last_dragbox_residues.append((res, res.ribbon_colors, res.atoms.colors))
                 color = self._dragbox_color.color
-                res.ribbon_colors = color
-                res.atoms.colors = color
+                self._last_dragbox_residues.append(ResidueColoring(res, color))
             if select_enabled:
                 if not add:
                     self.session.selection.clear()
@@ -380,16 +402,14 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _uncolor_dragbox_residues(self):
-        for last_res, last_res_colors, last_atom_colors in self._last_dragbox_residues[::-1]:
-            last_res.ribbon_colors = last_res_colors
-            last_res.atoms.colors = last_atom_colors
+        for res_coloring in self._last_dragbox_residues[::-1]:
+            res_coloring.uncolor()
         self._last_dragbox_residues.clear()
 
     # ---------------------------------------------------------------------------
     #
     def _select_residue(self, res_num):
         mset = self._mutation_set
-        mset.associate_chains(self.session)
         res,rnums = mset.associated_residues([res_num])
         if len(res) == 0:
             self.session.logger.info(f'No associated structure residues for residue number {res_num}')
@@ -724,9 +744,7 @@ class MutationScoresHeatmap(ToolInstance):
     #
     def _uncolor_hover_residues(self):
         if self._last_hover_residues:
-            last_res, last_res_colors, last_atom_colors = self._last_hover_residues
-            last_res.ribbon_colors = last_res_colors
-            last_res.atoms.colors = last_atom_colors
+            self._last_hover_residues.uncolor()
             self._last_hover_residues = None
         
     # ---------------------------------------------------------------------------
@@ -757,7 +775,6 @@ class MutationScoresHeatmap(ToolInstance):
     #
     def _show_only_selected_residues(self):
         mset = self._mutation_set
-        mset.associate_chains(self.session)
         res, rnums = mset.associated_residues()
         sel_rnums = [rnum for r,rnum in zip(res,rnums) if r.selected]
         if len(sel_rnums) == 0:
@@ -771,7 +788,6 @@ class MutationScoresHeatmap(ToolInstance):
     def _set_residues(self, residues):
         rset = set(residues)
         mset = self._mutation_set
-        mset.associate_chains(self.session)
         res, rnums = mset.associated_residues()
         rnums = [rnum for r,rnum in zip(res,rnums) if r in rset]
         if len(rnums) == 0:
@@ -1122,6 +1138,38 @@ def _shade_gray(rgb_array, gray):
     
 # ---------------------------------------------------------------------------
 #
+class ResidueColoring:
+    def __init__(self, residues, color):
+        self._residues = residues	# Residues instance
+        self._residues_tuple = tuple(residues)	# Use for uncoloring if residues get deleted.
+        self._residue_colors = residues.ribbon_colors
+        self._atoms = atoms = residues.atoms
+        self._atoms_tuple = tuple(atoms)
+        self._atom_colors = atoms.colors
+        residues.ribbon_colors = color
+        atoms.colors = color
+    def uncolor(self):
+        self._uncolor_residues()
+        self._uncolor_atoms()
+    def _uncolor_residues(self):
+        if len(self._residues) == len(self._residue_colors):
+            self._residues.ribbon_colors = self._residue_colors
+        else:
+            # Some residues were deleted.
+            for r,c in zip(self._residues_tuple, self._residue_colors):
+                if not r.deleted:
+                    r.ribbon_color = c
+    def _uncolor_atoms(self):
+        if len(self._atoms) == len(self._atom_colors):
+            self._atoms.colors = self._atom_colors
+        else:
+            # Some atoms were deleted.
+            for a,c in zip(self._atoms_tuple, self._atom_colors):
+                if not a.deleted:
+                    a.color = c
+                
+# ---------------------------------------------------------------------------
+#
 from Qt.QtWidgets import QGraphicsView
 class ScoreView(QGraphicsView):
     def __init__(self, parent, report_cell_info_cb=None, rectangle_select_cb=None):
@@ -1205,9 +1253,16 @@ class ScoreView(QGraphicsView):
             self._mouse_down = False
             self._drag(event)
             if self._rectangle_select_callback and self._down_xy:
-                corner1 = self._scene_to_image(*self._down_xy)
                 up_xy = self._scene_position(event)
-                corner2 = self._scene_to_image(*up_xy)
+                click_on_pixmap = True
+                if up_xy == self._down_xy and self.itemAt(event.pos()) is not self._pixmap_item:
+                    # Click on axis labels instead of pixmap.
+                    click_on_pixmap = False
+                if click_on_pixmap:
+                    corner1 = self._scene_to_image(*self._down_xy)
+                    corner2 = self._scene_to_image(*up_xy)
+                else:
+                    corner1 = corner2 = None
                 self._rectangle_select_callback(corner1, corner2, add = self._shift_mod)
 
     def _scene_position(self, event):
@@ -1313,7 +1368,7 @@ def mutation_heatmap(session, heatmap_name = None,
                      grouping = None, residues = None, label_every_residue = None,
                      pixels_per_cell = None, palette = None, missing_value_color = None,
                      normalize_scores = None, subtract_fit = None, gray_missing = None,
-                     grayout_color = None, drag_to_color = None, dragbox_color = None,
+                     grayout_color = None, drag_to_select = None, drag_to_color = None, dragbox_color = None,
                      dragbox_linewidth = None, color_residue_on_hover = None, hover_color = None,
                      show_options = None, size = None, save_image = None):
     settings = {}
@@ -1352,6 +1407,8 @@ def mutation_heatmap(session, heatmap_name = None,
         settings['gray_missing'] = gray_missing
     if grayout_color is not None:
         settings['grayout_color'] = grayout_color
+    if drag_to_select is not None:
+        settings['drag_to_select'] = drag_to_select
     if drag_to_color is not None:
         settings['drag_to_color'] = drag_to_color
     if dragbox_color is not None:
@@ -1420,6 +1477,7 @@ def register_command(logger):
                    ('subtract_fit', StringArg),
                    ('gray_missing', BoolArg),
                    ('grayout_color', Color8Arg),
+                   ('drag_to_select', BoolArg),
                    ('drag_to_color', BoolArg),
                    ('dragbox_color', Color8Arg),
                    ('dragbox_linewidth', IntArg),
