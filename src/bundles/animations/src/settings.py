@@ -84,19 +84,6 @@ class AnimationsPreferencesDialog:
             )
         )
 
-        # Animation mode option
-        self.panel.add_option(
-            SymbolicEnumOption(
-                name="Animation tool mode",
-                default=None,
-                attr_name="animation_mode",
-                settings=self.settings,
-                callback=None,
-                labels=["Keyframe Mode", "Scene Mode"],
-                values=["keyframe", "scene"],
-            )
-        )
-
         self.panel.add_option(
             SymbolicEnumOption(
                 name="Playback frame rate",
