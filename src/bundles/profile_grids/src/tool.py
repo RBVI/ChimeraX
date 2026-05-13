@@ -106,8 +106,8 @@ class ProfileGridsTool(ToolInstance):
             lambda action, f=self.grid_canvas.alignment_from_cells: f(action.text().lower()))
         cell_menu.setEnabled(bool(self.grid_canvas.chosen_cells))
 
-        action = QAction("Find Motif...", cell_menu)
-        action.triggered.connect(lambda *args, f=self.grid_canvas.find_motif: f())
+        action = QAction("Find Cell Pattern...", cell_menu)
+        action.triggered.connect(lambda *args, f=self.grid_canvas.find_cell_pattern: f())
         menu.addAction(action)
 
         headers_menu = self.alignment.add_headers_menu_entry(menu)

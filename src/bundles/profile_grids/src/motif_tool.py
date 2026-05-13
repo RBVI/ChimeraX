@@ -36,7 +36,8 @@ class MotifTool:
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
         layout.setSpacing(2)
-        layout.addWidget(QLabel("Choose cells that contain a motif"), alignment=Qt.AlignCenter)
+        layout.addWidget(QLabel("Choose consecutive cells that meet these criteria"),
+            alignment=Qt.AlignCenter)
 
         group = QGroupBox("Choose")
         layout.addWidget(group)
