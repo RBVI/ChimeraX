@@ -26,6 +26,14 @@ jobs:
       branch: master
       release_type: production
     secrets: inherit
+  build-docker:
+    name: Build ChimeraX Docker image
+    needs: [build-rocky9-docker]
+    uses: ./.github/workflows/docker_build.yml
+    with:
+      branch: master
+      release_type: production
+    secrets: inherit
   build-flatpak:
     name: Build ChimeraX FlatPak
     needs: [build-rocky9-docker]

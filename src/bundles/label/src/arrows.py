@@ -384,6 +384,102 @@ class Arrows(Model):
             self._arrows = [Arrow(session, **ls) for ls in compatible_arrows_state]
         self._named_arrows = {a.name:a for a in self._arrows if a.name}
 
+    def restore_scene(self, data):
+        super().restore_scene(data['model state'])
+        for astate, arrow in zip(data['arrows state'], self._arrows):
+            for attr in ('color', 'weight', 'start', 'end', 'head_style', 'visibility'):
+                if attr in astate:
+                    setattr(arrow, attr, astate[attr])
+            arrow.update_drawing()
+
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        if scene1_data is None and scene2_data is None:
+            return
+        if scene1_data is None or scene2_data is None:
+            # Arrows are hidden on one side. Apply the present side's state
+            # then scale per-arrow alpha so they fade in/out.
+            target = scene2_data if scene1_data is None else scene1_data
+            self.restore_scene(target)
+            alpha_factor = fraction if scene1_data is None else (1.0 - fraction)
+            for arrow in self._arrows:
+                arrow.visibility = True
+                color = arrow.color
+                if color is None:
+                    color = arrow.drawing.arrow_color
+                color = list(color)
+                color[3] = max(0, min(255, round(color[3] * alpha_factor)))
+                arrow.color = tuple(color)
+                arrow.update_drawing()
+            return
+        super().interpolate_scene(scene1_data['model state'], scene2_data['model state'],
+                                  fraction, switchover=switchover)
+
+        as1 = scene1_data['arrows state']
+        as2 = scene2_data['arrows state']
+        for i, arrow in enumerate(self._arrows):
+            if i >= len(as1) or i >= len(as2):
+                break
+            s1, s2 = as1[i], as2[i]
+            src = s2 if switchover else s1
+
+            viz1 = s1.get('visibility', arrow.visibility)
+            viz2 = s2.get('visibility', arrow.visibility)
+            if viz1 != viz2:
+                self._interpolate_arrow_visibility_fade(arrow, s1, s2, fraction, switchover)
+                arrow.update_drawing()
+                continue
+
+            # Interpolate weight (float)
+            w1 = s1.get('weight', arrow.weight)
+            w2 = s2.get('weight', arrow.weight)
+            arrow.weight = (1 - fraction) * w1 + fraction * w2
+
+            # Interpolate start/end positions (tuples of floats)
+            for attr in ('start', 'end'):
+                v1 = s1.get(attr)
+                v2 = s2.get(attr)
+                if v1 is not None and v2 is not None:
+                    setattr(arrow, attr, tuple(
+                        (1 - fraction) * v1[j] + fraction * v2[j] for j in range(len(v1))))
+
+            # Interpolate color (RGBA tuple or None)
+            c1 = s1.get('color')
+            c2 = s2.get('color')
+            if c1 is not None and c2 is not None:
+                arrow.color = tuple(
+                    round((1 - fraction) * c1[j] + fraction * c2[j]) for j in range(4))
+            else:
+                arrow.color = src.get('color')
+
+            # Discrete attributes
+            arrow.head_style = src.get('head_style', arrow.head_style)
+            arrow.visibility = src.get('visibility', arrow.visibility)
+
+            arrow.update_drawing()
+
+    def _interpolate_arrow_visibility_fade(self, arrow, s1, s2, fraction, switchover):
+        # Mirror _InterpolateArrow: when visibility differs, keep the arrow
+        # drawn during the transition and fade alpha instead of popping.
+        if switchover:
+            for attr in ('color', 'weight', 'start', 'end', 'head_style', 'visibility'):
+                if attr in s2:
+                    setattr(arrow, attr, s2[attr])
+            return
+        becoming_visible = s2.get('visibility', arrow.visibility)
+        visible_state = s2 if becoming_visible else s1
+        alpha_factor = fraction if becoming_visible else (1 - fraction)
+        for attr in ('weight', 'start', 'end', 'head_style'):
+            if attr in visible_state:
+                setattr(arrow, attr, visible_state[attr])
+        color = visible_state.get('color')
+        if color is None:
+            color = list(arrow.drawing.arrow_color)
+        else:
+            color = list(color)
+        color[3] = max(0, min(255, round(color[3] * alpha_factor)))
+        arrow.color = tuple(color)
+        arrow.visibility = True
+
 
 def find_arrow(session, name):
     lm = session_arrows(session)

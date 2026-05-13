@@ -153,7 +153,7 @@ class AnimationsTool(ToolInstance):
         settings = get_settings(self.session)
 
         # Listen for settings changes
-        settings.triggers.add_handler('setting changed', self._on_setting_changed)
+        self._settings_handler = settings.triggers.add_handler('setting changed', self._on_setting_changed)
 
     def _on_setting_changed(self, trigger_name, data):
         """Handle settings changes, particularly for animation mode."""
@@ -184,7 +184,7 @@ class AnimationsTool(ToolInstance):
         if hasattr(self, '_settings_handler'):
             from .settings import get_settings
             settings = get_settings(self.session)
-            settings.triggers.remove_handler('setting changed', self._on_setting_changed)
+            settings.triggers.remove_handler(self._settings_handler)
 
         if hasattr(self.kf_editor_widget, 'cleanup'):
             self.kf_editor_widget.cleanup()
@@ -229,3 +229,7 @@ class AnimationsTool(ToolInstance):
 
         timeline_scene.action_segments = list(scene_anim.action_segments)
         timeline_scene.update()
+
+        if scene_anim.scenes:
+            first_scene_name = min(scene_anim.scenes, key=lambda s: s[0])[1]
+            self.session.scenes.restore_scene(first_scene_name)

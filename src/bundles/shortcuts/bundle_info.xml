@@ -67,9 +67,6 @@
     <Provider tab="Map" section="Subregions" name="o3" display_name="Orthoplanes" icon="orthoplanes.png" description="Show 3 orthogonal planes"/>
     <Provider tab="Map" section="Subregions" name="pa" display_name="Full" icon="fullvolume.png" description="Show all planes"/>
     <Provider tab="Map" section="Subregions" name="vz" display_name="Zone" icon="volzone.png" description="Show map near atoms"/>
-    <Provider tab="Map" section="Appearance" hidden="true" name="zs" display_name="XYZ slices" icon="xyzslice.png" description="Volume XYZ slices"/>
-    <Provider tab="Map" section="Appearance" hidden="true" name="ps" display_name="Perpendicular slices" icon="perpslice.png" description="Volume perpendicular slices"/>
-    <Provider tab="Map" section="Appearance" hidden="true" name="rs" display_name="Raycasting" icon="raycasting.svg" description="Volume raycasting"/>
     <Provider tab="Map" section="Appearance" hidden="true" name="aw" display_name="Airways" icon="airways.png" description="Airways CT scan coloring"/>
     <Provider tab="Map" section="Appearance" hidden="true" name="ch" display_name="Chest CT" icon="chest.png" description="Chest CT scan coloring"/>
     <Provider tab="Map" section="Appearance" hidden="true" name="bc" display_name="Brain CT" icon="brain.png" description="Brain CT scan coloring"/>
@@ -79,6 +76,10 @@
     <Provider tab="Map" section="Calculations" name="fm" display_name="Fit" icon="fitmap.png" description="Fit atomic model or map in map"/>
     <Provider tab="Map" section="Calculations" name="sb" display_name="Subtract" icon="diffmap.png" description="Subtract map from map"/>
     <Provider tab="Map" section="Calculations" name="gf" display_name="Smooth" icon="smooth.png" description="Smooth map"/>
+    <Provider tab="Map" section="Rendering Modes" name="zs" display_name="XYZ slices" icon="xyzslice.png" description="Volume XYZ slices"/>
+    <Provider tab="Map" section="Rendering Modes" name="ps" display_name="Perpendicular slices" icon="perpslice.png" description="Volume perpendicular slices"/>
+    <Provider tab="Map" section="Rendering Modes" name="rs" display_name="Raycasting" icon="raycasting.svg" description="Volume raycasting"/>
+
     <Provider tab="Extras" section="Images" hidden="true" name="sx" display_name="Snapshot" icon="camera.png" description="Save snapshot to desktop"/>
     <Provider tab="Extras" section="Images" hidden="true" name="vd" display_name="Spin movie" icon="video.png" description="Record spin movie"/>
     <Provider tab="Extras" section="Viewing" hidden="true" name="vr" display_name="Virtual reality" icon="vr.png" description="Enable virtual reality with OpenXR.  Press to toggle passthrough video."/>

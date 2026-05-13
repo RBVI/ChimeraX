@@ -29,6 +29,13 @@ class _MDCrdsBundleAPI(BundleAPI):
     from chimerax.atomic import StructureArg
 
     @staticmethod
+    def get_class(class_name):
+        if class_name == "Clustering":
+            from .cluster import Clustering
+            return Clustering
+        raise ValueError(f"Class {class_name} not handled by get_class method")
+
+    @staticmethod
     def register_command(command_name, logger):
         from . import cmd
         cmd.register_command(logger)

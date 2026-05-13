@@ -227,7 +227,66 @@ and values. See also:
   </li><li><b>Individual Sequence as Header</b>
 &nbsp;<font size="-1" color="dimgray">▶</font> [individual sequence names]
   </li></ul>
+  </li><li><b>Save Image...</b> open browser dialog for saving the currently 
+visible part of the alignment to an image file, with settings:
+    <ul>
+    <li>file name and location
+    </li><li>image file type (several choices, initial default <b>PNG</b>)
+    </li><li><b>View spacing</b> (initial default <b>2</b>)
+&ndash; pixel spacing between the four sections 
+(header names, headers, residue types, and profile grid)
+that will be composited together to create a single image
+    </li><li><b>DPI</b> &ndash; image resolution in pixels per inch 
+    </li></ul>
   </li><li><b>Scroll To Show New Selection If Needed</b> (default <b>on</b>)
+  </li><li><a name="gridlabel"></a>
+<b>Label Residues...</b> show dialog to label
+<a href="sequenceviewer.html#association">associated</a> structure residues
+with grids color-coded by residue-type prevalence.
+The structure residue's type is shown in the label title 
+(along with its number) and with bold font in the grid.
+Settings:
+    <ul>
+<table class="clRight">
+<tbody><tr><td><img border="1" src="../commands/profilegridlabel.png" 
+alt="profile grid prevalence labels" title="2b1l /B:80-83, PFAM redoxin filt90"
+width="200px"></a>
+</td></tr>
+</tbody></table>
+    <li><b>Chains</b> &ndash; choose the structure chain of interest
+    </li><li><b>Also limit to selected residues, if any</b> &ndash; 
+    whether to limit labeling to <a href="../selection.html">selected</a>
+    residues, or if none are selected, all residues in the chosen chain(s)
+    </li><li><b>Use [<i>N</i>] colors/thresholds</b> &ndash; specify the
+coloring palette. The default is from white to blue with increasing prevalence:
+        <blockquote>
+<b><a href="../commands/color.html#palette">palette</a> 0,white:1,blue
+&nbsp;<a href="../commands/color.html#range">range</a> 0.0,1.0</b>
+        </blockquote>
+    </li><li><b>Set colors from palette</b> [<i>palette-name</i>]
+&ndash; choose a <a href="../commands/palettes.html">built-in palette</a>.
+Only the ones with the same number of colors as the current number of
+thresholds will be listed; for example, the <b>rainbow</b> palette will
+not be listed unless there are exactly 5 thresholds.
+If any colors are set interactively, the palette name will be
+shown as <b>custom</b>.
+    </li><li><b>Reverse</b> colors &ndash; reverse the order of the current 
+colors without changing the number of thresholds or their positions
+    </li><li><b>Background color</b>
+&ndash; color to use behind the label text and for filling in
+empty cells in the last row of the label (default <b>#B4B4B4</b>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="#B4B4B4" width="10px" title="#B4B4B4"></td>
+</tr></tbody></table>)
+<p>
+Clicking <b>Apply</b> (or <b>OK</b>, which also dismisses the dialog)
+shows the labels, whereas <b>Close</b> simply dismisses the dialog.
+Other buttons <b>Revert</b> the dialog to last-used settings, <b>Reset</b> 
+to factory defaults, and show <b>Help</b> in the
+<a href="helpviewer.html"><b>Help Viewer</b></a>.
+See also: <a href="../commands/sequence.html#grid"><b>sequence grid</b></a>
+</p>
+  </li></ul>
   </li><li>(Mac only)
   <b>Suppress Horizontal Scrollbar</b> (default <b>on</b>)
   &ndash; hide the horizontal scrollbar to prevent vertical misalignment 
@@ -441,6 +500,6 @@ or a &ldquo;consensus&rdquo; sequence, if any, read from MSF)
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2026</address>
+May 2026</address>
 
 </body></html>

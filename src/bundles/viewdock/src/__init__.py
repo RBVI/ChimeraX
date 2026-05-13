@@ -46,7 +46,7 @@ class _MyAPI(BundleAPI):
     def run_provider(session, name, mgr, **kw):
         from chimerax.open_command import OpenerInfo
         class ViewDockOpenerInfo(OpenerInfo):
-            def open(self, session, data, file_name, *, _name=name, show_tool=True, **kw):
+            def open(self, session, data, file_name, *, _name=name, show_tool=None, **kw):
                 if _name == "AutoDock PDBQT":
                     from .pdbqt import open_pdbqt
                     opener = open_pdbqt
@@ -62,6 +62,9 @@ class _MyAPI(BundleAPI):
                 # the below code is also in the Maestro bundle
                 models, status = opener(session, data, file_name, True, True)
                 all_models = sum([m.all_models() for m in models], start=[])
+                if show_tool is None:
+                    from chimerax.atomic import Structure
+                    show_tool = len([m for m in all_models if isinstance(m, Structure)]) > 1
                 if show_tool and session.ui.is_gui:
                     for m in all_models:
                         if hasattr(m, 'viewdock_data'):

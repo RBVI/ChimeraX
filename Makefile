@@ -70,7 +70,7 @@ uv-install: build-dirs uv-build
 install-rbvi:
 	$(MAKE) PYQT_LICENSE=commercial install
 
-dockerize: install
+dockerize:
 	rm -rf $(APP_PYSITEDIR)/Qt $(APP_PYSITEDIR)/PySide6 $(APP_PYSITEDIR)/PyQt6
 
 ifdef WIN32

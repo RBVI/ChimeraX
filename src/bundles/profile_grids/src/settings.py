@@ -38,12 +38,26 @@ prevalence_defaults = {
     "prevalence_unchosen_color_info": (True, "dark gray"),
 }
 
+label_defaults = {
+    "label_background": (180, 180, 180, 255),
+    "label_palette": [(0.0, "white"), (1.0, "blue")],
+    "label_selected_only": True,
+}
+
+motif_defaults = {
+    "motif_length": 3,
+    "motif_percentage": 50,
+    "motif_sequence": "",
+    "motif_type": "stretch",
+}
+
 from  chimerax.core.settings import Settings
 from copy import deepcopy
 
 class _PGSettings(Settings):
     EXPLICIT_SAVE = { k: v[-1] for k, v in defaults.items() }
-    AUTO_SAVE = { k: v for k, v in (list(prevalence_defaults.items()) + list(sticky_defaults.items())) }
+    AUTO_SAVE = { k: v for k, v in (list(prevalence_defaults.items()) + list(sticky_defaults.items())
+        + list(label_defaults.items()) + list(motif_defaults.items())) }
 
 def init(session):
     # each Profile Grids instance has its own settings instance

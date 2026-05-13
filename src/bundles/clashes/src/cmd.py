@@ -88,6 +88,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
         save_file=None,
         set_attrs=defaults["action_attr"],
         select=defaults["action_select"],
+        short_circuit=False,
         show_dist=False,
         summary=True):
     from chimerax.core.errors import UserError
@@ -137,7 +138,7 @@ def _cmd(session, test_atoms, name, hbond_allowance, overlap_cutoff, test_type, 
         clash_threshold=overlap_cutoff, distance_only=distance_only, hbond_allowance=hbond_allowance,
         ignore_hidden_models=ignore_hidden_models, inter_model=inter_model, inter_submodel=inter_submodel,
         intra_model=intra_model, intra_res=intra_res, intra_mol=intra_mol, res_separation=res_separation,
-        restrict=restrict)
+        restrict=restrict, short_circuit=short_circuit)
     if select:
         session.selection.clear()
         for a in clashes.keys():
@@ -360,7 +361,9 @@ def register_command(command_name, logger):
                 ('color', Or(NoneArg,ColorArg)), ('radius', FloatArg), ('res_separation', PositiveIntArg),
                 ('restrict', Or(EnumOf(('cross', 'both', 'any')), AtomsArg)), ('reveal', BoolArg),
                 ('save_file', SaveFileNameArg), ('set_attrs', BoolArg), ('select', BoolArg),
-                ('show_dist', BoolArg), ('dashes', NonNegativeIntArg), ('summary', BoolArg)], }
+                ('show_dist', BoolArg), ('dashes', NonNegativeIntArg), ('summary', BoolArg),
+                ('short_circuit', BoolArg)],
+            'hidden': ['short_circuit'],}
         register('clashes', CmdDesc(**kw, synopsis="Find clashes"), cmd_clashes, logger=logger)
         register('contacts', CmdDesc(**kw, synopsis="Find contacts", url="help:user/commands/clashes.html"),
             cmd_contacts, logger=logger)

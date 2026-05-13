@@ -24,7 +24,7 @@
 
 from chimerax.core.tools import ToolInstance
 class MutationStructureColoring(ToolInstance):
-    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
+    help = 'help:user/tools/mutationscores.html#coloring'
 
     def __init__(self, session, tool_name = 'Mutation Structure Coloring'):
         self._temporary_coloring_name = 'last_mutation_coloring'
@@ -55,7 +55,7 @@ class MutationStructureColoring(ToolInstance):
         
         layout.addStretch(1)    # Extra space at end
                 
-        tw.manage(placement=None)	# Floating
+        tw.manage(placement='side')
 
     @classmethod
     def get_singleton(cls, session, create=True):
@@ -127,16 +127,21 @@ class MutationStructureColoring(ToolInstance):
             raise UserError('Press the "Color structure" button, then you can name the coloring')
         self._last_coloring_name = new_coloring_name
 
+    def set_mutation_set(self, mset):
+        self._mutation_set_menu.value = mset.name
+
     def _set_mutation_set_menu_visibility(self):
         from .ms_data import mutation_scores_names
         visible = (len(mutation_scores_names(self.session)) > 1)
         self._mutation_set_menu.widget.setVisible(visible)
         self._mutation_set_menu_label.setVisible(visible)
 
+    def set_coloring_score(self, score_name):
+        self._color_score_menu.value = score_name
+
     def _color_which_chosen(self):
         if self._color_which_menu.value == 'define ranges...':
-            show_name_score_ranges_gui(self.session)
-            self._color_which_menu.value = 'all'
+            show_score_ranges_gui(self.session)
 
     def _menu_about_to_show(self, menu):
         menu.clear()
@@ -168,7 +173,7 @@ class MutationStructureColoring(ToolInstance):
         mutation_set_name = self._mutation_set_menu.value
         session = self.session
         scores = mutation_scores(session, mutation_set_name)
-        if len(scores.associate_chains(session)) == 0:
+        if len(scores.associated_chains()) == 0:
             from chimerax.core.errors import UserError
             raise UserError(f'There are no structures associated with mutations {mutation_set_name}')
 
@@ -183,6 +188,8 @@ class MutationStructureColoring(ToolInstance):
             ranges = self._box_ranges(score_name)
         elif which == 'all':
             ranges = None
+        elif which == 'define ranges...':
+            ranges = _get_score_ranges_from_gui(session)
         else:
             ranges = self._named_ranges(which)
 
@@ -354,10 +361,10 @@ def show_structure_coloring_gui(session):
     msc.display(True)
     return msc
 
-class NameScoreRanges(ToolInstance):
-    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
+class ScoreRanges(ToolInstance):
+    help = 'help:user/tools/mutationscores.html#coloring'
 
-    def __init__(self, session, tool_name = 'Name Mutation Score Ranges'):
+    def __init__(self, session, tool_name = 'Mutation Score Ranges'):
         ToolInstance.__init__(self, session, tool_name)
 
         from chimerax.ui import MainToolWindow
@@ -383,7 +390,7 @@ class NameScoreRanges(ToolInstance):
     @classmethod
     def get_singleton(cls, session, create=True):
         from chimerax.core import tools
-        return tools.get_singleton(session, cls, 'Name Mutation Score Ranges', create=create)
+        return tools.get_singleton(session, cls, 'Mutation Score Ranges', create=create)
 
     def _create_score_range_controls(self, parent):
         from chimerax.ui.widgets import column_frame, EntriesRow, radio_buttons
@@ -393,24 +400,25 @@ class NameScoreRanges(ToolInstance):
         mset_names = mutation_scores_names(self.session) + ('set1', 'set2')
         controls = EntriesRow(frame,
                               'Score ranges', True, 'high', False, 'low',
-                              '  Suffix', '',
-                              '  Named', ('new', 'name1'),  # Will be replaced by named ranges when menu posted
                               'Mutations', mset_names)
-        self._high_ranges, self._low_ranges, self._score_name_suffix, self._name_menu, self._mutation_set_menu = controls.values
+        self._high_ranges, self._low_ranges, self._mutation_set_menu = controls.values
         radio_buttons(self._high_ranges, self._low_ranges)
         for checkbutton in (self._high_ranges, self._low_ranges):
             checkbutton.changed.connect(self._range_chosen)
-        snsuffix = self._score_name_suffix
-        snsuffix.widget.returnPressed.connect(self._suffix_changed)
-        snsuffix.pixel_width = 50
-        nmmenu = self._name_menu.widget.menu()
-        nmmenu.triggered.connect(self._name_chosen)
-        nmmenu.aboutToShow.connect(lambda: self._menu_about_to_show(nmmenu))
-        self._mutation_set_menu_label = controls.labels[5]
+        self._mutation_set_menu_label = controls.labels[3]
         msmenu = self._mutation_set_menu.widget.menu()
         msmenu.triggered.connect(self._mutation_set_chosen)
         msmenu.aboutToShow.connect(lambda: self._menu_about_to_show(msmenu))
         self._set_mutation_set_menu_visibility()
+
+        thresh = EntriesRow(frame, 'Threshold +/-', 2.0, 'synonymous standard deviations from mean')
+        self._sdev_threshold_entry = th = thresh.values[0]
+        th.pixel_width = 25
+
+        suffix = EntriesRow(frame, 'Show only score names ending in', '')
+        self._score_name_suffix = snsuffix = suffix.values[0]
+        snsuffix.widget.returnPressed.connect(self._suffix_changed)
+        snsuffix.pixel_width = 100
 
         score_names_frame, sn_layout = column_frame(parent, spacing=0)
         sn_layout.setContentsMargins(20,0,0,0)
@@ -418,6 +426,13 @@ class NameScoreRanges(ToolInstance):
         layout.addWidget(score_names_frame, stretch = 1)
         self._score_checkbutton_rows = []
         self._create_score_checkbuttons()
+
+        name_menu = EntriesRow(frame, 'Show named ranges',
+                               ('new', 'name1'))  # Will be replaced by named ranges when menu posted
+        self._name_menu = name_menu.values[0]
+        nmmenu = self._name_menu.widget.menu()
+        nmmenu.triggered.connect(self._name_chosen)
+        nmmenu.aboutToShow.connect(lambda: self._menu_about_to_show(nmmenu))
 
         flines, fl_layout = column_frame(frame, spacing=0)
         self._range_lines_frame = flines
@@ -528,8 +543,14 @@ class NameScoreRanges(ToolInstance):
         mean, sdev = score_values.synonymous_mean_and_sdev()
         if mean is None or sdev is None:
             mean, sdev = 0,1
-        return mean-2*sdev, mean+2*sdev
+        num_sd = self._sdev_threshold
+        return mean-num_sd*sdev, mean+num_sd*sdev
 
+    @property
+    def _sdev_threshold(self):
+        t = self._sdev_threshold_entry.value
+        return 0 if t is None else t
+    
     def _add_score_range(self, score_range):
         from chimerax.ui.widgets import EntriesRow
         sr = EntriesRow(self._range_lines_frame,
@@ -678,11 +699,23 @@ class ScoreRange(State):
     def restore_snapshot(cls, session, data):
         return ScoreRange(**data)
 
-def show_name_score_ranges_gui(session):
-    nsr = NameScoreRanges.get_singleton(session, create=True)
+def show_score_ranges_gui(session):
+    nsr = ScoreRanges.get_singleton(session, create=True)
     nsr.display(True)
     return nsr
-    
+
+def _get_score_ranges_from_gui(session):
+    nsr = ScoreRanges.get_singleton(session)
+    if nsr is None:
+        return None
+    score_ranges = nsr._score_ranges()
+    if len(score_ranges) == 0:
+        return None
+    ranges = ' and '.join(
+        f'{score_range.score_name} {score_range.compare} {score_range.threshold}'
+        for score_range in score_ranges)
+    return ranges
+
 from chimerax.core.state import StateManager  # Handles session saving
 
 class MutationColorHistory(StateManager):
@@ -833,7 +866,7 @@ class MutationColorHistory(StateManager):
 
 from chimerax.core.tools import ToolInstance
 class MutationColorHistoryPanel(ToolInstance):
-    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html'
+    help = 'help:user/tools/mutationscores.html#coloring'
 
     def __init__(self, session, tool_name = 'Mutation Coloring History'):
         mch = _mutation_color_history(session, create = True)
@@ -1027,6 +1060,12 @@ def _rename_coloring_and_attribute(session, coloring_name, new_name):
     return True
 
 def _rename_residue_attribute(chains, attribute_name, new_name):
+    # Remove current residue attribute with new_name.
+    for chain in chains:
+        for r in chain.residues:
+            if hasattr(r, new_name):
+                delattr(r, new_name)
+    # Set new attribute and remove old attribute.
     count = 0
     for chain in chains:
         for r in chain.residues:

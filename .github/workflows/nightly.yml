@@ -11,8 +11,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.12
-          #  release_type: candidate
+          - branch: release/v1.12
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: flying_edges
@@ -29,8 +29,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        #  - branch: release/v1.12
-        #    release_type: candidate
+          - branch: release/v1.12
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: flying_edges
@@ -47,13 +47,31 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        #  - branch: release/v1.12
-        #    release_type: candidate
+          - branch: release/v1.12
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: flying_edges
           #  release_type: techpreview
     uses: ./.github/workflows/ubuntu_build.yml
+    with:
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
+    secrets: inherit
+  build-docker:
+    name: Build ChimeraX Docker image
+    needs: [build-rocky9-docker]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - branch: release/v1.12
+            release_type: candidate
+          - branch: develop
+            release_type: daily
+          #- branch: flying_edges
+          #  release_type: techpreview
+    uses: ./.github/workflows/docker_build.yml
     with:
       branch: ${{ matrix.branch }}
       release_type: ${{ matrix.release_type }}
@@ -65,13 +83,48 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        #  - branch: release/v1.12
-        #    release_type: candidate
+          - branch: release/v1.12
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: flying_edges
           #  release_type: techpreview
     uses: ./.github/workflows/flatpak_build.yml
+    with:
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
+    secrets: inherit
+  build-docker-arm:
+    name: Build ARM ChimeraX Docker image
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - branch: release/v1.12
+            release_type: candidate
+          - branch: develop
+            release_type: daily
+          #- branch: flying_edges
+          #  release_type: techpreview
+    uses: ./.github/workflows/docker_arm_build.yml
+    with:
+      branch: ${{ matrix.branch }}
+      release_type: ${{ matrix.release_type }}
+    secrets: inherit
+  docker-manifest:
+    name: Create multi-arch Docker manifest
+    needs: [build-docker, build-docker-arm]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - branch: release/v1.12
+            release_type: candidate
+          - branch: develop
+            release_type: daily
+          #- branch: flying_edges
+          #  release_type: techpreview
+    uses: ./.github/workflows/docker_manifest.yml
     with:
       branch: ${{ matrix.branch }}
       release_type: ${{ matrix.release_type }}
@@ -82,8 +135,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-        #  - branch: release/v1.12
-        #    release_type: candidate
+          - branch: release/v1.12
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: flying_edges
@@ -99,8 +152,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.12
-          #  release_type: candidate
+          - branch: release/v1.12
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: flying_edges
@@ -116,8 +169,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.12
-          #  release_type: candidate
+          - branch: release/v1.12
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: flying_edges
@@ -134,8 +187,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.12
-          #  release_type: candidate
+          - branch: release/v1.12
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: flying_edges
@@ -151,8 +204,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.12
-          #  release_type: candidate
+          - branch: release/v1.12
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: flying_edges

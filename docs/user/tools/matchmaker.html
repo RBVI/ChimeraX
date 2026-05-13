@@ -45,6 +45,10 @@ its P atom will be paired with the P atom of the aligned residue.
 To use a different set of atoms, including those not in biopolymer chains,
 see the <a href="../commands/align.html"><b>align</b></a> command instead.
 See also:
+<a href="matchalign.html"><b>Match&rarr;Align</b></a>,
+<a href="../commands/sequence.html#align"><b>sequence align</b></a>,
+<a href="../commands/sequence.html#match"><b>sequence match</b></a>,
+<a href="../commands/rmsd.html"><b>rmsd</b></a>,
 <a href="fitmap.html"><b>Fit in Map</b></a>,
 <a href="../commands/morph.html"><b>morph</b></a>,
 <a href="../commands/view.html"><b>view</b></a>,
@@ -170,24 +174,49 @@ border:solid orangered 1px;padding:1px 3px">
 An RMSD <a href="sequenceviewer.html#headers">header</a> is automatically
 shown above the sequences, with bar heights
 representing the spatial variation among residues associated with a column.
-<p></p><p>
-*These sequence alignments are a by-product of superposition,
-and may not be entirely correct.
-Successful superposition only requires these alignments to be partly
+<blockquote>
+<table cellpadding="10px"><tbody><tr>
+<td class="shaded">
+Successful superposition only requires the sequence alignment to be partly
 correct, as incorrect portions tend to be excluded from the fit during
 <a href="#iterate">iteration</a>.
 If the sequences are easy to align (highly similar),
-the sequence alignments are likely to be correct throughout.
+the sequence alignment is likely to be correct throughout.
 However, if the sequences are more distantly related,
-parts of the alignments may be incorrect even when the superposition is good.
-</p><p>
-**When the fit has been <a href="#restrict">restricted to selected residues</a>,
-the unselected residues of matched chains will still appear in the alignment,
-but merely as a convenient compact representation; how they are aligned
-is not meaningful.
+parts of the alignment may be incorrect even when the superposition is good.
+When <b>Matchmaker</b> is used
+simply to superimpose structures, this is not important.
+However, if the corresponding sequence alignment is another goal,
+generating a structure-based alignment (after superposition) with the
+<a href="matchalign.html"><b>Match&rarr;Align</b></a> tool
+or <a href="../commands/msa3d.html"><b>msa3d</b></a> command
+is recommended, especially if the sequences are dissimilar.
+See  the <a href="#startMatchAlign"><b>After fitting...</b></a>
+option below.
+<p>
+When the fit has been <a href="#restrict">restricted</a>
+to specified residues, the remaining residues of matched chains
+will still appear in the alignment, but merely as a convenient
+compact representation; how they are aligned is not meaningful.
 </p>
+</td></tr></tbody></table>
+</blockquote>
+<a name="startMatchAlign"></a>
+</li><li><b>After fitting, compute multiple sequence alignment...</b>
+After the <b>Matchmaker</b> superposition is complete, whether to
+bring up <a href="matchalign.html"><b>Match&rarr;Align</b></a> to
+create a multiple sequence alignment based on 3D proximity of residues
+instead of 2D sequence information. Especially if the sequences are
+dissimilar, the resulting structure-based sequence alignment may
+provide better statistics for describing structural similarity
+(RMSD, <i>etc.</i>) than the <a href="#show">initial alignment</a>,
+because more columns will be aligned correctly. Another advantage is that
+the resulting structure-based alignment may contain more than two chains,
+whereas the <a href="#show">initial alignments</a> are pairwise only.
+<br><br>
 <a name="algorithm"></a>
-</li><li><b>Sequence alignment algorithm</b>:
+</li><li><b>Sequence alignment algorithm</b>
+(for the initial pairwise alignments):
   <ul>
   <li><b>Needleman-Wunsch</b> (initial default) &ndash; global
   </li><li><b>Smith-Waterman</b> &ndash; local
@@ -313,6 +342,6 @@ can be chosen from the model list
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2025</address>
+April 2026</address>
 
 </body></html>

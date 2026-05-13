@@ -98,6 +98,12 @@ class _StatusBarOpenGL:
             r.set_default_framebuffer_size(w, h)
 
     def _expose_event(self, event):
+        from sys import platform
+        if platform == 'darwin':
+            # Don't handle expose on Mac because in macOS 26 Qt 6.9 and 6.10
+            # produced OpenGL errors and crashes on status line expose.
+            # ChimeraX tickets #20265 and #20267.
+            return
         r = self._renderer
         if r is None:
             self._create_opengl_context()

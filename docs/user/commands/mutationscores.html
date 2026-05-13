@@ -23,6 +23,9 @@ or derivations thereof.
 <p>
 The <b>mutationscores</b> command shows the results of deep mutational 
 scanning on protein structures and as interactive 2D plots.
+The <a href="../tools/mutationscores.html"><b>Mutation Scores</b></a>
+tool is the corresponding graphical interface.
+</p><p>
 Deep mutational scanning generally entails making all possible
 substitutions (of the 20 standard amino acids) at each position of a protein
 and assessing the results with multiple high-throughput assays. 
@@ -50,29 +53,35 @@ from the <a href="https://www.science.org/doi/10.1126/science.adg7492" target="_
 <a href="https://www.uniprot.org/help/disease_phenotypes_variants_section" target="_blank">UniProt Variants</a> (score names <b>PolyPhen</b> and
 <b>SIFT</b>).
 </p><p>
-Opening a mutation scores file
-automatically shows a <a href="#scatterplot">scatter plot</a> of the mutants
-with the first two scores as the axes, or a <a href="#histogram">histogram</a>
-if the file only contains one kind of score.
-The menus below the plot can be used
-to change which scores are plotted and for which mutation set.
+Opening a mutation scores file automatically shows the 
+<a href="../tools/mutationscores.html"><b>Mutation Scores</b></a> tool
+for displaying the data as
+a <a href="#scatterplot">scatter plot</a> of the mutants
+with two kinds of scores as the axes, or as a 
+<a href="#heatmap">heatmap</a> or <a href="#histogram">histogram</a>
+of one kind of score. Each type of plot has controls for changing
+which scores are plotted and for which mutation set.
 </p><p>
 <a name="associated"></a>
-By default, mutation scores are automatically associated with each
-open structure chain that has exactly the same sequence and residue
-numbering (as in the mutation data) the first time some analysis action
-is performed, such as interacting with a scatter plot.
+By default, mutation scores are automatically <b><i>associated</i></b> with 
+each structure chain that has exactly the same sequence and residue
+numbering (as in the mutation data) when the mutation data or structures
+are opened.
 However, specific structure chains to associate can be designated with the
-<a href="../commands/open.html#chains"><b>chains</b></a> option of the
-<a href="../commands/open.html"><b>open</b></a> command
-at the time of opening the mutation data, or later (after opening the data) 
+<a href="open.html#chains"><b>chains</b></a> option of the
+<a href="open.html"><b>open</b></a> command
+at the time of opening the mutation data, or the associations
+can be adjusted manually later (after opening the files) 
 with <a href="#structure"><b>mutationscores structure</b></a>.
 </p><p>
 See also: 
+<a href="../tools/mutationscores.html#coloring">Mutation Structure Coloring</a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html" target="_blank">ChimeraX visualization of mutation scores</a>
 </p>
 <ul>
-<li><a href="#scatterplot"><b>mutationscores scatterplot</b></a>
+<li><a href="#heatmap"><b>mutationscores heatmap</b></a>
+&ndash; show a heatmap of score values
+</li><li><a href="#scatterplot"><b>mutationscores scatterplot</b></a>
 &ndash; plot mutants by two types of score
 </li><li><a href="#define"><b>mutationscores define</b></a>
 &ndash; define a new score based on existing scores
@@ -99,6 +108,149 @@ into 2D with UMAP
 </li></ul>
 
 <a href="#top" class="nounder">&bull;</a>
+<a name="heatmap"></a>
+<b>mutationscores heatmap</b>
+[&nbsp;<i>heatmapName</i>&nbsp;]
+[&nbsp;<b>scores</b>&nbsp;&nbsp;<i>names</i>&nbsp;]
+[&nbsp;<b>aminoAcids</b>&nbsp;&nbsp;<i>1-letter-codes</i>&nbsp;]
+[&nbsp;<b>grouping</b>&nbsp;&nbsp;<b>score</b>&nbsp;|&nbsp;amino acid&nbsp;]
+[&nbsp;<b>residues</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>residue-spec</i></a>&nbsp;] 
+[&nbsp;<b>labelEveryResidue</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>pixelsPerCell</b>&nbsp;&nbsp;<i>zoom</i>&nbsp;]
+[&nbsp;<b>palette</b>&nbsp;&nbsp;<a href="color.html#palette"><i>colormap</i></a>&nbsp;]
+[&nbsp;<b>missingValueColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>normalizeScores</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>subtractFit</b>&nbsp;&nbsp;<i>score-name</i>&nbsp;]
+[&nbsp;<b>grayMissing</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>grayoutColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>dragToColor</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>dragboxColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>dragboxLinewidth</b>&nbsp;&nbsp;<i>pixels</i>&nbsp;]
+[&nbsp;<b>dragToSelect</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>colorResidueOnHover</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>hoverColor</b>&nbsp;&nbsp;<i>color</i>&nbsp;]
+[&nbsp;<b>showOptions</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>size</b>&nbsp;&nbsp;<i>width,height</i>&nbsp;]
+[&nbsp;<b>saveImage</b>&nbsp;&nbsp;<i>pathname</i>&nbsp;|&nbsp;browse&nbsp;]
+[&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
+<blockquote>
+<table class="clRight">
+<tbody><tr><td><a href="../tools/mutationscores.html#heatmap"><img border="1" src="../tools/heatmap.png" alt="mutation scores heatmap" 
+title="heat map details..." width="250px"></a>
+</td></tr>
+</tbody></table>
+<p>
+Create a new heatmap or change the settings of an existing heatmap
+with the specified <i>heatmapName</i>.
+Default names of heatmap plots are 1, 2, (...).
+If an option is not specified for a new heatmap, the default is used,
+but for an existing heatmap, the current setting is retained.
+Residue positions along the chain are plotted on the horizontal axis, and
+amino acid types along the vertical axis.
+Pausing the cursor over the heatmap reports the mutation name,
+score name, and value in the status area next to the <b>Help</b> button.
+</p><p>
+The <b>scores</b> to include are designated as a comma-separated list of 
+score names.
+The <b>aminoAcids</b> option specifies the top-to-bottom ordering of 
+amino acid types as an uppercase string of amino acid 1-letter codes
+(the default <b>HRKDEFWYNQILCSTVMAGP</b> groups chemically similar types);
+all 20 standard types may be included, or a subset to limit the plot to
+only those types, and the vertical <b>grouping</b> when multiple scores
+are plotted can be by <b>score</b> (score name, default) or by
+<b>amino acid</b> type. The <b>residues</b> option allows limiting the 
+plot to only the <a href="atomspec.html#hierarchy">specified residues</a>,
+and the <b>labelEveryResidue</b> option specifies whether to label each 
+horizontal position instead of at intervals (default <b>false</b>) 
+</p><p>
+Each mutation is represented by a colored square,
+with <b>pixelsPerCell</b> specifying the side length of each square in pixels
+(default <i>zoom</i> = <b>2</b>). The coloring <b>palette</b> is given as a 
+<a href="color.html#palette"><i>colormap</i></a>
+with value,color pairs (default <b>-2,blue:-1,white:1,white:2,red</b>)
+and the color for missing data specified with the <b>missingValueColor</b>
+option (default <b>black</b>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="black" width="10px" title="black"></td></tr></tbody></table>).
+Data value units are standard deviations above (positive) or below (negative)
+the mean if <b>normalizeScores</b> is <b>true</b> (default);
+otherwise, the raw values from the data file will be used. 
+The mean and standard deviation are computed separately for each score 
+using synonymous mutations only, or if there are
+no synonymous mutations, all mutations. Since only a single colormap is used
+for the whole heatmap, if raw scores are used, all of the scores should 
+have comparable ranges.
+The <b>subtractFit</b> option allows subtracting
+from all scores a linear fit using a specified score.
+For instance, for a membrane receptor with scores representing activity in
+the presence of different drugs, a linear fit of drug score versus a cell
+surface expression score can be subtracted to compensate for different
+abundance of the receptor on the cell membrane.
+A least-squares fit is used between drug and surface score.
+</p><p>
+There can be crosstalk between the heatmap and 
+<a href="#associated">associated</a> structures.
+The <b>grayMissing</b> option (default <b>false</b>)
+indicates whether to use the <b>grayoutColor</b>
+(default <b>#CCCCCC</b>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="#CCCCCC" width="10px" title="#CCCCCC"></td></tr></tbody></table>)
+to modulate the heatmap cell color where
+the <a href="#associated">associated</a> atomic structure is missing residues.
+If multiple chains are associated, then mutations are grayed if none of the
+chains have the mutated residue. The <b>dragToColor</b> option 
+indicates whether dragging a box with the mouse on the
+heatmap should color the <a href="#associated">associated</a> structure 
+residues and atoms (default <b>true</b>, with <b>dragboxColor</b> of
+<b>yellow</b>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="yellow" width="10px" title="yellow"></td></tr></tbody></table>
+and <b>dragboxLinewidth</b> of <b>3</b> pixels).
+By holding the <b>Shift</b> key, multiple boxes can be drawn on
+the heatmap, and they can be different colors. Clicking on a mutation
+will color a single residue, and clicking outside the heatmap
+(such as on the axes) will clear the boxes and revert the residues
+to their original colors. If <b>dragToSelect</b> is true (default <b>false</b>),
+dragging a box clears the current <a href="../selection.html">selection</a>
+and selects the associated residues.
+If the <b>Shift</b> key is held while dragging, the residues are
+added to the selection instead of replacing it.
+The <b>colorResidueOnHover</b> option specifies
+whether placing the mouse over the heatmap colors the
+<a href="#associated">associated</a> structure residues
+(default <b>off</b>, with <b>hoverColor</b> of <b>yellow</b>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="yellow" width="10px" title="yellow"></td></tr></tbody></table>).
+No mouse button needs to be pressed, and the coloring of the structure
+changes immediately when the mouse moves over another mutation.
+This facilitates exploring the correspondence between heatmap and
+structure positions.
+</p><p>
+Setting <b>showOptions</b> to <b>true</b> (default <b>false</b>) shows the
+options in the heatmap plot window. The <b>size</b> option gives the pixel
+dimensions of the visible part of the heatmap within the plot window.
+The <b>saveImage</b> option saves the entire heatmap, including axis
+scales, to a PNG image file with <i>pathname</i> specified directly
+or as the word <a href="usageconventions.html#browse"><b>browse</b></a>
+to specify it interactively in a file browser window.
+</p><p>
+<a name="mutationSet"></a>
+The <b>mutationSet</b> option allows specifying which dataset to use when 
+more than one is open. If only one is open, the option is not needed.
+The name of a mutation set is derived from the input filename
+(for example, <b>abcg2</b> if read from <b>abcg2.csv</b>).
+The names of open sets can be listed in the 
+<a href="../tools/log.html"><b>Log</b></a> with
+<a href="#list"><b>mutationscores list</b></a>,
+and a set can be closed with
+<a href="#list"><b>mutationscores close</b></a>.
+</p><p>
+Currently, a heatmap can only include scores from a single mutation set.
+See <a href="../tools/mutationscores.html#heatmap">heatmap details</a>.
+</p>
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
 <a name="scatterplot"></a>
 <b>mutationscores scatterplot</b>
 &nbsp;<i>x-score</i>&nbsp; &nbsp;<i>y-score</i>&nbsp;
@@ -109,7 +261,8 @@ into 2D with UMAP
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
 <table class="clRight">
-<tbody><tr><td><img border="1" src="scatterplot.png" alt="mutation scores scatter plot" width="300px">
+<tbody><tr><td><a href="../tools/mutationscores.html#scatterplot"><img border="1" src="scatterplot.png" alt="mutation scores scatterplot" 
+title="scatterplot details..." width="250px"></a>
 </td></tr>
 </tbody></table>
 <p>
@@ -126,177 +279,13 @@ showing the least-squares fit (default <b>false</b>).
 The scatter plot will replace a pre-existing scatter plot unless
 <b>replace false</b> is given.
 </p><p>
-<a name="mutationSet"></a>
-The <b>mutationSet</b> option allows specifying which dataset to use when 
-more than one is open. If only one is open, the option is not needed.
-The name of a mutation set is derived from the input filename
-(for example, <b>abcg2</b> if read from <b>abcg2.csv</b>).
-The names of open sets can be listed in the 
-<a href="../tools/log.html"><b>Log</b></a> with
-<a href="#list"><b>mutationscores list</b></a>,
-and a set can be closed with
-<a href="#list"><b>mutationscores close</b></a>.
-</p><p>
 Menus below the plot can be used to change which scores are plotted 
 on the X- and Y-axes and for which <a href="#mutationSet">mutation set</a>. 
 Placing the cursor over a plotted point (circle)
 reports the specific mutation and its score values at the bottom of the panel.
 </p><p>
-Clicking the scatter plot raises a context menu; entries that refer to
-a specific mutant only appear when the click is on a circle, and some entries 
-only appear if there is an <a href="#associated">associated structure</a>:
+See <a href="../tools/mutationscores.html#scatterplot">scatterplot details</a>.
 </p>
-<ul>
-<li><b>Mutation [<i>mutant</i>]</b>
-&ndash; information for the user (no action): which mutant was clicked
-</li><li><b>Color mutations for [<i>mutant position</i>]</b>
-&ndash; color in green all circles representating mutations at the 
-same position as the clicked mutant
-</li><li><b>Color mutations near residue [<i>mutant position</i>]</b>
-&ndash; circles representating mutations at positions within 3.5 &Aring; of
-the position of the clicked mutant (in the 3D structure of the 
-<a href="#associated">associated structure(s)</a>)
-</li><li><b>Color mutations for selected residues</b>
-&ndash; color in cyan all circles representing mutations at positions
-of residues <a href="../selection.html">selected</a> in the 
-<a href="#associated">associated structure(s)</a>
-</li><li><b>Color synonymous mutations blue</b>
-&ndash; color in blue all circles for &ldquo;mutants&rdquo; with
-the same residue type as the wild-type protein
-</li><li><b>Hide (Show) synonymous bounds</b>
-&ndash; dashed lines delimiting mean &plusmn; 2 standard deviations
-of results for mutants with the same residue type as the wild-type protein
-</li><li><b>Ctrl-drag colors structure</b>
-&ndash; Ctrl-dragging a rectangle in the plot shows the enclosed circles in
-green and <a href='../selection.html"'>selects</a> the corresponding
-structure residues; this option indicates whether to also color
-the corresponding structure residues <b>lime</b> 
-<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
-<td bgcolor="lime" width="10px" title="lime"></td></tr></tbody></table>
-and the other structure residues <b>light gray</b>
-<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
-<td bgcolor="lightgray" width="10px" title="light gray"></td></tr></tbody></table>
-</li><li><b>Clear plot colors</b>
-&ndash; color all circles gray
-</li></ul>
-The following entries apply to the
-<a href="#associated">associated structure(s)</a>:
-<ul>
-<li><b>Structure residue [<i>mutant position in structure</i>]</b>
-&ndash; information for the user (no action): the corresponding structure residue
-</li><li><b>Select</b>
-&ndash; <a href="../selection.html">select</a> the corresponding residue
-</li><li><b>Color green</b>
-&ndash; color the ribbon and carbon atoms of the corresponding residue green
-</li><li><b>Color to match plot</b>
-&ndash; color the ribbon and carbon atoms of the corresponding residue to match
-the circle in the plot
-</li><li><b>Show side chain</b>
-&ndash; show the sidechain atoms of the corresponding residue
-</li><li><b>Zoom to residue</b>
-&ndash; zoom and clip to focus the view on the corresponding residue;
-clipping can be turned off with <a href="clip.html"><b>clip off</b></a><a>,
-or with </a><a href="view.html"><b>view</b></a> to view all
-</li><li><b>Label with [<i>x-score</i>] scores</b>
-&ndash; label the corresponding residue with a 
-<a href="#label">color-coded grid</a> of the <i>x-score</i>
-values for all substitutions at that position; the grid
-can be removed with <a href="label.html#delete"><b>label delete</b></a>
-</li><li><b>Label with [<i>y-score</i>] scores</b>
-&ndash; label the corresponding residue with a 
-<a href="#label">color-coded grid</a> of the <i>y-score</i>
-values for all substitutions at that position; the grid
-can be removed with <a href="label.html#delete"><b>label delete</b></a>
-</li></ul>
-The following relate to additional windows or dialogs:
-<ul>
-<li><b>New plot</b> 
-&ndash; duplicate the current plot window to allow changing one copy
-while retaining the settings of the other
-</li><li><b>Save Plot As...</b> save the scatter plot as an image file
-(PNG, SVG, or PDF)
-</li><li><b>Show histogram</b> 
-&ndash; show a <a href="#histogram">histogram</a> of the X-axis values
-</li><li><b>Show structure coloring panel</b> 
-&ndash; show the &ldquo;Mutation Structure Coloring&rdquo; dialog, in which:
-<table class="clRight">
-<tbody><tr><td><img border="1" src="coloringdialog.png" alt="mutation structure coloring dialog" width="450px">
-</td></tr>
-</tbody></table>
-<blockquote>
-<p>
-Clicking <b>Color structures</b> colors any 
-associated structures using the <b>Score</b> chosen from the menu, optionally
-normalized by linear least-squares fitting to a <b>subtract fit</b> score
-and subtracting the linear values 
-(if the <b>subtract fit</b> score is not set to <b>none</b>;
-<a href="#subtractFit">details...</a>).
-An <a href="../attributes.html">attribute</a> named <b>mutation_score</b> 
-is assigned to the <a href="#associated">associated structure</a> residues.
-If the coloring is subsequently <a href="#previous-colorings">named/saved</a>,
-the attribute name is changed to match the name of the score.
-</p><p>
-There are typically several different mutations at the same 
-residue position, whereas a single value per position is needed for coloring.
-This single value per position can be calculated based on
-a <b>filter mutations</b> setting of <b>all</b> mutations
-(<i>i.e.</i>, unfiltered) or only those enclosed in a <b>drag box</b>
-drawn on the plot, and can be computed as one of:
-</p>
-<ul>
-<li><b>mean</b> &ndash; average of values
-</li><li><b>count</b> &ndash; how many different mutations are being used
-</li><li><b>sum absolute</b> &ndash; sum of absolute values
-</li><li><b>sum</b>
-</li><li><b>min</b>
-</li><li><b>max</b>
-</li><li><b>median</b>
-</li><li><b>stddev</b> &ndash; standard deviation
-</li></ul>
-<p>
-Choices of <b>palette</b> for coloring by mutation scores include:
-</p>
-<ul>
-<li><b>blue to red</b>
-&ndash; with blue, white, another white, and red thresholds
-</li><li><b>red to blue</b>
-&ndash; with red, white, another white, and blue thresholds
-</li><li><b>white to red</b>
-&ndash; with white and red thresholds
-</li><li><b>red to white</b>
-&ndash; with red and white thresholds
-</li><li><b>white to blue</b>
-&ndash; with white and blue thresholds
-</li><li><b>blue to white</b>
-&ndash; with blue and white thresholds
-</li></ul>
-<p>
-The colors are in low &rarr; high value order in the names above, and
-the thresholds are placed to span four standard deviations centered on the mean.
-</p>
-Clicking <b>Adjust colors</b> shows the 
-<a href="../tools/render.html"><b>Render by Attribute</b></a> tool
-for interactively moving the thresholds and/or changing their colors.
-</p><p>
-<a name="previous-colorings"></a>
-Clicking <b>Name</b> saves the current <b>coloring</b> settings to
-the specified name. Subsequently clicking
-<b>Previous colorings</b> shows a &ldquo;Mutation Coloring History&rdquo; table 
-allowing previously saved colorings to be chosen and easily reapplied
-(see also <a href="#color"><b>mutationscores color</b></a>).
-There are buttons below the table to:
-</p>
-<ul>
-<li><b>Adjust colors</b> for that coloring with 
-<a href="../tools/render.html"><b>Render by Attribute</b></a>
-</li><li><b>Rename</b> a chosen coloring
-</li><li><b>Save .csv</b> one or more chosen scores (if none are chosen, all)
-to a comma-separated values file with fields: 
-residue number, residue type, score1-name, score2-name, ...
-</li><li><b>Delete</b> one or more chosen colorings
-</ul>
-</blockquote>
-</li></ul>
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -383,8 +372,9 @@ created with <a href="#define"><b>mutationscores define</b></a>
 coloring by that attribute previously applied using the
 <a href="../tools/render.html"><b>Render by Attribute</b></a> tool or the
 <a href="color.html#byattribute"><b>color byattribute</b></a> command.
-See also: <a href="#previous-colorings">Mutation Coloring History</a>
-in the <a href="#scatterplot">scatter plot</a>
+</p><p>
+See
+<a href="../tools/mutationscores.html#coloring">Mutation Structure Coloring</a>.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -401,9 +391,12 @@ in the <a href="#scatterplot">scatter plot</a>
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
 <table class="clRight">
-<tbody><tr><td><img border="1" src="histogram.png" alt="mutation scores histogram" width="300px">
+<tbody><tr><td><a href="../tools/mutationscores.html#histogram">
+<img border="1" src="histogram.png" alt="mutation scores histogram" 
+title="histogram details..." width="200px"></a>
 </td></tr>
 </tbody></table>
+<p>
 Show a histogram of mutation scores, with bar-height scaling either linear or
 log (default <b>log</b>). The number of <b>bins</b> <i>b</i> in the histogram
 defaults to <b>20</b>. With <b>curve true</b> (default), a smooth curve
@@ -419,8 +412,12 @@ of their values (default <b>true</b>).
 The histogram will replace a pre-existing histogram unless
 <b>replace false</b> is given. The menus below the histogram can be used
 to change which score is plotted and for which
-<a href="#mutationSet">mutation set</a>. 
-<p></p><p>
+<a href="#mutationSet">mutation set</a>.
+</p><p>
+See <a href="../tools/mutationscores.html#histogram">histogram details</a>.
+</p>
+<!--
+</p><p>
 Clicking the histogram raises a context menu, including:
 </p>
 <ul>
@@ -448,6 +445,7 @@ while retaining the settings of the other
 </li><li><b>Save Plot As...</b> save the histogram as an image file
 (PNG, SVG, or PDF)
 </li></ul>
+-->
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
@@ -531,20 +529,29 @@ has not revealed any striking patterns.
 <a href="#top" class="nounder">&bull;</a>
 <a name="structure"></a>
 <b>mutationscores structure</b>
-&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
+[&nbsp;list&nbsp;|&nbsp;clear&nbsp;|&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
+[&nbsp;<b>add</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;]
+[&nbsp;<b>remove</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;]
 [&nbsp;<b>allowMismatches</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>alignSequences</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;|&nbsp;<i>alignment-ID</i>&nbsp;|&nbsp;<i>sequence</i>&nbsp;]
 [&nbsp;<b>minimumPercentIdentity</b>&nbsp;&nbsp;<i>percent-ID</i>&nbsp;]
 [&nbsp;<a href="#mutationSet"><b>mutationSet</b></a>&nbsp;&nbsp;<i>name</i>&nbsp;]
 <blockquote>
 Designate one or more structure chains to be associated with the mutation 
-scores for further analysis.
-Otherwise, the mutation scores will be associated automatically with each
-open structure chain that has exactly the same sequence and residue
-numbering (as in the mutation data) the first time some analysis action 
-is performed, such as interacting with a scatter plot.
+scores for further analysis, or <b>list</b> the currently associated chains, 
+or <b>clear</b> (remove) the current associations.
+By default, without any of use of this command,
+mutation scores are automatically <b><i>associated</i></b> with 
+each structure chain that has exactly the same sequence and residue
+numbering (as in the mutation data) when the mutation data or structures
+are opened.
+However, this command can be used to manually adjust the associations.
+If the <b>add</b> option is used, the newly associated chains will be added 
+to the currently associated chains. If the <b>add</b> option is not given,
+chains that meet the matching criteria replace the currently associated chains. 
+The <b>remove</b> option allows disassociating specified chains.
 Multiple structure chains can be associated per 
-<a href="#mutationSet">mutation set</a>. 
+<a href="#mutationSet">mutation set</a>.
 If the chain does not have exactly the same residue types as the wild type 
 in the mutation data, however, <b>allowMismatches true</b> is needed to
 force the association, and if the residue numbering is different, the
@@ -621,6 +628,6 @@ with <a href="#list"><b>mutationscores list</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2026</address>
+May 2026</address>
 
 </body></html>

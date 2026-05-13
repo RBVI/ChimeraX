@@ -179,6 +179,8 @@ class GridCanvas:
         alignment = self.alignment
         if note_name == alignment.NOTE_MOD_ASSOC:
             self.update_selection()
+            if hasattr(self, 'label_tool'):
+                self.label_tool.chain_list.refresh()
         '''
         if note_name == self.alignment.NOTE_REF_SEQ:
             self.lead_block.rerule()
@@ -236,6 +238,14 @@ class GridCanvas:
         for handler in self.handlers:
             handler.remove()
 
+    def find_motif(self):
+        if not hasattr(self, 'motif_tool'):
+            from .motif_tool import MotifTool
+            self.motif_tool = MotifTool(self,
+                self.pg.tool_window.create_child_window("Find Sequence Motif", close_destroys=False))
+            self.motif_tool.tool_window.manage(None)
+        self.motif_tool.tool_window.shown = True
+
     def hide_header(self, header):
         self._clear_header_contents(header)
         label_item = self.header_label_items[header]
@@ -252,6 +262,14 @@ class GridCanvas:
                 self.header_label_items[disp_hdr].moveBy(0, -height)
         self.displayed_headers.remove(header)
         self._update_scene_rects()
+
+    def label_residues(self):
+        if not hasattr(self, 'label_tool'):
+            from .label_tool import LabelTool
+            self.label_tool = LabelTool(self,
+                self.pg.tool_window.create_child_window("Label Residues", close_destroys=False))
+            self.label_tool.tool_window.manage(None)
+        self.label_tool.tool_window.shown = True
 
     def layout_alignment(self):
         #NOTE: maybe group each header line (QGraphicsItemGroup) to make them easier to move
@@ -441,6 +459,13 @@ class GridCanvas:
             self._choose_cell(row, col)
         check_box = self.mouse_selects if state['mouse selects'] else self.mouse_chooses
         check_box.setChecked(True)
+
+    def save_image(self):
+        from chimerax.ui.open_save import SaveQGraphicsDialog
+        SaveQGraphicsDialog(self.pg.session,
+            [[self.header_label_view, self.header_view], [self.main_label_view, self.main_view]],
+            view_names=["header names", "headers", "residue types", "profile grid"],
+            depiction_name="profile grid").exec()
 
     def seqs_from_cells(self):
         from chimerax.core.errors import UserError

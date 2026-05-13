@@ -11,10 +11,13 @@ class _MyAPI(BundleAPI):
     def run_provider(session, name, mgr, **kw):
         from chimerax.open_command import OpenerInfo
         class MaestroOpenerInfo(OpenerInfo):
-            def open(self, session, path, file_name, *, show_tool=True, **kw):
+            def open(self, session, path, file_name, *, show_tool=None, **kw):
                 from .io import open_mae
                 models, status = open_mae(session, path, file_name, True, True)
                 all_models = sum([m.all_models() for m in models], start=[])
+                if show_tool is None:
+                    from chimerax.atomic import Structure
+                    show_tool = len([m for m in all_models if isinstance(m, Structure)]) > 1
                 if show_tool and session.ui.is_gui and len(all_models) > 1:
                     for m in all_models:
                         if hasattr(m, 'viewdockx_data'):

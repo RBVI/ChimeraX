@@ -61,22 +61,9 @@ class ProfileGridsTool(ToolInstance):
         if note_name == alignment.NOTE_DESTROYED:
             self.delete()
             return
-        '''
-        if note_name == alignment.NOTE_MOD_ASSOC:
-            if hasattr(self, 'associations_tool'):
-                self.associations_tool._assoc_mod(note_data)
-        elif note_name == alignment.NOTE_PRE_DEL_SEQS:
-            self.region_browser._pre_remove_lines(note_data)
-            for seq in note_data:
-                if seq in self._feature_browsers:
-                    self._feature_browsers[seq].tool_window.destroy()
-                    del self._feature_browsers[seq]
-        elif note_name == alignment.NOTE_DESTROYED:
-            self.delete()
-        elif note_name == alignment.NOTE_COMMAND:
+        if note_name == alignment.NOTE_COMMAND:
             from .cmd import run
             run(self.session, self, note_data)
-        '''
 
         self.grid_canvas.alignment_notification(note_name, note_data)
 
@@ -119,17 +106,29 @@ class ProfileGridsTool(ToolInstance):
             lambda action, f=self.grid_canvas.alignment_from_cells: f(action.text().lower()))
         cell_menu.setEnabled(bool(self.grid_canvas.chosen_cells))
 
+        action = QAction("Find Motif...", cell_menu)
+        action.triggered.connect(lambda *args, f=self.grid_canvas.find_motif: f())
+        menu.addAction(action)
+
         headers_menu = self.alignment.add_headers_menu_entry(menu)
         hdr_seq_menu = headers_menu.addMenu("Individual Sequence As Header")
         hdr_seq_menu.aboutToShow.connect(lambda *, s=self, m=hdr_seq_menu:
             s._menu_of_seqs(m, "", s.alignment.seqs,
             lambda seq, *, aln=s.alignment: aln.add_fixed_header(seq.name, seq.characters)))
 
+        action = QAction("Save Image...", menu)
+        action.triggered.connect(lambda: self.grid_canvas.save_image())
+        menu.addAction(action)
+
         action = QAction("Scroll To Show New Selection If Needed", menu)
         action.setCheckable(True)
         action.setChecked(self.settings.scroll_to_sel)
         action.toggled.connect(lambda checked, *args, settings=self.settings:
             setattr(settings, "scroll_to_sel", checked))
+        menu.addAction(action)
+
+        action = QAction("Label Residues...", cell_menu)
+        action.triggered.connect(lambda *args, f=self.grid_canvas.label_residues: f())
         menu.addAction(action)
 
         import sys

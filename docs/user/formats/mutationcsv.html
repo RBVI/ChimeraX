@@ -25,12 +25,15 @@ ChimeraX can read the results of deep mutational scanning
 from a <b><i>mutation scores file</i></b>
 (format name <b>ms</b>, filename suffix <b>.csv</b>) 
 for visualization and analysis with the
+<a href="../tools/mutationscores.html"><b>Mutation Scores</b></a> tool and/or
 <a href="../commands/mutationscores.html"><b>mutationscores</b></a> command.
+For example, .csv files downloaded from
+<a href="https://www.mavedb.org/" target="_blank">MaveDB</a> can be opened.
+</p><p>
 Deep mutational scanning generally involves mutating each position in a
 protein to all 20 standard amino acids and evaluating the large number
 of mutants with various high-throughput assays.
 The assay scores are tabulated in the file as comma-separated values.
-</p><p>
 The first line of the file gives the names of the columns, and subsequent 
 lines give the values, for example:
 </p>
@@ -40,47 +43,41 @@ p.(V6C),V,6,C,missense,0.132574054,0.300261964,0.129538083,0.371928707,-0.012776
 [...]
 </pre>
 <p>
-The first column should describe the mutation in the 
-<a href="https://hgvs-nomenclature.org/stable/recommendations/protein/substitution/" target="_blank">format</a>
-recommended by the <a href="https://hgvs-nomenclature.org/stable/" target="_blank">Human Genome Variation Society (HGVS)</a>,
-except with 1-letter amino acid codes instead of 3-letter codes.
-For example, a mutation of tyrosine 392 to alanine would be described as:
+The name of the column describing the mutation should be
+<b>hgvs</b>, <b>hgvs_pro</b>, or <b>variants</b>,
+and the column entries should use either
+amino acid 3-letter codes with the first letter capitalized (as
+<a href="https://hgvs-nomenclature.org/stable/recommendations/protein/substitution/" target="_blank">recommended</a>
+by the <a href="https://hgvs-nomenclature.org/stable/" 
+target="_blank">Human Genome Variation Society</a>) 
+or capitalized 1-letter codes.
+For example, a mutation of tyrosine 392 to alanine could be given as:
 </p>
 <blockquote>
+p.(Tyr392Ala)
+<br>&ndash; or &ndash;<br>
 p.(Y392A)
 </blockquote>
 <p>
-Deep mutational scans often include deletions. For example,
-the following denotes a deletion of valine 6:
-</p><blockquote>
-p.(V6del)
-</blockquote>
-<p>
-ChimeraX currently offers no way to visualize the deletions and will
-ignore such lines. 
+Rows describing deletions, insertions and multi-residue mutations are ignored.
 </p><p>
+Opening a mutation scores file automatically shows the
+<a href="../tools/mutationscores.html"><b>Mutation Scores</b></a> tool.
 </p><p>
-Opening a mutation scores file automatically shows a 
-<a href="../commands/mutationscores.html#scatterplot">scatter plot</a> 
-of the mutants with the first two scores as the axes,
-or a <a href="../commands/mutationscores.html#histogram">histogram</a>
-if the file only contains one kind of score.
-The menus below the plot can be used
-to change which scores are plotted and for which mutation set.
-</p><p>
-Opening a mutation scores file automatically associates the data with a
-structure chain open in ChimeraX, if its sequence and residue numbering
-match that in the file.  However, if more than one matching chain is present,
-the <a href="../commands/open.html#local"><b>open</b></a> command
-<a href="../commands/open.html#chain"><b>chain</b></a> option
-can be used to specify which to use.
-Alternatively, the scores can be associated with a structure later with the
-<a href="../commands/mutationscores.html#structure"><b>mutationscores
-structure</b></a> command.
+By default, mutation scores are automatically associated with each
+open structure chain that has exactly the same sequence and residue
+numbering (as in the mutation data) the first time some analysis action
+is performed, such as interacting with a plot.
+However, specific structure chains to associate can be designated with the
+<a href="../commands/open.html#chains"><b>chains</b></a> option of the
+<a href="../commands/open.html"><b>open</b></a> command
+at the time of opening the mutation data, or later (after opening the data) 
+with <a href="../commands/mutationscores.html#structure"><b>mutationscores
+structure</b></a>.
 </p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-November 2024</address>
+May 2026</address>
 
 </body></html>

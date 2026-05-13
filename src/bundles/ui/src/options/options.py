@@ -1158,3 +1158,6 @@ def _make_int_spinbox(min, max, **kw):
     spin_box.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
     spin_box.installEventFilter(spin_box)
     return spin_box
+
+# may be needed publicly if defining own Option subclass...
+make_int_spinbox = _make_int_spinbox

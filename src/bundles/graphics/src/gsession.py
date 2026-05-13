@@ -105,6 +105,22 @@ class ViewState:
         return v
 
     @staticmethod
+    def interpolate_scene(view, session, data1, data2, fraction):
+        """Interpolate ViewState appearance attributes between two SCENE-flag
+        snapshots and apply onto ``view`` at ``fraction`` in [0, 1]."""
+        import numpy as np
+        bg1 = data1.get('background_color')
+        bg2 = data2.get('background_color')
+        if bg1 is not None and bg2 is not None:
+            view.background_color = (1.0 - fraction) * np.asarray(bg1) + fraction * np.asarray(bg2)
+
+        lighting1 = data1.get('lighting')
+        lighting2 = data2.get('lighting')
+        if isinstance(lighting1, dict) and isinstance(lighting2, dict):
+            LightingState.interpolate_scene(view.lighting, session, lighting1, lighting2, fraction)
+            view.update_lighting = True
+
+    @staticmethod
     def restore_scene(view, session, scene_data):
         """
         Scenes interface implementation
@@ -125,8 +141,15 @@ class ViewState:
         # is None. Set it to True, let the camera be restored, and then delete the option, so it reads None again.
 
         session.restore_options['restore camera'] = True
+
+        # Window-size restore on scenes is governed by a separate setting from session restore.
+        from chimerax.core.core_settings import settings
+        old_resize_window_value = session.restore_options.get('resize window', False)
+        session.restore_options['resize window'] = settings.resize_window_on_scene_restore
+
         ViewState.set_state_from_snapshot(view, session, scene_data)
         del session.restore_options['restore camera']
+        session.restore_options['resize window'] = old_resize_window_value
 
         return view
 
@@ -270,12 +293,63 @@ class LightingState:
         'multishadow_depth_bias',
         ]
 
+    # Continuous attrs (RGB tuples and floats) — straight linear interpolation.
+    _interp_lerp_attrs = (
+        'key_light_color', 'key_light_intensity',
+        'fill_light_color', 'fill_light_intensity',
+        'ambient_light_color', 'ambient_light_intensity',
+        'depth_cue_start', 'depth_cue_end', 'depth_cue_color',
+        'shadow_depth_bias', 'multishadow_depth_bias',
+    )
+    # Unit-length direction vectors — lerp components then renormalize.
+    _interp_direction_attrs = ('key_light_direction', 'fill_light_direction')
+    # Discrete attrs (bools and ints) — snap at the transition midpoint.
+    # Resizing shadow textures every frame would thrash the GPU, so even
+    # the otherwise-lerpable map sizes snap.
+    _interp_snap_attrs = (
+        'depth_cue', 'move_lights_with_camera', 'shadows',
+        'shadow_map_size', 'multishadow', 'multishadow_map_size',
+    )
+
     @staticmethod
     def take_snapshot(lighting, session, flags):
         l = lighting
         data = {a:getattr(l,a) for a in LightingState.save_attrs}
         data['version'] = LightingState.version
         return data
+
+    @staticmethod
+    def interpolate_scene(lighting, session, data1, data2, fraction):
+        """Interpolate Lighting attributes between two snapshots and apply
+        onto ``lighting`` at ``fraction`` in [0, 1]."""
+        import numpy as np
+        f = fraction
+        l = lighting
+
+        for attr in LightingState._interp_lerp_attrs:
+            if attr in data1 and attr in data2:
+                a = np.asarray(data1[attr], dtype=np.float32)
+                b = np.asarray(data2[attr], dtype=np.float32)
+                v = (1.0 - f) * a + f * b
+                if v.ndim == 0:
+                    setattr(l, attr, float(v))
+                else:
+                    setattr(l, attr, tuple(v.tolist()))
+
+        for attr in LightingState._interp_direction_attrs:
+            if attr in data1 and attr in data2:
+                a = np.asarray(data1[attr], dtype=np.float32)
+                b = np.asarray(data2[attr], dtype=np.float32)
+                v = (1.0 - f) * a + f * b
+                n = float(np.linalg.norm(v))
+                if n > 0.0:
+                    v = v / n
+                setattr(l, attr, v)
+
+        pick = data2 if f >= 0.5 else data1
+        for attr in LightingState._interp_snap_attrs:
+            if attr in pick:
+                setattr(l, attr, pick[attr])
 
     @staticmethod
     def restore_snapshot(session, data):

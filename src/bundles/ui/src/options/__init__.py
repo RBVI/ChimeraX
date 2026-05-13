@@ -18,4 +18,4 @@ from .options import Option, BooleanOption, ColorOption, OptionalColorOption, En
     IntOption, OutputFileOption, OutputFolderOption, PasswordOption, ProtocolHostPortOption, RGBA8Option, \
     RGBAOption, OptionalRGBAOption, OptionalRGBAPairOption, OptionalRGBA8Option, OptionalRGBA8PairOption, \
     StringOption, StringIntOption, StringsOption, SymbolicEnumOption, OptionalSymbolicEnumOption, \
-    make_optional
+    make_optional, make_int_spinbox

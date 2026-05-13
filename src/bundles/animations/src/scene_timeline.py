@@ -400,7 +400,7 @@ class TimelineSceneWidget(QWidget):
     def add_scene_marker(self, time, scene_name, transition_data=None):
         """Add a scene marker at the specified time"""
         if transition_data is None:
-            transition_data = {"type": "linear", "fade_models": False}
+            transition_data = {"type": "linear"}
 
         # Get scene thumbnail from session
         thumbnail_pixmap = self._get_scene_thumbnail(scene_name)
@@ -486,15 +486,22 @@ class TimelineSceneWidget(QWidget):
         default_pixmap.fill(QColor(100, 100, 100))
         return default_pixmap
 
-    def _get_scene_at_position(self, x):
-        """Get marker id of the scene marker at the click position, or None."""
+    def _get_scene_at_position(self, x, y=None):
+        """Get marker id of the scene marker at the click position, or None.
+
+        Iterates in reverse paint order so the topmost (last-drawn) overlapping
+        marker is returned. When y is provided, only hits within the thumbnail
+        vertical bounds (25-55) count; clicks above or below fall through to
+        the playhead.
+        """
+        if y is not None and (y < 25 or y > 55):
+            return None
+
         width = self.width()
 
-        # Check each scene marker to see if click is within its bounds
-        for marker in self.scene_markers:
+        for marker in reversed(self.scene_markers):
             marker_x = int((marker.time / self.duration) * width)
 
-            # Check if click is within the thumbnail bounds (40px wide, centered on marker_x)
             thumb_left = marker_x - 20
             thumb_right = marker_x + 20
 
@@ -918,7 +925,7 @@ class TimelineSceneWidget(QWidget):
                 return
 
             # Check if we clicked on a scene marker
-            clicked_scene_marker_id = self._get_scene_at_position(x)
+            clicked_scene_marker_id = self._get_scene_at_position(x, y)
             if clicked_scene_marker_id is not None:
                 # Select the scene for potential deletion
                 self.selected_scene_marker_id = clicked_scene_marker_id
@@ -1153,9 +1160,10 @@ class TimelineSceneWidget(QWidget):
         if event.button() == Qt.LeftButton:
             # Calculate click position
             x = event.position().x()
+            y = event.position().y()
 
             # Check if we double-clicked on a scene marker
-            clicked_marker_id = self._get_scene_at_position(x)
+            clicked_marker_id = self._get_scene_at_position(x, y)
             if clicked_marker_id is not None:
                 marker = self._get_scene_marker_by_id(clicked_marker_id)
                 scene_name = marker.scene_name if marker is not None else None
@@ -1234,17 +1242,16 @@ class TimelineSceneWidget(QWidget):
         current_type = (
             current_transition.get("type", "linear") if current_transition else "linear"
         )
-        current_fade = (
-            current_transition.get("fade_models", False)
-            if current_transition
-            else False
-        )
 
         menu = QMenu(self)
 
         # Add delete option at the top
         delete_action = menu.addAction(f"Delete '{scene_name}' from Timeline")
         delete_action.triggered.connect(lambda: self.scene_deleted.emit(scene_name, scene_time))
+
+        # Restore camera option
+        restore_camera_action = menu.addAction("Restore Camera")
+        restore_camera_action.triggered.connect(lambda: self._restore_scene_camera(scene_name))
         menu.addSeparator()
 
         # Transition type submenu
@@ -1273,17 +1280,6 @@ class TimelineSceneWidget(QWidget):
             action.triggered.connect(self._on_transition_action_triggered)
             transition_menu.addAction(action)
 
-        menu.addSeparator()
-
-        # Fade models option
-        fade_action = QAction("Fade Models", menu)
-        fade_action.setCheckable(True)
-        fade_action.setChecked(current_fade)
-        fade_action.triggered.connect(
-            lambda checked, mid=marker_id: self._set_scene_fade_models_by_id(mid, checked)
-        )
-        menu.addAction(fade_action)
-
         menu.exec(global_pos)
 
     def _on_transition_action_triggered(self):
@@ -1293,6 +1289,21 @@ class TimelineSceneWidget(QWidget):
             transition_key = action.property("transition_key")
             marker_id = action.property("marker_id")
             self._set_scene_transition_type_by_id(marker_id, transition_key)
+
+    def _restore_scene_camera(self, scene_name):
+        """Restore only the camera position from the named scene via 'view matrix camera'."""
+        session = self._get_session()
+        if session is None:
+            return
+        scene = session.scenes.get_scene(scene_name)
+        if scene is None:
+            return
+        camera_position = scene.named_view.camera.get("position")
+        if camera_position is None:
+            return
+        matrix_str = ",".join("%.5g" % x for x in tuple(camera_position.matrix.flat))
+        from chimerax.core.commands import run
+        run(session, f"view matrix camera {matrix_str}")
 
     def _get_scene_transition_data(self, scene_name):
         """Get transition data for a scene (first match by name)"""
@@ -1313,16 +1324,6 @@ class TimelineSceneWidget(QWidget):
         marker = self._get_scene_marker_by_id(marker_id)
         if marker is not None:
             marker.transition_data["type"] = transition_type
-            self.scene_transition_changed.emit(
-                marker.time, dict(marker.transition_data)
-            )
-        self.update()
-
-    def _set_scene_fade_models_by_id(self, marker_id, fade_models):
-        """Set fade models option for a specific scene instance"""
-        marker = self._get_scene_marker_by_id(marker_id)
-        if marker is not None:
-            marker.transition_data["fade_models"] = fade_models
             self.scene_transition_changed.emit(
                 marker.time, dict(marker.transition_data)
             )
@@ -1565,7 +1566,7 @@ class TimelineSceneWidget(QWidget):
 
         marker.time = new_time
         if marker.transition_data is None:
-            marker.transition_data = {"type": "linear", "fade_models": False}
+            marker.transition_data = {"type": "linear"}
         self._sort_scene_markers()
 
 

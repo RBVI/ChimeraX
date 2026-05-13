@@ -55,9 +55,11 @@ The <b>Method</b> for adding hydrogens can be:
 </li><li><b>also consider H-bonds (slower)</b> (default) &ndash; based on
 <a href="../atomtypes.html">atom types</a>, clash avoidance,
 and hydrogen bond formation.
-Considering H-bonds increases the calculation time.
-Although hydrogens are placed to avoid clashes and form hydrogen bonds
-where possible, they are not energy-minimized, and
+Considering H-bonds increases the calculation time; 
+placement prioritizes the shorter and more obvious interactions, 
+but also preserves longer H-bonds where possible.
+Although hydrogens are placed to avoid clashes and form hydrogen bonds,
+they are not energy-minimized, and
 a globally optimal network in terms of the number of H-bonds or
 total H-bonding energy is not necessarily found.
 </li></ul>
@@ -282,6 +284,6 @@ Word JM, Lovell SC, Richardson JS, Richardson DC.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2022</address>
+April 2026</address>
 
 </body></html>

@@ -69,6 +69,26 @@ def fill_context_menu(menu, parent_tool_window, structure):
     cluster_action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure:
         show_cluster_launcher(tw, s))
 
+def get_session_info(tool_window):
+    data = {}
+    from .plot_gui import plot_session_info
+    plot_data = plot_session_info(tool_window)
+    if plot_data:
+        data["plot"] = plot_data
+    from .cluster_gui import cluster_dialog_session_info
+    cluster_data = cluster_dialog_session_info(tool_window)
+    if cluster_data:
+        data["cluster"] = cluster_data
+    return data
+
+def restore_session_info(parent_tool_window, info):
+    if "plot" in info:
+        from .plot_gui import restore_plot_info
+        restore_plot_info(parent_tool_window, info["plot"])
+    if "cluster" in info:
+        from .cluster_gui import restore_cluster_info
+        restore_cluster_info(parent_tool_window, info["cluster"])
+
 _md_tool_windows = {}
 
 def _remove_tool_window(tool_instance, window_type):

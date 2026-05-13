@@ -59,7 +59,7 @@ def mutation_scores_scatter_plot(session, x_score_name, y_score_name, mutation_s
 from chimerax.interfaces.graph import Graph
 class MutationScatterPlot(Graph):
 
-    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html#scatterplots'
+    help = 'help:user/tools/mutationscores.html#scatterplot'
 
     def __init__(self, session):
         self.mutation_set_name = ''
@@ -73,13 +73,10 @@ class MutationScatterPlot(Graph):
         Graph.__init__(self, session, nodes, edges,
                        tool_name = 'Mutation scores plot', title = 'Mutation scores plot',
                        hide_ticks = False, drag_select_callback = self._rectangle_selected,
-                       panel_placement = None)
+                       panel_placement = None, initial_size = (500,500))
         self.figure.set_layout_engine(layout='constrained')  # Avoid clipping axis labels
 
         parent = self.tool_window.ui_area
-        from types import MethodType
-        from Qt.QtCore import QSize
-        parent.sizeHint = MethodType(lambda p: QSize(500,500), parent)	# Set initial size
         layout = parent.layout()
 
         # Add x-axis, y-axis and mutation set menus.
@@ -334,7 +331,6 @@ class MutationScatterPlot(Graph):
         if mset is None:
             nres = []
         else:
-            mset.associate_chains(self.session)
             res, rnums = mset.associated_residues(res_nums)
             nres = []
             for r, rnum in zip(res, rnums):

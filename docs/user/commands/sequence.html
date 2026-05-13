@@ -21,8 +21,10 @@ or derivations thereof.
 
 <h3><a href="../index.html#commands">Command</a>: sequence</h3>
 <p>
-The <b>sequence</b> subcommands perform actions related to the
+The <b>sequence</b> subcommands perform actions related to sequences in the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+or
+<a href="../tools/profilegrid.html"><b>Profile Grid</b></a>
 and associated structures:
 </p>
 <ul>
@@ -63,6 +65,10 @@ to a structure chain
 &ndash; replace the sequence data of a structure chain with its
 associated sequence in the 
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>
+</li><li><a href="#grid"><b>sequence grid</b></a>
+&ndash; label structure residues 
+with color-coded grids of residue prevalences 
+from <a href="../tools/profilegrid.html"><b>Profile Grid</b></a>
 </li></ul>
 <p>
 The <a href="../menu.html#tools"><b>Tools</b> menu</a> 
@@ -70,7 +76,7 @@ can also be used to show the sequence of a structure chain in the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
 All of the other actions can be accessed from the
 <a href="../tools/sequenceviewer.html#context"><b>Sequence Viewer</b>
-context menu</a>.
+context menu</a>. 
 </p>
 
 <a name="chain"></a>
@@ -189,6 +195,8 @@ Superimpose the specified structures based on the alignment of their
 <a href="../tools/sequenceviewer.html#association">associated</a> sequences.
 The <i>alignment-ID</i> is shown in the title bar of the
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window.
+(Conversely, to create a sequence alignment from a structural
+superposition, see <a href="msa3d.html"><b>msa3d</b></a>.)
 </p><p>
 By default (<b>cutoffDistance</b> option not used), 
 structures are fit iteratively with a <i>cutoff</i> of
@@ -224,6 +232,9 @@ The number of atom pairs fitted and the resulting RMSD are reported in the
 of the <a href="../window.html">ChimeraX window</a>. See also:
 <a href="matchmaker.html"><b>matchmaker</b></a>,
 <a href="align.html"><b>align</b></a>
+</p><p>
+To create a sequence alignment from a structural
+superposition, see <a href="msa3d.html"><b>msa3d</b></a>.
 </p>
 
 <a name="expandsel"></a>
@@ -594,7 +605,9 @@ The sequence must cover all of the residues in the structure chain.
 The <b>sequence align</b> command calculates a new alignment of the
 specified protein sequences using a web service hosted by the
 <a href="https://www.rbvi.ucsf.edu/Overview/index.html" target="_blank">UCSF
-RBVI</a>. The result is opened in a new
+RBVI</a>. (To create a sequence alignment from a structural
+superposition instead, see <a href="msa3d.html"><b>msa3d</b></a>.)
+The result is opened in a new
 <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window,
 except that <b>replace true</b> (default <b>false</b>)
 can be used to specify overwriting an 
@@ -670,8 +683,75 @@ Muscle5: High-accuracy alignment ensembles enable unbiased assessments of sequen
 </blockquote>
 </li></ul>
 
+<a name="grid"></a>
+<p class="nav">
+[<a href="#top">back to top: sequence</a>]
+</p>
+<h3>Label Structure Residues with Prevalences from Profile Grid</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>sequence grid</b> &nbsp;<i>alignment-ID</i>&nbsp;
+<b>label</b> &nbsp;<a href="atomspec.html#hierarchy"><i>residue-spec</i></a>&nbsp;
+[&nbsp;<a href="color.html#palette"><b>palette</b></a>&nbsp;&nbsp;<i>palette</i>&nbsp;]
+[&nbsp;<a href="color.html#range"><b>range</b></a>&nbsp;&nbsp;<i>low,high</i>&nbsp;|&nbsp;full&nbsp;]
+[&nbsp;<b>bgColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;]
+[&nbsp;<b>height</b>&nbsp;&nbsp;<i>h</i>&nbsp;]
+[&nbsp;<b>offset</b>&nbsp;&nbsp;<i>x,y,z</i>&nbsp;]
+[&nbsp;<b>onTop</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+</blockquote>
+<table class="clRight">
+<tbody><tr><td><img border="1" src="profilegridlabel.png" alt="profile grid
+prevalence labels" title="2b1l /B:80-83, PFAM redoxin filt90" width="200px"></a>
+</td></tr>
+</tbody></table>
+<p>
+Label residues of structure chains 
+<a href="../tools/sequenceviewer.html#association">associated</a>
+with an alignment in <a href="../tools/profilegrid.html"><b>Profile Grid</b></a>
+with color-coded grids of residue-type prevalences.
+The <i>alignment-ID</i> can be specified if more than one
+<a href="../tools/profilegrid.html"><b>Profile Grid</b></a> is present.
+The label grids show the prevalences of the 20 standard amino acids and gap
+at the corresponding column in the alignment, by default coloring from
+white to blue with increasing prevalence:
+</p>
+  <blockquote>
+<b><a href="color.html#palette">palette</a> 0,white:1,blue
+&nbsp;<a href="color.html#range">range</a> 0.0,1.0</b>
+  </blockquote>
+<p>
+The structure residue's type is shown in the label title
+(along with its number) and with bold font in the grid.
+The <b>bgColor</b> is used behind the label text and for filling in
+empty cells in the last row of the label (default <b>#B4B4B4</b>
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
+<td bgcolor="#B4B4B4" width="10px" title="#B4B4B4"></td>
+</tr></tbody></table>).
+<p>
+The label <b>height</b>&nbsp;&nbsp;<i>h</i> defaults to <b>1.5</b> &Aring;.
+The <b>offset</b>&nbsp;&nbsp;<i>x,y,z</i> is the position of the
+lower left corner of the grid relative to the residue's &alpha;-carbon
+along X, Y, and Z in <a href="view.html#screencoords">screen coordinates</a>
+(default <b>0,0,3</b> &Aring;). The <b>onTop</b> setting is whether
+to draw the labels on top of other objects regardless of their
+relative positions in 3D (default <b>false</b>).
+The labels can be removed with <a href="label.html#delete"><b>label delete</b></a>.
+</p><p>
+See also the <a href="../tools/profilegrid.html#context"><b>Profile Grid</b>
+context menu</a>.
+</p>
+
+<!--
+SCF-coloring command not documented:
+sequence viewer [alignment-IDs] scfLoad file-name [colorStructures boolean (true)]
+This colors the alignment based on the information in the SCF file and 
+optionally colors corresponding structures to match. 
+Invoked by Sequence Viewer context menu:  File->Load Sequence Coloring File... 
+(which brings up a file browser that in turn issues the command).
+-->
+
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2026</address>
+May 2026</address>
 
 </body></html>

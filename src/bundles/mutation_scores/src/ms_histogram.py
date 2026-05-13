@@ -41,7 +41,7 @@ def mutation_scores_histogram(session, score_name, mutation_set = None,
 from chimerax.interfaces.graph import Graph
 class MutationHistogram(Graph):
 
-    help = 'https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html#histograms'
+    help = 'help:user/tools/mutationscores.html#histogram'
 
     def __init__(self, session):
         self.mutation_set_name = ''
@@ -53,14 +53,11 @@ class MutationHistogram(Graph):
         Graph.__init__(self, session, nodes, edges,
                        tool_name = 'Mutation scores histogram', title = 'Mutation scores histogram',
                        hide_ticks = False, drag_select_callback = self._rectangle_selected,
-                       zoom_axes = 'x', translate_axes = 'x', panel_placement = None)
+                       zoom_axes = 'x', translate_axes = 'x', panel_placement = None, initial_size = (500,200))
         self.figure.set_layout_engine(layout='constrained')  # Avoid clipping axis labels
 
         tw = self.tool_window
         parent = tw.ui_area
-        from types import MethodType
-        from Qt.QtCore import QSize
-        parent.sizeHint = MethodType(lambda p: QSize(500,200), parent)	# Set initial size
         layout = parent.layout()
 
         # Add score and mutation set menus.
@@ -182,7 +179,6 @@ class MutationHistogram(Graph):
         score_values = mset.score_values(score_name)
         res_nums = set([res_num for res_num, from_aa, to_aa, value in score_values.all_values()
                         if value >= xmin and value <= xmax])
-        mset.associate_chains(self.session)
         res, rnums = mset.associated_residues(res_nums)
 
         if len(res) > 0:
