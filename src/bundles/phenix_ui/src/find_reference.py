@@ -96,7 +96,7 @@ class FindRefJob(Job):
 command_defaults = {
     'verbose': False
 }
-def phenix_find_reference(session, model, *, show_tool=True, block=None, phenix_location=None,
+def phenix_find_reference(session, chains, *, show_tool=True, block=None, phenix_location=None,
         verbose=command_defaults['verbose'], option_arg=[], position_arg=[]):
 
     # Find the phenix.find_reference executable
@@ -107,29 +107,40 @@ def phenix_find_reference(session, model, *, show_tool=True, block=None, phenix_
     if block is None:
         block = session.in_script or not session.ui.is_gui
 
-    # Setup temporary directory to run phenix.find_reference
-    from tempfile import TemporaryDirectory
-    d = TemporaryDirectory(prefix = 'phenix_emis_')  # Will be cleaned up when object deleted.
-    temp_dir = d.name
+    if not chains:
+        raise UserError("No chains specified")
 
-    # Save model to file.
-    from chimerax.pdb import save_pdb
-    from os import path
-    save_pdb(session, path.join(temp_dir,'model.pdb'), models=[model])
+    chains_by_structure = {}
+    for structure, chain in zip(chains.structures, chains):
+        chains_by_structure.setdefault(structure, []).append(chain)
 
-    # Run phenix.find_reference
-    # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
-    # the program runs
-    callback = lambda json_info, *args, session=session, show_tool=show_tool, model=model, d_ref=d: \
-        _process_results(session, json_info, model, d.name, show_tool)
-    FindRefJob(session, exe_path, option_arg, "model.pdb", position_arg, temp_dir, verbose, callback, block)
+    from chimerax.atomic import Chains
+    for structure, chain_list in chains_by_structure.items():
+        # Setup temporary directory to run phenix.find_reference
+        from tempfile import TemporaryDirectory
+        d = TemporaryDirectory(prefix = 'phenix_emis_')  # Will be cleaned up when object deleted.
+        temp_dir = d.name
+
+        # Save model to file.
+        from chimerax.pdb import save_pdb
+        from os import path
+        prev_sel = structure.atoms.selecteds
+        structure.atoms.selecteds = False
+        Chains(chain_list).existing_residues.atoms.selecteds = True
+        save_pdb(session, path.join(temp_dir,'model.pdb'), models=[structure], selected_only=True)
+        structure.atoms.selecteds = prev_sel
+
+        # Run phenix.find_reference
+        # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
+        # the program runs
+        callback = lambda json_info, *args, session=session, show_tool=show_tool, model=structure, d_ref=d: \
+            _process_results(session, json_info, model, d.name, show_tool)
+        FindRefJob(session, exe_path, option_arg, "model.pdb", position_arg, temp_dir, verbose, callback, block)
 
 def _process_results(session, json_info, search_model, temp_dir, show_tool):
     session.logger.status("Find-reference job finished")
     if search_model.deleted:
         raise UserError("Structure used as basis for search closed during search")
-
-    print(json_info)
 
     from chimerax.core.models import Model
     ref_group = Model("%s reference structures" % search_model.name, session)
@@ -262,9 +273,9 @@ def register_command(logger):
     from chimerax.core.commands import (CenterArg, OpenFolderNameArg, BoolArg, NonNegativeFloatArg,
         RepeatOf, StringArg)
     from chimerax.map import MapArg, MapsArg
-    from chimerax.atomic import AtomicStructureArg, AtomicStructuresArg
+    from chimerax.atomic import UniqueChainsArg, AtomicStructuresArg
     desc = CmdDesc(
-        required = [('model', AtomicStructureArg),
+        required = [('chains', UniqueChainsArg),
         ],
         keyword = [('block', BoolArg),
                    ('phenix_location', OpenFolderNameArg),
