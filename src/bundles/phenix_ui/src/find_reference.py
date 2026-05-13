@@ -181,6 +181,8 @@ def _process_results(session, json_info, search_model, temp_dir, show_tool):
                     '<a href="cxcmd:view %s; sel %s">%s</a>' % (spec, spec, identifier))
             elif k in ('reference', 'calculated'):
                 for subk, subv in v.items():
+                    if subk == 'is_xray':
+                        subk = 'is_experimental'
                     collated_info.setdefault(subk, []).append(subv)
             else:
                 collated_info.setdefault(k, []).append(v)
@@ -188,6 +190,8 @@ def _process_results(session, json_info, search_model, temp_dir, show_tool):
     known_columns = { k: set(v) for k,v in known_column_order.items() }
     # Don't want these as explicit table columns...
     known_columns['main'].update(('reference', 'calculated', 'file_name'))
+    known_columns['reference'].update(('is_computational',))
+    known_columns['calculated'].update(('xyz_pbs', 'tor_pbs', 'sort_value_1', 'sort_value_2'))
     column_order = { k: [] for k in known_column_order.keys()}
     for col_type, known_col_order in known_column_order.items():
         base = json_info['results'][0]
@@ -198,6 +202,8 @@ def _process_results(session, json_info, search_model, temp_dir, show_tool):
         known_cols = known_columns[col_type]
         for col_name in col_dict.keys():
             if col_name not in known_cols:
+                if col_name == 'is_xray':
+                    col_name = 'is_experimental'
                 column_order[col_type].append(col_name)
     table_texts = []
     from chimerax.core.logger import html_table_params
