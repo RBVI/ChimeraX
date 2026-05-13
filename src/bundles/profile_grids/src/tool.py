@@ -106,6 +106,10 @@ class ProfileGridsTool(ToolInstance):
             lambda action, f=self.grid_canvas.alignment_from_cells: f(action.text().lower()))
         cell_menu.setEnabled(bool(self.grid_canvas.chosen_cells))
 
+        action = QAction("Find Cell Pattern...", cell_menu)
+        action.triggered.connect(lambda *args, f=self.grid_canvas.find_cell_pattern: f())
+        menu.addAction(action)
+
         headers_menu = self.alignment.add_headers_menu_entry(menu)
         hdr_seq_menu = headers_menu.addMenu("Individual Sequence As Header")
         hdr_seq_menu.aboutToShow.connect(lambda *, s=self, m=hdr_seq_menu:
