@@ -238,11 +238,11 @@ class GridCanvas:
         for handler in self.handlers:
             handler.remove()
 
-    def find_motif(self):
+    def find_cell_pattern(self):
         if not hasattr(self, 'motif_tool'):
             from .motif_tool import MotifTool
             self.motif_tool = MotifTool(self,
-                self.pg.tool_window.create_child_window("Find Sequence Motif", close_destroys=False))
+                self.pg.tool_window.create_child_window("Find Cell Pattern", close_destroys=False))
             self.motif_tool.tool_window.manage(None)
         self.motif_tool.tool_window.shown = True
 
