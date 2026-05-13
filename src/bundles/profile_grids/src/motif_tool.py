@@ -47,7 +47,7 @@ class MotifTool:
         seq_layout = QGridLayout()
         seq_layout.setSpacing(2)
         motif_layout.addLayout(seq_layout)
-        self.seq_button = QRadioButton("sequence:")
+        self.seq_button = QRadioButton("pattern:")
         seq_layout.addWidget(self.seq_button, 0, 0)
         self.seq_entry = QLineEdit(grid.pg.settings.motif_sequence)
         self.seq_entry.editingFinished.connect(lambda seq_but=self.seq_button: seq_but.setChecked(True))
