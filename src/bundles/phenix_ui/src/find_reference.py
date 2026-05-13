@@ -34,22 +34,22 @@ class FindRefJob(Job):
     SESSION_SAVE = False
 
     def __init__(self, session, executable_location, optional_args, model_file_name,
-            positional_args, temp_dir, verbose, callback, block):
+            positional_args, temp_dir, eff_save_dir, verbose, callback, block):
         super().__init__(session)
         self._running = False
         self._monitor_time = 0
         self._monitor_interval = 10
         self.start(session, executable_location, optional_args, model_file_name, positional_args,
-            temp_dir, verbose, callback, blocking=block)
+            eff_save_dir, temp_dir, verbose, callback, blocking=block)
 
     def run(self, session, executable_location, optional_args, model_file_name, positional_args,
-            temp_dir, verbose, callback, **kw):
+            eff_save_dir, temp_dir, verbose, callback, **kw):
         self._running = True
         self.start_t = time()
         def threaded_run(self=self):
             try:
                 reference = _run_find_ref_subprocess(session, executable_location, optional_args,
-                    model_file_name, positional_args, temp_dir, verbose)
+                    model_file_name, positional_args, eff_save_dir, temp_dir, verbose)
             except Exception as e:
                 from .util import thread_throw
                 thread_throw(session, e)
@@ -96,8 +96,8 @@ class FindRefJob(Job):
 command_defaults = {
     'verbose': False
 }
-def phenix_find_reference(session, chains, *, show_tool=True, block=None, phenix_location=None,
-        verbose=command_defaults['verbose'], option_arg=[], position_arg=[]):
+def phenix_find_reference(session, chains, *, eff_save_directory=True, show_tool=True, block=None,
+        phenix_location=None, verbose=command_defaults['verbose'], option_arg=[], position_arg=[]):
 
     # Find the phenix.find_reference executable
     from .locate import find_phenix_command
@@ -110,6 +110,18 @@ def phenix_find_reference(session, chains, *, show_tool=True, block=None, phenix
     if not chains:
         raise UserError("No chains specified")
 
+    import os
+    if eff_save_directory is not False:
+        possible_save_dirs = ['~/Desktop', '~'] if eff_save_directory is True else [eff_save_directory]
+        for possible_save_dir in [os.path.expanduser(path) for path in possible_save_dirs]:
+            if os.path.exists(possible_save_dir) and os.access(possible_save_dir, os.W_OK | os.X_OK):
+                eff_save_directory = possible_save_dir
+                break
+        else:
+            from chimerax.core.commands import plural_form, commas
+            session.logger.warning("Cannot write to %s %s, not saving .eff file"
+                % (plural_form(possible_save_dirs, "folder"), commas(possible_save_dirs)))
+            eff_save_directory = False
     chains_by_structure = {}
     for structure, chain in zip(chains.structures, chains):
         chains_by_structure.setdefault(structure, []).append(chain)
@@ -135,7 +147,8 @@ def phenix_find_reference(session, chains, *, show_tool=True, block=None, phenix
         # the program runs
         callback = lambda json_info, *args, session=session, show_tool=show_tool, model=structure, d_ref=d: \
             _process_results(session, json_info, model, d.name, show_tool)
-        FindRefJob(session, exe_path, option_arg, "model.pdb", position_arg, temp_dir, verbose, callback, block)
+        FindRefJob(session, exe_path, option_arg, "model.pdb", position_arg, temp_dir, eff_save_directory,
+            verbose, callback, block)
 
 def _process_results(session, json_info, search_model, temp_dir, show_tool):
     session.logger.status("Find-reference job finished")
@@ -161,7 +174,8 @@ def _process_results(session, json_info, search_model, temp_dir, show_tool):
                     ref_group.add([s])
                     hide_spec = f"#{s.id_string} & ~ /{ref_cid}"
                     run(session, f"hide {hide_spec} ; ~cartoon {hide_spec} ;"
-                        f" matchmaker #{s.id_string}/{ref_cid} to #{search_model.id_string}/{target_cid}")
+                        f" matchmaker #{s.id_string}/{ref_cid} to #{search_model.id_string}/{target_cid}"
+                        " logParameters false", log=False)
                 spec = '#%s/%s #%s/%s' % (search_model.id_string, target_cid, s.id_string, ref_cid)
                 collated_info.setdefault('row name', []).append(
                     '<a href="cxcmd:view %s; sel %s">%s</a>' % (spec, spec, identifier))
@@ -227,9 +241,9 @@ def process(item):
     return item
 
 def _run_find_ref_subprocess(session, exe_path, optional_args, model_file_name, positional_args,
-        temp_dir, verbose):
+        eff_save_dir, temp_dir, verbose):
     '''
-    Run find_reference in a subprocess and return the model.
+    Run find_reference in a subprocess and return the reference information.
     '''
     from chimerax.core.commands import StringArg
     args = [exe_path] + optional_args + [
@@ -260,8 +274,21 @@ def _run_find_ref_subprocess(session, exe_path, optional_args, model_file_name, 
         msg += '</pre>'
         tsafe(logger.info, msg, is_html=True)
 
-    # Open new model with added waters
-    from os import path
+    from os import path, listdir, rename
+
+    # Save EFF file
+    if eff_save_dir is not False:
+        for fname in listdir(temp_dir):
+            if fname.endswith(".eff"):
+                try:
+                    rename(path.join(temp_dir, fname), path.join(eff_save_dir, fname))
+                except OSError as e:
+                    logger.warning("Could not save .eff file to %s; the error message was: %s"
+                        % (eff_save_dir, str(e)))
+                else:
+                    logger.info("Saved EFF file to %s" % path.join(eff_save_dir, fname))
+
+    # Return JSON information
     json_path = path.join(temp_dir,'find_reference.json')
     import json
     with open(json_path, 'r') as f:
@@ -271,13 +298,14 @@ def _run_find_ref_subprocess(session, exe_path, optional_args, model_file_name, 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register
     from chimerax.core.commands import (CenterArg, OpenFolderNameArg, BoolArg, NonNegativeFloatArg,
-        RepeatOf, StringArg)
+        Or, RepeatOf, StringArg, SaveFolderNameArg)
     from chimerax.map import MapArg, MapsArg
     from chimerax.atomic import UniqueChainsArg, AtomicStructuresArg
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg),
         ],
         keyword = [('block', BoolArg),
+                   ('eff_save_directory', Or(BoolArg, SaveFolderNameArg)),
                    ('phenix_location', OpenFolderNameArg),
                    ('verbose', BoolArg),
                    ('option_arg', RepeatOf(StringArg)),
