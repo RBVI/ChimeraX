@@ -30,7 +30,6 @@ class LabelTool:
         self.grid = grid
         self.tool_window = tool_window
         tool_window.help = "help:user/tools/profilegrid.html#gridlabel"
-        self._prev_chosen_cells = None
 
         from Qt.QtWidgets import QVBoxLayout, QLabel, QHBoxLayout, QCheckBox, QPushButton
         from Qt.QtCore import Qt
@@ -81,6 +80,7 @@ class LabelTool:
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.label_residues)
+        bbox.rejected.connect(lambda tw=self.tool_window: setattr(tw, 'shown', False))
         # Since ApplyRole is not AcceptRole, simply connecting to the Apply button won't dismiss the dialog
         bbox.button(qbbox.Apply).clicked.connect(lambda *args, fc=self.label_residues: fc(apply=True))
         if getattr(tool_window, 'help', None) is None:
