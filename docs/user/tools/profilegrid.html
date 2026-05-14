@@ -210,6 +210,36 @@ new window in the specified viewer:
    </li><li><b>Profile Grid</b>
    </li></ul>
  </li></ul>
+</li><li><a name="find-pattern"></a><b>Find Cell Pattern...</b> 
+show dialog to find short stretches of conserved residue types generally
+or that match a user-specified pattern:
+  <ul>
+  <li><b>pattern [<i>sequence-pattern</i>]</b>
+&ndash; specify a sequence pattern with single-letter amino acid codes, 
+where case is not important. Multiple allowed types at a single 
+position can be given as a set of single-letter characters
+within square brackets, or as a set of types to exclude within curly 
+brackets, or as a dot (period) to signify that all types are allowed.
+Each allowed residue type must meet the 
+<a href="#prevalence-criterion">prevalence criterion</a>.
+For example, a search for RGD or RGE in three consecutive
+columns of the alignment could be entered as <b>rg[de]</b>, and for
+CXXC could be entered as <b>C..C</b>, or to disallow cysteines
+from the second and third positions, <b>C{C}{C}C</b>.
+However, an important shortcoming is that the search does not allow for
+variable spacing due to gaps, so that sequences with CXXC will not be 
+detected if the motif is spaced out to more than four columns 
+in the overall alignment.
+  <li><b>[<i>N</i>] consecutive non-gap cells</b>
+&ndash; find potential motifs in the alignment as
+<i>N</i> consecutive residues of specific types that meet the 
+<a href="#prevalence-criterion">prevalence criterion</a>
+  <li><a name="prevalence-criterion"></a>
+<b>where each cell has [<i>percent</i>] occupancy or higher</b>
+&ndash; prevalence criterion
+</p>
+  </li>
+  </ul>
 </li><li><b>Headers</b>
 &ndash; which <a href="sequenceviewer.html#headers">headers</a> are shown:
   <ul>
