@@ -117,6 +117,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
             'from_database': DynamicEnum(database_names),
             'id': ModelIdArg,
             'ignore_cache': BoolArg,
+            'in_file_history': BoolArg,
             'name': StringArg
         }
         for keyword, annotation in provider_args.items():
@@ -151,7 +152,8 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
         return JSONResult(JSONEncoder().encode(open_data), models)
     return models
 
-def provider_open(session, names, center=None, format=None, from_database=None,  id=None, ignore_cache=False,
+def provider_open(session, names, center=None, format=None, from_database=None,  id=None,
+        in_file_history=None, ignore_cache=False,
         name=None, _return_status=False, _add_models=True, _request_file_history=False, log_errors=True,
         **provider_kw):
     mgr = session.open_command
@@ -176,7 +178,7 @@ def provider_open(session, names, center=None, format=None, from_database=None, 
         if database_name:
             fetcher_info, default_format_name, pregrouped_structures, group_multiple_models = _fetch_info(
                 mgr, database_name, format)
-            in_file_history = fetcher_info.in_file_history
+            in_file_history = fetcher_info.in_file_history if in_file_history is None else in_file_history
             for ident, database_name, format_name in fetches:
                 if format_name is None:
                     format_name = default_format_name
@@ -203,7 +205,7 @@ def provider_open(session, names, center=None, format=None, from_database=None, 
                     % data_format.name)
                 err.data_format = data_format
                 raise err
-            in_file_history = opener_info.in_file_history
+            in_file_history = opener_info.in_file_history if in_file_history is None else in_file_history
             provider_info = mgr.provider_info(data_format)
             if provider_info.batch:
                 paths = [_get_path(mgr, fi.file_name, provider_info.check_path)
