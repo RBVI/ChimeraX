@@ -117,7 +117,7 @@ class InstallOpenFold:
         logger.info('Now installing machine learning package torch.')
         # TODO: We should try to match the system cuda version.
         command = [self._venv_python_executable(), '-m', 'pip', 'install', 'torch==2.7.1',
-                   '--index-url', 'https://download.pytorch.org/whl/cu126']
+                   '--index-url', 'https://download.pytorch.org/whl/cu128']
         logger.info(' '.join(command))
 
         # Echo subprocess output to the ChimeraX Log.
