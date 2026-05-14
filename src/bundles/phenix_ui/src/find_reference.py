@@ -34,22 +34,22 @@ class FindRefJob(Job):
     SESSION_SAVE = False
 
     def __init__(self, session, executable_location, optional_args, model_file_name,
-            positional_args, temp_dir, eff_save_dir, verbose, callback, block):
+            positional_args, temp_dir, eff_save_dir, superimpose_phenix, verbose, callback, block):
         super().__init__(session)
         self._running = False
         self._monitor_time = 0
         self._monitor_interval = 10
         self.start(session, executable_location, optional_args, model_file_name, positional_args,
-            eff_save_dir, temp_dir, verbose, callback, blocking=block)
+            eff_save_dir, superimpose_phenix, temp_dir, verbose, callback, blocking=block)
 
     def run(self, session, executable_location, optional_args, model_file_name, positional_args,
-            eff_save_dir, temp_dir, verbose, callback, **kw):
+            eff_save_dir, superimpose_phenix, temp_dir, verbose, callback, **kw):
         self._running = True
         self.start_t = time()
         def threaded_run(self=self):
             try:
                 reference = _run_find_ref_subprocess(session, executable_location, optional_args,
-                    model_file_name, positional_args, eff_save_dir, temp_dir, verbose)
+                    model_file_name, positional_args, eff_save_dir, superimpose_phenix, temp_dir, verbose)
             except Exception as e:
                 from .util import thread_throw
                 thread_throw(session, e)
@@ -96,8 +96,9 @@ class FindRefJob(Job):
 command_defaults = {
     'verbose': False
 }
-def phenix_find_reference(session, chains, *, eff_save_directory=True, show_tool=True, block=None,
-        phenix_location=None, verbose=command_defaults['verbose'], option_arg=[], position_arg=[]):
+def phenix_find_reference(session, chains, *, eff_save_directory=True, show_tool=True,
+        superimpose_phenix=True, block=None, phenix_location=None, verbose=command_defaults['verbose'],
+        option_arg=[], position_arg=[]):
 
     # Find the phenix.find_reference executable
     from .locate import find_phenix_command
@@ -145,12 +146,13 @@ def phenix_find_reference(session, chains, *, eff_save_directory=True, show_tool
         # Run phenix.find_reference
         # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
         # the program runs
-        callback = lambda json_info, *args, session=session, show_tool=show_tool, model=structure, d_ref=d: \
-            _process_results(session, json_info, model, d.name, show_tool)
+        callback = lambda json_info, *args, session=session, show_tool=show_tool, model=structure, \
+            sup_phenix=superimpose_phenix, d_ref=d: _process_results(session, json_info, model, d.name,
+            show_tool, sup_phenix)
         FindRefJob(session, exe_path, option_arg, "model.pdb", position_arg, temp_dir, eff_save_directory,
-            verbose, callback, block)
+            superimpose_phenix, verbose, callback, block)
 
-def _process_results(session, json_info, search_model, temp_dir, show_tool):
+def _process_results(session, json_info, search_model, temp_dir, show_tool, superimpose_phenix):
     session.logger.status("Find-reference job finished")
     if search_model.deleted:
         raise UserError("Structure used as basis for search closed during search")
@@ -169,13 +171,16 @@ def _process_results(session, json_info, search_model, temp_dir, show_tool):
                 target_cid = result['target_chain_id']
                 ref_cid = result['reference_chain_id']
                 identifier = "chain %s (%s)" % (target_cid, result['reference']['pdb_id'])
-                for s in run(session, "open %s name %s" % (StringArg.unparse(path.join(temp_dir, v)),
-                        StringArg.unparse(identifier)), log=False):
+                for s in run(session, "open %s name %s inFileHistory false"
+                        % (StringArg.unparse(path.join(temp_dir, v)), StringArg.unparse(identifier)),
+                        log=False):
                     ref_group.add([s])
                     hide_spec = f"#{s.id_string} & ~ /{ref_cid}"
-                    run(session, f"hide {hide_spec} ; ~cartoon {hide_spec} ;"
-                        f" matchmaker #{s.id_string}/{ref_cid} to #{search_model.id_string}/{target_cid}"
-                        " logParameters false", log=False)
+                    cmd = f"hide {hide_spec} ; ~cartoon {hide_spec}"
+                    if not superimpose_phenix:
+                        cmd += f"; matchmaker #{s.id_string}/{ref_cid} to" \
+                            f" #{search_model.id_string}/{target_cid} logParameters false"
+                    run(session, cmd, log=False)
                 spec = '#%s/%s #%s/%s' % (search_model.id_string, target_cid, s.id_string, ref_cid)
                 collated_info.setdefault('row name', []).append(
                     '<a href="cxcmd:view %s; sel %s">%s</a>' % (spec, spec, identifier))
@@ -247,15 +252,16 @@ def process(item):
     return item
 
 def _run_find_ref_subprocess(session, exe_path, optional_args, model_file_name, positional_args,
-        eff_save_dir, temp_dir, verbose):
+        eff_save_dir, superimpose_phenix, temp_dir, verbose):
     '''
     Run find_reference in a subprocess and return the reference information.
     '''
+    super_arg = [] if superimpose_phenix else ["superpose_reference_on_target=False"]
     from chimerax.core.commands import StringArg
     args = [exe_path] + optional_args + [
             "--json-filename", "find_reference.json",
             StringArg.unparse(model_file_name),
-        ] + positional_args
+        ] + super_arg + positional_args
     tsafe=session.ui.thread_safe
     logger = session.logger
     tsafe(logger.status, f'Running {exe_path} in directory {temp_dir}')
@@ -313,6 +319,7 @@ def register_command(logger):
         keyword = [('block', BoolArg),
                    ('eff_save_directory', Or(BoolArg, SaveFolderNameArg)),
                    ('phenix_location', OpenFolderNameArg),
+                   ('superimpose_phenix', BoolArg),
                    ('verbose', BoolArg),
                    ('option_arg', RepeatOf(StringArg)),
                    ('position_arg', RepeatOf(StringArg)),
