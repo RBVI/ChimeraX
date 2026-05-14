@@ -310,14 +310,14 @@ def _run_find_ref_subprocess(session, exe_path, optional_args, model_file_name, 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register
     from chimerax.core.commands import (CenterArg, OpenFolderNameArg, BoolArg, NonNegativeFloatArg,
-        Or, RepeatOf, StringArg, SaveFolderNameArg)
+        Or, RepeatOf, StringArg)
     from chimerax.map import MapArg, MapsArg
     from chimerax.atomic import UniqueChainsArg, AtomicStructuresArg
     desc = CmdDesc(
         required = [('chains', UniqueChainsArg),
         ],
         keyword = [('block', BoolArg),
-                   ('eff_save_directory', Or(BoolArg, SaveFolderNameArg)),
+                   ('eff_save_directory', Or(BoolArg, OpenFolderNameArg)),
                    ('phenix_location', OpenFolderNameArg),
                    ('superimpose_phenix', BoolArg),
                    ('verbose', BoolArg),
