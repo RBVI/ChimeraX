@@ -79,6 +79,8 @@ class CoordinateSetSlider(Slider):
         fill_context_menu(menu, self.tool_window, self.structure)
         menu.addSeparator()
         super().fill_context_menu(menu, x, y)
+        action = menu.addAction("Hold Selected Atoms Steady")
+        action.triggered.connect(self._hold_steady_cb)
 
     def models_closed_cb(self, name, models):
       if self.structure in models:
@@ -132,6 +134,11 @@ class CoordinateSetSlider(Slider):
             from chimerax.md_crds.gui import restore_session_info
             restore_session_info(css.tool_window, data['analysis_info'])
         return css
+
+    def _hold_steady_cb(self, *args):
+       atoms = self.structure.atoms
+       sel_atoms = atoms[atoms.selecteds == True]
+       self._player.steady_atoms = sel_atoms
 
 # -----------------------------------------------------------------------------
 #
