@@ -41,8 +41,6 @@ from chimerax.core.models import Surface, ADD_MODELS, REMOVE_MODELS
 from chimerax.core.tools import ToolInstance
 from chimerax.core.settings import Settings
 
-from chimerax.dicom import modality, DICOMVolume
-
 from chimerax.geometry import Place, translation
 
 from chimerax.map import Volume, VolumeSurface, VolumeImage
@@ -61,14 +59,14 @@ from chimerax.ui.icons import get_qt_icon
 from chimerax.segmentations.types import Axis
 from chimerax.segmentations.graphics.cylinder import SegmentationDisk
 from chimerax.segmentations.graphics.sphere import SegmentationSphere
-from chimerax.segmentations.dicom_segmentations import PlanePuckSegmentation, SphericalSegmentation
+from chimerax.segmentations.strategies import PlanePuckSegmentation, SphericalSegmentation
+from chimerax.segmentations.format_manager import get_manager as get_segmentation_format_manager
 from chimerax.segmentations.segmentation import Segmentation, segment_volume
 from chimerax.segmentations.segmentation_tracker import get_tracker
 
 from chimerax.segmentations.settings import get_settings
 from chimerax.segmentations.view.modes import ViewMode
 from chimerax.segmentations.actions import (
-    ImageFormat,
     MouseAction,
     HandAction,
     Handedness,
@@ -542,14 +540,11 @@ class SegmentationTool(ToolInstance):
             ok_to_list = isinstance(m, Volume)
             ok_to_list &= not isinstance(m, VolumeSurface)
             ok_to_list &= not isinstance(m, Segmentation)
-            # This will run over all models which may not have DICOM data...
-            try:
-                if hasattr(m.data, "dicom_data"):
-                    ok_to_list &= bool(m.data.dicom_data)  # SEGs have none
-                    ok_to_list &= not m.data.dicom_data.dicom_series.modality == "SEG"
-                    ok_to_list &= not m.data.reference_data
-            except AttributeError:
-                pass
+            formats = get_segmentation_format_manager(self.session)
+            if formats is not None and formats.is_segmentation_volume(m):
+                ok_to_list = False
+            if getattr(getattr(m, "data", None), "reference_data", None):
+                ok_to_list = False
             return ok_to_list
 
         self.model_menu = ModelMenu(
@@ -825,17 +820,18 @@ class SegmentationTool(ToolInstance):
         self.upper_intensity_spinbox.setValue(int(max_))
 
     def _on_model_added_to_session(self, *args):
-        # If this model is a DICOM segmentation, add it to the list of segmentations
+        # If this model is a stored segmentation (e.g. DICOM SEG) or a Segmentation,
+        # add it to the list of segmentations
         _, model_list = args
         need_to_rebuild_our_list = False
         current_reference_model = self.model_menu.value
+        formats = get_segmentation_format_manager(self.session)
         if model_list:
             for model in model_list:
-                if (
-                    isinstance(model, DICOMVolume)
-                    and model.is_segmentation()
-                    or isinstance(model, Segmentation)
-                ):
+                is_stored_segmentation = (
+                    formats is not None and formats.is_segmentation_volume(model)
+                )
+                if is_stored_segmentation or isinstance(model, Segmentation):
                     if model.reference_volume is current_reference_model:
                         need_to_rebuild_our_list = True
         if need_to_rebuild_our_list:
@@ -1031,9 +1027,9 @@ class SegmentationTool(ToolInstance):
         self.setMarkerRegionsToValue(axis, slice, markers, 0)
 
     def addSegment(self):
-        # When the DICOMVolume creates its segmentation model, it will trigger an
-        # ADD_MODEL event that we listen to above. Concerns are separated here so
-        # that segmentations from files still show up in the menu.
+        # When a format-specific volume creates its segmentation model, it will
+        # trigger an ADD_MODEL event that we listen to above. Concerns are
+        # separated here so that segmentations from files still show up in the menu.
         # TODO: We want to track the number of segmentations created per open model
         current_reference_model = self.model_menu.value
         if not current_reference_model:

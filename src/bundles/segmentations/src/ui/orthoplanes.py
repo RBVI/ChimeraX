@@ -47,6 +47,7 @@ from chimerax.segmentations.segmentation import (
     copy_volume_for_auxiliary_display,
 )
 from chimerax.segmentations.segmentation_tracker import get_tracker
+from chimerax.segmentations.format_manager import get_manager as get_segmentation_format_manager
 
 from chimerax.segmentations.ui.color_key import ColorKeyModel
 
@@ -300,14 +301,11 @@ class PlaneViewer(QWindow):
             ok_to_list = not isinstance(m, VolumeSurface)
             ok_to_list &= not isinstance(m, VolumeImage)
             ok_to_list &= hasattr(m, "data")
-            # This will run over all models which may not have DICOM data...
-            try:
-                if hasattr(m.data, "dicom_data"):
-                    ok_to_list &= bool(m.data.dicom_data)  # SEGs have none
-                    ok_to_list &= not m.data.dicom_data.dicom_series.modality == "SEG"
-                    ok_to_list &= not m.data.reference_data
-            except AttributeError:
-                pass
+            formats = get_segmentation_format_manager(self.session)
+            if formats is not None and formats.is_segmentation_volume(m):
+                ok_to_list = False
+            if getattr(getattr(m, "data", None), "reference_data", None):
+                ok_to_list = False
             ok_to_list &= not isinstance(m, Segmentation)
             ok_to_list &= not isinstance(m, BlobOutlineBox)
             return ok_to_list
@@ -799,25 +797,12 @@ class PlaneViewer(QWindow):
             self.color_key.rgbas_and_labels = rgba_and_labels
 
     def _update_position_label_text(self) -> None:
-        if hasattr(self.view.drawing.parent.data, "dicom_data"):
-            dicom_data = self.view.drawing.parent.data.dicom_data
-            x_spacing, y_spacing = dicom_data.sample_file.PixelSpacing
-            z_spacing = dicom_data.affine[3][3]
-            minimum_value = dicom_data.sample_file.ImagePositionPatient[self.axis]
-            # TODO: Re-do the camera so we don't have to do this +/- conversion anymore
-            # it's starting to get a little ridiculous
-            spacing = 0
-            factor = 1
-            if self.axis == Axis.AXIAL:
-                spacing = z_spacing
-            if self.axis == Axis.CORONAL:
-                spacing = x_spacing
-                factor = -1
-            if self.axis == Axis.SAGITTAL:
-                spacing = y_spacing
-            position = round(factor * (minimum_value + self.pos * spacing), 4)
-            label_text = f"{position:.4f}mm"
-        else:
+        formats = get_segmentation_format_manager(self.session)
+        grid_data = getattr(self.view.drawing.parent, "data", None)
+        label_text = None
+        if formats is not None and grid_data is not None:
+            label_text = formats.physical_position_label(grid_data, self.axis, self.pos)
+        if label_text is None:
             pos = self.pos
             max = self.dimensions[self.axis]
             label_text = f"Slice {pos}/{max}"

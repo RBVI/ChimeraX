@@ -19,7 +19,6 @@ IMPORT_EXCLUDES = {
     "chimerax.boltz.make_ccd_atom_counts_file",  # Boltz install script
     "chimerax.build_structure.process",  # processes Chimera fragment files
     "chimerax.coulombic.create_data",  # creates data.py
-    "chimerax.dicom.scan_dicoms",  # development script
     "chimerax.kvfinder.cmd",  # top-level import of optional dependency
     "chimerax.map.data.memoryuse",  # unported code
     "chimerax.map.filter.square",  # unported code
@@ -70,7 +69,6 @@ _WHEEL_FINE_EXTRA = {
     "chimerax.atomic.widgets",  # imports chimerax.ui
     "chimerax.clashes.gui",  # imports Qt
     "chimerax.core_formats.gui",  # imports Qt
-    "chimerax.dicom.ui",  # imports Qt
     "chimerax.esmfold.pae",  # imports chimerax.alphafold.pae -> chimerax.ui
     "chimerax.hbonds.gui",  # imports Qt
     "chimerax.image_formats.gui",  # imports Qt

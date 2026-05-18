@@ -63,6 +63,13 @@ class SegmentationsBundle(BundleAPI):
             register_seg_cmds(logger)
 
     @staticmethod
+    def init_manager(session, bundle_info, name, **kw):
+        if name == "segmentation formats":
+            from chimerax.segmentations.format_manager import SegmentationFormatManager
+            session.segmentation_formats = SegmentationFormatManager(session, name)
+            return session.segmentation_formats
+
+    @staticmethod
     def run_provider(session, name, mgr, **_):
         if mgr == session.toolbar:
             from chimerax.segmentations.actions import run_toolbar_button

@@ -20,9 +20,7 @@ CYTHON_VERSION = $(shell grep Cython $(TOP)/pyproject.toml  | sed -e 's/ ;.*//' 
 CXSERVICES_VER = 1.2.3
 CXSERVICES_DEPLOYMENT_VER ?= production
 
-# tcia_utils.patch: Defer heavy imports (pandas, plotly, IPython, etc.)
-# so that ChimeraX can use tcia_utils without pulling in those packages.
-PATCHES = tcia_utils.patch tcia_utils_metadata.patch grako.patch
+PATCHES = grako.patch
 ifeq ($(OS),Windows)
 ifneq ($(filter $(MSYSTEM),MSYS MINGW64),)
 PATCHES += openmm_metadata.patch
@@ -98,10 +96,6 @@ endif
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
-	# tcia_utils (a DICOM dependency) pulls in Pandas, but it is patched
-	# so that pandas is not needed. When those patches are upstreamed
-	# and pandas is optional this line can be removed
-	$(APP_PIP) uninstall -y pandas
 ifneq (,$(filter $(OS),Windows Linux))
 ifneq ($(OSARCH),LinuxArm64)
 	# openmm-cuda-12 brings in ~600MB of CUDA dependencies it does not use
@@ -154,7 +148,6 @@ outdated:
 	$(PIP) list --outdated --format=columns
 	@echo ""
 	@echo "Known issues:"
-	@echo "  tcia_utils: heavy deps (pandas, plotly, etc.) are patched out; update patch when upgrading"
 	@echo "  distlib 0.2.7 last version that works with 'toolshed uninstall'"
 	@echo "  grako (3.16.5 is the last version that works [see #3460])"
 	@echo "  lineprofiler 2.1.2, newer versions 3.0 and above require cmake"

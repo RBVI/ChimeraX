@@ -5,15 +5,15 @@ build-backend = "chimerax.bundle_builder.cx_pep517"
 [project]
 name = "ChimeraX-Segmentations"
 license = { text = "Free for non-commercial use" }
-authors= [{name = "UCSF RBVI", email="chimerax@cgl.ucsf.edu"}]
+authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
 description = "Segment any volume data"
 dependencies = [
-	"ChimeraX-Core ~=1.0"
-	, "ChimeraX-DataFormats ~=1.0"
-	, "ChimeraX-Geometry ~= 1.0"
-	, "ChimeraX-MapData ~= 2.0"
-	, "ChimeraX-OpenCommand ~= 1.0"
-  , "ChimeraX-UI >= 1.33"
+  "ChimeraX-Core ~=1.0",
+  "ChimeraX-DataFormats ~=1.0",
+  "ChimeraX-Geometry ~= 1.0",
+  "ChimeraX-MapData ~= 2.0",
+  "ChimeraX-OpenCommand ~= 1.0",
+  "ChimeraX-UI >= 1.33",
 ]
 dynamic = ["classifiers", "requires-python", "version"]
 
@@ -40,6 +40,9 @@ classifiers = ["Development Status :: 2 - Pre-Alpha"]
 [tool.chimerax.initializations.manager]
 bundles = ["ChimeraX-MouseModes", "ChimeraX-UI"]
 
+[tool.chimerax.manager."segmentation formats"]
+autostart = true
+
 [tool.chimerax.tool."Segmentations"]
 category = "Volume Data"
 description = "Interactively segment volumes"
@@ -56,24 +59,24 @@ description = "See medical images in a 4-panel viewer"
 category = "Volume Data"
 description = "Create, edit, or destory segmentations"
 
-[tool.chimerax.provider."Segmentation Controls"]
-manager = "toolbar"
-tab = "Medical Image"
-section = "Segmentation Controls"
-after = "Mouse Mode"
+# [ tool.chimerax.provider."Segmentation Controls"]
+# manager = "toolbar"
+# tab = "Medical Image"
+# section = "Segmentation Controls"
+# after = "Mouse Mode"
 
-[tool.chimerax.provider."toggle mouse modes"]
-manager = "toolbar"
-tab = "Medical Image"
-section = "Segmentation Controls"
-display-name = "Toggle Mouse Modes"
-icon = "mouse_small.svg"
-description = "Toggle mouse modes"
+# [tool.chimerax.provider."toggle mouse modes"]
+# manager = "toolbar"
+# tab = "Medical Image"
+# section = "Segmentation Controls"
+# display-name = "Toggle Mouse Modes"
+# icon = "mouse_small.svg"
+# description = "Toggle mouse modes"
 
-[tool.chimerax.provider."toggle hand modes"]
-manager = "toolbar"
-tab = "Medical Image"
-section = "Segmentation Controls"
-icon = "right_controller_small.svg"
-display-name = "Toggle Hand Modes"
-description = "toggle hand modes"
+# [tool.chimerax.provider."toggle hand modes"]
+# manager = "toolbar"
+# tab = "Medical Image"
+# section = "Segmentation Controls"
+# icon = "right_controller_small.svg"
+# display-name = "Toggle Hand Modes"
+# description = "toggle hand modes"
