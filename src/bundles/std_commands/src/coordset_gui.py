@@ -79,7 +79,7 @@ class CoordinateSetSlider(Slider):
         fill_context_menu(menu, self.tool_window, self.structure)
         menu.addSeparator()
         super().fill_context_menu(menu, x, y)
-        action = menu.addAction("Hold Selected Atoms Steady")
+        action = menu.addAction("Hold Selection Steady")
         action.triggered.connect(self._hold_steady_cb)
 
     def models_closed_cb(self, name, models):
