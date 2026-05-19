@@ -265,8 +265,7 @@ else:
             self.entry_area.setHidden(not sel)
 
 def create_menu_entry(session):
-    # only folder format right now is DICOM, so use hard coded menu entry for now
-    session.ui.main_window.add_menu_entry(["File"], "Open DICOM Folder...",
+    session.ui.main_window.add_menu_entry(["File"], "Open Folder...",
         lambda *args, ses=session: show_open_folder_dialog(ses), tool_tip="Open folder data",
             insertion_point=False)
     session.ui.main_window.add_menu_entry(["File"], "&Fetch By ID...",

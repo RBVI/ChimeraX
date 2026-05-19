@@ -14,17 +14,6 @@ from enum import IntEnum
 from chimerax.core.commands import run
 
 
-class ImageFormat(IntEnum):
-    DICOM = 0
-    NIFTI = 1
-    NRRD = 2
-
-    def __str__(self):
-        if self.name == "NIFTI":
-            return "NIfTI"
-        return self.name
-
-
 class MouseAction(IntEnum):
     NONE = 0
     ADD_TO_SEGMENTATION = 1

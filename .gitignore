@@ -223,7 +223,6 @@ src/bundles/crosslinks/pyproject.toml
 src/bundles/crystal/pyproject.toml
 src/bundles/crystal_contacts/pyproject.toml
 src/bundles/data_formats/pyproject.toml
-src/bundles/dicom/pyproject.toml
 src/bundles/dist_monitor/pyproject.toml
 src/bundles/dock_prep/pyproject.toml
 src/bundles/dssp/pyproject.toml
@@ -263,7 +262,6 @@ src/bundles/mcopy/pyproject.toml
 src/bundles/mcp_server/src/node_modules
 src/bundles/mcp_server/src/package-lock.json
 src/bundles/md_crds/pyproject.toml
-src/bundles/medical_toolbar/pyproject.toml
 src/bundles/meeting/pyproject.toml
 src/bundles/mlp/pyproject.toml
 src/bundles/model_series/pyproject.toml
@@ -280,8 +278,6 @@ src/bundles/movie/pyproject.toml
 src/bundles/mutation_scores/pyproject.toml
 src/bundles/nmrstar/pyproject.toml
 src/bundles/neuron/pyproject.toml
-src/bundles/nifti/pyproject.toml
-src/bundles/nrrd/pyproject.toml
 src/bundles/nucleotides/pyproject.toml
 src/bundles/open_command/pyproject.toml
 src/bundles/orthopick/pyproject.toml

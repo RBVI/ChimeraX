@@ -29,7 +29,7 @@ on:
         required: true
 
 env:
-  MACOSX_DEPLOYMENT_TARGET: 12
+  MACOSX_DEPLOYMENT_TARGET: 13
 
 jobs:
   build-arm-macos:
