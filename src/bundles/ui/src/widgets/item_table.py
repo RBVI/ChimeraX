@@ -622,7 +622,7 @@ class ItemTable(QTableView):
             self._arrange_col_checkboxes()
         scroll_to = None
         if session_info:
-            self.process_session_info(session_info)
+            scroll_to = self.process_session_info(session_info)
 
         self.selectionModel().selectionChanged.connect(self._relay_selection_change)
         for i, col in enumerate(self._columns):
@@ -636,7 +636,13 @@ class ItemTable(QTableView):
             self.resizeRowsToContents()
 
         if scroll_to is not None:
-            QTimer.singleShot(10, lambda s=self, i=scroll_to: s.scrollTo(i))
+            # guard against table being destroyed immediately after creation...
+            def guarded_scroll_to(self=self, st=scroll_to):
+                try:
+                    self.scrollTo(st)
+                except RuntimeError:
+                    pass
+            QTimer.singleShot(10, guarded_scroll_to)
 
     def process_session_info(self, session_info):
         # normally called by launch(), but sometimes you have already launched the table, so...
@@ -645,6 +651,7 @@ class ItemTable(QTableView):
             col_num, order = sort_info
             self.sortByColumn(col_num, qt_enum_from_int(Qt.SortOrder, order))
         sel_model = self.selectionModel()
+        scroll_to = None
         for i in selected:
             index = self._table_model.index(i,0)
             if self._allow_user_sorting:
@@ -658,6 +665,7 @@ class ItemTable(QTableView):
             header_info, *version_args = version_args
             from Qt.QtCore import QByteArray
             self.horizontalHeader().restoreState(QByteArray(header_info))
+        return scroll_to
 
     def scroll_to(self, datum):
         """ Scroll the table to ensure that the given data item is visible """
