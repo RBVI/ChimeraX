@@ -17,7 +17,7 @@ from chimerax.core.commands import (
 from chimerax.core.errors import UserError
 from chimerax.map import Volume
 
-from chimerax.segmentations.dicom_segmentations import (
+from chimerax.segmentations.strategies import (
     PlanePuckSegmentation,
     SphericalSegmentation,
 )

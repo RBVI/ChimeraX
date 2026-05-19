@@ -60,9 +60,6 @@ bundle_blacklist = set([
     , "webservices" # needs cxservices
     , "blastprotein" # needs webservices
     , "build_structure" # needs Qt
-    , "dicom" # tries to import its .ui submodule in __init__
-    , "nifti" # tries to import dicom
-    , "nrrd" # tries to import dicom
     , "structcomp"  # ChimeraX command script
     # Not going in the library, but part of test suite for GUI ChimeraX
     , "ui" # tries to import Qt
@@ -119,7 +116,6 @@ fine_blacklist = set([
     , "chimerax.atomic.md_crds.dcd.MDToolsMarch97.md_tests"  # test code
     , "chimerax.build_structure.process"  # processes Chimera fragment files
     , "chimerax.coulombic.create_data"  # creates data.py
-    , "chimerax.dicom.scan_dicoms"  # development script
     , "chimerax.map.data.memoryuse" # unported code
     , "chimerax.map.filter.square"  # unported code
     , "chimerax.map.series.align"   # unported code

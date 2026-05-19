@@ -103,91 +103,36 @@ class SegmentationTracker:
 
 def on_model_added_to_session(session, _, models):
     tracker = get_tracker()
-    # TODO: Make individual bundles handle unparented segmentations
-    # themselves... convert to Provider-Manager
+    from chimerax.segmentations.format_manager import get_manager
+    formats = get_manager(session)
     for model in models:
         # Case 1: I've opened a model, then a segmentation from a file
         if isinstance(model, Segmentation):
             if model.reference_volume is not None:
                 tracker.add_segmentation(model)
+                continue
+            ref = formats.find_reference_volume_for(model) if formats else None
+            if ref is not None:
+                model.reference_volume = ref
+                tracker.add_segmentation(model)
             else:
-                from chimerax.dicom import DicomGrid
-                from pydicom import Sequence, DataElement
-
-                if isinstance(model.data, DicomGrid):
-                    # We are all but guaranteed to have a sample file if the segmentation was read in from
-                    # a file, right...
-                    sample_file = model.data.dicom_data.sample_file
-                    ref_seq = sample_file.get("ReferencedSeriesSequence")
-                    if ref_seq is None or (
-                        issubclass(type(ref_seq), Sequence) and len(ref_seq) == 0
-                    ):
-                        session.logger.warning(
-                            "Segmentation has no referenced series sequence, so it is impossible to associate it with another series. You may reparent it manually if desired."
-                        )
-                        tracker.add_segmentation(model)
-                        return
-                    ref_series_id = ref_seq[0].get("SeriesInstanceUID", "")
-                    if isinstance(ref_series_id, DataElement):
-                        ref_series_id = ref_series_id.value
-                    # Because all DICOM files create the DICOM hierarchy, this segmentation definitely has a
-                    # parent study, and if any series in that study was opened before and is this segmentation's
-                    # series, we can detect that.
-                    for series_id, models in model.parent.series_models.items():
-                        if series_id == ref_series_id:
-                            model.reference_volume = models[0]
-                            tracker.add_segmentation(model)
-                            return
-                    session.logger.warning(
-                        "Added a segmentation before its reference volume; it is unparented for now and will not be shown in the tool but is addressable by the command."
-                    )
-                    tracker.add_segmentation(model)
-                else:
-                    session.logger.warning(
-                        "The segmentations bundle does not know how to associate segmentations of this type to their parent volumes. You may reparent them manually if desired."
-                    )
-        # Case 2: I've opened a segmentation, then a model
-        else:
-            from chimerax.dicom import DicomGrid
-
-            if isinstance(model, Volume):
-                # tap the tracker's dictionary to add this volume as a key
-                _ = tracker.segmentations_for_volume(model)
-                if len(tracker._unparented_segmentations) > 0:
-                    if isinstance(model.data, DicomGrid):
-                        from pydicom import Sequence, DataElement
-
-                        series_id = model.data.dicom_data.sample_file.get(
-                            "SeriesInstanceUID", None
-                        )
-                        if series_id is None:
-                            session.logger.warning(
-                                "Opened a DICOM volume with no SeriesInstanceUID; it cannot be associated with any open segmentations."
-                            )
-                            return
-                        for segmentation in tracker._unparented_segmentations:
-                            if isinstance(segmentation.data, DicomGrid):
-                                sample_file = segmentation.data.dicom_data.sample_file
-                                ref_seq = sample_file.get("ReferencedSeriesSequence")
-                                if ref_seq is None or (
-                                    issubclass(type(ref_seq), Sequence)
-                                    and len(ref_seq) == 0
-                                ):
-                                    continue
-                                ref_series_id = ref_seq[0].get("SeriesInstanceUID", "")
-                                if isinstance(ref_series_id, DataElement):
-                                    ref_series_id = ref_series_id.value
-                                if ref_series_id == series_id:
-                                    segmentation.reference_volume = model
-                                    tracker._unparented_segmentations.remove(
-                                        segmentation
-                                    )
-                                    tracker.add_segmentation(segmentation)
-                                    return
-                        # If we haven't returned by now, we have a volume with no open segmentations
-                        session.logger.warning(
-                            "Newly opened volume did not appear to be associated to any open segmentations."
-                        )
+                session.logger.warning(
+                    "Added a segmentation without a determinable reference volume; it is unparented for now and will not be shown in the tool but is addressable by the command. You may reparent it manually if desired."
+                )
+                tracker.add_segmentation(model)
+        # Case 2: I've opened a model, see if any orphan segmentations belong to it
+        elif isinstance(model, Volume):
+            # tap the tracker's dictionary to add this volume as a key
+            _ = tracker.segmentations_for_volume(model)
+            if not tracker._unparented_segmentations or formats is None:
+                continue
+            matched = formats.find_orphans_for(
+                model, list(tracker._unparented_segmentations)
+            )
+            for segmentation in matched:
+                segmentation.reference_volume = model
+                tracker._unparented_segmentations.discard(segmentation)
+                tracker.add_segmentation(segmentation)
 
 
 def on_model_removed_from_session(session, _, models):

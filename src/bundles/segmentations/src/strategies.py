@@ -3,8 +3,7 @@ from typing import Optional
 import numpy as np
 
 from chimerax.segmentations.segmentation import SegmentationStrategy
-
-from chimerax.dicom.types import Axis
+from chimerax.segmentations.types import Axis
 
 
 class PlanePuckSegmentation(SegmentationStrategy):

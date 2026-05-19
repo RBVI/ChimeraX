@@ -1070,6 +1070,27 @@ async def run_command(command: str, session_id: Optional[int] = None) -> str:
     - log metadata #1 - show metadata for model #1, including the corresponding map EMDB ID for atomic models from the PDB
     - measure mapvalue #2 atoms :DRG - measure the values of map #2 at atoms of residue DRG (use this to pick an isocontour level when showing a map surface or mesh)
 
+    Command ordering and the `sel` keyword:
+    Many ChimeraX commands operate on the current selection (`view sel`,
+    `color sel red`, `style sel stick`, `clashes sel`, `zone sel`, …). These
+    are stateful — they consume whatever was selected by the most recent
+    `select` command.
+
+    IMPORTANT: do NOT emit `select X` and a `... sel ...` command in the same
+    assistant turn. The host (e.g. VS Code Copilot) dispatches tool calls
+    from one turn in parallel, so the `sel` command may run before `select`
+    lands and will operate on the previous (or empty) selection. The visible
+    symptom is "the view didn't move" / "the wrong atoms got coloured".
+
+    Prefer explicit atomspecs whenever possible:
+        view #1/B:903@HD1,CD1            # instead of select + view sel
+        color #1/B:903 red               # instead of select + color sel red
+        style #1/A:100-105 stick         # instead of select + style sel stick
+
+    If `sel` is unavoidable, issue commands sequentially: emit `select X`
+    alone, wait for the result, then emit the `... sel ...` command in the
+    next turn.
+
     Args:
         command: ChimeraX command to execute (e.g., 'open 1gcn', 'color #1/A red')
         session_id: ChimeraX session port (defaults to primary session)

@@ -238,7 +238,7 @@ class CoordinateSetPlayer:
     self.iend = iend
     self.istep = istep
     self.inext = None
-    self.steady_atoms = steady_atoms
+    self._steady_atoms = steady_atoms
     self.pause_frames = pause_frames
     self.loop = loop
     self.bounce = bounce
@@ -321,6 +321,16 @@ class CoordinateSetPlayer:
     m = self.structure
     tf = self.steady_transform(last_cs).inverse() * self.steady_transform(m.active_coordset_id)
     m.position = m.position * tf
+
+  @property
+  def steady_atoms(self):
+    return self._steady_atoms
+
+  @steady_atoms.setter
+  def steady_atoms(self, steady_atoms):
+    self._steady_atoms = steady_atoms
+    self._steady_coords = None
+    self._steady_transforms = {}
 
   def steady_transform(self, cset):
 

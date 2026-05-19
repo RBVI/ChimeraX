@@ -174,7 +174,7 @@ def cmd_kvfinder(session, structures=None, *, box_atoms=None, box_extent=None, b
                         continue
                     z = origin[2] + zi * grid_spacing
                     cav_s, r, rgba = model_lookup[val]
-                    a = add_atom("Z%d" % cav_s.num_atoms, "He", r, numpy.array((x,y,z)))
+                    a = add_atom(_cav_point_name(cav_s.num_atoms), "He", r, numpy.array((x,y,z)))
                     a.kvfinder_depth = depth
         for cav_s, r, rgba in model_lookup.values():
             cav_s.overall_color = [255.0 * c for c in rgba]
@@ -229,6 +229,29 @@ def cmd_kvfinder(session, structures=None, *, box_atoms=None, box_extent=None, b
         session.logger.status("Find Cavities for %s: done" % s)
 
     return return_values
+
+def _cav_point_name(num_atoms):
+    # try to do better job of fitting "atom" name uniquely into 4 columns so it works better in PDB format
+    leading = 'Z'
+    while True:
+        cur_num = num_atoms
+        suffix = ''
+        while len(suffix) < 4:
+            digit = cur_num % 36
+            if digit < 10:
+                char = chr(ord('0') + digit)
+            else:
+                char = chr(ord('A') + digit - 10)
+            suffix = char + suffix
+            cur_num = cur_num // 36
+            if cur_num == 0:
+                break
+        if len(suffix) < 4:
+            return leading + suffix
+        if leading == 'A':
+            return 'ZZZZ'
+        leading = chr(ord(leading) - 1)
+
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, Float3Arg, FloatArg, EnumOf, BoolArg
