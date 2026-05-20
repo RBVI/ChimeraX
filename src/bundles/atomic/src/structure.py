@@ -1617,7 +1617,7 @@ class AtomicStructure(Structure):
                             if m.name.endswith(" group"):
                                 do_log = self.id[-1] == 1
                             break
-                snfg_command(self.session)
+                snfg_command(self.session, log=do_log)
                 if do_log:
                     self.session.logger.info('You can remove SNFG depictions with the command'
                         ' <a href="cxcmd:snfg hide">snfg hide</a>', is_html=True)
