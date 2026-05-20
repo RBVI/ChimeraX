@@ -1067,7 +1067,7 @@ def get_snfg_model(session, structure, create=True):
 
 
 def show_snfg(session, structures=None, size=DEFAULT_SIZE, replace=True,
-               show_atoms=False):
+               show_atoms=False, log=True):
     """
     Show SNFG symbols for carbohydrate residues.
 
@@ -1084,6 +1084,8 @@ def show_snfg(session, structures=None, size=DEFAULT_SIZE, replace=True,
     show_atoms : bool
         If True, keep atoms visible with symbols shown inside rings.
         If False (default), hide sugar atoms.
+    log : bool
+        If True (default), log a summary message to the session logger.
     """
     if structures is None:
         from chimerax.atomic import all_atomic_structures
@@ -1124,10 +1126,11 @@ def show_snfg(session, structures=None, size=DEFAULT_SIZE, replace=True,
         # with the scene system; alpha encodes whether it's visually present.
         snfg_model.update_connections(visible=not show_atoms)
 
-    session.logger.info(f"Showing SNFG symbols for {total_shown} carbohydrate residues")
+    if log:
+        session.logger.info(f"Showing SNFG symbols for {total_shown} carbohydrate residues")
 
 
-def hide_snfg(session, structures=None):
+def hide_snfg(session, structures=None, log=True):
     """
     Hide SNFG symbols and restore atom visibility.
 
@@ -1137,6 +1140,8 @@ def hide_snfg(session, structures=None):
         ChimeraX session.
     structures : list of AtomicStructure, optional
         Structures to process. If None, use all open structures.
+    log : bool
+        If True (default), log a summary message to the session logger.
     """
     if structures is None:
         from chimerax.atomic import all_atomic_structures
@@ -1154,18 +1159,19 @@ def hide_snfg(session, structures=None):
             snfg_model.show_atoms()
             snfg_model.display = False
 
-    session.logger.info(f"Hidden SNFG symbols for {total_hidden} carbohydrate residues")
+    if log:
+        session.logger.info(f"Hidden SNFG symbols for {total_hidden} carbohydrate residues")
 
 
 def snfg_command(session, action='show', structures=None, size=DEFAULT_SIZE,
-                 atoms=True):
+                 atoms=True, log=True):
     """
     Command handler for 'snfg' command.
     """
     if action == 'show':
-        show_snfg(session, structures, size, show_atoms=atoms)
+        show_snfg(session, structures, size, show_atoms=atoms, log=log)
     elif action == 'hide':
-        hide_snfg(session, structures)
+        hide_snfg(session, structures, log=log)
     else:
         from chimerax.core.errors import UserError
         raise UserError(f"Unknown action '{action}'. Use 'show' or 'hide'.")
@@ -1182,6 +1188,7 @@ def register_command(logger):
             ('structures', AtomicStructuresArg),
             ('size', FloatArg),
             ('atoms', BoolArg),
+            ('log', BoolArg),
         ],
         synopsis='Show or hide SNFG glycan symbols'
     )
