@@ -1599,6 +1599,28 @@ class AtomicStructure(Structure):
                     display_atoms = display_atoms.filter(display_atoms.idatm_types != "HC")
                 display_atoms.displays = True
                 ribbonable.ribbon_displays = True
+            # make glycan depictions if applicable
+            # look for inter-residue bonds that aren't in chains
+            bonds = self.bonds
+            a1s, a2s = bonds.atoms
+            inter_res = bonds.filter(a1s.residues.pointers != a2s.residues.pointers)
+            ir_a1s, ir_a2s = inter_res.atoms
+            ir_a1s_res = ir_a1s.residues
+            ir_a2s_res = ir_a2s.residues
+            if len(ir_a1s_res) > len(ir_a1s_res.chains) or len(ir_a2s_res) > len(ir_a2s_res.chains):
+                # some atom's chains are None; possibly glycans
+                from chimerax.snfg.snfg import snfg_command
+                do_log = True
+                if len(self.id) > 1:
+                    for m in self.session.models:
+                        if m.id == self.id[:-1]:
+                            if m.name.endswith(" group"):
+                                do_log = self.id[-1] == 1
+                            break
+                snfg_command(self.session, log=do_log)
+                if do_log:
+                    self.session.logger.info('You can remove SNFG depictions with the command'
+                        ' <a href="cxcmd:snfg hide">snfg hide</a>', is_html=True)
         elif style == "medium polymer":
             lighting = {'preset': 'full'}
             if self.num_atoms >= MULTI_SHADOW_THRESHOLD:
