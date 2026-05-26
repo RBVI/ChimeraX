@@ -76,14 +76,9 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
     session.logger.info("Match\N{RIGHTWARDS ARROW}Align cutoff: %s, in column if within cutoff of: %s"
         % (cutoff_text, column_criterion))
 
-    from .make_alignment import match_to_align
-    # C++ layer cannot instantiate StructureSeqs, so send in copies that will be modified
-    from copy import copy
     ordered = sorted(chains, key=lambda seq: seq.structure.id)
-    aligned = [copy(chain) for chain in ordered]
-    for aseq in aligned:
-        aseq.name = aseq.structure.name + " chain " + aseq.chain_id
-    match_to_align(session, aligned, cutoff_distance, column_criterion, gap_char, circular)
+    from .make_alignment import match_to_align
+    aligned = match_to_align(session, ordered, cutoff_distance, column_criterion, gap_char, circular)
     full_cols = fully_populated(aligned)
     session.logger.info("%d fully populated columns" % len(full_cols))
     if alignment_id is None:
