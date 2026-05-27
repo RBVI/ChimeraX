@@ -58,14 +58,15 @@ from the <a href="https://www.science.org/doi/10.1126/science.adg7492" target="_
 Opening a mutation scores file automatically shows the
 <a href="../tools/mutationscores.html"><b>Mutation Scores</b></a> tool.
 <a name="associated"></a>
-By default, mutation scores are automatically <b><i>associated</i></b> with each
-open structure chain that has exactly the same sequence and residue
-numbering (as in the mutation data) the first time some analysis action
-is performed, such as interacting with a plot.
+By default, mutation scores are automatically <b><i>associated</i></b> with
+each structure chain that has exactly the same sequence and residue
+numbering (as in the mutation data) when the mutation data or structures
+are opened.
 However, specific structure chains to associate can be designated with the
 <a href="../commands/open.html#chains"><b>chains</b></a> option of the
 <a href="../commands/open.html"><b>open</b></a> command
-at the time of opening the mutation data, or later (after opening the data)
+at the time of opening the mutation data, or the associations
+can be adjusted manually later (after opening the files)
 with <a href="../commands/mutationscores.html#structure"><b>mutationscores
 structure</b></a>. 
 </p>
@@ -117,14 +118,17 @@ are chosen) as a <a href="#scatterplot">scatterplot</a>
 <p>
 A heatmap shows mutation score values with colors. By default,
 low values are blue, those near the synonymous mean are white, 
-and high values are red. Black squares indicate missing data.
+and high values are red. Black squares indicate missing data,
+and black horizontal lines are drawn between different scores 
+in the same heatmap.
 </p><p>
 Residue positions along the chain are plotted on the horizontal axis, and 
 amino acid types along the vertical axis.
-Pausing the cursor over the heatmap reports the mutation name,
-score name, and value in the status area next to the <b>Help</b> button.
+Moving the cursor over the heatmap reports the mutation name,
+score name, and value in a pop-up balloon (transiently) and in
+the status area next to the <b>Help</b> button.
 </p><p>
-Clicking <b>Options</b> shows/hides several settings; it may be necessary to
+Clicking <b>Options</b> shows/hides several settings;
 press return after entering a new value to update the plot:
 </p>
 <ul>
@@ -164,10 +168,11 @@ if <a href="#normalize"><b>Normalize scores</b></a> is <b>on</b>)
 <b>Normalize scores</b> (default <b>on</b>) 
 &ndash; whether to express scores in standard deviations above (positive) 
 or below (negative) the mean, with mean and standard deviation computed 
-separately for each score using synonymous mutations only; otherwise, 
+separately for each score using synonymous mutations only, or if there are
+no synonymous mutations, all mutations; otherwise, 
 the raw values from the data file will be used.
-Only a single colormap is allowed for the whole heatmap, so if
-raw scores are used, all of the scores should have comparable ranges.
+Only a single colormap is allowed for the whole heatmap, so if raw scores 
+are used, all of the scores in the heatmap should have comparable ranges.
 </li><li><b>Subtract fit</b> (default <b>off</b>)
 &ndash; all scores can have a linear fit using a specified score subtracted.
 For instance, for a membrane receptor with scores representing activity in 
@@ -176,7 +181,7 @@ surface expression score can be subtracted to compensate for different
 abundance of the receptor on the cell membrane.
 A least-squares fit is used between drug and surface score.
 </li><li><b>Gray missing structure residues</b> (default <b>off</b>)
-&ndash; whether to use the specified color 
+&ndash; whether to modulate the heatmap cell color with the specified color 
 (default <b>#CCCCCC</b>
 <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td bgcolor="#CCCCCC" width="10px" title="#CCCCCC"></td></tr></tbody></table>)
@@ -184,8 +189,8 @@ for heatmap cells where
 the <a href="#associated">associated</a> atomic structure is missing residues.
 If multiple chains are associated, then mutations are grayed if none of the 
 chains have the mutated residue.
-</li><li><b>Drag box to color structure</b> (default <b>on</b> with color
-<b>yellow</b>
+</li><li><b>Drag box to select or color structure</b>
+(default <b>color structure</b> with color <b>yellow</b>
 <table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle"><tbody><tr>
 <td bgcolor="yellow" width="10px" title="yellow"></td></tr></tbody></table>
 and <b>linewidth</b> of <b>3</b>)
@@ -195,7 +200,11 @@ By holding the <b>Shift</b> key, multiple boxes can be drawn on
 the heatmap, and they can be different colors. Clicking on a mutation
 will color a single residue, and clicking outside the heatmap 
 (such as on the axes) will clear the boxes and revert the residues 
-to their original colors.
+to their original colors. If <b>select</b> is enabled,
+dragging a box clears the current <a href="../selection.html">selection</a>
+and selects the associated residues.
+If the <b>Shift</b> key is held while dragging, the residues are 
+added to the selection instead of replacing it. 
 </li><li><b>Hover colors structure residue</b> (default <b>off</b>)
 &ndash; whether placing the mouse over the heatmap colors the
 <a href="#associated">associated</a> structure residues the specified color
@@ -410,7 +419,10 @@ menu in this dialog and the <b>filter mutations</b> menu in the
 <b>Mutation Structure Coloring</b> dialog.
 If the <b>low</b> were checked instead of <b>high</b>, values lower than
 the specified threshold (number of standard deviations from the mean)
-would be included instead.
+would be included instead. Both <b>low</b> and <b>high</b> can be checked
+for the same score to limit it at both extremes; in that case, the
+threshold values should be adjusted from the defaults so that the lower
+limit is below the upper limit.
 </p><p>
 The single value per position can be computed as one of:
 </p>
@@ -443,8 +455,14 @@ Choices of <b>palette</b> for coloring by mutation scores include:
 </li></ul>
 <p>
 The colors are in low &rarr; high value order in the names above, and
-the thresholds are placed to span four standard deviations centered on the mean.
+the thresholds are placed to span four standard deviations centered on the mean:
 </p>
+<ul>
+<li>at -2 and +2 standard deviations from the mean for two-color palettes</li>
+<li>at -2, -2/3, +2/3, and +2 standard deviations from the mean
+for four-color palettes</li>
+</ul>
+<p>
 Clicking <b>Adjust colors</b> shows the
 <a href="render.html"><b>Render by Attribute</b></a> tool
 for interactively moving the thresholds and/or changing their colors.
@@ -469,6 +487,6 @@ residue number, residue type, score1-name, score2-name, ...
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2026</address>
+May 2026</address>
 
 </body></html>

@@ -192,10 +192,11 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
             _dm_cleanup.append(aligned)
     return score, gapped_ref, gapped_match
 
-def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend, *, cutoff_distance=None,
-        show_alignment=defaults['show_alignment'], align=align, domain_residues=(None, None), bring=None,
-        verbose=defaults['verbose_logging'], always_raise_errors=False, report_matrix=False, rmsd=False,
-        log_parameters=defaults['log_parameters'], **align_kw):
+def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend, *, align=align,
+        always_raise_errors=False, bring=None, cutoff_distance=None, do_rmsd_attr=False,
+        domain_residues=(None, None), log_parameters=defaults['log_parameters'],
+        report_matrix=False, show_alignment=defaults['show_alignment'], verbose=defaults['verbose_logging'],
+        **align_kw):
     """Superimpose structures based on sequence alignment
 
        Returns a list of dictionaries, one per chain pairing.  The dictionaries are:
@@ -553,7 +554,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 s1.name, s1.structure.id_string, s2.name,
                 s2.structure.id_string, score), log=(verbose is not None))
             skip = set()
-            if show_alignment or rmsd:
+            if show_alignment or do_rmsd_attr:
                 for s in [s1,s2]:
                     if hasattr(s, '_dm_rebuild_info'):
                         residues = s.residues
@@ -575,12 +576,23 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                             residues[i-offset] = r
                             skip.add(r)
                         s.bulk_set(residues, characters)
-                with show_context():
-                    alignment = session.alignments.new_alignment([s1,s2], None, auto_associate=None,
-                        name="MatchMaker alignment", viewer=show_alignment)
-                alignment.auto_associate = True
-                for hdr in alignment.headers:
-                    hdr.shown = hdr.ident == "rmsd"
+                private_alignment = do_rmsd_attr and not show_alignment
+                prev_silent = session.silent
+                session.silent = private_alignment
+                try:
+                    with show_context():
+                        alignment = session.alignments.new_alignment([s1,s2], None, auto_associate=None,
+                            name="MatchMaker alignment", viewer=show_alignment)
+                    alignment.auto_associate = True
+                    for hdr in alignment.headers:
+                        hdr.shown = hdr.ident == "rmsd"
+                    if private_alignment:
+                        session.alignments.destroy_alignment(alignment)
+                except Exception as e:
+                    session.silent = prev_silent
+                    raise e
+                finally:
+                    session.silent = prev_silent
             residues1 = s1.residues
             residues2 = s2.residues
             for i in range(len(s1)):
@@ -628,8 +640,9 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         from chimerax.atomic import Atoms
         initial_match, initial_ref = Atoms(match_atoms), Atoms(ref_atoms)
         try:
-            final_match, final_ref, rmsd, full_rmsd, xf = align.align(session, initial_match, initial_ref,
-                cutoff_distance=cutoff_distance, log_info=(verbose is not None), report_matrix=report_matrix)
+            final_match, final_ref, core_rmsd, full_rmsd, xf = align.align(session, initial_match,
+                initial_ref, cutoff_distance=cutoff_distance, log_info=(verbose is not None),
+                report_matrix=report_matrix)
         except align.IterationError:
             if always_raise_errors:
                 raise
@@ -644,7 +657,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             "final match atoms": final_match,
             "final ref atoms": final_ref,
             "full RMSD": full_rmsd,
-            "final RMSD": rmsd,
+            "final RMSD": core_rmsd,
             "transformation matrix": xf,
             "aligned ref seq": s1,
             "aligned match seq": s2,
@@ -773,7 +786,7 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
     ss_matrix[('H', 'O')] = ss_matrix[('O', 'H')] = float(mat_h_o)
     ss_matrix[('S', 'O')] = ss_matrix[('O', 'S')] = float(mat_s_o)
     ret_vals = match(session, pairing, match_items, matrix, alg, gap_open, gap_extend,
-        ss_fraction=ss_fraction, ss_matrix=ss_matrix, rmsd=rmsd,
+        ss_fraction=ss_fraction, ss_matrix=ss_matrix, do_rmsd_attr=rmsd,
         cutoff_distance=cutoff_distance, show_alignment=show_alignment, bring=bring,
         domain_residues=(ref_atoms.residues.unique(), match_atoms.residues.unique()),
         gap_open_helix=hgap, gap_open_strand=sgap, gap_open_other=ogap, report_matrix=report_matrix,
