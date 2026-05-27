@@ -42,6 +42,8 @@ class MinimizeTool(ToolInstance):
         from chimerax.atomic.widgets import AtomicStructureMenuButton as ASMB
         self.structure_button = ASMB(session)
         layout.addWidget(self.structure_button)
+        self.sel_restrict_button = QCheckBox("Also restrict to selection")
+        layout.addWidget(self.sel_restrict_button, alignment=Qt.AlignCenter)
 
         steps_layout = QHBoxLayout()
         steps_layout.setSpacing(0)
@@ -97,6 +99,8 @@ class MinimizeTool(ToolInstance):
                 from chimerax.core.errors import UserError
                 raise UserError("No structure to minimize")
             cmd = f"minimize {struct.atomspec}"
+            if self.sel_restrict_button.isChecked():
+                cmd += " & sel"
             if self.convergence_button.isChecked():
                 self.settings.steps = 0
             else:
