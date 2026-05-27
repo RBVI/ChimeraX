@@ -25,28 +25,42 @@
 from chimerax.core.errors import UserError, LimitationError
 from chimerax.add_charge import ChargeMethodArg
 
-def cmd_minimize(session, structure, *, dock_prep=True, live_updates=True, log_energy=False,
+def cmd_minimize(session, atoms, *, dock_prep=True, live_updates=True, log_energy=False,
         max_steps=None, **kw):
     if 'del_missing_backbone' not in kw:
         kw['del_missing_backbone'] = True
-    if structure is None:
-        from chimerax.atomic import all_atomic_structures
+    from chimerax.atomic import all_atomic_structures, Atoms
+    if atoms is None:
         available = all_atomic_structures(session)
         if len(available) == 0:
             raise UserError("No structures open")
         elif len(available) == 1:
             structure = available[0]
+            atoms = available[0].atoms
         else:
             raise UserError("Multiple structures open")
+    elif not atoms:
+        raise UserError("No atoms specified for minimization")
+    elif len(atoms.by_structure) > 1:
+        raise UserError("Specify atoms in only one structure for minimization")
+    else:
+        structure = atoms[0].structure
+    # Since dock prep may add hydrogens, need to let minimize know what the fixed atoms
+    # are at this point (and use Atoms collections in case dock prep deletes some)
+    atoms_set = set(atoms)
+    if len(atoms_set) == structure.num_atoms:
+        fixed = Atoms([])
+    else:
+        fixed = Atoms([a for a in structure.atoms if a not in atoms_set])
     if dock_prep:
         from chimerax.dock_prep import dock_prep_caller
         dock_prep_caller(session, [structure], memorize_name="minimization", nogui=True,
-            callback=lambda ses=session, struct=structure, updates=live_updates, log=log_energy,
-            steps=max_steps: _minimize(ses, struct, updates, log, steps), **kw)
+            callback=lambda ses=session, struct=structure, fixed=fixed, updates=live_updates, log=log_energy,
+            steps=max_steps: _minimize(ses, struct, fixed, updates, log, steps), **kw)
     else:
-        _minimize(session, structure, live_updates, log_energy, max_steps)
+        _minimize(session, structure, fixed, live_updates, log_energy, max_steps)
 
-def _minimize(session, structure, live_updates, log_energy, max_steps):
+def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_steps):
     from openmm.app import Topology, ForceField, element, HBonds, Simulation
     from openmm.unit import angstrom, nanometer, Quantity
     from openmm import LangevinIntegrator, LocalEnergyMinimizer, vec3, Context, MinimizationReporter
@@ -94,6 +108,20 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
     from chimerax.addh import bond_with_H_length
     NH_len = CO_len = PO_len = None
     filter = []
+    # OpenMM doesn't allow constraints between massless (fixed) and massful atoms (mobile) atoms,
+    # hydrogens have distance constraints to their heavy atoms, so also hydrogens bonded to
+    # fixed atoms massless
+    if fixed_atoms:
+        # remove hydrogens from fixed set in case only the heavy atoms were designated as mobile;
+        # needed fixed hydrogens will be added next
+        fixed_heavys = fixed_atoms.filter(fixed_atoms.element_numbers > 1)
+        fixed_set = set(fixed_heavys)
+        neighbors = fixed_heavys.neighbors
+        hyds = neighbors.filter(neighbors.element_numbers == 1)
+        fixed_set.update(hyds)
+    else:
+        fixed_set = set()
+    fixed_indices = []
     name_lookup = {}
     for r in structure.residues:
         c = r.chain
@@ -117,6 +145,8 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
                 atom_name = a.name + str(i)
             atom_names.add(atom_name)
             lookup[atom_name] = a
+            if a in fixed_set:
+                fixed_indices.append(top.getNumAtoms())
             atoms[a] = top.addAtom(atom_name, element.Element.getBySymbol(a.element.name), mm_r,
                                     a.serial_number)
             coords.append(Quantity(vec3.Vec3(*a.coord), angstrom))
@@ -230,6 +260,8 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
 
         forcefield.registerResidueTemplate(template)
     system = forcefield.createSystem(top, nonbondedCutoff=1*nanometer, constraints=HBonds)
+    for fi in fixed_indices:
+        system.setParticleMass(fi, 0.0)
     integrator = make_integrator()
     from chimerax.atomic import Atoms
     cx_atoms = Atoms(reordered_atoms)
@@ -287,10 +319,10 @@ def make_integrator():
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, Or, EmptyArg, EnumOf, BoolArg, PositiveIntArg
-    from chimerax.atomic import AtomicStructureArg
+    from chimerax.atomic import AtomsArg
     from chimerax.dock_prep import get_param_info
     desc = CmdDesc(
-        required = [('structure', Or(AtomicStructureArg, EmptyArg))],
+        required = [('atoms', Or(AtomsArg, EmptyArg))],
         keyword = [
             ('dock_prep', BoolArg),
             ('live_updates', BoolArg),
