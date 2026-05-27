@@ -22,7 +22,7 @@ or derivations thereof.
 <h3><a href="../index.html#commands">Command</a>: minimize</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>minimize</b> 
-&nbsp;<a href="atomspec.html#hierarchy"><i>atomic-model-spec</i></a>&nbsp;
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>dockPrep</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;
 [&nbsp;<a href="dockprep.html"><i>dockprep-options</i></a>&nbsp;]]
 [&nbsp;<b>maxSteps</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
@@ -41,16 +41,17 @@ https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amb
 https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/RNA.OL3.xml
 https://github.com/openmm/openmm/blob/master/wrappers/python/openmm/app/data/amber14/lipid17.xml
 -->
-The <b>minimize</b> command energy-minimizes atomic structures.
-The corresponding tool is
-<a href="../tools/minimizestructure.html"><b>Minimize Structure</b></a>.
-Only a single atomic model should be specified; to combine multiple models 
-into one beforehand, see <a href="combine.html"><b>combine</b></a>.
+The <b>minimize</b> command energy-minimizes an atomic model or part of
+an atomic model. All of the specified atoms must belong to the same model;
+to combine multiple models into a single model beforehand, see 
+<a href="combine.html"><b>combine</b></a>.
 The atoms are assigned types and associated force field parameters
 as described for <a href="addcharge.html"><b>addcharge</b></a>, and
 then the minimization is carried out using the OpenMM
 <a href="http://docs.openmm.org/7.0.0/api-python/generated/simtk.openmm.openmm.LocalEnergyMinimizer.html" target="_blank">LocalEnergyMinimizer</a> with the
 <a href="http://docs.openmm.org/7.1.0/api-python/generated/simtk.openmm.openmm.LangevinIntegrator.html" target="_blank">LangevinIntegrator</a>.
+The corresponding tool is
+<a href="../tools/minimizestructure.html"><b>Minimize Structure</b></a>.
 See also: 
 <a href="../tools/buildstructure.html"><b>Build Structure</b></a>,
 <a href="tug.html"><b>tug</b></a>,
@@ -99,6 +100,6 @@ indicates whether to also report the energy in the
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-October 2025</address>
+May 2026</address>
 
 </body></html>
