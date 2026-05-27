@@ -64,7 +64,7 @@ def ones_mask(session, surfaces, on_grid = None, spacing = None, border = 0, axi
     if isinstance(slab, float):
         vpad = abs(slab)
     elif slab is not None:
-        vpad = max(abs(p) for p in pad)
+        vpad = max(abs(p) for p in slab)
     else:
         vpad = pad
 

@@ -64,6 +64,12 @@ def match_to_align(session, chains, dist_cutoff, column_criteria, gap_char, circ
             raise UserError("Cannot generate alignment because no residues within cutoff distance")
         return seqs
 
+    # C++ layer cannot instantiate StructureSeqs, so send in copies that will be modified
+    from copy import copy
+    aligned = [copy(chain) for chain in chains]
+    for aseq in aligned:
+        aseq.name = aseq.structure.name + " chain " + aseq.chain_id
     from ._msa3d import multi_align
-    return multi_align([x.cpp_pointer for x in chains], dist_cutoff, col_all, gap_char, circular,
+    multi_align([x.cpp_pointer for x in aligned], dist_cutoff, col_all, gap_char, circular,
         "", session.logger, UserError)
+    return aligned
