@@ -431,7 +431,8 @@ def substitute_none_for_unspecified(fields):
 
 _mmcif_sources = {
     # "rcsb": "http://www.pdb.org/pdb/files/%s.cif",
-    "rcsb": "http://files.rcsb.org/download/%s.cif",
+    #"rcsb": "http://files.rcsb.org/download/%s.cif",
+    "rcsb": "https://files-beta.wwpdb.org/pub/wwpdb/pdb/data/entries/%s/%s/structures/%s.cif.gz",
     "pdbe": "http://www.ebi.ac.uk/pdbe/entry-files/download/%s.cif",
     "pdbe_updated": "http://www.ebi.ac.uk/pdbe/entry-files/download/%s_updated.cif",
     "pdbj": "https://pdbj.org/rest/downloadPDBfile?format=mmcif&id=%s",
@@ -460,11 +461,11 @@ def fetch_mmcif(
     if len(pdb_id) == 8 and pdb_id.startswith("0000"):
         # avoid two differently named but identical entries in the cache...
         pdb_id = pdb_id[4:]
-    entry = pdb_id if len(pdb_id) == 4 else "pdb_" + pdb_id
+    subdir = pdb_id[-3:-1]
+    entry = "pdb_" + ("0000" if len(pdb_id) == 4 else "") + pdb_id
     filename = None
     if not fetch_source.endswith('updated'):
         # check on local system -- TODO: configure location
-        subdir = pdb_id[-3:-1]
         filename = "/databases/mol/mmCIF/%s/%s.cif" % (subdir, entry)
         if os.path.exists(filename):
             session.logger.info("Fetching mmCIF %s from system cache: %s" % (pdb_id, filename))
@@ -477,7 +478,10 @@ def fetch_mmcif(
         base_url = _mmcif_sources.get(fetch_source, None)
         if base_url is None:
             raise UserError('unrecognized mmCIF/PDB source "%s"' % fetch_source)
-        url = base_url % entry
+        if base_url.count('%s') == 3:
+            url = base_url % (subdir, entry, entry)
+        else:
+            url = base_url % entry
         pdb_name = "%s.cif" % pdb_id
         from chimerax.core.fetch import fetch_file
         filename = fetch_file(session, url, 'mmCIF %s' % pdb_id, pdb_name,

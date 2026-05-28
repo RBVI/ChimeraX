@@ -668,16 +668,6 @@ class GridCanvas:
         # in same order though
         return [seq for seq in self.alignment.seqs if seq in seqs]
 
-    def _residues_at(self, grid_row, grid_col):
-        residues = []
-        for seq in self._sequences_at(grid_row, grid_col):
-            for match_map in self.alignment.match_maps[seq].values():
-                try:
-                    residues.append(match_map[seq.gapped_to_ungapped(grid_col)])
-                except KeyError:
-                    continue
-        return residues
-
     def _report_chosen_seqs(self):
         if not self.chosen_cells:
             self.pg.status("")
@@ -686,6 +676,25 @@ class GridCanvas:
         seqs = self._get_chosen_seqs()
         self.pg.status("%d %s %s chosen cells" % (len(seqs), plural_form(seqs, "sequence"),
             plural_form(seqs, "matches", plural="match")))
+
+    def _residues_at(self, grid_row, grid_col):
+        residues = []
+        row_label = self.existing_row_labels[grid_row]
+        # alignment 'associations' has 1 entry per actual association whereas 'match_maps'
+        # has 1 per alignment sequence, so faster to process the former
+        for sseq, aseq in self.alignment.associations.items():
+            char = aseq.characters[grid_col]
+            if row_label == "gap":
+                if not aseq.is_gap_character(char):
+                    continue
+            elif row_label != char:
+                continue
+            match_map = self.alignment.match_maps[aseq][sseq]
+            try:
+                residues.append(match_map[aseq.gapped_to_ungapped(grid_col)])
+            except KeyError:
+                continue
+        return residues
 
     def _residues_for_event(self, event):
         width, height = self.font_pixels

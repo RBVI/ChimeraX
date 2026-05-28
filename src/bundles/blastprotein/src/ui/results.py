@@ -453,9 +453,18 @@ class BlastProteinResults(ToolInstance):
 
     def job_failed(self, error):
         self.session.logger.error("BlastProtein failed: %s" % error)
+        self._destroy_unusable_tool()
 
     def parse_failed(self, error):
         self.session.logger.error("Parsing BlastProtein results failed: %s" % error)
+        self._destroy_unusable_tool()
+
+    def _destroy_unusable_tool(self):
+        # The table is never launched when the job or parse fails, so the tool
+        # cannot be used and saving the session would crash trying to serialize
+        # the unlaunched table.  Tear it down to match the no-results path.
+        if self.tool_window is not None:
+            self.tool_window.destroy()
 
     def parsing_results(self):
         self.session.logger.status("Parsing BLAST results.")
