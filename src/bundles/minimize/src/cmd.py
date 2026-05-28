@@ -65,7 +65,7 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
     fake_n = set()
     n_error_template = "Don't know how to modify %s to match N-terminal template: %s"
     c_error_template = "Don't know how to modify %s to match C-terminal template: %s"
-    from chimerax.atomic import Residue
+    from chimerax.atomic import Residue, Sequence
     for chain in structure.chains:
         if chain.polymer_type != Residue.PT_AMINO:
             continue
@@ -73,17 +73,17 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
         prev_r = None
         for r in chain.residues:
             if r is None:
-                if prev_r:
+                if prev_r and Sequence.amino3to1(prev_r.name) != 'X':
                     fake_c.add(prev_r)
                 in_missing = True
             else:
-                if in_missing:
+                if in_missing and Sequence.amino3to1(r.name) != 'X':
                     fake_n.add(r)
                 in_missing = False
             prev_r = r
         # Also, if the *actual* terminus is missing needed atoms, add it to fake list so it gets fixed
         c_term = chain.residues[-1]
-        if c_term:
+        if c_term and Sequence.amino3to1(c_term.name) != 'X':
             c = c_term.find_atom('C')
             if c:
                 if c.num_bonds != 3:
