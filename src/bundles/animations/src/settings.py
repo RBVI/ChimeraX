@@ -67,9 +67,16 @@ class AnimationsPreferencesDialog:
         self.dialog.setModal(False)
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(10)
 
         # Create settings panel with standard buttons (Save, Reset, Restore, Help)
         self.panel = SettingsPanel(scrolled=False, help_cb=self._show_help)
+        # OptionsPanel ships with a 1-pixel vertical spacing on its inner
+        # QFormLayout, which makes adjacent dropdowns and the trailing
+        # checkbox visually touch (and overlap on some platforms). Loosen it.
+        self.panel.options_panel._form.setVerticalSpacing(8)
+        self.panel.options_panel._form.setHorizontalSpacing(12)
 
         # Recording resolution option
         self.panel.add_option(
