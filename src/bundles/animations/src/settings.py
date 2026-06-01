@@ -27,7 +27,7 @@ from chimerax.core.settings import Settings
 
 class _AnimationsSettings(Settings):
     EXPLICIT_SAVE = {
-        "recording_resolution": "1080p",  # Default to 1080p
+        "recording_resolution": "display",  # Default to current graphics window size
         "animation_mode": "scene",  # Default to scene mode ('keyframe' or 'scene')
         "playback_fps": 60,  # Playback frame rate
         # Record one extra second past the end of the timeline so the
@@ -79,8 +79,13 @@ class AnimationsPreferencesDialog:
                 attr_name="recording_resolution",
                 settings=self.settings,
                 callback=None,
-                labels=["1080p (1920x1080)", "4K UHD (3840x2160)", "Custom Resolution"],
-                values=["1080p", "4k", "custom"],
+                labels=[
+                    "Graphics Window (Current)",
+                    "1080p (1920x1080)",
+                    "4K UHD (3840x2160)",
+                    "Custom Resolution",
+                ],
+                values=["display", "1080p", "4k", "custom"],
             )
         )
 

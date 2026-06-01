@@ -260,6 +260,8 @@ class MovieRecordingDialog:
                 self.resolution_combo.setCurrentText("1080p Full HD (1920×1080)")
             elif default_res == "custom":
                 self.resolution_combo.setCurrentText("Custom...")
+            elif default_res == "display":
+                self.resolution_combo.setCurrentText("Display Resolution (Current)")
             else:
                 self.resolution_combo.setCurrentText("Display Resolution (Current)")
         except Exception:
