@@ -131,7 +131,7 @@ class AnimationsPreferencesDialog:
         """Show help for animations preferences"""
         from chimerax.core.commands import run
 
-        run(self.session, "help help:user/tools/animations.html")
+        run(self.session, "help help:user/tools/animations.html#settings")
 
     def show(self):
         """Show the dialog non-modally so the rest of the UI stays responsive."""
