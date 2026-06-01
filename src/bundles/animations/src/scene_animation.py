@@ -1182,6 +1182,8 @@ class SceneAnimation(StateManager):
 
         if isinstance(resolution, str):
             resolution = resolution.lower()
+            if resolution in ["display", "graphics_display", "current", "window"]:
+                return None
             if resolution in ["4k", "uhd", "2160p"]:
                 return (3840, 2160)
             elif resolution in ["1080p", "fhd", "fullhd"]:
