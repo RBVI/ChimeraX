@@ -64,7 +64,7 @@ class AnimationsPreferencesDialog:
 
         self.dialog = QDialog(parent)
         self.dialog.setWindowTitle("Animations Preferences")
-        self.dialog.setModal(True)
+        self.dialog.setModal(False)
 
         layout = QVBoxLayout()
 
@@ -121,5 +121,7 @@ class AnimationsPreferencesDialog:
         run(self.session, "help help:user/tools/animations.html")
 
     def show(self):
-        """Show the dialog"""
-        return self.dialog.exec()
+        """Show the dialog non-modally so the rest of the UI stays responsive."""
+        self.dialog.show()
+        self.dialog.raise_()
+        self.dialog.activateWindow()

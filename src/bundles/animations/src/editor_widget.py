@@ -150,8 +150,16 @@ class KeyframeEditorWidget(QWidget):
     def show_preferences(self):
         from .settings import AnimationsPreferencesDialog
 
-        dialog = AnimationsPreferencesDialog(self.session, parent=self)
-        dialog.show()
+        existing = getattr(self, "_prefs_dialog", None)
+        if existing is not None:
+            try:
+                existing.show()
+                return
+            except RuntimeError:
+                # Underlying QDialog was destroyed; fall through and recreate.
+                pass
+        self._prefs_dialog = AnimationsPreferencesDialog(self.session, parent=self)
+        self._prefs_dialog.show()
 
     def _on_fps_changed(self, fps: int):
         self.keyframe_widget._on_fps_changed(fps)
