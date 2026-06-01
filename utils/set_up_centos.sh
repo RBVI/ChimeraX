@@ -12,24 +12,28 @@ fi
 
 dnf install -y epel-release
 
+# TODO: drop --exclude='mesa-lib*' once Rocky publishes a mesa-libOSMesa in CRB
+# matching the mesa version in AppStream. As of Nov 2025, AppStream shipped
+# mesa-libGL-25.2.7-4.el9 while CRB's mesa-libOSMesa was still at 25.0.7-3.el9_7,
+# so updating mesa makes the libOSMesa install in the prereq list unresolvable.
 case $CENTOS_VER in
 	'8')
 		dnf config-manager --set-enabled powertools
-		dnf update -y
+		dnf update -y --exclude='mesa-lib*'
 		dnf -y --setopt=exclude='*.i?86' group install "Development Tools"
 		PREREQ_FILE="${ROOT}/utils/centos/8.txt"
 		;;
 	'9')
 		dnf install 'dnf-command(config-manager)'
 		/usr/bin/crb enable
-		dnf update -y
+		dnf update -y --exclude='mesa-lib*'
 		dnf -y --setopt=exclude='*.i?86' group install "Development Tools"
 		PREREQ_FILE="${ROOT}/utils/centos/9.txt"
 		;;
 	'10')
 		dnf install 'dnf-command(config-manager)'
 		/usr/bin/crb enable
-		dnf update -y
+		dnf update -y --exclude='mesa-lib*'
 		dnf -y --setopt=exclude='*.i?86' group install "Development Tools"
 		PREREQ_FILE="${ROOT}/utils/centos/10.txt"
 		;;
