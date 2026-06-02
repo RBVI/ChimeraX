@@ -21,7 +21,8 @@ or derivations thereof.
 
 <h3><a href="../index.html#tools">Tool</a>: Minimize Structure</h3>
 <p>
-<b>Minimize Structure</b> energy-minimizes an atomic structure.
+<b>Minimize Structure</b> energy-minimizes an atomic model or part of
+an atomic model, leaving the remaining atoms frozen in place.
 It is also implemented as the
 <a href="../commands/minimize.html"><b>minimize</b></a> command.
 The atoms are assigned types and associated force field parameters
@@ -63,6 +64,10 @@ manipulated like other panels (<a href="../window.html#panels">more...</a>).
 Only a single atomic model can be specified;
 to combine multiple atomic models into one beforehand,
 see <a href="../commands/combine.html"><b>combine</b></a>.
+<b>Also restrict to selection</b>
+indicates whether to limit minimization to the currently
+<a href="../selection.html">selected</a> atoms within that model,
+leaving all others frozen in place.
 </p>
 <ul>
 <li><b>Minimize until convergence</b> (initial default <b>on</b>)
@@ -94,6 +99,6 @@ user <a href="../preferences.html#other">preferences</a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-October 2025</address>
+May 2026</address>
 
 </body></html>
