@@ -181,6 +181,8 @@ class GridCanvas:
             self.update_selection()
             if hasattr(self, 'label_tool'):
                 self.label_tool.chain_list.refresh()
+            if hasattr(self, 'associations_tool'):
+                self.associations_tool._assoc_mod(note_data)
         '''
         if note_name == self.alignment.NOTE_REF_SEQ:
             self.lead_block.rerule()
@@ -350,6 +352,14 @@ class GridCanvas:
             self.pg.status("", secondary=True)
         return False
 
+    def manage_associations(self):
+        if not hasattr(self, 'associations_tool'):
+            from .associations_tool import AssociationsTool
+            self.associations_tool = AssociationsTool(self,
+                self.pg.tool_window.create_child_window("Chain-Sequence Associations", close_destroys=False))
+            self.associations_tool.tool_window.manage(None)
+        self.associations_tool.tool_window.shown = True
+
     def mouse_click(self, event):
         from Qt.QtCore import Qt
         shifted = event.modifiers() & Qt.ShiftModifier
@@ -432,7 +442,6 @@ class GridCanvas:
         self.pg.status(text, secondary=True)
 
     def prevalence_from_cells(self):
-        seqs = self.seqs_from_cells()
         if not hasattr(self, 'prevalence_tool'):
             from .prevalence_tool import PrevalenceTool
             self.prevalence_tool = PrevalenceTool(self,

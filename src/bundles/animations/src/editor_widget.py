@@ -150,8 +150,16 @@ class KeyframeEditorWidget(QWidget):
     def show_preferences(self):
         from .settings import AnimationsPreferencesDialog
 
-        dialog = AnimationsPreferencesDialog(self.session, parent=self)
-        dialog.show()
+        existing = getattr(self, "_prefs_dialog", None)
+        if existing is not None:
+            try:
+                existing.show()
+                return
+            except RuntimeError:
+                # Underlying QDialog was destroyed; fall through and recreate.
+                pass
+        self._prefs_dialog = AnimationsPreferencesDialog(self.session, parent=self)
+        self._prefs_dialog.show()
 
     def _on_fps_changed(self, fps: int):
         self.keyframe_widget._on_fps_changed(fps)
@@ -165,15 +173,49 @@ class KeyframeEditorWidget(QWidget):
 class MovieRecordingDialog:
     """Dialog for movie recording options including resolution."""
 
+    # Format keys we deliberately omit from the recording dialog. APNG is an
+    # animated-image container, not a video format users expect here.
+    _EXCLUDED_FORMATS = frozenset({"apng"})
+    # Preferred default format key (first entry shown in the filter dropdown).
+    _DEFAULT_FORMAT = "h264"
+
+    @classmethod
+    def _video_formats(cls):
+        from chimerax.movie import formats as movie_formats
+
+        seen = set()
+        entries = []
+        for key, fmt in movie_formats.formats.items():
+            if key in cls._EXCLUDED_FORMATS:
+                continue
+            # The synonyms loop in movie/formats.py aliases the same dict
+            # under multiple keys; dedupe by identity to show each once.
+            if id(fmt) in seen:
+                continue
+            seen.add(id(fmt))
+            entries.append((key, f"{fmt['label']} (*.{fmt['suffix']})", fmt['suffix']))
+        entries.sort(key=lambda e: 0 if e[0] == cls._DEFAULT_FORMAT else 1)
+        return [(label, suffix) for _key, label, suffix in entries]
+
     def __init__(self, session, parent=None):
         from chimerax.ui.open_save import SaveDialog
 
         self.session = session
         self._dialog = SaveDialog(session, parent, "Record Animation")
-        self._dialog.setNameFilter("Video Files (*.mp4 *.mov *.avi *.wmv)")
-        self._dialog.setDefaultSuffix("mp4")
-        self._dialog.selectFile("animation.mp4")
+        self._video_format_entries = self._video_formats()
+        self._filter_to_ext = dict(self._video_format_entries)
+        self._dialog.setNameFilters(list(self._filter_to_ext))
+        first_label, first_ext = self._video_format_entries[0]
+        self._dialog.selectNameFilter(first_label)
+        self._dialog.setDefaultSuffix(first_ext)
+        self._dialog.filterSelected.connect(self._on_filter_selected)
+        self._dialog.selectFile(f"animation.{first_ext}")
         self._setup_custom_area()
+
+    def _on_filter_selected(self, label):
+        ext = self._filter_to_ext.get(label)
+        if ext:
+            self._dialog.setDefaultSuffix(ext)
 
     def _setup_custom_area(self):
         from Qt.QtWidgets import QComboBox, QHBoxLayout, QLabel, QSpinBox, QVBoxLayout, QWidget
@@ -226,6 +268,8 @@ class MovieRecordingDialog:
                 self.resolution_combo.setCurrentText("1080p Full HD (1920×1080)")
             elif default_res == "custom":
                 self.resolution_combo.setCurrentText("Custom...")
+            elif default_res == "display":
+                self.resolution_combo.setCurrentText("Display Resolution (Current)")
             else:
                 self.resolution_combo.setCurrentText("Display Resolution (Current)")
         except Exception:
@@ -239,7 +283,20 @@ class MovieRecordingDialog:
 
     def get_save_path(self):
         selected_files = self._dialog.selectedFiles()
-        return selected_files[0] if selected_files else None
+        if not selected_files:
+            return None
+        file_path = selected_files[0]
+        # The downstream movie encoder picks the container format from the
+        # file suffix, so force the suffix to match the selected filter when
+        # the user typed a basename or a non-video extension.
+        selected_ext = self._filter_to_ext.get(
+            self._dialog.selectedNameFilter(), self._video_format_entries[0][1]
+        )
+        import os
+        root, current_ext = os.path.splitext(file_path)
+        if current_ext.lower().lstrip(".") not in self._filter_to_ext.values():
+            file_path = f"{root or file_path}.{selected_ext}"
+        return file_path
 
     def get_resolution(self):
         text = self.resolution_combo.currentText()

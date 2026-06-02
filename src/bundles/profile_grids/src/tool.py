@@ -53,8 +53,15 @@ class ProfileGridsTool(ToolInstance):
         #    self._seq_rename_handlers[seq] = seq.triggers.add_handler("rename",
         #        self.region_browser._seq_renamed_cb)
 
-        from Qt.QtCore import Qt
+        from Qt.QtCore import Qt, QTimer
         self.tool_window.manage(None, allowed_areas=Qt.DockWidgetArea.AllDockWidgetAreas)
+
+        if not alignment.auto_associate:
+            # use time of 100 instead of 0, because some code somewhere blanks the status
+            # line near startup
+            QTimer.singleShot(100, lambda *args, status=self.status: status(
+                "Chains can be associated to alignment sequences with the"
+                " Structure\N{RIGHTWARDS ARROW}Associations context menu entry"))
 
     def alignment_notification(self, note_name, note_data):
         alignment = self.alignment
@@ -127,9 +134,19 @@ class ProfileGridsTool(ToolInstance):
             setattr(settings, "scroll_to_sel", checked))
         menu.addAction(action)
 
-        action = QAction("Label Residues...", cell_menu)
+        structure_menu = menu.addMenu("Structure")
+        from chimerax.atomic import all_atomic_structures
+        any_structures = bool(all_atomic_structures(self.session))
+
+        action = QAction("Associations...", structure_menu)
+        action.triggered.connect(lambda *args, f=self.grid_canvas.manage_associations: f())
+        action.setEnabled(any_structures)
+        structure_menu.addAction(action)
+
+        action = QAction("Label Residues...", structure_menu)
         action.triggered.connect(lambda *args, f=self.grid_canvas.label_residues: f())
-        menu.addAction(action)
+        action.setEnabled(bool(self.alignment.associations))
+        structure_menu.addAction(action)
 
         import sys
         if sys.platform == "darwin":
@@ -170,8 +187,10 @@ class ProfileGridsTool(ToolInstance):
         }
         return data
 
-    def _menu_of_seqs(self, menu, prefix, seqs, seq_func):
+    def _menu_of_seqs(self, menu, prefix, seqs, seq_func, *, initialize_menu_func=None):
         menu.clear()
+        if initialize_menu_func is not None:
+            recurse = initialize_menu_func(menu)
         target_menu_size = 10
         if len(seqs) <= 1.5 * target_menu_size:
             for seq in sorted(seqs, key=lambda seq: seq.name.lower()):
@@ -203,5 +222,9 @@ class ProfileGridsTool(ToolInstance):
                 action.triggered.connect(lambda *args, f=seq_func, seq=seq: f(seq))
             else:
                 submenu = menu.addMenu(prefix + addition + '...')
-                submenu.aboutToShow.connect(lambda *, s=self, m=submenu, prefix=prefix+addition, seqs=box:
-                    s._menu_of_seqs(m, prefix, seqs, seq_func))
+                if initialize_menu_func is not None and recurse:
+                    kw = { 'initialize_menu_func': initialize_menu_func }
+                else:
+                    kw = {}
+                submenu.aboutToShow.connect(lambda *, s=self, m=submenu, prefix=prefix+addition, seqs=box,
+                    kw=kw: s._menu_of_seqs(m, prefix, seqs, seq_func, **kw))
