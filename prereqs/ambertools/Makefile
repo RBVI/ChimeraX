@@ -4,23 +4,26 @@ include $(TOP)/mk/config.make
 
 # Using AmberTools distribution from https://ambermd.org
 
-#ifeq ($(OS),Darwin)
-#VERSION = 24
-#SRC_VERSION = 24
-#else
+ifneq ($(OS),Linux)
+VERSION = 25
+SRC_VERSION = 25
+SRC_NAME = ambertools
+else
 VERSION = 20
 SRC_VERSION = 20
-#endif
+SRC_NAME = amber
+endif
 
 # to upload new binary versions, set USE_PREBUILT to false and UPLOAD_PREBUILT to true;
 # once all platforms have been successfully built, set USE_PREBUILT to true and UPLOAD_PREBUILT to false
-#ifeq ($(OS),Darwin)
-#USE_PREBUILT=false
-#UPLOAD_PREBUILT=true
-#else
+ifneq ($(OS),Linux)
+# needs build tools as outlined here: https://ambermd.org/InstMacOS.php
+USE_PREBUILT=false
+UPLOAD_PREBUILT=false
+else
 USE_PREBUILT=true
 UPLOAD_PREBUILT=false
-#endif
+endif
 ifeq ($(OS),Linux)
 SUPPORTED_DISTROS := Ubuntu CentOS Debian Rocky Freedesktop
 # CentOS uses "CentOS Linux", hence the second awk in the following line
@@ -50,9 +53,9 @@ CMAKE = cmake
 
 DISTRIBUTION = AmberTools$(VERSION).tar.bz2
 SOURCE = $(tmpdir)/AmberTools$(VERSION)
-AMBERHOME = $(SOURCE)/amber$(SRC_VERSION)_src
-CMAKE_BUILD_DIR = $(SOURCE)/amber$(SRC_VERSION)_build
-CMAKE_INSTALL_DIR = $(SOURCE)/amber$(SRC_VERSION)_install
+AMBERHOME = $(SOURCE)/$(SRC_NAME)$(SRC_VERSION)_src
+CMAKE_BUILD_DIR = $(SOURCE)/$(SRC_NAME)$(SRC_VERSION)_build
+CMAKE_INSTALL_DIR = $(SOURCE)/$(SRC_NAME)$(SRC_VERSION)_install
 CMAKE_TOOL_SRC = $(CMAKE_BUILD_DIR)/AmberTools/src
 TOOL_SRC = $(AMBERHOME)/AmberTools/src
 AMBERBIN_SRC = $(CMAKE_INSTALL_DIR)/bin
@@ -74,7 +77,7 @@ ENV_OPTS =
 ifeq ($(OS),Windows)
 CONFIG_ARGS = -cygwin gnu
 ENV_OPTS = -u CC -u CXX FFLAGS=-fallow-argument-mismatch
-PATCHES += flex-cygwin.patch
+#PATCHES += flex-cygwin.patch
 else ifeq ($(OS),Linux)
 CONFIG_ARGS = gnu
 ENV_OPTS = FFLAGS=-fallow-argument-mismatch
@@ -124,23 +127,30 @@ ifeq ($(OS),Darwin)
 endif
 
 else
+ifeq ($(OS),Windows)
+INSTALLABLES = netcdf-4.6.1 netcdf-fortran-4.4.4 arpack sff cifparse lapack blas
+else
+INSTALLABLES = netcdf-4.6.1 netcdf-fortran-4.4.4 arpack sff cifparse
+endif
 install: $(SOURCE)
-	-mkdir $(CMAKE_BUILD_DIR) $(CMAKE_INSTALL_DIR)
-	cd $(CMAKE_BUILD_DIR) && env PATH=$(PATH):/opt/homebrew/bin:/usr/local/bin $(CMAKE) $(AMBERHOME) -DCMAKE_INSTALL_PREFIX=$(CMAKE_INSTALL_DIR) -DCOMPILER=CLANG -DDOWNLOAD_MINICONDA=FALSE -DBUILD_PYTHON=FALSE -DFORCE_INTERNAL_LIBS=netcdf
-	for i in netcdf-4.6.1 netcdf-fortran-4.4.4 arpack sff cifparse ; do \
-		if [ -e $(CMAKE_TOOL_SRC)/$$i ] ; then \
-			cd $(CMAKE_TOOL_SRC)/$$i && $(MAKE) install ; \
+	-mkdir "$(CMAKE_BUILD_DIR)" "$(CMAKE_INSTALL_DIR)"
+	cd "$(CMAKE_BUILD_DIR)" && env "PATH=$(PATH):/opt/homebrew/bin:/usr/local/bin" $(CMAKE) $(AMBERHOME) -DCMAKE_POLICY_VERSION_MINIMUM=3.12 -DCMAKE_INSTALL_PREFIX=$(CMAKE_INSTALL_DIR) -DCOMPILER=CLANG -DDOWNLOAD_MINICONDA=FALSE -DBUILD_PYTHON=FALSE -DFORCE_INTERNAL_LIBS=netcdf
+	for i in $(INSTALLABLES) ; do \
+		if [ -e "$(CMAKE_TOOL_SRC)/$$i" ] ; then \
+			cd "$(CMAKE_TOOL_SRC)/$$i" && echo installing $$i && $(MAKE) install && echo installed $$i ; \
 		fi ; \
 	done
-	cd $(CMAKE_TOOL_SRC)/sqm && $(MAKE) install
-	cd $(CMAKE_TOOL_SRC)/antechamber && $(MAKE) install
+	cd "$(CMAKE_TOOL_SRC)/sqm" && $(MAKE) install
+	cd "$(CMAKE_TOOL_SRC)/antechamber" && $(MAKE) install
 
 app-install: install
 	-mkdir -p $(AMBERBIN_DST) $(AMBERDAT_ANTECHAMBER_DST) $(AMBERDAT_PARM_DST)
-	$(RSYNC) $(AMBERBIN_SRC)/* --exclude wrapped_progs $(AMBERBIN_DST)
+	# The ncxxxx family of executable have out-of-app rpaths, so instead of doing a bunch of fancy massaging
+	# just exclude them since we don't need them
+	$(RSYNC) $(AMBERBIN_SRC)/* --exclude wrapped_progs --exclude "nc*" $(AMBERBIN_DST)
 	# Some executables live directly in bin, but many are shell scripts whose
 	# executables are in the "wrapped_progs" subdir; overwrite those...
-	$(RSYNC) $(AMBERBIN_SRC)/wrapped_progs/* $(AMBERBIN_DST)
+	$(RSYNC) $(AMBERBIN_SRC)/wrapped_progs/* --exclude "nc*" $(AMBERBIN_DST)
 	$(RSYNC) $(AMBERDAT_ANTECHAMBER_SRC)/* $(AMBERDAT_ANTECHAMBER_DST)
 	$(RSYNC) $(AMBERDAT_PARM_SRC)/gaff2.dat $(AMBERDAT_PARM_DST)
 	$(RSYNC) $(AMBERLIB_SRC)/*.$(SHLIB_EXT) $(app_libdir)
@@ -153,6 +163,7 @@ ifneq ($(LIBGCCDIR),)
 endif
 ifeq ($(OS),Windows)
 	$(RSYNC) /usr/bin/cygwin1.dll /usr/bin/cyggcc_s-seh*.dll /usr/bin/cyggfortran*.dll /usr/bin/cygquadmath*.dll /usr/bin/cygreadline*.dll /usr/bin/cygintl*.dll /usr/bin/cygncursesw*.dll /usr/bin/cygiconv*.dll /bin/sh.exe $(AMBERBIN_DST)
+	$(RSYNC) $(CMAKE_INSTALL_DIR)/lib/*.$(SHLIB_EXT) $(AMBERBIN_DST)
 endif
 ifeq ($(OS),Darwin)
 	install_name_tool -rpath @loader_path/../../lib @loader_path/../../../lib $(AMBERBIN_DST)/antechamber
@@ -160,25 +171,30 @@ ifeq ($(OS),Darwin)
 	# copy the shared libraries needed by the fortran executables and fix up their paths
 	# then do the same for libs that those shared libraries use
 	cat /dev/null > $(FLIB_NAMES_FILE)
+	for copied_lib in $(AMBERLIB_SRC)/*.$(SHLIB_EXT); do \
+		libname=`basename $$copied_lib`; \
+		copy=$(app_libdir)/$$libname; \
+		for k in `otool -L $$copy | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
+			subfilename=`basename $$k`; \
+			install_name_tool -change $$k @executable_path/../../../lib/$$subfilename $$copy; \
+			codesign --force -s - $$copy ; \
+		done; \
+	done; \
 	cd $(AMBERBIN_DST) && for i in sqm; do \
+	    for hb_path in `otool -l $$i | grep 'path /opt/homebrew' | awk '{ print $$2 }'`; do \
+			install_name_tool -delete_rpath $$hb_path $$i ; \
+		done; \
 		for j in `otool -L $$i | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
 			cp $$j $(app_libdir); \
 			filename=`basename $$j`; \
+			chmod u+w $(app_libdir)/$$filename; \
 			echo "$$filename " >> $(FLIB_NAMES_FILE); \
 			install_filename=$(app_libdir)/$$filename; \
 			install_name_tool -id @executable_path/$$filename $$install_filename; \
 			install_name_tool -change $$j @executable_path/../../../lib/$$filename $$i; \
 			codesign --force -s - $$install_filename ; \
 		done; \
-	done; \
-	for copied_lib in $(AMBERLIB_SRC)/*.$(SHLIB_EXT); do \
-		libname=`basename $$copied_lib`; \
-		copy=$(app_libdir)/$$libname; \
-		for k in `otool -L $$copied_lib | awk '(NF > 1 && $$1 ~ /^$(subst /,\/,$(FLIBDIR))/) { print $$1 }'`; do \
-			subfilename=`basename $$k`; \
-			install_name_tool -change $$k @executable_path/../../../lib/$$subfilename $$copy; \
-			codesign --force -s - $$copy ; \
-		done; \
+		codesign --force -s - $$i ; \
 	done;
 endif
 ifeq ($(UPLOAD_PREBUILT),true)
