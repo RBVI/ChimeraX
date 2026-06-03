@@ -265,9 +265,26 @@ else:
             self.entry_area.setHidden(not sel)
 
 def create_menu_entry(session):
-    session.ui.main_window.add_menu_entry(["File"], "Open Folder...",
-        lambda *args, ses=session: show_open_folder_dialog(ses), tool_tip="Open folder data",
-            insertion_point=False)
+    def folder_type_name(fmt):
+        nick = fmt.nicknames[0]
+        if nick.upper() in fmt.name:
+            return nick.upper()
+        return nick.capitalize()
+    folder_type_names = []
+    for fmt in session.open_command.open_data_formats:
+        if fmt.allow_directory and session.open_command.opener_info(fmt) is not None:
+            folder_type_names.append(folder_type_name(fmt))
+    if folder_type_names:
+        if len(folder_type_names) < 4:
+            folder_adjective = "/".join(folder_type_names)
+        else:
+            folder_adjective = "Data"
+    else:
+        folder_adjective = None
+    if folder_adjective is not None:
+        session.ui.main_window.add_menu_entry(["File"], "Open %s Folder..." % folder_adjective,
+            lambda *args, ses=session: show_open_folder_dialog(ses), tool_tip="Open folder data",
+                insertion_point=False)
     session.ui.main_window.add_menu_entry(["File"], "&Fetch By ID...",
         lambda *args, ses=session: show_fetch_by_id_dialog(ses), tool_tip="Fetch files from web",
             shortcut="Ctrl+F", insertion_point=False)
