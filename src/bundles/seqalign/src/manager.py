@@ -221,7 +221,8 @@ class AlignmentsManager(StateManager, ProviderManager):
                         break
                 else:
                     self.session.logger.warning("No registered %s viewer corresponds to '%s'"
-                        % (type_text, viewer_text))
+                        % ({"sequence": "single-sequence", "alignment": "multiple-sequence"}[type_text],
+                        viewer_text))
                     viewer_text = False
         else:
             viewer_text = False
