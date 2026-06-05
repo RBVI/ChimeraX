@@ -310,7 +310,7 @@ def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_ste
         for q in context.getState(getPositions=True).getPositions()])
     final_crds = numpy.reshape(final_crds, (-1,3))
     cx_atoms.coords = final_crds[filter]
-    session.logger.status("Minimization complete")
+    session.logger.status("Minimization complete", log=True)
 
 def make_integrator():
     from openmm import LangevinIntegrator

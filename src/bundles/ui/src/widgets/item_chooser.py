@@ -531,6 +531,6 @@ def _when_all_updated(widget, func):
         timer.timeout.connect(check_and_execute)
         timer.setSingleShot(True)
     else:
-        timer, old_func = self._wau_timer_info
+        timer, old_func = widget._wau_timer_info
         timer.stop()
     timer.start(0)
