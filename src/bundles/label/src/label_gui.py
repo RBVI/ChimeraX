@@ -23,9 +23,9 @@ class LabelGUI(ToolInstance):
 
     def __init__(self, session, tool_name):
 
-        self._current_label = None		# Label instance, "all", or None
+        self._cur_label = None		# Label instance, "all", or None
         self._label_position = (0.5, 0.5)
-        self._current_arrow = None
+        self._cur_arrow = None		# Arrow instance, "all", or None
         self._move_label_handler = None
         self._delayed_log_timer = None
         self._delayed_command = None
@@ -155,7 +155,7 @@ class LabelGUI(ToolInstance):
         value = action.text().split()[0]  # Show only the atomspec on the menu button
         self._label_menu.value = value
         if value == 'all':
-            self._current_label = 'all'
+            self._cur_label = 'all'
             self._text.value = ''
         else:
             for label in self._all_labels:
@@ -211,7 +211,7 @@ class LabelGUI(ToolInstance):
 
         command = '2dlabel ' + ' '.join(options)
         label = self._run_command(command)
-        self._current_label = label
+        self._cur_label = label
         self._label_menu.value = label.drawing.atomspec
 
     def _update_label_size(self):
@@ -320,16 +320,26 @@ class LabelGUI(ToolInstance):
                 self._set_current_arrow(arrow)
 
     def _start_new_label(self):
-        self._current_label = None
+        self._cur_label = None
         text = self._text
         text.value = 'New label'
         self._update_label_text('New label')  # Make sure text update gets called even if text was already "New label"
         text.widget.setFocus()
         text.widget.selectAll()
 
+    @property
+    def _current_label(self):
+        label = self._cur_label
+        from .label2d import Label
+        if isinstance(label, Label) and label.drawing is None:
+            # Label was deleted
+            self._cur_label = None
+            label = None
+        return label
+
     def _set_current_label(self, label):
         self._label_menu.value = label.drawing.atomspec
-        self._current_label = label
+        self._cur_label = label
         self._text.value = label.text
         if label.text == 'New label':
             text = self._text.widget
@@ -347,9 +357,19 @@ class LabelGUI(ToolInstance):
             self._background_color.color = label.background
             self._use_background.enabled = True
 
+    @property
+    def _current_arrow(self):
+        arrow = self._cur_arrow
+        from .arrows import Arrow
+        if isinstance(arrow, Arrow) and (arrow.drawing is None or arrow.drawing.deleted):
+            # Arrow was deleted
+            self._cur_arrow = None
+            arrow = None
+        return arrow
+
     def _set_current_arrow(self, arrow):
         self._arrow_menu.value = arrow.drawing.atomspec
-        self._current_arrow = arrow
+        self._cur_arrow = arrow
         self._arrow_color.color = self._default_color() if arrow.color is None else arrow.color
         self._arrow_weight.value = arrow.weight
         self._arrow_style.value = arrow.head_style
@@ -364,7 +384,7 @@ class LabelGUI(ToolInstance):
     def _arrow_menu_changed(self):
         value = self._arrow_menu.value
         if value == 'all':
-            self._current_arrow = 'all'
+            self._cur_arrow = 'all'
         else:
             for arrow in self._all_arrows:
                 if arrow.drawing.atomspec == value:
@@ -448,13 +468,13 @@ class LabelGUI(ToolInstance):
         label_spec = self._label_spec
         if label_spec:
             self._run_command(f'2dlabel delete {label_spec}')
-            self._current_label = None
+            self._cur_label = None
 
     def _delete_arrow(self):
         arrow_spec = self._arrow_spec
         if arrow_spec:
             self._run_command(f'2dlabel delete {arrow_spec}')
-            self._current_arrow = None
+            self._cur_arrow = None
 
     def _show_arrows_gui(self):
         self._run_command('ui tool show Arrows')
