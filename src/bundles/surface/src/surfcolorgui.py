@@ -374,7 +374,8 @@ class SurfaceColorGUI(ToolInstance):
         if method_name in self._offset_methods:
             self._surface_offset.value = sc.offset
         if method_name in self._volume_methods:
-            self._map.value = sc.volume
+            if sc.volume and not sc.volume.deleted:
+                self._map.value = sc.volume
 
     # ---------------------------------------------------------------------------
     #
