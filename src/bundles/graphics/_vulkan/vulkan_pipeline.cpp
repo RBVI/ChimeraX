@@ -35,18 +35,21 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
                               // volume planes), 1 = write depth.
     int topology = 0;         // 0 = triangle list (Solid), 1 = line list
                               // (Mesh display style), 2 = point list (Dot).
+    int oit_mode = 0;         // 0 = normal, 1 = OIT accumulation (2 color
+                              // attachments, special blend, uses oit_render_pass).
     static const char* kwlist[] = {"context", "vert_source", "frag_source",
                                    "has_depth", "constants",
                                    "depth_only", "color_write",
                                    "instance_colors", "face_culling",
                                    "blend_op_max", "blend_premult",
-                                   "depth_write", "topology", NULL};
+                                   "depth_write", "topology",
+                                   "oit_mode", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("nssiO|iiiiiiii"), (char**)kwlist,
+            const_cast<char*>("nssiO|iiiiiiiii"), (char**)kwlist,
             &ctx_ptr, &vert_source, &frag_source, &has_depth,
             &constants, &depth_only, &color_write, &instance_colors,
             &face_culling, &blend_op_max, &blend_premult, &depth_write,
-            &topology))
+            &topology, &oit_mode))
         return NULL;
 
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
@@ -267,33 +270,56 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     // ------------------------------------------------------------------
     //  Color blend state.
     // ------------------------------------------------------------------
-    VkPipelineColorBlendAttachmentState blend_attachment{};
-    blend_attachment.blendEnable = VK_TRUE;
-    VkBlendFactor src_factor = blend_premult
-        ? VK_BLEND_FACTOR_ONE
-        : VK_BLEND_FACTOR_SRC_ALPHA;
-    VkBlendOp blend_op = blend_op_max ? VK_BLEND_OP_MAX : VK_BLEND_OP_ADD;
-    blend_attachment.srcColorBlendFactor = src_factor;
-    blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    blend_attachment.colorBlendOp = blend_op;
-    blend_attachment.srcAlphaBlendFactor = src_factor;
-    blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-    blend_attachment.alphaBlendOp = blend_op;
-    blend_attachment.colorWriteMask = color_write
-        ? (VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-           VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT)
-        : 0;
+    VkPipelineColorBlendAttachmentState blend_attachments[2] = {};
+    uint32_t blend_count = 0;
+
+    if (oit_mode) {
+        // OIT accumulation: 2 color attachments.
+        // Attachment 0 (accum, RGBA16F): additive blending.
+        blend_attachments[0].blendEnable = VK_TRUE;
+        blend_attachments[0].srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+        blend_attachments[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+        blend_attachments[0].colorBlendOp = VK_BLEND_OP_ADD;
+        blend_attachments[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        blend_attachments[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        blend_attachments[0].alphaBlendOp = VK_BLEND_OP_ADD;
+        blend_attachments[0].colorWriteMask =
+            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+            VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        // Attachment 1 (revealage, R8): dst *= (1 - src).
+        blend_attachments[1].blendEnable = VK_TRUE;
+        blend_attachments[1].srcColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+        blend_attachments[1].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+        blend_attachments[1].colorBlendOp = VK_BLEND_OP_ADD;
+        blend_attachments[1].srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        blend_attachments[1].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        blend_attachments[1].alphaBlendOp = VK_BLEND_OP_ADD;
+        blend_attachments[1].colorWriteMask = VK_COLOR_COMPONENT_R_BIT;
+        blend_count = 2;
+    } else if (!depth_only) {
+        VkBlendFactor src_factor = blend_premult
+            ? VK_BLEND_FACTOR_ONE
+            : VK_BLEND_FACTOR_SRC_ALPHA;
+        VkBlendOp blend_op = blend_op_max ? VK_BLEND_OP_MAX : VK_BLEND_OP_ADD;
+        blend_attachments[0].blendEnable = VK_TRUE;
+        blend_attachments[0].srcColorBlendFactor = src_factor;
+        blend_attachments[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        blend_attachments[0].colorBlendOp = blend_op;
+        blend_attachments[0].srcAlphaBlendFactor = src_factor;
+        blend_attachments[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        blend_attachments[0].alphaBlendOp = blend_op;
+        blend_attachments[0].colorWriteMask = color_write
+            ? (VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+               VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT)
+            : 0;
+        blend_count = 1;
+    }
 
     VkPipelineColorBlendStateCreateInfo color_blend{};
     color_blend.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     color_blend.logicOpEnable = VK_FALSE;
-    if (depth_only) {
-        color_blend.attachmentCount = 0;
-        color_blend.pAttachments = nullptr;
-    } else {
-        color_blend.attachmentCount = 1;
-        color_blend.pAttachments = &blend_attachment;
-    }
+    color_blend.attachmentCount = blend_count;
+    color_blend.pAttachments = blend_count ? blend_attachments : nullptr;
 
     // ------------------------------------------------------------------
     //  Dynamic state: viewport and scissor.
@@ -325,7 +351,8 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     pipeline_info.pDynamicState = &dynamic_state;
     pipeline_info.layout = ctx->shared_pipeline_layout;
     pipeline_info.renderPass = depth_only ? ctx->depth_only_render_pass
-                                          : ctx->main_render_pass;
+                             : oit_mode ? ctx->oit_render_pass
+                                        : ctx->main_render_pass;
     pipeline_info.subpass = 0;
 
     VkPipeline pipeline;

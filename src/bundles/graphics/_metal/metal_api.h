@@ -62,6 +62,7 @@ PyObject* metal_begin_color_pass(PyObject* self, PyObject* args, PyObject* kwds)
 // Ray tracing
 PyObject* metal_build_sphere_accel(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* metal_build_mixed_accel(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* metal_build_scene_accel(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* metal_compile_rtao(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* metal_dispatch_rtao(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* metal_destroy_accel_struct(PyObject* self, PyObject* args, PyObject* kwds);

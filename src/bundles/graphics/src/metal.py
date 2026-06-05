@@ -405,6 +405,9 @@ class MetalRender:
     def enable_shader_multishadows(self, enable):
         self.enable_shader_capability(self.SHADER_MULTISHADOW, enable)
 
+    def enable_shader_gtao(self, enable):
+        self.enable_shader_capability(self.SHADER_GTAO, enable)
+
     def set_lighting_shader_capabilities(self):
         lp = self.lighting
         # Depth cue is not yet fully supported — uniform values for
@@ -1083,6 +1086,11 @@ fragment float4 test_fragment(VertexOut in [[stage_in]])
         ):
             self.multishadow.bind_multishadow_texture(self)
 
+        # GTAO AO texture at index 7.
+        gtao_tex = getattr(self, "_gtao_ao_texture", None)
+        if not self._depth_only_rendering and gtao_tex is not None:
+            m.set_fragment_texture(context=ctx, texture=gtao_tex, index=7)
+
         # Instance data
         pos = drawing.positions
         use_instancing = len(pos) > 1 or pos.shift_and_scale_array() is not None
@@ -1265,6 +1273,7 @@ fragment float4 test_fragment(VertexOut in [[stage_in]])
             SHADER_SHIFT_AND_SCALE,
             SHADER_TEXTURE_CUBEMAP,
             SHADER_ALL_WHITE,
+            SHADER_GTAO,
         )
 
         constants = [0] * 20
@@ -1287,6 +1296,7 @@ fragment float4 test_fragment(VertexOut in [[stage_in]])
         constants[16] = 1 if (caps & SHADER_TEXTURE_3D_AMBIENT) else 0
         constants[17] = 1 if self._depth_prepass_rendering else 0
         constants[18] = 1 if self._sphere_ao_active else 0
+        constants[19] = 1 if (caps & SHADER_GTAO) else 0
 
         # Cache key includes shader name, constants, and depth-only/prepass flags.
         const_key = tuple(constants)
@@ -1624,6 +1634,7 @@ fragment float4 test_fragment(VertexOut in [[stage_in]])
             )
             self._rtao_accel_struct = None
             self._rtao_sphere_buffer = None
+            self._rtao_triangle_buffer = None
 
         data = np.ascontiguousarray(sphere_data, dtype=np.float32)
         as_ptr, sb_ptr = self._metal.build_sphere_accel(
@@ -1633,17 +1644,10 @@ fragment float4 test_fragment(VertexOut in [[stage_in]])
         self._rtao_sphere_buffer = sb_ptr
 
     _rtao_cylinder_buffer = None
+    _rtao_triangle_buffer = None
 
     def build_mixed_acceleration_structure(self, sphere_data, cylinder_data):
-        """Build an AS with spheres (geometry 0) and cylinders (geometry 1).
-
-        Parameters
-        ----------
-        sphere_data : ndarray, shape (N, 4), dtype float32
-            Per-sphere (x, y, z, radius) in world space.
-        cylinder_data : ndarray, shape (M, 8), dtype float32
-            Per-cylinder (p0.x, p0.y, p0.z, radius, p1.x, p1.y, p1.z, 0).
-        """
+        """Build an AS with spheres (geometry 0) and cylinders (geometry 1)."""
         if self._rtao_accel_struct is not None:
             self._metal.destroy_accel_struct(
                 accel_struct=self._rtao_accel_struct,
@@ -1652,6 +1656,7 @@ fragment float4 test_fragment(VertexOut in [[stage_in]])
             self._rtao_accel_struct = None
             self._rtao_sphere_buffer = None
             self._rtao_cylinder_buffer = None
+            self._rtao_triangle_buffer = None
 
         sph = np.ascontiguousarray(sphere_data, dtype=np.float32)
         cyl = np.ascontiguousarray(cylinder_data, dtype=np.float32)
@@ -1663,6 +1668,46 @@ fragment float4 test_fragment(VertexOut in [[stage_in]])
         self._rtao_accel_struct = as_ptr
         self._rtao_sphere_buffer = sb_ptr
         self._rtao_cylinder_buffer = cb_ptr
+
+    def build_scene_acceleration_structure(
+        self, sphere_data, cylinder_data=None, triangle_data=None
+    ):
+        """Build an AS with spheres (0), cylinders (1), and triangles (2)."""
+        if self._rtao_accel_struct is not None:
+            self._metal.destroy_accel_struct(
+                accel_struct=self._rtao_accel_struct,
+                sphere_buffer=self._rtao_sphere_buffer,
+            )
+            self._rtao_accel_struct = None
+            self._rtao_sphere_buffer = None
+            self._rtao_cylinder_buffer = None
+            self._rtao_triangle_buffer = None
+
+        sph = np.ascontiguousarray(sphere_data, dtype=np.float32)
+        if cylinder_data is not None:
+            cyl = np.ascontiguousarray(cylinder_data, dtype=np.float32)
+            cyl_count = len(cylinder_data)
+        else:
+            cyl = np.zeros((0, 8), dtype=np.float32)
+            cyl_count = 0
+        if triangle_data is not None:
+            tri = np.ascontiguousarray(triangle_data, dtype=np.float32)
+            tri_count = len(triangle_data)
+        else:
+            tri = np.zeros((0, 12), dtype=np.float32)
+            tri_count = 0
+
+        result = self._metal.build_scene_accel(
+            context=self._ctx,
+            sphere_data=sph, sphere_count=len(sphere_data),
+            cylinder_data=cyl, cylinder_count=cyl_count,
+            triangle_data=tri, triangle_count=tri_count,
+        )
+        as_ptr, sb_ptr, cb_ptr, tb_ptr = result
+        self._rtao_accel_struct = as_ptr
+        self._rtao_sphere_buffer = sb_ptr
+        self._rtao_cylinder_buffer = cb_ptr
+        self._rtao_triangle_buffer = tb_ptr
 
     def _ensure_rtao_pipeline(self):
         """Compile the RTAO compute pipeline (once)."""
@@ -1760,6 +1805,7 @@ fragment float4 test_fragment(VertexOut in [[stage_in]])
         accum_texture,
         color_buffer,
         cylinder_color_buffer,
+        triangle_color_buffer,
         inv_projection,
         inv_view,
         frame=0,
@@ -1798,6 +1844,8 @@ fragment float4 test_fragment(VertexOut in [[stage_in]])
 
         cyl_buf = self._rtao_cylinder_buffer or 0
         cyl_color_buf = cylinder_color_buffer or 0
+        tri_buf = self._rtao_triangle_buffer or 0
+        tri_color_buf = triangle_color_buffer or 0
 
         self._metal.end_render_pass(context=self._ctx)
 
@@ -1811,6 +1859,8 @@ fragment float4 test_fragment(VertexOut in [[stage_in]])
             color_buffer=color_buffer,
             cylinder_buffer=cyl_buf,
             cylinder_color_buffer=cyl_color_buf,
+            triangle_buffer=tri_buf,
+            triangle_color_buffer=tri_color_buf,
             uniforms=data,
         )
 

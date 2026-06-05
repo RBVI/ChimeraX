@@ -25,7 +25,8 @@
 // ---------------------------------------------------------------------------
 struct VkRtAccelStructure {
     VulkanContext* ctx;
-    // Bottom-level AS (one or two AABB geometries: spheres + optional cyls).
+    // Bottom-level AS (up to three AABB geometries: spheres, cylinders,
+    // triangles).
     VkAccelerationStructureKHR blas;
     VkBuffer            blas_buffer;
     VmaAllocation       blas_buffer_alloc;
@@ -44,6 +45,9 @@ struct VkRtAccelStructure {
     VkBuffer            cylinder_buffer;
     VmaAllocation       cylinder_buffer_alloc;
     uint32_t            cylinder_count;
+    VkBuffer            triangle_buffer;
+    VmaAllocation       triangle_buffer_alloc;
+    uint32_t            triangle_count;
 };
 
 // Cached compute pipeline state for RTAO. Compiled once per process by
@@ -200,6 +204,26 @@ static void fill_sphere_aabbs(const float* sph, uint32_t count,
     }
 }
 
+// Compute AABBs for triangle primitives packed as 12 floats each:
+// (v0.x, v0.y, v0.z, 0, v1.x, v1.y, v1.z, 0, v2.x, v2.y, v2.z, 0).
+static void fill_triangle_aabbs(const float* tri, uint32_t count,
+                                VkAabbPositionsKHR* out) {
+    for (uint32_t i = 0; i < count; i++) {
+        float x0 = tri[i*12+0], y0 = tri[i*12+1], z0 = tri[i*12+2];
+        float x1 = tri[i*12+4], y1 = tri[i*12+5], z1 = tri[i*12+6];
+        float x2 = tri[i*12+8], y2 = tri[i*12+9], z2 = tri[i*12+10];
+        float pad = 1e-4f;
+        float minx = fminf(fminf(x0, x1), x2) - pad;
+        float miny = fminf(fminf(y0, y1), y2) - pad;
+        float minz = fminf(fminf(z0, z1), z2) - pad;
+        float maxx = fmaxf(fmaxf(x0, x1), x2) + pad;
+        float maxy = fmaxf(fmaxf(y0, y1), y2) + pad;
+        float maxz = fmaxf(fmaxf(z0, z1), z2) + pad;
+        out[i].minX = minx; out[i].minY = miny; out[i].minZ = minz;
+        out[i].maxX = maxx; out[i].maxY = maxy; out[i].maxZ = maxz;
+    }
+}
+
 // Compute AABBs for a flat array of cylinders packed as
 // (p0.xyz, radius, p1.xyz, pad) — same layout as the Metal backend.
 static void fill_cylinder_aabbs(const float* cyl, uint32_t count,
@@ -222,13 +246,13 @@ static void fill_cylinder_aabbs(const float* cyl, uint32_t count,
 // Build a bottom-level acceleration structure with one or two AABB
 // geometries; sets out->blas + out->blas_buffer.
 static bool build_blas(VulkanContext* ctx,
-                       VkBuffer aabb_buffers[2],
-                       uint32_t prim_counts[2],
+                       VkBuffer aabb_buffers[3],
+                       uint32_t prim_counts[3],
                        uint32_t geometry_count,
                        VkRtAccelStructure* out)
 {
-    VkAccelerationStructureGeometryKHR geometries[2] = {};
-    VkAccelerationStructureBuildRangeInfoKHR ranges[2] = {};
+    VkAccelerationStructureGeometryKHR geometries[3] = {};
+    VkAccelerationStructureBuildRangeInfoKHR ranges[3] = {};
     const VkAccelerationStructureBuildRangeInfoKHR* range_ptrs[1];
 
     for (uint32_t g = 0; g < geometry_count; g++) {
@@ -390,8 +414,8 @@ static bool build_tlas(VulkanContext* ctx, VkRtAccelStructure* out)
 
 // Convenience: build BLAS + wrapping TLAS.
 static bool build_primitive_as(VulkanContext* ctx,
-                               VkBuffer aabb_buffers[2],
-                               uint32_t prim_counts[2],
+                               VkBuffer aabb_buffers[3],
+                               uint32_t prim_counts[3],
                                uint32_t geometry_count,
                                VkRtAccelStructure* out)
 {
@@ -468,9 +492,12 @@ PyObject* vulkan_build_sphere_accel(PyObject* self, PyObject* args, PyObject* kw
     rt->cylinder_buffer = VK_NULL_HANDLE;
     rt->cylinder_buffer_alloc = VK_NULL_HANDLE;
     rt->cylinder_count = 0;
+    rt->triangle_buffer = VK_NULL_HANDLE;
+    rt->triangle_buffer_alloc = VK_NULL_HANDLE;
+    rt->triangle_count = 0;
 
-    VkBuffer aabb_bufs[2] = { aabb_buf, VK_NULL_HANDLE };
-    uint32_t counts[2] = { static_cast<uint32_t>(sphere_count), 0 };
+    VkBuffer aabb_bufs[3] = { aabb_buf, VK_NULL_HANDLE, VK_NULL_HANDLE };
+    uint32_t counts[3] = { static_cast<uint32_t>(sphere_count), 0, 0 };
     bool ok = build_primitive_as(ctx, aabb_bufs, counts, 1, rt);
 
     vmaDestroyBuffer(ctx->allocator, aabb_buf, aabb_alloc);
@@ -591,10 +618,13 @@ PyObject* vulkan_build_mixed_accel(PyObject* self, PyObject* args, PyObject* kwd
     rt->cylinder_buffer = cyl_data_buf;
     rt->cylinder_buffer_alloc = cyl_data_alloc;
     rt->cylinder_count = static_cast<uint32_t>(cyl_count);
+    rt->triangle_buffer = VK_NULL_HANDLE;
+    rt->triangle_buffer_alloc = VK_NULL_HANDLE;
+    rt->triangle_count = 0;
 
-    VkBuffer aabb_bufs[2] = { sph_aabb_buf, cyl_aabb_buf };
-    uint32_t counts[2] = { static_cast<uint32_t>(sphere_count),
-                           static_cast<uint32_t>(cyl_count) };
+    VkBuffer aabb_bufs[3] = { sph_aabb_buf, cyl_aabb_buf, VK_NULL_HANDLE };
+    uint32_t counts[3] = { static_cast<uint32_t>(sphere_count),
+                           static_cast<uint32_t>(cyl_count), 0 };
     bool ok = build_primitive_as(ctx, aabb_bufs, counts,
                                  cyl_count > 0 ? 2 : 1, rt);
 
@@ -616,6 +646,179 @@ PyObject* vulkan_build_mixed_accel(PyObject* self, PyObject* args, PyObject* kwd
         reinterpret_cast<Py_ssize_t>(rt),
         reinterpret_cast<Py_ssize_t>(rt->sphere_buffer),
         reinterpret_cast<Py_ssize_t>(rt->cylinder_buffer));
+}
+
+// ---------------------------------------------------------------------------
+//  build_scene_accel — sphere (id 0) + cylinder (id 1) + triangle (id 2).
+// ---------------------------------------------------------------------------
+extern "C"
+PyObject* vulkan_build_scene_accel(PyObject* self, PyObject* args, PyObject* kwds)
+{
+    Py_ssize_t ctx_ptr;
+    Py_buffer sphere_buf, cyl_buf, tri_buf;
+    int sphere_count, cyl_count, tri_count;
+    static const char* kwlist[] = {"context",
+                                   "sphere_data", "sphere_count",
+                                   "cylinder_data", "cylinder_count",
+                                   "triangle_data", "triangle_count", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds,
+            const_cast<char*>("ny*iy*iy*i"), (char**)kwlist,
+            &ctx_ptr, &sphere_buf, &sphere_count,
+            &cyl_buf, &cyl_count, &tri_buf, &tri_count))
+        return NULL;
+
+    VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
+    VK_TRACE("RT build_scene_accel sph=%d cyl=%d tri=%d",
+             sphere_count, cyl_count, tri_count);
+    if (!ctx->raytracing_supported) {
+        PyBuffer_Release(&sphere_buf);
+        PyBuffer_Release(&cyl_buf);
+        PyBuffer_Release(&tri_buf);
+        PyErr_SetString(PyExc_RuntimeError,
+                        "Vulkan device does not support ray tracing");
+        return NULL;
+    }
+
+    // -- Data buffers (kept alive for the shader to read) --
+    VkBuffer sphere_data_buf = VK_NULL_HANDLE;
+    VmaAllocation sphere_data_alloc = VK_NULL_HANDLE;
+    if (!create_host_buffer(ctx, sphere_buf.buf,
+            sphere_count * sizeof(float) * 4,
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            &sphere_data_buf, &sphere_data_alloc)) {
+        PyBuffer_Release(&sphere_buf);
+        PyBuffer_Release(&cyl_buf);
+        PyBuffer_Release(&tri_buf);
+        PyErr_SetString(PyExc_RuntimeError, "Sphere data buffer alloc failed");
+        return NULL;
+    }
+
+    VkBuffer cyl_data_buf = VK_NULL_HANDLE;
+    VmaAllocation cyl_data_alloc = VK_NULL_HANDLE;
+    if (cyl_count > 0) {
+        if (!create_host_buffer(ctx, cyl_buf.buf,
+                cyl_count * sizeof(float) * 8,
+                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                &cyl_data_buf, &cyl_data_alloc)) {
+            vmaDestroyBuffer(ctx->allocator, sphere_data_buf, sphere_data_alloc);
+            PyBuffer_Release(&sphere_buf);
+            PyBuffer_Release(&cyl_buf);
+            PyBuffer_Release(&tri_buf);
+            PyErr_SetString(PyExc_RuntimeError, "Cylinder data buffer alloc failed");
+            return NULL;
+        }
+    }
+
+    VkBuffer tri_data_buf = VK_NULL_HANDLE;
+    VmaAllocation tri_data_alloc = VK_NULL_HANDLE;
+    if (tri_count > 0) {
+        if (!create_host_buffer(ctx, tri_buf.buf,
+                tri_count * sizeof(float) * 12,
+                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                &tri_data_buf, &tri_data_alloc)) {
+            vmaDestroyBuffer(ctx->allocator, sphere_data_buf, sphere_data_alloc);
+            if (cyl_data_buf)
+                vmaDestroyBuffer(ctx->allocator, cyl_data_buf, cyl_data_alloc);
+            PyBuffer_Release(&sphere_buf);
+            PyBuffer_Release(&cyl_buf);
+            PyBuffer_Release(&tri_buf);
+            PyErr_SetString(PyExc_RuntimeError,
+                            "Triangle data buffer alloc failed");
+            return NULL;
+        }
+    }
+
+    // -- AABBs for each geometry --
+    std::vector<VkAabbPositionsKHR> sph_aabbs(sphere_count);
+    fill_sphere_aabbs(reinterpret_cast<const float*>(sphere_buf.buf),
+                      sphere_count, sph_aabbs.data());
+    PyBuffer_Release(&sphere_buf);
+
+    std::vector<VkAabbPositionsKHR> cyl_aabbs(cyl_count);
+    if (cyl_count > 0)
+        fill_cylinder_aabbs(reinterpret_cast<const float*>(cyl_buf.buf),
+                            cyl_count, cyl_aabbs.data());
+    PyBuffer_Release(&cyl_buf);
+
+    std::vector<VkAabbPositionsKHR> tri_aabbs(tri_count);
+    if (tri_count > 0)
+        fill_triangle_aabbs(reinterpret_cast<const float*>(tri_buf.buf),
+                            tri_count, tri_aabbs.data());
+    PyBuffer_Release(&tri_buf);
+
+    // Create AABB GPU buffers.
+    auto make_aabb_buf = [&](auto& vec, VkBuffer* buf, VmaAllocation* alloc) -> bool {
+        if (vec.empty()) return true;
+        return create_host_buffer(ctx, vec.data(),
+            vec.size() * sizeof(VkAabbPositionsKHR),
+            VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
+            | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+            buf, alloc);
+    };
+
+    VkBuffer sph_aabb_buf = VK_NULL_HANDLE;
+    VmaAllocation sph_aabb_alloc = VK_NULL_HANDLE;
+    VkBuffer cyl_aabb_buf = VK_NULL_HANDLE;
+    VmaAllocation cyl_aabb_alloc = VK_NULL_HANDLE;
+    VkBuffer tri_aabb_buf = VK_NULL_HANDLE;
+    VmaAllocation tri_aabb_alloc = VK_NULL_HANDLE;
+
+    if (!make_aabb_buf(sph_aabbs, &sph_aabb_buf, &sph_aabb_alloc) ||
+        !make_aabb_buf(cyl_aabbs, &cyl_aabb_buf, &cyl_aabb_alloc) ||
+        !make_aabb_buf(tri_aabbs, &tri_aabb_buf, &tri_aabb_alloc)) {
+        if (sph_aabb_buf) vmaDestroyBuffer(ctx->allocator, sph_aabb_buf, sph_aabb_alloc);
+        if (cyl_aabb_buf) vmaDestroyBuffer(ctx->allocator, cyl_aabb_buf, cyl_aabb_alloc);
+        if (tri_aabb_buf) vmaDestroyBuffer(ctx->allocator, tri_aabb_buf, tri_aabb_alloc);
+        vmaDestroyBuffer(ctx->allocator, sphere_data_buf, sphere_data_alloc);
+        if (cyl_data_buf) vmaDestroyBuffer(ctx->allocator, cyl_data_buf, cyl_data_alloc);
+        if (tri_data_buf) vmaDestroyBuffer(ctx->allocator, tri_data_buf, tri_data_alloc);
+        PyErr_SetString(PyExc_RuntimeError, "AABB buffer allocation failed");
+        return NULL;
+    }
+
+    VkRtAccelStructure* rt = new VkRtAccelStructure();
+    rt->ctx = ctx;
+    rt->sphere_buffer = sphere_data_buf;
+    rt->sphere_buffer_alloc = sphere_data_alloc;
+    rt->sphere_count = static_cast<uint32_t>(sphere_count);
+    rt->cylinder_buffer = cyl_data_buf;
+    rt->cylinder_buffer_alloc = cyl_data_alloc;
+    rt->cylinder_count = static_cast<uint32_t>(cyl_count);
+    rt->triangle_buffer = tri_data_buf;
+    rt->triangle_buffer_alloc = tri_data_alloc;
+    rt->triangle_count = static_cast<uint32_t>(tri_count);
+
+    uint32_t geom_count = 1;
+    if (cyl_count > 0) geom_count = 2;
+    if (tri_count > 0) geom_count = 3;
+    // If there are triangles but no cylinders, we still need geometry slots
+    // 0, 1, 2 — fill the cylinder slot with 0 primitives so IDs are stable.
+    if (tri_count > 0 && cyl_count == 0) geom_count = 3;
+
+    VkBuffer aabb_bufs[3] = { sph_aabb_buf, cyl_aabb_buf, tri_aabb_buf };
+    uint32_t counts[3] = { static_cast<uint32_t>(sphere_count),
+                           static_cast<uint32_t>(cyl_count),
+                           static_cast<uint32_t>(tri_count) };
+    bool ok = build_primitive_as(ctx, aabb_bufs, counts, geom_count, rt);
+
+    if (sph_aabb_buf) vmaDestroyBuffer(ctx->allocator, sph_aabb_buf, sph_aabb_alloc);
+    if (cyl_aabb_buf) vmaDestroyBuffer(ctx->allocator, cyl_aabb_buf, cyl_aabb_alloc);
+    if (tri_aabb_buf) vmaDestroyBuffer(ctx->allocator, tri_aabb_buf, tri_aabb_alloc);
+
+    if (!ok) {
+        vmaDestroyBuffer(ctx->allocator, sphere_data_buf, sphere_data_alloc);
+        if (cyl_data_buf) vmaDestroyBuffer(ctx->allocator, cyl_data_buf, cyl_data_alloc);
+        if (tri_data_buf) vmaDestroyBuffer(ctx->allocator, tri_data_buf, tri_data_alloc);
+        delete rt;
+        PyErr_SetString(PyExc_RuntimeError, "Acceleration structure build failed");
+        return NULL;
+    }
+
+    return Py_BuildValue("nnnn",
+        reinterpret_cast<Py_ssize_t>(rt),
+        reinterpret_cast<Py_ssize_t>(rt->sphere_buffer),
+        reinterpret_cast<Py_ssize_t>(rt->cylinder_buffer),
+        reinterpret_cast<Py_ssize_t>(rt->triangle_buffer));
 }
 
 // ---------------------------------------------------------------------------
@@ -657,6 +860,8 @@ PyObject* vulkan_destroy_accel_struct(PyObject* self, PyObject* args, PyObject* 
         vmaDestroyBuffer(ctx->allocator, rt->sphere_buffer, rt->sphere_buffer_alloc);
     if (rt->cylinder_buffer != VK_NULL_HANDLE)
         vmaDestroyBuffer(ctx->allocator, rt->cylinder_buffer, rt->cylinder_buffer_alloc);
+    if (rt->triangle_buffer != VK_NULL_HANDLE)
+        vmaDestroyBuffer(ctx->allocator, rt->triangle_buffer, rt->triangle_buffer_alloc);
     delete rt;
 
     Py_RETURN_NONE;
@@ -1118,12 +1323,14 @@ PyObject* vulkan_dispatch_rtao(PyObject* self, PyObject* args, PyObject* kwds)
 //    6  storage image color_tex  (RGBA8 unorm, write)
 //    7  combined image  prev_tex (RGBA8 unorm, sampled)
 //    8  storage image accum_tex  (RGBA8 unorm, write)
+//    9  storage  triangles (3x vec4 each)
+//   10  storage  triangle_colors (uchar4 packed as uint)
 // ---------------------------------------------------------------------------
 
 static bool create_pt_descriptor_layout(VulkanContext* ctx)
 {
-    VkDescriptorSetLayoutBinding b[9] = {};
-    for (int i = 0; i < 9; i++) {
+    VkDescriptorSetLayoutBinding b[11] = {};
+    for (int i = 0; i < 11; i++) {
         b[i].binding = i;
         b[i].descriptorCount = 1;
         b[i].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -1137,10 +1344,12 @@ static bool create_pt_descriptor_layout(VulkanContext* ctx)
     b[6].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     b[7].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     b[8].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    b[9].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    b[10].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 
     VkDescriptorSetLayoutCreateInfo ci{};
     ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    ci.bindingCount = 9;
+    ci.bindingCount = 11;
     ci.pBindings = b;
     return vkCreateDescriptorSetLayout(ctx->device, &ci, nullptr,
                                        &s_pt.set_layout) == VK_SUCCESS;
@@ -1152,7 +1361,7 @@ static bool create_pt_descriptor_pool(VulkanContext* ctx)
     VkDescriptorPoolSize sizes[] = {
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,             SETS },
         { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, SETS },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,           4*SETS },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,           6*SETS },  // sph+cyl+sphcol+cylcol+tri+tricol
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,     SETS },
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,            2*SETS },
     };
@@ -1308,16 +1517,19 @@ PyObject* vulkan_dispatch_pathtracer(PyObject* self, PyObject* args, PyObject* k
     Py_ssize_t ctx_ptr, as_ptr, sb_ptr;
     Py_ssize_t color_tex_ptr, prev_tex_ptr, accum_tex_ptr;
     Py_ssize_t color_buf_ptr, cyl_buf_ptr, cyl_color_buf_ptr;
+    Py_ssize_t tri_buf_ptr = 0, tri_color_buf_ptr = 0;
     Py_buffer uniforms_buf;
     static const char* kwlist[] = {"context", "accel_struct", "sphere_buffer",
                                    "color_texture", "prev_texture", "accum_texture",
                                    "color_buffer", "cylinder_buffer",
-                                   "cylinder_color_buffer", "uniforms", NULL};
+                                   "cylinder_color_buffer",
+                                   "triangle_buffer", "triangle_color_buffer",
+                                   "uniforms", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("nnnnnnnnny*"), (char**)kwlist,
+            const_cast<char*>("nnnnnnnnnnny*"), (char**)kwlist,
             &ctx_ptr, &as_ptr, &sb_ptr, &color_tex_ptr, &prev_tex_ptr,
             &accum_tex_ptr, &color_buf_ptr, &cyl_buf_ptr, &cyl_color_buf_ptr,
-            &uniforms_buf))
+            &tri_buf_ptr, &tri_color_buf_ptr, &uniforms_buf))
         return NULL;
 
     if (!s_pt_compiled) {
@@ -1340,6 +1552,8 @@ PyObject* vulkan_dispatch_pathtracer(PyObject* self, PyObject* args, PyObject* k
 
     BufferWithAllocator* cyl_color_buf = cyl_color_buf_ptr
         ? reinterpret_cast<BufferWithAllocator*>(cyl_color_buf_ptr) : nullptr;
+    BufferWithAllocator* tri_color_buf = tri_color_buf_ptr
+        ? reinterpret_cast<BufferWithAllocator*>(tri_color_buf_ptr) : nullptr;
 
     // Per-frame uniform buffer (defer-freed at end of frame).
     BufferWithAllocator* ubo = new BufferWithAllocator();
@@ -1358,14 +1572,19 @@ PyObject* vulkan_dispatch_pathtracer(PyObject* self, PyObject* args, PyObject* k
 
     VkDescriptorSet set = s_pt.sets[ctx->current_frame];
 
-    // Pick cylinder + cylinder color buffer fallbacks. Spheres are always
-    // present (path tracing requires at least one sphere); cylinders may
-    // be missing when the current scene has no bonds.
+    // Pick buffer fallbacks. Spheres are always present; cylinders and
+    // triangles may be missing.
     VkBuffer cyl_geo_buf = (cyl_buf_ptr != 0)
         ? reinterpret_cast<VkBuffer>(cyl_buf_ptr)
         : s_pt.dummy_buffer;
     VkBuffer cyl_col_buf = cyl_color_buf
         ? cyl_color_buf->base.buffer
+        : s_pt.dummy_buffer;
+    VkBuffer tri_geo_buf = (tri_buf_ptr != 0)
+        ? reinterpret_cast<VkBuffer>(tri_buf_ptr)
+        : s_pt.dummy_buffer;
+    VkBuffer tri_col_buf = tri_color_buf
+        ? tri_color_buf->base.buffer
         : s_pt.dummy_buffer;
 
     VkDescriptorBufferInfo ubo_info{};
@@ -1389,6 +1608,12 @@ PyObject* vulkan_dispatch_pathtracer(PyObject* self, PyObject* args, PyObject* k
     VkDescriptorBufferInfo cyl_col_info{};
     cyl_col_info.buffer = cyl_col_buf;
     cyl_col_info.range  = VK_WHOLE_SIZE;
+    VkDescriptorBufferInfo tri_info{};
+    tri_info.buffer = tri_geo_buf;
+    tri_info.range  = VK_WHOLE_SIZE;
+    VkDescriptorBufferInfo tri_col_info{};
+    tri_col_info.buffer = tri_col_buf;
+    tri_col_info.range  = VK_WHOLE_SIZE;
 
     VkDescriptorImageInfo color_info{};
     color_info.imageView = color_tex->image_view;
@@ -1401,8 +1626,8 @@ PyObject* vulkan_dispatch_pathtracer(PyObject* self, PyObject* args, PyObject* k
     accum_info.imageView = accum_tex->image_view;
     accum_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
-    VkWriteDescriptorSet w[9] = {};
-    for (int i = 0; i < 9; i++) {
+    VkWriteDescriptorSet w[11] = {};
+    for (int i = 0; i < 11; i++) {
         w[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         w[i].dstSet = set;
         w[i].dstBinding = i;
@@ -1417,7 +1642,9 @@ PyObject* vulkan_dispatch_pathtracer(PyObject* self, PyObject* args, PyObject* k
     w[6].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;           w[6].pImageInfo  = &color_info;
     w[7].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;  w[7].pImageInfo  = &prev_info;
     w[8].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;           w[8].pImageInfo  = &accum_info;
-    vkUpdateDescriptorSets(ctx->device, 9, w, 0, nullptr);
+    w[9].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;          w[9].pBufferInfo = &tri_info;
+    w[10].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;         w[10].pBufferInfo = &tri_col_info;
+    vkUpdateDescriptorSets(ctx->device, 11, w, 0, nullptr);
 
     VkCommandBuffer cmd = ctx->frames[ctx->current_frame].command_buffer;
     transition_for_storage(cmd, color_tex);

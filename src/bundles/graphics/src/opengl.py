@@ -565,6 +565,12 @@ class Render:
             fb.delete()
             self._default_framebuffer = None
 
+        pfc = getattr(self, "_pass_fb_cache", None)
+        if pfc:
+            for pass_fb in pfc.values():
+                pass_fb.delete()
+            pfc.clear()
+
         lb = self._lighting_buffer
         if lb is not None:
             GL.glDeleteBuffers(1, [lb])

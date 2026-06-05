@@ -38,6 +38,7 @@ constant bool use_transparent_only [[function_constant(14)]];
 constant bool use_opaque_only      [[function_constant(15)]];
 constant bool use_depth_prepass    [[function_constant(17)]];
 constant bool use_sphere_ao        [[function_constant(18)]];
+constant bool use_gtao             [[function_constant(19)]];
 
 constant int MAX_SHADOWS = 256;
 struct ShadowMatrixBlock {
@@ -166,8 +167,10 @@ fragment SphereFragOut sphere_fragment(
     constant SphereAONeighbor *ao_neighbors            [[buffer(4)]],
     depth2d<float>    shadow_map                      [[texture(3)]],
     depth2d<float>    multishadow_map                 [[texture(4)]],
+    texture2d<float>  gtao_map                        [[texture(7)]],
     sampler           shadow_sampler                  [[sampler(3)]],
-    sampler           multishadow_sampler             [[sampler(4)]])
+    sampler           multishadow_sampler             [[sampler(4)]],
+    sampler           gtao_sampler                    [[sampler(7)]])
 {
     // Clip-plane discard.
     if (use_clip_planes) {
@@ -299,6 +302,19 @@ fragment SphereFragOut sphere_fragment(
                 mshadow *= vis;
             } else {
                 mshadow = vis;
+                has_mshadow = true;
+            }
+        }
+
+        // Screen-space GTAO: sample the pre-computed AO texture.
+        if (use_gtao) {
+            float2 screen_uv = in.position.xy
+                / float2(gtao_map.get_width(), gtao_map.get_height());
+            float ao = gtao_map.sample(gtao_sampler, screen_uv).r;
+            if (has_mshadow) {
+                mshadow *= ao;
+            } else {
+                mshadow = ao;
                 has_mshadow = true;
             }
         }

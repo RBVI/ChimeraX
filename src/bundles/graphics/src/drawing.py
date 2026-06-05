@@ -27,6 +27,10 @@ Drawing
 =======
 '''
 
+import os as _os
+_CYL_DRAW_DEBUG = bool(_os.environ.get("CHIMERAX_CYL_DRAW_DEBUG"))
+del _os
+
 
 class Drawing:
     '''
@@ -806,9 +810,36 @@ class Drawing:
         if self.vertices is None:
             return
 
+        sopt = self._shader_options(transparent_only, opaque_only)
+
+        if _CYL_DRAW_DEBUG:
+            from .renderer import SHADER_IMPOSTOR_CYLINDER
+            if sopt & SHADER_IMPOSTOR_CYLINDER:
+                import sys
+                pos = self.positions
+                sas = pos.shift_and_scale_array() if pos is not None else None
+                mats = pos.opengl_matrices() if (
+                    pos is not None and sas is None and len(pos) > 1
+                ) else None
+                vcolors = getattr(self, "vertex_colors", None)
+                dcolors = getattr(self, "_colors", None)
+                parent = getattr(self, "parent", None)
+                pname = getattr(parent, "name", None) if parent is not None else None
+                backend = "vulkan" if hasattr(renderer, "draw_drawing") else "opengl"
+                print(
+                    f"[cyl-draw {backend}] drawing={self.name!r} parent={pname!r} "
+                    f"verts={len(self.vertices)} tris={len(self.triangles)} "
+                    f"pos={len(pos) if pos is not None else None} "
+                    f"sas={None if sas is None else sas.shape} "
+                    f"matrices={None if mats is None else mats.shape} "
+                    f"vcolors={None if vcolors is None else vcolors.shape} "
+                    f"_colors={None if dcolors is None else dcolors.shape} "
+                    f"highlighted_only={highlighted_only} caps=0x{sopt:x}",
+                    file=sys.stderr,
+                )
+
         # Check if renderer supports direct drawing (Metal path)
         if hasattr(renderer, 'draw_drawing'):
-            sopt = self._shader_options(transparent_only, opaque_only)
             renderer.draw_drawing(self, sopt, highlighted_only)
             return
 
@@ -1229,6 +1260,68 @@ class Drawing:
         if not self.was_deleted:
             # Release opengl resources.
             self.delete()
+
+    def release_graphics_resources(self):
+        '''
+        Orphan all per-context GPU handles on this drawing without calling into
+        the old context. Used when the graphics backend is swapped at runtime —
+        the old context has already been torn down, so calling its delete_buffer
+        / delete_texture methods would crash. The GPU driver reclaims the
+        underlying objects when the context is destroyed.
+        '''
+        def _orphan_tex(tex):
+            if tex is not None and hasattr(tex, 'id'):
+                tex.id = None
+        def _orphan_buffer(b):
+            # opengl.Buffer.__del__ raises if _deleted_buffer is False, so flag
+            # the buffer as released and drop the GL handle without touching the
+            # dead context.
+            if b is None:
+                return
+            if hasattr(b, '_deleted_buffer'):
+                b._deleted_buffer = True
+            if hasattr(b, 'opengl_buffer'):
+                b.opengl_buffer = None
+        def _orphan_draw_shape(ds):
+            if ds is None:
+                return
+            _orphan_buffer(ds.element_buffer)
+            ds.element_buffer = None
+            for b in ds.instance_buffers:
+                _orphan_buffer(b)
+            ds.instance_buffers = []
+            if ds.bindings is not None and hasattr(ds.bindings, '_vao_id'):
+                ds.bindings._vao_id = None
+            ds.bindings = None
+        for b in self._vertex_buffers:
+            _orphan_buffer(b)
+        self._vertex_buffers = []
+        _orphan_draw_shape(self._draw_shape)
+        _orphan_draw_shape(self._draw_highlight)
+        self._draw_shape = None
+        self._draw_highlight = None
+        _orphan_tex(self.texture)
+        self.texture = None
+        if self.multitexture:
+            for t in self.multitexture:
+                _orphan_tex(t)
+        self.multitexture = None
+        _orphan_tex(self.colormap)
+        self.colormap = None
+        self._opengl_context = None
+        self._attribute_changes.update(self._effects_buffers)
+        self.redraw_needed(shape_changed=True)
+        self.graphics_context_changed()
+        for d in self._child_drawings:
+            d.release_graphics_resources()
+
+    def graphics_context_changed(self):
+        '''Hook called on every drawing after the graphics backend has been
+        swapped (see release_graphics_resources). Default implementation is a
+        no-op; subclasses that hold renderable state derived from CPU data
+        (e.g. label textures) should override this to flag themselves for
+        re-upload on the next draw.'''
+        pass
 
     def delete(self):
         '''

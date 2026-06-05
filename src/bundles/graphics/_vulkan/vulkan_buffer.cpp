@@ -76,6 +76,57 @@ PyObject* vulkan_create_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
     return PyLong_FromSsize_t(reinterpret_cast<Py_ssize_t>(bwa));
 }
 
+// ---------------------------------------------------------------------------
+//  Create a persistently-mapped buffer.  Returns (buffer_handle, mapped_ptr)
+//  so the caller can write directly into GPU-visible memory (e.g. from a
+//  C-level surface generator) without an intermediate numpy copy.
+// ---------------------------------------------------------------------------
+extern "C"
+PyObject* vulkan_create_mapped_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
+    Py_ssize_t ctx_ptr;
+    Py_ssize_t size_bytes;
+    static const char* kwlist[] = {"context", "size", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds,
+            const_cast<char*>("nn"), (char**)kwlist, &ctx_ptr, &size_bytes))
+        return NULL;
+
+    VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
+
+    VkBufferCreateInfo buffer_info = {};
+    buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    buffer_info.size = size_bytes;
+    buffer_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+                      | VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+                      | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    VmaAllocationCreateInfo alloc_info = {};
+    alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
+    alloc_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+                     | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+    VkBuffer vk_buffer;
+    VmaAllocation allocation;
+    VmaAllocationInfo ai;
+    VkResult result = vmaCreateBuffer(ctx->allocator, &buffer_info, &alloc_info,
+                                      &vk_buffer, &allocation, &ai);
+    if (result != VK_SUCCESS) {
+        PyErr_SetString(PyExc_RuntimeError, "Failed to create mapped Vulkan buffer");
+        return NULL;
+    }
+
+    BufferWithAllocator* bwa = new BufferWithAllocator();
+    bwa->base.buffer = vk_buffer;
+    bwa->base.allocation = allocation;
+    bwa->base.size = static_cast<VkDeviceSize>(size_bytes);
+    bwa->allocator = ctx->allocator;
+    bwa->ctx = ctx;
+
+    return Py_BuildValue("nn",
+        reinterpret_cast<Py_ssize_t>(bwa),
+        reinterpret_cast<Py_ssize_t>(ai.pMappedData));
+}
+
 extern "C"
 PyObject* vulkan_update_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
     Py_ssize_t buf_ptr;
@@ -129,6 +180,29 @@ PyObject* vulkan_destroy_buffer(PyObject* self, PyObject* args, PyObject* kwds) 
     bwa->ctx->pending_deletes[deferred_delete_slot(bwa->ctx)].buffers.push_back(bwa);
 
     Py_RETURN_NONE;
+}
+
+extern "C"
+PyObject* vulkan_get_buffer_device_memory(PyObject* self, PyObject* args, PyObject* kwds) {
+    Py_ssize_t buf_ptr;
+    static const char* kwlist[] = {"buffer", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds,
+            const_cast<char*>("n"), (char**)kwlist, &buf_ptr))
+        return NULL;
+
+    if (!buf_ptr) {
+        PyErr_SetString(PyExc_ValueError, "buffer handle is NULL");
+        return NULL;
+    }
+    BufferWithAllocator* bwa = reinterpret_cast<BufferWithAllocator*>(buf_ptr);
+    VmaAllocationInfo alloc_info;
+    vmaGetAllocationInfo(bwa->allocator, bwa->base.allocation, &alloc_info);
+
+    // Return (device_memory, offset) — VMA may sub-allocate from a larger
+    // block, so the caller needs the offset to find the data.
+    return Py_BuildValue("Kn",
+        reinterpret_cast<unsigned long long>(alloc_info.deviceMemory),
+        static_cast<Py_ssize_t>(alloc_info.offset));
 }
 
 // ---------------------------------------------------------------------------

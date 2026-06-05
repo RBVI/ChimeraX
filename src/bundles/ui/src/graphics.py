@@ -14,6 +14,61 @@
 from Qt.QtGui import QWindow, QSurface
 
 
+def _setup_moltenvk_icd():
+    """Point the Vulkan loader at the bundled MoltenVK before libvulkan loads.
+
+    Writes a temporary ICD JSON with an absolute path to libMoltenVK.dylib
+    so dlopen succeeds without DYLD_LIBRARY_PATH (which SIP strips).
+    """
+    import os, json, tempfile
+    lib_dir = os.path.join(
+        os.path.dirname(__file__), "..", "..", "graphics", "src", "lib"
+    )
+    lib_dir = os.path.normpath(lib_dir)
+    mvk_path = os.path.join(lib_dir, "libMoltenVK.dylib")
+    if not os.path.exists(mvk_path):
+        return  # Not bundled; rely on system Vulkan SDK
+    icd = {
+        "file_format_version": "1.0.0",
+        "ICD": {
+            "library_path": mvk_path,
+            "api_version": "1.4.0",
+            "is_portability_driver": True,
+        },
+    }
+    fd, icd_path = tempfile.mkstemp(suffix=".json", prefix="chimerax_mvk_")
+    with os.fdopen(fd, "w") as f:
+        json.dump(icd, f)
+    os.environ["VK_DRIVER_FILES"] = icd_path
+    os.environ["VK_ICD_FILENAMES"] = icd_path
+    import sys
+    print(f"[MoltenVK] ICD={icd_path} MVK={mvk_path} exists={os.path.exists(mvk_path)}", file=sys.stderr, flush=True)
+    print(f"[MoltenVK] VK_DRIVER_FILES={os.environ.get('VK_DRIVER_FILES')}", file=sys.stderr, flush=True)
+    with open(icd_path) as _f:
+        print(f"[MoltenVK] JSON contents: {_f.read()}", file=sys.stderr, flush=True)
+
+
+# Must run at module import time, before any Vulkan import loads libvulkan.
+import os as _os, sys as _sys
+_moltenvk_icd_initialized = False
+if _sys.platform == "darwin" and _os.environ.get("CHIMERAX_GRAPHICS_BACKEND", "").lower() == "vulkan":
+    _setup_moltenvk_icd()
+    _moltenvk_icd_initialized = True
+del _os, _sys
+
+
+def _ensure_moltenvk_icd():
+    '''Idempotent guard around _setup_moltenvk_icd(). Used when switching to
+    Vulkan at runtime on macOS — the ICD must be configured before libvulkan
+    is loaded, which has not yet happened if startup backend was OpenGL.'''
+    global _moltenvk_icd_initialized
+    import sys
+    if _moltenvk_icd_initialized or sys.platform != "darwin":
+        return
+    _setup_moltenvk_icd()
+    _moltenvk_icd_initialized = True
+
+
 class GraphicsWindow(QWindow):
     """
     The graphics window that displays the three-dimensional models.
@@ -30,24 +85,15 @@ class GraphicsWindow(QWindow):
         w.setAcceptDrops(True)
         import os, sys
 
+        self._ui = ui
+        self._stereo = stereo
         backend = os.environ.get("CHIMERAX_GRAPHICS_BACKEND", "").lower()
-        use_metal = sys.platform == "darwin" and backend == "metal"
-        use_vulkan = sys.platform != "darwin" and backend == "vulkan"
-        if use_vulkan:
-            self.setSurfaceType(QSurface.SurfaceType.VulkanSurface)
-            from chimerax.graphics.vulkan import VulkanContext
-
-            oc = VulkanContext(self, ui.primaryScreen())
-        elif use_metal:
-            self.setSurfaceType(QSurface.SurfaceType.MetalSurface)
-            from chimerax.graphics.metal import MetalContext
-
-            oc = MetalContext(self, ui.primaryScreen())
+        if backend == "vulkan":
+            oc = self._create_context("vulkan")
+        elif sys.platform == "darwin" and backend == "metal":
+            oc = self._create_context("metal")
         elif opengl_context is None:
-            self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
-            from chimerax.graphics import OpenGLContext
-
-            oc = OpenGLContext(self, ui.primaryScreen(), use_stereo=stereo)
+            oc = self._create_context("opengl")
         else:
             self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
             from chimerax.graphics import OpenGLError
@@ -64,6 +110,71 @@ class GraphicsWindow(QWindow):
         self.view.initialize_rendering(oc)
 
         self.popup = Popup(self)  # For display of atom spec balloons
+
+    def _create_context(self, backend):
+        '''Construct a graphics context for the requested backend, setting the
+        appropriate QSurface.SurfaceType on this QWindow first. Returns the
+        new context object; does not assign it.'''
+        import sys
+        ui = self._ui
+        if backend == "vulkan":
+            # MoltenVK renders through CAMetalLayer, so use MetalSurface on
+            # macOS rather than VulkanSurface.
+            if sys.platform == "darwin":
+                _ensure_moltenvk_icd()
+                self.setSurfaceType(QSurface.SurfaceType.MetalSurface)
+            else:
+                self.setSurfaceType(QSurface.SurfaceType.VulkanSurface)
+            from chimerax.graphics.vulkan import VulkanContext
+            return VulkanContext(self, ui.primaryScreen())
+        if backend == "metal":
+            self.setSurfaceType(QSurface.SurfaceType.MetalSurface)
+            from chimerax.graphics.metal import MetalContext
+            return MetalContext(self, ui.primaryScreen())
+        if backend == "opengl":
+            self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
+            from chimerax.graphics import OpenGLContext
+            return OpenGLContext(self, ui.primaryScreen(), use_stereo=self._stereo)
+        from chimerax.core.errors import UserError
+        raise UserError(f"Unknown graphics backend: {backend!r}")
+
+    def switch_backend(self, backend):
+        '''Swap the active graphics backend in place. The scene is preserved;
+        per-context GPU resources are released and re-uploaded on next draw.
+        Allowed values: "opengl", "vulkan".'''
+        import sys
+        backend = backend.lower()
+        if backend not in ("opengl", "vulkan"):
+            from chimerax.core.errors import UserError
+            raise UserError(
+                f"graphics backend must be opengl or vulkan, got {backend!r}"
+            )
+        ul = self.session.update_loop
+        ul.block_redraw()
+        try:
+            self.view.release_graphics_context()
+            old = self.opengl_context
+            if old is not None and hasattr(old, "delete"):
+                try:
+                    old.delete()
+                except Exception:
+                    pass
+            self.opengl_context = None
+
+            # On Windows the native window's pixel format is fixed at create
+            # time, so the HWND must be recycled when changing surface type.
+            # macOS and X11/Wayland keep the same winId across setSurfaceType.
+            if sys.platform == "win32":
+                self.destroy()
+                self.create()
+                self.show()
+
+            oc = self._create_context(backend)
+            self.opengl_context = oc
+            self.view.initialize_rendering(oc)
+        finally:
+            ul.unblock_redraw()
+        ul.update_graphics_now()
 
     def event(self, event):
         # QWindow does not have drag and drop methods to handle file dropped on app

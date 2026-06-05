@@ -25,7 +25,7 @@ void main() {
 
     // Background pixels (far plane): pass through. The depth buffer
     // holds the cleared far value here so neighbour samples would all
-    // be far too — blurring is a no-op but skipping is cheaper.
+    // be far too - blurring is a no-op but skipping is cheaper.
     if (center_depth >= 0.9999) {
         frag_color = vec4(center_color, 1.0);
         return;
@@ -36,7 +36,7 @@ void main() {
 
     // 3x3 with a tight spatial weight (e^-2*dist² puts corners at
     // ~1.8% of centre, edges at ~13.5%). Center carries ~60% of the
-    // total weight — a gentle smoothing that takes the worst speckle
+    // total weight - a gentle smoothing that takes the worst speckle
     // off without blurring out indirect-lighting detail.
     for (int dy = -1; dy <= 1; dy++) {
         for (int dx = -1; dx <= 1; dx++) {

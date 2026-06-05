@@ -10,9 +10,7 @@ translation between the Drawing/View interface and Vulkan commands.
 import sys
 import numpy as np
 
-# Vulkan targets Linux and Windows
-if sys.platform == "darwin":
-    raise ImportError("Use the Metal backend on macOS")
+# Vulkan targets all platforms: native on Linux/Windows, MoltenVK on macOS.
 
 
 class VulkanContext:
@@ -30,9 +28,20 @@ class VulkanContext:
         self._screen = screen
         self._vulkan = _vulkan
 
-        # Get native window handle from Qt (HWND on Windows).
+        # Get native window handle from Qt (HWND on Windows, NSView* on macOS).
         window_handle = int(graphics_window.winId())
-        self._ctx = _vulkan.create_context(window_handle=window_handle)
+
+        if sys.platform == "darwin":
+            from chimerax.graphics import _metal_rt
+            instance = _vulkan.create_instance()
+            surface = _metal_rt.create_surface(
+                instance=instance, window_handle=window_handle
+            )
+            self._ctx = _vulkan.create_context(
+                window_handle=window_handle, instance=instance, surface=surface
+            )
+        else:
+            self._ctx = _vulkan.create_context(window_handle=window_handle)
         self._device_name = _vulkan.device_name(context=self._ctx)
         self._max_3d_texture_size = _vulkan.max_3d_texture_size(context=self._ctx)
 
@@ -198,6 +207,10 @@ class VulkanFramebuffer:
 # from backend-agnostic Python code (e.g. chimerax.map.image3d) can find a
 # VkDevice without an explicit handle.
 _active_vulkan_render = None
+
+import os as _os
+_VK_DRAW_DEBUG = bool(_os.environ.get("CHIMERAX_VK_DRAW_DEBUG"))
+del _os
 
 
 def _set_active_vulkan_render(render):
@@ -509,6 +522,7 @@ class VulkanRender:
         self._depth_only_rendering = False
         self._depth_prepass_rendering = False
         self._sphere_ao_active = False
+        self._oit_rendering = False
         # OpenGL's initial state is GL_CULL_FACE disabled, and ChimeraX
         # only turns it on for two specific things (volume backing cube
         # and 3D ray-cast cube).  Vulkan bakes cull state into the
@@ -587,6 +601,19 @@ class VulkanRender:
         """Clean up renderer resources."""
         if self._in_frame:
             self.end_frame()
+        # Restore module-level state we hijacked in __init__ so the next
+        # backend (e.g. switching back to OpenGL at runtime) doesn't keep
+        # constructing VulkanTextures bound to this dead render.
+        global _active_vulkan_render
+        if _active_vulkan_render is self:
+            _active_vulkan_render = None
+        try:
+            import chimerax.graphics as _g
+            from chimerax.graphics import opengl as _opengl
+            if getattr(_g, "Texture", None) is VulkanTexture:
+                _g.set_texture_class(_opengl.Texture)
+        except (ImportError, AttributeError):
+            pass
 
     # -------------------------------------------------------------------
     # Context management
@@ -615,11 +642,24 @@ class VulkanRender:
         pass  # Not applicable to Vulkan
 
     def set_default_framebuffer_size(self, width, height):
-        self._width = int(width)
-        self._height = int(height)
+        s = self._context.pixel_scale()
+        self._width = int(s * width)
+        self._height = int(s * height)
+        # Invalidate Metal RT texture/buffer export caches — the Vulkan
+        # textures are about to be destroyed and recreated.
+        self._exported_textures = None
+        # On macOS, sync the CAMetalLayer's bounds before swapchain
+        # recreation so MoltenVK sees the correct drawableSize.
+        if sys.platform == "darwin":
+            try:
+                from chimerax.graphics import _metal_rt
+                _metal_rt.resize_surface()
+            except ImportError:
+                pass
         self._context._vulkan.resize_drawable(
             context=self._ctx, width=self._width, height=self._height
         )
+        self.set_viewport(0, 0, self._width, self._height)
 
     def opengl_version(self):
         return (0, 0)  # Not OpenGL
@@ -809,10 +849,9 @@ class VulkanRender:
 
     def initialize_opengl(self, width, height):
         """Vulkan equivalent of OpenGL initialization."""
-        s = self._context.pixel_scale()
-        w, h = int(s * width), int(s * height)
-        self.set_default_framebuffer_size(w, h)
-        self.set_viewport(0, 0, w, h)
+        # set_default_framebuffer_size applies pixel_scale internally.
+        self.set_default_framebuffer_size(width, height)
+        self.set_viewport(0, 0, self._width, self._height)
 
     def enable_depth_test(self, enable):
         pass
@@ -849,6 +888,40 @@ class VulkanRender:
         draw_depth()
         draw()
 
+    # ------------------------------------------------------------------
+    # OIT (Weighted Blended Order-Independent Transparency)
+    # ------------------------------------------------------------------
+
+    def begin_oit_pass(self):
+        """Begin OIT accumulation. Ends the current render pass, creates
+        OIT resources if needed, and starts the OIT render pass."""
+        w, h = self.render_size()
+        if w <= 0 or h <= 0:
+            return
+        self._vulkan.create_oit_resources(context=self._ctx, width=w, height=h)
+        self._vulkan.begin_oit_pass(context=self._ctx)
+        self._oit_rendering = True
+
+    def end_oit_pass(self):
+        """End OIT accumulation and composite the result over the opaque
+        scene. Resumes the main render pass with loaded color+depth."""
+        self._oit_rendering = False
+        self._vulkan.end_oit_pass(context=self._ctx)
+
+        # Resume the main render pass so the composite quad (and any
+        # subsequent passes) can draw to the swapchain.
+        self._vulkan.begin_render_pass(
+            context=self._ctx,
+            clear_r=0, clear_g=0, clear_b=0, clear_a=1,
+            clear_depth=0, load_color=1, load_depth=1)
+
+        # Composite the OIT result over the opaque scene.
+        accum_tex, reveal_tex = self._vulkan.get_oit_textures(context=self._ctx)
+        self.draw_fullscreen_quad_two_textures(
+            accum_tex, reveal_tex,
+            "oit_composite", "main", "main",
+        )
+
     def draw_xor_rectangle(self, *args, **kw):
         pass
 
@@ -873,6 +946,16 @@ class VulkanRender:
         finally:
             self.enable_capabilities = prev_caps
             self.enable_backface_culling(False)
+
+    def _set_raycasting_background(self):
+        # The Vulkan path reads _background_color when building the
+        # raycast UBO at draw time, so no explicit push is needed.
+        pass
+
+    def _set_window_params(self):
+        # The Vulkan path bakes render_size() into the raycast UBO at
+        # draw time, so no explicit push is needed.
+        pass
 
     def set_volume_parameters(self, step, full_region_min, full_region_max):
         self._raycast_step_size = step
@@ -1061,6 +1144,9 @@ class VulkanRender:
         if not self._in_frame:
             self._vulkan.begin_frame(context=self._ctx)
             self._in_frame = True
+            # Buffer handles may be recycled across frames (deferred
+            # deletion + malloc reuse), so clear the export cache.
+            self._exported_buffers = None
 
     def end_frame(self):
         """End the frame -- present and commit."""
@@ -1544,35 +1630,53 @@ void main() {
             m.set_vertex_buffer(context=ctx, buffer=bufs[name],
                                 index=vk_index, offset=0)
 
-        _upload("vertices", "vcount", vertices,
-                lambda: np.ascontiguousarray(vertices, dtype=np.float32), 10)
+        # Zero-copy GPU path: if the drawing has pre-allocated VMA buffers
+        # (e.g. from flying edges writing directly into GPU memory), bind
+        # them directly and skip the upload.
+        vk_bufs = getattr(drawing, '_vk_buffers', None)
+        if vk_bufs and topology == 0:
+            m.set_vertex_buffer(context=ctx, buffer=vk_bufs['vertices'],
+                                index=10, offset=0)
+            normals = drawing.normals
+            if normals is not None and 'normals' in vk_bufs:
+                m.set_vertex_buffer(context=ctx, buffer=vk_bufs['normals'],
+                                    index=12, offset=0)
+            bufs["indices"] = vk_bufs['indices']
+            bufs["icount"] = len(drawing.triangles) * 3
+            bufs["itopology"] = 0
+            bufs["_indices_srcid"] = id(drawing.triangles)
+            _used_gpu_bufs = True
+        else:
+            _used_gpu_bufs = False
+            _upload("vertices", "vcount", vertices,
+                    lambda: np.ascontiguousarray(vertices, dtype=np.float32), 10)
 
-        # Index buffer. `elements` is the topology-specific index array:
-        # (N,3) triangles for Solid, (M,2) edges for Mesh, (P,) points for
-        # Dot. The element-array identity is stable across frames (the Mesh
-        # edges are memoized above), so we can short-circuit the upload.
-        elements_id = id(elements)
-        if not (bufs.get("indices") is not None
-                and bufs.get("_indices_srcid") == elements_id
-                and bufs.get("itopology") == topology):
-            idata = np.ascontiguousarray(np.asarray(elements).reshape(-1),
-                                         dtype=np.uint32)
-            idata_len = len(idata)
-            if ("indices" not in bufs
-                    or bufs.get("icount") != idata_len
-                    or bufs.get("itopology") != topology):
-                if "indices" in bufs:
-                    m.destroy_buffer(buffer=bufs["indices"])
-                bufs["indices"] = m.create_buffer(context=ctx, data=idata)
-                bufs["icount"] = idata_len
-                bufs["itopology"] = topology
-            else:
-                m.update_buffer(buffer=bufs["indices"], data=idata)
-            bufs["_indices_srcid"] = elements_id
+            # Index buffer. `elements` is the topology-specific index array:
+            # (N,3) triangles for Solid, (M,2) edges for Mesh, (P,) points for
+            # Dot. The element-array identity is stable across frames (the Mesh
+            # edges are memoized above), so we can short-circuit the upload.
+            elements_id = id(elements)
+            if not (bufs.get("indices") is not None
+                    and bufs.get("_indices_srcid") == elements_id
+                    and bufs.get("itopology") == topology):
+                idata = np.ascontiguousarray(np.asarray(elements).reshape(-1),
+                                             dtype=np.uint32)
+                idata_len = len(idata)
+                if ("indices" not in bufs
+                        or bufs.get("icount") != idata_len
+                        or bufs.get("itopology") != topology):
+                    if "indices" in bufs:
+                        m.destroy_buffer(buffer=bufs["indices"])
+                    bufs["indices"] = m.create_buffer(context=ctx, data=idata)
+                    bufs["icount"] = idata_len
+                    bufs["itopology"] = topology
+                else:
+                    m.update_buffer(buffer=bufs["indices"], data=idata)
+                bufs["_indices_srcid"] = elements_id
 
         # Normals (buffer index 12)
         normals = drawing.normals
-        if normals is not None:
+        if normals is not None and not _used_gpu_bufs:
             _upload("normals", "ncount", normals,
                     lambda: np.ascontiguousarray(normals, dtype=np.float32), 12)
 
@@ -1661,6 +1765,29 @@ void main() {
         use_instancing = len(pos) > 1 or pos.shift_and_scale_array() is not None
         instance_count = len(pos) if use_instancing else 1
 
+        if _VK_DRAW_DEBUG:
+            from .renderer import SHADER_IMPOSTOR_CYLINDER as _SIC
+            if capabilities & _SIC:
+                vcolors = getattr(drawing, "vertex_colors", None)
+                dcolors = getattr(drawing, "colors", None)
+                sas_arr = pos.shift_and_scale_array()
+                mats = pos.opengl_matrices() if sas_arr is None and len(pos) > 1 else None
+                import sys
+                name = getattr(drawing, "name", repr(drawing))
+                parent = getattr(drawing, "parent", None)
+                pname = getattr(parent, "name", None) if parent is not None else None
+                print(
+                    f"[vk-cyl] drawing={name!r} parent={pname!r} "
+                    f"verts={len(vertices)} tris={len(triangles)} "
+                    f"pos={len(pos)} instance_count={instance_count} "
+                    f"sas={None if sas_arr is None else sas_arr.shape} "
+                    f"matrices={None if mats is None else mats.shape} "
+                    f"vcolors={None if vcolors is None else vcolors.shape} "
+                    f"colors={None if dcolors is None else dcolors.shape} "
+                    f"caps=0x{capabilities:x}",
+                    file=sys.stderr,
+                )
+
         # Shift-and-scale instances (buffer index 4)
         sas = pos.shift_and_scale_array()
         if sas is not None:
@@ -1674,8 +1801,12 @@ void main() {
                 m.update_buffer(buffer=bufs["sas"], data=sasdata)
             m.set_vertex_buffer(context=ctx, buffer=bufs["sas"], index=14, offset=0)
 
-        # Instance matrices (buffer index 5)
-        if sas is None and len(pos) > 1:
+        # Instance matrices (buffer index 5). Always upload when there's no
+        # shift-and-scale array, even for a single instance — the impostor
+        # cylinder vertex shader reads inst_col0..3 unconditionally, and
+        # skipping the bind would leave slot 15 pointing at a previous
+        # drawing's matrix data.
+        if sas is None:
             matrices = pos.opengl_matrices()
             if matrices is not None:
                 mdata = np.ascontiguousarray(matrices, dtype=np.float32)
@@ -1963,6 +2094,7 @@ void main() {
         constants[16] = 1 if (caps & SHADER_TEXTURE_3D_AMBIENT) else 0
         constants[17] = 1 if self._depth_prepass_rendering else 0
         constants[18] = 1 if self._sphere_ao_active else 0
+        constants[19] = 1 if self._oit_rendering else 0
 
         # Cache key includes shader name, constants, depth-only/prepass
         # flags, and the cull/blend/depth-write state baked into the pipeline.
@@ -1972,10 +2104,11 @@ void main() {
         face_culling = self._face_culling_enabled
         blend_op_max = self._blend_op_max
         blend_premult = self._blend_premult
-        depth_write = self._depth_write_enabled
+        oit_mode = self._oit_rendering
+        depth_write = False if oit_mode else self._depth_write_enabled
         cache_key = (shader_name, const_key, depth_only, depth_prepass,
                      face_culling, blend_op_max, blend_premult, depth_write,
-                     topology)
+                     topology, oit_mode)
         if cache_key in self._pipeline_cache:
             shader._pipeline = self._pipeline_cache[cache_key]
             shader._pipeline_depth_only = depth_only
@@ -1994,11 +2127,11 @@ void main() {
             vert_path = os.path.join(shader_dir, f"{shader_name}.vert")
             frag_path = os.path.join(shader_dir, f"{shader_name}.frag")
 
-            with open(common_path) as f:
+            with open(common_path, encoding='utf-8') as f:
                 common_src = f.read()
-            with open(vert_path) as f:
+            with open(vert_path, encoding='utf-8') as f:
                 vert_src = f.read()
-            with open(frag_path) as f:
+            with open(frag_path, encoding='utf-8') as f:
                 frag_src = f.read()
 
             # Inline common.glsl into both shader stages
@@ -2022,6 +2155,7 @@ void main() {
                 blend_premult=1 if blend_premult else 0,
                 depth_write=1 if depth_write else 0,
                 topology=int(topology),
+                oit_mode=1 if oit_mode else 0,
             )
             if depth_prepass:
                 try:
@@ -2117,9 +2251,9 @@ void main() {
         # Post-processing shaders use separate .vert/.frag files
         vert_path = os.path.join(shader_dir, f"{shader_file}.vert")
         frag_path = os.path.join(shader_dir, f"{shader_file}.frag")
-        with open(vert_path) as f:
+        with open(vert_path, encoding='utf-8') as f:
             vert_source = f.read()
-        with open(frag_path) as f:
+        with open(frag_path, encoding='utf-8') as f:
             frag_source = f.read()
 
         try:
@@ -2281,6 +2415,12 @@ void main() {
         """Backend-agnostic wrapper used by RenderPass for color/data SSBOs."""
         return self._vulkan.create_buffer(context=self._ctx, data=data)
 
+    def create_mapped_buffer(self, size_bytes):
+        """Allocate a GPU buffer with a persistently mapped pointer.
+        Returns (buffer_handle, mapped_ptr_as_int)."""
+        return self._vulkan.create_mapped_buffer(
+            context=self._ctx, size=size_bytes)
+
     def destroy_data_buffer(self, buf):
         if buf is not None:
             self._vulkan.destroy_buffer(buffer=buf)
@@ -2375,22 +2515,19 @@ void main() {
         sphere_data : ndarray, shape (N, 4), dtype float32
             Per-sphere (x, y, z, radius) in world space.
         """
-        # Destroy previous AS. The C destroy frees every owned buffer
-        # (sphere/cylinder data + AS storage), so clear *all* the cached
-        # handles — leaving _rtao_cylinder_buffer set after a no-cylinder
-        # rebuild would dangle into the next dispatch.
         if self._rtao_accel_struct is not None:
-            self._vulkan.destroy_accel_struct(
+            self._rt_backend.destroy_accel_struct(
                 accel_struct=self._rtao_accel_struct,
                 sphere_buffer=self._rtao_sphere_buffer,
             )
             self._rtao_accel_struct = None
             self._rtao_sphere_buffer = None
             self._rtao_cylinder_buffer = None
+            self._rtao_triangle_buffer = None
 
         data = np.ascontiguousarray(sphere_data, dtype=np.float32)
-        as_ptr, sb_ptr = self._vulkan.build_sphere_accel(
-            context=self._ctx, sphere_data=data, sphere_count=len(sphere_data)
+        as_ptr, sb_ptr = self._rt_backend.build_sphere_accel(
+            context=self._rt_ctx, sphere_data=data, sphere_count=len(sphere_data)
         )
         self._rtao_accel_struct = as_ptr
         self._rtao_sphere_buffer = sb_ptr
@@ -2408,18 +2545,19 @@ void main() {
             Per-cylinder (p0.x, p0.y, p0.z, radius, p1.x, p1.y, p1.z, 0).
         """
         if self._rtao_accel_struct is not None:
-            self._vulkan.destroy_accel_struct(
+            self._rt_backend.destroy_accel_struct(
                 accel_struct=self._rtao_accel_struct,
                 sphere_buffer=self._rtao_sphere_buffer,
             )
             self._rtao_accel_struct = None
             self._rtao_sphere_buffer = None
             self._rtao_cylinder_buffer = None
+            self._rtao_triangle_buffer = None
 
         sph = np.ascontiguousarray(sphere_data, dtype=np.float32)
         cyl = np.ascontiguousarray(cylinder_data, dtype=np.float32)
-        as_ptr, sb_ptr, cb_ptr = self._vulkan.build_mixed_accel(
-            context=self._ctx,
+        as_ptr, sb_ptr, cb_ptr = self._rt_backend.build_mixed_accel(
+            context=self._rt_ctx,
             sphere_data=sph, sphere_count=len(sphere_data),
             cylinder_data=cyl, cylinder_count=len(cylinder_data),
         )
@@ -2427,16 +2565,72 @@ void main() {
         self._rtao_sphere_buffer = sb_ptr
         self._rtao_cylinder_buffer = cb_ptr
 
+    _rtao_triangle_buffer = None
+
+    def build_scene_acceleration_structure(
+        self, sphere_data, cylinder_data=None, triangle_data=None
+    ):
+        """Build an AS with spheres (0), cylinders (1), and triangles (2).
+
+        Parameters
+        ----------
+        sphere_data : ndarray, shape (N, 4), dtype float32
+        cylinder_data : ndarray or None, shape (M, 8), dtype float32
+        triangle_data : ndarray or None, shape (T, 12), dtype float32
+            Per-triangle: 3 vertices packed as (v0.xyz, 0, v1.xyz, 0, v2.xyz, 0).
+        """
+        if self._rtao_accel_struct is not None:
+            self._rt_backend.destroy_accel_struct(
+                accel_struct=self._rtao_accel_struct,
+                sphere_buffer=self._rtao_sphere_buffer,
+            )
+            self._rtao_accel_struct = None
+            self._rtao_sphere_buffer = None
+            self._rtao_cylinder_buffer = None
+            self._rtao_triangle_buffer = None
+
+        sph = np.ascontiguousarray(sphere_data, dtype=np.float32)
+        # Provide empty arrays for missing geometries so the C API always
+        # receives valid buffer objects.
+        if cylinder_data is not None:
+            cyl = np.ascontiguousarray(cylinder_data, dtype=np.float32)
+            cyl_count = len(cylinder_data)
+        else:
+            cyl = np.zeros((0, 8), dtype=np.float32)
+            cyl_count = 0
+        if triangle_data is not None:
+            tri = np.ascontiguousarray(triangle_data, dtype=np.float32)
+            tri_count = len(triangle_data)
+        else:
+            tri = np.zeros((0, 12), dtype=np.float32)
+            tri_count = 0
+
+        result = self._rt_backend.build_scene_accel(
+            context=self._rt_ctx,
+            sphere_data=sph, sphere_count=len(sphere_data),
+            cylinder_data=cyl, cylinder_count=cyl_count,
+            triangle_data=tri, triangle_count=tri_count,
+        )
+        as_ptr, sb_ptr, cb_ptr, tb_ptr = result
+        self._rtao_accel_struct = as_ptr
+        self._rtao_sphere_buffer = sb_ptr
+        self._rtao_cylinder_buffer = cb_ptr
+        self._rtao_triangle_buffer = tb_ptr
+
     def _ensure_rtao_pipeline(self):
         """Compile the RTAO compute pipeline (once)."""
         if self._rtao_pipeline_compiled:
             return
         import os
 
-        shader_path = os.path.join(os.path.dirname(__file__), "shaders", "rtao.comp")
-        with open(shader_path) as f:
+        # Metal RT uses .metal shaders; Vulkan RT uses .comp (GLSL).
+        if self._rt_backend is self._metal_rt_module:
+            shader_path = os.path.join(os.path.dirname(__file__), "shaders", "rtao.metal")
+        else:
+            shader_path = os.path.join(os.path.dirname(__file__), "shaders", "rtao.comp")
+        with open(shader_path, encoding='utf-8') as f:
             source = f.read()
-        self._vulkan.compile_rtao(context=self._ctx, shader_source=source)
+        self._rt_backend.compile_rtao(context=self._rt_ctx, shader_source=source)
         self._rtao_pipeline_compiled = True
 
     def dispatch_rtao(
@@ -2471,19 +2665,45 @@ void main() {
         uniforms_int[38] = accum_count
         # uniforms[39] is padding for 16-byte alignment
 
+        if self._rt_backend is self._metal_rt_module:
+            # The Vulkan projection matrix negates Y for clip space, but
+            # the Metal RT shader reads the MoltenVK depth buffer which
+            # already accounts for this. Undo the Y-flip in the inverse
+            # projection so position reconstruction comes out right.
+            uniforms[4] = -uniforms[4]   # inv_proj[1][0]
+            uniforms[5] = -uniforms[5]   # inv_proj[1][1]
+            uniforms[6] = -uniforms[6]   # inv_proj[1][2]
+            uniforms[7] = -uniforms[7]   # inv_proj[1][3]
+
         data = np.ascontiguousarray(uniforms)
 
         self._vulkan.end_render_pass(context=self._ctx)
 
-        self._vulkan.dispatch_rtao(
-            context=self._ctx,
-            accel_struct=self._rtao_accel_struct,
-            sphere_buffer=self._rtao_sphere_buffer,
-            ao_texture=ao_texture,
-            prev_texture=prev_texture,
-            accum_texture=accum_texture,
-            uniforms=data,
-        )
+        if self._rt_backend is self._metal_rt_module:
+            # Submit pending Vulkan work and signal the timeline semaphore
+            # so the Metal RT dispatch can wait on it GPU-side.
+            self._vulkan.flush_gpu(context=self._ctx)
+            depth_tex = self._vulkan.get_depth_texture(context=self._ctx)
+            self._rt_backend.dispatch_rtao(
+                context=self._rt_ctx,
+                accel_struct=self._rtao_accel_struct,
+                sphere_buffer=self._rtao_sphere_buffer,
+                depth_texture=self._export_vk_texture(depth_tex),
+                ao_texture=self._export_vk_texture(ao_texture),
+                prev_texture=self._export_vk_texture(prev_texture),
+                accum_texture=self._export_vk_texture(accum_texture),
+                uniforms=data,
+            )
+        else:
+            self._rt_backend.dispatch_rtao(
+                context=self._rt_ctx,
+                accel_struct=self._rtao_accel_struct,
+                sphere_buffer=self._rtao_sphere_buffer,
+                ao_texture=ao_texture,
+                prev_texture=prev_texture,
+                accum_texture=accum_texture,
+                uniforms=data,
+            )
 
     # -------------------------------------------------------------------
     # Path tracer
@@ -2497,12 +2717,17 @@ void main() {
             return
         import os
 
-        shader_path = os.path.join(
-            os.path.dirname(__file__), "shaders", "pathtracer.comp"
-        )
-        with open(shader_path) as f:
+        if self._rt_backend is self._metal_rt_module:
+            shader_path = os.path.join(
+                os.path.dirname(__file__), "shaders", "pathtracer.metal"
+            )
+        else:
+            shader_path = os.path.join(
+                os.path.dirname(__file__), "shaders", "pathtracer.comp"
+            )
+        with open(shader_path, encoding='utf-8') as f:
             source = f.read()
-        self._vulkan.compile_pathtracer(context=self._ctx, shader_source=source)
+        self._rt_backend.compile_pathtracer(context=self._rt_ctx, shader_source=source)
         self._pt_pipeline_compiled = True
 
     def create_rgba_texture(self, width, height):
@@ -2530,6 +2755,7 @@ void main() {
         accum_texture,
         color_buffer,
         cylinder_color_buffer,
+        triangle_color_buffer,
         inv_projection,
         inv_view,
         frame=0,
@@ -2564,33 +2790,164 @@ void main() {
         uniforms[48:51] = np.asarray(background_color, dtype=np.float32).ravel()[:3]
         uniforms_int[52] = max_bounces
 
+        if self._rt_backend is self._metal_rt_module:
+            # Undo the Vulkan Y-flip in the inverse projection (same
+            # reason as in dispatch_rtao).
+            uniforms[4] = -uniforms[4]
+            uniforms[5] = -uniforms[5]
+            uniforms[6] = -uniforms[6]
+            uniforms[7] = -uniforms[7]
+
         data = np.ascontiguousarray(uniforms)
 
         cyl_buf = self._rtao_cylinder_buffer or 0
         cyl_color_buf = cylinder_color_buffer or 0
+        tri_buf = self._rtao_triangle_buffer or 0
+        tri_color_buf = triangle_color_buffer or 0
 
         self._vulkan.end_render_pass(context=self._ctx)
 
-        self._vulkan.dispatch_pathtracer(
-            context=self._ctx,
-            accel_struct=self._rtao_accel_struct,
-            sphere_buffer=self._rtao_sphere_buffer,
-            color_texture=color_texture,
-            prev_texture=prev_texture,
-            accum_texture=accum_texture,
-            color_buffer=color_buffer,
-            cylinder_buffer=cyl_buf,
-            cylinder_color_buffer=cyl_color_buf,
-            uniforms=data,
-        )
+        if self._rt_backend is self._metal_rt_module:
+            # Submit pending Vulkan work and signal the timeline semaphore.
+            self._vulkan.flush_gpu(context=self._ctx)
+            # color_buffer and cyl_color_buf are Vulkan SSBOs that need
+            # exporting. cylinder_buffer (cyl_buf) is already a native
+            # Metal buffer from build_scene_accel — pass it directly.
+            # Same for triangle_buffer (tri_buf).
+            mtl_color_buf, color_offset = self._export_vk_buffer(color_buffer)
+            mtl_cyl_color_buf, cyl_color_offset = self._export_vk_buffer(cyl_color_buf)
+            mtl_tri_color_buf, tri_color_offset = self._export_vk_buffer(tri_color_buf)
+            self._rt_backend.dispatch_pathtracer(
+                context=self._rt_ctx,
+                accel_struct=self._rtao_accel_struct,
+                sphere_buffer=self._rtao_sphere_buffer,
+                color_texture=self._export_vk_texture(color_texture),
+                prev_texture=self._export_vk_texture(prev_texture),
+                accum_texture=self._export_vk_texture(accum_texture),
+                color_buffer=mtl_color_buf,
+                color_buffer_offset=color_offset,
+                cylinder_buffer=cyl_buf,
+                cylinder_color_buffer=mtl_cyl_color_buf,
+                cylinder_color_buffer_offset=cyl_color_offset,
+                triangle_buffer=tri_buf,
+                triangle_color_buffer=mtl_tri_color_buf,
+                triangle_color_buffer_offset=tri_color_offset,
+                uniforms=data,
+            )
+        else:
+            self._rt_backend.dispatch_pathtracer(
+                context=self._rt_ctx,
+                accel_struct=self._rtao_accel_struct,
+                sphere_buffer=self._rtao_sphere_buffer,
+                color_texture=color_texture,
+                prev_texture=prev_texture,
+                accum_texture=accum_texture,
+                color_buffer=color_buffer,
+                cylinder_buffer=cyl_buf,
+                cylinder_color_buffer=cyl_color_buf,
+                triangle_buffer=tri_buf,
+                triangle_color_buffer=tri_color_buf,
+                uniforms=data,
+            )
+
+    # -------------------------------------------------------------------
+    # Metal RT interop (macOS / MoltenVK only)
+    # -------------------------------------------------------------------
+
+    _metal_rt_module = None
+    _metal_rt_ctx = None
+    _metal_rt_checked = False
+
+    def _init_metal_rt(self):
+        """Lazily import and initialize _metal_rt on macOS."""
+        if self._metal_rt_checked:
+            return self._metal_rt_module is not None
+        self._metal_rt_checked = True
+        if sys.platform != "darwin":
+            return False
+        try:
+            from chimerax.graphics import _metal_rt
+            ctx_ptr = _metal_rt.init_from_vulkan_context(context=self._ctx)
+            self._metal_rt_module = _metal_rt
+            self._metal_rt_ctx = ctx_ptr
+            return True
+        except (ImportError, RuntimeError):
+            return False
+
+    @property
+    def _rt_backend(self):
+        """The C extension module for ray tracing calls.
+
+        Returns _vulkan on platforms with native Vulkan RT, or _metal_rt
+        on macOS where MoltenVK lacks RT extensions.
+        """
+        try:
+            if self._vulkan.supports_ray_tracing(context=self._ctx):
+                return self._vulkan
+        except Exception:
+            pass
+        if self._init_metal_rt():
+            return self._metal_rt_module
+        return None
+
+    @property
+    def _rt_ctx(self):
+        """The context pointer to pass to the RT backend."""
+        if self._rt_backend is self._vulkan:
+            return self._ctx
+        return self._metal_rt_ctx
 
     def supports_ray_tracing(self):
-        """True iff the selected Vulkan device exposed
-        VK_KHR_acceleration_structure + VK_KHR_ray_query at context creation."""
-        try:
-            return bool(self._vulkan.supports_ray_tracing(context=self._ctx))
-        except Exception:
-            return False
+        """True when either native Vulkan RT or Metal RT (via MoltenVK
+        interop) is available."""
+        return self._rt_backend is not None
+
+    # Caches of Vulkan -> Metal handle exports.
+    _exported_textures = None
+    _exported_buffers = None
+
+    def _export_vk_buffer(self, vk_buf_handle):
+        """Export a VulkanBuffer handle to an (MTLBuffer, offset) pair.
+
+        Two-step: ask _vulkan for the VkDeviceMemory + offset (VMA may
+        sub-allocate), then ask _metal_rt to export as MTLBuffer.
+        Returns (mtl_buffer_ptr, byte_offset).
+
+        Cached by buffer handle — invalidated when the handle changes
+        (the render pass destroys and recreates buffers on geometry change).
+        """
+        if vk_buf_handle is None or vk_buf_handle == 0:
+            return 0, 0
+        if self._exported_buffers is None:
+            self._exported_buffers = {}
+        cached = self._exported_buffers.get(vk_buf_handle)
+        if cached is not None:
+            return cached
+        device_memory, offset = self._vulkan.get_buffer_device_memory(
+            buffer=vk_buf_handle
+        )
+        mtl_buf = self._metal_rt_module.export_buffer(
+            context=self._metal_rt_ctx, device_memory=device_memory
+        )
+        result = (mtl_buf, offset)
+        self._exported_buffers[vk_buf_handle] = result
+        return result
+
+    def _export_vk_texture(self, vk_tex_handle):
+        """Export a VulkanTexture handle to a MetalRTTexture handle.
+
+        Caches the result so repeated calls with the same handle don't
+        re-export. The cache is per-renderer-instance.
+        """
+        if self._exported_textures is None:
+            self._exported_textures = {}
+        if vk_tex_handle in self._exported_textures:
+            return self._exported_textures[vk_tex_handle]
+        rt_tex = self._metal_rt_module.export_texture(
+            context=self._metal_rt_ctx, texture=vk_tex_handle
+        )
+        self._exported_textures[vk_tex_handle] = rt_tex
+        return rt_tex
 
     def max_3d_texture_size(self):
         """Largest 3D texture dimension supported by the device."""

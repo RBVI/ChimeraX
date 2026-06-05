@@ -82,15 +82,15 @@ class AOTuner(QDialog):
         form2.addRow("Directions:", self._gtao_directions)
 
         self._gtao_steps = QSpinBox()
-        self._gtao_steps.setRange(1, 16)
-        self._gtao_steps.setValue(int(getattr(lp, 'gtao_steps', 4)))
+        self._gtao_steps.setRange(1, 32)
+        self._gtao_steps.setValue(int(getattr(lp, 'gtao_steps', 8)))
         self._gtao_steps.valueChanged.connect(self._on_gtao_param)
         form2.addRow("Steps:", self._gtao_steps)
         gg.addLayout(form2)
 
         self._gtao_radius_slider, self._gtao_radius_spin = self._add_float_row(
-            gg, "Radius (px):", 1.0, 100.0,
-            getattr(lp, 'gtao_radius', 16.0),
+            gg, "Radius (\u00c5):", 1.0, 50.0,
+            getattr(lp, 'gtao_radius', 10.0),
             decimals=1, step=0.5)
         self._gtao_radius_spin.valueChanged.connect(self._on_gtao_param)
 

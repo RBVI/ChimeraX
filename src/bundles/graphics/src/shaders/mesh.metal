@@ -51,6 +51,7 @@ constant bool use_transparent_only [[function_constant(14)]];
 constant bool use_opaque_only     [[function_constant(15)]];
 constant bool use_texture_3d_ambient [[function_constant(16)]];
 constant bool use_depth_prepass   [[function_constant(17)]];
+constant bool use_gtao            [[function_constant(19)]];
 
 // Maximum number of shadow lights for the multishadow buffer.
 constant int MAX_SHADOWS = 256;
@@ -167,9 +168,11 @@ fragment MeshFragOut mesh_fragment(
     depth2d<float>    multishadow_map               [[texture(4)]],
     texture3d<float>  ambient_tex3d                 [[texture(5)]],
     texture1d<float>  colormap_tex                  [[texture(6)]],
+    texture2d<float>  gtao_map                      [[texture(7)]],
     sampler           samp                          [[sampler(0)]],
     sampler           shadow_sampler                [[sampler(3)]],
     sampler           multishadow_sampler           [[sampler(4)]],
+    sampler           gtao_sampler                  [[sampler(7)]],
     constant float2  &colormap_range                [[buffer(3)]])
 {
     // Clip-plane discard (emulated).
@@ -289,6 +292,19 @@ fragment MeshFragOut mesh_fragment(
             mshadow /= (0.25 * float(u.shadow_count));
         } else {
             has_mshadow = false;
+        }
+
+        // Screen-space GTAO: sample the pre-computed AO texture.
+        if (use_gtao) {
+            float2 screen_uv = in.position.xy
+                / float2(gtao_map.get_width(), gtao_map.get_height());
+            float ao = gtao_map.sample(gtao_sampler, screen_uv).r;
+            if (has_mshadow) {
+                mshadow *= ao;
+            } else {
+                mshadow = ao;
+                has_mshadow = true;
+            }
         }
 
         Ifrag = compute_lighting(N1, v1, fcolor.rgb, lighting,

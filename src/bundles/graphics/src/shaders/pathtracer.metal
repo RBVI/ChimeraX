@@ -135,13 +135,67 @@ inline float3 environment_indirect(float3 dir)
 }
 
 // ---------------------------------------------------------------------------
+//  Triangle intersection function.
+//  Primitive data: three float4s per triangle (v0, v1, v2; .w unused).
+// ---------------------------------------------------------------------------
+struct TrianglePrimData {
+    float4 v0;
+    float4 v1;
+    float4 v2;
+};
+
+struct TriangleIntersectionResult {
+    bool  accept [[accept_intersection]];
+    float distance [[distance]];
+};
+
+// Möller–Trumbore ray-triangle intersection.
+[[intersection(bounding_box)]]
+TriangleIntersectionResult triangle_intersection(
+    float3 origin               [[origin]],
+    float3 direction            [[direction]],
+    float  min_distance         [[min_distance]],
+    float  max_distance         [[max_distance]],
+    const device TrianglePrimData *prim_data [[primitive_data]])
+{
+    float3 v0 = prim_data->v0.xyz;
+    float3 v1 = prim_data->v1.xyz;
+    float3 v2 = prim_data->v2.xyz;
+
+    float3 e1 = v1 - v0;
+    float3 e2 = v2 - v0;
+    float3 h = cross(direction, e2);
+    float a = dot(e1, h);
+
+    if (abs(a) < 1e-7)
+        return {false, 0.0};
+
+    float f = 1.0 / a;
+    float3 s = origin - v0;
+    float u = f * dot(s, h);
+    if (u < 0.0 || u > 1.0)
+        return {false, 0.0};
+
+    float3 q = cross(s, e1);
+    float v = f * dot(direction, q);
+    if (v < 0.0 || u + v > 1.0)
+        return {false, 0.0};
+
+    float t = f * dot(e2, q);
+    if (t < min_distance || t > max_distance)
+        return {false, 0.0};
+
+    return {true, t};
+}
+
+// ---------------------------------------------------------------------------
 //  Cylinder intersection function.
-//  Primitive data: (p0.x, p0.y, p0.z, radius, p1.x, p1.y, p1.z, 0)
+//  Primitive data: (p0.x, p0.y, p0.z, radius, p1.x, p1.y, p1.z, dashes)
 //  = two float4s per cylinder.
 // ---------------------------------------------------------------------------
 struct CylinderPrimData {
     float4 p0_r;   // .xyz = endpoint 0, .w = radius
-    float4 p1;     // .xyz = endpoint 1
+    float4 p1_d;   // .xyz = endpoint 1, .w = dash count (0 = solid)
 };
 
 struct CylinderIntersectionResult {
@@ -194,11 +248,45 @@ CylinderIntersectionResult cylinder_intersection(
     float  max_distance         [[max_distance]],
     const device CylinderPrimData *prim_data [[primitive_data]])
 {
-    float t = capped_cyl_isect(origin, direction,
-                               prim_data->p0_r.xyz, prim_data->p1.xyz,
-                               prim_data->p0_r.w);
-    if (t >= min_distance && t <= max_distance)
-        return {true, t};
+    float3 a = prim_data->p0_r.xyz;
+    float3 b = prim_data->p1_d.xyz;
+    float radius = prim_data->p0_r.w;
+    float t = capped_cyl_isect(origin, direction, a, b, radius);
+    if (t < min_distance || t > max_distance)
+        return {false, 0.0};
+
+    int dashes = int(prim_data->p1_d.w);
+    if (dashes <= 0) return {true, t};
+
+    // Dash culling: if the body/endcap hit is in a gap, try the two
+    // nearest dash-edge cap planes instead.
+    float3 ba = b - a;
+    float baba = dot(ba, ba);
+    float3 hit = origin + direction * t;
+    float frac = dot(hit - a, ba) / baba;
+    float dash_pos = frac * float(dashes) + 0.75;
+    float dash_frac = fract(dash_pos);
+
+    if (dash_frac <= 0.5) return {true, t};  // In a solid segment
+
+    // In a gap - intersect the two nearest dash-edge planes.
+    float cap_denom = dot(direction, ba);
+    if (abs(cap_denom) < 0.0001 * baba) return {false, 0.0};
+    float inv_baba = 1.0 / baba;
+    float r2 = radius * radius;
+    float edge_offsets[2] = {0.5 - dash_frac, 1.0 - dash_frac};
+
+    for (int ei = 0; ei < 2; ++ei) {
+        float edge_dash = dash_pos + edge_offsets[ei];
+        float edge_frac = (edge_dash - 0.75) / float(dashes);
+        float edge_along = edge_frac * baba;
+        float cap_t = (edge_along - dot(origin - a, ba)) / cap_denom;
+        if (cap_t < min_distance || cap_t > max_distance) continue;
+        float3 cap_pt = origin + direction * cap_t;
+        float3 radial = cap_pt - a - ba * (edge_along * inv_baba);
+        if (dot(radial, radial) <= r2)
+            return {true, cap_t};
+    }
     return {false, 0.0};
 }
 
@@ -212,26 +300,47 @@ inline float3 sphere_normal(float3 hit_point, const device float4 *spheres,
     return normalize(hit_point - s.xyz);
 }
 
+inline float3 triangle_normal(const device TrianglePrimData *triangles,
+                              uint primitive_id)
+{
+    float3 v0 = triangles[primitive_id].v0.xyz;
+    float3 v1 = triangles[primitive_id].v1.xyz;
+    float3 v2 = triangles[primitive_id].v2.xyz;
+    return normalize(cross(v1 - v0, v2 - v0));
+}
+
 inline float3 cylinder_normal(float3 hit_point,
                               const device CylinderPrimData *cylinders,
                               uint primitive_id)
 {
     float3 pa = cylinders[primitive_id].p0_r.xyz;
-    float3 pb = cylinders[primitive_id].p1.xyz;
+    float3 pb = cylinders[primitive_id].p1_d.xyz;
     float  radius = cylinders[primitive_id].p0_r.w;
     float3 ba = pb - pa;
     float  baba = dot(ba, ba);
 
     // Project hit onto axis.
     float t_axis = dot(hit_point - pa, ba) / baba;
-    if (t_axis <= 0.001) {
-        // Cap at pa.
-        return normalize(-ba);
-    } else if (t_axis >= 0.999) {
-        // Cap at pb.
-        return normalize(ba);
+
+    // Endcaps.
+    if (t_axis <= 0.001) return normalize(-ba);
+    if (t_axis >= 0.999) return normalize(ba);
+
+    // Dash-edge caps: if the hit is interior to the cylinder radius,
+    // it must be a flat cap face at a dash boundary.
+    int dashes = int(cylinders[primitive_id].p1_d.w);
+    if (dashes > 0) {
+        float3 axis_pt = pa + ba * t_axis;
+        float radial_dist2 = dot(hit_point - axis_pt, hit_point - axis_pt);
+        float r2 = radius * radius;
+        if (radial_dist2 < r2 * 0.99) {
+            float frac = t_axis;
+            float dash_pos = frac * float(dashes) + 0.75;
+            float dash_frac = fract(dash_pos);
+            return normalize((dash_frac < 0.25) ? -ba : ba);
+        }
     }
-    // Body: radial outward from axis.
+
     float3 axis_point = pa + ba * t_axis;
     return normalize(hit_point - axis_point);
 }
@@ -251,13 +360,20 @@ void pathtracer_kernel(
     intersection_function_table<>   func_table       [[buffer(3)]],
     const device uchar4 *sphere_colors               [[buffer(4)]],
     const device CylinderPrimData *cylinders         [[buffer(5)]],
-    const device uchar4 *cylinder_colors             [[buffer(6)]])
+    const device uchar4 *cylinder_colors             [[buffer(6)]],
+    const device TrianglePrimData *triangles         [[buffer(7)]],
+    const device uchar4 *triangle_colors             [[buffer(8)]])
 {
     if (tid.x >= u.width || tid.y >= u.height)
         return;
 
-    // Generate camera ray.
-    float2 uv = (float2(tid) + 0.5) / float2(u.width, u.height);
+    uint pixel_seed = (tid.x + tid.y * u.width) ^ (u.frame * 7919u);
+
+    // Subpixel jitter for antialiasing - each accumulated frame samples a
+    // different position within the pixel, giving progressive SSAA.
+    float2 jitter = float2(hash_f(pixel_seed * 3u + 1u),
+                           hash_f(pixel_seed * 5u + 3u));
+    float2 uv = (float2(tid) + jitter) / float2(u.width, u.height);
     uv.y = 1.0 - uv.y;  // Metal Y=0 is top
     float2 ndc = uv * 2.0 - 1.0;
 
@@ -274,7 +390,6 @@ void pathtracer_kernel(
     intersector<> isect;
     isect.force_opacity(forced_opacity::opaque);
 
-    uint pixel_seed = (tid.x + tid.y * u.width) ^ (u.frame * 7919u);
     uint ray_counter = 0;
 
     // Path trace.
@@ -313,10 +428,21 @@ void pathtracer_kernel(
             N = sphere_normal(hit, spheres, result.primitive_id);
             uchar4 c = sphere_colors[result.primitive_id];
             albedo = float3(c.r, c.g, c.b) / 255.0;
-        } else {
-            // Cylinder hit.
+        } else if (result.geometry_id == 1) {
+            // Cylinder hit - half-bond coloring.
             N = cylinder_normal(hit, cylinders, result.primitive_id);
-            uchar4 c = cylinder_colors[result.primitive_id];
+            float3 pa = cylinders[result.primitive_id].p0_r.xyz;
+            float3 ba = cylinders[result.primitive_id].p1_d.xyz - pa;
+            float along = dot(hit - pa, ba);
+            bool second_half = (along > dot(ba, ba) * 0.5);
+            uchar4 c = cylinder_colors[result.primitive_id * 2 + (second_half ? 1 : 0)];
+            albedo = float3(c.r, c.g, c.b) / 255.0;
+        } else {
+            // Triangle mesh hit.
+            N = triangle_normal(triangles, result.primitive_id);
+            // Flip normal to face the incoming ray.
+            if (dot(N, dir) > 0.0) N = -N;
+            uchar4 c = triangle_colors[result.primitive_id];
             albedo = float3(c.r, c.g, c.b) / 255.0;
         }
 

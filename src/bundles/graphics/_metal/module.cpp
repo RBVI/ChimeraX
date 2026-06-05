@@ -61,6 +61,7 @@ static struct PyMethodDef metal_methods[] =
     // Ray tracing
     {"build_sphere_accel", (PyCFunction)metal_build_sphere_accel, METH_VARARGS|METH_KEYWORDS, NULL},
     {"build_mixed_accel", (PyCFunction)metal_build_mixed_accel, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"build_scene_accel", (PyCFunction)metal_build_scene_accel, METH_VARARGS|METH_KEYWORDS, NULL},
     {"compile_rtao", (PyCFunction)metal_compile_rtao, METH_VARARGS|METH_KEYWORDS, NULL},
     {"dispatch_rtao", (PyCFunction)metal_dispatch_rtao, METH_VARARGS|METH_KEYWORDS, NULL},
     {"destroy_accel_struct", (PyCFunction)metal_destroy_accel_struct, METH_VARARGS|METH_KEYWORDS, NULL},

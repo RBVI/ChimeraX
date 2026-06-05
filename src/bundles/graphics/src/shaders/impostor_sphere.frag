@@ -40,6 +40,7 @@ layout(constant_id = 14) const bool USE_TRANSPARENT_ONLY = false;
 layout(constant_id = 15) const bool USE_OPAQUE_ONLY = false;
 layout(constant_id = 17) const bool USE_DEPTH_PREPASS = false;
 layout(constant_id = 18) const bool USE_SPHERE_AO = false;
+layout(constant_id = 19) const bool USE_OIT = false;
 
 // ---------------------------------------------------------------------------
 //  Inputs from vertex shader.
@@ -56,6 +57,7 @@ layout(location = 6) in float frag_clip_distances[8];
 //  Fragment outputs -- conservative depth for early-z optimization.
 // ---------------------------------------------------------------------------
 layout(location = 0) out vec4 out_color;
+layout(location = 1) out vec4 out_oit_revealage;
 layout(depth_greater) out float gl_FragDepth;
 
 // ---------------------------------------------------------------------------
@@ -241,6 +243,14 @@ void main() {
         a = correct_alpha(a, v1, N1);
     }
 
-    out_color = USE_DEPTH_PREPASS ? vec4(0.0) : vec4(Ifrag, a);
+    if (USE_OIT) {
+        float z = gl_FragCoord.z;
+        float w = a * max(1e-2, min(3e3,
+            10.0 / (1e-5 + pow(z / 5.0, 2.0) + pow(z / 200.0, 4.0))));
+        out_color = vec4(Ifrag * a * w, a * w);
+        out_oit_revealage = vec4(a);
+    } else {
+        out_color = USE_DEPTH_PREPASS ? vec4(0.0) : vec4(Ifrag, a);
+    }
     gl_FragDepth = frag_depth;
 }

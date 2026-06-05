@@ -22,21 +22,22 @@
  * === UCSF ChimeraX Copyright ===
  */
 
-// sao.metal -- Scalable Ambient Obscurance (McGuire et al. 2012).
+// gtao.metal -- Ground Truth Ambient Occlusion (horizon-based).
 //
-// Two-pass post-process:
-//   1. gtao_fragment: reads depth buffer, outputs AO factor per pixel
-//   2. gtao_composite_fragment: multiplies AO into the scene color buffer
+// For each pixel, marches the depth buffer in multiple screen-space
+// directions to find the horizon angle on each side, then analytically
+// integrates the cosine-weighted visible fraction of the hemisphere.
+// Using a view-space radius produces both local contact shadows and
+// global burial darkening independent of zoom level.
 //
-// No surface normals required -- occlusion is computed from depth
-// differences alone, avoiding artifacts at depth discontinuities
-// between impostor spheres.
+// Reference: Jimenez et al., "Practical Realtime Strategies for
+// Accurate Indirect Illumination" (SIGGRAPH 2016).
 
 #include <metal_stdlib>
 using namespace metal;
 
 // ---------------------------------------------------------------------------
-//  Shared fullscreen-quad vertex types (same as postprocess.metal).
+//  Shared fullscreen-quad vertex types.
 // ---------------------------------------------------------------------------
 struct GTAOVertexIn {
     float3 position  [[attribute(0)]];
@@ -62,17 +63,17 @@ vertex GTAOVertexOut gtao_vertex(GTAOVertexIn in [[stage_in]])
 struct GTAOUniforms {
     float4x4 inv_projection;  // inverse projection matrix
     float2   texel_size;      // 1/width, 1/height
-    float    radius;          // AO radius in pixels
-    float    intensity;       // AO strength multiplier
-    int      directions;      // number of march directions (typically 4)
-    int      steps;           // steps per direction (typically 4)
-    float    near;            // camera near plane
-    float    far;             // camera far plane
-    float    bias_frac;       // bias as fraction of view-space radius
+    float    radius;          // AO radius in view-space units (Angstroms)
+    float    intensity;       // AO strength (applied as power curve)
+    int      directions;      // number of slice directions (typically 4-8)
+    int      steps;           // march steps per direction (typically 8-16)
+    float    near;            // camera near plane (unused, kept for layout compat)
+    float    far;             // camera far plane (unused, kept for layout compat)
+    float    bias_frac;       // tangent bias as fraction of radius
 };
 
 // ---------------------------------------------------------------------------
-//  Utility: hash for per-pixel sample rotation.
+//  Utility: spatial hash for per-pixel noise.
 // ---------------------------------------------------------------------------
 inline float hash(float2 p)
 {
@@ -93,32 +94,56 @@ inline float3 reconstruct_position(float2 uv, float depth,
 }
 
 // ---------------------------------------------------------------------------
-//  Spiral sample pattern.  Each point lies on an Archimedean spiral so
-//  that the samples cover the disk evenly at any count <= 16.
+//  Reconstruct view-space normal from depth buffer.
+//
+//  Uses a 4-tap cross pattern, choosing the derivative pair with the
+//  smaller depth difference on each axis.  This avoids crossing depth
+//  discontinuities at impostor sphere/cylinder edges while still
+//  producing smooth normals on continuous surfaces.
 // ---------------------------------------------------------------------------
-constant float2 spiral_samples[16] = {
-    float2( 0.100,  0.000), float2(-0.052,  0.181),
-    float2(-0.161, -0.186), float2( 0.323,  0.047),
-    float2(-0.219,  0.317), float2(-0.075, -0.424),
-    float2( 0.400,  0.217), float2(-0.496,  0.098),
-    float2( 0.244, -0.490), float2( 0.162,  0.567),
-    float2(-0.554,  0.226), float2( 0.568, -0.304),
-    float2(-0.207, -0.636), float2(-0.351,  0.599),
-    float2( 0.700,  0.160), float2(-0.614, -0.480),
-};
+inline float3 reconstruct_normal(float2 uv, float3 P,
+                                 texture2d<float> depth_tex,
+                                 sampler samp,
+                                 float4x4 inv_proj,
+                                 float2 texel)
+{
+    float3 Pr = reconstruct_position(uv + float2(texel.x, 0),
+                    depth_tex.sample(samp, uv + float2(texel.x, 0)).x,
+                    inv_proj);
+    float3 Pl = reconstruct_position(uv - float2(texel.x, 0),
+                    depth_tex.sample(samp, uv - float2(texel.x, 0)).x,
+                    inv_proj);
+    float3 Pu = reconstruct_position(uv + float2(0, texel.y),
+                    depth_tex.sample(samp, uv + float2(0, texel.y)).x,
+                    inv_proj);
+    float3 Pd = reconstruct_position(uv - float2(0, texel.y),
+                    depth_tex.sample(samp, uv - float2(0, texel.y)).x,
+                    inv_proj);
+
+    float3 dPdx = (abs(Pr.z - P.z) < abs(Pl.z - P.z)) ? (Pr - P) : (P - Pl);
+    float3 dPdy = (abs(Pu.z - P.z) < abs(Pd.z - P.z)) ? (Pu - P) : (P - Pd);
+
+    float3 N = normalize(cross(dPdx, dPdy));
+    // Ensure normal faces toward camera (+Z in view space).
+    if (N.z < 0.0) N = -N;
+    return N;
+}
 
 // ---------------------------------------------------------------------------
-//  Pass 1: Scalable Ambient Obscurance (SAO).
+//  Pass 1: Horizon-based GTAO.
 //
-//  For each pixel, sample depth at nearby screen positions.  The
-//  occlusion contribution from each sample is the depth difference
-//  (how much closer the sample surface is) divided by the squared
-//  distance (so nearby occluders count more).  This produces smooth
-//  contact shadows at small radii AND global burial darkening at
-//  large radii, without requiring surface normals.
+//  For each pixel we march the depth buffer in D evenly-spaced
+//  screen-space directions (each covering both +/- sides).  At each
+//  step we compute the elevation angle of the sample above the local
+//  tangent plane and track the maximum ("horizon").  Once both horizon
+//  angles are known for a slice, the cosine-weighted visible solid
+//  angle has a closed-form integral:
 //
-//  Reference: McGuire, Mara, Luebke -- "Scalable Ambient Obscurance"
-//  (HPG 2012).
+//      V(h+, h-, n) = sin(b - n) - sin(a - n)
+//
+//  where a = max(h+, n - pi/2), b = min(pi - h-, n + pi/2), and n is
+//  the projected normal angle in the slice.  Averaging over all slices
+//  gives the full-hemisphere AO.
 // ---------------------------------------------------------------------------
 fragment float4 gtao_fragment(
     GTAOVertexOut in                        [[stage_in]],
@@ -126,55 +151,129 @@ fragment float4 gtao_fragment(
     sampler          samp                   [[sampler(0)]],
     constant GTAOUniforms &u                [[buffer(0)]])
 {
-    float depth = depth_tex.sample(samp, in.tex_coord_2d).x;
+    float2 uv = in.tex_coord_2d;
+    float depth = depth_tex.sample(samp, uv).x;
     if (depth >= 0.9999)
         return float4(1.0);
 
-    float3 P = reconstruct_position(in.tex_coord_2d, depth, u.inv_projection);
+    float3 P = reconstruct_position(uv, depth, u.inv_projection);
+    float3 N = reconstruct_normal(uv, P, depth_tex, samp,
+                                  u.inv_projection, u.texel_size);
 
-    // Per-pixel noise rotation to hide the spiral pattern.
-    float noise_angle = hash(in.tex_coord_2d / u.texel_size) * M_PI_F * 2.0;
-    float cn = cos(noise_angle), sn = sin(noise_angle);
+    // ---- View-space radius → screen-space pixel radius -------------------
+    // proj[0][0] = fx = 1 / inv_proj[0][0].
+    // R_pixels = R_view * fx / (-P.z) * (0.5 / texel_size.x).
+    float proj_scale = 0.5 / (u.inv_projection[0][0] * u.texel_size.x);
+    float R_pixels = u.radius * proj_scale / (-P.z);
+    R_pixels = clamp(R_pixels, 2.0, 512.0);
 
-    int num_samples = min(u.directions * u.steps, 16);
+    float R_view  = u.radius;
+    float R2      = R_view * R_view;
+    float bias    = R_view * u.bias_frac;
+    float step_px = R_pixels / float(u.steps);
 
-    // View-space AO radius: convert pixel radius to world units at
-    // this depth so the effect scales consistently with distance.
-    float R = u.radius * (-P.z) * u.texel_size.x * 2.0;
-    float R2 = R * R;
-    // Small epsilon to avoid division by zero in the SAO formula.
-    float epsilon = 0.0001;
-    // Bias: ignore depth differences smaller than this to prevent
-    // flat surfaces from self-occluding.
-    float bias = R * u.bias_frac;
+    // ---- Per-pixel noise -------------------------------------------------
+    float2 pixel = floor(uv / u.texel_size);
+    float noise_angle = hash(pixel) * M_PI_F;
+    float noise_step  = hash(pixel * 7.23 + 1.7);
 
-    float sum = 0.0;
+    float total_vis = 0.0;
 
-    for (int i = 0; i < num_samples; i++) {
-        // Rotate sample offset by per-pixel noise.
-        float2 s = spiral_samples[i];
-        float2 rotated = float2(s.x * cn - s.y * sn,
-                                s.x * sn + s.y * cn);
+    for (int d = 0; d < u.directions; d++) {
+        // Slice angle: evenly spaced over a half-circle, jittered.
+        float phi = M_PI_F * (float(d) + 0.5) / float(u.directions)
+                  + noise_angle;
+        float2 omega = float2(cos(phi), sin(phi));
 
-        float2 sample_uv = in.tex_coord_2d + rotated * u.radius * u.texel_size;
-        sample_uv = clamp(sample_uv, float2(0.001), float2(0.999));
+        // 3D tangent direction in view space for this slice.  The
+        // screen-space direction omega maps to view-space through the
+        // inverse projection's per-axis scale, which accounts for both
+        // FOV and aspect ratio.
+        float3 T = normalize(float3(
+            omega.x * u.texel_size.x * u.inv_projection[0][0],
+            omega.y * u.texel_size.y * u.inv_projection[1][1],
+            0.0));
 
-        float sd = depth_tex.sample(samp, sample_uv).x;
-        if (sd >= 0.9999) continue;
+        // Slice bitangent: the component of the view direction
+        // perpendicular to T, pointing toward the camera.
+        float3 V = normalize(-P);
+        float3 B = V - dot(V, T) * T;
+        float  B_len = length(B);
+        // At extreme grazing angles B can degenerate; fall back to +Z.
+        B = (B_len > 0.001) ? (B / B_len) : float3(0, 0, 1);
 
-        float3 Q = reconstruct_position(sample_uv, sd, u.inv_projection);
-        float3 v = Q - P;
+        // Projected normal angle in the slice (from T toward B).
+        float n_angle = atan2(dot(N, B), dot(N, T));
 
-        float vv = dot(v, v);
-        float vz = v.z;   // positive = Q closer to camera = potential occluder
+        // ---- March in both directions ------------------------------------
+        float h_pos = 0.0;   // horizon on the +omega side
+        float h_neg = 0.0;   // horizon on the -omega side
 
-        // SAO formula: occlusion ~= max(0, depth_diff - bias) / (dist^2 + eps)
-        // Clamped to the AO radius so distant geometry doesn't contribute.
-        sum += max(0.0, vz - bias) / (vv + epsilon) * step(vv, R2 * 4.0);
+        for (int s = 1; s <= u.steps; s++) {
+            float t_px = (float(s) - 0.5 + noise_step) * step_px;
+            float2 uv_step = omega * t_px * u.texel_size;
+
+            // +omega direction.
+            {
+                float2 suv = clamp(uv + uv_step,
+                                   float2(0.001), float2(0.999));
+                float sd = depth_tex.sample(samp, suv).x;
+                if (sd < 0.9999) {
+                    float3 S  = reconstruct_position(suv, sd,
+                                                     u.inv_projection);
+                    float3 ds = S - P;
+                    float len2 = dot(ds, ds);
+                    float len  = sqrt(len2);
+                    if (len > bias) {
+                        float h = atan2(dot(ds, B), dot(ds, T));
+                        // Quadratic distance falloff to avoid hard
+                        // cut-off at the radius boundary.
+                        float falloff = saturate(1.0 - len2 / R2);
+                        h = mix(h_pos, h, falloff);
+                        h_pos = max(h_pos, h);
+                    }
+                }
+            }
+
+            // -omega direction.
+            {
+                float2 suv = clamp(uv - uv_step,
+                                   float2(0.001), float2(0.999));
+                float sd = depth_tex.sample(samp, suv).x;
+                if (sd < 0.9999) {
+                    float3 S  = reconstruct_position(suv, sd,
+                                                     u.inv_projection);
+                    float3 ds = S - P;
+                    float len2 = dot(ds, ds);
+                    float len  = sqrt(len2);
+                    if (len > bias) {
+                        // Horizon measured from -T (the march tangent
+                        // on the negative side).
+                        float h = atan2(dot(ds, B), dot(ds, -T));
+                        float falloff = saturate(1.0 - len2 / R2);
+                        h = mix(h_neg, h, falloff);
+                        h_neg = max(h_neg, h);
+                    }
+                }
+            }
+        }
+
+        h_pos = clamp(h_pos, 0.0, M_PI_F * 0.5);
+        h_neg = clamp(h_neg, 0.0, M_PI_F * 0.5);
+
+        // ---- Cosine-weighted visibility integral -------------------------
+        // The visible range in the slice is [h_pos, pi - h_neg].
+        // Clamp to the hemisphere above the surface normal.
+        float a = max(h_pos, n_angle - M_PI_F * 0.5);
+        float b = min(M_PI_F - h_neg, n_angle + M_PI_F * 0.5);
+        float vis = (b > a) ? (sin(b - n_angle) - sin(a - n_angle))
+                             : 0.0;
+        total_vis += vis;
     }
 
-    // Normalize and apply intensity.
-    float ao = saturate(1.0 - (R2 * u.intensity * sum) / float(num_samples));
+    // Max visibility per slice = 2 (full cosine integral over semicircle).
+    float ao = total_vis / (float(u.directions) * 2.0);
+    ao = saturate(pow(ao, u.intensity));
 
     return float4(ao, ao, ao, 1.0);
 }

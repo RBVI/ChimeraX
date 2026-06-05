@@ -237,6 +237,7 @@ SHADER_VOLUME_RAYCASTING    = 1 << 30
 SHADER_SHOW_DEPTH_BUFFER    = 1 << 31
 SHADER_IMPOSTOR_SPHERE      = 1 << 32
 SHADER_IMPOSTOR_CYLINDER    = 1 << 33
+SHADER_GTAO                 = 1 << 34
 
 
 @runtime_checkable

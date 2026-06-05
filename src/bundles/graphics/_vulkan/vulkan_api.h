@@ -15,6 +15,7 @@ extern "C" {
 #endif
 
 // Context management
+PyObject* vulkan_create_instance(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_destroy_context(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_resize_drawable(PyObject* self, PyObject* args, PyObject* kwds);
@@ -65,10 +66,24 @@ PyObject* vulkan_read_framebuffer(PyObject* self, PyObject* args, PyObject* kwds
 // Query
 PyObject* vulkan_get_depth_texture(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_supports_ray_tracing(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_flush_gpu(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_get_buffer_device_memory(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_supports_metal_objects(PyObject* self, PyObject* args, PyObject* kwds);
+
+// Mapped buffers (zero-copy surface upload)
+PyObject* vulkan_create_mapped_buffer(PyObject* self, PyObject* args, PyObject* kwds);
+
+// OIT (Order-Independent Transparency; see vulkan_oit.cpp)
+PyObject* vulkan_create_oit_resources(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_destroy_oit_resources(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_begin_oit_pass(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_end_oit_pass(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_get_oit_textures(PyObject* self, PyObject* args, PyObject* kwds);
 
 // Ray tracing (RTAO + path tracer; see vulkan_raytracing.cpp)
 PyObject* vulkan_build_sphere_accel(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_build_mixed_accel(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_build_scene_accel(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_destroy_accel_struct(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_compile_rtao(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_dispatch_rtao(PyObject* self, PyObject* args, PyObject* kwds);

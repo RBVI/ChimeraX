@@ -10,12 +10,15 @@
     <DataFile>fragmentShader.txt</DataFile>
     <DataFile>_graphics.*</DataFile>
     <DataFile>_metal.*</DataFile>
+    <DataFile>_metal_rt.*</DataFile>
     <DataFile>_vulkan.*</DataFile>
     <DataFile>shaders/*.metal</DataFile>
     <DataFile>shaders/*.glsl</DataFile>
     <DataFile>shaders/*.vert</DataFile>
     <DataFile>shaders/*.frag</DataFile>
     <DataFile>shaders/*.comp</DataFile>
+    <DataFile>lib/*.dylib</DataFile>
+    <DataFile>lib/*.json</DataFile>
   </DataFiles>
   <Categories>
     <Category name="Graphics"/>
@@ -56,6 +59,7 @@
     <SourceFile>_vulkan/vulkan_framebuffer.cpp</SourceFile>
     <SourceFile>_vulkan/vulkan_dummies.cpp</SourceFile>
     <SourceFile>_vulkan/vulkan_raytracing.cpp</SourceFile>
+    <SourceFile>_vulkan/vulkan_oit.cpp</SourceFile>
     <SourceFile>_vulkan/vk_shader.cpp</SourceFile>
     <SourceFile>_vulkan/VkBootstrap.cpp</SourceFile>
     <CompileArgument platform="windows">/std:c++17</CompileArgument>
@@ -65,12 +69,33 @@
     <IncludeDir platform="windows">${VULKAN_SDK}/Include/vma</IncludeDir>
     <IncludeDir platform="linux">${VULKAN_SDK}/include</IncludeDir>
     <IncludeDir platform="linux">${VULKAN_SDK}/include/vma</IncludeDir>
+    <IncludeDir platform="mac">/opt/homebrew/include</IncludeDir>
     <LibraryDir platform="windows">${VULKAN_SDK}/Lib</LibraryDir>
     <LibraryDir platform="linux">${VULKAN_SDK}/lib</LibraryDir>
+    <LibraryDir platform="mac">/opt/homebrew/opt/vulkan-loader/lib</LibraryDir>
+    <LibraryDir platform="mac">/opt/homebrew/opt/shaderc/lib</LibraryDir>
     <Library platform="windows">vulkan-1.lib</Library>
     <Library platform="windows">shaderc_combined.lib</Library>
     <Library platform="linux">vulkan</Library>
     <Library platform="linux">shaderc_combined</Library>
+    <Library platform="mac">vulkan</Library>
+    <Library platform="mac">shaderc_combined</Library>
+  </CModule>
+  <CModule name="_metal_rt" platform="mac">
+    <SourceFile>_metal_rt/module.cpp</SourceFile>
+    <SourceFile>_metal_rt/metal_rt_interop.m</SourceFile>
+    <SourceFile>_metal_rt/metal_rt_accel.m</SourceFile>
+    <CompileArgument>-ObjC++</CompileArgument>
+    <CompileArgument>-std=c++17</CompileArgument>
+    <CompileArgument>-stdlib=libc++</CompileArgument>
+    <Framework>Metal</Framework>
+    <Framework>QuartzCore</Framework>
+    <Framework>AppKit</Framework>
+    <IncludeDir>_metal_rt</IncludeDir>
+    <IncludeDir>_vulkan</IncludeDir>
+    <IncludeDir platform="mac">/opt/homebrew/include</IncludeDir>
+    <LibraryDir platform="mac">/opt/homebrew/opt/vulkan-loader/lib</LibraryDir>
+    <Library platform="mac">vulkan</Library>
   </CModule>
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.3dev2021"/>

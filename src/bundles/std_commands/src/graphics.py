@@ -336,6 +336,24 @@ def graphics_restart(session):
     session.update_loop.unblock_redraw()
 
 
+def graphics_backend(session, backend=None):
+    '''Switch between OpenGL and Vulkan rendering backends at runtime, or
+    report the currently active backend if called with no argument.'''
+    gw = session.ui.main_window.graphics_window
+    if backend is None:
+        oc = gw.opengl_context
+        if hasattr(oc, "_vulkan"):
+            name = "vulkan"
+        elif hasattr(oc, "_metal"):
+            name = "metal"
+        else:
+            name = "opengl"
+        session.logger.info(f"Current graphics backend: {name}")
+        return
+    gw.switch_backend(backend)
+    session.logger.info(f"Switched graphics backend to {backend}")
+
+
 def graphics_shader(session, flush=False, checkUniforms=None):
     r = session.main_view.render
     if flush:
@@ -421,6 +439,12 @@ def register_command(logger):
         synopsis="Report graphics driver version info", keyword=[("verbose", BoolArg)]
     )
     register("graphics driver", desc, graphics_driver, logger=logger)
+
+    desc = CmdDesc(
+        optional=[("backend", EnumOf(["opengl", "vulkan"]))],
+        synopsis="Switch the graphics backend (OpenGL or Vulkan) in place",
+    )
+    register("graphics backend", desc, graphics_backend, logger=logger)
 
     desc = CmdDesc(
         synopsis="Control shader parameters",

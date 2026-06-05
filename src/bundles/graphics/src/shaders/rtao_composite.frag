@@ -3,7 +3,7 @@
 // Reads the AO texture (ao_tex.r in [0,1], 1 = fully exposed) and outputs
 // black with alpha = (1 - ao). Combined with the standard SRC_ALPHA over
 // blend the renderer uses, this multiplies the existing framebuffer color
-// by the AO factor — i.e. `dst' = dst * ao`.
+// by the AO factor - i.e. `dst' = dst * ao`.
 #version 460
 
 layout(set = 1, binding = 0) uniform sampler2D ao_tex;
