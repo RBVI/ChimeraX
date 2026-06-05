@@ -2392,13 +2392,23 @@ class VolumeSurface(Surface):
       for a in plane_axis:
         matrix = matrix.repeat(2, axis = a)
 
+    # Try zero-copy GPU path: flying edges writes directly into VMA-mapped
+    # GPU memory, skipping the numpy intermediate allocation.
+    gpu_bufs = None
     if rendering_options.surface_algorithm == 'flyingEdges':
-      from ._flying_edges import contour_surface
+      gpu_bufs = self._try_gpu_contour(matrix, level, rendering_options)
+
+    if gpu_bufs is not None:
+      varray, narray, tarray, vbuf, nbuf, ibuf = gpu_bufs
     else:
-      from ._map import contour_surface
-    varray, tarray, narray = contour_surface(matrix, level,
-                                             cap_faces = rendering_options.cap_faces,
-                                             calculate_normals = True)
+      if rendering_options.surface_algorithm == 'flyingEdges':
+        from ._flying_edges import contour_surface
+      else:
+        from ._map import contour_surface
+      varray, tarray, narray = contour_surface(matrix, level,
+                                               cap_faces = rendering_options.cap_faces,
+                                               calculate_normals = True)
+      vbuf = nbuf = ibuf = None
 
     if plane_axis:
       for a in plane_axis:
@@ -2407,7 +2417,29 @@ class VolumeSurface(Surface):
     va, na, ta, hidden_edges = self._adjust_surface_geometry(varray, narray, tarray,
                                                              rendering_options, level)
 
+    # Stash GPU buffer handles so the renderer can use them directly.
+    if vbuf is not None:
+      self._vk_buffers = {'vertices': vbuf, 'normals': nbuf, 'indices': ibuf}
+    else:
+      self._vk_buffers = None
+
     return va, na, ta, hidden_edges
+
+  def _try_gpu_contour(self, matrix, level, rendering_options):
+    """Attempt zero-copy contour directly into GPU buffers."""
+    try:
+      v = self.volume
+      renderer = v.session.main_view.render
+      if not hasattr(renderer, 'create_mapped_buffer'):
+        return None
+
+      from . import contour_surface_to_gpu
+      vbuf, nbuf, ibuf, va, na, ta = contour_surface_to_gpu(
+          matrix, level, renderer,
+          cap_faces=rendering_options.cap_faces)
+      return va, na, ta, vbuf, nbuf, ibuf
+    except Exception:
+      return None
 
   # ---------------------------------------------------------------------------
   #

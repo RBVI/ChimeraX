@@ -43,6 +43,47 @@ from .volume import VolumeSurface, VolumeImage
 import chimerax.arrays
 
 from ._map import contour_surface, sphere_surface_distance
+
+
+def contour_surface_to_gpu(data, threshold, renderer, cap_faces=True):
+    """Contour a 3D array directly into GPU buffers (zero intermediate copy).
+
+    Uses the flying edges split API: passes 1-3 compute counts, then
+    pass 4 writes geometry directly into VMA-mapped GPU memory.
+
+    Returns (vertex_buf, normal_buf, index_buf, vertices_np, normals_np,
+    triangles_np) where the _buf handles are Vulkan buffer handles and
+    the _np arrays are numpy views of the same mapped memory.
+    """
+    import ctypes
+    import numpy as np
+    from ._flying_edges import create_surface, generate_surface, destroy_surface
+
+    handle, nv, nt = create_surface(data, threshold, cap_faces=cap_faces)
+    try:
+        vbytes = int(nv) * 3 * 4   # float32 xyz
+        nbytes = int(nv) * 3 * 4   # float32 normals
+        ibytes = int(nt) * 3 * 4   # int32 indices
+
+        vbuf, vptr = renderer.create_mapped_buffer(vbytes)
+        nbuf, nptr = renderer.create_mapped_buffer(nbytes)
+        ibuf, iptr = renderer.create_mapped_buffer(ibytes)
+
+        generate_surface(handle=handle, vertex_ptr=vptr,
+                         triangle_ptr=iptr, normal_ptr=nptr)
+    finally:
+        destroy_surface(handle)
+
+    # Wrap the mapped pointers as writable numpy arrays (zero-copy views).
+    # np.ctypeslib.as_array on a ctypes pointer gives a writable view.
+    va = np.ctypeslib.as_array(ctypes.cast(vptr, ctypes.POINTER(ctypes.c_float)),
+                               shape=(nv, 3))
+    na = np.ctypeslib.as_array(ctypes.cast(nptr, ctypes.POINTER(ctypes.c_float)),
+                               shape=(nv, 3))
+    ta = np.ctypeslib.as_array(ctypes.cast(iptr, ctypes.POINTER(ctypes.c_int32)),
+                               shape=(nt, 3))
+
+    return vbuf, nbuf, ibuf, va, na, ta
 from ._map import interpolate_colormap, set_outside_volume_colors
 from ._map import extend_crystal_map
 from ._map import moments, affine_scale

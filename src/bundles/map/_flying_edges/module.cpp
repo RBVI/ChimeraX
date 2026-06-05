@@ -38,6 +38,12 @@ static struct PyMethodDef flying_edges_methods[] =
   /* flying_edges_py.h */
   {const_cast<char*>("contour_surface"), (PyCFunction)surface_py,
    METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("create_surface"), (PyCFunction)create_surface_py,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("generate_surface"), (PyCFunction)generate_surface_py,
+   METH_VARARGS|METH_KEYWORDS, NULL},
+  {const_cast<char*>("destroy_surface"), destroy_surface_py,
+   METH_VARARGS, NULL},
   {const_cast<char*>("reverse_triangle_vertex_order"),
    reverse_triangle_vertex_order, METH_VARARGS, NULL},
 

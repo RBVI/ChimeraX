@@ -30,6 +30,9 @@
 extern "C" {
 
 PyObject *surface_py(PyObject *s, PyObject *args, PyObject *keywds);
+PyObject *create_surface_py(PyObject *s, PyObject *args, PyObject *keywds);
+PyObject *generate_surface_py(PyObject *s, PyObject *args, PyObject *keywds);
+PyObject *destroy_surface_py(PyObject *, PyObject *args);
 PyObject *reverse_triangle_vertex_order(PyObject *, PyObject *args);
 
 }
