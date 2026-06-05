@@ -35,7 +35,7 @@ layout(set = 0, binding = 2, std430) readonly buffer SphereBuffer {
 
 struct Cylinder {
     vec4 p0_r;   // .xyz = endpoint 0, .w = radius
-    vec4 p1;     // .xyz = endpoint 1
+    vec4 p1_d;   // .xyz = endpoint 1, .w = dash count (0 = solid)
 };
 layout(set = 0, binding = 3, std430) readonly buffer CylinderBuffer {
     Cylinder cylinders[];
@@ -45,13 +45,27 @@ layout(set = 0, binding = 3, std430) readonly buffer CylinderBuffer {
 layout(set = 0, binding = 4, std430) readonly buffer SphereColorBuffer {
     uint sphere_colors[];
 };
+// Two colors per cylinder (color1, color2) for half-bond coloring.
 layout(set = 0, binding = 5, std430) readonly buffer CylinderColorBuffer {
-    uint cylinder_colors[];
+    uint cylinder_colors[];  // [2*primId]=color1, [2*primId+1]=color2
 };
 
 layout(set = 0, binding = 6, rgba8) uniform writeonly image2D color_tex;
 layout(set = 0, binding = 7) uniform sampler2D prev_tex;
 layout(set = 0, binding = 8, rgba8) uniform writeonly image2D accum_tex;
+
+// Triangle mesh geometry (geometry_id = 2).
+struct Triangle {
+    vec4 v0;  // .xyz = vertex 0, .w = unused
+    vec4 v1;  // .xyz = vertex 1, .w = unused
+    vec4 v2;  // .xyz = vertex 2, .w = unused
+};
+layout(set = 0, binding = 9, std430) readonly buffer TriangleBuffer {
+    Triangle triangles[];
+};
+layout(set = 0, binding = 10, std430) readonly buffer TriangleColorBuffer {
+    uint triangle_colors[];
+};
 
 // ---------------------------------------------------------------------------
 //  Hash + cosine hemisphere sampler (same as rtao.comp).
@@ -91,7 +105,7 @@ float ray_sphere(vec3 ro, vec3 rd, vec4 sph, float tmin, float tmax) {
     // sphere centre to the ray, not via the classical b² - (|oc|² - r²).
     // When the camera is far from the atom (zoomed-out cellular views,
     // where D >> r), b² and |oc|² are both ~D² and their difference is
-    // r² — i.e. catastrophic cancellation in FP32. The perp formulation
+    // r² - i.e. catastrophic cancellation in FP32. The perp formulation
     // computes a small vector first and squares it, which keeps the
     // working magnitudes near r and avoids the cancellation. Silhouette
     // pixels stop randomly false-missing.
@@ -139,8 +153,46 @@ float capped_cyl_isect(vec3 ro, vec3 rd, vec3 a, vec3 b, float r) {
 
 float ray_cylinder(vec3 ro, vec3 rd, uint primId, float tmin, float tmax) {
     Cylinder c = cylinders[primId];
-    float t = capped_cyl_isect(ro, rd, c.p0_r.xyz, c.p1.xyz, c.p0_r.w);
-    return (t > tmin && t < tmax) ? t : -1.0;
+    vec3 a = c.p0_r.xyz;
+    vec3 b = c.p1_d.xyz;
+    float radius = c.p0_r.w;
+    float t = capped_cyl_isect(ro, rd, a, b, radius);
+    if (t <= tmin || t >= tmax) return -1.0;
+
+    int dashes = int(c.p1_d.w);
+    if (dashes <= 0) return t;
+
+    // Dash culling: if the body/endcap hit is in a gap, try the two
+    // nearest dash-edge cap planes instead.
+    vec3 ba = b - a;
+    float baba = dot(ba, ba);
+    vec3 hit = ro + rd * t;
+    float frac = dot(hit - a, ba) / baba;
+    float dash_pos = frac * float(dashes) + 0.75;
+    float dash_frac = fract(dash_pos);
+
+    if (dash_frac <= 0.5) return t;  // In a solid segment
+
+    // In a gap - intersect the two nearest dash-edge planes.
+    float edge_offsets[2] = float[2](0.5 - dash_frac, 1.0 - dash_frac);
+    float cap_denom = dot(rd, ba);
+    if (abs(cap_denom) < 0.0001 * baba) return -1.0;
+    float inv_baba = 1.0 / baba;
+    float r2 = radius * radius;
+
+    for (int ei = 0; ei < 2; ++ei) {
+        float edge_dash = dash_pos + edge_offsets[ei];
+        float edge_frac = (edge_dash - 0.75) / float(dashes);
+        float edge_along = edge_frac * baba;  // distance along ba from a
+        // Plane: dot(p - a, ba) = edge_along
+        float cap_t = (edge_along - dot(ro - a, ba)) / cap_denom;
+        if (cap_t <= tmin || cap_t >= tmax) continue;
+        vec3 cap_pt = ro + rd * cap_t;
+        vec3 radial = cap_pt - a - ba * (edge_along * inv_baba);
+        if (dot(radial, radial) <= r2)
+            return cap_t;
+    }
+    return -1.0;
 }
 
 // ---------------------------------------------------------------------------
@@ -152,13 +204,66 @@ vec3 sphere_normal(vec3 hit, uint primId) {
 
 vec3 cylinder_normal(vec3 hit, uint primId) {
     Cylinder c = cylinders[primId];
-    vec3 ba = c.p1.xyz - c.p0_r.xyz;
+    vec3 a = c.p0_r.xyz;
+    vec3 ba = c.p1_d.xyz - a;
     float baba = dot(ba, ba);
-    float t_axis = dot(hit - c.p0_r.xyz, ba) / baba;
+    float t_axis = dot(hit - a, ba) / baba;
+
+    // Endcaps.
     if (t_axis <= 0.001) return normalize(-ba);
     if (t_axis >= 0.999) return normalize(ba);
-    vec3 axis_pt = c.p0_r.xyz + ba * t_axis;
+
+    // Dash-edge caps: if the hit is on a dash boundary (radial distance
+    // equals radius to within tolerance), it's a flat cap face.
+    int dashes = int(c.p1_d.w);
+    if (dashes > 0) {
+        vec3 axis_pt = a + ba * t_axis;
+        float radial_dist2 = dot(hit - axis_pt, hit - axis_pt);
+        float r2 = c.p0_r.w * c.p0_r.w;
+        if (radial_dist2 < r2 * 0.99) {
+            // Interior hit that's not on the cylinder surface - must be
+            // a dash cap.  Determine the normal direction from which
+            // side of the nearest dash edge we're on.
+            float frac = t_axis;
+            float dash_pos = frac * float(dashes) + 0.75;
+            float dash_frac = fract(dash_pos);
+            // dash_frac near 0.5 = edge between solid and gap.
+            // < 0.25 means we came from the gap side (normal toward a).
+            // > 0.25 means toward b.
+            return normalize((dash_frac < 0.25) ? -ba : ba);
+        }
+    }
+
+    vec3 axis_pt = a + ba * t_axis;
     return normalize(hit - axis_pt);
+}
+
+// Möller–Trumbore ray-triangle intersection.
+float ray_triangle(vec3 ro, vec3 rd, uint primId, float tmin, float tmax) {
+    Triangle tri = triangles[primId];
+    vec3 v0 = tri.v0.xyz;
+    vec3 e1 = tri.v1.xyz - v0;
+    vec3 e2 = tri.v2.xyz - v0;
+    vec3 h = cross(rd, e2);
+    float a = dot(e1, h);
+    if (abs(a) < 1e-7) return -1.0;
+    float f = 1.0 / a;
+    vec3 s = ro - v0;
+    float u = f * dot(s, h);
+    if (u < 0.0 || u > 1.0) return -1.0;
+    vec3 q = cross(s, e1);
+    float v = f * dot(rd, q);
+    if (v < 0.0 || u + v > 1.0) return -1.0;
+    float t = f * dot(e2, q);
+    if (t <= tmin || t >= tmax) return -1.0;
+    return t;
+}
+
+vec3 triangle_normal(uint primId) {
+    Triangle tri = triangles[primId];
+    vec3 e1 = tri.v1.xyz - tri.v0.xyz;
+    vec3 e2 = tri.v2.xyz - tri.v0.xyz;
+    return normalize(cross(e1, e2));
 }
 
 vec3 unpack_color(uint c) {
@@ -186,7 +291,7 @@ bool closest_hit(vec3 ro, vec3 rd, float tmin, float tmax,
     // Track closest t ourselves and only call GenerateIntersection with
     // a strictly-closer candidate. Per spec the runtime is supposed to
     // commit-if-closer, but on this driver it commits whatever was
-    // generated last — so for an unordered BVH walk a far candidate
+    // generated last - so for an unordered BVH walk a far candidate
     // generated after a near one would replace the near one and the
     // committed (geom, prim) would point at an atom behind the actual
     // front-most hit. Capping ray_sphere/ray_cylinder's tmax with
@@ -198,8 +303,10 @@ bool closest_hit(vec3 ro, vec3 rd, float tmin, float tmax,
             == gl_RayQueryCandidateIntersectionAABBEXT) {
             uint g = rayQueryGetIntersectionGeometryIndexEXT(rq, false);
             uint p = rayQueryGetIntersectionPrimitiveIndexEXT(rq, false);
-            float t = (g == 0u) ? ray_sphere(ro, rd, spheres[p], tmin, closest_t)
-                                : ray_cylinder(ro, rd, p, tmin, closest_t);
+            float t;
+            if (g == 0u)      t = ray_sphere(ro, rd, spheres[p], tmin, closest_t);
+            else if (g == 1u) t = ray_cylinder(ro, rd, p, tmin, closest_t);
+            else              t = ray_triangle(ro, rd, p, tmin, closest_t);
             if (t > 0.0 && t < closest_t) {
                 closest_t = t;
                 rayQueryGenerateIntersectionEXT(rq, t);
@@ -229,8 +336,10 @@ bool any_hit(vec3 ro, vec3 rd, float tmax) {
             == gl_RayQueryCandidateIntersectionAABBEXT) {
             uint g = rayQueryGetIntersectionGeometryIndexEXT(rq, false);
             uint p = rayQueryGetIntersectionPrimitiveIndexEXT(rq, false);
-            float t = (g == 0u) ? ray_sphere(ro, rd, spheres[p], 0.0, tmax)
-                                : ray_cylinder(ro, rd, p, 0.0, tmax);
+            float t;
+            if (g == 0u)      t = ray_sphere(ro, rd, spheres[p], 0.0, tmax);
+            else if (g == 1u) t = ray_cylinder(ro, rd, p, 0.0, tmax);
+            else              t = ray_triangle(ro, rd, p, 0.0, tmax);
             if (t > 0.0) {
                 rayQueryGenerateIntersectionEXT(rq, t);
             }
@@ -247,18 +356,24 @@ void main() {
 
     // ---- Camera ray ----
     // No Y flip: Vulkan's projection matrix already negates the Y row,
-    // and Vulkan window-Y / NDC-Y both point down — so window pixel
+    // and Vulkan window-Y / NDC-Y both point down - so window pixel
     // (x, y) maps directly to NDC ((x/w)*2-1, (y/h)*2-1).
     //
     // Origin at the actual camera (view-space origin), NOT the near
     // plane: ChimeraX's near plane is tuned right in front of the
     // visible scene, so for the closest atoms the near plane lies
     // inside the sphere. A near-plane origin then puts ro inside the
-    // sphere, and ray_sphere returns the back-surface exit point —
+    // sphere, and ray_sphere returns the back-surface exit point -
     // the visual effect is each front-most sphere being sliced flat
     // along the near plane (its "billboard"). Originating from the
     // camera itself avoids that.
-    vec2 uv = (vec2(tid) + 0.5) / vec2(u.size);
+    uint pixel_seed = (uint(tid.x) + uint(tid.y) * u.size.x) ^ (u.frame * 7919u);
+
+    // Subpixel jitter for antialiasing - each accumulated frame samples a
+    // different position within the pixel, giving progressive SSAA.
+    vec2 jitter = vec2(hash_f(pixel_seed * 3u + 1u),
+                       hash_f(pixel_seed * 5u + 3u));
+    vec2 uv = (vec2(tid) + jitter) / vec2(u.size);
     vec2 ndc = uv * 2.0 - 1.0;
 
     vec3 ro_world = (u.inv_view * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
@@ -266,8 +381,6 @@ void main() {
     vf /= vf.w;
     vec3 rt_world = (u.inv_view * vec4(vf.xyz, 1.0)).xyz;
     vec3 rd_world = normalize(rt_world - ro_world);
-
-    uint pixel_seed = (uint(tid.x) + uint(tid.y) * u.size.x) ^ (u.frame * 7919u);
     uint ray_counter = 0u;
 
     // ===========================================================
@@ -278,7 +391,7 @@ void main() {
     //  of color per sphere or a sharp seam splitting each sphere,
     //  the normal is being computed incorrectly.
     // ===========================================================
-    // (Diagnostics removed — chain validated end-to-end:
+    // (Diagnostics removed - chain validated end-to-end:
     //  blit covers full screen, intersection returns clean hit
     //  silhouettes, geometry IDs are correct, normals smooth.)
 
@@ -303,9 +416,21 @@ void main() {
         if (geom == 0u) {
             N = sphere_normal(hit_point, prim);
             albedo = unpack_color(sphere_colors[prim]);
-        } else {
+        } else if (geom == 1u) {
             N = cylinder_normal(hit_point, prim);
-            albedo = unpack_color(cylinder_colors[prim]);
+            // Half-bond coloring: pick color1 or color2 based on which
+            // half of the cylinder the hit point is on.
+            Cylinder c = cylinders[prim];
+            vec3 ba = c.p1_d.xyz - c.p0_r.xyz;
+            float along = dot(hit_point - c.p0_r.xyz, ba);
+            bool second_half = (along > dot(ba, ba) * 0.5);
+            albedo = unpack_color(cylinder_colors[prim * 2u + (second_half ? 1u : 0u)]);
+        } else {
+            // Triangle mesh hit.
+            N = triangle_normal(prim);
+            // Flip normal to face the incoming ray.
+            if (dot(N, dir) > 0.0) N = -N;
+            albedo = unpack_color(triangle_colors[prim]);
         }
 
         // Direct lighting: shadow ray to key light, accept any blocker.

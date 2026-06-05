@@ -301,9 +301,11 @@ class OpaquePass(RenderPass):
         return len(ctx.opaque_drawings) > 0
 
     def execute(self, ctx):
+        r = ctx.renderer
         from .drawing import draw_opaque
 
-        draw_opaque(ctx.renderer, ctx.opaque_drawings)
+        draw_opaque(r, ctx.opaque_drawings)
+
 
 
 class OutlineMaskPass(RenderPass):
@@ -332,7 +334,7 @@ class SilhouetteDrawPass(RenderPass):
 
 
 class TransparentPass(RenderPass):
-    """Render transparent geometry."""
+    """Render transparent geometry with OIT when available."""
 
     name = "transparent"
 
@@ -342,7 +344,31 @@ class TransparentPass(RenderPass):
     def execute(self, ctx):
         from .drawing import draw_transparent
 
-        draw_transparent(ctx.renderer, ctx.transparent_drawings)
+        r = ctx.renderer
+        drawings = ctx.transparent_drawings
+
+        # Use OIT if the renderer supports it.  Volume raycasting
+        # drawings use VK_BLEND_OP_MAX which is incompatible with
+        # WBOIT, so they go through the standard transparency path.
+        if hasattr(r, 'begin_oit_pass'):
+            from .drawing import _draw_multiple, Drawing
+
+            def _is_volume(d):
+                return hasattr(d, 'draw_volume_raycast') or \
+                    getattr(d, '_draw_planes', None) is not None
+
+            oit_drawings = [d for d in drawings if not _is_volume(d)]
+            vol_drawings = [d for d in drawings if _is_volume(d)]
+
+            if oit_drawings:
+                r.begin_oit_pass()
+                _draw_multiple(oit_drawings, r, Drawing.TRANSPARENT_DRAW_PASS)
+                r.end_oit_pass()
+
+            if vol_drawings:
+                draw_transparent(r, vol_drawings)
+        else:
+            draw_transparent(r, drawings)
 
 
 class DepthResetPass(RenderPass):
@@ -564,6 +590,7 @@ class PathTracePass(RenderPass):
     _ping = 0
     _color_buffer = None
     _cyl_color_buffer = None
+    _tri_color_buffer = None
 
     def enabled(self, ctx):
         r = ctx.renderer
@@ -582,15 +609,23 @@ class PathTracePass(RenderPass):
         if w == 0 or h == 0:
             return
 
-        sphere_data, sphere_colors, cyl_data, cyl_colors = \
-            self._collect_geometry(ctx)
+        sphere_data, sphere_colors, cyl_data, cyl_colors, \
+            tri_data, tri_colors = self._collect_geometry(ctx)
         if sphere_data is None or len(sphere_data) == 0:
             return
 
-        geom_key = (len(sphere_data), len(cyl_data) if cyl_data is not None else 0)
+        geom_key = (len(sphere_data),
+                     len(cyl_data) if cyl_data is not None else 0,
+                     len(tri_data) if tri_data is not None else 0)
         if geom_key != self._last_geom_key:
-            if cyl_data is not None and len(cyl_data) > 0:
-                r.build_mixed_acceleration_structure(sphere_data, cyl_data)
+            has_cyls = cyl_data is not None and len(cyl_data) > 0
+            has_tris = tri_data is not None and len(tri_data) > 0
+            if has_cyls or has_tris:
+                r.build_scene_acceleration_structure(
+                    sphere_data,
+                    cyl_data if has_cyls else None,
+                    tri_data if has_tris else None,
+                )
             else:
                 r.build_sphere_acceleration_structure(sphere_data)
             self._last_geom_key = geom_key
@@ -609,6 +644,15 @@ class PathTracePass(RenderPass):
         else:
             r.destroy_data_buffer(self._cyl_color_buffer)
             self._cyl_color_buffer = None
+
+        # Upload triangle colors.
+        if tri_colors is not None and len(tri_colors) > 0:
+            tri_color_bytes = np.ascontiguousarray(tri_colors, dtype=np.uint8)
+            r.destroy_data_buffer(self._tri_color_buffer)
+            self._tri_color_buffer = r.create_data_buffer(tri_color_bytes)
+        else:
+            r.destroy_data_buffer(self._tri_color_buffer)
+            self._tri_color_buffer = None
 
         # Ensure RGBA textures for output and ping-pong accumulation.
         res = ctx.resources
@@ -673,6 +717,7 @@ class PathTracePass(RenderPass):
             accum_tex,
             self._color_buffer,
             self._cyl_color_buffer,
+            self._tri_color_buffer,
             inv_proj,
             inv_view,
             frame=self._frame_counter,
@@ -725,9 +770,10 @@ class PathTracePass(RenderPass):
 
     @staticmethod
     def _collect_geometry(ctx):
-        """Collect spheres and cylinders with colors in world space.
+        """Collect spheres, cylinders, and triangle meshes with colors.
 
-        Returns (sphere_data, sphere_colors, cylinder_data, cylinder_colors).
+        Returns (sphere_data, sphere_colors, cylinder_data, cylinder_colors,
+                 triangle_data, triangle_colors).
         """
         import numpy as np
         from .renderer import SHADER_IMPOSTOR_SPHERE, SHADER_IMPOSTOR_CYLINDER
@@ -736,6 +782,8 @@ class PathTracePass(RenderPass):
         all_sphere_colors = []
         all_cyls = []
         all_cyl_colors = []
+        all_tris = []
+        all_tri_colors = []
 
         for drawing in ctx.opaque_drawings:
             # Determine world transform for this drawing.
@@ -771,48 +819,101 @@ class PathTracePass(RenderPass):
 
             # Check for cylinder impostor (bond/pseudobond drawings have
             # impostor_dashes attribute and use instance matrices).
-            if not hasattr(drawing, 'impostor_dashes'):
+            if hasattr(drawing, 'impostor_dashes'):
+                matrices = drawing.positions.opengl_matrices()
+                if matrices is not None and len(matrices) > 0:
+                    # Each 4x4 matrix transforms a unit cylinder (Z, -0.5..+0.5).
+                    # Column 3 row 0-2 = translation (center).
+                    # Column 2 row 0-2 = Z axis (cylinder direction * length).
+                    # Column 0 row 0-2 length = radius.
+                    # The W components of each column carry the second atom
+                    # color as floats that encode packed RGBA bytes.
+                    n = len(matrices)
+                    dashes = getattr(drawing, 'impostor_dashes', 0)
+                    cyl_data = np.zeros((n, 8), dtype=np.float32)
+
+                    for i in range(n):
+                        m = matrices[i]
+                        center = m[3, :3].copy()
+                        axis = m[2, :3].copy()
+                        radius = np.linalg.norm(m[0, :3])
+
+                        p0 = center - 0.5 * axis
+                        p1 = center + 0.5 * axis
+
+                        if parent_rot is not None:
+                            p0 = (parent_rot @ p0) + parent_trans
+                            p1 = (parent_rot @ p1) + parent_trans
+
+                        cyl_data[i, :3] = p0
+                        # Shrink the bond radius slightly so the cylinder
+                        # surface doesn't protrude past the atom sphere at
+                        # the junction.
+                        cyl_data[i, 3] = radius * 0.995
+                        cyl_data[i, 4:7] = p1
+                        # Pack dash count into the unused .w of p1.
+                        cyl_data[i, 7] = float(dashes)
+
+                    all_cyls.append(cyl_data)
+
+                    # Cylinder colors: two RGBA8 colors per cylinder packed
+                    # into a single 8-byte row (color1, color2).
+                    colors = drawing.colors
+                    if colors is None or len(colors) != n:
+                        colors = np.full((n, 4), 200, dtype=np.uint8)
+
+                    # Extract second-atom color from the W column of the
+                    # instance matrix.  The values are floats in 0.0–1.0.
+                    color2_floats = matrices[:, :4, 3]  # shape (n, 4)
+                    color2 = np.clip(color2_floats * 255.0, 0, 255).astype(np.uint8)
+
+                    # Interleave: [color1_0, color2_0, color1_1, color2_1, ...]
+                    paired = np.empty((n, 2, 4), dtype=np.uint8)
+                    paired[:, 0, :] = colors
+                    paired[:, 1, :] = color2
+                    all_cyl_colors.append(paired.reshape(n * 2, 4))
                 continue
-            matrices = drawing.positions.opengl_matrices()
-            if matrices is not None and len(matrices) > 0:
-                # Each 4x4 matrix transforms a unit cylinder (Z, -0.5..+0.5).
-                # Column 3 row 0-2 = translation (center).
-                # Column 2 row 0-2 = Z axis (cylinder direction * length).
-                # Column 0 row 0-2 length = radius.
-                # The 4th row carries the second atom color (packed).
-                n = len(matrices)
-                cyl_data = np.zeros((n, 8), dtype=np.float32)
 
-                for i in range(n):
-                    m = matrices[i]
-                    # opengl_matrices() stores columns as rows:
-                    # m[0] = X axis, m[1] = Y axis, m[2] = Z axis, m[3] = translation
-                    # (the w-component m[j,3] carries packed color2, not geometry)
-                    center = m[3, :3].copy()
-                    axis = m[2, :3].copy()
-                    radius = np.linalg.norm(m[0, :3])
+            # Check for triangle mesh drawing (e.g. SNFG sugar symbols).
+            verts = drawing.vertices
+            tris = drawing.triangles
+            if verts is None or tris is None:
+                continue
+            if len(verts) == 0 or len(tris) == 0:
+                continue
 
-                    p0 = center - 0.5 * axis
-                    p1 = center + 0.5 * axis
+            verts = np.asarray(verts, dtype=np.float64)
+            if parent_rot is not None:
+                verts = (verts @ parent_rot.T) + parent_trans
 
-                    if parent_rot is not None:
-                        p0 = (parent_rot @ p0) + parent_trans
-                        p1 = (parent_rot @ p1) + parent_trans
+            # Flatten triangles into per-triangle vertex data.
+            # Layout: 12 floats per triangle (3 × vec4, w=0 padding).
+            idx = np.asarray(tris, dtype=np.int32)
+            n_tri = len(idx)
+            tri_verts = verts[idx]  # (n_tri, 3, 3)
+            tri_data = np.zeros((n_tri, 12), dtype=np.float32)
+            tri_data[:, 0:3] = tri_verts[:, 0, :]
+            # tri_data[:, 3] = 0  (padding)
+            tri_data[:, 4:7] = tri_verts[:, 1, :]
+            # tri_data[:, 7] = 0
+            tri_data[:, 8:11] = tri_verts[:, 2, :]
+            # tri_data[:, 11] = 0
+            all_tris.append(tri_data)
 
-                    cyl_data[i, :3] = p0
-                    cyl_data[i, 3] = radius
-                    cyl_data[i, 4:7] = p1
-
-                all_cyls.append(cyl_data)
-
-                # Cylinder colors: use drawing.colors (first atom color).
-                colors = drawing.colors
-                if colors is not None and len(colors) == n:
-                    all_cyl_colors.append(colors)
-                else:
-                    all_cyl_colors.append(
-                        np.full((n, 4), 200, dtype=np.uint8)
+            # Per-triangle color: use vertex color of the first vertex
+            # of each triangle, or the drawing's single color.
+            vc = drawing.vertex_colors
+            if vc is not None and len(vc) == len(drawing.vertices):
+                tri_colors = np.asarray(vc, dtype=np.uint8)[idx[:, 0]]
+            else:
+                c = drawing.colors
+                if c is not None and len(c) > 0:
+                    tri_colors = np.tile(
+                        np.asarray(c[0], dtype=np.uint8), (n_tri, 1)
                     )
+                else:
+                    tri_colors = np.full((n_tri, 4), 200, dtype=np.uint8)
+            all_tri_colors.append(tri_colors)
 
         sphere_data = (np.vstack(all_spheres).astype(np.float32)
                        if all_spheres else None)
@@ -822,7 +923,12 @@ class PathTracePass(RenderPass):
                     if all_cyls else None)
         cyl_colors = (np.vstack(all_cyl_colors).astype(np.uint8)
                       if all_cyl_colors else None)
-        return sphere_data, sphere_colors, cyl_data, cyl_colors
+        tri_data = (np.vstack(all_tris).astype(np.float32)
+                    if all_tris else None)
+        tri_colors = (np.vstack(all_tri_colors).astype(np.uint8)
+                      if all_tri_colors else None)
+        return (sphere_data, sphere_colors, cyl_data, cyl_colors,
+                tri_data, tri_colors)
 
 
 class OffscreenFinishPass(RenderPass):

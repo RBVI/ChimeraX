@@ -7,6 +7,7 @@ namespace Vulkan_Cpp
 static struct PyMethodDef vulkan_methods[] =
 {
     // Context
+    {"create_instance", (PyCFunction)vulkan_create_instance, METH_VARARGS|METH_KEYWORDS, NULL},
     {"create_context", (PyCFunction)vulkan_create_context, METH_VARARGS|METH_KEYWORDS, NULL},
     {"destroy_context", (PyCFunction)vulkan_destroy_context, METH_VARARGS|METH_KEYWORDS, NULL},
     {"resize_drawable", (PyCFunction)vulkan_resize_drawable, METH_VARARGS|METH_KEYWORDS, NULL},
@@ -29,6 +30,7 @@ static struct PyMethodDef vulkan_methods[] =
 
     // Buffers
     {"create_buffer", (PyCFunction)vulkan_create_buffer, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"create_mapped_buffer", (PyCFunction)vulkan_create_mapped_buffer, METH_VARARGS|METH_KEYWORDS, NULL},
     {"update_buffer", (PyCFunction)vulkan_update_buffer, METH_VARARGS|METH_KEYWORDS, NULL},
     {"destroy_buffer", (PyCFunction)vulkan_destroy_buffer, METH_VARARGS|METH_KEYWORDS, NULL},
 
@@ -57,10 +59,21 @@ static struct PyMethodDef vulkan_methods[] =
     // Query
     {"get_depth_texture", (PyCFunction)vulkan_get_depth_texture, METH_VARARGS|METH_KEYWORDS, NULL},
     {"supports_ray_tracing", (PyCFunction)vulkan_supports_ray_tracing, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"flush_gpu", (PyCFunction)vulkan_flush_gpu, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"supports_metal_objects", (PyCFunction)vulkan_supports_metal_objects, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"get_buffer_device_memory", (PyCFunction)vulkan_get_buffer_device_memory, METH_VARARGS|METH_KEYWORDS, NULL},
+
+    // OIT
+    {"create_oit_resources", (PyCFunction)vulkan_create_oit_resources, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"destroy_oit_resources", (PyCFunction)vulkan_destroy_oit_resources, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"begin_oit_pass", (PyCFunction)vulkan_begin_oit_pass, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"end_oit_pass", (PyCFunction)vulkan_end_oit_pass, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"get_oit_textures", (PyCFunction)vulkan_get_oit_textures, METH_VARARGS|METH_KEYWORDS, NULL},
 
     // Ray tracing
     {"build_sphere_accel", (PyCFunction)vulkan_build_sphere_accel, METH_VARARGS|METH_KEYWORDS, NULL},
     {"build_mixed_accel", (PyCFunction)vulkan_build_mixed_accel, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"build_scene_accel", (PyCFunction)vulkan_build_scene_accel, METH_VARARGS|METH_KEYWORDS, NULL},
     {"destroy_accel_struct", (PyCFunction)vulkan_destroy_accel_struct, METH_VARARGS|METH_KEYWORDS, NULL},
     {"compile_rtao", (PyCFunction)vulkan_compile_rtao, METH_VARARGS|METH_KEYWORDS, NULL},
     {"dispatch_rtao", (PyCFunction)vulkan_dispatch_rtao, METH_VARARGS|METH_KEYWORDS, NULL},

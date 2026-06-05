@@ -20,6 +20,10 @@
 #if defined(_WIN32)
   #include <windows.h>
   #include <vulkan/vulkan_win32.h>
+#elif defined(__APPLE__)
+  // Safe to include from C++ — CAMetalLayer is typedef'd to void when
+  // __OBJC__ is not defined. We only need the extension name macros.
+  #include <vulkan/vulkan_metal.h>
 #endif
 
 // ---------------------------------------------------------------------------
@@ -499,54 +503,105 @@ void create_descriptor_infrastructure(VulkanContext* ctx)
 //  Public API — extern "C" functions matching vulkan_api.h
 // ===========================================================================
 
-extern "C"
-PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
-{
-    Py_ssize_t window_handle;
-    static const char* kwlist[] = {"window_handle", nullptr};
-    if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("n"), (char**)kwlist, &window_handle))
-        return NULL;
-
-#if !defined(_WIN32)
-    PyErr_SetString(PyExc_RuntimeError,
-                    "Vulkan surface creation not yet implemented on this platform");
-    return NULL;
-#else
-    // ---- Instance ----
-    // API 1.2 brings bufferDeviceAddress / descriptorIndexing into core,
-    // both of which are required by VK_KHR_acceleration_structure. Asking
-    // for it here keeps the VkBootstrap feature requests below simple.
-    vkb::InstanceBuilder inst_builder;
+// Helper: build a VkInstance with the right extensions for the platform.
+// Returns a vkb::Instance or sets a Python error.
+static bool build_vulkan_instance(vkb::Instance& out_inst) {
+    // Pass vkGetInstanceProcAddr directly so vk-bootstrap doesn't try to
+    // dlopen("libvulkan.dylib") by bare name — that fails on macOS when
+    // the library isn't on a standard search path.
+    vkb::InstanceBuilder inst_builder{vkGetInstanceProcAddr};
     inst_builder.set_app_name("ChimeraX")
                 .require_api_version(1, 2, 0)
-                .enable_extension(VK_KHR_SURFACE_EXTENSION_NAME)
-                .enable_extension(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+                .enable_extension(VK_KHR_SURFACE_EXTENSION_NAME);
 
-    // Validation layers always on while bringing the backend up; revert to
-    // `#ifndef NDEBUG` once stable.
+#if defined(_WIN32)
+    inst_builder.enable_extension(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+#elif defined(__APPLE__)
+    inst_builder.enable_extension(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
+    // VK_KHR_portability_enumeration and its create flag are handled
+    // automatically by vk-bootstrap when the extension is available.
+#endif
+
+#if !defined(__APPLE__)
+    // MoltenVK does not support the standard Vulkan validation layers.
     inst_builder.request_validation_layers()
                 .use_default_debug_messenger();
+#endif
 
     auto inst_ret = inst_builder.build();
     if (!inst_ret) {
         PyErr_Format(PyExc_RuntimeError, "Failed to create Vulkan instance: %s",
                      inst_ret.error().message().c_str());
-        return NULL;
+        return false;
     }
-    vkb::Instance vkb_inst = inst_ret.value();
+    out_inst = inst_ret.value();
+    return true;
+}
 
-    VkWin32SurfaceCreateInfoKHR surf_info = {};
-    surf_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    surf_info.hinstance = GetModuleHandle(nullptr);
-    surf_info.hwnd = reinterpret_cast<HWND>(window_handle);
+// ---------------------------------------------------------------------------
+//  Create a VkInstance and return its handle. Used on macOS so Python can
+//  pass it to _metal_rt.create_surface before calling create_context.
+// ---------------------------------------------------------------------------
+extern "C"
+PyObject* vulkan_create_instance(PyObject* self, PyObject* args, PyObject* kwds)
+{
+    vkb::Instance vkb_inst;
+    if (!build_vulkan_instance(vkb_inst))
+        return NULL;
+    return PyLong_FromSsize_t(reinterpret_cast<Py_ssize_t>(vkb_inst.instance));
+}
 
+extern "C"
+PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
+{
+    Py_ssize_t window_handle;
+    Py_ssize_t instance_handle = 0;  // Optional pre-created VkInstance (macOS)
+    Py_ssize_t surface_handle = 0;   // Optional pre-created VkSurfaceKHR (macOS)
+    static const char* kwlist[] = {"window_handle", "instance", "surface", nullptr};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds,
+            const_cast<char*>("n|nn"), (char**)kwlist,
+            &window_handle, &instance_handle, &surface_handle))
+        return NULL;
+
+    // ---- Instance ----
+    vkb::Instance vkb_inst;
+    if (instance_handle) {
+        // Wrap a pre-created instance for vk-bootstrap's device selection.
+        // The instance was created by vulkan_create_instance above.
+        vkb_inst.instance = reinterpret_cast<VkInstance>(instance_handle);
+        // vkb_inst.fp_vkGetInstanceProcAddr is needed by the device selector.
+        // vk-bootstrap populates it from vkGetInstanceProcAddr.
+        vkb_inst.fp_vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+    } else {
+        if (!build_vulkan_instance(vkb_inst))
+            return NULL;
+    }
+
+    // ---- Surface ----
     VkSurfaceKHR surface = VK_NULL_HANDLE;
-    if (vkCreateWin32SurfaceKHR(vkb_inst.instance, &surf_info, nullptr, &surface) != VK_SUCCESS) {
-        vkb::destroy_instance(vkb_inst);
-        PyErr_SetString(PyExc_RuntimeError, "vkCreateWin32SurfaceKHR failed");
+
+    if (surface_handle) {
+        surface = reinterpret_cast<VkSurfaceKHR>(surface_handle);
+    }
+#if defined(_WIN32)
+    else {
+        VkWin32SurfaceCreateInfoKHR surf_info = {};
+        surf_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+        surf_info.hinstance = GetModuleHandle(nullptr);
+        surf_info.hwnd = reinterpret_cast<HWND>(window_handle);
+        if (vkCreateWin32SurfaceKHR(vkb_inst.instance, &surf_info, nullptr, &surface) != VK_SUCCESS) {
+            vkb::destroy_instance(vkb_inst);
+            PyErr_SetString(PyExc_RuntimeError, "vkCreateWin32SurfaceKHR failed");
+            return NULL;
+        }
+    }
+#else
+    else if (!surface_handle) {
+        PyErr_SetString(PyExc_RuntimeError,
+                        "No pre-created surface and no platform surface creator");
         return NULL;
     }
+#endif
 
     // ---- Physical device ----
     vkb::PhysicalDeviceSelector selector{vkb_inst};
@@ -575,6 +630,14 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
 
     vkb::PhysicalDevice vkb_phys = phys_ret.value();
 
+#ifdef __APPLE__
+    // MoltenVK devices advertise the portability subset extension; accept it
+    // so vk-bootstrap doesn't reject the device.
+    vkb_phys.enable_extensions_if_present({
+        "VK_KHR_portability_subset",
+    });
+#endif
+
     // ---- Optional ray-tracing extensions ----
     // Probe and add VK_KHR_acceleration_structure + VK_KHR_ray_query as
     // *desired* extensions. If the device doesn't expose them we fall
@@ -584,6 +647,14 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
         VK_KHR_RAY_QUERY_EXTENSION_NAME,
         VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
     });
+
+#ifdef __APPLE__
+    // VK_EXT_metal_objects lets us export the underlying MTLDevice and
+    // MTLCommandQueue for native Metal ray tracing via the _metal_rt module.
+    bool metal_objects_available = vkb_phys.enable_extensions_if_present({
+        VK_EXT_METAL_OBJECTS_EXTENSION_NAME,
+    });
+#endif
 
     // ---- Logical device ----
     vkb::DeviceBuilder dev_builder{vkb_phys};
@@ -688,6 +759,14 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
     }
     VK_TRACE("ray tracing %s", ctx->raytracing_supported ? "ENABLED" : "disabled");
 
+#ifdef __APPLE__
+    ctx->metal_objects_supported = metal_objects_available;
+    VK_TRACE("VK_EXT_metal_objects %s",
+             ctx->metal_objects_supported ? "ENABLED" : "disabled");
+#else
+    ctx->metal_objects_supported = false;
+#endif
+
 #ifndef NDEBUG
     ctx->debug_messenger = vkb_inst.debug_messenger;
 #endif
@@ -753,6 +832,8 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
         for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
             vkAllocateCommandBuffers(ctx->device, &alloc_info,
                                      &ctx->frames[i].command_buffer);
+            vkAllocateCommandBuffers(ctx->device, &alloc_info,
+                                     &ctx->frames[i].post_rt_command_buffer);
             vkCreateSemaphore(ctx->device, &sem_info, nullptr,
                               &ctx->frames[i].image_available);
             vkCreateSemaphore(ctx->device, &sem_info, nullptr,
@@ -779,8 +860,42 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
     // current draw hasn't bound, so validation is happy).
     create_dummy_resources(ctx);
 
+    // ---- Timeline semaphore for Metal RT sync ----
+    ctx->rt_timeline_semaphore = VK_NULL_HANDLE;
+    ctx->rt_sync_value = 0;
+    ctx->rt_sync_pending = false;
+#ifdef __APPLE__
+    if (ctx->metal_objects_supported) {
+        // Create a timeline semaphore with export intent for MTLSharedEvent.
+        VkSemaphoreTypeCreateInfo timeline_info{};
+        timeline_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO;
+        timeline_info.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+        timeline_info.initialValue = 0;
+
+        VkExportMetalObjectCreateInfoEXT export_create{};
+        export_create.sType = VK_STRUCTURE_TYPE_EXPORT_METAL_OBJECT_CREATE_INFO_EXT;
+        export_create.exportObjectType = VK_EXPORT_METAL_OBJECT_TYPE_METAL_SHARED_EVENT_BIT_EXT;
+
+        // Chain: sem_info -> timeline_info -> export_create
+        timeline_info.pNext = &export_create;
+
+        VkSemaphoreCreateInfo sem_info{};
+        sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+        sem_info.pNext = &timeline_info;
+
+        VkResult sem_result = vkCreateSemaphore(ctx->device, &sem_info, nullptr,
+                                                &ctx->rt_timeline_semaphore);
+        if (sem_result != VK_SUCCESS) {
+            fprintf(stderr, "[VK] Timeline semaphore creation failed: %d\n", sem_result);
+            ctx->rt_timeline_semaphore = VK_NULL_HANDLE;
+        } else {
+            fprintf(stderr, "[VK] Timeline semaphore created: %p\n",
+                    (void*)ctx->rt_timeline_semaphore);
+        }
+    }
+#endif
+
     return PyLong_FromSsize_t(reinterpret_cast<Py_ssize_t>(ctx));
-#endif  // _WIN32
 }
 
 // ---------------------------------------------------------------------------
@@ -906,6 +1021,79 @@ PyObject* vulkan_supports_ray_tracing(PyObject* self, PyObject* args, PyObject* 
     Py_RETURN_FALSE;
 }
 
+extern "C"
+PyObject* vulkan_supports_metal_objects(PyObject* self, PyObject* args, PyObject* kwds)
+{
+    VulkanContext* ctx = get_vulkan_context(args, kwds);
+    if (!ctx) return NULL;
+    if (ctx->metal_objects_supported) Py_RETURN_TRUE;
+    Py_RETURN_FALSE;
+}
+
+// ---------------------------------------------------------------------------
+//  Submit the current command buffer and wait for GPU completion.
+//  Used before Metal RT dispatch so the depth buffer is ready.
+// ---------------------------------------------------------------------------
+extern "C"
+PyObject* vulkan_flush_gpu(PyObject* self, PyObject* args, PyObject* kwds)
+{
+    VulkanContext* ctx = get_vulkan_context(args, kwds);
+    if (!ctx) return NULL;
+
+    if (!ctx->in_frame) Py_RETURN_NONE;
+
+    FrameData& frame = ctx->frames[ctx->current_frame];
+
+    // End any active render pass.
+    if (ctx->in_render_pass) {
+        vkCmdEndRenderPass(frame.command_buffer);
+        ctx->in_render_pass = false;
+    }
+
+    vkEndCommandBuffer(frame.command_buffer);
+
+    VkSubmitInfo submit{};
+    submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submit.commandBufferCount = 1;
+    submit.pCommandBuffers = &frame.command_buffer;
+
+    // If we have a timeline semaphore for Metal RT sync, signal it so
+    // the Metal dispatch can wait on the GPU without a CPU stall.
+    VkTimelineSemaphoreSubmitInfo timeline_submit{};
+    uint64_t signal_value = 0;
+    if (ctx->rt_timeline_semaphore != VK_NULL_HANDLE) {
+        ctx->rt_sync_value += 1;
+        signal_value = ctx->rt_sync_value;
+
+        timeline_submit.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+        timeline_submit.signalSemaphoreValueCount = 1;
+        timeline_submit.pSignalSemaphoreValues = &signal_value;
+        submit.pNext = &timeline_submit;
+        submit.signalSemaphoreCount = 1;
+        submit.pSignalSemaphores = &ctx->rt_timeline_semaphore;
+    }
+
+    vkQueueSubmit(ctx->graphics_queue, 1, &submit, VK_NULL_HANDLE);
+
+    // Swap to the post-RT command buffer for subsequent Vulkan work in this
+    // frame. The submitted buffer is now pending on the GPU; same-queue
+    // ordering guarantees it completes before end_frame's fenced submit,
+    // so begin_frame's fence wait covers both.
+    std::swap(frame.command_buffer, frame.post_rt_command_buffer);
+    vkResetCommandBuffer(frame.command_buffer, 0);
+    VkCommandBufferBeginInfo begin_info{};
+    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    vkBeginCommandBuffer(frame.command_buffer, &begin_info);
+
+    // Re-apply dynamic state on the fresh command buffer.
+    if (ctx->has_viewport) {
+        vkCmdSetViewport(frame.command_buffer, 0, 1, &ctx->pending_viewport);
+        vkCmdSetScissor(frame.command_buffer, 0, 1, &ctx->pending_scissor);
+    }
+
+    Py_RETURN_NONE;
+}
+
 // ---------------------------------------------------------------------------
 
 extern "C"
@@ -973,9 +1161,10 @@ PyObject* vulkan_begin_frame(PyObject* self, PyObject* args, PyObject* kwds)
     VK_TRACE("  resetDescriptorPool");
     vkResetDescriptorPool(ctx->device, ctx->descriptor_pools[ctx->current_frame], 0);
 
-    // Reset and begin the command buffer.
+    // Reset both command buffers — post_rt may have been used by flush_gpu.
     VK_TRACE("  resetCommandBuffer");
     vkResetCommandBuffer(frame.command_buffer, 0);
+    vkResetCommandBuffer(frame.post_rt_command_buffer, 0);
 
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1048,6 +1237,38 @@ PyObject* vulkan_end_frame(PyObject* self, PyObject* args, PyObject* kwds)
     }
     submit_info.commandBufferCount = 1;
     submit_info.pCommandBuffers = &frame.command_buffer;
+
+    // If Metal RT signalled completion, this submit must wait for it.
+    VkTimelineSemaphoreSubmitInfo timeline_wait{};
+    VkSemaphore wait_sems[2];
+    VkPipelineStageFlags wait_stages[2];
+    uint64_t wait_values[2] = {0, 0};
+
+    if (ctx->rt_sync_pending && ctx->rt_timeline_semaphore != VK_NULL_HANDLE) {
+        // Build combined wait array: image_available + rt_timeline.
+        uint32_t wait_count = 0;
+        if (!offscreen) {
+            wait_sems[0] = frame.image_available;
+            wait_stages[0] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+            wait_values[0] = 0;  // binary semaphore, value ignored
+            wait_count = 1;
+        }
+        wait_sems[wait_count] = ctx->rt_timeline_semaphore;
+        wait_stages[wait_count] = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        wait_values[wait_count] = ctx->rt_sync_value;
+        wait_count++;
+
+        timeline_wait.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
+        timeline_wait.waitSemaphoreValueCount = wait_count;
+        timeline_wait.pWaitSemaphoreValues = wait_values;
+
+        submit_info.pNext = &timeline_wait;
+        submit_info.waitSemaphoreCount = wait_count;
+        submit_info.pWaitSemaphores = wait_sems;
+        submit_info.pWaitDstStageMask = wait_stages;
+
+        ctx->rt_sync_pending = false;
+    }
 
     vkQueueSubmit(ctx->graphics_queue, 1, &submit_info, frame.in_flight_fence);
 

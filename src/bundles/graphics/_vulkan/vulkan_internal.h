@@ -10,7 +10,17 @@
 #define CHIMERAX_VULKAN_INTERNAL_H
 
 #include <vulkan/vulkan.h>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wnullability-completeness"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-private-field"
 #include <vk_mem_alloc.h>
+#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 
 #include <vector>
 #include <unordered_map>
@@ -73,6 +83,7 @@ inline VkDescriptorType set0_descriptor_type(uint32_t binding) {
 // ---------------------------------------------------------------------------
 struct FrameData {
     VkCommandBuffer command_buffer;
+    VkCommandBuffer post_rt_command_buffer;  // used after flush_gpu for post-RT work
     VkSemaphore     image_available;
     VkSemaphore     render_finished;
     VkFence         in_flight_fence;
@@ -214,6 +225,21 @@ struct VulkanContext {
     VkRenderPass              depth_only_render_pass;
     std::vector<VkFramebuffer> swapchain_framebuffers;
 
+    // OIT (Weighted Blended Order-Independent Transparency).
+    // Two color attachments: accum (RGBA16F, additive) and revealage
+    // (R8, multiplicative). Shares the main depth buffer (read-only).
+    VkRenderPass  oit_render_pass;
+    VkFramebuffer oit_framebuffer;
+    VkImage       oit_accum_image;
+    VmaAllocation oit_accum_alloc;
+    VkImageView   oit_accum_view;
+    VkImage       oit_reveal_image;
+    VmaAllocation oit_reveal_alloc;
+    VkImageView   oit_reveal_view;
+    VulkanTexture oit_accum_texture;   // samplable handle for composite
+    VulkanTexture oit_reveal_texture;  // samplable handle for composite
+    uint32_t      oit_width, oit_height;
+
     // Command pool and per-frame data
     VkCommandPool command_pool;
     FrameData     frames[MAX_FRAMES_IN_FLIGHT];
@@ -321,6 +347,19 @@ struct VulkanContext {
     // VK_KHR_acceleration_structure + VK_KHR_ray_query extensions were
     // available *and* the matching features were enabled at device creation.
     bool raytracing_supported;
+
+    // VK_EXT_metal_objects interop (macOS / MoltenVK only). When true, the
+    // underlying MTLDevice and MTLCommandQueue can be exported for use by
+    // the _metal_rt native ray tracing module.
+    bool metal_objects_supported;
+
+    // Timeline semaphore for Vulkan ↔ Metal RT GPU-GPU synchronization.
+    // flush_gpu signals with rt_sync_value; the Metal RT dispatch waits on
+    // that value and signals rt_sync_value+1; end_frame waits on rt_sync_value+1.
+    VkSemaphore rt_timeline_semaphore;
+    uint64_t    rt_sync_value;        // monotonically increasing
+    bool        rt_sync_pending;      // true when Metal RT has signalled and
+                                      // the next Vulkan submit must wait
 
     // Function pointers for KHR_acceleration_structure / KHR_ray_query.
     // Resolved once at device creation when raytracing_supported is true.

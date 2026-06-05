@@ -87,7 +87,7 @@ vec3 reconstruct_normal(ivec2 tid, vec3 pos, mat4 inv_proj,
     // unlike OpenGL/Metal where Y is flipped). The Vulkan projection
     // matrix in vulkan.py.set_projection_matrix already negates the Y row,
     // so the inverse maps Vulkan NDC -> view space directly. Do NOT flip
-    // uv.y here — that was the Metal compatibility shim and would send AO
+    // uv.y here - that was the Metal compatibility shim and would send AO
     // rays from world-space mirror positions that miss the geometry.
 
     float d_l = texelFetch(depth_tex, ivec2(max(tid.x - 1, 0), tid.y), 0).x;
@@ -119,7 +119,7 @@ vec3 reconstruct_normal(ivec2 tid, vec3 pos, mat4 inv_proj,
 //
 // No back-surface (-b + s) fallback. Reconstructing pos_world from the
 // depth buffer is FP32-noisy at far D, and the ~0.01 Å outward offset
-// in main() doesn't always compensate — origin can land just inside
+// in main() doesn't always compensate - origin can land just inside
 // the source atom. With a back-root fallback that case returns the
 // exit t > 0, any_hit commits, AO collapses to zero, pixel goes black.
 // Front-root-only means an inside-sphere ray simply misses (correct
@@ -139,7 +139,7 @@ float ray_sphere(vec3 origin, vec3 dir, vec4 sphere, float tmin, float tmax) {
 // ---------------------------------------------------------------------------
 //  Run a single AO ray. Returns true if the ray hits any sphere within
 //  ao_radius. Uses TerminateOnFirstHit so the query stops at the first
-//  confirmed intersection — the BVH still accelerates the search.
+//  confirmed intersection - the BVH still accelerates the search.
 // ---------------------------------------------------------------------------
 bool any_hit(vec3 origin, vec3 dir, float tmax) {
     rayQueryEXT rq;
@@ -202,7 +202,7 @@ void main() {
     float ao = clamp(1.0 - u.intensity * (1.0 - visibility), 0.0, 1.0);
 
     if (u.accum_count > 1u) {
-        // Read previous frame's value via texelFetch — the texture is in
+        // Read previous frame's value via texelFetch - the texture is in
         // SHADER_READ_ONLY layout and bound as a sampler2D.
         float prev = texelFetch(prev_tex, tid, 0).r;
         float w = 1.0 / float(u.accum_count);

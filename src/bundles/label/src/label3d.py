@@ -464,6 +464,13 @@ class ObjectLabels(Model):
         self._texture_needs_update = True
         self.redraw_needed()
 
+    def graphics_context_changed(self):
+        # Backend was swapped; the packed label texture lives only on the GPU
+        # so we need to regenerate it from the per-label images.
+        self._texture_needs_update = True
+        self._positions_need_update = True
+        self.redraw_needed()
+
     def _scale_labels_alpha(self, alpha_factor):
         # Scale the alpha of every child label's text and background so the
         # group fades in/out together when the parent ObjectLabels is missing
