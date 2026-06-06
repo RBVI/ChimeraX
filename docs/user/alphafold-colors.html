@@ -1,0 +1,123 @@
+<html lang="en"><!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+--><head><meta charset="utf-8">
+<title>AlphaFold Colors</title>
+</head><body>
+
+<h3>ChimeraX AlphaFold pLDDT Coloring</h3>
+
+<p>
+  ChimeraX colors AlphaFold, Boltz, ESMFold and OpenFold predictions by pLDDT confidence
+  scores using a different coloring than the
+  <a href="https://www.ebi.ac.uk/training/online/courses/alphafold/inputs-and-outputs/evaluating-alphafolds-predicted-structures-using-confidence-scores/plddt-understanding-local-confidence/">EBI coloring for AlphaFold predictions</a>.
+  The ChimeraX colors are as follows.
+</p>
+
+   <ul>
+     <li>100
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="blue" width="10px" title="blue"></td></tr>
+</tbody></table>
+to 90
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="cornflowerblue" width="10px" title="cornflower blue"></td></tr>
+</tbody></table>
+&ndash; high accuracy expected
+     </li><li>90
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="cornflowerblue" width="10px" title="cornflower blue"></td></tr>
+</tbody></table>
+to 70
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="yellow" width="10px" title="yellow"></td></tr>
+</tbody></table>
+&ndash; backbone expected to be modeled well
+     </li><li>70
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="yellow" width="10px" title="yellow"></td></tr>
+</tbody></table>
+to 50
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="orange" width="10px" title="orange"></td></tr>
+</tbody></table>
+&ndash; low confidence, caution
+     </li><li>50
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="orange" width="10px" title="orange"></td></tr>
+</tbody></table>
+to 0
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td bgcolor="red" width="10px" title="red"></td></tr>
+</tbody></table>
+&ndash; should not be interpreted, may be disordered
+     </li>
+   </ul>
+
+<p>
+  The colors are linearly interpolated (in red, green, blue components) over the specified value ranges
+  using pLDDT values in the bfactor field of mmCIF and PDB format atomic model files.  This coloring is shown initially
+  when a prediction is made within ChimeraX.  It can be shown later if the predicted structure is
+  reopened using the command
+</p>
+
+<blockquote><b>
+<a href="commands/color.html#bfactor">color bfactor #1</a>
+<a href="commands/color.html#palette-options">palette</a> alphafold
+</b></blockquote>
+
+<h3>EBI AlphaFold pLDDT Coloring</h3>
+
+<p>
+  The EBI Alphafold Database uses a
+  <a href="https://www.ebi.ac.uk/training/online/courses/alphafold/inputs-and-outputs/evaluating-alphafolds-predicted-structures-using-confidence-scores/plddt-understanding-local-confidence/">different pLDDT coloring</a>.
+  Their color scheme uses the same color for large ranges of pLDDT scores.
+</p>
+
+   <ul>
+     <li>90 to 100
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td style="background-color:rgb(0,72,191);" width="10px" title="blue"></td></tr>
+</tbody></table>
+&ndash; very high confidence
+     </li>
+     <li>70 to 90
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td style="background-color:rgb(86,187,225);" width="10px" title="light blue"></td></tr>
+</tbody></table>
+&ndash; high confidence
+     </li>
+     <li>50 to 70
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td style="background-color:rgb(247,205,52);" width="10px" title="yellow"></td></tr>
+</tbody></table>
+&ndash; low confidence
+     </li>
+     <li>0 to 50
+<table border cellpadding="4" cellspacing="0" style="display:inline-block; vertical-align:middle">
+<tbody><tr><td style="background-color:rgb(239,106,63);" width="10px" title="orange"></td></tr>
+</tbody></table>
+&ndash; very low confidence
+     </li>
+   </ul>
+
+<p>
+  Scores in the range 70-90 are
+  light blue and described as "high confidence" while scores in the range of 50-70 are yellow and described
+  as "low confidence".  This makes predictions that have scores slightly above 70 look deceptively more confident
+  than predictions with scores slightly less than 70.  For this reason we discourage use of the EBI AlphaFold
+  color scheme.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics</address>
+ 
+</body></html>
