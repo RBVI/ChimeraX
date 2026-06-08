@@ -127,12 +127,8 @@ def make_alignment(session, chains, *, circular=defaults['circular'],
                     continue
                 seq_atoms = column_atoms(seq, culled)
                 session.logger.info("Matching %s onto %s" % (seq.name, ref_seq.name))
-                prev_aligned = aligned
-                aligned = [copy(chain) for chain in ordered]
-                for prev, cur in zip(prev_aligned, aligned):
-                    cur.name = prev.name
                 align.align(session, seq_atoms, ref_atoms)
-            match_to_align(session, aligned, cutoff_distance, column_criterion, gap_char, circular)
+            aligned = match_to_align(session, aligned, cutoff_distance, column_criterion, gap_char, circular)
             full_cols = fully_populated(aligned)
             session.logger.info("Iteration %d: %d fully populated columns" % (iteration, len(full_cols)))
             if len(full_cols) > len(best):
