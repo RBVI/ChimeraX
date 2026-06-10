@@ -139,7 +139,7 @@ class SaveQGraphicsDialogSettings(Settings):
         "image_pad": 2,
         "save_area": "visible",
         "save_format": "PNG",
-        "view_spacing": 2,
+        "view_spacing": 1,
     }
 
 # Cribbed from chimerax.ui.open_save.SaveDialog, but since we need to save the formats
@@ -156,7 +156,8 @@ class SaveQGraphicsDialog(QFileDialog):
         "tiff": ("TIFF", "Tagged Image File Format", "tiff"),
         "webp": ("WebP", "WebP", "webp"),
     }
-    def __init__(self, session, view_info, *args, depiction_name="scene", view_names=None, **kw):
+    def __init__(self, session, view_info, *args, depiction_name="scene", view_names=None, 
+            view_fit="shrink", **kw):
         ''' Save an image of one or more QGraphicsViews
 
         'view_info' is either a single QGraphicsView, or a rectangular array of views that need to
@@ -166,6 +167,10 @@ class SaveQGraphicsDialog(QFileDialog):
         'depiction_name' is describes the overall image (e.g. "sequence alignment").
 
         'view_names' are descriptions of each of the component QGraphicsViews if 'view_info' was an array.
+
+        'view_fit' controls how views are sized when multiple views are being depicted and the views in a
+        row have different heights or views in a column have different widths.  If 'view_fit' is 'shrink'
+        then the smallest size is used.  If it is "expand" then the largest size is used.
 
         The exec() method runs the dialog and returns a boolean indicating if the file was successfully
         saved.
@@ -184,6 +189,7 @@ class SaveQGraphicsDialog(QFileDialog):
         self.session = session
         self.view_info = view_info
         self.depiction_name = depiction_name
+        self.view_fit = view_fit
         from Qt.QtGui import QImageWriter, QIntValidator
         available_fmt_info = []
         for fmt in QImageWriter.supportedImageFormats():
@@ -213,7 +219,12 @@ class SaveQGraphicsDialog(QFileDialog):
         layout.addWidget(custom_area, row, 0, 1, -1)
         custom_layout = QVBoxLayout()
         custom_area.setLayout(custom_layout)
-        self._explanation = explanation = QLabel()
+        for i in range(1,3):
+            explanation = QLabel()
+            explanation.setWordWrap(True)
+            explanation.setAlignment(Qt.AlignHCenter)
+            custom_layout.addWidget(explanation)
+            setattr(self, '_explanation%d' % i, explanation)
         if num_views > 1:
             text = "%d views " % num_views
             if view_names:
@@ -222,49 +233,46 @@ class SaveQGraphicsDialog(QFileDialog):
             text += "  The views will be composited directly adjacent to each other, so"
             text += " so it can be desirable to add an amount of spacing, which can be"
             text += " specified below (in pixels, and can be zero)."
+            self._explanation1.setText(text)
         else:
-            self.area_descriptions = {
-                "all": f"entire {depiction_name}",
-                "visible": "visible region"
-            }
-            text = 'The "%s" uses the minimum bounding box enclosing the depiction.' \
-                % self.area_descriptions["all"]
-            text += "  You can specify an amount of padding (in pixels) to add to the edges of the image."
-            explanation.setHidden(self.settings.save_area == "visible")
-        explanation.setText(text)
-        explanation.setWordWrap(True)
-        explanation.setAlignment(Qt.AlignHCenter)
-        custom_layout.addWidget(explanation)
+            self._explanation1.setHidden(True)
+        self.area_descriptions = {
+            "all": f"entire {depiction_name}",
+            "visible": "visible region"
+        }
+        text = 'The "%s" uses the minimum bounding box enclosing the depiction.' \
+            % self.area_descriptions["all"]
+        text += "  You can specify an amount of padding (in pixels) to add to the edges of the image."
+        self._explanation2.setText(text)
+        self._explanation2.setHidden(self.settings.save_area == "visible")
         self._widget_layout = widget_layout = QHBoxLayout()
         widget_layout.setSpacing(0)
         custom_layout.addLayout(widget_layout)
-        if num_views == 1:
-            # Since we need the region sizes to match, don't allow "all" if multiple views
-            widget_layout.addStretch(1)
-            save_area_layout = QHBoxLayout()
-            save_area_layout.setSpacing(0)
-            widget_layout.addLayout(save_area_layout)
-            save_area_layout.addWidget(QLabel("Save "))
-            self._save_area_button = QPushButton(self.area_descriptions[self.settings.save_area])
-            menu = QMenu(self._save_area_button)
-            for area in ["all", "visible"]:
-                menu.addAction(self.area_descriptions[area])
-            menu.triggered.connect(self._save_area_changed)
-            self._save_area_button.setMenu(menu)
-            save_area_layout.addWidget(self._save_area_button)
-            self._pad_stretch_col = widget_layout.count()
-            widget_layout.addStretch(1)
-            self._pad_label = QLabel("Padding: ")
-            widget_layout.addWidget(self._pad_label)
-            self._pad_box = QSpinBox()
-            self._pad_box.setRange(0, 999)
-            self._pad_box.setValue(self.settings.image_pad)
-            widget_layout.addWidget(self._pad_box)
-            if self.settings.save_area == "visible":
-                widget_layout.setStretch(self._pad_stretch_col, 0)
-                self._pad_label.setHidden(True)
-                self._pad_box.setHidden(True)
-        else:
+        widget_layout.addStretch(1)
+        save_area_layout = QHBoxLayout()
+        save_area_layout.setSpacing(0)
+        widget_layout.addLayout(save_area_layout)
+        save_area_layout.addWidget(QLabel("Save "))
+        self._save_area_button = QPushButton(self.area_descriptions[self.settings.save_area])
+        menu = QMenu(self._save_area_button)
+        for area in ["all", "visible"]:
+            menu.addAction(self.area_descriptions[area])
+        menu.triggered.connect(self._save_area_changed)
+        self._save_area_button.setMenu(menu)
+        save_area_layout.addWidget(self._save_area_button)
+        self._pad_stretch_col = widget_layout.count()
+        widget_layout.addStretch(1)
+        self._pad_label = QLabel("Padding: ")
+        widget_layout.addWidget(self._pad_label)
+        self._pad_box = QSpinBox()
+        self._pad_box.setRange(0, 999)
+        self._pad_box.setValue(self.settings.image_pad)
+        widget_layout.addWidget(self._pad_box)
+        if self.settings.save_area == "visible":
+            widget_layout.setStretch(self._pad_stretch_col, 0)
+            self._pad_label.setHidden(True)
+            self._pad_box.setHidden(True)
+        if num_views > 1:
             widget_layout.addStretch(1)
             widget_layout.addWidget(QLabel("View spacing: "))
             self._spacing_box = QSpinBox()
@@ -300,9 +308,9 @@ class SaveQGraphicsDialog(QFileDialog):
         if path is None:
             return False
         self.settings.dpi = dpi = self.dpi
+        self.settings.save_area = save_area = self.save_area
         from Qt.QtGui import QPainter
         if self.num_views == 1:
-            self.settings.save_area = save_area = self.save_area
             render_kw = {}
             if save_area == "visible":
                 source = self.view_info
@@ -322,27 +330,56 @@ class SaveQGraphicsDialog(QFileDialog):
                 image.fill(source.backgroundBrush().color())
             source.render(QPainter(image), **render_kw)
         else:
+            def bounding_rect(rect):
+                rect.setY(rect.y()-1)
+                rect.setHeight(rect.height()+2)
+                return rect
+            if save_area == "visible":
+                get_view_rect = lambda item: bounding_rect(item.viewport().rect())
+                get_source = lambda item: item
+                image_pad = 0
+            else:
+                get_view_rect = lambda item: bounding_rect(item.scene().sceneRect())
+                get_source = lambda item: item.scene()
+                self.settings.image_pad = image_pad = self.image_pad
+            widths = [None] * len(self.view_info[0])
+            heights = [None] * len(self.view_info)
+            fit_func = min if self.view_fit == "shrink" else max
+            for row, row_items in enumerate(self.view_info):
+                for col, item in enumerate(row_items):
+                    rect = get_view_rect(item)
+                    w, h = rect.width(), rect.height()
+                    cur_w = widths[col]
+                    if cur_w is None:
+                        widths[col] = w
+                    else:
+                        widths[col] = fit_func(cur_w, w)
+                    cur_h = heights[row]
+                    if cur_h is None:
+                        heights[row] = h
+                    else:
+                        heights[row] = fit_func(cur_h, h)
+
             self.settings.view_spacing = view_spacing = self.view_spacing
-            total_width = view_spacing * (len(self.view_info[0]) - 1)
-            for view in self.view_info[0]:
-                total_width += view.viewport().rect().width()
-            total_height = view_spacing * (len(self.view_info) - 1)
-            for row in self.view_info:
-                total_height += row[0].viewport().rect().height()
+            total_width = view_spacing * (len(widths) - 1) + image_pad * 2 + sum(widths)
+            total_height = view_spacing * (len(heights) - 1) + image_pad * 2 + sum(heights)
             from math import ceil
             image_size = QSize(ceil(total_width), ceil(total_height))
             image = self._make_image(image_size, dpi)
-            if view_spacing > 0:
+            if view_spacing > 0 or image_pad > 0:
                 image.fill(self.view_info[-1][-1].scene().backgroundBrush().color())
-            cur_y = 0
-            for row in self.view_info:
-                cur_x = 0
-                for view in row:
-                    view_rect = view.viewport().rect()
-                    view.render(QPainter(image),
-                        target=QRectF(cur_x, cur_y, view_rect.width(), view_rect.height()))
-                    cur_x += view_rect.width() + view_spacing
-                cur_y += view_rect.height() + view_spacing
+            cur_y = image_pad
+            for row, row_items in enumerate(self.view_info):
+                cur_x = image_pad
+                for col, view in enumerate(row_items):
+                    view_rect = get_view_rect(view)
+                    #if col != 1 or row != 1:
+                    if True:
+                        get_source(view).render(QPainter(image),
+                        source=view_rect,
+                        target=QRectF(cur_x, cur_y, ceil(view_rect.width()), ceil(view_rect.height())))
+                    cur_x += widths[col] + view_spacing
+                cur_y += heights[row] + view_spacing
         if image.save(path, fmt_name.lower()):
             self.session.logger.info("Saved %s image to %s" % (self.depiction_name, path))
             return True
@@ -390,12 +427,12 @@ class SaveQGraphicsDialog(QFileDialog):
     def _save_area_changed(self, action):
         self._save_area_button.setText(action.text())
         if self.save_area == "visible":
-            self._explanation.setHidden(True)
+            self._explanation2.setHidden(True)
             self._widget_layout.setStretch(self._pad_stretch_col, 0)
             self._pad_label.setHidden(True)
             self._pad_box.setHidden(True)
         else:
-            self._explanation.setHidden(False)
+            self._explanation2.setHidden(False)
             self._widget_layout.setStretch(self._pad_stretch_col, 1)
             self._pad_label.setHidden(False)
             self._pad_box.setHidden(False)
