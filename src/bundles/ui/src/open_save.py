@@ -330,12 +330,16 @@ class SaveQGraphicsDialog(QFileDialog):
                 image.fill(source.backgroundBrush().color())
             source.render(QPainter(image), **render_kw)
         else:
+            def bounding_rect(rect):
+                rect.setY(rect.y()-1)
+                rect.setHeight(rect.height()+2)
+                return rect
             if save_area == "visible":
-                get_view_size = lambda item: item.viewport().rect().size()
+                get_view_rect = lambda item: bounding_rect(item.viewport().rect())
                 get_source = lambda item: item
                 image_pad = 0
             else:
-                get_view_size = lambda item: item.scene().sceneRect().toAlignedRect().size()
+                get_view_rect = lambda item: bounding_rect(item.scene().sceneRect())
                 get_source = lambda item: item.scene()
                 self.settings.image_pad = image_pad = self.image_pad
             widths = [None] * len(self.view_info[0])
@@ -343,8 +347,8 @@ class SaveQGraphicsDialog(QFileDialog):
             fit_func = min if self.view_fit == "shrink" else max
             for row, row_items in enumerate(self.view_info):
                 for col, item in enumerate(row_items):
-                    size = get_view_size(item)
-                    w, h = size.width(), size.height()
+                    rect = get_view_rect(item)
+                    w, h = rect.width(), rect.height()
                     cur_w = widths[col]
                     if cur_w is None:
                         widths[col] = w
@@ -357,22 +361,25 @@ class SaveQGraphicsDialog(QFileDialog):
                         heights[row] = fit_func(cur_h, h)
 
             self.settings.view_spacing = view_spacing = self.view_spacing
-            total_width = view_spacing * (len(widths) - 1) + image_pad * 2 * len(widths) + sum(widths)
-            total_height = view_spacing * (len(heights) - 1) + image_pad * 2 * len(heights) + sum(heights)
+            total_width = view_spacing * (len(widths) - 1) + image_pad * 2 + sum(widths)
+            total_height = view_spacing * (len(heights) - 1) + image_pad * 2 + sum(heights)
             from math import ceil
             image_size = QSize(ceil(total_width), ceil(total_height))
             image = self._make_image(image_size, dpi)
             if view_spacing > 0 or image_pad > 0:
                 image.fill(self.view_info[-1][-1].scene().backgroundBrush().color())
-            cur_y = 0
+            cur_y = image_pad
             for row, row_items in enumerate(self.view_info):
-                cur_x = 0
+                cur_x = image_pad
                 for col, view in enumerate(row_items):
-                    view_size = get_view_size(view)
-                    get_source(view).render(QPainter(image), target=
-                        QRectF(cur_x + image_pad, cur_y + image_pad, view_size.width(), view_size.height()))
-                    cur_x += widths[col] + 2 * image_pad + view_spacing
-                cur_y += heights[row] + 2 * image_pad + view_spacing
+                    view_rect = get_view_rect(view)
+                    #if col != 1 or row != 1:
+                    if True:
+                        get_source(view).render(QPainter(image),
+                        source=view_rect,
+                        target=QRectF(cur_x, cur_y, ceil(view_rect.width()), ceil(view_rect.height())))
+                    cur_x += widths[col] + view_spacing
+                cur_y += heights[row] + view_spacing
         if image.save(path, fmt_name.lower()):
             self.session.logger.info("Saved %s image to %s" % (self.depiction_name, path))
             return True
