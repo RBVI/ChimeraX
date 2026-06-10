@@ -139,7 +139,7 @@ class SaveQGraphicsDialogSettings(Settings):
         "image_pad": 2,
         "save_area": "visible",
         "save_format": "PNG",
-        "view_spacing": 2,
+        "view_spacing": 1,
     }
 
 # Cribbed from chimerax.ui.open_save.SaveDialog, but since we need to save the formats
