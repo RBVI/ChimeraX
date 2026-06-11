@@ -81,6 +81,19 @@ PyObject* vulkan_create_texture(PyObject* self, PyObject* args, PyObject* kwds) 
         case 6: vk_format = VK_FORMAT_R16_SFLOAT; break;
         case 7: vk_format = VK_FORMAT_R16_SNORM; break;
         case 8: vk_format = VK_FORMAT_R8_SNORM;  break;
+        // RGBA16F: path-tracer output/accumulation. An 8-bit accumulation
+        // target quantizes away per-frame deltas once the running average
+        // passes a few dozen samples, freezing convergence with banding.
+        // R16G16B16A16_SFLOAT (unlike RGBA32F) has mandatory support for
+        // both STORAGE_IMAGE and SAMPLED_IMAGE_FILTER_LINEAR, which the
+        // denoise/blit passes rely on.
+        case 9: vk_format = VK_FORMAT_R16G16B16A16_SFLOAT; break;
+        // Swapchain format: used for render targets that scene pipelines
+        // draw into outside the main pass (e.g. the highlight-outline
+        // mask). Those pipelines are baked against the main render pass,
+        // and render-pass compatibility requires matching attachment
+        // formats — so the target must use the swapchain's own format.
+        case 10: vk_format = ctx->swapchain_format; break;
         default: vk_format = VK_FORMAT_R8G8B8A8_UNORM; break;
     }
 
@@ -111,7 +124,7 @@ PyObject* vulkan_create_texture(PyObject* self, PyObject* args, PyObject* kwds) 
                             | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     if (is_depth) {
         usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    } else if (dimension == 2 && format == 0) {
+    } else if (dimension == 2 && (format == 0 || format == 10)) {
         usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     }
     // Compute-shader writeable target. Caller is responsible for picking a
@@ -210,6 +223,13 @@ PyObject* vulkan_create_texture(PyObject* self, PyObject* args, PyObject* kwds) 
     if (depth_compare) {
         sampler_info.compareEnable = VK_TRUE;
         sampler_info.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+        // Match the OpenGL backend's shadow-map sampling: lookups that
+        // land outside the map read a white (1.0) border and compare as
+        // fully lit, rather than smearing the edge texel outward.
+        sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+        sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+        sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+        sampler_info.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
     }
 
     VkSampler sampler;
@@ -275,6 +295,40 @@ PyObject* vulkan_update_texture(PyObject* self, PyObject* args, PyObject* kwds) 
              (void*)tex, (Py_ssize_t)data_len,
              tex->width, tex->height, tex->depth);
 
+    // The transitions and copy below use the COLOR aspect; depth formats
+    // would need the DEPTH aspect and no caller uploads to one today.
+    if (tex->format == VK_FORMAT_D32_SFLOAT ||
+        tex->format == VK_FORMAT_D32_SFLOAT_S8_UINT) {
+        PyBuffer_Release(&py_buf);
+        PyErr_SetString(PyExc_ValueError,
+                        "Uploading data to depth textures is not supported");
+        return NULL;
+    }
+
+    // The copy always reads the texture's full extent out of the staging
+    // buffer; a short buffer (wrong dtype or channel count on the Python
+    // side) would make the GPU read past its end.
+    Py_ssize_t texel_size;
+    switch (tex->format) {
+        case VK_FORMAT_R8G8B8A8_UNORM: texel_size = 4; break;
+        case VK_FORMAT_R8_UNORM:
+        case VK_FORMAT_R8_SNORM:       texel_size = 1; break;
+        case VK_FORMAT_R16_UNORM:
+        case VK_FORMAT_R16_SFLOAT:
+        case VK_FORMAT_R16_SNORM:      texel_size = 2; break;
+        case VK_FORMAT_R32_SFLOAT:     texel_size = 4; break;
+        case VK_FORMAT_R16G16B16A16_SFLOAT: texel_size = 8; break;
+        default:                       texel_size = 0; break;
+    }
+    Py_ssize_t needed = (Py_ssize_t)tex->width * tex->height * tex->depth * texel_size;
+    if (texel_size == 0 || data_len < needed) {
+        PyBuffer_Release(&py_buf);
+        PyErr_Format(PyExc_ValueError,
+                     "Texture data size %zd does not match %ux%ux%u texture (need %zd)",
+                     data_len, tex->width, tex->height, tex->depth, needed);
+        return NULL;
+    }
+
     // Allocate a host-visible staging buffer.
     VkBufferCreateInfo bi{};
     bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -306,6 +360,9 @@ PyObject* vulkan_update_texture(PyObject* self, PyObject* args, PyObject* kwds) 
         memcpy(mapped, py_buf.buf, data_len);
         vmaUnmapMemory(ctx->allocator, staging_alloc);
     }
+    // The staging memory may be non-coherent; make the writes visible to
+    // the transfer below. No-op on coherent memory.
+    vmaFlushAllocation(ctx->allocator, staging_alloc, 0, VK_WHOLE_SIZE);
     PyBuffer_Release(&py_buf);
 
     // One-shot command buffer: transition to TRANSFER_DST, copy, transition

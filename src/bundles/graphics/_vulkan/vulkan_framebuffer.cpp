@@ -40,7 +40,9 @@ VkRenderPass create_offscreen_render_pass(VkDevice device) {
     attachments[1].format = kDepthFormat;
     attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
     attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    // Depth must survive the pass: later passes in the same capture (OIT
+    // transparency, overlay resume) load it back as an attachment.
+    attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -230,8 +232,11 @@ PyObject* vulkan_destroy_offscreen_framebuffer(PyObject* self, PyObject* args, P
 
     // Make sure the GPU isn't still referencing this framebuffer before we
     // tear it down. Image capture is a one-shot off the hot path, so the
-    // device-wide wait here is fine.
+    // device-wide wait here is fine. Drain deferred deletes too: per-pass
+    // framebuffers recorded during the capture (offscreen load/clear
+    // variants, OIT) reference this target's color/depth views.
     vkDeviceWaitIdle(ctx->device);
+    flush_all_pending_deletes(ctx);
     if (ctx->active_offscreen == fb)
         ctx->active_offscreen = nullptr;
     destroy_offscreen(ctx, fb);
@@ -350,6 +355,11 @@ PyObject* vulkan_read_framebuffer(PyObject* self, PyObject* args, PyObject* kwds
     submit.pCommandBuffers = &cmd;
     vkQueueSubmit(ctx->graphics_queue, 1, &submit, VK_NULL_HANDLE);
     vkQueueWaitIdle(ctx->graphics_queue);
+
+    // HOST_ACCESS_RANDOM steers VMA toward cached memory, which may be
+    // non-coherent; invalidate so the CPU reads the GPU's writes rather
+    // than stale cache lines. No-op on coherent memory.
+    vmaInvalidateAllocation(ctx->allocator, stagingAlloc, 0, VK_WHOLE_SIZE);
 
     // Map (already mapped via VMA flag) and copy out.
     if (sinfo.pMappedData) {

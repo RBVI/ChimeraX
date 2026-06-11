@@ -270,7 +270,7 @@ class CameraState:
 
 class LightingState:
 
-    version = 2
+    version = 3
     save_attrs = [
         'key_light_direction',
         'key_light_color',
@@ -296,6 +296,9 @@ class LightingState:
         'pt_max_bounces',
         'pt_max_accum',
         'pt_denoise_threshold',
+        # v3: path-traced volume (participating medium) parameters.
+        'pt_volume_density',
+        'pt_volume_g',
         ]
 
     # Continuous attrs (RGB tuples and floats) — straight linear interpolation.
@@ -305,6 +308,7 @@ class LightingState:
         'ambient_light_color', 'ambient_light_intensity',
         'depth_cue_start', 'depth_cue_end', 'depth_cue_color',
         'shadow_depth_bias', 'multishadow_depth_bias',
+        'pt_volume_density', 'pt_volume_g',
     )
     # Unit-length direction vectors — lerp components then renormalize.
     _interp_direction_attrs = ('key_light_direction', 'fill_light_direction')

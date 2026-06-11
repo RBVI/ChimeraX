@@ -110,6 +110,10 @@ struct BufferWithAllocator {
     VulkanBuffer    base;
     VmaAllocator    allocator;
     VulkanContext*  ctx;
+    // True for buffers from create_mapped_buffer: Python holds the raw
+    // mapped pointer, so update_buffer must never orphan/reallocate the
+    // underlying VkBuffer out from under it.
+    bool            persistently_mapped;
 };
 
 // ---------------------------------------------------------------------------
@@ -199,6 +203,8 @@ struct VulkanContext {
     uint32_t         graphics_family;
     uint32_t         present_family;
     VkSurfaceKHR     surface;
+    bool             owns_surface;   // true when create_context made the surface
+                                     // (Win32 path) and must destroy it
     VmaAllocator     allocator;
 
     // Swapchain
@@ -217,8 +223,19 @@ struct VulkanContext {
     // image being presented.
     std::vector<VkSemaphore> render_finished_per_image;
 
+    // Per-swapchain-image flag: has this image ever been rendered to since
+    // the swapchain was (re)created? A load_color render pass on a fresh
+    // image must clear instead of load — the image's actual layout is
+    // UNDEFINED and its contents are garbage until first use.
+    std::vector<uint8_t> swapchain_image_used;
+
     // Depth buffer (for the main render pass)
     VulkanTexture depth_image;
+
+    // Reusable wrapper handed to Python by vulkan_get_depth_texture so the
+    // main depth image can be bound like a texture. One per context;
+    // refreshed on every call. Never routed through destroy_texture.
+    VulkanTexture* depth_texture_wrapper;
 
     // Main render pass and framebuffers (one per swapchain image)
     VkRenderPass              main_render_pass;
@@ -247,6 +264,12 @@ struct VulkanContext {
     uint32_t      current_image_index;  // swapchain image acquired this frame
     bool          in_frame;
     bool          in_render_pass;
+
+    // True between a successful vkAcquireNextImageKHR and the first queue
+    // submit of the frame. Whichever submit runs first (flush_gpu or
+    // end_frame) must wait on frame.image_available — otherwise GPU writes
+    // to the acquired swapchain image can race the presentation engine.
+    bool          image_acquired_unconsumed;
 
     // Active render pass stack (for nested begin_pass/end_pass)
     std::vector<RenderPassState> render_pass_stack;
@@ -348,6 +371,12 @@ struct VulkanContext {
     // available *and* the matching features were enabled at device creation.
     bool raytracing_supported;
 
+    // VkPhysicalDeviceAccelerationStructurePropertiesKHR::
+    // minAccelerationStructureScratchOffsetAlignment, queried at context
+    // creation when ray tracing is supported (0 otherwise). AS build
+    // scratch buffers must be allocated with at least this alignment.
+    uint32_t min_as_scratch_alignment;
+
     // VK_EXT_metal_objects interop (macOS / MoltenVK only). When true, the
     // underlying MTLDevice and MTLCommandQueue can be exported for use by
     // the _metal_rt native ray tracing module.
@@ -384,6 +413,12 @@ static inline VulkanContext* get_vulkan_context(PyObject* args, PyObject* kwds) 
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
             const_cast<char*>("n"), (char**)kwlist, &ctx_ptr))
         return nullptr;
+    if (!ctx_ptr) {
+        // Callers return NULL on a null context; without an exception set
+        // that surfaces as a confusing SystemError instead of this message.
+        PyErr_SetString(PyExc_ValueError, "Vulkan context handle is 0");
+        return nullptr;
+    }
     return reinterpret_cast<VulkanContext*>(ctx_ptr);
 }
 
@@ -452,11 +487,28 @@ inline void flush_pending_deletes(VulkanContext* ctx, PendingDeletes& pd) {
     pd.textures.clear();
 }
 
+// Drain EVERY per-frame deletion queue. Only valid right after
+// vkDeviceWaitIdle. This MUST be called before destroying long-lived
+// objects that queued items may reference — queued per-pass framebuffers
+// hold the swapchain / scene-depth / OIT image views as attachments, and
+// letting their deferred vkDestroyFramebuffer run one or two frames
+// after those views were destroyed is a use-after-free inside the driver
+// (observed as a SIGBUS in MoltenVK on window resize).
+inline void flush_all_pending_deletes(VulkanContext* ctx) {
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        flush_pending_deletes(ctx, ctx->pending_deletes[i]);
+}
+
 // ---------------------------------------------------------------------------
 //  Forward declarations for internal helpers (defined in vulkan_context.cpp).
 // ---------------------------------------------------------------------------
 bool create_swapchain(VulkanContext* ctx, uint32_t width, uint32_t height);
 void cleanup_swapchain(VulkanContext* ctx);
+// End the active render pass (if any) and queue every owned per-pass
+// VkRenderPass/VkFramebuffer left on render_pass_stack for deferred
+// destruction. All implicit pass terminations must go through this —
+// ending a pass without queueing its owned objects leaks them.
+void end_active_render_pass(VulkanContext* ctx);
 void create_depth_resources(VulkanContext* ctx);
 void create_main_render_pass(VulkanContext* ctx);
 void create_swapchain_framebuffers(VulkanContext* ctx);

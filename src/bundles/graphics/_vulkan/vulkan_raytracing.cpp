@@ -142,7 +142,36 @@ static bool create_host_buffer(VulkanContext* ctx, const void* src,
         memcpy(mapped, src, size);
         vmaUnmapMemory(ctx->allocator, *out_allocation);
     }
+    // HOST_ACCESS_SEQUENTIAL_WRITE may pick a non-coherent memory type;
+    // make the writes visible to the GPU. No-op on coherent memory.
+    if (src)
+        vmaFlushAllocation(ctx->allocator, *out_allocation, 0, VK_WHOLE_SIZE);
     return true;
+}
+
+// Scratch buffers for acceleration-structure builds. The build reads the
+// scratch via its device address, which the spec requires to be aligned to
+// minAccelerationStructureScratchOffsetAlignment — plain vmaCreateBuffer
+// only honors VkMemoryRequirements::alignment, which may be smaller.
+static bool create_scratch_buffer(VulkanContext* ctx, VkDeviceSize size,
+                                  VkBuffer* out_buffer,
+                                  VmaAllocation* out_allocation)
+{
+    VkBufferCreateInfo bi{};
+    bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bi.size = size;
+    bi.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+             | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    bi.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    VmaAllocationCreateInfo ai{};
+    ai.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+
+    VkDeviceSize alignment = ctx->min_as_scratch_alignment
+        ? ctx->min_as_scratch_alignment : 1;
+    return vmaCreateBufferWithAlignment(ctx->allocator, &bi, &ai, alignment,
+                                        out_buffer, out_allocation,
+                                        nullptr) == VK_SUCCESS;
 }
 
 // Look up a buffer's GPU address (required for AS scratch/data references).
@@ -301,10 +330,8 @@ static bool build_blas(VulkanContext* ctx,
 
     VkBuffer scratch = VK_NULL_HANDLE;
     VmaAllocation scratch_alloc = VK_NULL_HANDLE;
-    if (!create_gpu_buffer(ctx, sizes.buildScratchSize,
-            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
-            | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            &scratch, &scratch_alloc)) {
+    if (!create_scratch_buffer(ctx, sizes.buildScratchSize,
+                               &scratch, &scratch_alloc)) {
         ctx->pfn_destroy_as(ctx->device, out->blas, nullptr);
         vmaDestroyBuffer(ctx->allocator, out->blas_buffer, out->blas_buffer_alloc);
         return false;
@@ -318,6 +345,18 @@ static bool build_blas(VulkanContext* ctx,
 
     vmaDestroyBuffer(ctx->allocator, scratch, scratch_alloc);
     return true;
+}
+
+// Error-path cleanup for build_tlas: the instance buffer is created first,
+// so every later failure must release it — callers only clean up the BLAS.
+static void destroy_tlas_instance_buffer(VulkanContext* ctx, VkRtAccelStructure* out)
+{
+    if (out->instance_buffer != VK_NULL_HANDLE) {
+        vmaDestroyBuffer(ctx->allocator, out->instance_buffer,
+                         out->instance_buffer_alloc);
+        out->instance_buffer = VK_NULL_HANDLE;
+        out->instance_buffer_alloc = VK_NULL_HANDLE;
+    }
 }
 
 // Build a 1-instance top-level AS that references out->blas with an
@@ -374,8 +413,10 @@ static bool build_tlas(VulkanContext* ctx, VkRtAccelStructure* out)
     if (!create_gpu_buffer(ctx, sizes.accelerationStructureSize,
             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR
             | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            &out->tlas_buffer, &out->tlas_buffer_alloc))
+            &out->tlas_buffer, &out->tlas_buffer_alloc)) {
+        destroy_tlas_instance_buffer(ctx, out);
         return false;
+    }
 
     VkAccelerationStructureCreateInfoKHR ci{};
     ci.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
@@ -384,17 +425,17 @@ static bool build_tlas(VulkanContext* ctx, VkRtAccelStructure* out)
     ci.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
     if (ctx->pfn_create_as(ctx->device, &ci, nullptr, &out->tlas) != VK_SUCCESS) {
         vmaDestroyBuffer(ctx->allocator, out->tlas_buffer, out->tlas_buffer_alloc);
+        destroy_tlas_instance_buffer(ctx, out);
         return false;
     }
 
     VkBuffer scratch = VK_NULL_HANDLE;
     VmaAllocation scratch_alloc = VK_NULL_HANDLE;
-    if (!create_gpu_buffer(ctx, sizes.buildScratchSize,
-            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
-            | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            &scratch, &scratch_alloc)) {
+    if (!create_scratch_buffer(ctx, sizes.buildScratchSize,
+                               &scratch, &scratch_alloc)) {
         ctx->pfn_destroy_as(ctx->device, out->tlas, nullptr);
         vmaDestroyBuffer(ctx->allocator, out->tlas_buffer, out->tlas_buffer_alloc);
+        destroy_tlas_instance_buffer(ctx, out);
         return false;
     }
     build_info.dstAccelerationStructure = out->tlas;
@@ -791,9 +832,27 @@ PyObject* vulkan_build_scene_accel(PyObject* self, PyObject* args, PyObject* kwd
     uint32_t geom_count = 1;
     if (cyl_count > 0) geom_count = 2;
     if (tri_count > 0) geom_count = 3;
-    // If there are triangles but no cylinders, we still need geometry slots
-    // 0, 1, 2 — fill the cylinder slot with 0 primitives so IDs are stable.
-    if (tri_count > 0 && cyl_count == 0) geom_count = 3;
+
+    // If there are triangles but no cylinders, geometry slot 1 is still
+    // declared (with 0 primitives) so geometry IDs stay stable. Its AABB
+    // data address must nonetheless be valid — vkGetBufferDeviceAddress on
+    // VK_NULL_HANDLE is a valid-usage violation — so back the empty slot
+    // with a single degenerate AABB.
+    if (tri_count > 0 && cyl_count == 0) {
+        VkAabbPositionsKHR empty{};
+        if (!create_host_buffer(ctx, &empty, sizeof(empty),
+                VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
+                | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+                &cyl_aabb_buf, &cyl_aabb_alloc)) {
+            if (sph_aabb_buf) vmaDestroyBuffer(ctx->allocator, sph_aabb_buf, sph_aabb_alloc);
+            if (tri_aabb_buf) vmaDestroyBuffer(ctx->allocator, tri_aabb_buf, tri_aabb_alloc);
+            vmaDestroyBuffer(ctx->allocator, sphere_data_buf, sphere_data_alloc);
+            if (tri_data_buf) vmaDestroyBuffer(ctx->allocator, tri_data_buf, tri_data_alloc);
+            delete rt;
+            PyErr_SetString(PyExc_RuntimeError, "AABB buffer allocation failed");
+            return NULL;
+        }
+    }
 
     VkBuffer aabb_bufs[3] = { sph_aabb_buf, cyl_aabb_buf, tri_aabb_buf };
     uint32_t counts[3] = { static_cast<uint32_t>(sphere_count),
@@ -1101,10 +1160,15 @@ static void transition_for_sampled(VkCommandBuffer cmd, VulkanTexture* tex,
     b.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT
                     | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
     b.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    // Consumers are both compute (prev-accumulation reads) and the raster
+    // composite/denoise passes' fragment shaders; the destination scope
+    // must include FRAGMENT_SHADER or the raster pass can sample the image
+    // while the compute kernel is still writing it.
     vkCmdPipelineBarrier(cmd,
         VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT
         | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+        | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
         0, 0, nullptr, 0, nullptr, 1, &b);
     tex->current_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 }
@@ -1242,9 +1306,11 @@ PyObject* vulkan_dispatch_rtao(PyObject* self, PyObject* args, PyObject* kwds)
     {
         VkImageMemoryBarrier b{};
         b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        b.oldLayout = ctx->depth_image.current_layout != VK_IMAGE_LAYOUT_UNDEFINED
-            ? ctx->depth_image.current_layout
-            : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        // UNDEFINED means a fresh depth image (e.g. right after a resize)
+        // that no pass has touched; claiming any other oldLayout would
+        // mismatch the image's actual layout. UNDEFINED-as-old is always
+        // valid (contents discarded), and the depth is garbage either way.
+        b.oldLayout = ctx->depth_image.current_layout;
         b.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
         b.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         b.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -1325,12 +1391,14 @@ PyObject* vulkan_dispatch_rtao(PyObject* self, PyObject* args, PyObject* kwds)
 //    8  storage image accum_tex  (RGBA8 unorm, write)
 //    9  storage  triangles (3x vec4 each)
 //   10  storage  triangle_colors (uchar4 packed as uint)
+//   11  combined image  vol_density  (sampler3D; 1x1x1 dummy when no volume)
+//   12  combined image  vol_colormap (sampler1D; 1-texel dummy when no volume)
 // ---------------------------------------------------------------------------
 
 static bool create_pt_descriptor_layout(VulkanContext* ctx)
 {
-    VkDescriptorSetLayoutBinding b[11] = {};
-    for (int i = 0; i < 11; i++) {
+    VkDescriptorSetLayoutBinding b[13] = {};
+    for (int i = 0; i < 13; i++) {
         b[i].binding = i;
         b[i].descriptorCount = 1;
         b[i].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -1346,10 +1414,12 @@ static bool create_pt_descriptor_layout(VulkanContext* ctx)
     b[8].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     b[9].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     b[10].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    b[11].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    b[12].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 
     VkDescriptorSetLayoutCreateInfo ci{};
     ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    ci.bindingCount = 11;
+    ci.bindingCount = 13;
     ci.pBindings = b;
     return vkCreateDescriptorSetLayout(ctx->device, &ci, nullptr,
                                        &s_pt.set_layout) == VK_SUCCESS;
@@ -1362,7 +1432,7 @@ static bool create_pt_descriptor_pool(VulkanContext* ctx)
         { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,             SETS },
         { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, SETS },
         { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,           6*SETS },  // sph+cyl+sphcol+cylcol+tri+tricol
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,     SETS },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,   3*SETS },  // prev_tex + vol_density + vol_colormap
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,            2*SETS },
     };
     VkDescriptorPoolCreateInfo ci{};
@@ -1518,18 +1588,22 @@ PyObject* vulkan_dispatch_pathtracer(PyObject* self, PyObject* args, PyObject* k
     Py_ssize_t color_tex_ptr, prev_tex_ptr, accum_tex_ptr;
     Py_ssize_t color_buf_ptr, cyl_buf_ptr, cyl_color_buf_ptr;
     Py_ssize_t tri_buf_ptr = 0, tri_color_buf_ptr = 0;
+    Py_ssize_t vol_density_tex_ptr = 0, vol_colormap_tex_ptr = 0;
     Py_buffer uniforms_buf;
     static const char* kwlist[] = {"context", "accel_struct", "sphere_buffer",
                                    "color_texture", "prev_texture", "accum_texture",
                                    "color_buffer", "cylinder_buffer",
                                    "cylinder_color_buffer",
                                    "triangle_buffer", "triangle_color_buffer",
+                                   "volume_density_texture",
+                                   "volume_colormap_texture",
                                    "uniforms", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("nnnnnnnnnnny*"), (char**)kwlist,
+            const_cast<char*>("nnnnnnnnnnnnny*"), (char**)kwlist,
             &ctx_ptr, &as_ptr, &sb_ptr, &color_tex_ptr, &prev_tex_ptr,
             &accum_tex_ptr, &color_buf_ptr, &cyl_buf_ptr, &cyl_color_buf_ptr,
-            &tri_buf_ptr, &tri_color_buf_ptr, &uniforms_buf))
+            &tri_buf_ptr, &tri_color_buf_ptr,
+            &vol_density_tex_ptr, &vol_colormap_tex_ptr, &uniforms_buf))
         return NULL;
 
     if (!s_pt_compiled) {
@@ -1544,6 +1618,11 @@ PyObject* vulkan_dispatch_pathtracer(PyObject* self, PyObject* args, PyObject* k
     VulkanTexture* color_tex = reinterpret_cast<VulkanTexture*>(color_tex_ptr);
     VulkanTexture* prev_tex  = reinterpret_cast<VulkanTexture*>(prev_tex_ptr);
     VulkanTexture* accum_tex = reinterpret_cast<VulkanTexture*>(accum_tex_ptr);
+    // Volume density (sampler3D) + transfer-function colormap (sampler1D).
+    // The host always passes valid handles (1-texel dummies when no volume
+    // is shown), so the descriptor set is always complete.
+    VulkanTexture* vol_density_tex  = reinterpret_cast<VulkanTexture*>(vol_density_tex_ptr);
+    VulkanTexture* vol_colormap_tex = reinterpret_cast<VulkanTexture*>(vol_colormap_tex_ptr);
     BufferWithAllocator* color_buf = reinterpret_cast<BufferWithAllocator*>(color_buf_ptr);
     VK_TRACE("RT dispatch_pathtracer rt=%p color=%p (%ux%u, layout=%d) cyl_buf=%lld in_pass=%d",
              (void*)rt, (void*)color_tex, color_tex->width, color_tex->height,
@@ -1625,9 +1704,17 @@ PyObject* vulkan_dispatch_pathtracer(PyObject* self, PyObject* args, PyObject* k
     VkDescriptorImageInfo accum_info{};
     accum_info.imageView = accum_tex->image_view;
     accum_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    VkDescriptorImageInfo vol_density_info{};
+    vol_density_info.sampler = s_pt.sampler;
+    vol_density_info.imageView = vol_density_tex->image_view;
+    vol_density_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    VkDescriptorImageInfo vol_colormap_info{};
+    vol_colormap_info.sampler = s_pt.sampler;
+    vol_colormap_info.imageView = vol_colormap_tex->image_view;
+    vol_colormap_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    VkWriteDescriptorSet w[11] = {};
-    for (int i = 0; i < 11; i++) {
+    VkWriteDescriptorSet w[13] = {};
+    for (int i = 0; i < 13; i++) {
         w[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         w[i].dstSet = set;
         w[i].dstBinding = i;
@@ -1644,12 +1731,16 @@ PyObject* vulkan_dispatch_pathtracer(PyObject* self, PyObject* args, PyObject* k
     w[8].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;           w[8].pImageInfo  = &accum_info;
     w[9].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;          w[9].pBufferInfo = &tri_info;
     w[10].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;         w[10].pBufferInfo = &tri_col_info;
-    vkUpdateDescriptorSets(ctx->device, 11, w, 0, nullptr);
+    w[11].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER; w[11].pImageInfo  = &vol_density_info;
+    w[12].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER; w[12].pImageInfo  = &vol_colormap_info;
+    vkUpdateDescriptorSets(ctx->device, 13, w, 0, nullptr);
 
     VkCommandBuffer cmd = ctx->frames[ctx->current_frame].command_buffer;
     transition_for_storage(cmd, color_tex);
     transition_for_storage(cmd, accum_tex);
     transition_for_sampled(cmd, prev_tex, VK_IMAGE_ASPECT_COLOR_BIT);
+    transition_for_sampled(cmd, vol_density_tex, VK_IMAGE_ASPECT_COLOR_BIT);
+    transition_for_sampled(cmd, vol_colormap_tex, VK_IMAGE_ASPECT_COLOR_BIT);
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, s_pt.pipeline);
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
@@ -1662,6 +1753,8 @@ PyObject* vulkan_dispatch_pathtracer(PyObject* self, PyObject* args, PyObject* k
     transition_for_sampled(cmd, color_tex, VK_IMAGE_ASPECT_COLOR_BIT);
     transition_for_sampled(cmd, accum_tex, VK_IMAGE_ASPECT_COLOR_BIT);
 
-    ctx->pending_deletes[ctx->current_frame].buffers.push_back(ubo);
+    // Use deferred_delete_slot (not current_frame directly) so a dispatch
+    // recorded outside begin/end_frame still lands on the in-flight slot.
+    ctx->pending_deletes[deferred_delete_slot(ctx)].buffers.push_back(ubo);
     Py_RETURN_NONE;
 }

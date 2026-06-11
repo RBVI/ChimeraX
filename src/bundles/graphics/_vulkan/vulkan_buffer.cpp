@@ -28,6 +28,12 @@ PyObject* vulkan_create_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
     Py_ssize_t data_len = py_buf.len;
     VK_TRACE("create_buffer size=%zd", (Py_ssize_t)data_len);
 
+    if (data_len <= 0) {
+        PyBuffer_Release(&py_buf);
+        PyErr_SetString(PyExc_ValueError, "Buffer size must be positive");
+        return NULL;
+    }
+
     VkBufferCreateInfo buffer_info = {};
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     buffer_info.size = data_len;
@@ -62,6 +68,9 @@ PyObject* vulkan_create_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
     }
     memcpy(mapped, py_buf.buf, data_len);
     vmaUnmapMemory(ctx->allocator, allocation);
+    // HOST_ACCESS_SEQUENTIAL_WRITE does not guarantee a HOST_COHERENT
+    // memory type; flush so the GPU sees the writes. No-op when coherent.
+    vmaFlushAllocation(ctx->allocator, allocation, 0, VK_WHOLE_SIZE);
 
     PyBuffer_Release(&py_buf);
 
@@ -71,6 +80,7 @@ PyObject* vulkan_create_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
     bwa->base.size = static_cast<VkDeviceSize>(data_len);
     bwa->allocator = ctx->allocator;
     bwa->ctx = ctx;
+    bwa->persistently_mapped = false;
     VK_TRACE("create_buffer done bwa=%p", (void*)bwa);
 
     return PyLong_FromSsize_t(reinterpret_cast<Py_ssize_t>(bwa));
@@ -92,6 +102,11 @@ PyObject* vulkan_create_mapped_buffer(PyObject* self, PyObject* args, PyObject* 
 
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
 
+    if (size_bytes <= 0) {
+        PyErr_SetString(PyExc_ValueError, "Buffer size must be positive");
+        return NULL;
+    }
+
     VkBufferCreateInfo buffer_info = {};
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     buffer_info.size = size_bytes;
@@ -104,6 +119,11 @@ PyObject* vulkan_create_mapped_buffer(PyObject* self, PyObject* args, PyObject* 
     alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
     alloc_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
                      | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    // The caller writes through the returned raw pointer for the buffer's
+    // whole lifetime with no flush hook, so the memory must be coherent —
+    // on a non-coherent type the GPU would read stale data.
+    alloc_info.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+                             | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
     VkBuffer vk_buffer;
     VmaAllocation allocation;
@@ -121,6 +141,7 @@ PyObject* vulkan_create_mapped_buffer(PyObject* self, PyObject* args, PyObject* 
     bwa->base.size = static_cast<VkDeviceSize>(size_bytes);
     bwa->allocator = ctx->allocator;
     bwa->ctx = ctx;
+    bwa->persistently_mapped = true;
 
     return Py_BuildValue("nn",
         reinterpret_cast<Py_ssize_t>(bwa),
@@ -136,28 +157,80 @@ PyObject* vulkan_update_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
             const_cast<char*>("ny*"), (char**)kwlist, &buf_ptr, &py_buf))
         return NULL;
 
-    VulkanBuffer* buf = reinterpret_cast<VulkanBuffer*>(buf_ptr);
+    BufferWithAllocator* bwa = reinterpret_cast<BufferWithAllocator*>(buf_ptr);
 
-    if (static_cast<VkDeviceSize>(py_buf.len) > buf->size) {
+    if (py_buf.len <= 0) {
+        PyBuffer_Release(&py_buf);
+        PyErr_SetString(PyExc_ValueError, "Buffer size must be positive");
+        return NULL;
+    }
+
+    // Writing in place would race the GPU: with two frames in flight, only
+    // the current slot's fence has been waited on, so the previous frame's
+    // commands may still be reading this exact buffer as vertex/index/UBO
+    // data. Orphan instead: allocate a fresh VkBuffer inside the wrapper
+    // and queue the old one on the deferred-delete queue, whose drain is
+    // gated by the in-flight fences. Future binds read bwa->base.buffer at
+    // record time, so they pick up the new buffer automatically.
+    //
+    // Persistently-mapped buffers are exempt: Python holds their raw
+    // mapped pointer, so the allocation must stay put. Their writers are
+    // responsible for not scribbling over in-flight data.
+    if (!bwa->persistently_mapped) {
+        VkBufferCreateInfo buffer_info = {};
+        buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        buffer_info.size = py_buf.len;
+        buffer_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT
+                          | VK_BUFFER_USAGE_INDEX_BUFFER_BIT
+                          | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
+                          | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+        buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        VmaAllocationCreateInfo alloc_info = {};
+        alloc_info.usage = VMA_MEMORY_USAGE_AUTO;
+        alloc_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+        VkBuffer new_buffer;
+        VmaAllocation new_allocation;
+        VkResult vr = vmaCreateBuffer(bwa->allocator, &buffer_info, &alloc_info,
+                                      &new_buffer, &new_allocation, nullptr);
+        if (vr != VK_SUCCESS) {
+            PyBuffer_Release(&py_buf);
+            PyErr_SetString(PyExc_RuntimeError,
+                            "Failed to allocate Vulkan buffer for update");
+            return NULL;
+        }
+
+        // Hand the old handles to the deferred-delete queue via a
+        // throwaway wrapper; the live wrapper keeps its identity for
+        // Python and now points at the new buffer.
+        BufferWithAllocator* old = new BufferWithAllocator();
+        old->base = bwa->base;
+        old->allocator = bwa->allocator;
+        old->ctx = bwa->ctx;
+        old->persistently_mapped = false;
+        bwa->ctx->pending_deletes[deferred_delete_slot(bwa->ctx)].buffers.push_back(old);
+
+        bwa->base.buffer = new_buffer;
+        bwa->base.allocation = new_allocation;
+        bwa->base.size = static_cast<VkDeviceSize>(py_buf.len);
+    } else if (static_cast<VkDeviceSize>(py_buf.len) > bwa->base.size) {
         PyBuffer_Release(&py_buf);
         PyErr_SetString(PyExc_RuntimeError,
                         "Buffer too small for update; recreate instead");
         return NULL;
     }
 
-    // The allocator handle is stored alongside the VulkanBuffer by
-    // vulkan_create_buffer (see BufferWithAllocator).
-    BufferWithAllocator* bwa = reinterpret_cast<BufferWithAllocator*>(buf_ptr);
-
     void* mapped = nullptr;
-    VkResult result = vmaMapMemory(bwa->allocator, buf->allocation, &mapped);
+    VkResult result = vmaMapMemory(bwa->allocator, bwa->base.allocation, &mapped);
     if (result != VK_SUCCESS) {
         PyBuffer_Release(&py_buf);
         PyErr_SetString(PyExc_RuntimeError, "Failed to map Vulkan buffer for update");
         return NULL;
     }
     memcpy(mapped, py_buf.buf, py_buf.len);
-    vmaUnmapMemory(bwa->allocator, buf->allocation);
+    vmaUnmapMemory(bwa->allocator, bwa->base.allocation);
+    vmaFlushAllocation(bwa->allocator, bwa->base.allocation, 0, VK_WHOLE_SIZE);
 
     PyBuffer_Release(&py_buf);
     Py_RETURN_NONE;
@@ -212,15 +285,24 @@ PyObject* vulkan_get_buffer_device_memory(PyObject* self, PyObject* args, PyObje
 extern "C"
 PyObject* vulkan_set_vertex_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
     Py_ssize_t ctx_ptr, buf_ptr;
-    int index, offset;
+    int index;
+    // Offset is a byte offset into the buffer; parse as Py_ssize_t — a
+    // 32-bit int truncates past 2GB, and large meshes get there.
+    Py_ssize_t offset;
     static const char* kwlist[] = {"context", "buffer", "index", "offset", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("nnii"), (char**)kwlist,
+            const_cast<char*>("nnin"), (char**)kwlist,
             &ctx_ptr, &buf_ptr, &index, &offset))
         return NULL;
 
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
     VulkanBuffer* buf = reinterpret_cast<VulkanBuffer*>(buf_ptr);
+
+    // Recording into the command buffer is only valid while a frame is
+    // being recorded; between end_frame and begin_frame the buffer is not
+    // in the recording state.
+    if (!ctx->in_frame)
+        Py_RETURN_NONE;
 
     VkCommandBuffer cmd = ctx->frames[ctx->current_frame].command_buffer;
     VkDeviceSize vk_offset = static_cast<VkDeviceSize>(offset);
@@ -287,9 +369,11 @@ PyObject* vulkan_set_fragment_texture(PyObject* self, PyObject* args, PyObject* 
 //  Descriptor set update (called before draw when dirty)
 // ---------------------------------------------------------------------------
 
-static void flush_descriptors(VulkanContext* ctx) {
+// Returns false (with a Python exception set) if descriptor sets could
+// not be allocated; drawing without sets bound would be invalid.
+static bool flush_descriptors(VulkanContext* ctx) {
     if (!ctx->descriptor_dirty)
-        return;
+        return true;
 
     uint32_t frame = ctx->current_frame;
     VkCommandBuffer cmd = ctx->frames[frame].command_buffer;
@@ -313,9 +397,12 @@ static void flush_descriptors(VulkanContext* ctx) {
         alloc.pSetLayouts = layouts;
         VkResult r = vkAllocateDescriptorSets(ctx->device, &alloc, sets);
         if (r != VK_SUCCESS) {
-            // Pool exhausted — caller will see no binding update this draw,
-            // but at least the previously bound set stays valid.
-            return;
+            // Pool exhausted. At the first draw of a frame nothing is bound
+            // yet (the pool was just reset), so proceeding would draw with
+            // no descriptor sets at all — fail loudly instead.
+            PyErr_SetString(PyExc_RuntimeError,
+                            "Vulkan per-frame descriptor pool exhausted");
+            return false;
         }
     }
 
@@ -402,6 +489,7 @@ static void flush_descriptors(VulkanContext* ctx) {
                             0, 2, sets, 0, nullptr);
 
     ctx->descriptor_dirty = false;
+    return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -431,7 +519,8 @@ PyObject* vulkan_draw_indexed(PyObject* self, PyObject* args, PyObject* kwds) {
     VkCommandBuffer cmd = ctx->frames[ctx->current_frame].command_buffer;
 
     // Flush any pending descriptor set updates.
-    flush_descriptors(ctx);
+    if (!flush_descriptors(ctx))
+        return NULL;
 
     // Bind the index buffer at offset 0 and use firstIndex on the draw.
     // This is equivalent to binding with a byte offset and firstIndex=0,

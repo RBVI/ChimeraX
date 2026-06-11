@@ -190,5 +190,15 @@ class RenderGraph:
             offscreen = None
         ctx.offscreen = offscreen
 
-        silhouette = ctx.view.silhouette if hasattr(r, '_texture_window') else None
+        if hasattr(r, '_texture_window'):
+            # OpenGL: the view's Silhouette object both holds the
+            # parameters and implements the drawing.
+            silhouette = ctx.view.silhouette
+        else:
+            # Metal/Vulkan: the renderer carries its own implementation
+            # (driven by the view's Silhouette parameter object), or has
+            # none and silhouettes are unavailable.
+            silhouette = getattr(r, '_silhouette_impl', None)
+            if silhouette is not None:
+                silhouette.params = ctx.view.silhouette
         ctx.silhouette = silhouette

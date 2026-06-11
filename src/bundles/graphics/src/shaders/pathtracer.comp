@@ -25,6 +25,16 @@ layout(set = 0, binding = 0) uniform PTUniforms {
     float _pad0;
     float _pad1;
     float _pad2;
+    // --- Participating-medium (density volume) block. Inactive when
+    //     vol_bbox_min.w == 0 (no volume shown); the geometry-only path
+    //     then runs exactly as before. ---
+    vec4  vol_bbox_min;     // .xyz world-space box min, .w = present flag (1/0)
+    vec4  vol_bbox_max;     // .xyz world-space box max, .w = colormap mode
+                            //   (>0.5 scalar+1D TF, else baked RGBA)
+    vec4  full_region_min;  // .xyz texture-space [0,1] mapping origin
+    vec4  full_region_max;  // .xyz texture-space [0,1] mapping extent
+    vec4  vol_params;       // .x sigma_max (majorant), .y phase g,
+                            // .z colormap offset, .w colormap inv-range
 } u;
 
 layout(set = 0, binding = 1) uniform accelerationStructureEXT tlas;
@@ -50,9 +60,12 @@ layout(set = 0, binding = 5, std430) readonly buffer CylinderColorBuffer {
     uint cylinder_colors[];  // [2*primId]=color1, [2*primId+1]=color2
 };
 
-layout(set = 0, binding = 6, rgba8) uniform writeonly image2D color_tex;
+// rgba16f, not rgba8: the temporal accumulation stores a running average
+// whose per-frame delta drops below 1/255 after a few dozen samples — an
+// 8-bit target rounds the update away and convergence freezes with banding.
+layout(set = 0, binding = 6, rgba16f) uniform writeonly image2D color_tex;
 layout(set = 0, binding = 7) uniform sampler2D prev_tex;
-layout(set = 0, binding = 8, rgba8) uniform writeonly image2D accum_tex;
+layout(set = 0, binding = 8, rgba16f) uniform writeonly image2D accum_tex;
 
 // Triangle mesh geometry (geometry_id = 2).
 struct Triangle {
@@ -66,6 +79,15 @@ layout(set = 0, binding = 9, std430) readonly buffer TriangleBuffer {
 layout(set = 0, binding = 10, std430) readonly buffer TriangleColorBuffer {
     uint triangle_colors[];
 };
+
+// Participating medium: the density map as a scalar 3D texture (.r channel),
+// and the transfer function as a 1D RGBA colormap. When no volume is shown
+// the host binds 1-texel dummies and vol_bbox_min.w is 0, so neither is read.
+layout(set = 0, binding = 11) uniform sampler3D vol_density;
+// 2D (Nx1) rather than 1D: a 1D VkImage exported to Metal via
+// VK_EXT_metal_objects is unreadable, so the colormap is an Nx1 texture
+// sampled at row 0.5. Works identically on the Vulkan ray-query path.
+layout(set = 0, binding = 12) uniform sampler2D vol_colormap;
 
 // ---------------------------------------------------------------------------
 //  Hash + cosine hemisphere sampler (same as rtao.comp).
@@ -277,6 +299,113 @@ vec3 environment(vec3 dir) {
 }
 
 // ---------------------------------------------------------------------------
+//  Participating-medium (density-volume) helpers.
+//
+//  The medium is the colormapped density map. Extinction is driven by the
+//  transfer-function alpha: at a sample point sigma_t = colormap.a * sigma_max,
+//  where sigma_max (u.vol_params.x = pt_volume_density) is the majorant. So
+//  colormap.a IS sigma_t / sigma_max -- the collision-acceptance probability
+//  for delta tracking and the (1 - .) factor for ratio-tracked transmittance.
+//  colormap.rgb is the single-scatter albedo.
+//
+//  Lighting scale matches the renderer's ad-hoc surface model (which omits the
+//  1/pi Lambertian factor): hg_phase() is the Henyey-Greenstein phase scaled
+//  by 4*pi so the isotropic case evaluates to 1.0, putting volume direct light
+//  on the same brightness footing as a surface's N.L term.
+// ---------------------------------------------------------------------------
+const float PI = 3.14159265358979;
+const int   MAX_VOL_STEPS    = 256;  // delta-tracking iteration cap
+const int   MAX_SHADOW_STEPS = 128;  // ratio-tracking iteration cap
+
+// PCG-style sequential RNG for the per-event sampling in delta/ratio tracking.
+float rand_next(inout uint state) {
+    state = state * 747796405u + 2891336453u;
+    uint w = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    w = (w >> 22u) ^ w;
+    return float(w) * (1.0 / 4294967296.0);
+}
+
+// Slab test. Returns vec2(t_enter, t_exit); a miss has x > y.
+vec2 bbox_intersect(vec3 ro, vec3 rd, vec3 bmin, vec3 bmax) {
+    vec3 inv = 1.0 / rd;
+    vec3 t0 = (bmin - ro) * inv;
+    vec3 t1 = (bmax - ro) * inv;
+    vec3 tlo = min(t0, t1);
+    vec3 thi = max(t0, t1);
+    return vec2(max(max(tlo.x, tlo.y), tlo.z),
+                min(min(thi.x, thi.y), thi.z));
+}
+
+// World point -> (albedo.rgb, sigma_t/sigma_max in .a). Returns zero outside
+// the texture so points beyond the data don't scatter.
+//
+// Two volume color modes (vol_bbox_max.w selects):
+//   >0.5: scalar density (.r) remapped through the 1D transfer function.
+//   else: pre-colored RGBA 3D texture used directly (ChimeraX's default
+//         colormap-on-CPU mode, where there is no separate 1D colormap).
+vec4 vol_transfer(vec3 world) {
+    vec3 ext = u.full_region_max.xyz - u.full_region_min.xyz;
+    vec3 tc = (world - u.full_region_min.xyz) / ext;
+    if (any(lessThan(tc, vec3(0.0))) || any(greaterThan(tc, vec3(1.0))))
+        return vec4(0.0);
+    vec4 texel = texture(vol_density, tc);
+    if (u.vol_bbox_max.w > 0.5) {
+        float cmap = (texel.r - u.vol_params.z) * u.vol_params.w;
+        return texture(vol_colormap, vec2(clamp(cmap, 0.0, 1.0), 0.5));
+    }
+    return texel;  // baked RGBA: rgb = albedo, a = opacity
+}
+
+// 4*pi-normalized Henyey-Greenstein phase (isotropic -> 1.0). cos is the
+// cosine between the path's incoming propagation direction and the outgoing
+// (light) direction.
+float hg_phase(float g, float cos_t) {
+    float gg = g * g;
+    float d = 1.0 + gg - 2.0 * g * cos_t;
+    return (1.0 - gg) / (d * sqrt(max(d, 1e-6)));
+}
+
+// Importance-sample a new propagation direction from the HG phase about wi.
+// Because we sample the phase exactly, phase/pdf cancels for the indirect
+// bounce, so the caller only scales throughput by albedo.
+vec3 hg_sample(float g, vec3 wi, inout uint rng) {
+    float u1 = rand_next(rng);
+    float u2 = rand_next(rng);
+    float cos_t;
+    if (abs(g) < 1e-3) {
+        cos_t = 1.0 - 2.0 * u1;
+    } else {
+        float s = (1.0 - g * g) / (1.0 - g + 2.0 * g * u1);
+        cos_t = (1.0 + g * g - s * s) / (2.0 * g);
+    }
+    float sin_t = sqrt(max(0.0, 1.0 - cos_t * cos_t));
+    float phi = 2.0 * PI * u2;
+    vec3 w = normalize(wi);
+    vec3 up = abs(w.y) < 0.999 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+    vec3 tangent = normalize(cross(up, w));
+    vec3 bitangent = cross(w, tangent);
+    return sin_t * cos(phi) * tangent + sin_t * sin(phi) * bitangent + cos_t * w;
+}
+
+// Ratio-tracked transmittance through the medium from ro along rd, bounded by
+// the volume box. Unbiased; used for the volumetric shadow term.
+float vol_transmittance(vec3 ro, vec3 rd, float sigma_max, inout uint rng) {
+    vec2 tb = bbox_intersect(ro, rd, u.vol_bbox_min.xyz, u.vol_bbox_max.xyz);
+    float t_exit = tb.y;
+    float t = max(tb.x, 0.0);
+    if (t >= t_exit) return 1.0;
+    float Tr = 1.0;
+    for (int i = 0; i < MAX_SHADOW_STEPS; i++) {
+        t -= log(1.0 - rand_next(rng)) / sigma_max;
+        if (t >= t_exit) break;
+        float a = vol_transfer(ro + rd * t).a;  // sigma_t / sigma_max
+        Tr *= (1.0 - a);
+        if (Tr < 0.01) return 0.0;              // effectively opaque
+    }
+    return Tr;
+}
+
+// ---------------------------------------------------------------------------
 //  Closest-hit ray query: walks AABB candidates, runs analytical sphere or
 //  cylinder intersection, and lets the runtime track the minimum t. Returns
 //  geom + prim + t via out params (or false on miss).
@@ -382,6 +511,7 @@ void main() {
     vec3 rt_world = (u.inv_view * vec4(vf.xyz, 1.0)).xyz;
     vec3 rd_world = normalize(rt_world - ro_world);
     uint ray_counter = 0u;
+    uint rng = pixel_seed + u.frame * 9277u + 1u;  // for medium sampling
 
     // ===========================================================
     //  DIAGNOSTIC PHASE 3: visualize the surface normal as RGB.
@@ -400,10 +530,115 @@ void main() {
     vec3 origin = ro_world;
     vec3 dir    = rd_world;
 
+    bool  vol_on    = u.vol_bbox_min.w > 0.5;
+    float sigma_max = u.vol_params.x;
+    float phase_g   = u.vol_params.y;
+
+    // ---- Volume diagnostic ladder (set lighting.pt_volume_density negative) ----
+    //  -1: magenta on bbox entry (present flag + bbox + ray, no textures).
+    //  -2: texcoord at midpoint as RGB (gradient = valid; solid = mapping bad).
+    //  -3: raw density .r at midpoint (black = 3D texture reads zero).
+    //  -4: colormap alpha at the density coordinate (tests the 1D colormap).
+    if (vol_on && sigma_max < 0.0) {
+        vec2 tb = bbox_intersect(origin, dir,
+                                 u.vol_bbox_min.xyz, u.vol_bbox_max.xyz);
+        float t0 = max(tb.x, 0.0);
+        bool enters = tb.y > t0;
+        vec3 mid = origin + dir * (0.5 * (t0 + tb.y));
+        vec3 ext = u.full_region_max.xyz - u.full_region_min.xyz;
+        vec3 tc = (mid - u.full_region_min.xyz) / ext;
+        bool in_tc = all(greaterThanEqual(tc, vec3(0.0)))
+                  && all(lessThanEqual(tc, vec3(1.0)));
+        vec4 dbg = vec4(0.0, 0.0, 0.0, 1.0);
+        if (sigma_max > -1.5)
+            dbg = enters ? vec4(1.0, 0.0, 1.0, 1.0) : dbg;
+        else if (sigma_max > -2.5)
+            dbg = enters ? vec4(clamp(tc, 0.0, 1.0), 1.0) : dbg;
+        else if (sigma_max > -3.5) {
+            float d = (enters && in_tc) ? texture(vol_density, tc).r : 0.0;
+            dbg = vec4(d, d, d, 1.0);
+        } else if (sigma_max > -4.5) {
+            float a = 0.0;
+            if (enters && in_tc) {
+                float d = texture(vol_density, tc).r;
+                float c = (d - u.vol_params.z) * u.vol_params.w;
+                a = texture(vol_colormap, vec2(clamp(c, 0.0, 1.0), 0.5)).a;
+            }
+            dbg = vec4(a, a, a, 1.0);
+        } else if (sigma_max > -5.5) {
+            // -5: colormap RGB swept across screen x (independent of volume).
+            float uc = float(tid.x) / float(u.size.x);
+            dbg = vec4(texture(vol_colormap, vec2(uc, 0.5)).rgb, 1.0);
+        } else {
+            // -6: colormap alpha swept across screen x.
+            float uc = float(tid.x) / float(u.size.x);
+            float a = texture(vol_colormap, vec2(uc, 0.5)).a;
+            dbg = vec4(a, a, a, 1.0);
+        }
+        imageStore(color_tex, tid, dbg);
+        imageStore(accum_tex, tid, dbg);
+        return;
+    }
+
     for (int bounce = 0; bounce <= u.max_bounces; bounce++) {
         uint geom, prim;
         float t_hit;
         bool hit = closest_hit(origin, dir, 0.001, 1e10, geom, prim, t_hit);
+        float t_surface = hit ? t_hit : 1e30;
+
+        // ---- Participating medium along [t_enter, t_surface] ----
+        // Woodcock delta tracking samples a scatter event before the nearest
+        // opaque surface. A sampled event scatters in the medium (and skips
+        // surface shading this bounce); "no event" means the ray transmitted
+        // through to the surface, which is then shaded normally - this is the
+        // unbiased surfaces-plus-media split, with attenuation handled
+        // implicitly by the free-flight sampling rather than an explicit
+        // transmittance factor.
+        if (vol_on && sigma_max > 0.0) {
+            vec2 tb = bbox_intersect(origin, dir,
+                                     u.vol_bbox_min.xyz, u.vol_bbox_max.xyz);
+            float t_enter = max(tb.x, 0.001);
+            float t_exit  = min(tb.y, t_surface);
+
+            bool scattered = false;
+            bool path_dead = false;
+            float t = t_enter;
+            for (int vs = 0; vs < MAX_VOL_STEPS && t_enter < t_exit; vs++) {
+                t -= log(1.0 - rand_next(rng)) / sigma_max;
+                if (t >= t_exit) break;
+                vec3 xp = origin + dir * t;
+                vec4 c = vol_transfer(xp);     // .rgb albedo, .a sigma_t/sigma_max
+                if (rand_next(rng) >= c.a) continue;   // null collision
+
+                // Real scatter event at xp.
+                // Single-scatter direct lighting: volumetric transmittance to
+                // the key light, plus the molecular geometry as a hard blocker.
+                vec3  key_dir = u.key_light_dir.xyz;
+                float key_int = u.key_light_dir.w;
+                float Tr = vol_transmittance(xp, key_dir, sigma_max, rng);
+                if (Tr > 0.0 && !any_hit(xp, key_dir, 1e10)) {
+                    float ph = hg_phase(phase_g, dot(dir, key_dir));
+                    radiance += throughput * c.rgb * ph * key_int * Tr;
+                }
+
+                // Russian roulette (same policy as the surface path).
+                if (bounce > 0) {
+                    float p = max(max(throughput.r, throughput.g), throughput.b);
+                    if (p <= 0.0 || rand_next(rng) > p) { path_dead = true; }
+                    else throughput /= p;
+                }
+                if (!path_dead) {
+                    throughput *= c.rgb;            // single-scatter albedo
+                    origin = xp;
+                    dir = hg_sample(phase_g, dir, rng);
+                }
+                scattered = true;
+                break;
+            }
+            if (path_dead) break;
+            if (scattered) continue;   // next bounce from the scatter vertex
+        }
+
         if (!hit) {
             if (bounce == 0) radiance = u.background_color.xyz;
             else radiance += throughput * environment(dir);
@@ -434,18 +669,28 @@ void main() {
         }
 
         // Direct lighting: shadow ray to key light, accept any blocker.
+        // When a medium is present the light is also attenuated by the
+        // volume between the surface and the light, so dense regions cast
+        // soft shadows onto the molecular geometry.
         vec3 key_dir = u.key_light_dir.xyz;
         float key_int = u.key_light_dir.w;
         float NdotL = max(dot(N, key_dir), 0.0);
         if (NdotL > 0.0) {
             vec3 sh_origin = hit_point + N * 0.002;
-            if (!any_hit(sh_origin, key_dir, 1e10))
-                radiance += throughput * albedo * NdotL * key_int;
+            if (!any_hit(sh_origin, key_dir, 1e10)) {
+                float Tr = (vol_on && sigma_max > 0.0)
+                         ? vol_transmittance(sh_origin, key_dir, sigma_max, rng)
+                         : 1.0;
+                radiance += throughput * albedo * NdotL * key_int * Tr;
+            }
         }
 
-        // Russian roulette after first bounce.
+        // Russian roulette after first bounce. A pure-black throughput
+        // gives p == 0; dividing by it injects Inf/NaN that the temporal
+        // mix then accumulates permanently, so terminate instead.
         if (bounce > 0) {
             float p = max(max(throughput.r, throughput.g), throughput.b);
+            if (p <= 0.0) break;
             if (hash_f(pixel_seed * 3571u + uint(bounce) * 997u) > p) break;
             throughput /= p;
         }
