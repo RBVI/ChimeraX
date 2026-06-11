@@ -55,6 +55,7 @@ _full_purine = ("N9", "C4", "N3", "C2", "N1", "C6", "C5", "N7", "C8")
 _full_purine_1 = (0, 1, 6, 7, 8)
 _full_purine_2 = (1, 2, 3, 4, 5, 6)
 _pyrimidine = ("N1", "C2", "N3", "C4", "C5", "C6")
+_pyrimidine_flipped = ("N1", "C6", "C5", "C4", "N3", "C2")
 _pyrimidine_1 = (0, 1, 2, 3, 4, 5)
 _ribose = ("C1'", "C2'", "C3'", "C4'", "O4'")
 
@@ -157,18 +158,18 @@ standard_bases = {
         # (C1'->C5 not N1)
         # taken from RNAView, ndbserver.rutgers.edu
         "tag": PSEUDO_PYRIMIDINE,
-        "ring atom names": _pyrimidine,
+        "ring atom names": _pyrimidine_flipped,
         "NDB color": "light gray",
         "atoms": {
-            "C1'": numpy.array((-2.506, 5.371, 0.000)),
             "N1": numpy.array((1.087, 4.295, 0.000)),
             "C2": numpy.array((1.037, 2.915, 0.000)),
-            "O2": numpy.array((2.036, 2.217, 0.000)),
             "N3": numpy.array((-0.229, 2.383, 0.000)),
             "C4": numpy.array((-1.422, 3.076, 0.000)),
-            "O4": numpy.array((-2.485, 2.453, 0.000)),
             "C5": numpy.array((-1.284, 4.500, 0.000)),
             "C6": numpy.array((-0.064, 5.048, 0.000)),
+            "O2": numpy.array((2.036, 2.217, 0.000)),
+            "O4": numpy.array((-2.485, 2.453, 0.000)),
+            "C1'": numpy.array((-2.506, 5.371, 0.000)),
         },
         "other bonds": (("C1'", "C5"), ("O2", "C2"), ("C4", "O4"))
     },
