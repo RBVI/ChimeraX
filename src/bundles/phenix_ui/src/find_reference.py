@@ -34,22 +34,22 @@ class FindRefJob(Job):
     SESSION_SAVE = False
 
     def __init__(self, session, executable_location, optional_args, model_file_name,
-            positional_args, temp_dir, eff_save_dir, superimpose_phenix, verbose, callback, block):
+            positional_args, work_dir, superimpose_phenix, verbose, callback, block):
         super().__init__(session)
         self._running = False
         self._monitor_time = 0
         self._monitor_interval = 10
         self.start(session, executable_location, optional_args, model_file_name, positional_args,
-            eff_save_dir, superimpose_phenix, temp_dir, verbose, callback, blocking=block)
+            work_dir, superimpose_phenix, verbose, callback, blocking=block)
 
     def run(self, session, executable_location, optional_args, model_file_name, positional_args,
-            eff_save_dir, superimpose_phenix, temp_dir, verbose, callback, **kw):
+            work_dir, superimpose_phenix, verbose, callback, **kw):
         self._running = True
         self.start_t = time()
         def threaded_run(self=self):
             try:
                 reference = _run_find_ref_subprocess(session, executable_location, optional_args,
-                    model_file_name, positional_args, eff_save_dir, superimpose_phenix, temp_dir, verbose)
+                    model_file_name, positional_args, work_dir, superimpose_phenix, verbose)
             except Exception as e:
                 from .util import thread_throw
                 thread_throw(session, e)
@@ -96,9 +96,8 @@ class FindRefJob(Job):
 command_defaults = {
     'verbose': False
 }
-def phenix_find_reference(session, chains, *, eff_save_directory=True, show_tool=True,
-        superimpose_phenix=True, block=None, phenix_location=None, verbose=command_defaults['verbose'],
-        option_arg=[], position_arg=[]):
+def phenix_find_reference(session, chains, *, work_directory=None, superimpose_phenix=True, block=None,
+        phenix_location=None, verbose=command_defaults['verbose'], option_arg=[], position_arg=[]):
 
     # Find the phenix.find_reference executable
     from .locate import find_phenix_command
@@ -111,28 +110,20 @@ def phenix_find_reference(session, chains, *, eff_save_directory=True, show_tool
     if not chains:
         raise UserError("No chains specified")
 
-    import os
-    if eff_save_directory is not False:
-        possible_save_dirs = ['~/Desktop', '~'] if eff_save_directory is True else [eff_save_directory]
-        for possible_save_dir in [os.path.expanduser(path) for path in possible_save_dirs]:
-            if os.path.exists(possible_save_dir) and os.access(possible_save_dir, os.W_OK | os.X_OK):
-                eff_save_directory = possible_save_dir
-                break
-        else:
-            from chimerax.core.commands import plural_form, commas
-            session.logger.warning("Cannot write to %s %s, not saving .eff file"
-                % (plural_form(possible_save_dirs, "folder"), commas(possible_save_dirs)))
-            eff_save_directory = False
     chains_by_structure = {}
     for structure, chain in zip(chains.structures, chains):
         chains_by_structure.setdefault(structure, []).append(chain)
 
     from chimerax.atomic import Chains
     for structure, chain_list in chains_by_structure.items():
-        # Setup temporary directory to run phenix.find_reference
-        from tempfile import TemporaryDirectory
-        d = TemporaryDirectory(prefix = 'phenix_emis_')  # Will be cleaned up when object deleted.
-        temp_dir = d.name
+        if work_directory is None:
+            # Setup temporary directory to run phenix.find_reference
+            from tempfile import TemporaryDirectory
+            d = TemporaryDirectory(prefix='phenix_fr_')  # Will be cleaned up when object deleted.
+            work_dir = d.name
+        else:
+            work_dir = work_directory
+            d = None
 
         # Save model to file.
         from chimerax.pdb import save_pdb
@@ -140,19 +131,18 @@ def phenix_find_reference(session, chains, *, eff_save_directory=True, show_tool
         prev_sel = structure.atoms.selecteds
         structure.atoms.selecteds = False
         Chains(chain_list).existing_residues.atoms.selecteds = True
-        save_pdb(session, path.join(temp_dir,'model.pdb'), models=[structure], selected_only=True)
+        save_pdb(session, path.join(work_dir,'model.pdb'), models=[structure], selected_only=True)
         structure.atoms.selecteds = prev_sel
 
         # Run phenix.find_reference
         # keep a reference to 'd' in the callback so that the temporary directory isn't removed before
         # the program runs
-        callback = lambda json_info, *args, session=session, show_tool=show_tool, model=structure, \
-            sup_phenix=superimpose_phenix, d_ref=d: _process_results(session, json_info, model, d.name,
-            show_tool, sup_phenix)
-        FindRefJob(session, exe_path, option_arg, "model.pdb", position_arg, temp_dir, eff_save_directory,
+        callback = lambda json_info, *args, session=session, model=structure, sup_phenix=superimpose_phenix,\
+            work_dir=work_dir, d_ref=d: _process_results(session, json_info, model, work_dir, sup_phenix)
+        FindRefJob(session, exe_path, option_arg, "model.pdb", position_arg, work_dir,
             superimpose_phenix, verbose, callback, block)
 
-def _process_results(session, json_info, search_model, temp_dir, show_tool, superimpose_phenix):
+def _process_results(session, json_info, search_model, work_dir, superimpose_phenix):
     session.logger.status("Find-reference job finished")
     if search_model.deleted:
         raise UserError("Structure used as basis for search closed during search")
@@ -172,7 +162,7 @@ def _process_results(session, json_info, search_model, temp_dir, show_tool, supe
                 ref_cid = result['reference_chain_id']
                 identifier = "chain %s (%s)" % (target_cid, result['reference']['pdb_id'])
                 for s in run(session, "open %s name %s inFileHistory false"
-                        % (StringArg.unparse(path.join(temp_dir, v)), StringArg.unparse(identifier)),
+                        % (StringArg.unparse(path.join(work_dir, v)), StringArg.unparse(identifier)),
                         log=False):
                     ref_group.add([s])
                     hide_spec = f"#{s.id_string} & ~ /{ref_cid}"
@@ -252,7 +242,7 @@ def process(item):
     return item
 
 def _run_find_ref_subprocess(session, exe_path, optional_args, model_file_name, positional_args,
-        eff_save_dir, superimpose_phenix, temp_dir, verbose):
+        work_dir, superimpose_phenix, verbose):
     '''
     Run find_reference in a subprocess and return the reference information.
     '''
@@ -264,9 +254,9 @@ def _run_find_ref_subprocess(session, exe_path, optional_args, model_file_name, 
         ] + super_arg + positional_args
     tsafe=session.ui.thread_safe
     logger = session.logger
-    tsafe(logger.status, f'Running {exe_path} in directory {temp_dir}')
+    tsafe(logger.status, f'Running {exe_path} in directory {work_dir}')
     import subprocess
-    p = subprocess.run(args, capture_output = True, cwd = temp_dir)
+    p = subprocess.run(args, capture_output = True, cwd=work_dir)
     if p.returncode != 0:
         cmd = " ".join(args)
         out, err = p.stdout.decode("utf-8"), p.stderr.decode("utf-8")
@@ -288,20 +278,8 @@ def _run_find_ref_subprocess(session, exe_path, optional_args, model_file_name, 
 
     from os import path, listdir, rename
 
-    # Save EFF file
-    if eff_save_dir is not False:
-        for fname in listdir(temp_dir):
-            if fname.endswith(".eff"):
-                try:
-                    rename(path.join(temp_dir, fname), path.join(eff_save_dir, fname))
-                except OSError as e:
-                    logger.warning("Could not save .eff file to %s; the error message was: %s"
-                        % (eff_save_dir, str(e)))
-                else:
-                    logger.info("Saved EFF file to %s" % path.join(eff_save_dir, fname))
-
     # Return JSON information
-    json_path = path.join(temp_dir,'find_reference.json')
+    json_path = path.join(work_dir,'find_reference.json')
     import json
     with open(json_path, 'r') as f:
         info = json.load(f)
@@ -317,13 +295,12 @@ def register_command(logger):
         required = [('chains', UniqueChainsArg),
         ],
         keyword = [('block', BoolArg),
-                   ('eff_save_directory', Or(BoolArg, OpenFolderNameArg)),
                    ('phenix_location', OpenFolderNameArg),
                    ('superimpose_phenix', BoolArg),
+                   ('work_directory', OpenFolderNameArg),
                    ('verbose', BoolArg),
                    ('option_arg', RepeatOf(StringArg)),
                    ('position_arg', RepeatOf(StringArg)),
-                   ('show_tool', BoolArg),
         ],
         synopsis = 'Find reference structure'
     )
