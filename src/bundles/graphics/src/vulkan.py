@@ -218,6 +218,49 @@ def _set_active_vulkan_render(render):
     _active_vulkan_render = render
 
 
+# Keys in a per-drawing buffer cache that hold GPU buffer handles created
+# by the renderer (everything else in the dict is memoized arrays and
+# bookkeeping). Used by _release_drawing_buffers below.
+_DRAWING_GPU_BUFFER_KEYS = (
+    "vertices", "indices", "normals", "tcoords", "colors",
+    "uniforms", "sas", "matrices", "raycast_ubo",
+    "colors_hl", "sas_hl", "matrices_hl",
+)
+
+
+def _release_drawing_buffers(render_ref, draw_id):
+    """weakref.finalize callback: free a dead drawing's GPU buffers.
+
+    _drawing_buffers is keyed by id(drawing); without eviction every
+    closed model leaks its buffers permanently, and a recycled id() can
+    resurrect a dead drawing's cache for a new drawing (stale geometry).
+    Takes a weak renderer reference so a long-lived finalizer does not
+    keep the renderer alive after a backend switch.
+    """
+    r = render_ref()
+    if r is None:
+        return
+    bufs = r._drawing_buffers.pop(draw_id, None)
+    if not bufs:
+        return
+    m = r._vulkan
+    try:
+        for key in _DRAWING_GPU_BUFFER_KEYS:
+            if key == "indices" and bufs.get("_indices_external"):
+                # Zero-copy path: the index buffer belongs to the
+                # drawing's _vk_buffers, freed by that machinery.
+                continue
+            b = bufs.get(key)
+            if b is not None:
+                m.destroy_buffer(buffer=b)
+        for sb in bufs.get("_shadow_uniforms", ()):
+            m.destroy_buffer(buffer=sb)
+    except Exception:
+        # GC can run during interpreter shutdown or after context
+        # teardown; leaking is preferable to crashing there.
+        pass
+
+
 # Format codes shared with the C side (see vulkan_texture.cpp).
 _FORMAT_RGBA8       = 0
 _FORMAT_R8          = 1
@@ -536,6 +579,20 @@ class VulkanRender:
         self._blend_op_max = False
         self._blend_premult = False
         self._depth_write_enabled = True
+        # Depth test toggle for overlay / on-top drawing (2D labels, color
+        # keys). Baked into the pipeline like the other depth state.
+        self._depth_test_enabled = True
+        # Clip planes set by clipping.py (scene-space vec4 per plane),
+        # packed into the Uniforms UBO by _build_uniforms.
+        self._clip_planes = []
+        # Lighting UBO; recreated by activate_lighting (the old buffer is
+        # destroyed through the deferred-delete queue).
+        self._lighting_buffer = None
+        # Post-process pipeline cache. Must be per-instance: pipeline
+        # handles point into this renderer's VkDevice, and a class-level
+        # dict would hand stale handles to a renderer created after a
+        # context teardown (use-after-free on the first postprocess draw).
+        self._postprocess_pipelines = {}
 
         # Capability system (same constants as OpenGL backend)
         from .renderer import (
@@ -580,8 +637,13 @@ class VulkanRender:
         # Sub-systems (stub implementations initially)
         self.shadow = VulkanShadow(self)
         self.multishadow = VulkanMultishadow(self)
+        # View.initialize_rendering overwrites .silhouette with the view's
+        # opengl.Silhouette parameter object, so the Vulkan implementation
+        # lives under its own name; the render graph wires the two together
+        # (see render_graph._resolve_subsystems).
         self.silhouette = _StubSilhouette()
-        self.outline = _StubOutline()
+        self._silhouette_impl = VulkanSilhouette(self)
+        self.outline = VulkanOutline(self)
         self.offscreen = _StubOffscreen()
         self.blend = _StubBlend()
 
@@ -601,6 +663,10 @@ class VulkanRender:
         """Clean up renderer resources."""
         if self._in_frame:
             self.end_frame()
+        if isinstance(getattr(self, "outline", None), VulkanOutline):
+            self.outline.delete()
+        if getattr(self, "_silhouette_impl", None) is not None:
+            self._silhouette_impl.delete()
         # Restore module-level state we hijacked in __init__ so the next
         # backend (e.g. switching back to OpenGL at runtime) doesn't keep
         # constructing VulkanTextures bound to this dead render.
@@ -817,13 +883,21 @@ class VulkanRender:
     # -- Depth texture factory (used by render passes) -----------------------
 
     def create_depth_texture(self, width, height):
-        """Create a depth texture for shadow mapping."""
+        """Create a depth texture for shadow mapping.
+
+        linear_filter matters: with compareEnable, a LINEAR filter gives
+        hardware-bilinear PCF on every shadow lookup — the same smoothing
+        the OpenGL backend gets from GL_LINEAR on its depth textures. A
+        NEAREST compare sampler makes each Poisson tap a hard binary test,
+        which renders blocky, stair-stepped shadow edges (most visible in
+        the low-resolution multishadow tiles).
+        """
         return self._vulkan.create_texture(
             context=self._ctx,
             width=width,
             height=height,
             format=2,
-            linear_filter=0,
+            linear_filter=1,
             depth_compare=1,
         )
 
@@ -840,10 +914,10 @@ class VulkanRender:
 
     def set_lighting_shader_capabilities(self):
         lp = self.lighting
-        # Depth cue is not yet fully supported -- uniform values for
-        # depth_cue_color and depth_cue_range are placeholders, so
-        # enabling it would darken/blacken the scene.
-        # self.enable_shader_capability(self.SHADER_DEPTH_CUE, lp.depth_cue)
+        # Depth cue is on by default in ChimeraX; leaving it off made the
+        # Vulkan image noticeably flatter / more washed out than OpenGL.
+        # _build_uniforms packs the real depth_cue_color and range.
+        self.enable_shader_capability(self.SHADER_DEPTH_CUE, lp.depth_cue)
         self.enable_shader_shadows(lp.shadows)
         self.enable_shader_multishadows(lp.multishadow > 0)
 
@@ -854,7 +928,11 @@ class VulkanRender:
         self.set_viewport(0, 0, self._width, self._height)
 
     def enable_depth_test(self, enable):
-        pass
+        # Depth state is baked into pipelines; the flag feeds the pipeline
+        # cache key in _ensure_shader_pipeline. Overlay and on-top drawing
+        # (2D labels, color keys) disable the test so scene geometry can't
+        # occlude them and they don't corrupt the depth buffer.
+        self._depth_test_enabled = bool(enable)
 
     def enable_backface_culling(self, enable):
         self._face_culling_enabled = bool(enable)
@@ -888,6 +966,13 @@ class VulkanRender:
         draw_depth()
         draw()
 
+    def finish_rendering(self):
+        # OpenGL's glFinish equivalent, used by frame-rate timing
+        # (View._finish_timing). Vulkan work is synchronized by per-frame
+        # fences at end_frame/begin_frame; there is nothing pending to
+        # drain here, so timing measures the CPU side of the frame.
+        pass
+
     # ------------------------------------------------------------------
     # OIT (Weighted Blended Order-Independent Transparency)
     # ------------------------------------------------------------------
@@ -905,6 +990,11 @@ class VulkanRender:
     def end_oit_pass(self):
         """End OIT accumulation and composite the result over the opaque
         scene. Resumes the main render pass with loaded color+depth."""
+        if not self._oit_rendering:
+            # begin_oit_pass early-returned (zero-size render target);
+            # ending and compositing a pass that never started would
+            # desync the C-side render-pass state.
+            return
         self._oit_rendering = False
         self._vulkan.end_oit_pass(context=self._ctx)
 
@@ -1347,8 +1437,13 @@ void main() {
 
         # Always create a fresh buffer rather than updating in-place.
         # The previous frame's command buffer may still be reading the
-        # old buffer on the GPU; in-place updates would race.
-        # Vulkan retains the old buffer until its command buffer completes.
+        # old buffer on the GPU; in-place updates would race. The old
+        # buffer must be explicitly destroyed — destroy_buffer routes it
+        # through the deferred-delete queue, which only frees it after
+        # the in-flight frame's fence signals. Without the destroy this
+        # leaked one UBO per frame.
+        if self._lighting_buffer is not None:
+            self._vulkan.destroy_buffer(buffer=self._lighting_buffer)
         self._lighting_buffer = self._vulkan.create_buffer(
             context=self._ctx, data=data
         )
@@ -1359,8 +1454,15 @@ void main() {
     def set_depth_cue_parameters(self):
         pass
 
-    def set_clip_parameters(self):
-        pass
+    def set_clip_parameters(self, clip_planes=None):
+        # Called by clipping.py with a tuple of scene-space vec4 planes
+        # (ClipPlane.opengl_vec4()). The signature must accept the planes
+        # argument — without it, enabling any clip plane raised a
+        # TypeError on every frame. The planes are packed into the
+        # Uniforms UBO by _build_uniforms; mesh.vert computes per-vertex
+        # clip distances against scene coordinates, matching the
+        # scene-space planes passed here.
+        self._clip_planes = list(clip_planes) if clip_planes else []
 
     # -------------------------------------------------------------------
     # Textures
@@ -1442,9 +1544,9 @@ void main() {
             spos = drawing.get_scene_positions(displayed_only=True)
         for p in spos:
             self.set_model_matrix(p)
-            self._draw_single(drawing, capabilities)
+            self._draw_single(drawing, capabilities, highlighted_only)
 
-    def _draw_single(self, drawing, capabilities):
+    def _draw_single(self, drawing, capabilities, highlighted_only=False):
         """Issue Vulkan draw call for one scene position."""
         m = self._vulkan
         ctx = self._ctx
@@ -1470,6 +1572,13 @@ void main() {
         if bufs is None:
             bufs = {}
             self._drawing_buffers[draw_id] = bufs
+            # Evict (and free) this entry when the drawing is collected —
+            # id() values get recycled, so a stale entry can hand a new
+            # drawing the dead one's buffers, and the GPU memory would
+            # otherwise leak for the life of the renderer.
+            import weakref
+            weakref.finalize(drawing, _release_drawing_buffers,
+                             weakref.ref(self), draw_id)
 
         # Pick primitive topology and the matching index array from the
         # drawing's display style. Mesh derives unique edges from the
@@ -1508,6 +1617,23 @@ void main() {
         else:
             elements = triangles
             topology = 0
+
+        # Highlight-mask pass (selection outlines): restrict drawing to
+        # the highlighted subset. Surfaces select triangles via the
+        # highlight triangle mask; instanced drawings (atoms/bonds)
+        # select instances via highlighted_positions, applied to the
+        # instance arrays further down. None means fully highlighted.
+        hl_positions = None
+        if highlighted_only:
+            hl_positions = drawing.highlighted_positions
+            tmask = drawing.highlighted_displayed_triangles_mask
+            if tmask is not None and topology == 0 and not raycast:
+                key = (id(triangles), id(tmask))
+                if bufs.get("_hl_elements_key") != key:
+                    bufs["_hl_elements"] = np.ascontiguousarray(triangles[tmask])
+                    bufs["_hl_elements_key"] = key
+                elements = bufs["_hl_elements"]
+
         if elements is None or len(elements) == 0:
             return
 
@@ -1529,6 +1655,7 @@ void main() {
             or getattr(shader, "_pipeline_blend_op_max", False) != self._blend_op_max
             or getattr(shader, "_pipeline_blend_premult", False) != self._blend_premult
             or getattr(shader, "_pipeline_depth_write", True) != self._depth_write_enabled
+            or getattr(shader, "_pipeline_depth_test", True) != self._depth_test_enabled
             or getattr(shader, "_pipeline_topology", 0) != topology
         ):
             if capabilities & SHADER_VOLUME_RAYCASTING:
@@ -1589,7 +1716,11 @@ void main() {
         try:
             drawing.set_shader_options(self)
         except Exception:
-            pass
+            # Don't abort the draw, but don't hide the failure either — a
+            # bug here silently produces a garbage raycast/volume UBO.
+            import sys, traceback
+            print("Vulkan set_shader_options error:", file=sys.stderr)
+            traceback.print_exc(file=sys.stderr)
 
         # Build and bind the volume-raycast UBO at set 0 binding 6 if the
         # raycast pipeline is active. Done per draw because the inverse
@@ -1634,7 +1765,9 @@ void main() {
         # (e.g. from flying edges writing directly into GPU memory), bind
         # them directly and skip the upload.
         vk_bufs = getattr(drawing, '_vk_buffers', None)
-        if vk_bufs and topology == 0:
+        # `elements is not triangles` means the highlight pass substituted
+        # a triangle subset; the zero-copy index buffer holds the full set.
+        if vk_bufs and topology == 0 and elements is triangles:
             m.set_vertex_buffer(context=ctx, buffer=vk_bufs['vertices'],
                                 index=10, offset=0)
             normals = drawing.normals
@@ -1645,6 +1778,9 @@ void main() {
             bufs["icount"] = len(drawing.triangles) * 3
             bufs["itopology"] = 0
             bufs["_indices_srcid"] = id(drawing.triangles)
+            # The index buffer belongs to the drawing's zero-copy
+            # _vk_buffers; never destroy it from this cache.
+            bufs["_indices_external"] = True
             _used_gpu_bufs = True
         else:
             _used_gpu_bufs = False
@@ -1663,13 +1799,15 @@ void main() {
                                              dtype=np.uint32)
                 idata_len = len(idata)
                 if ("indices" not in bufs
+                        or bufs.get("_indices_external")
                         or bufs.get("icount") != idata_len
                         or bufs.get("itopology") != topology):
-                    if "indices" in bufs:
+                    if "indices" in bufs and not bufs.get("_indices_external"):
                         m.destroy_buffer(buffer=bufs["indices"])
                     bufs["indices"] = m.create_buffer(context=ctx, data=idata)
                     bufs["icount"] = idata_len
                     bufs["itopology"] = topology
+                    bufs["_indices_external"] = False
                 else:
                     m.update_buffer(buffer=bufs["indices"], data=idata)
                 bufs["_indices_srcid"] = elements_id
@@ -1704,8 +1842,25 @@ void main() {
         vcolors = getattr(drawing, "vertex_colors", None)
         colors = vcolors if vcolors is not None else drawing.colors
         if colors is not None and len(colors) > 0:
-            _upload("colors", "ccount", colors,
-                    lambda: np.ascontiguousarray(colors, dtype=np.uint8), 13)
+            if (hl_positions is not None and vcolors is None
+                    and len(colors) == len(hl_positions)):
+                # Highlight pass with per-instance colors: the instance
+                # arrays are subset below, so the instance-rate color
+                # buffer must match in length or trailing instances read
+                # past its end. (Values are irrelevant — the mask draws
+                # ALL_WHITE — only the length matters.)
+                key = (id(colors), id(hl_positions))
+                if bufs.get("_hl_colors_key") != key:
+                    bufs["_hl_colors"] = np.ascontiguousarray(
+                        colors[hl_positions], dtype=np.uint8)
+                    bufs["_hl_colors_key"] = key
+                hl_colors = bufs["_hl_colors"]
+                if len(hl_colors) > 0:
+                    _upload("colors_hl", "ccount_hl", hl_colors,
+                            lambda: hl_colors, 13)
+            else:
+                _upload("colors", "ccount", colors,
+                        lambda: np.ascontiguousarray(colors, dtype=np.uint8), 13)
 
         # Upload Uniforms struct to buffer 0 (vertex + fragment)
         udata = self._build_uniforms(drawing)
@@ -1736,7 +1891,7 @@ void main() {
             m.set_descriptor_buffer(context=ctx, buffer=ubuf, index=0, offset=0)
 
         # Lighting params at buffer 1 (vertex + fragment)
-        if hasattr(self, "_lighting_buffer"):
+        if self._lighting_buffer is not None:
             m.set_descriptor_buffer(
                 context=ctx, buffer=self._lighting_buffer, index=1, offset=0
             )
@@ -1765,6 +1920,15 @@ void main() {
         use_instancing = len(pos) > 1 or pos.shift_and_scale_array() is not None
         instance_count = len(pos) if use_instancing else 1
 
+        # Highlight pass: draw only the highlighted instances.
+        hl_inst = None
+        if (hl_positions is not None and use_instancing
+                and len(hl_positions) == len(pos)):
+            hl_inst = hl_positions
+            instance_count = int(np.count_nonzero(hl_inst))
+            if instance_count == 0:
+                return
+
         if _VK_DRAW_DEBUG:
             from .renderer import SHADER_IMPOSTOR_CYLINDER as _SIC
             if capabilities & _SIC:
@@ -1790,7 +1954,24 @@ void main() {
 
         # Shift-and-scale instances (buffer index 4)
         sas = pos.shift_and_scale_array()
-        if sas is not None:
+        if sas is not None and hl_inst is not None:
+            # Subset for the highlight pass, uploaded under separate keys
+            # so the full-instance cache stays intact.
+            key = (id(sas), id(hl_inst))
+            if bufs.get("_hl_sas_key") != key:
+                bufs["_hl_sas"] = np.ascontiguousarray(sas[hl_inst],
+                                                       dtype=np.float32)
+                bufs["_hl_sas_key"] = key
+            sasdata = bufs["_hl_sas"]
+            if "sas_hl" not in bufs or bufs.get("sas_hl_count") != len(sasdata):
+                if "sas_hl" in bufs:
+                    m.destroy_buffer(buffer=bufs["sas_hl"])
+                bufs["sas_hl"] = m.create_buffer(context=ctx, data=sasdata)
+                bufs["sas_hl_count"] = len(sasdata)
+            else:
+                m.update_buffer(buffer=bufs["sas_hl"], data=sasdata)
+            m.set_vertex_buffer(context=ctx, buffer=bufs["sas_hl"], index=14, offset=0)
+        elif sas is not None:
             sasdata = np.ascontiguousarray(sas, dtype=np.float32)
             if "sas" not in bufs or bufs.get("sas_count") != len(sas):
                 if "sas" in bufs:
@@ -1808,7 +1989,25 @@ void main() {
         # drawing's matrix data.
         if sas is None:
             matrices = pos.opengl_matrices()
-            if matrices is not None:
+            if matrices is not None and hl_inst is not None:
+                key = (id(matrices), id(hl_inst))
+                if bufs.get("_hl_matrices_key") != key:
+                    bufs["_hl_matrices"] = np.ascontiguousarray(
+                        matrices[hl_inst], dtype=np.float32)
+                    bufs["_hl_matrices_key"] = key
+                mdata = bufs["_hl_matrices"]
+                if ("matrices_hl" not in bufs
+                        or bufs.get("mcount_hl") != len(mdata)):
+                    if "matrices_hl" in bufs:
+                        m.destroy_buffer(buffer=bufs["matrices_hl"])
+                    bufs["matrices_hl"] = m.create_buffer(context=ctx, data=mdata)
+                    bufs["mcount_hl"] = len(mdata)
+                else:
+                    m.update_buffer(buffer=bufs["matrices_hl"], data=mdata)
+                m.set_vertex_buffer(
+                    context=ctx, buffer=bufs["matrices_hl"], index=15, offset=0
+                )
+            elif matrices is not None:
                 mdata = np.ascontiguousarray(matrices, dtype=np.float32)
                 if "matrices" not in bufs or bufs.get("mcount") != len(matrices):
                     if "matrices" in bufs:
@@ -2016,18 +2215,28 @@ void main() {
         parts.append(np.array(c, dtype=np.float32))
 
         # depth_cue_color (float3 + pad)
-        parts.append(np.array([0, 0, 0, 0], dtype=np.float32))
+        lp = self.lighting
+        parts.append(np.array([*lp.depth_cue_color, 0], dtype=np.float32))
 
-        # depth_cue_range (float2) + near/far clip (float2)
+        # depth_cue_range (float2) + near/far clip (float2). The cue range
+        # interpolates the lighting's start/end fractions across the
+        # near/far interval, matching opengl.Render._depth_cue_range.
         near, far = self._near_far_clip
-        parts.append(np.array([0, 1000, near, far], dtype=np.float32))
+        dc_start = near + (far - near) * lp.depth_cue_start
+        dc_end = near + (far - near) * lp.depth_cue_end
+        parts.append(np.array([dc_start, dc_end, near, far], dtype=np.float32))
 
-        # clip_planes: 8 x float4
-        parts.append(np.zeros((8, 4), dtype=np.float32))
+        # clip_planes: 8 x float4 (scene-space, from set_clip_parameters)
+        planes = np.zeros((8, 4), dtype=np.float32)
+        nplanes = min(len(self._clip_planes), 8)
+        for i in range(nplanes):
+            planes[i] = self._clip_planes[i]
+        parts.append(planes)
 
         # num_clip_planes (int), impostor_dashes (int), shadow_depth (float), shadow_count (int)
         tail = np.zeros(4, dtype=np.float32)
         tail_int = tail.view(np.int32)
+        tail_int[0] = nplanes
         dashes = getattr(drawing, "impostor_dashes", 0)
         tail_int[1] = int(dashes)
         if isinstance(self.multishadow, VulkanMultishadow):
@@ -2106,9 +2315,12 @@ void main() {
         blend_premult = self._blend_premult
         oit_mode = self._oit_rendering
         depth_write = False if oit_mode else self._depth_write_enabled
+        # Depth-only (shadow) passes are meaningless without the depth
+        # test, so force it on there regardless of the overlay toggle.
+        depth_test = self._depth_test_enabled or depth_only
         cache_key = (shader_name, const_key, depth_only, depth_prepass,
                      face_culling, blend_op_max, blend_premult, depth_write,
-                     topology, oit_mode)
+                     depth_test, topology, oit_mode)
         if cache_key in self._pipeline_cache:
             shader._pipeline = self._pipeline_cache[cache_key]
             shader._pipeline_depth_only = depth_only
@@ -2117,6 +2329,7 @@ void main() {
             shader._pipeline_blend_op_max = blend_op_max
             shader._pipeline_blend_premult = blend_premult
             shader._pipeline_depth_write = depth_write
+            shader._pipeline_depth_test = depth_test
             shader._pipeline_topology = topology
             return
         try:
@@ -2146,7 +2359,9 @@ void main() {
                 context=self._ctx,
                 vert_source=vert_src,
                 frag_source=frag_src,
-                has_depth=1,
+                # has_depth controls depthTestEnable in the pipeline;
+                # overlays/on-top drawings disable it via enable_depth_test.
+                has_depth=1 if depth_test else 0,
                 constants=constants,
                 depth_only=1 if depth_only else 0,
                 instance_colors=instance_colors,
@@ -2177,6 +2392,7 @@ void main() {
             shader._pipeline_blend_op_max = blend_op_max
             shader._pipeline_blend_premult = blend_premult
             shader._pipeline_depth_write = depth_write
+            shader._pipeline_depth_test = depth_test
             shader._pipeline_topology = topology
         except Exception as e:
             import sys
@@ -2212,7 +2428,8 @@ void main() {
     _quad_vbuf = None
     _quad_tcbuf = None
     _quad_ibuf = None
-    _postprocess_pipelines = {}
+    # _postprocess_pipelines is per-instance (set in __init__); a shared
+    # class-level cache would survive context recreation with stale handles.
 
     def _ensure_quad_buffers(self):
         """Create vertex/texcoord/index buffers for a fullscreen quad."""
@@ -2314,10 +2531,15 @@ void main() {
             context=ctx, depth_write=0, depth_test=0, compare_func=7
         )  # always
 
+        # The pipeline declares vertex bindings 10-15; bindings reset with
+        # each frame's command buffer, so a frame whose first draw is a
+        # fullscreen quad would otherwise issue the draw with 12-15 unbound.
+        self._bind_dummy_vertex_buffers()
         m.set_vertex_buffer(context=ctx, buffer=self._quad_vbuf, index=10, offset=0)
         m.set_vertex_buffer(context=ctx, buffer=self._quad_tcbuf, index=11, offset=0)
         m.set_fragment_texture(context=ctx, texture=texture, index=0)
 
+        ubuf = None
         if uniforms_data is not None:
             ubuf = m.create_buffer(context=ctx, data=uniforms_data)
             m.set_descriptor_buffer(context=ctx, buffer=ubuf, index=0, offset=0)
@@ -2330,6 +2552,12 @@ void main() {
             index_offset=0,
             instance_count=1,
         )
+
+        if ubuf is not None:
+            # Deferred-delete: freed once the frame's fence signals, so the
+            # recorded draw still sees valid data. Without this every
+            # GTAO/RTAO-blur/denoise quad leaked a UBO per frame.
+            m.destroy_buffer(buffer=ubuf)
 
         self._set_current_depth_state()
 
@@ -2353,11 +2581,14 @@ void main() {
             context=ctx, depth_write=0, depth_test=0, compare_func=7
         )
 
+        # See draw_fullscreen_quad: bindings 12-15 must be valid.
+        self._bind_dummy_vertex_buffers()
         m.set_vertex_buffer(context=ctx, buffer=self._quad_vbuf, index=10, offset=0)
         m.set_vertex_buffer(context=ctx, buffer=self._quad_tcbuf, index=11, offset=0)
         m.set_fragment_texture(context=ctx, texture=texture0, index=0)
         m.set_fragment_texture(context=ctx, texture=texture1, index=1)
 
+        ubuf = None
         if uniforms_data is not None:
             ubuf = m.create_buffer(context=ctx, data=uniforms_data)
             m.set_descriptor_buffer(context=ctx, buffer=ubuf, index=0, offset=0)
@@ -2370,6 +2601,9 @@ void main() {
             index_offset=0,
             instance_count=1,
         )
+
+        if ubuf is not None:
+            m.destroy_buffer(buffer=ubuf)
 
         self._set_current_depth_state()
 
@@ -2507,6 +2741,33 @@ void main() {
     _rtao_shader_source = None
     _rtao_pipeline_compiled = False
 
+    def _destroy_rt_accel_struct(self):
+        """Release the current acceleration structure and its buffers.
+
+        The Metal interop backend bridge-retains the cylinder/triangle
+        buffers too and accepts them as optional arguments; the native
+        Vulkan backend frees them through the accel-struct object itself
+        and only takes the two-argument form.
+        """
+        if self._rtao_accel_struct is None:
+            return
+        if self._rt_backend is self._metal_rt_module:
+            self._rt_backend.destroy_accel_struct(
+                accel_struct=self._rtao_accel_struct,
+                sphere_buffer=self._rtao_sphere_buffer,
+                cylinder_buffer=self._rtao_cylinder_buffer or 0,
+                triangle_buffer=self._rtao_triangle_buffer or 0,
+            )
+        else:
+            self._rt_backend.destroy_accel_struct(
+                accel_struct=self._rtao_accel_struct,
+                sphere_buffer=self._rtao_sphere_buffer,
+            )
+        self._rtao_accel_struct = None
+        self._rtao_sphere_buffer = None
+        self._rtao_cylinder_buffer = None
+        self._rtao_triangle_buffer = None
+
     def build_sphere_acceleration_structure(self, sphere_data):
         """Build a ray tracing acceleration structure from sphere positions/radii.
 
@@ -2515,15 +2776,7 @@ void main() {
         sphere_data : ndarray, shape (N, 4), dtype float32
             Per-sphere (x, y, z, radius) in world space.
         """
-        if self._rtao_accel_struct is not None:
-            self._rt_backend.destroy_accel_struct(
-                accel_struct=self._rtao_accel_struct,
-                sphere_buffer=self._rtao_sphere_buffer,
-            )
-            self._rtao_accel_struct = None
-            self._rtao_sphere_buffer = None
-            self._rtao_cylinder_buffer = None
-            self._rtao_triangle_buffer = None
+        self._destroy_rt_accel_struct()
 
         data = np.ascontiguousarray(sphere_data, dtype=np.float32)
         as_ptr, sb_ptr = self._rt_backend.build_sphere_accel(
@@ -2544,15 +2797,7 @@ void main() {
         cylinder_data : ndarray, shape (M, 8), dtype float32
             Per-cylinder (p0.x, p0.y, p0.z, radius, p1.x, p1.y, p1.z, 0).
         """
-        if self._rtao_accel_struct is not None:
-            self._rt_backend.destroy_accel_struct(
-                accel_struct=self._rtao_accel_struct,
-                sphere_buffer=self._rtao_sphere_buffer,
-            )
-            self._rtao_accel_struct = None
-            self._rtao_sphere_buffer = None
-            self._rtao_cylinder_buffer = None
-            self._rtao_triangle_buffer = None
+        self._destroy_rt_accel_struct()
 
         sph = np.ascontiguousarray(sphere_data, dtype=np.float32)
         cyl = np.ascontiguousarray(cylinder_data, dtype=np.float32)
@@ -2579,15 +2824,7 @@ void main() {
         triangle_data : ndarray or None, shape (T, 12), dtype float32
             Per-triangle: 3 vertices packed as (v0.xyz, 0, v1.xyz, 0, v2.xyz, 0).
         """
-        if self._rtao_accel_struct is not None:
-            self._rt_backend.destroy_accel_struct(
-                accel_struct=self._rtao_accel_struct,
-                sphere_buffer=self._rtao_sphere_buffer,
-            )
-            self._rtao_accel_struct = None
-            self._rtao_sphere_buffer = None
-            self._rtao_cylinder_buffer = None
-            self._rtao_triangle_buffer = None
+        self._destroy_rt_accel_struct()
 
         sph = np.ascontiguousarray(sphere_data, dtype=np.float32)
         # Provide empty arrays for missing geometries so the C API always
@@ -2730,19 +2967,51 @@ void main() {
         self._rt_backend.compile_pathtracer(context=self._rt_ctx, shader_source=source)
         self._pt_pipeline_compiled = True
 
+    _pt_dummy_density = None
+    _pt_dummy_colormap = None
+
+    def _ensure_pt_dummy_textures(self):
+        """1-texel placeholders for the path tracer's volume bindings.
+
+        The compute pipeline's descriptor set always declares a sampler3D and
+        a sampler1D, so when no density map is shown we still need valid image
+        views to bind. These are never sampled (the shader gates volume work on
+        the present flag), so their contents don't matter; they just keep the
+        descriptor set complete. Created once and reused.
+        """
+        if self._pt_dummy_density is None:
+            # format 1 = R8, dimension 3 -> a 1x1x1 sampler3D.
+            self._pt_dummy_density = self._vulkan.create_texture(
+                context=self._ctx, width=1, height=1, depth=1,
+                format=1, linear_filter=1, depth_compare=0, dimension=3,
+            )
+        if self._pt_dummy_colormap is None:
+            # format 0 = RGBA8, dimension 2 -> a 1x1 sampler2D. The colormap is
+            # a 2D Nx1 texture (1D VkImages don't survive export to Metal).
+            self._pt_dummy_colormap = self._vulkan.create_texture(
+                context=self._ctx, width=1, height=1, depth=1,
+                format=0, linear_filter=1, depth_compare=0, dimension=2,
+            )
+        return self._pt_dummy_density, self._pt_dummy_colormap
+
     def create_rgba_texture(self, width, height):
-        """Create an RGBA8 storage texture for path-tracer output.
+        """Create an RGBA16F storage texture for path-tracer output.
 
         storage=1 is required because the path-tracer compute kernel binds
         these as `image2D` and writes directly via imageStore. Without the
         STORAGE_IMAGE usage bit, the writes hit undefined memory and
         produce garbage (a few rows of corruption + black elsewhere).
+
+        RGBA16F (format 9) rather than RGBA8: the temporal accumulation
+        stores a running average whose per-frame delta falls below 1/255
+        after a few dozen samples; an 8-bit target rounds the update away
+        and convergence freezes with visible banding.
         """
         return self._vulkan.create_texture(
             context=self._ctx,
             width=width,
             height=height,
-            format=0,
+            format=9,
             linear_filter=1,
             depth_compare=0,
             storage=1,
@@ -2767,14 +3036,30 @@ void main() {
         ambient_color=(0.1, 0.1, 0.1),
         background_color=(0, 0, 0),
         max_bounces=2,
+        volume_density_texture=None,
+        volume_colormap_texture=None,
+        volume_bbox_min=None,
+        volume_bbox_max=None,
+        volume_region_min=None,
+        volume_region_max=None,
+        volume_sigma_max=1.0,
+        volume_phase_g=0.0,
+        volume_colormap_range=(0.0, 1.0),
     ):
-        """Dispatch the path tracer compute kernel."""
+        """Dispatch the path tracer compute kernel.
+
+        When ``volume_density_texture`` is given (a 3D scalar density texture
+        handle) the kernel renders that map as a participating medium with
+        single/multiple scattering; ``volume_colormap_texture`` is the 1D
+        transfer function. All ``volume_*`` arguments are ignored when no
+        density texture is supplied, and the geometry-only path is unchanged.
+        """
         if self._rtao_accel_struct is None:
             return
         self._ensure_pt_pipeline()
 
         w, h = self._width, self._height
-        uniforms = np.zeros(56, dtype=np.float32)
+        uniforms = np.zeros(76, dtype=np.float32)
         uniforms[0:16] = np.asarray(inv_projection, dtype=np.float32).reshape(-1)
         uniforms[16:32] = np.asarray(inv_view, dtype=np.float32).reshape(-1)
         uniforms_int = uniforms.view(np.uint32)
@@ -2789,6 +3074,23 @@ void main() {
         uniforms[44:47] = np.asarray(ambient_color, dtype=np.float32).ravel()[:3]
         uniforms[48:51] = np.asarray(background_color, dtype=np.float32).ravel()[:3]
         uniforms_int[52] = max_bounces
+
+        # Participating-medium block (floats 56..75). vol_bbox_min.w (float 59)
+        # is the present flag the shader gates all volume work on.
+        vol_present = volume_density_texture is not None
+        if vol_present:
+            uniforms[56:59] = np.asarray(volume_bbox_min, dtype=np.float32).ravel()[:3]
+            uniforms[59] = 1.0
+            uniforms[60:63] = np.asarray(volume_bbox_max, dtype=np.float32).ravel()[:3]
+            # vol_bbox_max.w = colormap mode: 1 = scalar density + 1D transfer
+            # function, 0 = pre-colored RGBA texture sampled directly.
+            uniforms[63] = 1.0 if volume_colormap_texture is not None else 0.0
+            uniforms[64:67] = np.asarray(volume_region_min, dtype=np.float32).ravel()[:3]
+            uniforms[68:71] = np.asarray(volume_region_max, dtype=np.float32).ravel()[:3]
+            uniforms[72] = np.float32(volume_sigma_max)
+            uniforms[73] = np.float32(volume_phase_g)
+            uniforms[74] = np.float32(volume_colormap_range[0])
+            uniforms[75] = np.float32(volume_colormap_range[1])
 
         if self._rt_backend is self._metal_rt_module:
             # Undo the Vulkan Y-flip in the inverse projection (same
@@ -2806,6 +3108,17 @@ void main() {
         tri_color_buf = triangle_color_buffer or 0
 
         self._vulkan.end_render_pass(context=self._ctx)
+
+        # Volume density (sampler3D) + colormap (sampler1D). Bind 1-texel
+        # dummies when no volume is shown; the shader's present flag is 0 so
+        # they're never read.
+        dummy_density, dummy_colormap = self._ensure_pt_dummy_textures()
+        density_tex = (volume_density_texture
+                       if volume_density_texture is not None
+                       else dummy_density)
+        colormap_tex = (volume_colormap_texture
+                        if volume_colormap_texture is not None
+                        else dummy_colormap)
 
         if self._rt_backend is self._metal_rt_module:
             # Submit pending Vulkan work and signal the timeline semaphore.
@@ -2832,6 +3145,8 @@ void main() {
                 triangle_buffer=tri_buf,
                 triangle_color_buffer=mtl_tri_color_buf,
                 triangle_color_buffer_offset=tri_color_offset,
+                volume_density_texture=self._export_vk_texture(density_tex),
+                volume_colormap_texture=self._export_vk_texture(colormap_tex),
                 uniforms=data,
             )
         else:
@@ -2847,6 +3162,8 @@ void main() {
                 cylinder_color_buffer=cyl_color_buf,
                 triangle_buffer=tri_buf,
                 triangle_color_buffer=tri_color_buf,
+                volume_density_texture=density_tex,
+                volume_colormap_texture=colormap_tex,
                 uniforms=data,
             )
 
@@ -3131,11 +3448,185 @@ class _StubSilhouette:
         pass
 
 
-class _StubOutline:
+class VulkanSilhouette:
+    """Depth-edge silhouettes for the Vulkan renderer.
+
+    The silhouette parameters (enabled, thickness, color, depth_jump,
+    perspective_near_far_ratio) live on the view's opengl.Silhouette
+    object, which the graphics command and View manage; the render graph
+    assigns it to `params` each frame and this class implements the
+    drawing protocol against it. Instead of OpenGL's render-to-offscreen
+    approach, the scene depth is copied into a sampleable texture
+    (vulkan_copy_depth_texture) and a fullscreen quad runs the same
+    depth-edge shader (shaders/silhouette.frag).
+    """
+
+    def __init__(self, render):
+        self._render = render
+        self.params = None
+        self._depth_copy = None
+        self._depth_size = None
+
+    def delete(self):
+        if self._depth_copy is not None:
+            self._render._vulkan.destroy_texture(texture=self._depth_copy)
+            self._depth_copy = None
+            self._depth_size = None
+
+    @property
+    def enabled(self):
+        p = self.params
+        return p is not None and p.enabled
+
+    def start_silhouette_drawing(self, render):
+        # OpenGL redirects the scene into an offscreen framebuffer here so
+        # the depth can later be sampled. Vulkan renders normally and
+        # copies the depth at composite time instead.
+        pass
+
+    def draw_silhouette(self, render):
+        # Silhouettes drawn behind transparent surfaces use the same
+        # depth-copy composite as the final pass.
+        self.finish_silhouette_drawing(render)
+
+    def finish_silhouette_drawing(self, render):
+        p = self.params
+        r = render
+        w, h = r.render_size()
+        # The depth copy mirrors the swapchain-sized scene depth buffer;
+        # skip during offscreen captures of a different size.
+        if w <= 0 or h <= 0 or (w, h) != (r._width, r._height):
+            return
+        if self._depth_copy is None or self._depth_size != (w, h):
+            if self._depth_copy is not None:
+                r._vulkan.destroy_texture(texture=self._depth_copy)
+            self._depth_copy = r._vulkan.create_texture(
+                context=r._ctx, width=w, height=h,
+                format=2, linear_filter=0, depth_compare=0,
+            )
+            self._depth_size = (w, h)
+
+        # Copy ends the active render pass; resume with the scene intact.
+        r._vulkan.copy_depth_texture(context=r._ctx, texture=self._depth_copy)
+        r._vulkan.begin_render_pass(
+            context=r._ctx,
+            clear_r=0, clear_g=0, clear_b=0, clear_a=1,
+            clear_depth=0, load_color=1, load_depth=1,
+        )
+
+        u = np.zeros(12, dtype=np.float32)
+        u[0:4] = p.color
+        u[4] = p.depth_jump
+        u[5] = p.perspective_near_far_ratio
+        u[6] = 1.0 / w
+        u[7] = 1.0 / h
+        u[8] = float(p.thickness)
+        r.draw_fullscreen_quad(
+            self._depth_copy,
+            "silhouette", "silhouette_vertex", "silhouette_fragment",
+            uniforms_data=np.ascontiguousarray(u),
+        )
+
+
+class VulkanOutline:
+    """Selection highlight outlines for the Vulkan renderer.
+
+    Mirrors opengl.Outline: render the highlighted geometry unlit and
+    all-white into a mask texture, depth-testing against the live scene
+    depth buffer (depth writes off) so hidden parts are excluded, then
+    composite a colored outline along the mask boundary with a
+    fullscreen quad (outline.vert/.frag).
+    """
+
     offscreen_outline_needed = False
 
+    def __init__(self, render):
+        self._render = render
+        self._mask_texture = None
+        self._mask_size = None
+        self._saved_state = None
+
+    def delete(self):
+        if self._mask_texture is not None:
+            self._render._vulkan.destroy_texture(texture=self._mask_texture)
+            self._mask_texture = None
+            self._mask_size = None
+
     def set_outline_mask(self):
+        # OpenGL copies the scene depth into the mask framebuffer here;
+        # the Vulkan mask pass attaches the live scene depth directly.
         pass
+
+    def start_rendering_outline(self):
+        r = self._render
+        w, h = r.render_size()
+        # The mask pass shares the swapchain-sized scene depth buffer, so
+        # it can't run while an offscreen capture target of a different
+        # size is active. Skip outlines in captures rather than failing.
+        if (w, h) != (r._width, r._height) or w <= 0 or h <= 0:
+            self._saved_state = None
+            return
+        if self._mask_texture is None or self._mask_size != (w, h):
+            if self._mask_texture is not None:
+                r._vulkan.destroy_texture(texture=self._mask_texture)
+            # Format 10 = swapchain format: the scene pipelines drawing
+            # the mask are baked against the main render pass, and
+            # render-pass compatibility requires matching color formats.
+            self._mask_texture = r._vulkan.create_texture(
+                context=r._ctx, width=w, height=h,
+                format=10, linear_filter=0, depth_compare=0,
+            )
+            self._mask_size = (w, h)
+
+        r._vulkan.begin_mask_pass(
+            context=r._ctx, color_texture=self._mask_texture,
+            width=w, height=h,
+        )
+        self._saved_state = (
+            r.enable_capabilities,
+            r.disable_capabilities,
+            r._depth_write_enabled,
+        )
+        # Unlit all-white mask, like the OpenGL outline path. Depth
+        # writes off: the depth attachment is the live scene depth.
+        r.disable_capabilities |= (
+            r.SHADER_VERTEX_COLORS
+            | r.SHADER_TEXTURE_2D
+            | r.SHADER_TEXTURE_3D
+            | r.SHADER_TEXTURE_CUBEMAP
+            | r.SHADER_LIGHTING
+        )
+        r.enable_capabilities |= r.SHADER_ALL_WHITE
+        r._depth_write_enabled = False
+
+    def finish_rendering_outline(self, color=(0, 1, 0, 1), pixel_width=1):
+        r = self._render
+        if self._saved_state is None:
+            return  # start_rendering_outline skipped (capture in progress)
+        ec, dc, dw = self._saved_state
+        self._saved_state = None
+        r.enable_capabilities = ec
+        r.disable_capabilities = dc
+        r._depth_write_enabled = dw
+
+        # End the mask pass and resume the main pass with the scene intact.
+        r._vulkan.end_render_pass(context=r._ctx)
+        r._vulkan.begin_render_pass(
+            context=r._ctx,
+            clear_r=0, clear_g=0, clear_b=0, clear_a=1,
+            clear_depth=0, load_color=1, load_depth=1,
+        )
+
+        w, h = self._mask_size
+        u = np.zeros(8, dtype=np.float32)
+        u[0:4] = color
+        u[4] = pixel_width / w
+        u[5] = pixel_width / h
+        r.draw_fullscreen_quad(
+            self._mask_texture,
+            "outline", "outline_vertex", "outline_fragment",
+            uniforms_data=np.ascontiguousarray(u),
+        )
 
 
 class _StubOffscreen:

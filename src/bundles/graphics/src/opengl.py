@@ -2763,6 +2763,17 @@ class Lighting:
         more silhouette detail; larger values let the bilateral blur
         cross deeper depth discontinuities."""
 
+        self.pt_volume_density = 1.0
+        """Path tracer participating-medium extinction scale (the majorant).
+        Scales how optically dense a displayed volume image is when path
+        traced: larger values make the density map more opaque and
+        self-shadowing, smaller values make it thinner and more translucent."""
+
+        self.pt_volume_g = 0.0
+        """Path tracer volume scattering anisotropy (Henyey-Greenstein g),
+        in (-1, 1). 0 is isotropic; positive values forward-scatter for a
+        translucent, backlit glow; negative values back-scatter."""
+
         self.shadows = False
         "Does key light cast shadows."
 

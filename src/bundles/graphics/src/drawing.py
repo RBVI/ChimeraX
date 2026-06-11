@@ -1748,8 +1748,61 @@ def draw_on_top(renderer, drawings):
     renderer.enable_depth_test(True)
 
 
+def draw_overlay_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
+    '''Draw a rectangle outline as a 2D overlay during normal scene
+    rendering. Used for the drag-selection rubber band on renderers
+    without front-buffer XOR support (Vulkan/Metal); View.draw composites
+    it every frame while a drag is in progress.'''
+
+    if drawing is None:
+        d = Drawing('drag box')
+        from numpy import array, int32
+        t = array(((0,1,2), (0,2,3)), int32)
+        d.set_geometry(None, None, t)
+        d.display_style = d.Mesh
+        d.use_lighting = False
+    else:
+        d = drawing
+
+    r = renderer
+    s = r.pixel_scale()
+    from numpy import array, float32, uint8
+    v = array(((s*x1, s*y1, 0), (s*x2, s*y1, 0),
+               (s*x2, s*y2, 0), (s*x1, s*y2, 0)),
+              float32)
+    d.set_geometry(v, None, d.triangles)
+    d.edge_mask = array((3, 6), uint8)
+    d.color = color
+
+    from chimerax.geometry import place
+    p0 = place.identity()
+    r.set_view_matrix(p0)
+    r.set_model_matrix(p0)
+    r.enable_depth_test(False)
+    rdc = r.disable_capabilities
+    r.disable_capabilities = rdc | r.SHADER_CLIP_PLANES
+
+    w, h = r.render_size()
+    from .camera import ortho
+    r.set_projection_matrix(ortho(0, w, 0, h, -1, 1))
+
+    d.draw(r, d.OPAQUE_DRAW_PASS)
+
+    r.disable_capabilities = rdc
+    r.enable_depth_test(True)
+
+    return d
+
+
 def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
     '''Draw rectangle outline on front buffer using xor mode.'''
+
+    if not hasattr(renderer, 'draw_front_buffer'):
+        # Front-buffer XOR rendering is an OpenGL-specific technique; the
+        # Metal/Vulkan renderers have no front buffer to draw into.
+        # View.draw_xor_rectangle routes those renderers to the overlay
+        # rectangle drawn by draw_overlay_rectangle instead.
+        return drawing
 
     if drawing is None:
         d = Drawing('drag box')

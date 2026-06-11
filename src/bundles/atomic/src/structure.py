@@ -2633,9 +2633,17 @@ def _bonds_planes_pick(drawing, planes):
     if drawing is None or not drawing.display:
         return None
 
-    hb_xyz = drawing.positions.array()[:,:,3]	# Half-bond centers
-    n = len(hb_xyz)//2
-    xyz = 0.5*(hb_xyz[:n] + hb_xyz[n:])	# Bond centers
+    pxyz = drawing.positions.array()[:,:,3]
+    vb = drawing.visible_bonds
+    if vb is not None and len(pxyz) == len(vb):
+        # Impostor cylinder layout: one placement per bond whose
+        # translation is already the bond center.
+        xyz = pxyz
+    else:
+        # Tessellated half-bond layout: two cylinder placements per
+        # bond, first N for the atom1 halves, second N for atom2.
+        n = len(pxyz)//2
+        xyz = 0.5*(pxyz[:n] + pxyz[n:])	# Bond centers
     from chimerax import geometry
     pmask = geometry.points_within_planes(xyz, planes)
     return pmask

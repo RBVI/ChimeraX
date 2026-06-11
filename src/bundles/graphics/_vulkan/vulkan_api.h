@@ -31,6 +31,7 @@ PyObject* vulkan_begin_render_pass(PyObject* self, PyObject* args, PyObject* kwd
 PyObject* vulkan_begin_depth_pass(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_end_render_pass(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_begin_color_pass(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_begin_mask_pass(PyObject* self, PyObject* args, PyObject* kwds);
 
 // Pipeline (shader) management
 PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds);
@@ -65,6 +66,7 @@ PyObject* vulkan_read_framebuffer(PyObject* self, PyObject* args, PyObject* kwds
 
 // Query
 PyObject* vulkan_get_depth_texture(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_copy_depth_texture(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_supports_ray_tracing(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_flush_gpu(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_get_buffer_device_memory(PyObject* self, PyObject* args, PyObject* kwds);

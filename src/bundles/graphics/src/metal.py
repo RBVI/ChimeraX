@@ -1817,6 +1817,17 @@ fragment float4 test_fragment(VertexOut in [[stage_in]])
         ambient_color=(0.1, 0.1, 0.1),
         background_color=(0, 0, 0),
         max_bounces=2,
+        # Participating-medium volume parameters are accepted but ignored:
+        # the Metal path tracer's volume port is deferred (Vulkan first).
+        volume_density_texture=None,
+        volume_colormap_texture=None,
+        volume_bbox_min=None,
+        volume_bbox_max=None,
+        volume_region_min=None,
+        volume_region_max=None,
+        volume_sigma_max=1.0,
+        volume_phase_g=0.0,
+        volume_colormap_range=(0.0, 1.0),
     ):
         """Dispatch the path tracer compute kernel."""
         if self._rtao_accel_struct is None:

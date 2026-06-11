@@ -118,17 +118,27 @@ VkRenderPass create_oit_render_pass(VkDevice device) {
     subpass.pColorAttachments = color_refs;
     subpass.pDepthStencilAttachment = &depth_ref;
 
-    VkSubpassDependency dep{};
-    dep.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dep.dstSubpass = 0;
-    dep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                       VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-    dep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                       VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-                        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-    dep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-                        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+    VkSubpassDependency deps[2] = {};
+    deps[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+    deps[0].dstSubpass = 0;
+    deps[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                           VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    deps[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                           VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    deps[0].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    deps[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+    // Make accum/reveal writes visible to the composite pass's fragment
+    // shader reads. The implicit outgoing dependency only performs the
+    // layout transition; it has no SHADER_READ visibility, so without
+    // this the composite quad can sample stale/garbage transparency.
+    deps[1].srcSubpass = 0;
+    deps[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+    deps[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    deps[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    deps[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    deps[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
     VkRenderPassCreateInfo rp{};
     rp.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -136,8 +146,8 @@ VkRenderPass create_oit_render_pass(VkDevice device) {
     rp.pAttachments = attachments;
     rp.subpassCount = 1;
     rp.pSubpasses = &subpass;
-    rp.dependencyCount = 1;
-    rp.pDependencies = &dep;
+    rp.dependencyCount = 2;
+    rp.pDependencies = deps;
 
     VkRenderPass pass = VK_NULL_HANDLE;
     vkCreateRenderPass(device, &rp, nullptr, &pass);
@@ -190,10 +200,16 @@ PyObject* vulkan_create_oit_resources(PyObject* self, PyObject* args, PyObject* 
 
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
 
-    // Tear down old resources if size changed.
+    // Tear down old resources if size changed. The per-begin OIT
+    // framebuffers sitting in the deferred-delete queues reference
+    // oit_accum_view / oit_reveal_view as attachments; they must be
+    // destroyed before destroy_oit tears those views down, or their
+    // later deferred destruction dereferences freed driver objects
+    // (SIGBUS in MoltenVK when resizing with a transparent scene).
     if (ctx->oit_render_pass && (ctx->oit_width != (uint32_t)width ||
                                   ctx->oit_height != (uint32_t)height)) {
         vkDeviceWaitIdle(ctx->device);
+        flush_all_pending_deletes(ctx);
         destroy_oit(ctx);
     }
     if (ctx->oit_render_pass) Py_RETURN_NONE;  // Already created at this size.
@@ -226,25 +242,12 @@ PyObject* vulkan_create_oit_resources(PyObject* self, PyObject* args, PyObject* 
         return NULL;
     }
 
-    // Create framebuffer (accum + reveal + main depth).
-    VkImageView views[3] = {
-        ctx->oit_accum_view,
-        ctx->oit_reveal_view,
-        ctx->depth_image.image_view
-    };
-    VkFramebufferCreateInfo fbi{};
-    fbi.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    fbi.renderPass = ctx->oit_render_pass;
-    fbi.attachmentCount = 3;
-    fbi.pAttachments = views;
-    fbi.width = width;
-    fbi.height = height;
-    fbi.layers = 1;
-    if (vkCreateFramebuffer(ctx->device, &fbi, nullptr, &ctx->oit_framebuffer) != VK_SUCCESS) {
-        destroy_oit(ctx);
-        PyErr_SetString(PyExc_RuntimeError, "Failed to create OIT framebuffer");
-        return NULL;
-    }
+    // No framebuffer is created here. The depth attachment must be the
+    // depth buffer of whatever target is active when the pass begins
+    // (swapchain depth normally, the offscreen depth during image
+    // capture), so begin_oit_pass builds a framebuffer per use and
+    // defer-deletes it with the frame. Caching one against the swapchain
+    // depth would be the wrong size or a dangling view during capture.
 
     // Create nearest-neighbor sampler for the composite pass.
     VkSamplerCreateInfo si{};
@@ -278,6 +281,8 @@ PyObject* vulkan_destroy_oit_resources(PyObject* self, PyObject* args, PyObject*
         return NULL;
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
     vkDeviceWaitIdle(ctx->device);
+    // Queued OIT framebuffers reference the views destroy_oit removes.
+    flush_all_pending_deletes(ctx);
     destroy_oit(ctx);
     Py_RETURN_NONE;
 }
@@ -295,12 +300,40 @@ PyObject* vulkan_begin_oit_pass(PyObject* self, PyObject* args, PyObject* kwds) 
 
     FrameData& frame = ctx->frames[ctx->current_frame];
 
-    // End the current main render pass so the depth buffer is available.
-    if (ctx->in_render_pass) {
-        vkCmdEndRenderPass(frame.command_buffer);
-        ctx->in_render_pass = false;
-        ctx->render_pass_stack.clear();
+    // End the current main render pass so the depth buffer is available
+    // (queues its owned render pass/framebuffer for deferred deletion).
+    end_active_render_pass(ctx);
+
+    // Attach the depth buffer of the *current* render target: the
+    // swapchain depth normally, the offscreen depth during image capture.
+    OffscreenFramebuffer* off = ctx->active_offscreen;
+    VkImageView depth_view = off ? off->depth_view : ctx->depth_image.image_view;
+    uint32_t target_w = off ? off->width : ctx->swapchain_extent.width;
+    uint32_t target_h = off ? off->height : ctx->swapchain_extent.height;
+    if (target_w != ctx->oit_width || target_h != ctx->oit_height) {
+        PyErr_Format(PyExc_RuntimeError,
+                     "OIT buffers (%ux%u) do not match render target (%ux%u)",
+                     ctx->oit_width, ctx->oit_height, target_w, target_h);
+        return NULL;
     }
+
+    VkImageView views[3] = { ctx->oit_accum_view, ctx->oit_reveal_view, depth_view };
+    VkFramebufferCreateInfo fbi{};
+    fbi.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    fbi.renderPass = ctx->oit_render_pass;
+    fbi.attachmentCount = 3;
+    fbi.pAttachments = views;
+    fbi.width = ctx->oit_width;
+    fbi.height = ctx->oit_height;
+    fbi.layers = 1;
+
+    VkFramebuffer framebuffer;
+    if (vkCreateFramebuffer(ctx->device, &fbi, nullptr, &framebuffer) != VK_SUCCESS) {
+        PyErr_SetString(PyExc_RuntimeError, "Failed to create OIT framebuffer");
+        return NULL;
+    }
+    // Queue for destruction once this frame's fence has signalled.
+    ctx->pending_deletes[deferred_delete_slot(ctx)].framebuffers.push_back(framebuffer);
 
     // Begin the OIT render pass.
     VkClearValue clear_values[3] = {};
@@ -311,7 +344,7 @@ PyObject* vulkan_begin_oit_pass(PyObject* self, PyObject* args, PyObject* kwds) 
     VkRenderPassBeginInfo rp{};
     rp.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     rp.renderPass = ctx->oit_render_pass;
-    rp.framebuffer = ctx->oit_framebuffer;
+    rp.framebuffer = framebuffer;
     rp.renderArea.offset = {0, 0};
     rp.renderArea.extent = {ctx->oit_width, ctx->oit_height};
     rp.clearValueCount = 3;

@@ -63,13 +63,21 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     //  the GLSL shader declared as:
     //    layout(constant_id = N) const bool SOME_FLAG = false;
     // ------------------------------------------------------------------
+    if (!PyList_Check(constants)) {
+        PyErr_SetString(PyExc_TypeError,
+                        "constants must be a list of ints");
+        return NULL;
+    }
     Py_ssize_t num_constants = PyList_Size(constants);
     std::vector<uint32_t> spec_data(num_constants);
     std::vector<VkSpecializationMapEntry> spec_entries(num_constants);
 
     for (Py_ssize_t i = 0; i < num_constants; ++i) {
         PyObject* item = PyList_GetItem(constants, i);
-        spec_data[i] = PyLong_AsLong(item) ? 1 : 0;
+        long v = PyLong_AsLong(item);
+        if (v == -1 && PyErr_Occurred())
+            return NULL;
+        spec_data[i] = v ? 1 : 0;
 
         spec_entries[i].constantID = static_cast<uint32_t>(i);
         spec_entries[i].offset = static_cast<uint32_t>(i * sizeof(uint32_t));
@@ -241,7 +249,13 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     rasterization.rasterizerDiscardEnable = VK_FALSE;
     rasterization.polygonMode = VK_POLYGON_MODE_FILL;
     rasterization.cullMode = face_culling ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_NONE;
-    rasterization.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    // The GL->Vulkan conversion negates clip-space Y in the projection
+    // matrix (vulkan.py set_projection_matrix), which mirrors triangle
+    // orientation in framebuffer space: geometry authored with OpenGL's
+    // CCW-front convention rasterizes clockwise here. With CCW front faces
+    // back-face culling would cull exactly the wrong side (the volume
+    // raycast box rendered its far faces instead of near faces).
+    rasterization.frontFace = VK_FRONT_FACE_CLOCKWISE;
     rasterization.depthBiasEnable = VK_FALSE;
     rasterization.lineWidth = 1.0f;
 
@@ -395,6 +409,10 @@ PyObject* vulkan_set_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
     VulkanPipeline* pipeline = reinterpret_cast<VulkanPipeline*>(pipeline_ptr);
     VK_TRACE("set_pipeline %p", (void*)pipeline);
+
+    // Recording is only valid while a frame is being recorded.
+    if (!ctx->in_frame)
+        Py_RETURN_NONE;
 
     VkCommandBuffer cmd = ctx->frames[ctx->current_frame].command_buffer;
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->pipeline);

@@ -49,6 +49,18 @@ struct PTUniforms {
     float4   ambient_color;        // .xyz = color,        .w = unused
     float4   background_color;     // .xyz = color,        .w = unused
     int      max_bounces;
+    float    _pad0;
+    float    _pad1;
+    float    _pad2;
+    // Participating-medium (density volume) block. Matches the Vulkan
+    // pathtracer.comp layout byte-for-byte (the host packs one buffer for
+    // both). Inactive when vol_bbox_min.w == 0.
+    float4   vol_bbox_min;     // .xyz world box min, .w = present flag (1/0)
+    float4   vol_bbox_max;     // .xyz world box max
+    float4   full_region_min;  // .xyz texture-space [0,1] mapping origin
+    float4   full_region_max;  // .xyz texture-space [0,1] mapping extent
+    float4   vol_params;       // .x sigma_max, .y phase g,
+                               // .z colormap offset, .w colormap inv-range
 };
 
 // ---------------------------------------------------------------------------
@@ -132,6 +144,103 @@ inline float3 environment_indirect(float3 dir)
     float3 sky = float3(0.6, 0.75, 0.95);
     float3 ground = float3(0.2, 0.2, 0.2);
     return mix(ground, sky, t);
+}
+
+// ---------------------------------------------------------------------------
+//  Participating-medium (density-volume) helpers. Mirrors pathtracer.comp:
+//  extinction is driven by the transfer-function alpha (sigma_t/sigma_max),
+//  albedo is the colormap rgb, and the phase is 4*pi-normalized to match the
+//  renderer's surface lighting scale. See pathtracer.comp for the full notes.
+// ---------------------------------------------------------------------------
+constant float MTL_PI = 3.14159265358979;
+
+// PCG-style sequential RNG for delta/ratio tracking.
+inline float rand_next(thread uint& state)
+{
+    state = state * 747796405u + 2891336453u;
+    uint w = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    w = (w >> 22u) ^ w;
+    return float(w) * (1.0 / 4294967296.0);
+}
+
+// Slab test. Returns float2(t_enter, t_exit); a miss has x > y.
+inline float2 bbox_intersect(float3 ro, float3 rd, float3 bmin, float3 bmax)
+{
+    float3 inv = 1.0 / rd;
+    float3 t0 = (bmin - ro) * inv;
+    float3 t1 = (bmax - ro) * inv;
+    float3 tlo = min(t0, t1);
+    float3 thi = max(t0, t1);
+    return float2(max(max(tlo.x, tlo.y), tlo.z),
+                  min(min(thi.x, thi.y), thi.z));
+}
+
+// World point -> (albedo.rgb, sigma_t/sigma_max in .a). Zero outside the data.
+// vol_bbox_max.w selects the color mode: >0.5 = scalar density (.r) through
+// the 1D transfer function; else the pre-colored RGBA texture used directly.
+inline float4 vol_transfer(float3 world, constant PTUniforms& u,
+                           texture3d<float> dens, texture2d<float> cmap)
+{
+    constexpr sampler s(filter::linear, address::clamp_to_edge);
+    float3 ext = u.full_region_max.xyz - u.full_region_min.xyz;
+    float3 tc = (world - u.full_region_min.xyz) / ext;
+    if (any(tc < 0.0) || any(tc > 1.0))
+        return float4(0.0);
+    float4 texel = dens.sample(s, tc);
+    if (u.vol_bbox_max.w > 0.5) {
+        float c = (texel.r - u.vol_params.z) * u.vol_params.w;
+        return cmap.sample(s, float2(clamp(c, 0.0, 1.0), 0.5));
+    }
+    return texel;  // baked RGBA: rgb = albedo, a = opacity
+}
+
+// 4*pi-normalized Henyey-Greenstein phase (isotropic -> 1.0).
+inline float hg_phase(float g, float cos_t)
+{
+    float gg = g * g;
+    float d = 1.0 + gg - 2.0 * g * cos_t;
+    return (1.0 - gg) / (d * sqrt(max(d, 1e-6)));
+}
+
+// Importance-sample a new propagation direction from the HG phase about wi.
+inline float3 hg_sample(float g, float3 wi, thread uint& rng)
+{
+    float u1 = rand_next(rng);
+    float u2 = rand_next(rng);
+    float cos_t;
+    if (abs(g) < 1e-3) {
+        cos_t = 1.0 - 2.0 * u1;
+    } else {
+        float s = (1.0 - g * g) / (1.0 - g + 2.0 * g * u1);
+        cos_t = (1.0 + g * g - s * s) / (2.0 * g);
+    }
+    float sin_t = sqrt(max(0.0, 1.0 - cos_t * cos_t));
+    float phi = 2.0 * MTL_PI * u2;
+    float3 w = normalize(wi);
+    float3 up = abs(w.y) < 0.999 ? float3(0, 1, 0) : float3(1, 0, 0);
+    float3 tangent = normalize(cross(up, w));
+    float3 bitangent = cross(w, tangent);
+    return sin_t * cos(phi) * tangent + sin_t * sin(phi) * bitangent + cos_t * w;
+}
+
+// Ratio-tracked transmittance through the medium, bounded by the box.
+inline float vol_transmittance(float3 ro, float3 rd, float sigma_max,
+                               thread uint& rng, constant PTUniforms& u,
+                               texture3d<float> dens, texture2d<float> cmap)
+{
+    float2 tb = bbox_intersect(ro, rd, u.vol_bbox_min.xyz, u.vol_bbox_max.xyz);
+    float t_exit = tb.y;
+    float t = max(tb.x, 0.0);
+    if (t >= t_exit) return 1.0;
+    float Tr = 1.0;
+    for (int i = 0; i < 128; i++) {
+        t -= log(1.0 - rand_next(rng)) / sigma_max;
+        if (t >= t_exit) break;
+        float a = vol_transfer(ro + rd * t, u, dens, cmap).a;
+        Tr *= (1.0 - a);
+        if (Tr < 0.01) return 0.0;
+    }
+    return Tr;
 }
 
 // ---------------------------------------------------------------------------
@@ -362,7 +471,9 @@ void pathtracer_kernel(
     const device CylinderPrimData *cylinders         [[buffer(5)]],
     const device uchar4 *cylinder_colors             [[buffer(6)]],
     const device TrianglePrimData *triangles         [[buffer(7)]],
-    const device uchar4 *triangle_colors             [[buffer(8)]])
+    const device uchar4 *triangle_colors             [[buffer(8)]],
+    texture3d<float, access::sample> vol_density     [[texture(3)]],
+    texture2d<float, access::sample> vol_colormap    [[texture(4)]])
 {
     if (tid.x >= u.width || tid.y >= u.height)
         return;
@@ -391,6 +502,63 @@ void pathtracer_kernel(
     isect.force_opacity(forced_opacity::opaque);
 
     uint ray_counter = 0;
+    uint rng = pixel_seed + u.frame * 9277u + 1u;  // for medium sampling
+
+    bool  vol_on    = u.vol_bbox_min.w > 0.5;
+    float sigma_max = u.vol_params.x;
+    float phase_g   = u.vol_params.y;
+
+    // ---- Volume diagnostic ladder (set lighting.pt_volume_density negative) ----
+    //  -1: magenta where the primary ray enters the box (present flag + bbox
+    //      + ray construction; no textures).
+    //  -2: the texture coordinate at the box midpoint as RGB. A smooth R/G/B
+    //      gradient across the box = texcoords valid; solid white/black =
+    //      full_region mapping is wrong (midpoint outside [0,1]).
+    //  -3: the RAW density texel .r at the midpoint, grayscale. Black here =
+    //      the 3D density texture reads zero in the PT (export/upload/binding).
+    //  -4: the colormap alpha at the density coordinate. Tests the 1D colormap.
+    // Writes directly and returns, bypassing accumulation so it shows at once.
+    if (vol_on && sigma_max < 0.0) {
+        constexpr sampler dsamp(filter::linear, address::clamp_to_edge);
+        float2 tb = bbox_intersect(ray_origin_world, ray_dir_world,
+                                   u.vol_bbox_min.xyz, u.vol_bbox_max.xyz);
+        float t0 = max(tb.x, 0.0);
+        bool enters = tb.y > t0;
+        float3 mid = ray_origin_world + ray_dir_world * (0.5 * (t0 + tb.y));
+        float3 ext = u.full_region_max.xyz - u.full_region_min.xyz;
+        float3 tc = (mid - u.full_region_min.xyz) / ext;
+        bool in_tc = all(tc >= 0.0) && all(tc <= 1.0);
+        float4 dbg = float4(0.0, 0.0, 0.0, 1.0);
+        if (sigma_max > -1.5) {
+            dbg = enters ? float4(1.0, 0.0, 1.0, 1.0) : dbg;
+        } else if (sigma_max > -2.5) {
+            dbg = enters ? float4(saturate(tc), 1.0) : dbg;
+        } else if (sigma_max > -3.5) {
+            float d = (enters && in_tc) ? vol_density.sample(dsamp, tc).r : 0.0;
+            dbg = float4(d, d, d, 1.0);
+        } else if (sigma_max > -4.5) {
+            float a = 0.0;
+            if (enters && in_tc) {
+                float d = vol_density.sample(dsamp, tc).r;
+                float c = (d - u.vol_params.z) * u.vol_params.w;
+                a = vol_colormap.sample(dsamp, float2(clamp(c, 0.0, 1.0), 0.5)).a;
+            }
+            dbg = float4(a, a, a, 1.0);
+        } else if (sigma_max > -5.5) {
+            // -5: the colormap RGB swept across screen x, independent of the
+            //     volume — shows whether the colormap texture has any data.
+            float uc = float(tid.x) / float(u.width);
+            dbg = float4(vol_colormap.sample(dsamp, float2(uc, 0.5)).rgb, 1.0);
+        } else {
+            // -6: the colormap alpha swept across screen x.
+            float uc = float(tid.x) / float(u.width);
+            float a = vol_colormap.sample(dsamp, float2(uc, 0.5)).a;
+            dbg = float4(a, a, a, 1.0);
+        }
+        color_tex.write(dbg, tid);
+        accum_tex.write(dbg, tid);
+        return;
+    }
 
     // Path trace.
     float3 throughput = float3(1.0);
@@ -407,7 +575,69 @@ void pathtracer_kernel(
         r.max_distance = 1e10;
 
         auto result = isect.intersect(r, accel_struct, func_table);
-        if (result.type == intersection_type::none) {
+        bool surf_hit = result.type != intersection_type::none;
+        float t_surface = surf_hit ? result.distance : 1e30;
+
+        // ---- Participating medium along [t_enter, t_surface] ----
+        // Woodcock delta tracking; see pathtracer.comp for the full rationale.
+        if (vol_on && sigma_max > 0.0) {
+            float2 tb = bbox_intersect(origin, dir,
+                                       u.vol_bbox_min.xyz, u.vol_bbox_max.xyz);
+            float t_enter = max(tb.x, 0.001);
+            float t_exit  = min(tb.y, t_surface);
+
+            bool scattered = false;
+            bool path_dead = false;
+            float t = t_enter;
+            for (int vs = 0; vs < 256 && t_enter < t_exit; vs++) {
+                t -= log(1.0 - rand_next(rng)) / sigma_max;
+                if (t >= t_exit) break;
+                float3 xp = origin + dir * t;
+                float4 c = vol_transfer(xp, u, vol_density, vol_colormap);
+                if (rand_next(rng) >= c.a) continue;   // null collision
+
+                // Real scatter event. Single-scatter direct lighting:
+                // volumetric transmittance to the key light plus the
+                // molecular geometry as a hard blocker.
+                float3 key_dir = u.key_light_dir.xyz;
+                float  key_int = u.key_light_dir.w;
+                float Tr = vol_transmittance(xp, key_dir, sigma_max, rng, u,
+                                             vol_density, vol_colormap);
+                if (Tr > 0.0) {
+                    ray sh;
+                    sh.origin = xp;
+                    sh.direction = key_dir;
+                    sh.min_distance = 0.0;
+                    sh.max_distance = 1e10;
+                    intersector<> sh_isect;
+                    sh_isect.accept_any_intersection(true);
+                    sh_isect.force_opacity(forced_opacity::opaque);
+                    auto sh_res = sh_isect.intersect(sh, accel_struct, func_table);
+                    if (sh_res.type == intersection_type::none) {
+                        float ph = hg_phase(phase_g, dot(dir, key_dir));
+                        radiance += throughput * c.rgb * ph * key_int * Tr;
+                    }
+                }
+
+                // Russian roulette (same policy as the surface path).
+                if (bounce > 0) {
+                    float p = max(max(throughput.r, throughput.g), throughput.b);
+                    if (p <= 0.0 || rand_next(rng) > p) { path_dead = true; }
+                    else throughput /= p;
+                }
+                if (!path_dead) {
+                    throughput *= c.rgb;            // single-scatter albedo
+                    origin = xp;
+                    dir = hg_sample(phase_g, dir, rng);
+                }
+                scattered = true;
+                break;
+            }
+            if (path_dead) break;
+            if (scattered) continue;   // next bounce from the scatter vertex
+        }
+
+        if (!surf_hit) {
             if (bounce == 0) {
                 // Primary ray miss: use flat background color.
                 radiance = u.background_color.xyz;
@@ -465,7 +695,14 @@ void pathtracer_kernel(
                 shadow_ray, accel_struct, func_table);
 
             if (shadow_result.type == intersection_type::none) {
-                radiance += throughput * albedo * NdotL * key_int;
+                // Attenuate by the medium so dense regions cast soft
+                // shadows onto the molecular geometry.
+                float Tr = (vol_on && sigma_max > 0.0)
+                         ? vol_transmittance(shadow_ray.origin, key_dir,
+                                             sigma_max, rng, u,
+                                             vol_density, vol_colormap)
+                         : 1.0;
+                radiance += throughput * albedo * NdotL * key_int * Tr;
             }
         }
 

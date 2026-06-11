@@ -344,6 +344,37 @@ class SilhouetteDrawPass(RenderPass):
         ctx.silhouette.draw_silhouette(ctx.renderer)
 
 
+def _is_volume(d):
+    """A volume image drawing (full 3D raycast or plane-based)."""
+    return hasattr(d, 'draw_volume_raycast') or \
+        getattr(d, '_draw_planes', None) is not None
+
+
+def _pt_volume_drawing(ctx):
+    """The VolumeRaycastDrawing the path tracer renders as a participating
+    medium, or None.
+
+    Scans both the opaque and transparent lists (a volume image lands in
+    whichever matches its color mode). The flat list contains both the Image3d
+    container AND its child drawings. The actual raycast drawing only exists in
+    ``projectionMode rays``; it is reachable as the container's
+    ``_volume_raycast_drawing`` and is the only class with BOTH
+    ``set_shader_options`` and ``_update_coloring`` (the container has the
+    former via the base Drawing but not the latter; plane drawings have the
+    latter but not the former)."""
+    for d in list(ctx.transparent_drawings) + list(ctx.opaque_drawings):
+        # Image3d container -> its rays-mode raycast child (None otherwise).
+        vrd = getattr(d, '_volume_raycast_drawing', None)
+        if vrd is not None:
+            return vrd
+        # Or the VolumeRaycastDrawing itself, if it appears directly.
+        if (hasattr(d, 'set_shader_options')
+                and hasattr(d, '_update_coloring')
+                and hasattr(d, 'colormap_range')):
+            return d
+    return None
+
+
 class TransparentPass(RenderPass):
     """Render transparent geometry with OIT when available."""
 
@@ -358,15 +389,21 @@ class TransparentPass(RenderPass):
         r = ctx.renderer
         drawings = ctx.transparent_drawings
 
+        # When the path tracer rendered a volume this frame as a participating
+        # medium, skip its rasterized draw so it isn't composited a second
+        # time over the path-traced image.
+        handled = getattr(r, '_pt_handled_volume_id', None)
+        r._pt_handled_volume_id = None
+        if handled:
+            drawings = [d for d in drawings if id(d) not in handled]
+            if not drawings:
+                return
+
         # Use OIT if the renderer supports it.  Volume raycasting
         # drawings use VK_BLEND_OP_MAX which is incompatible with
         # WBOIT, so they go through the standard transparency path.
         if hasattr(r, 'begin_oit_pass'):
             from .drawing import _draw_multiple, Drawing
-
-            def _is_volume(d):
-                return hasattr(d, 'draw_volume_raycast') or \
-                    getattr(d, '_draw_planes', None) is not None
 
             oit_drawings = [d for d in drawings if not _is_volume(d)]
             vol_drawings = [d for d in drawings if _is_volume(d)]
@@ -412,7 +449,13 @@ class HighlightOutlinePass(RenderPass):
     name = "highlight_outline"
 
     def enabled(self, ctx):
-        return len(ctx.highlight_drawings) > 0
+        # Outline rendering needs renderer support (OpenGL's mask
+        # framebuffer technique). The Metal/Vulkan renderers carry a stub
+        # outline object without these methods; running the pass there
+        # raised AttributeError on the first selection, aborting the frame.
+        outline = getattr(ctx.renderer, "outline", None)
+        return (len(ctx.highlight_drawings) > 0
+                and hasattr(outline, "start_rendering_outline"))
 
     def execute(self, ctx):
         from .drawing import draw_highlight_outline
@@ -452,8 +495,14 @@ class GTAOPass(RenderPass):
     name = "gtao"
 
     def enabled(self, ctx):
+        # Metal-only for now: the pass draws with the gtao.metal shader
+        # and drives the encoder through r._metal directly. The Vulkan
+        # renderer has draw_fullscreen_quad but neither the shader nor a
+        # _metal handle, so enabling GTAO there crashed mid-frame.
         r = ctx.renderer
-        return hasattr(r, "draw_fullscreen_quad") and getattr(r.lighting, "gtao", 0) > 0
+        return (hasattr(r, "_metal")
+                and hasattr(r, "draw_fullscreen_quad")
+                and getattr(r.lighting, "gtao", 0) > 0)
 
     def execute(self, ctx):
         import numpy as np
@@ -542,6 +591,7 @@ class RTAOPass(RenderPass):
     _frame_counter = 0
     _accum_count = 0
     _last_atom_count = 0
+    _last_sphere_data = None
     _last_view_matrix = None
     _last_proj_matrix = None
     _ping = 0  # ping-pong index: 0 or 1
@@ -567,9 +617,18 @@ class RTAOPass(RenderPass):
         if sphere_data is None or len(sphere_data) == 0:
             return
 
-        if len(sphere_data) != self._last_atom_count:
+        # Rebuild when the geometry *content* changes, not just the count:
+        # trajectory playback and model dragging keep the atom count
+        # constant while moving every sphere, which previously left a
+        # stale BVH and blended occlusion into a stale accumulation
+        # history. The array comparison is memcmp-speed and only runs
+        # while RTAO is enabled.
+        if (len(sphere_data) != self._last_atom_count
+                or self._last_sphere_data is None
+                or not np.array_equal(sphere_data, self._last_sphere_data)):
             r.build_sphere_acceleration_structure(sphere_data)
             self._last_atom_count = len(sphere_data)
+            self._last_sphere_data = np.array(sphere_data, copy=True)
             self._accum_count = 0  # scene changed, reset accumulation
 
         res = ctx.resources
@@ -715,10 +774,13 @@ class PathTracePass(RenderPass):
     _last_proj_matrix = None
     _last_lighting_key = None
     _last_geom_key = None
+    _last_geom_data = None
     _ping = 0
     _color_buffer = None
     _cyl_color_buffer = None
     _tri_color_buffer = None
+    _pt_colormap_tex = None   # 2D Nx1 transfer-function texture for the medium
+    _pt_cmap_key = None       # cache key: rebuild only when the colormap changes
 
     def enabled(self, ctx):
         r = ctx.renderer
@@ -733,6 +795,10 @@ class PathTracePass(RenderPass):
 
         r = ctx.renderer
         lp = r.lighting
+        # Cleared each frame; set below only when a volume is path traced, so
+        # an early return (or pathtrace off) leaves the rasterized volume to
+        # the TransparentPass.
+        r._pt_handled_volume_id = None
         w, h = r.render_size()
         if w == 0 or h == 0:
             return
@@ -740,12 +806,31 @@ class PathTracePass(RenderPass):
         sphere_data, sphere_colors, cyl_data, cyl_colors, \
             tri_data, tri_colors = self._collect_geometry(ctx)
         if sphere_data is None or len(sphere_data) == 0:
-            return
+            # No atoms. If a density volume is shown, still path trace it: the
+            # acceleration structure needs at least one primitive, so inject a
+            # single zero-radius sphere that no ray can intersect.
+            if _pt_volume_drawing(ctx) is None:
+                return
+            sphere_data = np.zeros((1, 4), dtype=np.float32)
+            sphere_colors = np.zeros((1, 4), dtype=np.uint8)
+            cyl_data = cyl_colors = tri_data = tri_colors = None
 
         geom_key = (len(sphere_data),
                      len(cyl_data) if cyl_data is not None else 0,
                      len(tri_data) if tri_data is not None else 0)
-        if geom_key != self._last_geom_key:
+        # Compare content, not just counts: trajectory playback / model
+        # dragging move geometry without changing counts, and tracing
+        # against the stale BVH accumulates wrong images. memcmp-speed.
+        geom_data = (sphere_data, cyl_data, tri_data)
+        changed = (geom_key != self._last_geom_key
+                   or self._last_geom_data is None)
+        if not changed:
+            for a, b in zip(geom_data, self._last_geom_data):
+                if (a is None) != (b is None) or (
+                        a is not None and not np.array_equal(a, b)):
+                    changed = True
+                    break
+        if changed:
             has_cyls = cyl_data is not None and len(cyl_data) > 0
             has_tris = tri_data is not None and len(tri_data) > 0
             if has_cyls or has_tris:
@@ -757,6 +842,9 @@ class PathTracePass(RenderPass):
             else:
                 r.build_sphere_acceleration_structure(sphere_data)
             self._last_geom_key = geom_key
+            self._last_geom_data = tuple(
+                None if a is None else np.array(a, copy=True)
+                for a in geom_data)
             self._accum_count = 0
 
         # Upload sphere colors.
@@ -815,7 +903,13 @@ class PathTracePass(RenderPass):
             lp.ambient_light_intensity * c for c in lp.ambient_light_color
         )
 
-        # Reset accumulation on camera, projection, or lighting change.
+        # Participating-medium volume. PathTracePass runs before the volume's
+        # own rasterized draw (TransparentPass), so drive its per-frame GPU
+        # prep here and read back the world-space box / transfer function.
+        vol_kwargs, vol_key = self._collect_volume(ctx, r, lp)
+        r._pt_handled_volume_id = vol_key[0] if vol_key else None
+
+        # Reset accumulation on camera, projection, lighting, or volume change.
         lighting_key = (
             tuple(float(x) for x in key_light_world),
             float(lp.key_light_intensity),
@@ -823,6 +917,7 @@ class PathTracePass(RenderPass):
             float(lp.fill_light_intensity),
             tuple(float(x) for x in ambient),
             tuple(float(x) for x in bg),
+            vol_key,
         )
         if (
             self._last_view_matrix is None
@@ -857,6 +952,7 @@ class PathTracePass(RenderPass):
             ambient_color=ambient,
             background_color=bg,
             max_bounces=int(lp.pt_max_bounces),
+            **vol_kwargs,
         )
         self._ping = 1 - self._ping
 
@@ -1057,6 +1153,107 @@ class PathTracePass(RenderPass):
                       if all_tri_colors else None)
         return (sphere_data, sphere_colors, cyl_data, cyl_colors,
                 tri_data, tri_colors)
+
+    def _collect_volume(self, ctx, r, lp):
+        """Prepare the displayed density volume for path tracing.
+
+        Returns ``(vol_kwargs, vol_key)`` where ``vol_kwargs`` is the set of
+        ``volume_*`` keyword arguments for ``dispatch_pathtracer`` (empty when
+        no path-traceable volume is shown) and ``vol_key`` is a hashable
+        accumulation-reset key that changes whenever the medium changes.
+
+        Requires a full-raycast volume (``projectionMode rays``), which builds
+        a VolumeRaycastDrawing with a 3D density texture. In rays mode the
+        density is scalar and a transfer function colors it; the path tracer
+        samples the density (3D) and a transfer function rebuilt here as a 2D
+        Nx1 texture (a 1D texture doesn't survive export to Metal).
+
+        PathTracePass runs before the volume's own rasterized draw, so this
+        drives the drawing's per-frame update (coloring, textures, bounding
+        box) directly rather than relying on that draw having happened.
+        """
+        vol = _pt_volume_drawing(ctx)
+        if vol is None:
+            return {}, None
+
+        try:
+            vol._update_coloring()
+            density = getattr(vol, "texture", None)
+            if density is None:
+                return {}, None
+            # Force lazy allocation/upload so the C handles exist.
+            density.bind_texture()
+            density_handle = getattr(density, "_handle", None)
+            if density_handle is None:
+                return {}, None
+            # Populates r._raycast_bbox_* / _raycast_full_region_* (world space).
+            vol.set_shader_options(r)
+            bbox_min = tuple(float(x) for x in r._raycast_bbox_min)
+            bbox_max = tuple(float(x) for x in r._raycast_bbox_max)
+            region_min = tuple(float(x) for x in r._raycast_full_region_min)
+            region_max = tuple(float(x) for x in r._raycast_full_region_max)
+
+            # Transfer function. With a GPU colormap the 3D texture is scalar
+            # density and a separate transfer function colors it; otherwise
+            # the 3D texture is already RGBA (the shader branches on whether a
+            # colormap is passed). The volume's own colormap is a 1D texture,
+            # which doesn't survive export to Metal, so build a 2D (Nx1)
+            # texture from the same transfer-function data and rebuild it only
+            # when it changes.
+            import numpy as np
+            colormap_handle = None
+            cmap_off, cmap_inv = 0.0, 1.0
+            cmap_data, crange = vol._image_render._color_table(vol._axis)
+            if cmap_data is not None:
+                arr = np.ascontiguousarray(cmap_data)
+                if arr.ndim == 2:                       # (N, C) -> (1, N, C)
+                    arr = arr.reshape(1, arr.shape[0], arr.shape[1])
+                key = (arr.shape, arr.dtype.str, arr.tobytes())
+                if self._pt_cmap_key != key:
+                    from chimerax.graphics import Texture
+                    if self._pt_colormap_tex is not None:
+                        self._pt_colormap_tex.delete_texture()
+                    t = Texture(arr, dimension=2, clamp_to_edge=True)
+                    t.bind_texture()
+                    self._pt_colormap_tex = t
+                    self._pt_cmap_key = key
+                colormap_handle = getattr(self._pt_colormap_tex, "_handle", None)
+            if colormap_handle is not None:
+                # Match vulkan.set_colormap: pre-scale (v0, v1) by the density
+                # texture's sampler normalization so the shader's
+                # (sample - offset) * inv_range recovers (value - v0)/(v1 - v0).
+                v0, v1 = crange
+                s = (density.normalization()
+                     if hasattr(density, "normalization") else 1.0)
+                denom = s * (v1 - v0)
+                cmap_off = s * float(v0)
+                cmap_inv = (1.0 / denom) if denom != 0.0 else 0.0
+        except Exception:
+            import traceback, sys
+            traceback.print_exc(file=sys.stderr)
+            return {}, None
+
+        vol_kwargs = dict(
+            volume_density_texture=density_handle,
+            volume_colormap_texture=colormap_handle,
+            volume_bbox_min=bbox_min,
+            volume_bbox_max=bbox_max,
+            volume_region_min=region_min,
+            volume_region_max=region_max,
+            volume_sigma_max=float(lp.pt_volume_density),
+            volume_phase_g=float(lp.pt_volume_g),
+            volume_colormap_range=(cmap_off, cmap_inv),
+        )
+        # Suppress the rasterized volume so it isn't composited over the PT
+        # blit. Cover both the raycast drawing and its Image3d container, since
+        # either may be the unit the TransparentPass draws.
+        container = getattr(vol, "parent", None)
+        suppress = frozenset(id(x) for x in (vol, container) if x is not None)
+        vol_key = (suppress, bbox_min, bbox_max, region_min, region_max,
+                   colormap_handle is not None,
+                   round(cmap_off, 6), round(cmap_inv, 6),
+                   float(lp.pt_volume_density), float(lp.pt_volume_g))
+        return vol_kwargs, vol_key
 
 
 class OffscreenFinishPass(RenderPass):

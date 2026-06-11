@@ -263,6 +263,19 @@ class View:
 
                 draw_overlays(odrawings, r)
 
+            # Drag-selection rectangle on renderers without a front
+            # buffer (Vulkan/Metal): composited as a per-frame overlay
+            # instead of front-buffer XOR. See draw_xor_rectangle.
+            rect = getattr(self, "_overlay_rectangle", None)
+            if rect is not None:
+                from .drawing import draw_overlay_rectangle
+
+                (rx1, ry1, rx2, ry2), rcolor = rect
+                self._rectangle_drawing = draw_overlay_rectangle(
+                    r, rx1, ry1, rx2, ry2, rcolor,
+                    getattr(self, "_rectangle_drawing", None),
+                )
+
             if use_calllist:
                 gllist.call_opengl_list(self, trace=True)
         finally:
@@ -400,6 +413,25 @@ class View:
     def draw_xor_rectangle(self, x1, y1, x2, y2, color):
         if not self._use_opengl():
             return  # OpenGL not available
+        r = self._render
+        if not hasattr(r, "draw_front_buffer"):
+            # No front buffer to XOR into (Vulkan/Metal renderers).
+            # Callers XOR their color with the background expecting
+            # framebuffer XOR compositing, so XOR with the background
+            # again to recover the intended rectangle color. Then toggle
+            # an overlay rectangle that View.draw composites on every
+            # frame — drawing the same rectangle twice removes it, which
+            # preserves the caller's XOR erase semantics.
+            from chimerax.core.colors import rgba_to_rgba8
+            bg = rgba_to_rgba8(self.background_color)
+            rcolor = tuple(int(c) ^ int(b) for c, b in zip(color, bg))
+            rect = ((x1, y1, x2, y2), rcolor)
+            if getattr(self, "_overlay_rectangle", None) == rect:
+                self._overlay_rectangle = None
+            else:
+                self._overlay_rectangle = rect
+            self.redraw_needed = True
+            return
         if not self.render.front_buffer_valid:
             self.draw(check_for_changes=False)
             self._use_opengl()

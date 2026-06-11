@@ -23,6 +23,7 @@ static struct PyMethodDef vulkan_methods[] =
     {"begin_depth_pass", (PyCFunction)vulkan_begin_depth_pass, METH_VARARGS|METH_KEYWORDS, NULL},
     {"end_render_pass", (PyCFunction)vulkan_end_render_pass, METH_VARARGS|METH_KEYWORDS, NULL},
     {"begin_color_pass", (PyCFunction)vulkan_begin_color_pass, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"begin_mask_pass", (PyCFunction)vulkan_begin_mask_pass, METH_VARARGS|METH_KEYWORDS, NULL},
 
     // Pipelines
     {"create_pipeline", (PyCFunction)vulkan_create_pipeline, METH_VARARGS|METH_KEYWORDS, NULL},
@@ -58,6 +59,7 @@ static struct PyMethodDef vulkan_methods[] =
 
     // Query
     {"get_depth_texture", (PyCFunction)vulkan_get_depth_texture, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"copy_depth_texture", (PyCFunction)vulkan_copy_depth_texture, METH_VARARGS|METH_KEYWORDS, NULL},
     {"supports_ray_tracing", (PyCFunction)vulkan_supports_ray_tracing, METH_VARARGS|METH_KEYWORDS, NULL},
     {"flush_gpu", (PyCFunction)vulkan_flush_gpu, METH_VARARGS|METH_KEYWORDS, NULL},
     {"supports_metal_objects", (PyCFunction)vulkan_supports_metal_objects, METH_VARARGS|METH_KEYWORDS, NULL},
