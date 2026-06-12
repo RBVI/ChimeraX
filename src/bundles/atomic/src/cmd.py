@@ -24,7 +24,7 @@
 
 from chimerax.core.errors import UserError
 
-def chirality_cmd(session, atoms):
+def chirality_cmd(session, atoms, *, verbose=False):
     from .chirality import chirality
     if not atoms:
         raise UserError("No atoms specified")
@@ -34,15 +34,26 @@ def chirality_cmd(session, atoms):
         try:
             info = type_info[atom.idatm_type]
         except KeyError:
-            continue
-        if info.substituents == 4:
-            centers.append(atom)
+            if atom.num_bonds != 4:
+                continue
+        else:
+            if info.substituents != 4:
+                continue
+        centers.append(atom)
     if not centers:
-        raise UserError("There are no possible stereo centers in the specified atoms")
+        session.logger.warning("There are no possible stereo centers in the specified atoms")
+        return {}
     chiralities = [chirality(atom) for atom in centers]
-    for atom, ch in zip(centers, chiralities):
-        session.logger.info("%s is %s" % (atom, "not chiral" if not ch else ch))
-    return chiralities
+    ch_info = list(zip(centers, chiralities))
+    # use list() above, otherwise the 'dict()' below is on an exhausted iterator
+    for atom, ch in ch_info:
+        if verbose:
+            session.logger.info("%s is %s" % (atom, "not chiral" if not ch else ch))
+        elif ch:
+            session.logger.info("%s is %s" % (atom, ch))
+    if not verbose and chiralities.count(None) == len(chiralities):
+        session.logger.info("None of the specified atoms are chiral")
+    return dict(ch_info)
 
 def log_chains(session, structures=None):
     if structures is None:
@@ -364,6 +375,9 @@ def register_command(logger):
     chirality_desc = CmdDesc(
         required=[
             ('atoms', AtomsArg),
+        ],
+        keyword=[
+            ('verbose', BoolArg),
         ],
         synopsis = 'Report chirality of atoms')
     register('chirality', chirality_desc, chirality_cmd, logger=logger)

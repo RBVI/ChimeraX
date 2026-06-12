@@ -1,3 +1,4 @@
 # vim: syntax=config:
 brew "autoconf"
 brew "automake"
+brew "libomp"

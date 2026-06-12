@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: mcp</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: mcp</h3>
 <a name="setup"></a>
@@ -30,7 +25,7 @@ class="clRighticon" title="User Guide Index"/></a>
 <a name="stop"></a>
 <a name="info"></a>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
-<br><b>mcp setup</b>
+<br><b>mcp setup</b> [&nbsp;<b>host</b>&nbsp;<i>claude</i>&nbsp;|&nbsp;<i>cursor</i>&nbsp;|&nbsp;<i>vscode</i>&nbsp;|&nbsp;<i>all</i>&nbsp;]
 </h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>mcp start</b> [&nbsp;<i>port</i>&nbsp;]
@@ -42,42 +37,69 @@ class="clRighticon" title="User Guide Index"/></a>
 <br><b>mcp stop</b>
 </h3>
 <p>
-The <b>mcp</b> command enables ChimeraX to listen for commands from the 
-<a href="https://www.claude.com/download" target="_blank">Claude Desktop</a>
-AI chatbot using the 
-<a href="https://en.wikipedia.org/wiki/Model_Context_Protocol"
-target="_blank">Model Context Protocol</a> (MCP)
-developed by <a href="https://www.anthropic.com/" 
-target="_blank">Anthropic</a>. 
-Running ChimeraX from Claude was first implemented by Alexis Rohou 
+The <b>mcp</b> command enables ChimeraX to be controlled by an
+MCP-capable AI assistant &mdash; for example
+<a href="https://www.claude.com/download" target="_blank">Claude Desktop</a>,
+<a href="https://www.cursor.com/" target="_blank">Cursor</a>,
+or <a href="https://code.visualstudio.com/" target="_blank">VS Code</a>
+with GitHub Copilot &mdash; using the
+<a href="https://en.wikipedia.org/wiki/Model_Context_Protocol" target="_blank">Model Context Protocol</a> (MCP)
+developed by <a href="https://www.anthropic.com/" target="_blank">Anthropic</a>.
+Running ChimeraX from an AI assistant was first implemented by Alexis Rohou 
 at Genentech and subsequently incorporated 
 into ChimeraX as the <b>mcp</b> command.
 See also: 
 <a href="remotecontrol.html"><b>remotecontrol</b></a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/claude-dec2025/claude_mcp.html"
-target="_blank">Claude Chat to Operate ChimeraX</a>
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/claude-dec2025/claude_mcp.html" target="_blank">Claude Chat to Operate ChimeraX</a>
 </p>
 <ul>
-<li><b>mcp setup</b>
-&ndash; write a
-<a href="https://www.claude.com/download" target="_blank">Claude Desktop</a>
-configuration file to allow it to control ChimeraX using MCP; 
-this only needs to be done once per computer and ChimeraX version.
-The configuration file name and location depend on the platform:
+<li><b>mcp setup</b> [&nbsp;<b>host</b>&nbsp;<i>host-name</i>&nbsp;]
+&ndash; write a configuration file telling an MCP-capable AI assistant
+how to launch the ChimeraX MCP bridge.
+The optional <b>host</b> keyword selects which assistant to configure;
+this only needs to be done once per host per ChimeraX version.
+Supported hosts and the resulting config files are:
   <ul>
-  <li>on Mac: ~/Library/Application Support/Claude/claude_desktop_config.json
-  <li>on Windows: ~/AppData/Roaming/Claude/claude_desktop_config.json
-  </ul>
-<li><b>mcp start</b> [&nbsp;<i>port</i>&nbsp;]
+  <li><b>claude</b> (default) &ndash;
+    <a href="https://www.claude.com/download" target="_blank">Claude Desktop</a>:
+    <ul>
+    <li>on Mac: ~/Library/Application Support/Claude/claude_desktop_config.json
+    </li><li>on Windows: ~/AppData/Roaming/Claude/claude_desktop_config.json
+    </li></ul>
+  </li><li><b>cursor</b> &ndash;
+    <a href="https://www.cursor.com/" target="_blank">Cursor</a>
+    (global config, applied to every project):
+    <ul>
+    <li>on all platforms: ~/.cursor/mcp.json
+    (Cursor's
+    <a href="https://cursor.com/docs/mcp" target="_blank">documentation</a>
+    specifies this same path on Mac, Linux, and Windows)
+    </li></ul>
+  </li><li><b>vscode</b> &ndash;
+    <a href="https://code.visualstudio.com/" target="_blank">VS Code</a>
+    with
+    <a href="https://code.visualstudio.com/docs/copilot/customization/mcp-servers" target="_blank">GitHub Copilot MCP servers</a>
+    (user-profile config, applied to every workspace):
+    <ul>
+    <li>on Mac: ~/Library/Application Support/Code/User/mcp.json
+    </li><li>on Linux: ~/.config/Code/User/mcp.json
+    </li><li>on Windows: ~/AppData/Roaming/Code/User/mcp.json
+    </li></ul>
+  </li><li><b>all</b> &ndash; configure every supported host whose config
+    directory is present on this machine.
+  </li></ul>
+</li><li><b>mcp start</b> [&nbsp;<i>port</i>&nbsp;]
 &ndash; start the ChimeraX REST server for MCP bridge connections using 
 port number <i>port</i> (default <b>8080</b>);
-this is not required if ChimeraX is started by Claude
-<li><b>mcp info</b>
-&ndash; check to see if ChimeraX is listening for commands 
-via REST server on localhost port 8080
-<li><b>mcp stop</b>
+this is not required if the AI assistant launches ChimeraX itself.
+</li><li><b>mcp info</b>
+&ndash; for each supported host, report whether it is configured to use
+this ChimeraX. Also report whether the ChimeraX REST server is currently
+running and, if so, on which port and whether JSON output and logging
+(both required by the MCP bridge) are enabled.
+</li><li><b>mcp stop</b>
 &ndash; stop the ChimeraX REST server
-</ul>
+</li></ul>
 
 <a name="instructions"></a>
 <p class="nav">
@@ -89,18 +111,46 @@ via REST server on localhost port 8080
 <a href="https://www.claude.com/download" target="_blank">Claude Desktop</a>
 for Mac or Windows (not available for other platforms),
 start it, and create a free account.
-<li>Start ChimeraX and enter command <b>mcp setup</b> to generate the 
+</li><li>Start ChimeraX and enter command <b>mcp setup</b> to generate the 
 configuration file needed for Claude Desktop to control ChimeraX.
-<li>Quit Claude Desktop and ChimeraX. 
+</li><li>Quit Claude Desktop and ChimeraX. 
 Make sure to use Claude menu File / Exit when quitting; due to a bug in
 Claude Desktop (version 1.0.1405), closing it with the window frame "X" 
 button leaves hidden Claude subprocesses running that will prevent it from 
 reading the configuration file when restarted.
-<li>Restart Claude Desktop and test by giving Claude a natural language 
+</li><li>Restart Claude Desktop and test by giving Claude a natural language 
 request, <i>e.g.</i>, &ldquo;Show me a conotoxin protein in ChimeraX&rdquo;
-</ol>
+</li></ol>
+
+<h3>Set Up Cursor to Control ChimeraX</h3>
+<ol>
+<li>Install <a href="https://www.cursor.com/" target="_blank">Cursor</a>
+and run it at least once so that the <code>~/.cursor</code> directory
+is created (this is the same path on Mac, Linux, and Windows).
+</li><li>In ChimeraX, run <b>mcp setup host cursor</b>. This writes
+ChimeraX's bridge entry into Cursor's global <code>mcp.json</code>.
+</li><li>Restart Cursor (or use Cursor's "Reload MCP servers" action) and
+ask the chat to perform a ChimeraX action.
+</li></ol>
+
+<h3>Set Up VS Code Copilot to Control ChimeraX</h3>
+<ol>
+<li>Install <a href="https://code.visualstudio.com/" target="_blank">VS Code</a>
+with
+<a href="https://code.visualstudio.com/docs/copilot/customization/mcp-servers" target="_blank">GitHub Copilot</a>
+and ensure MCP support is enabled.
+</li><li>In ChimeraX, run <b>mcp setup host vscode</b>. This writes
+ChimeraX's bridge entry into the user-profile
+<code>mcp.json</code> in the form expected by VS Code (top-level
+<code>servers</code> key, with <code>"type": "stdio"</code>).
+</li><li>In VS Code, run the command palette action
+<b>MCP: List Servers</b> to verify that the <code>chimerax</code>
+server is listed, then start it from there or simply ask Copilot to
+perform a ChimeraX action.
+</li></ol>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 December 2025</address>
+
 </body></html>

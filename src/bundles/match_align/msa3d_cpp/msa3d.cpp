@@ -36,25 +36,29 @@ using atomstruct::Sequence;
 using atomstruct::StructureSeq;
 using atomstruct::AtomSearchTree;
 
-typedef std::map<Chain*, std::vector<Atom*>> PrincipalAtomMap;
+typedef std::map<StructureSeq*, std::vector<Atom*>> PrincipalAtomMap;
 
 // for my personal sanity, define local min/max functions, so that I don't have to try to
 // figure out how to get references/pointers to template functions
-static int min(int a, int b) { return std::min(a, b); }
-static int max(int a, int b) { return std::max(a, b); }
-static int (*val_func)(int, int);
+static float min(float a, float b) { return std::min(a, b); }
+static float max(float a, float b) { return std::max(a, b); }
+static float (*val_func)(float, float);
 
 namespace { // so these class declarations are not visible outside this file
+
+#ifdef DEBUGGING
+static int vector_index(const std::vector<StructureSeq*> vec, const StructureSeq *item) { return std::find(vec.begin(), vec.end(), item) - vec.begin(); }
+#endif
 
 class Column
 {
 public:
-    std::map<Chain*, Chain::SeqPos> positions;
+    std::map<StructureSeq*, StructureSeq::SeqPos> positions;
 
     Column(decltype(positions) pos_info): positions(pos_info) {};
     Column(const std::shared_ptr<Column>& _col): positions(_col->positions) {};
 
-    bool  contains(Chain* seq, Chain::SeqPos pos) const {
+    bool  contains(StructureSeq* seq, StructureSeq::SeqPos pos) const {
         return positions.find(seq) != positions.end() && positions.at(seq) == pos;
     };
     double  participation(PrincipalAtomMap& pas, double dist_cutoff) const;
@@ -107,7 +111,8 @@ double Column::value(PrincipalAtomMap& pas, double dist_cutoff) const
                 value = val;
                 val_set = true;
                 continue;
-            }
+            } 
+            value = (*val_func)(value, val);
             if (val_func == &min && value < 0.0)
                 break;
         }
@@ -117,15 +122,18 @@ double Column::value(PrincipalAtomMap& pas, double dist_cutoff) const
     return value;
 }
 
+static int _num_endpoints = 0;
 class EndPoint
 {
 public:
-    Chain*  chain;
-    Chain::SeqPos  pos;
+    StructureSeq*  chain;
+    StructureSeq::SeqPos  pos;
     decltype(Column::positions) positions;
-    EndPoint(Chain* _chain, Chain::SeqPos _pos): chain(_chain), pos(_pos) { positions[_chain] = _pos; };
+    EndPoint(StructureSeq* _chain, StructureSeq::SeqPos _pos): chain(_chain), pos(_pos) { positions[_chain] = _pos;
+_num_endpoints++;
+    };
 
-    bool contains(Chain* _seq, Chain::SeqPos _pos) { return chain == _seq && pos == _pos; }
+    bool contains(StructureSeq* _seq, StructureSeq::SeqPos _pos) { return chain == _seq && pos == _pos; }
 };
 
 // Link.info can contain end points or columns...
@@ -142,38 +150,62 @@ public:
     void operator=(std::shared_ptr<EndPoint>& _ep) { ep = _ep; is_column = false; }
     void operator=(std::shared_ptr<Column>& _col) { col = _col; is_column = true; }
 
-    bool contains(Chain* _seq, Chain::SeqPos _pos) {
+    bool contains(StructureSeq* _seq, StructureSeq::SeqPos _pos) {
         if (is_column)
             return col->contains(_seq, _pos);
         return ep->contains(_seq, _pos);
     }
-    decltype(Column::positions) positions() {
+    decltype(Column::positions) &positions() {
         if (is_column)
             return col->positions;
         return ep->positions;
+    }
+    std::string str(bool ref_counts=false, bool ptr_vals=false) const { // for debugging
+        std::string ret_val = is_column ? "Column " : "EndPoint ";
+        if (ref_counts) {
+            ret_val += "ref count: ";
+            ret_val += std::to_string(is_column ? col.use_count() : ep.use_count());
+        } else if (ptr_vals) {
+            ret_val += "ptr: ";
+            ret_val += std::to_string(is_column ? (long)col.get() : (long)ep.get());
+        } else {
+            ret_val += "value: ";
+            //ret_val += col->str() : ep->str());
+            ret_val += "<not yet implemented>";
+        }
+        return ret_val;
     }
 };
 
 class Link
 {
+private:
+    std::vector<std::shared_ptr<EndPointOrColumn>> _info;
 public:
     // info is really a pair of end points or column + end point, but much easier to iterate through a vector
     // than a pair, so...
-    std::vector<EndPointOrColumn> info;
     double val;
     double penalty = 0.0;
     std::vector<std::shared_ptr<Link>> cross_links;
+    const std::vector<std::shared_ptr<EndPointOrColumn>>& info() { return _info; };
+    void update_info(std::shared_ptr<Column>& i1, std::shared_ptr<EndPointOrColumn>& i2) {
+        _info[0] = std::shared_ptr<EndPointOrColumn>(new EndPointOrColumn(i1));
+        _info[1] = i2;
+    }
 
     Link(std::shared_ptr<EndPoint>& e1, std::shared_ptr<EndPoint>& e2, double _val) {
-        info.emplace_back(e1);
-        info.emplace_back(e2);
+        _info.emplace_back(new EndPointOrColumn(e1));
+        _info.emplace_back(new EndPointOrColumn(e2));
         val = _val;
     }
     Link(std::shared_ptr<Column>& col, std::shared_ptr<EndPoint>& ep, double _val) {
-        info.emplace_back(col);
-        info.emplace_back(ep);
+        _info.emplace_back(new EndPointOrColumn(col));
+        _info.emplace_back(new EndPointOrColumn(ep));
         val = _val;
     }
+    // disallow implicit copies
+    Link(const Link&) = delete;
+    Link& operator=(const Link&) = delete;
 
     void evaluate(PrincipalAtomMap& pas, double dist_cutoff);
 };
@@ -181,14 +213,14 @@ public:
 void Link::evaluate(PrincipalAtomMap& pas, double dist_cutoff)
 {
     val = std::numeric_limits<double>::quiet_NaN();
-    for (auto seq_pos1: info[0].positions()) {
+    for (auto seq_pos1: _info[0]->positions()) {
         auto s1 = seq_pos1.first;
         auto p1 = seq_pos1.second;
         //TODO: circular
         auto pa1 = pas[s1][p1];
         if (pa1 == nullptr)
             continue;
-        for (auto seq_pos2: info[1].positions()) {
+        for (auto seq_pos2: _info[1]->positions()) {
             auto s2 = seq_pos2.first;
             auto p2 = seq_pos2.second;
             //TODO: circular
@@ -211,11 +243,14 @@ class GapInfo
 {
 public:
     bool  in_gap;
-    Chain::SeqPos  pos;
+    StructureSeq::SeqPos  pos;
     unsigned int  num_gaps;
 
-    GapInfo(bool _in_gap, Chain::SeqPos _pos, unsigned int _num_gaps):
+    GapInfo(bool _in_gap, StructureSeq::SeqPos _pos, unsigned int _num_gaps):
         in_gap(_in_gap), pos(_pos), num_gaps(_num_gaps) {};
+    // disallow implicit copies
+    GapInfo(const GapInfo&) = delete;
+    GapInfo& operator=(const GapInfo&) = delete;
 };
 
 } // end namespace
@@ -232,12 +267,13 @@ public:
 static void
 find_prune_crosslinks(
     LinkList& all_links,
-    std::map<Chain*, std::vector<LinkList>>& pairings,
-    Chain* seq1, Chain* seq2,
+    std::map<StructureSeq*, std::vector<LinkList>>& pairings,
+    StructureSeq* seq1, StructureSeq* seq2,
     LinkList& link_list, std::vector<LinkList>& links1, std::vector<LinkList>& links2,
     std::string tag, const char* status_prefix, PyObject* py_logger)
 {
-    logger::status(py_logger, status_prefix, "Finding crosslinks ", tag);
+    if (status_prefix != nullptr)
+        logger::status(py_logger, status_prefix, "Finding crosslinks ", tag);
     std::vector<LinkList::size_type> ends;
     LinkList seq2_links;
     for (auto& links: links2) {
@@ -248,10 +284,11 @@ find_prune_crosslinks(
     for (auto end: ends)
         l2_lists.push_back(LinkList(seq2_links.begin(), seq2_links.begin() + end));
     for (auto& link1: link_list) {
-        auto i1 = link1->info[0].ep->pos;
-        auto i2 = link1->info[1].ep->pos;
+        // Original Chimera code directly accesses .pos, so must be an EndPoint...
+        auto i1 = link1->info()[0]->ep->pos;
+        auto i2 = link1->info()[1]->ep->pos;
         for (auto& link2: l2_lists[i2]) {
-            if (link2->info[0].ep->pos <= i1)
+            if (link2->info()[0]->ep->pos <= i1)
                 continue;
             link1->cross_links.push_back(link2);
             link2->cross_links.push_back(link1);
@@ -260,7 +297,8 @@ find_prune_crosslinks(
         }
     }
     
-    logger::status(py_logger, status_prefix, "Pruning crosslinks ", tag);
+    if (status_prefix != nullptr)
+        logger::status(py_logger, status_prefix, "Pruning crosslinks ", tag);
     while (link_list.size() > 0) {
         LinkList::iterator pos;
         decltype(Link::penalty) pen;
@@ -274,9 +312,9 @@ find_prune_crosslinks(
         if (pen <= 0.0001)
             break;
         auto& link = *pos;
-        auto& l1_list = links1[link->info[0].ep->pos];
+        auto& l1_list = links1[link->info()[0]->ep->pos];
         l1_list.erase(std::find(l1_list.begin(), l1_list.end(), link));
-        auto& l2_list = links2[link->info[1].ep->pos];
+        auto& l2_list = links2[link->info()[1]->ep->pos];
         l2_list.erase(std::find(l2_list.begin(), l2_list.end(), link));
         for (auto& clink: link->cross_links)
             clink->penalty -= link->val;
@@ -297,11 +335,11 @@ find_prune_crosslinks(
 }
 
 bool
-_check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::shared_ptr<Column>>>& order,
-    std::vector<Chain*>& chains)
+_check(std::map<StructureSeq*, StructureSeq::SeqPos>& info, std::map<StructureSeq*, std::vector<std::shared_ptr<Column>>>& order,
+    std::vector<StructureSeq*>& chains)
 {
-    std::map<Chain*, std::vector<Chain::SeqPos>> equiv;
-    std::vector<Chain::SeqPos> null_init = { INT_MAX, INT_MAX, INT_MAX };
+    std::map<StructureSeq*, std::vector<int>> equiv;
+    std::vector<int> null_init = { INT_MAX, INT_MAX, INT_MAX };
     for (auto chain: chains)
         equiv[chain] = null_init;
     std::vector<std::pair<std::vector<std::shared_ptr<Column>>, int>> todo;
@@ -312,7 +350,7 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
         pos_vec[0] = pos - 1;
         pos_vec[1] = pos;
         pos_vec[2] = pos + 1;
-        auto seq_cols = order[seq];
+        auto& seq_cols = order[seq];
         if (seq_cols.empty())
             continue;
         auto num_cols = seq_cols.size();
@@ -335,7 +373,7 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
         for (j = i; j < num_cols; ++j) {
             auto col = seq_cols[j];
             if (col->positions[seq] > pos) {
-                if (j > 1)
+                if (j > i)
                     todo.emplace_back(std::vector<std::shared_ptr<Column>>(seq_cols.begin() + i,
                         seq_cols.begin() + j), 0);
                 added_todo = true;
@@ -356,12 +394,12 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
         for (auto col: cols) {
             for (auto& cseq_cpos: col->positions) {
                 auto cseq = cseq_cpos.first;
-                auto cpos = cseq_cpos.second;
-                auto eqseq = equiv[cseq];
+                int cpos = cseq_cpos.second;
+                auto& eqseq = equiv[cseq];
                 auto eq = eqseq[rel+1];
                 if (eq != INT_MAX && (cpos < eq ? -1 : (cpos > eq ? 1 : 0)) == rel)
                     continue;
-                auto seq_cols = order[cseq];
+                auto& seq_cols = order[cseq];
                 if (rel == 0) {
                     auto num_seq_cols = seq_cols.size();
                     decltype(num_seq_cols) i, j;
@@ -374,7 +412,7 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
                     bool broke = false;
                     for (i = 0; i < num_seq_cols; ++i) {
                         auto ccol = seq_cols[i];
-                        auto ccol_pos = ccol->positions[cseq];
+                        int ccol_pos = ccol->positions[cseq];
                         if (ccol_pos > cpos) {
                             i = num_seq_cols;
                             broke = true;
@@ -390,7 +428,7 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
                     broke = false;
                     for (j = i; j < num_seq_cols; ++j) {
                         auto ccol = seq_cols[j];
-                        if (ccol->positions[cseq] > cpos) {
+                        if (static_cast<int>(ccol->positions[cseq]) > cpos) {
                             broke = true;
                             break;
                         }
@@ -406,9 +444,10 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
                     }
                     continue;
                 }
-                auto test = equiv[cseq][1];
+                auto& cseq_equiv = equiv[cseq];
+                auto test = cseq_equiv[1];
                 if (test == INT_MAX)
-                    test = equiv[cseq][1-rel];
+                    test = cseq_equiv[1-rel];
                 if (test != INT_MAX && (cpos < test ? -1 : (cpos > test ? 1 : 0)) != rel)
                     return false;
                 if (rel < 0) {
@@ -420,7 +459,7 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
                         bool broke = false;
                         for (i = 0; i < num_seq_cols; ++i) {
                             auto ccol = seq_cols[i];
-                            if (ccol->positions[cseq] > eq) {
+                            if (static_cast<int>(ccol->positions[cseq]) > eq) {
                                 broke = true;
                                 break;
                             }
@@ -431,22 +470,21 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
                     bool broke = false;
                     for (j = i; j < num_seq_cols; ++j) {
                         auto ccol = seq_cols[j];
-                        if (ccol->positions[cseq] > cpos) {
+                        if (static_cast<int>(ccol->positions[cseq]) > cpos) {
                             broke = true;
                             break;
                         }
                     }
                     if (!broke)
                         j = num_seq_cols;
-                    equiv[cseq][rel+1] = cpos;
-                    if (j > 1) {
+                    cseq_equiv[rel+1] = cpos;
+                    if (i < j) {
                         auto td_list = std::vector<std::shared_ptr<Column>>(seq_cols.begin() + i,
                             seq_cols.begin() + j);
                         td_list.erase(std::find(td_list.begin(), td_list.end(), col));
                         if (!td_list.empty())
                             todo.emplace_back(td_list, rel);
                     }
-
                 } else {
                     int num_seq_cols = seq_cols.size();
                     decltype(num_seq_cols) i, j;
@@ -456,7 +494,7 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
                         bool broke = false;
                         for (i = num_seq_cols-1; i >= 0; --i) {
                             auto ccol = seq_cols[i];
-                            if (ccol->positions[cseq] < eq) {
+                            if (static_cast<int>(ccol->positions[cseq]) < eq) {
                                 broke = true;
                                 break;
                             }
@@ -466,7 +504,7 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
                         broke = false;
                         for (j = i; j >= 0; --j) {
                             auto ccol = seq_cols[j];
-                            if (ccol->positions[cseq] < cpos) {
+                            if (static_cast<int>(ccol->positions[cseq]) < cpos) {
                                 j += 1;
                                 broke = true;
                                 break;
@@ -474,7 +512,7 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
                         }
                         if (!broke)
                             j = 0;
-                        equiv[cseq][rel+1] = cpos;
+                        cseq_equiv[rel+1] = cpos;
                         if (j < i+1) {
                             auto td_list = std::vector<std::shared_ptr<Column>>(seq_cols.begin()+j,
                                 seq_cols.begin()+i+1);
@@ -490,8 +528,8 @@ _check(std::map<Chain*, Chain::SeqPos>& info, std::map<Chain*, std::vector<std::
     return true;
 }
 
-PyObject *
-multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char gap_char,
+PyObject*
+multi_align(std::vector<StructureSeq*>& chains, double dist_cutoff, bool col_all, char gap_char,
     bool circular, const char* status_prefix, PyObject* py_logger, PyObject* error_class)
 {
     // Create list of pairings between chains and prune to be monotonic
@@ -512,7 +550,7 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
     // penalty and keep pruning worst link until no links cross.
 
     PrincipalAtomMap pas;
-    std::map<Chain*, std::vector<LinkList>> pairings;
+    std::map<StructureSeq*, std::vector<LinkList>> pairings;
     logger::status(py_logger, status_prefix, "Finding residue principal atoms");
     for (auto chain: chains) {
         decltype(pas)::mapped_type seq_pas;
@@ -536,14 +574,14 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
     }
 
     //TODO: circular permutation support
-    //std::map<std::pair<Chain*, Chain*>, std::pair<int, int>> circular_pairs;
-    //std::map<std::pair<Chain*, Chain*>, CircularLinkData> hold_data;
+    //std::map<std::pair<StructureSeq*, StructureSeq*>, std::pair<int, int>> circular_pairs;
+    //std::map<std::pair<StructureSeq*, StructureSeq*>, CircularLinkData> hold_data;
 
     LinkList all_links;
-    std::map<Chain*, AtomSearchTree*> trees;
+    std::map<StructureSeq*, AtomSearchTree*> trees;
     auto num_chains = chains.size();
     decltype(num_chains) loop_count = 0, loop_limit = (num_chains * (num_chains-1))/2;
-    std::map<Chain*, std::map<Atom*, decltype(num_chains)>> datas;
+    std::map<StructureSeq*, std::map<Atom*, decltype(num_chains)>> datas;
     for (decltype(num_chains) i = 0; i < num_chains; ++i) {
         auto seq1 = chains[i];
         auto len1 = pairings[seq1].size();
@@ -608,7 +646,7 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
                 //TODO
             } else {
                 find_prune_crosslinks(all_links, pairings, seq1, seq2, link_list, links1, links2, tag.str(),
-                    status_prefix, py_logger);
+                    nullptr, py_logger);
             }
         }
     }
@@ -621,10 +659,10 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
     }
 
     // column collation
-    std::map<Chain*, std::map<std::shared_ptr<Column>, std::vector<int>::size_type>> columns;
-    std::map<Chain*, std::vector<std::shared_ptr<Column>>> partial_order;
+    std::map<StructureSeq*, std::map<std::shared_ptr<Column>, std::vector<int>::size_type>> columns;
+    std::map<StructureSeq*, std::vector<std::shared_ptr<Column>>> partial_order;
 
-    std::set<std::pair<std::shared_ptr<EndPoint>, std::shared_ptr<EndPoint>>> seen;
+    std::set<std::pair<std::shared_ptr<EndPointOrColumn>, std::shared_ptr<EndPointOrColumn>>> seen;
     while (all_links.size() > 0) {
         if (all_links.size() % 100 == 0)
             logger::status(py_logger, status_prefix,
@@ -655,30 +693,44 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
         if (link->val < 0)
             break;
 
-        std::pair<std::shared_ptr<EndPoint>, std::shared_ptr<EndPoint>>
-            key(link->info[0].ep, link->info[1].ep);
+        std::pair<std::shared_ptr<EndPointOrColumn>, std::shared_ptr<EndPointOrColumn>>
+            key(link->info()[0], link->info()[1]);
         if (seen.find(key) != seen.end())
             continue;
         seen.insert(key);
-
-        std::map<Chain*, Chain::SeqPos> check_info;
-        for (auto endp: link->info) {
-            auto& list = pairings[endp.ep->chain][endp.ep->pos];
-            list.erase(std::find(list.begin(), list.end(), link));
-            check_info[endp.ep->chain] = endp.ep->pos;
+        for (auto ep_or_col: link->info()) {
+            for (auto seq_pos: ep_or_col->positions()) {
+                auto& link_list = pairings[seq_pos.first][seq_pos.second];
+                link_list.erase(std::find(link_list.begin(), link_list.end(), link));
+            }
         }
 
-        // AFAICT links are _always_ between different chains, so the whole "okay check"
-        // in the Chimera code seems superfluous
+        std::map<StructureSeq*, StructureSeq::SeqPos> check_info;
+        for (auto ep_or_col: link->info()) {
+            for (auto seq_pos: ep_or_col->positions())
+                check_info.insert(seq_pos);
+        }
 
-        if (!_check(check_info, partial_order, chains))
+        // Links between EndPoints will always be different sequences (I think),
+        // but if one or both end are Columns, they might both involve the same sequence...
+        bool okay = true;
+        for (auto seq_pos1: link->info()[0]->positions()) {
+            auto seq1 = seq_pos1.first;
+            auto& positions2 = link->info()[1]->positions();
+            if (positions2.find(seq1) != positions2.end()) {
+                okay = false;
+                break;
+            }
+        }
+
+        if (!okay || !_check(check_info, partial_order, chains))
             continue;
 
         auto col = std::shared_ptr<Column>(new Column(check_info));
         for (auto seq_pos: check_info) {
             auto seq = seq_pos.first;
             auto pos = seq_pos.second;
-            auto po = partial_order[seq];
+            auto& po = partial_order[seq];
             auto num_po = po.size();
             decltype(num_po) i;
             bool broke = false;
@@ -692,7 +744,7 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
             if (!broke)
                 i = num_po;
             po.insert(po.begin()+i, col);
-            auto cols = columns[seq];
+            auto& cols = columns[seq];
             cols[col] = i;
             for (auto ncol_i = po.begin()+i+1; ncol_i != po.end(); ++ncol_i) {
                 auto ncol = *ncol_i;
@@ -700,23 +752,20 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
             }
         }
 
-        // From here forward, link.info might contain Columns, so don't just use its
-        // .ep attribute, which is what the preceding code does
-        for (auto col_or_ep: link->info) {
-            for (auto seq_pos: col_or_ep.positions()) {
+        for (auto col_or_ep: link->info()) {
+            for (auto seq_pos: col_or_ep->positions()) {
                 auto seq = seq_pos.first;
                 auto pos = seq_pos.second;
                 for (auto l: pairings[seq][pos]) {
-                    EndPointOrColumn *base, *connect;
-                    if (l->info[0].contains(seq, pos)) {
-                        base = &l->info[0];
-                        connect = &l->info[1];
+                    std::shared_ptr<EndPointOrColumn> base, connect;
+                    if (l->info()[0]->contains(seq, pos)) {
+                        base = l->info()[0];
+                        connect = l->info()[1];
                     } else {
-                        connect = &l->info[0];
-                        base = &l->info[1];
+                        connect = l->info()[0];
+                        base = l->info()[1];
                     }
-                    l->info[0] = col;
-                    l->info[1] = *connect;
+                    l->update_info(col, connect);
                     l->evaluate(pas, dist_cutoff);
                     for (auto c_seq_pos: col->positions) {
                         auto cseq = c_seq_pos.first;
@@ -727,11 +776,11 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
                     }
                 }
             }
-            if (col_or_ep.is_column) {
-                for (auto seq_pos: col_or_ep.positions()) {
+            if (col_or_ep->is_column) {
+                for (auto seq_pos: col_or_ep->positions()) {
                     auto seq = seq_pos.first;
-                    auto seq_cols = columns[seq];
-                    auto opos = seq_cols[col_or_ep.col];
+                    auto& seq_cols = columns[seq];
+                    auto opos = seq_cols[col_or_ep->col];
                     auto po = partial_order[seq];
                     auto new_po = decltype(po)(po.begin(), po.begin()+opos);
                     auto new_po_back = decltype(po)(po.begin()+opos+1, po.end());
@@ -739,7 +788,7 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
                     partial_order[seq] = new_po;
                     for (auto pcol: new_po_back)
                         seq_cols[pcol] -= 1;
-                    seq_cols.erase(col_or_ep.col);
+                    seq_cols.erase(col_or_ep->col);
                 }
             }
         }
@@ -752,8 +801,9 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
     while (true) {
         // find an initial sequence column that can lead
         bool broke_po = false;
+        StructureSeq* seq;
         for (auto seq_cols: partial_order) {
-            auto seq = seq_cols.first;
+            seq = seq_cols.first;
             auto cols = seq_cols.second;
             if (cols.empty()) {
                 auto py_struct = seq->structure()->py_instance(true);
@@ -784,6 +834,40 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
         }
         if (!broke_po)
             break;
+
+        ordered_columns.push_back(col);
+        for (auto cseq_pos: col->positions) {
+            auto cseq = cseq_pos.first;
+            auto& cols = partial_order[cseq];
+            auto col = cols.front();
+            if (cols.size() > 1)
+                cols.erase(cols.begin());
+            else
+                partial_order.erase(cseq);
+        }
+        // try to continue using this sequence as long as possible
+        while (partial_order.find(seq) != partial_order.end()) {
+            auto col = partial_order[seq].front();
+            bool broke_colpos = false;
+            for (auto cseq_pos: col->positions) {
+                if (partial_order[cseq_pos.first].front() != col) {
+                    broke_colpos = true;
+                    break;
+                }
+            }
+            if (broke_colpos)
+                break;
+            ordered_columns.push_back(col);
+            for (auto cseq_pos: col->positions) {
+                auto cseq = cseq_pos.first;
+                auto& cols = partial_order[cseq];
+                auto col = cols.front();
+                if (cols.size() > 1)
+                    cols.erase(cols.begin());
+                else
+                    partial_order.erase(cseq);
+            }
+        }
     }
     if (ordered_columns.empty()) {
         logger::status(py_logger, "");
@@ -791,25 +875,12 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
         return nullptr;
     }
 
-    // Make the clone in the C++ layer, so that it is easier/faster to access its functions
-    std::map<Chain*, StructureSeq*> cpp_clones;
-    std::map<Chain*, int> current;
+    std::map<StructureSeq*, int> current;
     std::map<StructureSeq*, Sequence::Contents> working_seqs;
     for (auto seq: chains) {
-        auto cpp_clone = seq->copy();
-        // clear() is private, so need to track assembled sequence characters separately
-        // (working_seqs map) and use bulk_set at the end to finish
-        cpp_clone->set_description(seq->description());
-        auto py_s = seq->structure()->py_instance(true);
-        auto py_struct_name = PyObject_Str(py_s);
-        Py_DECREF(py_s);
-        if (py_struct_name == nullptr) {
-            PyErr_SetString(error_class, "Could not access structure name");
-            return nullptr;
-        }
-        cpp_clone->set_name(PyUnicode_AsUTF8(py_struct_name));
-        cpp_clones[seq] = cpp_clone;
         current[seq] = -1;
+        // So that all the seqs are present for iteration
+        working_seqs[seq] = Sequence::Contents();
     }
 
     // For maximum benefit from the "column squeezing" step that follows, we
@@ -820,7 +891,7 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
             new_ordered.push_back(col);
             continue;
         }
-        Chain* gap = nullptr;
+        StructureSeq* gap = nullptr;
         for (auto seq_pos: new_ordered.back()->positions) {
             auto seq = seq_pos.first;
             if (col->positions.find(seq) == col->positions.end())
@@ -859,12 +930,12 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
     while (col_index < ordered_columns.size() - 1) {
         logger::status(py_logger, status_prefix,
             "Merging columns (", col_index, "/", ordered_columns.size()-1, ")");
-        auto l = ordered_columns[col_index];
-        auto r = ordered_columns[col_index+1];
+        auto l = &ordered_columns[col_index];
+        auto r = &ordered_columns[col_index+1];
         bool squeezable = false;
-        for (auto seq_pos: r->positions) {
+        for (auto& seq_pos: (*r)->positions) {
             auto seq = seq_pos.first;
-            if (l->positions.find(seq) == l->positions.end()) {
+            if ((*l)->positions.find(seq) == (*l)->positions.end()) {
                 squeezable = true;
                 break;
             }
@@ -874,16 +945,16 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
             continue;
         }
 
-        std::map<Chain*, std::shared_ptr<GapInfo>> gap_info;
+        std::map<StructureSeq*, std::shared_ptr<GapInfo>> gap_info;
         for (auto seq: chains) {
             // Couldn't figure out how to emplace() in a map where the second arg is a class
             // with constructor args, so...
             // (after more Googling, maybe:
             //    .emplace(seq, GapInfo{...args..})
             // or
-            //    .emplace<Chain*, GapInfo>(seq, {...args...})
-            if (l->positions.find(seq) != l->positions.end())
-                gap_info[seq] = std::shared_ptr<GapInfo>(new GapInfo(false, l->positions[seq], 0u));
+            //    .emplace<StructureSeq*, GapInfo>(seq, {...args...})
+            if ((*l)->positions.find(seq) != (*l)->positions.end())
+                gap_info[seq] = std::shared_ptr<GapInfo>(new GapInfo(false, (*l)->positions[seq], 0u));
             else
                 gap_info[seq] = std::shared_ptr<GapInfo>(new GapInfo(true, INT_MAX, 1u));
         }
@@ -892,28 +963,29 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
         bool redo = false;
         int rcols = 0;
         for (auto ri = ordered_columns.begin()+col_index+1; ri != ordered_columns.end(); ++ri) {
-            auto r = *ri;
+            auto r = &(*ri);
             rcols += 1;
             // look for indeterminate residues first, so we can potentially
             // form a single-residue column to complete the squeeze
             bool indeterminates = false;
-            for (auto seq_rpos: r->positions) {
+
+            for (auto& seq_rpos: (*r)->positions) {
                 auto seq = seq_rpos.first;
                 auto right_pos = seq_rpos.second;
-                auto gi = gap_info[seq];
+                auto& gi = gap_info[seq];
                 auto left_pos = gi->pos;
-                if (gi->pos == INT_MAX || right_pos == left_pos + 1)
+                if (left_pos == INT_MAX || right_pos == left_pos + 1)
                     continue;
                 if (gi->num_gaps == 0) {
                     indeterminates = true;
                     continue;
                 }
                 bool broke_gaps = false;
-                for (auto chain_gi: gap_info) {
+                for (auto& chain_gi: gap_info) {
                     auto oseq = chain_gi.first;
                     if (oseq == seq)
                         continue;
-                    auto info = chain_gi.second;
+                    auto& info = chain_gi.second;
                     if (info->in_gap)
                         continue;
                     if (info->num_gaps != 0) {
@@ -924,7 +996,7 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
                 if (!broke_gaps) {
                     // squeezable
                     ordered_columns.insert(ordered_columns.begin() + col_index + rcols,
-                        std::shared_ptr<Column>(new Column({{seq, left_pos}})));
+                        std::shared_ptr<Column>(new Column({{seq, left_pos+1}})));
                     redo = true;
                     break;
                 }
@@ -938,13 +1010,13 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
                 break;
 
             bool broke_gaps = false;
-            for (auto seq_info: gap_info) {
+            for (auto& seq_info: gap_info) {
                 auto seq = seq_info.first;
-                auto info = seq_info.second;
+                auto& info = seq_info.second;
                 auto in_gap = info->in_gap;
                 auto num_gaps = info->num_gaps;
-                if (r->positions.find(seq) != r->positions.end()) {
-                    auto right_pos = r->positions[seq];
+                if ((*r)->positions.find(seq) != (*r)->positions.end()) {
+                    auto right_pos = (*r)->positions[seq];
                     if (in_gap)
                         // closing a gap
                         gap_info[seq] = std::shared_ptr<GapInfo>(new GapInfo(false, right_pos, 1));
@@ -964,8 +1036,8 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
             if (!broke_gaps) {
                 // check if squeeze criteria fulfilled
                 bool broke_squeeze = false;
-                for (auto seq_info: gap_info) {
-                    auto info = seq_info.second;
+                for (auto& seq_info: gap_info) {
+                    auto& info = seq_info.second;
                     if (info->num_gaps == 0) {
                         broke_squeeze = true;
                         break;
@@ -993,12 +1065,14 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
         std::vector<std::shared_ptr<Column>> replace_cols;
         auto rc_end = ordered_columns.begin() + col_index + rcols + 1;
         for (auto oi = ordered_columns.begin() + col_index; oi != rc_end; ++oi)
-            replace_cols.emplace_back(*oi);
+            // avoid copying the shared pointer
+            replace_cols.emplace_back(new Column(**oi));
         bool broke_col_value = false;
         for (decltype(replace_cols)::size_type i = 0; i < replace_cols.size()-1; ++i) {
-            auto col = replace_cols[i];
-            auto rcol = replace_cols[i+1];
-            for (auto seq_pos: rcol->positions) {
+            auto& col = replace_cols[i];
+            auto& rcol = replace_cols[i+1];
+            auto rcol_positions = rcol->positions; // make copy so we can delete in the original
+            for (auto seq_pos: rcol_positions) {
                 auto seq = seq_pos.first;
                 if (col->positions.find(seq) != col->positions.end())
                     continue;
@@ -1049,10 +1123,10 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
             //TODO: circular
             auto start_frag = cur_pos+1;
             decltype(start_frag) end_frag = offset;
-            for (auto ci = start_frag; ci <= end_frag; ++ci)
+            for (auto ci = start_frag; ci < end_frag; ++ci)
                 working_seqs[seq].push_back(seq->characters()[ci]);
             Sequence::Contents gap(diff-1, gap_char);
-            for (auto wseq_chars: working_seqs) {
+            for (auto& wseq_chars: working_seqs) {
                 auto wseq = wseq_chars.first;
                 if (wseq == seq)
                     continue;
@@ -1067,7 +1141,7 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
                 auto c = seq->characters()[offset];
                 working_seqs[seq].push_back(c);
                 current[seq] = offset;
-            } else
+            } else 
                 working_seqs[seq].push_back(gap_char);
         }
     }
@@ -1082,7 +1156,7 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
         for (Sequence::Contents::size_type ci = offset+1; ci < seq->size(); ++ci)
             frag.push_back(seq->characters()[ci]);
         Sequence::Contents gap(frag.size(), gap_char);
-        for (auto wseq_chars: working_seqs) {
+        for (auto& wseq_chars: working_seqs) {
             auto wseq = wseq_chars.first;
             auto& chars = wseq_chars.second;
             if (wseq == seq)
@@ -1093,25 +1167,13 @@ multi_align(std::vector<Chain*>& chains, double dist_cutoff, bool col_all, char 
     }
 
     // Put the sequences in the clones
-    for (auto chain_clone: cpp_clones) {
-        auto chain = chain_clone.first;
-        auto& clone = chain_clone.second;
-        auto& clone_seq = working_seqs[clone];
-        auto& residues = chain->residues();
-        clone->bulk_set(residues, &clone_seq);
+    for (auto chain: chains) {
+        auto& aligned_seq = working_seqs[chain];
+        chain->bulk_set(chain->residues(), &aligned_seq);
     }
-
-    auto py_clones = PyList_New(cpp_clones.size());
-    if (py_clones == nullptr) {
-        PyErr_SetString(PyExc_AssertionError, "Could not make list for aligned sequences");
-        return nullptr;
-    }
-    Py_ssize_t li = 0;
-    for (auto chain_clone: cpp_clones)
-        PyList_SET_ITEM(py_clones, li++, chain_clone.second->py_instance(true));
 
     logger::status(py_logger, status_prefix, "Done");
-    return py_clones;
+    return Py_None;
 }
 
 static PyObject*
@@ -1123,12 +1185,12 @@ py_multi_align(PyObject*, PyObject* args)
     double dist_cutoff;
     int col_all, circular, py_gap_char;
     const char* status_prefix;
-    if (!PyArg_ParseTuple(args, const_cast<char *>("OfpCpsOO"), &chain_ptrs_list, &dist_cutoff,
+    if (!PyArg_ParseTuple(args, const_cast<char *>("OdpCpsOO"), &chain_ptrs_list, &dist_cutoff,
             &col_all, &py_gap_char, &circular, &status_prefix, &py_logger, &error_class))
         return NULL;
     char gap_char = (char)py_gap_char;
     if (!PySequence_Check(chain_ptrs_list)) {
-        PyErr_SetString(PyExc_TypeError, "First arg is not a sequence of Chain pointers");
+        PyErr_SetString(PyExc_TypeError, "First arg is not a sequence of StructureSeq pointers");
         return nullptr;
     }
     auto num_chains = PySequence_Size(chain_ptrs_list);
@@ -1137,7 +1199,7 @@ py_multi_align(PyObject*, PyObject* args)
             " two chains");
         return nullptr;
     }
-    std::vector<Chain*> chains;
+    std::vector<StructureSeq*> chains;
     for (decltype(num_chains) i = 0; i < num_chains; ++i) {
         PyObject* py_ptr = PySequence_GetItem(chain_ptrs_list, i);
         if (!PyLong_Check(py_ptr)) {
@@ -1146,10 +1208,10 @@ py_multi_align(PyObject*, PyObject* args)
             PyErr_SetString(PyExc_TypeError, err_msg.str().c_str());
             return nullptr;
         }
-        chains.push_back(static_cast<Chain*>(PyLong_AsVoidPtr(py_ptr)));
+        chains.push_back(static_cast<StructureSeq*>(PyLong_AsVoidPtr(py_ptr)));
     }
-    return multi_align(chains, dist_cutoff, (bool)col_all, gap_char, (bool)circular,
-        status_prefix, py_logger, error_class);
+    return multi_align(chains, dist_cutoff, (bool)col_all, gap_char, (bool)circular, status_prefix,
+        py_logger, error_class);
 }
 
 static struct PyMethodDef msa3d_methods[] =

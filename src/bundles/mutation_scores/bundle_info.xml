@@ -17,6 +17,7 @@
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
     <Dependency name="ChimeraX-DataFormats" version="~=1.0"/>
     <Dependency name="ChimeraX-UI" version="~=1.0"/>
+    <Dependency name="ChimeraX-Label" version="~=1.4"/>
   </Dependencies>
 
   <Providers manager="data formats">
@@ -47,6 +48,8 @@
     <ChimeraXClassifier>Command :: mutationscores structure :: Molecular structure :: Associate a structure with a set of mutations scores</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: mutationscores close :: Molecular structure :: Close a set of mutations scores</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: mutationscores color :: Molecular structure :: Color residues using previous colorings based on mutations scores</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: mutationscores heatmap :: Molecular structure :: Show a heat map of mutation scors</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Mutation Scores :: Structure Analysis :: Display deep mutational scan scores</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

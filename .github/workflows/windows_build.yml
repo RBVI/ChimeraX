@@ -26,14 +26,14 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
+          install: git mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
       - name: Fetch Plato prerequisites
         uses: ./utils/ci/consolidated_cache
         with:
@@ -48,7 +48,7 @@ jobs:
           per_page: 100
       - name: Note the run and job IDs on Plato
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
           # GitHub Actions couldn't contact Plato.
@@ -65,10 +65,6 @@ jobs:
         continue-on-error: true
         id: test-exes
         run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        continue-on-error: true
-        id: test-wheel
-        run: USE_COVERAGE=1 make pytest-wheel
       - name: Run distribution tests
         continue-on-error: true
         id: test-distribution
@@ -77,13 +73,13 @@ jobs:
         run: make report-coverage
       - name: Put the test outcome in the environment
         run: |
-          if [ "${{ steps.test-exes.outcome }}" = "failure" ] || [ "${{ steps.test-wheel.outcome }}" = "failure" ] || [ "${{ steps.test-distribution.outcome }}" = "failure" ]; then
+          if [ "${{ steps.test-exes.outcome }}" = "failure" ] || [ "${{ steps.test-distribution.outcome }}" = "failure" ]; then
             echo "TEST_OUTCOME=Failing" >> $GITHUB_ENV
           else
             echo "TEST_OUTCOME=Passing" >> $GITHUB_ENV
           fi
       - name: Report test results to Plato
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 1000
           timeout_minutes: 60
@@ -102,7 +98,7 @@ jobs:
       - name: Build tarball
         run: tar zcf ChimeraX.tar.gz ChimeraX.app
       - name: Upload ChimeraX
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 1000
           timeout_minutes: 60
@@ -116,14 +112,14 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
+          install: git mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
       - name: Fetch Plato prerequisites
         uses: ./utils/ci/consolidated_cache
         with:
@@ -138,7 +134,7 @@ jobs:
           per_page: 100
       - name: Note the run and job IDs on Plato
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'candidate' }}
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
           # GitHub Actions couldn't contact Plato.
@@ -153,21 +149,19 @@ jobs:
         run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
         run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        run: USE_COVERAGE=1 make pytest-wheel
       - name: Run distribution tests
         run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
         run: make report-coverage
       - name: Put the test outcome in the environment
         run: |
-          if [ "${{ steps.test-exes.outcome }}" = "failure" ] || [ "${{ steps.test-wheel.outcome }}" = "failure" ] || [ "${{ steps.test-distribution.outcome }}" = "failure" ]; then
+          if [ "${{ steps.test-exes.outcome }}" = "failure" ] || [ "${{ steps.test-distribution.outcome }}" = "failure" ]; then
             echo "TEST_OUTCOME=Failing" >> $GITHUB_ENV
           else
             echo "TEST_OUTCOME=Passing" >> $GITHUB_ENV
           fi
       - name: Report test results to Plato
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 1000
           timeout_minutes: 60
@@ -187,7 +181,7 @@ jobs:
         run: tar zcf ChimeraX.tar.gz ChimeraX.app
       - name: Upload ChimeraX
         if: ${{ inputs.release_type == 'daily' || inputs.release_type == 'techpreview' }}
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 1000
           timeout_minutes: 60
@@ -201,7 +195,7 @@ jobs:
       - name: Build tarball
         run: tar zcf ChimeraX.tar.gz ChimeraX.app
       - name: Upload ChimeraX
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 1000
           timeout_minutes: 60
@@ -216,14 +210,14 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
+          install: git mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
       - name: Fetch Plato prerequisites
         uses: ./utils/ci/consolidated_cache
         with:
@@ -237,8 +231,6 @@ jobs:
         run: make prepare-coverage
       - name: Check whether ChimeraX.exe and python -m chimerax.core are equivalent
         run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        run: USE_COVERAGE=1 make pytest-wheel
       - name: Run distribution tests
         run: USE_COVERAGE=1 make pytest-app
       - name: Report coverage
@@ -258,7 +250,7 @@ jobs:
       - name: Build tarball
         run: tar zcf ChimeraX.tar.gz ChimeraX.app
       - name: Upload ChimeraX
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 1000
           shell: bash
@@ -273,14 +265,14 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
           update: true
-          install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
+          install: git mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
       - name: Fetch Plato prerequisites
         uses: ./utils/ci/consolidated_cache
         with:
@@ -296,10 +288,6 @@ jobs:
         continue-on-error: true
         id: test-exes
         run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        continue-on-error: true
-        id: test-wheel
-        run: USE_COVERAGE=1 make pytest-wheel
       - name: Run distribution tests
         continue-on-error: true
         id: test-distribution
@@ -319,7 +307,7 @@ jobs:
       - name: Build tarball
         run: tar zcf ChimeraX.tar.gz ChimeraX.app
       - name: Upload ChimeraX
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           # You're gonna do it until you succeed, <REDACTED>! I'm not watching one more build fail because
           # GitHub Actions couldn't contact Plato.

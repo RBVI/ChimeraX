@@ -34,7 +34,7 @@ from chimerax.atomic.struct_edit import add_atom
 from chimerax.atomic import AtomicStructure, Element, Bond, Atom, AtomicStructure
 from numpy import array
 
-def read_sdf(session, stream, file_name, *, auto_style=True):
+def read_sdf(session, stream, file_name, **kw):
 
     structures = []
     Bond.register_attr(session, "order", "SDF format", attr_type=float)
@@ -43,9 +43,9 @@ def read_sdf(session, stream, file_name, *, auto_style=True):
     try:
         lines = [line for line in stream]
         if lines[3].strip().endswith("V3000"):
-            parse_v3000(session, file_name, lines, structures, auto_style)
+            parse_v3000(session, file_name, lines, structures, **kw)
         else:
-            parse_v2000(session, file_name, lines, structures, auto_style)
+            parse_v2000(session, file_name, lines, structures, **kw)
     except BaseException:
         for s in structures:
             s.delete()
@@ -55,7 +55,7 @@ def read_sdf(session, stream, file_name, *, auto_style=True):
 
     return structures, ""
 
-def parse_v2000(session, file_name, lines, structures, auto_style):
+def parse_v2000(session, file_name, lines, structures, **kw):
     nonblank = False
     state = "init"
     for l in lines:
@@ -82,7 +82,7 @@ def parse_v2000(session, file_name, lines, structures, auto_style):
                 raise UserError("Atom/bond counts line of MOL/SDF file '%s' is botched" % file_name)
             from chimerax.atomic.structure import is_informative_name
             name = mol_name if is_informative_name(mol_name) else file_name
-            s = AtomicStructure(session, name=name, auto_style=auto_style)
+            s = AtomicStructure(session, name=name, **kw)
             structures.append(s)
             r = s.new_residue("UNL", " ", 1)
         elif state == "atoms":
@@ -147,7 +147,7 @@ def parse_v2000(session, file_name, lines, structures, auto_style):
             raise UserError("Unexpected end of file (parser state: %s) in MOL/SDF file '%s'"
                 % (state, file_name))
 
-def parse_v3000(session, file_name, lines, structures, auto_style):
+def parse_v3000(session, file_name, lines, structures, **kw):
     lines = [l.strip() for l in lines]
     default_mol_name = lines[0]
     blocks = []
@@ -172,7 +172,7 @@ def parse_v3000(session, file_name, lines, structures, auto_style):
                         mol_name = default_mol_name
                     from chimerax.atomic.structure import is_informative_name
                     name = mol_name if is_informative_name(mol_name) else file_name
-                    s = AtomicStructure(session, name=name, auto_style=auto_style)
+                    s = AtomicStructure(session, name=name, **kw)
                     atom_info = {}
                     atoms = []
                     anums = {}

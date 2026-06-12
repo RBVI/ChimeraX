@@ -461,6 +461,32 @@ class Labels(Model):
                 'version': 4}
         return data
 
+    def restore_scene(self, scene_data):
+        # Override so the scenes manager treats Labels as restore-implemented
+        # (scene.py: model.__class__.restore_scene != Model.restore_scene), which
+        # is the gate that lets the Labels parent's snapshot reach the per-frame
+        # interpolate loop and lets _get_visible_models_in_scene find its display.
+        if 'model state' in scene_data:
+            Model.restore_scene(self, scene_data['model state'])
+        else:
+            Model.restore_scene(self, scene_data)
+
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        if scene1_data is None and scene2_data is None:
+            return
+        if scene1_data is None or scene2_data is None:
+            # The Labels parent itself is hidden on one side. Apply the present
+            # side's state and fade every child label's alpha together so they
+            # all appear/disappear as a group instead of popping with the parent.
+            target = scene2_data if scene1_data is None else scene1_data
+            self.restore_scene(target)
+            alpha_factor = fraction if scene1_data is None else (1.0 - fraction)
+            for label in self._labels:
+                label.drawing._scale_label_alpha(alpha_factor)
+            return
+        Model.interpolate_scene(self, scene1_data['model state'], scene2_data['model state'],
+                                fraction, switchover=switchover)
+
     @staticmethod
     def restore_snapshot(session, data):
         if 'model state' in data:
@@ -734,6 +760,107 @@ class LabelModel(Model):
         # TODO
         pass
 
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        if scene1_data is None and scene2_data is None:
+            return
+        if scene1_data is None or scene2_data is None:
+            # The label is hidden on one side. Apply the present side's full
+            # state, then scale text/background alpha so the label fades
+            # in/out instead of popping at the scene boundary.
+            target = scene2_data if scene1_data is None else scene1_data
+            self.restore_scene(target)
+            alpha_factor = fraction if scene1_data is None else (1.0 - fraction)
+            self._scale_label_alpha(alpha_factor)
+            return
+        from chimerax.core.colors import Color
+        scene1_params = LabelModel._label_restore_parameters(scene1_data, label_change)
+        scene2_params = LabelModel._label_restore_parameters(scene2_data, label_change)
+        viz1 = scene1_params.get('visibility', True)
+        viz2 = scene2_params.get('visibility', True)
+        if viz1 != viz2:
+            self._interpolate_visibility_fade(scene1_params, scene2_params, fraction, switchover)
+            return
+        params = {}
+        for param_name, value1 in scene1_params.items():
+            value2 = scene2_params[param_name]
+            if param_name.endswith("color"):
+                if value1 is None:
+                    if value2 is None:
+                        value = None
+                    else:
+                        value = value2 if switchover else None
+                else:
+                    if value2 is None:
+                        value = None if switchover else value1
+                    else:
+                        value = [round((1-fraction) * value1[i] + fraction * value2[i]) for i in range(4)]
+                if value is not None:
+                    value = Color(value)
+            elif isinstance(value1, str) or value1 is None or value2 is None:
+                value = value2 if switchover else value1
+            elif isinstance(value1, int):
+                value = round(((1-fraction) * value1 + fraction * value2))
+            else:
+                value = (1-fraction) * value1 + fraction * value2
+            params[param_name] = value
+        label_change(self.session, [self.label], **params)
+
+    def _interpolate_visibility_fade(self, scene1_params, scene2_params, fraction, switchover):
+        # Visibility differs between scenes. Mirror _InterpolateLabel: keep the
+        # label drawn during the transition and fade text/background alpha so it
+        # actually fades in (or out) instead of popping at the 50% mark.
+        from chimerax.core.colors import Color
+        if switchover:
+            params = {}
+            for key, value in scene2_params.items():
+                if key == 'color':
+                    params[key] = Color(value) if value is not None else 'default'
+                elif key == 'bg_color':
+                    params[key] = Color(value) if value is not None else 'none'
+                else:
+                    params[key] = value
+            label_change(self.session, [self.label], **params)
+            return
+        becoming_visible = scene2_params.get('visibility', True)
+        visible_params = scene2_params if becoming_visible else scene1_params
+        alpha_factor = fraction if becoming_visible else (1 - fraction)
+        params = dict(visible_params)
+        params['visibility'] = True
+        color = visible_params.get('color')
+        if color is None:
+            # Resolve auto-color so we have an alpha channel to scale.
+            color = list(self.label_color)
+        else:
+            color = list(color)
+        color[3] = max(0, min(255, round(color[3] * alpha_factor)))
+        params['color'] = Color(color)
+        bg = visible_params.get('bg_color')
+        if bg is not None:
+            bg = list(bg)
+            bg[3] = max(0, min(255, round(bg[3] * alpha_factor)))
+            params['bg_color'] = Color(bg)
+        label_change(self.session, [self.label], **params)
+
+    def _scale_label_alpha(self, alpha_factor):
+        # Scale the label's text/background alpha by ``alpha_factor`` in place.
+        # The label must already have its target scene's state applied — the
+        # next scene commit will overwrite these temporary values.
+        label = self.label
+        # Force the label drawn during the fade so alpha is actually visible.
+        label.visibility = True
+        color = label.color
+        if color is None:
+            color = self.label_color  # resolved auto-color, rgba8 tuple
+        color = list(color)
+        color[3] = max(0, min(255, round(color[3] * alpha_factor)))
+        label.color = tuple(color)
+        bg = label.background
+        if bg is not None:
+            bg = list(bg)
+            bg[3] = max(0, min(255, round(bg[3] * alpha_factor)))
+            label.background = tuple(bg)
+        label.update_drawing()
+
     def take_snapshot(self, session, flags):
         from chimerax.core.state import State
         if flags == State.SCENE:
@@ -747,14 +874,27 @@ class LabelModel(Model):
         l = self.label
         lstate = {attr:getattr(l, arg_to_attr.get(attr, attr)) for attr in lattrs}
         data = {'label state': lstate,
+                'model state': Model.take_snapshot(self, session, flags),
                 'version': 1}
         return data
 
     def restore_scene(self, scene_data):
         from chimerax.core.colors import Color
-        label_change(self.session, [self.label],
-            **{ key: (Color(value) if key.lower().endswith("color") and value is not None else value)
-            for key, value in LabelModel._label_restore_parameters(scene_data, label_change).items() })
+        if 'model state' in scene_data:
+            Model.restore_scene(self, scene_data['model state'])
+        # Translate snapshot Nones into the sentinels label_change understands
+        # ('default' for auto-color, 'none' for no background). Without this,
+        # _update_label treats None as "no change" and leaves any stale alpha
+        # from a fade interpolation in place.
+        params = {}
+        for key, value in LabelModel._label_restore_parameters(scene_data, label_change).items():
+            if key == 'color':
+                params[key] = Color(value) if value is not None else 'default'
+            elif key == 'bg_color':
+                params[key] = Color(value) if value is not None else 'none'
+            else:
+                params[key] = value
+        label_change(self.session, [self.label], **params)
 
     @staticmethod
     def restore_snapshot(session, data):

@@ -61,7 +61,7 @@ class Structure(Model, StructureData):
         'ribbon_tether_opacity', 'ribbon_tether_scale', 'worm_radii'])
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
-                 auto_style = True, log_info = True):
+                 auto_style = True, log_info = True, break_triangle_waters = True):
         from .molarray import Residues
         from numpy import array
         from .ribbon import XSectionManager
@@ -83,6 +83,7 @@ class Structure(Model, StructureData):
         Model.__init__(self, name, session)
         self._auto_style = auto_style
         self._log_info = log_info
+        self._break_triangle_waters = break_triangle_waters
 
         # for now, restore attrs to default initial values even for sessions...
         self._atoms_drawing = None
@@ -202,6 +203,8 @@ class Structure(Model, StructureData):
         # but that is only certain to be correct if this is the first time the structure
         # has been added to the session, so always set it. [#18427]
         self._cpp_notify_position(self.scene_position)
+        if self._break_triangle_waters:
+            self.break_triangle_waters()
         if self._auto_style:
             self.apply_auto_styling(set_lighting = self._is_only_model())
         self._start_change_tracking(session.change_tracker)
@@ -273,7 +276,10 @@ class Structure(Model, StructureData):
         Model.restore_scene(self, scene_data['model state'])
         # Need to restore Structure.active_coordset_id before Atoms.coords
         for attr_name, val in scene_data.get('structure', {}).items():
+            if getattr(self, attr_name) == val:
+                continue
             setattr(self, attr_name, val)
+        from numpy import array_equal
         for target, attr_names in [
                 ('atoms', self.ATOM_SCENE_ATTRS),
                 ('bonds', self.BOND_SCENE_ATTRS),
@@ -282,10 +288,18 @@ class Structure(Model, StructureData):
             values = scene_data.get(target, {})
             for attr_name in attr_names:
                 if attr_name in values:
+                    new_val = values[attr_name]
+                    # Skip the assignment when the new value matches the
+                    # current state. The collection setters always fire
+                    # graphics-change notifications, which during animation
+                    # playback would invalidate the camera-only render fast
+                    # path every frame and force AO to recompute.
+                    if array_equal(getattr(collection, attr_name), new_val):
+                        continue
                     try:
-                        setattr(collection, attr_name, values[attr_name])
+                        setattr(collection, attr_name, new_val)
                     except ValueError:
-                        if len(collection) < len(values[attr_name]):
+                        if len(collection) < len(new_val):
                             self.session.logger.warning(f"{target.capitalize()} have been deleted"
                                 f" from {self} since scene was saved.  Cannot restore"
                                 f" {self} completely.  Do not delete {target} involved in pre-existing"
@@ -297,19 +311,71 @@ class Structure(Model, StructureData):
             self.ribbon_xs_mgr.set_state_from_snapshot(self.session, ribbon_data)
 
     def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        if scene1_data is None and scene2_data is None:
+            return
+        if scene1_data is None or scene2_data is None:
+            # Fade in (scene1 absent) or fade out (scene2 absent): apply the
+            # present scene's full state, then scale per-atom/bond/residue alpha.
+            target = scene2_data if scene1_data is None else scene1_data
+            alpha_scale = fraction if scene1_data is None else (1.0 - fraction)
+            Structure.restore_scene(self, target)
+            from numpy import rint, uint8
+            for collection_attr, color_attr in (
+                    ('atoms', 'colors'),
+                    ('bonds', 'colors'),
+                    ('residues', 'ribbon_colors')):
+                collection = getattr(self, collection_attr)
+                if len(collection) == 0:
+                    continue
+                colors = getattr(collection, color_attr)
+                colors[:, 3] = rint(colors[:, 3].astype('float32') * alpha_scale).astype(uint8)
+                setattr(collection, color_attr, colors)
+            return
         Model.interpolate_scene(self, scene1_data['model state'], scene2_data['model state'], fraction,
             switchover=switchover)
-        # for now, we're just interpolating coordinate sets so that trajectories/morphs work;
-        # a more thorough approach will be needed for interpolating other attributes
         interp_data = {}
         switch_data = scene2_data if switchover else scene1_data
         # prevent writing into original scene dictionaries...
+        from numpy import rint, uint8, array, array_equal, ndarray
         for attr_level, attr_info in switch_data.items():
             interp_info = {}
             for attr_name, attr_vals in attr_info.items():
-                if attr_name in self.simply_interpolable_attrs:
-                    interp_val = (1-fraction) * scene1_data[attr_level][attr_name] \
-                        + fraction * scene2_data[attr_level][attr_name]
+                if attr_name in self.simply_interpolable_attrs or attr_name.endswith("colors"):
+                    if attr_name == "coords":
+                        try:
+                            if scene1_data["structure"]["active_coordset_id"] \
+                            != scene2_data["structure"]["active_coordset_id"]:
+                                # interpolating coordinate sets; avoid also interpolating coordinates
+                                continue
+                        except KeyError:
+                            # one or both scenes don't have cs_id info
+                            pass
+                    try:
+                        s1_val = scene1_data[attr_level][attr_name]
+                        s2_val = scene2_data[attr_level][attr_name]
+                        # Skip the lerp when both scenes hold the same value.
+                        # Otherwise floating-point jitter from
+                        # (1-f)*x + f*x produces a not-quite-x result, the
+                        # downstream dedupe in restore_scene fails, and we
+                        # invalidate the camera-only render fast path every
+                        # frame even though nothing actually changed.
+                        if (isinstance(s1_val, ndarray) and isinstance(s2_val, ndarray)
+                                and array_equal(s1_val, s2_val)):
+                            interp_val = s1_val
+                        elif (not isinstance(s1_val, ndarray)
+                                and not isinstance(s2_val, ndarray)
+                                and s1_val == s2_val):
+                            interp_val = s1_val
+                        else:
+                            interp_val = (1-fraction) * s1_val + fraction * s2_val
+                    except KeyError:
+                        # Once scene only has a subset of the attributes of the other
+                        try:
+                            interp_val = scene1_data[attr_level][attr_name]
+                        except KeyError:
+                            interp_val = scene2_data[attr_level][attr_name]
+                    if attr_name.endswith("colors"):
+                        interp_val = array(rint(interp_val), dtype=uint8)
                 elif attr_name == "active_coordset_id":
                     csids = list(self.coordset_ids)
                     try:
@@ -326,6 +392,48 @@ class Structure(Model, StructureData):
                     interp_val = attr_vals
                 interp_info[attr_name] = interp_val
             interp_data[attr_level] = interp_info
+        # Fade per-element displays changes via alpha. Without this, atoms,
+        # bonds, or ribbon/ring residues that are shown in one scene but
+        # hidden in the other pop at switchover because *_displays is a bool
+        # array and isn't in simply_interpolable_attrs. The toolbar "Hide
+        # atoms" button flips per-atom displays (not model.display), so the
+        # model-level fade above doesn't catch this case.
+        from numpy import logical_or, logical_and, logical_not
+        for collection_key, display_attr, color_attr in (
+                ('atoms', 'displays', 'colors'),
+                ('bonds', 'displays', 'colors'),
+                ('residues', 'ribbon_displays', 'ribbon_colors'),
+                ('residues', 'ring_displays', 'ring_colors')):
+            d1 = scene1_data.get(collection_key, {}).get(display_attr)
+            d2 = scene2_data.get(collection_key, {}).get(display_attr)
+            if d1 is None or d2 is None or d1.shape != d2.shape:
+                continue
+            if array_equal(d1, d2):
+                continue
+            fade_in = logical_and(logical_not(d1), d2)
+            fade_out = logical_and(d1, logical_not(d2))
+            if not (fade_in.any() or fade_out.any()):
+                continue
+            c1 = scene1_data[collection_key].get(color_attr)
+            c2 = scene2_data[collection_key].get(color_attr)
+            if c1 is None or c2 is None or c1.shape != c2.shape:
+                continue
+            if (collection_key not in interp_data
+                    or color_attr not in interp_data[collection_key]):
+                continue
+            # Override the lerp'd colors only for rows where displays differ:
+            # use the source scene's color (the other side's color is from a
+            # hidden element and not meaningful) and scale alpha by the
+            # appropriate fraction. Force union display so fading rows draw.
+            cur_colors = interp_data[collection_key][color_attr].astype('float32', copy=True)
+            if fade_in.any():
+                cur_colors[fade_in] = c2[fade_in].astype('float32')
+                cur_colors[fade_in, 3] *= fraction
+            if fade_out.any():
+                cur_colors[fade_out] = c1[fade_out].astype('float32')
+                cur_colors[fade_out, 3] *= (1.0 - fraction)
+            interp_data[collection_key][color_attr] = array(rint(cur_colors), dtype=uint8)
+            interp_data[collection_key][display_attr] = logical_or(d1, d2)
         Structure.restore_scene(self, interp_data)
 
     def set_state_from_snapshot(self, session, data):
@@ -1573,8 +1681,9 @@ class AtomicStructure(Structure):
         Structure.restore_scene(self, scene_data['structure state'])
 
     def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
-        Structure.interpolate_scene(self, scene1_data['structure state'], scene2_data['structure state'],
-            fraction, switchover=switchover)
+        s1 = scene1_data['structure state'] if scene1_data is not None else None
+        s2 = scene2_data['structure state'] if scene2_data is not None else None
+        Structure.interpolate_scene(self, s1, s2, fraction, switchover=switchover)
 
     def set_state_from_snapshot(self, session, data):
         version = data.get('AtomicStructure version', 1)
@@ -1754,7 +1863,11 @@ class AtomicStructure(Structure):
                                 " number %s" % (chain_id, seq_id))
                         break
                 else:
-                    res = chain.residues[int(seq_id)-1]
+                    try:
+                        res = chain.residues[int(seq_id)-1]
+                    except IndexError:
+                        session.logger.warning("Bad chain-residue index in mmCIF mm_qa_metric_local_table")
+                        break
                 if not res:
                     continue
                 if res.name != res_name:

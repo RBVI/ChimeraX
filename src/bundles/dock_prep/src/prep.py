@@ -59,6 +59,49 @@ def prep(session, state, callback, memo_type, memo_name, structures, keywords):
         session.logger.status("Deleting non-current alt locs", log=True)
         for s in structures:
             s.delete_alt_locs()
+            # If a disulphide bond is present in one set of altlocs but not another (e.g. 6i4q),
+            # we can end up with sulphurs that are both disulphide bonded and protonated.
+            # Fix up to one or the other based on disulphide bond length
+            bonds = s.bonds
+            a1s, a2s = bonds.atoms
+            for ds in bonds.filter((a1s.elements.names == "S") & (a2s.elements.names == "S")):
+                a1, a2 = ds.atoms
+                if a1.num_bonds > 2 and a2.num_bonds > 2:
+                    if ds.length < 2.5:
+                        # keep bond, delete hydrogens
+                        for a in (a1, a2):
+                            for nb in a.neighbors:
+                                if nb.element.number == 1:
+                                    s.delete_atom(nb)
+                                    break
+                    else:
+                        # keep hydrogens, delete bond
+                        s.delete_bond(ds)
+
+    if active_settings['del_missing_backbone']:
+        session.logger.status("Deleting residues with incomplete backbones", log=True)
+        from chimerax.atomic import Residue
+        for s in structures:
+            for c in s.chains:
+                if c.polymer_type == Residue.PT_AMINO:
+                    min_backbone_names = Residue.aa_min_backbone_names
+                else:
+                    min_backbone_names = Residue.na_min_backbone_names
+                for r in c.existing_residues:
+                    try:
+                        if not r.is_missing_heavy_template_atoms():
+                            continue
+                    except RuntimeError as e:
+                        if "No residue template found" in str(e):
+                            continue
+                    for bb_name in min_backbone_names:
+                        if not r.find_atom(bb_name):
+                            # 5' termimus can be missing P
+                            if r == c.residues[0] and bb_name == 'P':
+                                continue
+                            session.logger.info("%s is missing heavy backbone atoms; deleting" % r)
+                            s.delete_residue(r)
+                            break
 
     std_res = active_settings['standardize_residues']
     if std_res:

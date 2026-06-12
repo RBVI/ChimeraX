@@ -446,6 +446,7 @@ class ObjectLabels(Model):
         for o in objects:
             if o not in ol:
                 ol[o] = lo = label_class(o, view, **settings)
+                lo.custom_image = None
                 self._labels.append(lo)
             elif settings:
                 lo = ol[o]
@@ -462,7 +463,24 @@ class ObjectLabels(Model):
     def update_labels(self):
         self._texture_needs_update = True
         self.redraw_needed()
-            
+
+    def _scale_labels_alpha(self, alpha_factor):
+        # Scale the alpha of every child label's text and background so the
+        # group fades in/out together when the parent ObjectLabels is missing
+        # from one side of a scene transition. Caller is expected to have just
+        # applied a restore_scene of the present-side state; the next scene
+        # commit will overwrite these temporary values.
+        for label in self._labels:
+            c = list(label.color)
+            c[3] = max(0, min(255, round(c[3] * alpha_factor)))
+            label.color = tuple(c)
+            bg = label.background
+            if bg is not None:
+                bg = list(bg)
+                bg[3] = max(0, min(255, round(bg[3] * alpha_factor)))
+                label.background = tuple(bg)
+        self.update_labels()
+
     def _count_pixel_sized_labels(self):
         self._num_pixel_labels = len([l for l in self._labels if l.height is None])
         
@@ -720,7 +738,8 @@ class ObjectLabels(Model):
     SESSION_SAVE = True
     
     def take_snapshot(self, session, flags):
-        lattrs = ('object', 'text', 'offset', 'color', 'background', 'size', 'height', 'font', 'position')
+        lattrs = ('object', 'text', 'offset', 'color', 'background', 'size', 'height', 'font', 'position',
+            'custom_image')
         lstate = tuple({attr:getattr(l, attr) for attr in lattrs if hasattr(l, attr)}
                        for l in self._labels)
         data = {'model state': Model.take_snapshot(self, session, flags),
@@ -746,12 +765,123 @@ class ObjectLabels(Model):
         v = self.session.main_view
         for ls in data['labels state']:
             o = ls['object']
-            kw = {attr:ls[attr] for attr in ('text', 'offset', 'color', 'background',
-                                             'size', 'height', 'font', 'position') if attr in ls}
+            kw = {attr:ls[attr] for attr in ('text', 'offset', 'color', 'background', 'size',
+                                        'height', 'font', 'position', 'custom_image') if attr in ls}
             cls = label_class(o)
             ol[o] = l = cls(o, v, **kw)
             self._labels.append(l)
         self._count_pixel_sized_labels()
+
+    def restore_scene(self, data):
+        super().restore_scene(data['model state'])
+        self.on_top = data['on_top']
+        if 'orient' in data:
+            label_orient(self.session, data['orient'])
+        for lstate, label in zip(data['labels state'], self._labels):
+            for attr in ('offset', 'color', 'background', 'size', 'height'):
+                if attr in lstate:
+                    setattr(label, attr, lstate[attr])
+            for attr in ('text', 'font', 'position'):
+                if attr in lstate:
+                    setattr(label, attr, lstate[attr])
+        self.update_labels()
+
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        if scene1_data is None and scene2_data is None:
+            return
+        if scene1_data is None or scene2_data is None:
+            # The ObjectLabels parent is missing from one side. Apply the
+            # present side's state and fade every child label's alpha together
+            # so the group appears/disappears smoothly instead of popping.
+            target = scene2_data if scene1_data is None else scene1_data
+            self.restore_scene(target)
+            alpha_factor = fraction if scene1_data is None else (1.0 - fraction)
+            self._scale_labels_alpha(alpha_factor)
+            return
+        super().interpolate_scene(scene1_data['model state'], scene2_data['model state'],
+                                  fraction, switchover=switchover)
+
+        from numpy import rint, array, uint8
+
+        source = scene2_data if switchover else scene1_data
+        self.on_top = source['on_top']
+
+        # Interpolate orient angle
+        orient1 = scene1_data.get('orient', 0)
+        orient2 = scene2_data.get('orient', 0)
+        label_orient(self.session, (1 - fraction) * orient1 + fraction * orient2)
+
+        ls1 = scene1_data['labels state']
+        ls2 = scene2_data['labels state']
+        for i, label in enumerate(self._labels):
+            if i >= len(ls1) or i >= len(ls2):
+                break
+            s1, s2 = ls1[i], ls2[i]
+            src = s2 if switchover else s1
+
+            # Interpolate offset (3-tuple of floats)
+            off1 = s1.get('offset')
+            off2 = s2.get('offset')
+            if off1 is not None and off2 is not None:
+                label.offset = tuple((1 - fraction) * off1[j] + fraction * off2[j]
+                                     for j in range(len(off1)))
+            elif 'offset' in src:
+                label.offset = src['offset']
+
+            # Interpolate color (uint8 RGBA)
+            c1 = s1.get('color')
+            c2 = s2.get('color')
+            if c1 is not None and c2 is not None:
+                c1, c2 = array(c1, dtype=uint8), array(c2, dtype=uint8)
+                interp_c = (1 - fraction) * c1.astype(float) + fraction * c2.astype(float)
+                label.color = array(rint(interp_c), dtype=uint8)
+            elif 'color' in src:
+                label.color = src['color']
+
+            # Interpolate background. background=None means no rectangle drawn,
+            # so when one side is None we fade alpha against the set side's RGB
+            # rather than snap at switchover. An alpha that rounds to 0 collapses
+            # back to None so the no-background path doesn't add label padding.
+            bg1 = s1.get('background')
+            bg2 = s2.get('background')
+            if bg1 is None and bg2 is None:
+                label.background = None
+            elif bg1 is not None and bg2 is not None:
+                a1, a2 = array(bg1, dtype=uint8), array(bg2, dtype=uint8)
+                interp_bg = (1 - fraction) * a1.astype(float) + fraction * a2.astype(float)
+                label.background = array(rint(interp_bg), dtype=uint8)
+            else:
+                if bg1 is None:
+                    src_bg = array(bg2, dtype=uint8).astype(float)
+                    src_bg[3] *= fraction
+                else:
+                    src_bg = array(bg1, dtype=uint8).astype(float)
+                    src_bg[3] *= 1 - fraction
+                rgba = array(rint(src_bg), dtype=uint8)
+                label.background = None if rgba[3] == 0 else rgba
+
+            # Interpolate size (int)
+            sz1 = s1.get('size')
+            sz2 = s2.get('size')
+            if sz1 is not None and sz2 is not None:
+                label.size = round((1 - fraction) * sz1 + fraction * sz2)
+            elif 'size' in src:
+                label.size = src['size']
+
+            # Interpolate height (float or None)
+            h1 = s1.get('height')
+            h2 = s2.get('height')
+            if h1 is not None and h2 is not None:
+                label.height = (1 - fraction) * h1 + fraction * h2
+            else:
+                label.height = src.get('height')
+
+            # Discrete attributes
+            for attr in ('text', 'font', 'position'):
+                if attr in src:
+                    setattr(label, attr, src[attr])
+
+        self.update_labels()
 
 # -----------------------------------------------------------------------------
 #
@@ -775,7 +905,7 @@ class ObjectLabel:
 
     def __init__(self, object, view, offset = None, text = None,
                  color = None, background = None, attribute = None,
-                 size = 48, height = 'default', font = 'Arial'):
+                 size = 48, height = 'default', font = 'Arial', custom_image=None):
 
         self.object = object
         self.view = view	# View is used to update label position to face camera
@@ -800,9 +930,22 @@ class ObjectLabel:
             
         self.height = height	# None or height in world coords.  If None used fixed screen size.
         self._pixel_size = (100,10)	# Size of label in pixels, derived from size attribute
+        # so that bundles can show custom non-text labels
+        self.custom_image = custom_image
 
         self.font = font
         
+    @property
+    def custom_image(self):
+        return self._custom_image
+
+    @custom_image.setter
+    def custom_image(self, image):
+        self._custom_image = image
+        if image is not None:
+            h, w = image.shape[:2]
+            self._label_size = w, h
+
     def default_text(self):
         '''Override this to define the default label text for object.'''
         return ''
@@ -894,6 +1037,8 @@ class ObjectLabel:
         return self.location() is None
 
     def _label_image(self):
+        if self.custom_image is not None:
+            return self.custom_image
         s = self.size
         rgba8 = tuple(self.color)
         bg = self.background
@@ -931,13 +1076,9 @@ class ObjectLabel:
 # -----------------------------------------------------------------------------
 #
 class AtomLabel(ObjectLabel):
-    def __init__(self, object, view, offset = None, text = None,
-                 color = None, background = None, attribute = None,
-                 size = 48, height = 'default', font = 'Arial'):
+    def __init__(self, object, view, **kw):
         self.atom = object
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text,
-                 color=color, background=background, attribute=attribute,
-                 size=size, height=height, font=font)
+        ObjectLabel.__init__(self, object, view, **kw)
     def default_text(self):
         aname = self.atom.name
         return aname if aname else ('%d' % self.atom.residue.number)
@@ -953,14 +1094,10 @@ class AtomLabel(ObjectLabel):
 # -----------------------------------------------------------------------------
 #
 class ResidueLabel(ObjectLabel):
-    def __init__(self, object, view, offset = None, text = None,
-                 color = None, background = None, attribute = None,
-                 size = 48, height = 'default', font = 'Arial', position = None):
+    def __init__(self, object, view, position=None, **kw):
         self.residue = object
         self.position = position
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text,
-                 color=color, background=background, attribute=attribute,
-                 size=size, height=height, font=font)
+        ObjectLabel.__init__(self, object, view, **kw)
     def default_text(self):
         r = self.residue
         return '%s %d%s' % (r.name, r.number, r.insertion_code)
@@ -980,13 +1117,9 @@ class ResidueLabel(ObjectLabel):
 # -----------------------------------------------------------------------------
 #
 class EdgeLabel(ObjectLabel):
-    def __init__(self, object, view, offset = None, text = None,
-                 color = None, background = None, attribute = None,
-                 size = 48, height = 'default', font = 'Arial'):
+    def __init__(self, object, view, **kw):
         self.pseudobond = object
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text,
-                 color=color, background=background, attribute=attribute,
-                 size=size, height=height, font=font)
+        ObjectLabel.__init__(self, object, view, **kw)
     def default_text(self):
         dm = self.pseudobond.session.pb_dist_monitor
         return dm.distance_format % self.pseudobond.length
@@ -1021,16 +1154,12 @@ class PseudobondLabel(EdgeLabel):
 # -----------------------------------------------------------------------------
 #
 class ModelLabel(ObjectLabel):
-    def __init__(self, object, view, offset = None, text = None,
-                 color = None, background = None, attribute = None,
-                 size = 48, height = 'model default', font = 'Arial'):
+    def __init__(self, object, view, height = 'model default', **kw):
         self.model = object
         self._location_initialized = False
         self._location = (0,0,0)
         self._default_offset = (0,0,0)
-        ObjectLabel.__init__(self, object, view, offset=offset, text=text,
-                 color=color, background=background, attribute=attribute,
-                 size=size, height=height, font=font)
+        ObjectLabel.__init__(self, object, view, height=height, **kw)
     def default_text(self):
         return self.model.name
     def default_offset(self):
@@ -1065,11 +1194,12 @@ def picked_3d_label(session, win_x, win_y):
     pick = None
     from chimerax.core.models import PickedModel
     for m in session.models.list(type = ObjectLabels):
-        mtf = m.parent.scene_position.inverse()
-        mxyz1, mxyz2 =  mtf*xyz1, mtf*xyz2
-        p = m.first_intercept(mxyz1, mxyz2)
-        if isinstance(p, PickedModel) and (pick is None or p.distance < pick.distance):
-            pick = p
+        if m.parents_displayed:
+            mtf = m.parent.scene_position.inverse()
+            mxyz1, mxyz2 =  mtf*xyz1, mtf*xyz2
+            p = m.first_intercept(mxyz1, mxyz2)
+            if isinstance(p, PickedModel) and (pick is None or p.distance < pick.distance):
+                pick = p
 
     if pick:
         # Return ObjectLabel instance

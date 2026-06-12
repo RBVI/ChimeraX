@@ -111,7 +111,7 @@ class ToolbarTool(ToolInstance):
         layout.addWidget(self.ttb)
         self._build_tabs()
         self.tool_window.ui_area.setLayout(layout)
-        self.tool_window.manage(self.PLACEMENT)
+        self.tool_window.manage(self.PLACEMENT, allowed_areas=Qt.AllDockWidgetAreas)
 
     def _color_scheme_changed(self, *_):
         from chimerax.ui.widgets.tabbedtoolbar import TabbedToolbar

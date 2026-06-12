@@ -1,0 +1,154 @@
+<html lang="en"><!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
+<title>Command: msa3d</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
+
+<h3><a href="../index.html#commands">Command</a>: msa3d</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>msa3d</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
+[&nbsp;<b>cutoffDistance</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
+[&nbsp;<b>columnCriterion</b>&nbsp;&nbsp;<b>any</b>&nbsp;|&nbsp;all&nbsp;]
+[&nbsp;<b>showAlignment</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>alignmentId</b>&nbsp;&nbsp;<i>alignment-ID</i>&nbsp;]
+[&nbsp;<b>gapChar</b>&nbsp;&nbsp;<i>char</i>&nbsp;]
+<!--
+[&nbsp;<b>circular</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+-->
+[&nbsp;<b>maxIterations</b>&nbsp;&nbsp<i>N</i>&nbsp;|&nbsp;none&nbsp;&nbsp;
+[&nbsp;<b>refChain</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;]
+[&nbsp;<b>minStretch</b>&nbsp;&nbsp;<i>L</i></a>&nbsp;]]
+</h3>
+<p>
+The <b>msa3d</b> command creates a multiple sequence alignment
+from a structural superposition of the
+<a href="atomspec.html#hierarchy">specified chains</a>
+(either all protein or all nucleic acid).
+Residue types are not used, only their spatial proximities.
+Iterations of refitting the structures using the sequence alignment
+and generating a new sequence alignment can be performed.
+The corresponding tool is
+<a href="../tools/matchalign.html"><b>Match&rarr;Align</b></a>.
+See also:
+<a href="matchmaker.html"><b>matchmaker</b></a>,
+<a href="align.html"><b>align</b></a>,
+<a href="sequence.html#align"><b>sequence align</b></a>,
+<a href="sequence.html#match"><b>sequence match</b></a>,
+<a href="rmsd.html"><b>rmsd</b></a>
+</p><p>
+The method was originally implemented in Chimera, as described in:
+</p>
+<blockquote>
+<a href="https://www.biomedcentral.com/1471-2105/7/339" target="_blank">
+Tools for integrated sequence-structure analysis with UCSF Chimera.</a>
+Meng EC, Pettersen EF, Couch GS, Huang CC, Ferrin TE.
+<i>BMC Bioinformatics.</i> 2006 Jul 12;7:339.
+</blockquote>
+
+<a name="options"></a>
+<p class="nav">
+[<a href="#top">back to top: msa3d</a>]
+</p>
+<h3>Options</h3>
+<blockquote>
+<a name="cutoffDistance"></a>
+<b>cutoffDistance</b> &nbsp;<i>d</i>
+<br>
+The maximum CA-CA distance (C4'-C4' for nucleic acids)
+for defining membership in a column of the output sequence alignment
+(default <b>5.0</b> &Aring;).
+</blockquote>
+<blockquote>
+<a name="columnCriterion"></a>
+<b>columnCriterion</b> &nbsp;<b>any</b>&nbsp;|&nbsp;all
+<br>
+A residue can be aligned in a column if it is within the 
+<a href="#cutoffDistance">cutoff distance</a> of:
+<ul>
+<li><b>any</b> (default) &ndash; at least one other residue in the column
+</li><li><b>all</b> &ndash; all other residues in the column
+</li></ul>
+</blockquote>
+<blockquote>
+<a name="showAlignment"></a>
+<b>showAlignment</b> &nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to show the resulting multiple sequence alignment in the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>.
+An RMSD <a href="../tools/sequenceviewer.html#headers">header</a>
+is automatically shown above the sequences, with histogram bar heights
+representing the spatial variation among residues associated with a column.
+</blockquote>
+<blockquote>
+<b>alignmentId</b>&nbsp;&nbsp;<i>alignment-ID</i>
+<br>
+Specify the <i>alignment-ID</i> of the output sequence alignment
+(<i>i.e.</i>, the text string to be shown in the title bar of the 
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window
+and that can be used to specify the sequence alignment in commands such as
+<a href="sequence.html"><b>sequence</b></a>).
+</blockquote>
+<blockquote>
+<a name="gapChar"></a>
+<b>gapChar</b> &nbsp;<i>char</i>
+<br>
+What character to use for gaps in the output sequence alignment
+(default <b>.</b>).
+</blockquote>
+<blockquote>
+<a name="circular"></a>
+<font color="brown">
+<b>circular</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+&nbsp;&nbsp;&nbsp;&nbsp;*not yet implemented*
+<br>
+Whether to allow for circular permutation by doubling sequences
+as needed to simultaneously align the N-terminal region of one protein
+with the C-terminal region of the other and vice versa.
+Information on any permutations will be sent to the
+<a href="../tools/log.html"><b>Log</b></a>.
+</font>
+</blockquote>
+<blockquote>
+<a name="maxIterations"></a>
+<b>maxIterations</b> &nbsp<i>N</i>&nbsp;|&nbsp;none&nbsp;&nbsp;[&nbsp;<b>refChain</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;]&nbsp;[&nbsp;<b>minStretch</b>&nbsp;&nbsp;<i>L</i></a>&nbsp;]
+<br>
+Maximum number of times to refit the structures based on the output 
+sequence alignment and generate a new sequence alignment, 
+either an integer <i>N</i> &ge; 0 (default <b>0</b>) or the word <b>none</b>.
+(no maximum, continue to convergence).
+Regardless of <i>N</i>, iteration will stop at convergence,
+or will not occur at all if there are no fully populated columns in
+the sequence alignment. Suboptions:
+<ul>
+<li>A reference chain is needed to refit the structures;
+if not specified with <b>refChain</b>,
+the first chain listed among those to include in the alignment 
+(the first <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+in the command) will be used. 
+</li><li>Only stretches of <b>minStretch</b> &nbsp;<i>L</i> fully populated
+columns or longer will be used during iteration, where <i>L</i> is a
+positive integer (default <b>3</b>).
+</li></ul>
+</blockquote>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+April 2026</address>
+
+</body></html>

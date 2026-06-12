@@ -74,6 +74,23 @@ TRACKPAD_PAN_SPEED: int = 100
 WHEEL_ZOOM_SPEED: int = 10
 RIGHT_CLICK_ZOOM_SPEED: int = 5
 
+
+def _remove_from_blend_manager(volume_image):
+    """Remove a VolumeImage from the session blend manager.
+
+    HACK: The session-level ImageBlendManager groups images for blending based on
+    scene position, without considering which View they belong to. When we display
+    the same volume data in both the main 3D view and orthoplane viewers, they get
+    grouped together and cause texture conflicts (ticket #16267).
+
+    This removes our auxiliary display volumes from the blend manager entirely.
+    """
+    bm = volume_image._blend_manager
+    if bm is not None:
+        bm.remove_image(volume_image)
+        volume_image._blend_manager = None
+
+
 if sys.platform == "darwin":
     SYSTEM_KEY = Qt.KeyboardModifier.ControlModifier
 else:
@@ -282,6 +299,7 @@ class PlaneViewer(QWindow):
         def _not_volume_surface_or_segmentation(m):
             ok_to_list = not isinstance(m, VolumeSurface)
             ok_to_list &= not isinstance(m, VolumeImage)
+            ok_to_list &= hasattr(m, "data")
             # This will run over all models which may not have DICOM data...
             try:
                 if hasattr(m.data, "dicom_data"):
@@ -500,12 +518,14 @@ class PlaneViewer(QWindow):
         v.update_drawings()
         v.allow_style_changes = False
         # Add our new volume to the volume menu with our custom widget
-        self._add_axis_to_volume_viewer(volume_viewer[0], v)
+        if volume_viewer:
+            self._add_axis_to_volume_viewer(volume_viewer[0], v)
 
         self.main_view.camera.redraw_needed = True
         for d in v._child_drawings:
             if type(d) == VolumeImage:
                 new_drawing = d
+                _remove_from_blend_manager(d)
         # self.manager.update_drawing(self.model_menu.value)
         if new_drawing is not None:
             # Set the view's root drawing, and our ground truth drawing, to the new one
@@ -1604,6 +1624,7 @@ class PlaneViewer(QWindow):
             for d in v._child_drawings:
                 if type(d) == VolumeImage:
                     new_drawing = d
+                    _remove_from_blend_manager(d)
             # self.manager.update_drawing(self.model_menu.value)
             if new_drawing is not None:
                 # Set the view's root drawing, and our ground truth drawing, to the new one
@@ -1645,6 +1666,8 @@ class PlaneViewer(QWindow):
                 volume_viewer.thresholds_panel.close_histogram_pane(hptable[volume])
 
     def _add_axis_to_volume_viewer(self, volume_viewer, volume):
+        if not volume_viewer:
+            return
         v = volume
         tp = volume_viewer.thresholds_panel
         hptable = tp.histogram_table
@@ -1833,7 +1856,8 @@ class SegmentationVolumePanel(Histogram_Pane):
 
         # Listen for color scheme changes to update histogram colors
         self._color_scheme_handler = dialog.session.ui.triggers.add_handler(
-            'color scheme changed', self._update_histogram_colors)
+            "color scheme changed", self._update_histogram_colors
+        )
 
         # Create planes slider below histogram if requested.
         self._planes_slider_shown = False

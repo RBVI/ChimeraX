@@ -43,6 +43,7 @@ class _CoreSettings(Settings):
         'http_proxy': ("http", "", 80),
         'https_proxy': ("https", "", 443),
         'resize_window_on_session_restore': False,
+        'resize_window_on_scene_restore': False,
     }
     AUTO_SAVE = {
         'toolshed_update_interval': 'week',

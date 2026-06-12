@@ -24,15 +24,23 @@
 
 from chimerax.core.settings import Settings
 
+
 class _AnimationsSettings(Settings):
     EXPLICIT_SAVE = {
-        'recording_resolution': '1080p',  # Default to 1080p
-        'animation_mode': 'scene',  # Default to scene mode ('keyframe' or 'scene')
+        "recording_resolution": "display",  # Default to current graphics window size
+        "animation_mode": "scene",  # Default to scene mode ('keyframe' or 'scene')
+        "playback_fps": 60,  # Playback frame rate
+        # Record one extra second past the end of the timeline so the
+        # trailing transition has time to finish. When False, recording stops
+        # at ``duration`` exactly.
+        "recording_tail": True,
     }
     AUTO_SAVE = {}
 
+
 # Global settings instance
 _settings = None
+
 
 def get_settings(session):
     """Get the animations settings instance"""
@@ -41,24 +49,34 @@ def get_settings(session):
         _settings = _AnimationsSettings(session, "animations")
     return _settings
 
+
 class AnimationsPreferencesDialog:
     """Dialog for animations preferences"""
 
     def __init__(self, session, parent=None):
         from Qt.QtWidgets import QDialog, QVBoxLayout
-        from chimerax.ui.options import SettingsPanel, SymbolicEnumOption
+        from chimerax.ui.options import (
+            BooleanOption, SettingsPanel, SymbolicEnumOption,
+        )
 
         self.session = session
         self.settings = get_settings(session)
 
         self.dialog = QDialog(parent)
         self.dialog.setWindowTitle("Animations Preferences")
-        self.dialog.setModal(True)
+        self.dialog.setModal(False)
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(10)
 
         # Create settings panel with standard buttons (Save, Reset, Restore, Help)
         self.panel = SettingsPanel(scrolled=False, help_cb=self._show_help)
+        # OptionsPanel ships with a 1-pixel vertical spacing on its inner
+        # QFormLayout, which makes adjacent dropdowns and the trailing
+        # checkbox visually touch (and overlap on some platforms). Loosen it.
+        self.panel.options_panel._form.setVerticalSpacing(8)
+        self.panel.options_panel._form.setHorizontalSpacing(12)
 
         # Recording resolution option
         self.panel.add_option(
@@ -68,21 +86,35 @@ class AnimationsPreferencesDialog:
                 attr_name="recording_resolution",
                 settings=self.settings,
                 callback=None,
-                labels=["1080p (1920x1080)", "4K UHD (3840x2160)", "Custom Resolution"],
-                values=["1080p", "4k", "custom"]
+                labels=[
+                    "Graphics Window (Current)",
+                    "1080p (1920x1080)",
+                    "4K UHD (3840x2160)",
+                    "Custom Resolution",
+                ],
+                values=["display", "1080p", "4k", "custom"],
             )
         )
 
-        # Animation mode option
         self.panel.add_option(
             SymbolicEnumOption(
-                name="Animation tool mode",
+                name="Playback frame rate",
                 default=None,
-                attr_name="animation_mode",
+                attr_name="playback_fps",
                 settings=self.settings,
                 callback=None,
-                labels=["Keyframe Mode", "Scene Mode"],
-                values=["keyframe", "scene"]
+                labels=["24 FPS", "48 FPS", "60 FPS", "120 FPS"],
+                values=[24, 48, 60, 120],
+            )
+        )
+
+        self.panel.add_option(
+            BooleanOption(
+                name="Record 1 second past end of timeline",
+                default=None,
+                attr_name="recording_tail",
+                settings=self.settings,
+                callback=None,
             )
         )
 
@@ -92,8 +124,11 @@ class AnimationsPreferencesDialog:
     def _show_help(self):
         """Show help for animations preferences"""
         from chimerax.core.commands import run
-        run(self.session, "help help:user/tools/animations.html")
+
+        run(self.session, "help help:user/tools/animations.html#settings")
 
     def show(self):
-        """Show the dialog"""
-        return self.dialog.exec()
+        """Show the dialog non-modally so the rest of the UI stays responsive."""
+        self.dialog.show()
+        self.dialog.raise_()
+        self.dialog.activateWindow()

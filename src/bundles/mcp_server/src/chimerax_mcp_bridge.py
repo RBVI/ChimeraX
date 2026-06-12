@@ -3,7 +3,9 @@
 """
 ChimeraX MCP Bridge (Python)
 
-This bridges Claude (via MCP protocol) to ChimeraX REST servers.
+Bridges any MCP-capable AI assistant (Claude Desktop, Cursor, VS Code
+Copilot, Claude Code, etc.) to one or more ChimeraX REST servers using
+the Model Context Protocol (MCP).
 Uses the official MCP Python SDK for robust protocol handling.
 Supports M-to-N architecture: multiple agents controlling multiple ChimeraX instances.
 
@@ -18,8 +20,13 @@ Prerequisites:
 1. Install the ChimeraX MCP server bundle in ChimeraX
 2. ChimeraX will be auto-started when needed
 
-Usage with Claude Desktop:
-Add to your claude_desktop_config.json:
+The recommended way to register this bridge with a host is the ChimeraX
+command `mcp setup [host claude|cursor|vscode|all]`, which writes the
+correct config file for that host. The configurations below are shown
+for reference.
+
+Example client configuration (Claude Desktop's claude_desktop_config.json,
+or Cursor's mcp.json):
 {
   "mcpServers": {
     "chimerax": {
@@ -29,6 +36,19 @@ Add to your claude_desktop_config.json:
         "CHIMERAX_REST_HOST": "localhost",
         "CHIMERAX_REST_PORT": "8080"
       }
+    }
+  }
+}
+
+For VS Code Copilot the equivalent file is .vscode/mcp.json (workspace)
+or the user-profile mcp.json. Its schema uses the top-level "servers"
+key and requires "type": "stdio" on each entry:
+{
+  "servers": {
+    "chimerax": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["/path/to/chimerax_mcp_bridge.py"]
     }
   }
 }
@@ -50,7 +70,9 @@ Session Management Behavior:
 5. check_chimerax_status() only checks, never starts ChimeraX
 """
 
+import logging
 import os
+import re
 import sys
 import asyncio
 import aiohttp
@@ -61,12 +83,11 @@ import time
 import platform
 from typing import Optional
 
+logger = logging.getLogger("chimerax-bridge")
+
 # ChimeraX connection settings
 CHIMERAX_HOST = 'localhost'
 DEFAULT_CHIMERAX_PORT = 8080
-
-# Debug settings
-DEBUG = False  # Set to True to enable debug logging to /tmp/
 
 # Global state for managing multiple ChimeraX instances
 _instances = {}  # port -> instance info
@@ -94,21 +115,25 @@ def find_chimerax_executable():
     return exe_path
 
 def _chimerax_installation_directory():
-    # First, try to find ChimeraX relative to this bridge script
-    bridge_path = os.path.abspath(__file__)
-
+    # Try to find ChimeraX relative to the Python executable first (works even 
+    # when the MCP bridge file is not in the same directory as the ChimeraX 
+    # executable), then fall back to bridge script location
+    import sys
     from sys import platform
-    if platform == 'darwin':
-        cdir = _find_parent_directory(bridge_path, 'Contents')
-    elif platform == 'win32':
-        cdir = _find_parent_directory(bridge_path, 'bin')
-    else:
-        # Linux
-        cdir = _find_parent_directory(bridge_path, 'lib')
+    
+    for base_path in [os.path.realpath(sys.executable), os.path.abspath(__file__)]:
+        if platform == 'darwin':
+            cdir = _find_parent_directory(base_path, 'Contents')
+        elif platform == 'win32':
+            cdir = _find_parent_directory(base_path, 'bin')
+        else:
+            # Linux
+            cdir = _find_parent_directory(base_path, 'lib')
 
-    install_dir = os.path.dirname(cdir) if cdir else None
+        if cdir:
+            return os.path.dirname(cdir)
 
-    return install_dir
+    return None
     
 def _find_parent_directory(path, dir_name):
     while path:
@@ -229,10 +254,10 @@ async def check_existing_rest_server() -> tuple[bool, int]:
                             port_match = re.search(r'port (\d+)', result)
                             if port_match:
                                 rest_port = int(port_match.group(1))
-                                print(f"Found existing REST server on port {rest_port}", file=sys.stderr)
+                                logger.info("Found existing REST server on port %d", rest_port)
                                 return True, rest_port
                         elif "not running" in result:
-                            print(f"ChimeraX on port {check_port} has no REST server running", file=sys.stderr)
+                            logger.info("ChimeraX on port %d has no REST server running", check_port)
                             return False, check_port
             except:
                 continue
@@ -256,12 +281,12 @@ async def start_chimerax(port: Optional[int] = None, session_name: Optional[str]
     if not force_new and port == _default_port:
         has_rest, existing_port = await check_existing_rest_server()
         if has_rest:
-            print(f"Using existing ChimeraX REST server on port {existing_port} (default port: {_default_port})", file=sys.stderr)
+            logger.info("Using existing ChimeraX REST server on port %d (default port: %d)", existing_port, _default_port)
             return True, existing_port
 
     # Check if already running on this port
     if await is_chimerax_running(port):
-        print(f"ChimeraX is already running on port {port}", file=sys.stderr)
+        logger.info("ChimeraX is already running on port %d", port)
         return True, port
 
     # If port is taken but not by ChimeraX, find a new one
@@ -275,11 +300,11 @@ async def start_chimerax(port: Optional[int] = None, session_name: Optional[str]
 
     chimerax_path = find_chimerax_executable()
     if not chimerax_path:
-        print("ChimeraX executable not found. Please install ChimeraX or add it to PATH.", file=sys.stderr)
+        logger.error("ChimeraX executable not found. Please install ChimeraX or add it to PATH.")
         return False, port
 
     try:
-        print(f"Starting ChimeraX from {chimerax_path} on port {port}...", file=sys.stderr)
+        logger.info("Starting ChimeraX from %s on port %d...", chimerax_path, port)
 
         if platform.system() == "Windows":
             # Windows doesn't have fork, use subprocess with DETACHED_PROCESS
@@ -289,7 +314,7 @@ async def start_chimerax(port: Optional[int] = None, session_name: Optional[str]
         else:
             # Unix-like systems: use double-fork
             if not start_chimerax_daemon(port):
-                print("Failed to start ChimeraX daemon", file=sys.stderr)
+                logger.error("Failed to start ChimeraX daemon")
                 return False, port
 
         # Register the instance
@@ -304,16 +329,16 @@ async def start_chimerax(port: Optional[int] = None, session_name: Optional[str]
         for _ in range(30):
             await asyncio.sleep(1)
             if await is_chimerax_running(port):
-                print(f"ChimeraX started successfully on port {port}!", file=sys.stderr)
+                logger.info("ChimeraX started successfully on port %d!", port)
                 _instances[port]["status"] = "running"
                 return True, port
 
-        print("Timeout waiting for ChimeraX to start", file=sys.stderr)
+        logger.error("Timeout waiting for ChimeraX to start")
         _instances[port]["status"] = "failed"
         return False, port
 
     except Exception as e:
-        print(f"Failed to start ChimeraX: {e}", file=sys.stderr)
+        logger.error("Failed to start ChimeraX: %s", e)
         if port in _instances:
             _instances[port]["status"] = "failed"
         return False, port
@@ -360,7 +385,11 @@ def list_available_commands():
     return sorted(commands)
 
 def get_command_doc(command_name: str) -> str:
-    """Get documentation for a specific command"""
+    """Get documentation for a specific command in markdown format.
+    
+    Uses html2text to convert ChimeraX HTML documentation to markdown,
+    preserving tables, code examples, and document structure.
+    """
     docs_path = get_docs_path()
     if not docs_path:
         return f"Documentation not found for command: {command_name}"
@@ -373,42 +402,45 @@ def get_command_doc(command_name: str) -> str:
         with open(doc_file, 'r', encoding='utf-8') as f:
             content = f.read()
 
-        # Extract just the useful content (remove HTML boilerplate)
-        from html.parser import HTMLParser
-        import re
+        # Pre-process HTML: remove <br> tags inside table cells
+        # (they break markdown table formatting when converted to newlines)
+        from bs4 import BeautifulSoup, Tag
+        soup = BeautifulSoup(content, 'html.parser')
+        for td in soup.find_all('td'):
+            if isinstance(td, Tag):
+                for br in td.find_all('br'):
+                    br.replace_with(' ')
+        content = str(soup)
 
-        class DocExtractor(HTMLParser):
-            def __init__(self):
-                super().__init__()
-                self.content = []
-                self.in_body = False
-                self.current_text = ""
-
-            def handle_starttag(self, tag, attrs):
-                if tag == 'body':
-                    self.in_body = True
-                elif tag in ['h3', 'p', 'li'] and self.in_body:
-                    self.current_text += f"\n{tag.upper()}: "
-
-            def handle_data(self, data):
-                if self.in_body:
-                    clean_data = re.sub(r'\s+', ' ', data.strip())
-                    if clean_data:
-                        self.current_text += clean_data + " "
-
-            def handle_endtag(self, tag):
-                if tag == 'body':
-                    self.in_body = False
-
-        parser = DocExtractor()
-        parser.feed(content)
-
-        # Clean up the extracted text
-        doc_text = parser.current_text
-        doc_text = re.sub(r'\n+', '\n', doc_text)
-        doc_text = re.sub(r'\s+', ' ', doc_text)
-
-        return f"ChimeraX Command: {command_name}\n\n{doc_text[:2000]}..."  # Limit length
+        import html2text
+        
+        h = html2text.HTML2Text()
+        h.body_width = 0          # Don't wrap lines (let client handle wrapping)
+        h.unicode_snob = True     # Use unicode instead of ASCII
+        h.ignore_images = True    # Skip toolbar icons and other images
+        h.ignore_links = True     # Remove hyperlinks to reduce token count
+        
+        markdown_text = h.handle(content)
+        
+        # Remove HTML comment at the start (copyright header) if present
+        if markdown_text.lstrip().startswith('<!--'):
+            end_comment = markdown_text.find('-->')
+            if end_comment != -1:
+                markdown_text = markdown_text[end_comment + 3:].lstrip()
+        
+        # Remove footer (everything after the horizontal rule at the end)
+        # The footer typically contains "UCSF Resource for Biocomputing..." address
+        hr_markers = ['* * *\n', '---\n', '___\n']
+        for marker in hr_markers:
+            last_hr = markdown_text.rfind(marker)
+            if last_hr != -1:
+                # Check if this is near the end (footer)
+                remaining = markdown_text[last_hr:]
+                if len(remaining) < 500:  # Footer is typically short
+                    markdown_text = markdown_text[:last_hr].rstrip()
+                    break
+        
+        return f"# ChimeraX Command: {command_name}\n\n{markdown_text}"
 
     except Exception as e:
         return f"Error reading documentation for {command_name}: {e}"
@@ -433,7 +465,7 @@ async def find_best_chimerax_instance() -> int:
 
     # First check if default port is running
     if await is_chimerax_running(_default_port):
-        print(f"Using default ChimeraX instance on port {_default_port}", file=sys.stderr)
+        logger.info("Using default ChimeraX instance on port %d", _default_port)
         return _default_port
 
     # Quick scan for any running ChimeraX instances (common ports only)
@@ -445,12 +477,13 @@ async def find_best_chimerax_instance() -> int:
 
         if await is_chimerax_running(port):
             # Found one! But DON'T change the default - just use it for this operation
-            print(f"WARNING: Found ChimeraX instance on port {port}, but default is still {_default_port}. "
-                  f"Use set_default_session({port}) if you want to make this the default.", file=sys.stderr)
+            logger.warning("Found ChimeraX instance on port %d, but default is still %d. "
+                          "Use set_default_session(%d) if you want to make this the default.",
+                          port, _default_port, port)
             return port
 
     # No instances found, return default port (will trigger auto-start)
-    print(f"No ChimeraX instances found, will try to start on port {_default_port}", file=sys.stderr)
+    logger.info("No ChimeraX instances found, will try to start on port %d", _default_port)
     return _default_port
 
 async def _execute_command_request(session, url: str, command: str) -> dict:
@@ -474,22 +507,11 @@ async def _execute_command_request(session, url: str, command: str) -> dict:
             # Parse JSON response
             data = await response.json()
             
-            # DEBUG: Write full response to file
-            if DEBUG:
-                import json
-                import time
-                debug_file = f"/tmp/chimerax_response_{int(time.time() * 1000)}.json"
-                try:
-                    with open(debug_file, 'w') as f:
-                        json.dump({
-                            "command": command,
-                            "url": url,
-                            "raw_response": data
-                        }, f, indent=2)
-                    print(f"DEBUG: Full response written to {debug_file}", file=sys.stderr)
-                except Exception as e:
-                    print(f"DEBUG: Failed to write debug file: {e}", file=sys.stderr)
-            
+            if logger.isEnabledFor(logging.DEBUG):
+                import json as _json
+                logger.debug("Response for %r (url=%s): %s",
+                             command, url, _json.dumps(data, indent=2))
+
             # Check for errors - raise exception if present
             if data.get("error") is not None:
                 error_info = data["error"]
@@ -553,7 +575,48 @@ async def run_chimerax_command(command: str, port: Optional[int] = None) -> dict
             raise
         raise Exception(f"Error communicating with ChimeraX: {e}")
 
-def format_chimerax_response(result: dict, context: str = "") -> str:
+_CXCMD_LINK_RE = re.compile(r'^\[.+?\]\(cxcmd:.+?\)$')
+_LEADING_SEMICOLON_RE = re.compile(r'^\s*;\s*')
+_BLANK_LINE_RUN_RE = re.compile(r'\n{3,}')
+
+
+def _clean_log_message(msg: str, command: Optional[str]) -> Optional[str]:
+    """Clean a single ChimeraX log message, returning None if it should be dropped.
+
+    Drops:
+    - empty / whitespace-only messages
+    - clickable command echoes like `[cmd](cxcmd:cmd)` (single-link form)
+    - markdown-link-heavy messages (>=2 markdown links starting with `[`)
+    - plain-text echoes equal to the command we just executed
+
+    Cleans:
+    - strips a leading `;` / `; ` continuation marker that ChimeraX inserts
+      when concatenating log lines.
+    """
+    msg_stripped = msg.strip()
+    if not msg_stripped:
+        return None
+
+    # Drop the clickable command echo `[cmd](cxcmd:cmd)` (single-link form).
+    if _CXCMD_LINK_RE.match(msg_stripped):
+        return None
+
+    # Drop markdown-link-heavy command echoes (legacy filter, multi-link form).
+    if msg_stripped.startswith('[') and msg_stripped.count('](') >= 2:
+        return None
+
+    # Drop plain-text echoes of the command itself.
+    if command and msg_stripped == command.strip():
+        return None
+
+    # Strip leading "; " continuation marker.
+    cleaned = _LEADING_SEMICOLON_RE.sub('', msg)
+    if not cleaned.strip():
+        return None
+    return cleaned
+
+
+def format_chimerax_response(result: dict, context: str = "", command: Optional[str] = None) -> str:
     """Format structured ChimeraX response into readable string
     
     Implements a cascading fallback strategy:
@@ -564,6 +627,8 @@ def format_chimerax_response(result: dict, context: str = "") -> str:
     Args:
         result: Dict with 'return_values', 'json_values', and 'logs' keys
         context: Optional context string to prepend to output
+        command: Optional command string that was executed; used to drop
+            ChimeraX's own command-echo log lines from the output.
     
     Returns:
         Formatted string with context and log messages/return values organized by level
@@ -582,17 +647,20 @@ def format_chimerax_response(result: dict, context: str = "") -> str:
     for level in ["error", "warning", "info", "note", "debug"]:
         messages = logs.get(level, [])
         if messages:
-            # Filter out empty messages and markdown-heavy command echoes
             filtered_messages = []
             for msg in messages:
-                if msg.strip():
-                    # Skip messages that are primarily markdown links (command echoes)
-                    # These typically start with markdown link syntax and contain multiple links
-                    msg_stripped = msg.strip()
-                    if not (msg_stripped.startswith('[') and msg_stripped.count('](') >= 2):
-                        filtered_messages.append(msg)
+                cleaned = _clean_log_message(msg, command)
+                if cleaned is not None:
+                    filtered_messages.append(cleaned)
             if filtered_messages:
-                output.append(f"{level.upper()}: {'; '.join(filtered_messages)}")
+                # Use '\n\n' (not '; ') as the separator: many ChimeraX log
+                # messages are multi-line markdown chunks (e.g. the per-model
+                # title / chain / non-standard-residue sections that follow
+                # an `open`), and a literal '; ' between them produced stray
+                # leading-semicolon lines in the rendered output. Trailing
+                # newlines inside individual messages plus this separator
+                # collapse to a single blank line via _BLANK_LINE_RUN_RE.
+                output.append(f"{level.upper()}:\n" + "\n\n".join(filtered_messages))
                 has_log_content = True
     
     # Priority 2: If no log content, try json values
@@ -633,7 +701,10 @@ def format_chimerax_response(result: dict, context: str = "") -> str:
     elif not output:  # Nothing at all
         return "Command completed successfully"
     
-    return "\n".join(output)
+    joined = "\n".join(output)
+    # Collapse runs of >=3 newlines (which arise when individual log messages
+    # already contain trailing blank lines) down to a single blank line.
+    return _BLANK_LINE_RUN_RE.sub("\n\n", joined).strip()
 
 def add_error_hints(error_type: str, error_msg: str, command: str) -> str:
     """Add contextual hints to ChimeraX error messages to guide agents.
@@ -753,6 +824,19 @@ def add_error_hints(error_type: str, error_msg: str, command: str) -> str:
         hints.append("→ Check that you've included all required arguments")
         hints.append("→ Verify keyword spelling and order")
     
+    # ===== Hierarchical (Incomplete) Command =====
+    # Real ChimeraX error: "Incomplete command: <prefix>" raised by cli when a command
+    # is a category with sub-actions (e.g. `isolde validate`, `clipper`, `volume`) and
+    # the user supplied only the prefix without picking a sub-action.
+    elif "incomplete command" in error_lower:
+        cmd_parts = command.strip().split()
+        root_cmd = cmd_parts[0] if cmd_parts else "unknown"
+        full_cmd = command.strip() or root_cmd
+        
+        hints.append(f"\n\n🔍 HINT: '{full_cmd}' is incomplete — '{root_cmd}' is a hierarchical command with sub-actions.")
+        hints.append(f"→ Run `help {full_cmd}` via run_command to see the available sub-actions and their arguments.")
+        hints.append(f"→ Then re-run with the full sub-command, e.g. {full_cmd} <subaction> [args].")
+    
     # ===== File/Path Errors =====
     elif any(pattern in error_lower for pattern in [
         "cannot open",
@@ -780,7 +864,7 @@ def add_error_hints(error_type: str, error_msg: str, command: str) -> str:
     
     return full_error
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def get_atomspec_guide() -> str:
     """Get the complete guide for ChimeraX atomspec (object specification) syntax.
     
@@ -969,22 +1053,22 @@ aromatic-ring & :phe,tyr  # Aromatic ring carbons in Phe and Tyr
 For more details, see: https://www.cgl.ucsf.edu/chimerax/docs/user/commands/atomspec.html
     """
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def run_command(command: str, session_id: Optional[int] = None) -> str:
     """Execute any ChimeraX command directly. Use this tool if you don't find another tool
     that suits your needs.
     
-    IMPORTANT RESTRICTIONS:
-    - DO NOT use this tool for 'show' or 'hide' commands
-    - For show/hide operations, use show_hide_objects() or show_hide_hydrogens() instead
-    - Attempting to run 'show' or 'hide' commands will raise an exception
-    
     When constructing commands that specify objects (models, chains, residues, atoms):
     - Use get_atomspec_guide() to learn the correct atomspec syntax
-    - Common atomspecs: #1 (model), #1/A (chain), #1/A:100 (residue), @ca (atom type), HC (nonpolar hydrogens), #1/A & ligand (ligands in chain A of model 1)
+    - Common atomspecs: #1 (model), #1/A (chain), #1/A:100 (residue), @ca (atom type), HC (nonpolar hydrogens), #1/A & ligand (ligands in chain A of model 1), `ligand | (ligand :< 5)` (ligand and residues within 5 Å of ligand), `#1/A:100 :< 6` (residues within 6 Å of residue 100 in chain A of model 1)
     
     To see a list of all commands, use the list_commands() tool.
-    For command syntax help, use get_command_documentation(command_name).
+    For command syntax help, use get_command_documentation(command).
+
+    Frequently-used commands:
+    - volume #2 step 1 sdLevel 5.0 transparency 0.5 - display map #2 with step size 1, surface level 5.0 standard deviations (sigma), transparency 50%
+    - log metadata #1 - show metadata for model #1, including the corresponding map EMDB ID for atomic models from the PDB
+    - measure mapvalue #2 atoms :DRG - measure the values of map #2 at atoms of residue DRG (use this to pick an isocontour level when showing a map surface or mesh)
 
     Args:
         command: ChimeraX command to execute (e.g., 'open 1gcn', 'color #1/A red')
@@ -1003,33 +1087,46 @@ async def run_command(command: str, session_id: Optional[int] = None) -> str:
     '''
 
     result = await run_chimerax_command(command, session_id)
-    session_info = f" on session {session_id}" if session_id else ""
-    context = f"Command executed{session_info}: {command}"
+    context = f"[session {session_id}]" if session_id else ""
     
-    return format_chimerax_response(result, context)
+    return format_chimerax_response(result, context, command=command)
 
-@mcp.tool()
-async def open_structure(identifier: str, format: str = "auto-detect", session_id: Optional[int] = None) -> str:
+#@mcp.tool(structured_output=False)
+async def open_structure(identifier: str, format: str = "auto-detect", fetch_emdb_map: bool = False, session_id: Optional[int] = None) -> str:
     """Open a molecular structure file or fetch from PDB
 
-    Hint:
-    - After opening a structure and before showing any objects of this new model, you should first hide all its representations, so that we start from a clean slate
+    Hints:
+    - If your user wants to look at both a structure and the density map, set fetch_emdb_map=True
+    - After opening a structure and before showing any objects of this new model, you should
+    first run the get_shown() tool to get the current display state of the model because ChimeraX
+    uses different default representations depending on model features (e.g. number of atoms, chains, etc.)
+
 
     Args:
         identifier: PDB ID (e.g., '1gcn') or file path to open
         format: File format if needed (pdb, cif, etc.), defaults to auto-detect
+        fetch_emdb_map: If True, also fetch the corresponding EMDB map (only works with pdb/cif formats)
         session_id: ChimeraX session port (defaults to primary session)
     """
+    # Validate fetch_emdb_map compatibility with format
+    if fetch_emdb_map:
+        valid_formats = ["auto-detect", "pdb", "cif", "mmcif"]
+        if format not in valid_formats:
+            return f"Error: fetch_emdb_map=True only works with PDB or mmCIF formats. Specified format '{format}' is not compatible. Valid formats: {', '.join(valid_formats)}"
+    
     if format != "auto-detect":
         command = f"open {identifier} format {format}"
     else:
         command = f"open {identifier}"
+    
+    # Add fetchEmdbMap option if requested
+    if fetch_emdb_map:
+        command += " fetchEmdbMap true"
 
     result = await run_chimerax_command(command, session_id)
-    session_info = f" in session {session_id}" if session_id else ""
-    context = f"Opened structure: {identifier}{session_info}"
+    context = f"[session {session_id}]" if session_id else ""
     
-    return format_chimerax_response(result, context)
+    return format_chimerax_response(result, context, command=command)
 
 def _format_single_model_info(model: dict) -> list:
     """Helper function to format a single model's information into lines of text.
@@ -1129,17 +1226,17 @@ def _format_single_model_info(model: dict) -> list:
     
     return output
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def list_models(session_id: Optional[int] = None) -> str:
     """List all models currently loaded in ChimeraX with key details.
 
     Returns a summary line with the total number of models, followed by detailed 
-    information for each model, including whether it is visible. 
+    information for each model. 
     The format varies by model type:
     
     - Model ID (e.g., #1, #1.1, #2)
     - Model name
-    - Visibility status (shown/hidden)
+    - Visibility status (shown/hidden) (for more details on what is currently visible, call the get_shown() tool)
     
     For AtomicStructure models:
         - Number of atoms
@@ -1198,15 +1295,98 @@ async def list_models(session_id: Optional[int] = None) -> str:
             output.extend(model_lines)
         
         context = "\n".join(output)
-        return format_chimerax_response(result, context)
+        return format_chimerax_response(result, context, command="info")
     else:
         output = [f"Models{session_info}:"]
         output.append("No models loaded")
         
         context = "\n".join(output)
-        return format_chimerax_response(result, context)
+        return format_chimerax_response(result, context, command="info")
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
+async def get_shown(session_id: Optional[int] = None) -> str:
+    """Get information about what is currently shown.
+        
+    This tool provides a concise view of the current visualization state in
+    the form of a JSON report showing only what IS visible.
+
+    Absence from the output means that model (or part of model, such 
+    as a chain or residue or atoms) is not visible.
+    
+    Use this tool to:
+    - Understand the current visualization state before making changes
+    - Verify that show/hide commands had the expected effect
+    - Get atomspecs for shown elements to use in subsequent commands
+    
+    Key behavior:
+    - Only visible models and/or parts of models are included in the output
+    - Hidden models do not appear at all
+    - Spec fields can be directly used in commands like `color`, `hide`, `show`
+    
+    Atom display reporting:
+    - The "atoms" field contains a "spec" with concise atomspec syntax
+    - When all non-H atoms of a residue are shown: residue-level spec (e.g., ":10-20")
+    - When only some non-H atoms shown: atom-level spec (e.g., ":10@CA,CB,N,O:11-20")
+    
+    Hydrogen visibility reporting:
+    - The "hydrogens" field indicates hydrogen atom visibility for chains/ligands:
+      - "none": No hydrogen atoms are shown
+      - "polar": Only polar hydrogens (H & ~HC) are shown (common default)
+      - "all": All hydrogen atoms are shown
+      - "some": An arbitrary subset of hydrogens is shown (spec includes H atoms)
+    - Only when hydrogens="some", the atom spec explicitly includes H atom names
+    
+    Example response for a structure with ribbons and partial atoms shown:
+    ```json
+    {
+      "models": [
+        {
+          "id": "#1",
+          "name": "1abc",
+          "type": "AtomicStructure",
+          "chains": [
+            {
+              "id": "A",
+              "polymer_type": "protein",
+              "atoms": {"spec": "#1/A:12,25,40-50"},
+              "hydrogens": "polar",
+              "ribbons": {"spec": "#1/A"}
+            }
+          ],
+          "ligands": [{"name": "ATP", "chain": "A", "number": 501, "spec": "#1/A:501", "hydrogens": "none"}],
+          "ions": [{"name": "MG", "chain": "A", "number": 502, "spec": "#1/A:502"}]
+        }
+      ]
+    }
+    ```
+    
+    If all models are hidden, returns an empty list: {"models": []}
+
+    Hints:
+    - if you expect an entire residue to be shown, you should check the "atoms" field for the residue-level spec (e.g., ":10-20"); if you see an atom-level spec (e.g., ":10@CA,CB,N,O:11-20"), only some of the atoms are shown and you need to re-run the show command with the correct atomspec to show the entire residue.
+
+    
+    Args:
+        session_id: ChimeraX session port (defaults to primary session)
+    """
+    result = await run_chimerax_command("info shown", session_id)
+    
+    # The 'info shown' command returns JSON data
+    json_values = result.get("json_values", [])
+    
+    if json_values and len(json_values) > 0:
+        import json
+        display_data = json_values[0] if isinstance(json_values[0], list) else json.loads(json_values[0])
+        
+        # Wrap in models key for consistent response structure
+        response = {"models": display_data}
+        
+        return json.dumps(response, indent=2, ensure_ascii=False)
+    else:
+        return '{"models": []}'
+
+
+@mcp.tool(structured_output=False)
 async def get_model_info(model_id: str, session_id: Optional[int] = None) -> str:
     """Get detailed information about a specific model, including details about
     all its chains. You can call this to get all chain identifications in one go.
@@ -1378,7 +1558,7 @@ async def _get_chain_info_helper(model_id: str, chain_id: str, session_id: Optio
     
     return output, combined_result
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def get_chain_info(model_id: str, chain_id: str, session_id: Optional[int] = None) -> str:
     """Get detailed information about a specific chain in a model
     
@@ -1401,7 +1581,7 @@ async def get_chain_info(model_id: str, chain_id: str, session_id: Optional[int]
     return format_chimerax_response(result, context)
 
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def color_models(color: str, target: str = "all", session_id: Optional[int] = None) -> str:
     """Color models or parts of models
     
@@ -1419,12 +1599,11 @@ async def color_models(color: str, target: str = "all", session_id: Optional[int
     """
     command = f"color {target} {color}"
     result = await run_chimerax_command(command, session_id)
-    session_info = f" in session {session_id}" if session_id else ""
-    context = f"Colored {target} with {color}{session_info}"
+    context = f"[session {session_id}]" if session_id else ""
     
-    return format_chimerax_response(result, context)
+    return format_chimerax_response(result, context, command=command)
 
-# @mcp.tool()
+# @mcp.tool(structured_output=False)
 async def save_image(filename: str, width: int = 1920, height: int = 1080, supersample: int = 3, session_id: Optional[int] = None) -> str:
     """Save a screenshot of the current view
 
@@ -1439,13 +1618,12 @@ async def save_image(filename: str, width: int = 1920, height: int = 1080, super
     """
     command = f"save {filename} width {width} height {height} supersample {supersample}"
     result = await run_chimerax_command(command, session_id)
-    session_info = f" from session {session_id}" if session_id else ""
-    context = f"Saved image: {filename}{session_info} ({width}x{height}, supersample {supersample})"
+    context = f"[session {session_id}]" if session_id else ""
     
-    return format_chimerax_response(result, context)
+    return format_chimerax_response(result, context, command=command)
 
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def superpose_residue(
     source_model: str,
     source_chain: str,
@@ -1459,6 +1637,8 @@ async def superpose_residue(
     
     This is useful when the 'align' command won't work because the two residues 
     don't have the same atoms (e.g., different small molecule ligands).
+
+    Use this tool when the user asks to superpose a ligand with another ligand.
     
     The tool works by:
     1. Centering the view on the target residue (sets center of rotation)
@@ -1508,7 +1688,7 @@ async def superpose_residue(
     
     return format_chimerax_response(combined_result, context)
 
-# @mcp.tool()
+# @mcp.tool(structured_output=False)
 async def show_hide_objects(
     action: str,
     atomspec: str,
@@ -1525,6 +1705,7 @@ async def show_hide_objects(
     - p: pseudobonds: Toggle on (show) or off (hide) the pseudobonds
     - c: cartoons or ribbons: Toggle on (show) or off (hide) the cartoon/ribbon representation of the atomspec
     - s: surfaces: Toggle on (show) or off (hide) the surfaces associated with the atomspec    
+    - m: models: Toggle on (show) or off (hide) the entire model, including all its subparts. You should only use this when the user asks you to hide a map (e.g. cryoEM or Xray map) model.
 
     Examples:
         - Show all atoms and bonds in model 1: action='show', atomspec='#1', target='ab'
@@ -1536,6 +1717,7 @@ async def show_hide_objects(
         - Show polar hydrogens in model 1: action='show', atomspec='#1 & H & ~HC', target='a'
         - Hide non-polar hydrogens in model 1: action='hide', atomspec='#1 & HC', target='a'
         - Show protein side chains near ligand #1/A:LIG: action='show #1 & protein & #1/A:LIG:<5', target='ab'
+        - Hide a map model: action='hide', atomspec='#2', target='m'
     
     Important:
         - Before you attempt for the first time to show a particular object, you MUST first hide all its representations (because you don't know what representations are already active)
@@ -1626,7 +1808,7 @@ async def show_hide_objects(
 
 # Instance management tools
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def list_chimerax_instances() -> str:
     """List all running ChimeraX instances"""
     instances = await list_running_instances()
@@ -1642,7 +1824,7 @@ async def list_chimerax_instances() -> str:
 
     return result
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def start_new_chimerax_session(session_name: Optional[str] = None, port: Optional[int] = None) -> str:
     """Start a new ChimeraX instance/session
 
@@ -1658,7 +1840,7 @@ async def start_new_chimerax_session(session_name: Optional[str] = None, port: O
     if port is None:
         # Find an available port, starting from the default
         port = find_available_port(_default_port)
-        print(f"No port specified, found available port: {port}", file=sys.stderr)
+        logger.info("No port specified, found available port: %d", port)
 
     # Check if already running on this port
     if await is_chimerax_running(port):
@@ -1673,7 +1855,7 @@ async def start_new_chimerax_session(session_name: Optional[str] = None, port: O
         return f"ChimeraX is already running on port {port} (session: {existing_session}). To start a new session, use port {available_port} instead."
 
     # Force a new instance - always use force_new=True to avoid reusing existing instances
-    print(f"Starting new ChimeraX instance on port {port} (force_new=True)", file=sys.stderr)
+    logger.info("Starting new ChimeraX instance on port %d (force_new=True)", port)
     success, actual_port = await start_chimerax(port, session_name, force_new=True)
     if success:
         # Use the requested session name, or get from instances if not provided
@@ -1688,7 +1870,7 @@ async def start_new_chimerax_session(session_name: Optional[str] = None, port: O
     else:
         return f"Failed to start ChimeraX session on port {port}"
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def check_chimerax_status(session_id: Optional[int] = None) -> str:
     """Check if ChimeraX is running and accessible
 
@@ -1711,7 +1893,7 @@ async def check_chimerax_status(session_id: Optional[int] = None) -> str:
         else:
             return f"ChimeraX is not running on port {port} and executable not found in common locations."
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def set_default_session(session_id: int) -> str:
     """Set the default ChimeraX session for commands without explicit session_id
 
@@ -1732,7 +1914,7 @@ async def set_default_session(session_id: int) -> str:
 
     return f"Default session changed from port {old_default} to port {session_id} ({session_name})"
 
-@mcp.tool()
+@mcp.tool(structured_output=False)
 async def list_chimerax_commands() -> str:
     """List all available ChimeraX commands.
     
@@ -1751,19 +1933,42 @@ async def list_chimerax_commands() -> str:
             break
 
     result += f"\nTotal: {len(commands)} commands available\n"
-    result += "Use get_command_documentation(command_name) to get detailed documentation for any command."
+    result += "Use get_command_documentation(command) to get detailed documentation for any command."
     return result
 
-@mcp.tool()
-async def get_command_documentation(command_name: str) -> str:
+@mcp.tool(structured_output=False)
+async def get_command_documentation(command: str) -> str:
     """Get detailed documentation for a specific ChimeraX command.
     
-    Use this to learn the correct syntax, arguments, and usage for a specific command.
+    Tries the local HTML reference docs first (rich output for core commands like
+    `open`, `color`, etc.), then falls back to running `usage <command>` against
+    the live ChimeraX session. The fallback works for bundle-provided commands
+    (e.g. `isolde`) and hierarchical sub-paths (e.g. `isolde validate`).
     
     Args:
-        command_name: Name of the ChimeraX command (e.g., 'open', 'color', 'save')
+        command: Name of the ChimeraX command (e.g., 'open', 'color',
+            'isolde', 'isolde validate'). Multi-word inputs are supported and
+            preferred for hierarchical commands, since their sub-actions only
+            show up in the live `usage` output.
     """
-    return get_command_doc(command_name)
+    stripped = command.strip()
+    if not stripped:
+        return "No command specified."
+
+    root = stripped.split()[0]
+    html_doc = get_command_doc(root)
+    if not html_doc.startswith("No documentation found") and not html_doc.startswith("Documentation not found"):
+        if " " not in stripped:
+            return html_doc
+
+    usage_command = f"usage {stripped}"
+    try:
+        result = await run_chimerax_command(usage_command)
+    except Exception as e:
+        if html_doc.startswith("No documentation found") or html_doc.startswith("Documentation not found"):
+            return f"No documentation found for command: {command} (usage fallback also failed: {e})"
+        return html_doc
+    return format_chimerax_response(result, context=f"# ChimeraX Command: {stripped}\n", command=usage_command)
 
 # Cleanup function for aiohttp session
 async def cleanup():

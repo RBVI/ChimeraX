@@ -114,14 +114,14 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = "classic"
+html_theme = "pydata_sphinx_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
     #'collapsiblesidebar': True,
-    "codebgcolor": "#F8FFF8",
+    #"codebgcolor": "#F8FFF8",
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -150,7 +150,9 @@ else:
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
-html_css_files = ["devdocs.css"]
+# Commented out the below because we switched to the PyData Sphinx theme to
+# meet accessibility requirements
+#html_css_files = ["devdocs.css"]
 html_js_files = ["cxlinks.js"]
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,

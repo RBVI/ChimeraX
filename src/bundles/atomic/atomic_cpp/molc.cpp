@@ -643,7 +643,7 @@ extern "C" EXPORT void atom_get_coord_altloc(void *atom, char altloc, float64_t 
     }
 }
 
-extern "C" EXPORT void atom_delete(void *atoms, size_t n)
+extern "C" EXPORT void atom_delete(void *atoms, size_t n, npy_bool compact_coordsets)
 {
     Atom **a = static_cast<Atom **>(atoms);
     try {
@@ -658,7 +658,7 @@ extern "C" EXPORT void atom_delete(void *atoms, size_t n)
             // guard against that
             if (ma.first->py_instance(false) == Py_None)
                 continue;
-            ma.first->delete_atoms(ma.second);
+            ma.first->delete_atoms(ma.second, compact_coordsets);
         }
     } catch (...) {
         molc_error();
@@ -2774,7 +2774,7 @@ extern "C" EXPORT void residue_delete(void *residues, size_t n)
           const Residue::Atoms &ratoms = r[i]->atoms();
           atoms.insert(atoms.end(), ratoms.begin(), ratoms.end());
         }
-        atom_delete(atoms.data(), atoms.size());
+        atom_delete(atoms.data(), atoms.size(), false);
     } catch (...) {
         molc_error();
     }
@@ -4154,6 +4154,47 @@ extern "C" EXPORT void structure_combine(void *combination, void *s, void *pos, 
     } catch (...) {
         molc_error();
     }
+}
+
+extern "C" EXPORT void *structure_break_triangle_waters(void *mol)
+{
+    Structure *m = static_cast<Structure *>(mol);
+    try {
+        for (auto r: m->residues()) {
+            auto& atoms = r->atoms();
+            if (atoms.size() != 3)
+                continue;
+            Atom* o = nullptr;
+            Atom* h1 = nullptr;
+            Atom* h2 = nullptr;
+            for (auto a: atoms) {
+                if (a->element() == Element::O) {
+                    if (o == nullptr)
+                        o = a;
+                    else
+                        break;
+                } else if (a->element() == Element::H) {
+                    if (h1 == nullptr)
+                        h1 = a;
+                    else if (h2 == nullptr)
+                        h2 = a;
+                    else
+                        break;
+                } else
+                    break;
+            }
+            if (o != nullptr && h1 != nullptr && h2 != nullptr) {
+                for (auto& b: h1->bonds())
+                    if (b->other_atom(h1) == h2) {
+                        m->delete_bond(b);
+                        break;
+                    }
+            }
+        }
+    } catch (...) {
+        molc_error();
+    }
+    return nullptr;
 }
 
 extern "C" EXPORT void *structure_copy(void *mol)

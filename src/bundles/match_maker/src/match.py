@@ -192,10 +192,10 @@ def align(session, ref, match, matrix_name, algorithm, gap_open, gap_extend, dss
             _dm_cleanup.append(aligned)
     return score, gapped_ref, gapped_match
 
-def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend, *, cutoff_distance=None,
-        show_alignment=defaults['show_alignment'], align=align, domain_residues=(None, None), bring=None,
-        verbose=defaults['verbose_logging'], always_raise_errors=False, report_matrix=False,
-        log_parameters=defaults['log_parameters'],
+def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend, *, align=align,
+        always_raise_errors=False, bring=None, cutoff_distance=None, do_rmsd_attr=False,
+        domain_residues=(None, None), log_parameters=defaults['log_parameters'],
+        report_matrix=False, show_alignment=defaults['show_alignment'], verbose=defaults['verbose_logging'],
         **align_kw):
     """Superimpose structures based on sequence alignment
 
@@ -554,7 +554,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 s1.name, s1.structure.id_string, s2.name,
                 s2.structure.id_string, score), log=(verbose is not None))
             skip = set()
-            if show_alignment:
+            if show_alignment or do_rmsd_attr:
                 for s in [s1,s2]:
                     if hasattr(s, '_dm_rebuild_info'):
                         residues = s.residues
@@ -576,12 +576,23 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                             residues[i-offset] = r
                             skip.add(r)
                         s.bulk_set(residues, characters)
-                with show_context():
-                    alignment = session.alignments.new_alignment([s1,s2], None, auto_associate=None,
-                        name="MatchMaker alignment")
-                alignment.auto_associate = True
-                for hdr in alignment.headers:
-                    hdr.shown = hdr.ident == "rmsd"
+                private_alignment = do_rmsd_attr and not show_alignment
+                prev_silent = session.silent
+                session.silent = private_alignment
+                try:
+                    with show_context():
+                        alignment = session.alignments.new_alignment([s1,s2], None, auto_associate=None,
+                            name="MatchMaker alignment", viewer=show_alignment)
+                    alignment.auto_associate = True
+                    for hdr in alignment.headers:
+                        hdr.shown = hdr.ident == "rmsd"
+                    if private_alignment:
+                        session.alignments.destroy_alignment(alignment)
+                except Exception as e:
+                    session.silent = prev_silent
+                    raise e
+                finally:
+                    session.silent = prev_silent
             residues1 = s1.residues
             residues2 = s2.residues
             for i in range(len(s1)):
@@ -629,8 +640,9 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
         from chimerax.atomic import Atoms
         initial_match, initial_ref = Atoms(match_atoms), Atoms(ref_atoms)
         try:
-            final_match, final_ref, rmsd, full_rmsd, xf = align.align(session, initial_match, initial_ref,
-                cutoff_distance=cutoff_distance, log_info=(verbose is not None), report_matrix=report_matrix)
+            final_match, final_ref, core_rmsd, full_rmsd, xf = align.align(session, initial_match,
+                initial_ref, cutoff_distance=cutoff_distance, log_info=(verbose is not None),
+                report_matrix=report_matrix)
         except align.IterationError:
             if always_raise_errors:
                 raise
@@ -645,7 +657,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
             "final match atoms": final_match,
             "final ref atoms": final_ref,
             "full RMSD": full_rmsd,
-            "final RMSD": rmsd,
+            "final RMSD": core_rmsd,
             "transformation matrix": xf,
             "aligned ref seq": s1,
             "aligned match seq": s2,
@@ -662,8 +674,7 @@ def match(session, chain_pairing, match_items, matrix, alg, gap_open, gap_extend
                 by_viewer.setdefault(viewer, []).append(index)
             for viewer, indices in by_viewer.items():
                 indices.sort()
-                name, fill, outline = viewer.MATCHED_REGION_INFO
-                viewer.new_region(name=name, columns=indices, fill=fill, outline=outline)
+                viewer.new_region(columns=indices, region_type="matched")
                 viewer.status("Residues used in final fit iteration are highlighted")
         if verbose:
             for s1, s2 in seq_pairings:
@@ -690,8 +701,8 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
         hgap=defaults["helix_open"], sgap=defaults["strand_open"], ogap=defaults["other_open"],
         cutoff_distance=defaults["iter_cutoff"], gap_extend=defaults["gap_extend"],
         show_alignment=defaults['show_alignment'], compute_s_s=defaults["compute_ss"],
-        keep_computed_s_s=defaults['overwrite_ss'], report_matrix=False,
-        log_parameters=defaults['log_parameters'],
+        keep_computed_s_s=defaults['overwrite_ss'], report_matrix=False, rmsd=False,
+        log_parameters=defaults['log_parameters'], start_match_align=defaults['start_match_align'],
         mat_h_h=default_ss_matrix[('H', 'H')],
         mat_s_s=default_ss_matrix[('S', 'S')],
         mat_o_o=default_ss_matrix[('O', 'O')],
@@ -775,12 +786,26 @@ def cmd_match(session, match_atoms, to=None, pairing=defaults["chain_pairing"],
     ss_matrix[('H', 'O')] = ss_matrix[('O', 'H')] = float(mat_h_o)
     ss_matrix[('S', 'O')] = ss_matrix[('O', 'S')] = float(mat_s_o)
     ret_vals = match(session, pairing, match_items, matrix, alg, gap_open, gap_extend,
-        ss_fraction=ss_fraction, ss_matrix=ss_matrix,
+        ss_fraction=ss_fraction, ss_matrix=ss_matrix, do_rmsd_attr=rmsd,
         cutoff_distance=cutoff_distance, show_alignment=show_alignment, bring=bring,
         domain_residues=(ref_atoms.residues.unique(), match_atoms.residues.unique()),
         gap_open_helix=hgap, gap_open_strand=sgap, gap_open_other=ogap, report_matrix=report_matrix,
         compute_ss=compute_s_s, keep_computed_ss=keep_computed_s_s, verbose=verbose,
         log_parameters=log_parameters)
+    if start_match_align and session.ui.is_gui:
+        from chimerax.core.commands import run
+        refs = set()
+        chains = set()
+        for result in ret_vals:
+            ref_chains = result["full ref atoms"].residues.chains
+            match_chains = result["full match atoms"].residues.chains
+            refs.update(ref_chains)
+            chains.update(ref_chains)
+            chains.update(match_chains)
+        m_a = run(session, "ui tool show Match\N{RIGHTWARDS ARROW}Align")
+        m_a.chain_list.value = chains
+        if len(refs) == 1:
+            m_a.ref_chain_button.value = refs.pop()
     return ret_vals
 
 _dm_cleanup = []
@@ -856,7 +881,8 @@ def register_command(logger):
             ('bring', TopModelsArg), ('show_alignment', BoolArg), ('compute_s_s', BoolArg),
             ('mat_h_h', FloatArg), ('mat_s_s', FloatArg), ('mat_o_o', FloatArg), ('mat_h_s', FloatArg),
             ('mat_h_o', FloatArg), ('mat_s_o', FloatArg), ('keep_computed_s_s', BoolArg),
-            ('report_matrix', BoolArg), ('log_parameters', BoolArg)],
+            ('report_matrix', BoolArg), ('rmsd', BoolArg), ('log_parameters', BoolArg),
+            ('start_match_align', BoolArg)],
         synopsis = 'Align atomic structures using sequence alignment'
     )
     register('matchmaker', desc, cmd_match, logger=logger)

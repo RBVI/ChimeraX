@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command: matchmaker, mmaker</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#commands">Command</a>: matchmaker, mmaker</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
@@ -52,8 +47,10 @@ its P atom will be paired with the P atom of the aligned residue.
 To use a different set of atoms, including those not in biopolymer chains, 
 see the <a href="align.html"><b>align</b></a> command instead.
 See also:
+<a href="sequence.html#align"><b>sequence align</b></a>,
 <a href="sequence.html#match"><b>sequence match</b></a>,
 <a href="rmsd.html"><b>rmsd</b></a>,
+<a href="msa3d.html"><b>msa3d</b></a>,
 <a href="fitmap.html"><b>fitmap</b></a>,
 <a href="morph.html"><b>morph</b></a>,
 <a href="view.html"><b>view</b></a>,
@@ -92,7 +89,7 @@ the final RMSD over all residue pairs (columns in the sequence alignment)
 will be reported along with the RMSD over the pruned set of pairs.
 </p><p>
 <a name="examples">Examples</a>:
-<blockquote>
+</p><blockquote>
 <b>match #2 to #1 bring #3</b>
 </blockquote>
 &ndash; superimpose model 2 onto model 1 using default settings,
@@ -179,15 +176,15 @@ to construct the reference-match alignment:
  with the highest <a href="#scoring">alignment score</a>;
 <i>matchstruct</i> and <i>refstruct</i> 
 should each specify a model or part of a model
-<li><b>bs</b> &ndash; use the chain in the match model that gives the best 
+</li><li><b>bs</b> &ndash; use the chain in the match model that gives the best 
 <a href="#scoring">alignment score</a> with a specific chain in the reference model;
 <i>matchstruct</i> should specify a model or part of a model, and
 <i>refstruct</i> should specify a chain
-<li><b>ss</b> &ndash; pair specific chain(s) in the match model with
+</li><li><b>ss</b> &ndash; pair specific chain(s) in the match model with
 specific chain(s) in the reference model; 
 <i>matchstruct</i> and <i>refstruct</i> 
 should specify equal numbers of chains
-</ul>
+</li></ul>
 </blockquote>
 <blockquote>
 <a name="show"><b>showAlignment</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
@@ -204,7 +201,7 @@ An RMSD <a href="../tools/sequenceviewer.html#headers">header</a>
 is automatically shown above the sequences, with histogram bar heights
 representing the spatial variation among residues associated with a column.
   <blockquote>
-<table cellpadding="10px"><tr>
+<table cellpadding="10px"><tbody><tr>
 <td class="shaded">
 Successful superposition only requires the sequence alignment to be partly
 correct, as incorrect portions tend to be excluded from the fit during
@@ -213,25 +210,50 @@ If the sequences are easy to align (highly similar),
 the sequence alignment is likely to be correct throughout.
 However, if the sequences are more distantly related,
 parts of the alignment may be incorrect even when the superposition is good.
-<!--
 When <b>matchmaker</b> is used 
 simply to superimpose structures, this is not important.
-However, if one also wants a corresponding sequence alignment,
-generating a structure-based alignment (after superposition) with
-<a href="../../ContributedSoftware/matchalign/matchalign.html"><b>Match 
--> Align</b></a> is recommended, especially if the sequences are dissimilar.
-The structure-based sequence alignment will provide better
-statistics for describing structural similarity (RMSD, <i>etc.</i>)
-because more columns will be aligned correctly.
--->
+However, if the corresponding sequence alignment is another goal,
+generating a structure-based alignment (after superposition) with the
+<a href="../tools/matchalign.html"><b>Match&rarr;Align</b></a> tool
+or <a href="msa3d.html"><b>msa3d</b></a> command
+is recommended, especially if the sequences are dissimilar.
+See the <a href="#startMatchAlign"><b>startMatchAlign</b></a> option below.
 <p>
 When the fit has been <a href="#restrict">restricted</a> 
 to specified residues, the remaining residues of matched chains 
 will still appear in the alignment, but merely as a convenient 
 compact representation; how they are aligned is not meaningful.
 </p>
-</td></tr></table>
+</td></tr></tbody></table>
   </blockquote>
+</blockquote>
+<blockquote>
+<a name="startMatchAlign"></a>
+<b>startMatchAlign</b> &nbsp;true&nbsp;|&nbsp;<b>false</b>
+<br>
+After the <b>matchmaker</b> superposition is complete, whether to
+bring up <a href="../tools/matchalign.html"><b>Match&rarr;Align</b></a> to
+create a multiple sequence alignment based on 3D proximity of residues
+instead of 2D sequence information. Especially if the sequences are
+dissimilar, the resulting structure-based sequence alignment may
+provide better statistics for describing structural similarity 
+(RMSD, <i>etc.</i>) than the <a href="#show">initial alignment</a>,
+because more columns will be aligned correctly. Another advantage is that
+the resulting structure-based alignment may contain more than two chains, 
+whereas the <a href="#show">initial alignments</a> are pairwise only.
+</blockquote>
+<blockquote>
+<a name="rmsd"><b>rmsd</b> &nbsp;true&nbsp;|&nbsp;<b>false</b></a>
+<br>
+With <a href="#show"><b>showAlignment</b></a> <b>false</b>, the
+<a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a> window
+is not shown, and the
+<a href="../tools/sequenceviewer.html#headers">alignment-header attributes</a>
+<b>seq_rmsd</b> and <b>seq_conservation</b> are not automatically assigned.
+Specifying <b>rmsd true</b> forces calculating and assigning these attributes 
+even though the pairwise sequence alignment is not displayed.
+If <a href="#show"><b>showAlignment</b></a> is <b>true</b>, the <b>rmsd</b>
+option is unnecessary and ignored.
 </blockquote>
 <blockquote>
   <a name="cutoffDistance"><b>cutoffDistance</b> 
@@ -277,14 +299,14 @@ For each chain-chain pair, send additional information to the
   <li><b>Sequences:</b> 
   followed by the pairwise sequence alignment, <i>i.e.</i>, two lines,
   each containing a sequence name and (gapped) sequence
-  <li><b>Residues:</b> 
+  </li><li><b>Residues:</b> 
   followed by two lines, each a comma-separated list of the structure residues 
   associated with the nongap positions of the corresponding sequence;
   missing structure residues are reported as <b>None</b>
-  <li><b>Residue usage in match (1=used, 0=unused):</b> 
+  </li><li><b>Residue usage in match (1=used, 0=unused):</b> 
   followed by two lines, each a comma-separated list of zeros and ones,
   indicating which structure residues were used in the final fit
-  </ul>
+  </li></ul>
 </blockquote>
 
 <a name="scoring"></a>
@@ -302,8 +324,8 @@ To display the resulting sequence alignment(s), see <a href="#show">above</a>.
 <br>The sequence <i>alignment-algorithm</i> can be:
 <ul>
 <li> <b>nw</b> (or <b>needle</b>; default) &ndash; Needleman-Wunsch, global
-<li> <b>sw</b> (or <b>smith</b>) &ndash; Smith-Waterman, local
-</ul>
+</li><li> <b>sw</b> (or <b>smith</b>) &ndash; Smith-Waterman, local
+</li></ul>
 </blockquote>
 <blockquote>
   <a name="matrix"><b>matrix</b> &nbsp;<i>similarity-matrix</i></a>
@@ -464,5 +486,6 @@ that existed before the <b>matchmaker</b> command was used.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-March 2025</address>
+April 2026</address>
+
 </body></html>

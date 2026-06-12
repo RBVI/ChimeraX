@@ -25,8 +25,6 @@ from tcia_utils import nbia
 
 from ..dicom import DICOM
 
-_nbia_base_url = "https://services.cancerimagingarchive.net/nbia-api/services/v1/"
-
 logging.getLogger("tcia_utils").setLevel(100)
 
 NPEXSpecies = {"337915000": "Human", "447612001": "Mouse", "448771007": "Dog"}
@@ -96,7 +94,7 @@ you use, hit 'OK' to close this dialog and continue. If you do not agree, please
             for index, collection in enumerate(collections_dict):
                 if worker:
                     worker.collection_fetched.emit(index + 1, num_collections)
-                data = nbia.getSimpleSearchWithModalityAndBodyPartPaged(
+                data = nbia.getSimpleSearch(
                     collections=[collection]
                 )
                 if data:
@@ -126,7 +124,7 @@ you use, hit 'OK' to close this dialog and continue. If you do not agree, please
             else:
                 with open(collections_cache_file, "w") as f:
                     f.write(json.dumps(collections_dict))
-        return collections_dict.values()
+        return list(collections_dict.values())
 
     @staticmethod
     def get_study(collection, patientId="", studyUid=""):

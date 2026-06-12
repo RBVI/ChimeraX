@@ -35,6 +35,7 @@ class CoordinateSetSlider(Slider):
                                            compute_ss = compute_ss, steady_atoms = steady_atoms)
         self.set_slider(structure.active_coordset_id)
 
+        self._changes_pending = session.change_tracker.changed
         self._coordset_change_handler = structure.triggers.add_handler('changes', self.coordset_change_cb)
         
         from chimerax.core.models import REMOVE_MODELS
@@ -44,19 +45,21 @@ class CoordinateSetSlider(Slider):
             session._coord_set_sliders = set()
         session._coord_set_sliders.add(self)
         session.logger.status(
-            "Use coordset-slider context menu to access plotting",
-            # When there are additional analysis features...
-            #"Use coordset-slider context menu to access plotting and other analysis features",
+            "Use coordset-slider context menu to access plotting and other analysis features",
             color="forest green", blank_after=10)
 
     def change_value(self, i, playing = False):
-      self._player.change_coordset(i)
+        self._player.change_coordset(i)
 
     def valid_value(self, i):
         return i in self.coordset_ids
 
     def coordset_change_cb(self, name, change_info):
         # If coordset changed by command, update slider
+        if self._changes_pending:
+            # Ignore changes that were pending when the slider was created [#19448]
+            self._changes_pending = False
+            return
         s, changes = change_info
         if changes.num_deleted_coordsets() > 0 or len(changes.created_coordsets()) > 0:
             pf = self.pause_frames
@@ -106,12 +109,14 @@ class CoordinateSetSlider(Slider):
     SESSION_SAVE = True
     version = 1
     def take_snapshot(self, session, flags):
+        from chimerax.md_crds.gui import get_session_info
         data = {
             'structure': self.structure,
             'pause_frames': self.pause_frames,
             'movie_framerate': self.movie_framerate,
             'steady_atoms': self._player.steady_atoms,
             'compute_ss': self._player.compute_ss,
+            'analysis_info': get_session_info(self.tool_window),
             'version': self.version
         }
         return data
@@ -123,6 +128,9 @@ class CoordinateSetSlider(Slider):
                                   movie_framerate = data['movie_framerate'],
                                   steady_atoms = data['steady_atoms'],
                                   compute_ss = data['compute_ss'])
+        if 'analysis_info' in data:
+            from chimerax.md_crds.gui import restore_session_info
+            restore_session_info(css.tool_window, data['analysis_info'])
         return css
 
 # -----------------------------------------------------------------------------

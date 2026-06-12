@@ -27,6 +27,8 @@ from chimerax.add_charge import ChargeMethodArg
 
 def cmd_minimize(session, structure, *, dock_prep=True, live_updates=True, log_energy=False,
         max_steps=None, **kw):
+    if 'del_missing_backbone' not in kw:
+        kw['del_missing_backbone'] = True
     if structure is None:
         from chimerax.atomic import all_atomic_structures
         available = all_atomic_structures(session)
@@ -61,37 +63,61 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
     # Also, it can't handle missing structure, so make ends of missing structure look like terminii
     fake_c = set()
     fake_n = set()
+    n_error_template = "Don't know how to modify %s to match N-terminal template: %s"
+    c_error_template = "Don't know how to modify %s to match C-terminal template: %s"
+    from chimerax.atomic import Residue, Sequence
     for chain in structure.chains:
+        if chain.polymer_type != Residue.PT_AMINO:
+            continue
         in_missing = False
         prev_r = None
         for r in chain.residues:
             if r is None:
-                if prev_r:
+                if prev_r and Sequence.amino3to1(prev_r.name) != 'X':
                     fake_c.add(prev_r)
                 in_missing = True
             else:
-                if in_missing:
+                if in_missing and Sequence.amino3to1(r.name) != 'X':
                     fake_n.add(r)
                 in_missing = False
             prev_r = r
-    n_error_template = "Don't know how to modify %s to match N-terminal template: %s"
-    c_error_template = "Don't know how to modify %s to match C-terminal template: %s"
+        # Also, if the *actual* terminus is missing needed atoms, add it to fake list so it gets fixed
+        c_term = chain.residues[-1]
+        if c_term and Sequence.amino3to1(c_term.name) != 'X':
+            c = c_term.find_atom('C')
+            if c:
+                if c.num_bonds != 3:
+                    fake_c.add(c_term)
+            else:
+                raise LimitationError(c_error_template % (c_term, "can't find C atom"))
     from chimerax.atomic.bond_geom import bond_positions
     from chimerax.addh import bond_with_H_length
-    NH_len = CO_len = None
+    NH_len = CO_len = PO_len = None
     filter = []
+    name_lookup = {}
     for r in structure.residues:
         c = r.chain
         try:
             mm_c = chains[c]
         except KeyError:
-            mm_c = chains[c] = top.addChain("singletons" if c is None else c)
+            mm_c = chains[c] = top.addChain("singletons" if c is None else c.chain_id)
         try:
             mm_r = residues[r]
         except KeyError:
             mm_r = residues[r] = top.addResidue(r.name, mm_c, r.number, r.insertion_code)
+        # Atom names within a residue must be unique [#19727]
+        atom_names = set()
+        name_lookup[r] = lookup = {}
         for a in r.atoms:
-            atoms[a] = top.addAtom(a.name, element.Element.getBySymbol(a.element.name), mm_r,
+            atom_name = a.name
+            if atom_name in atom_names:
+                i = 0
+                while a.name + str(i) in atom_names:
+                    i += 1
+                atom_name = a.name + str(i)
+            atom_names.add(atom_name)
+            lookup[atom_name] = a
+            atoms[a] = top.addAtom(atom_name, element.Element.getBySymbol(a.element.name), mm_r,
                                     a.serial_number)
             coords.append(Quantity(vec3.Vec3(*a.coord), angstrom))
             reordered_atoms.append(a)
@@ -132,6 +158,20 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
                 top.addBond(atoms[c], o)
                 fake_serial += 1
                 filter.append(False)
+        # If nucleic residue phosphate only has 3 bonds (truncated chain) add a fake oxygen
+        if r.polymer_type == r.PT_NUCLEIC:
+            p = r.find_atom("P")
+            if p and p.num_bonds == 3:
+                if PO_len is None:
+                    from chimerax.atomic import Element
+                    PO_len = Element.bond_length("P", "O")
+                bonded = p.neighbors
+                for pos in bond_positions(p.coord, 4, PO_len, [bd.coord for bd in bonded]):
+                    o = top.addAtom("OP3", element.Element.getBySymbol("O"), residues[r], fake_serial)
+                    coords.append(Quantity(vec3.Vec3(*pos), angstrom))
+                    top.addBond(atoms[p], o)
+                    fake_serial += 1
+                    filter.append(False)
     filter = numpy.array(filter)
 
     for b in structure.bonds:
@@ -152,21 +192,40 @@ def _minimize(session, structure, live_updates, log_energy, max_steps):
         #adjust_gaff_type = cx_res.name in ['ADP', 'ATP', 'GDP', 'GTP', 'NAD', 'NDP']
         template.name = "%s-%s-%s%s" % ("blank" if cx_res.chain_id.isspace() else cx_res.chain_id,
             cx_res.name, cx_res.number, cx_res.insertion_code)
+        if cx_res.polymer_type != cx_res.PT_NUCLEIC:
+            prefix = ""
+        elif cx_res.find_atom("O2'"):
+            prefix = "RNA-"
+        else:
+            prefix = "DNA-"
         for omm_atom in template.atoms:
-            cx_atom = cx_res.find_atom(omm_atom.name)
-            if cx_atom.num_bonds == 0:
-                gaff_type = "tip3pfb_standard-" + cx_atom.element.name + (str(cx_atom.charge)
-                    if abs(cx_atom.charge) > 1 else "") + ('+' if cx_atom.charge > 0 else '-')
-            else:
-                gaff_type = cx_atom.gaff_type
+            try:
+                cx_atom = name_lookup[cx_res][omm_atom.name]
+            except KeyError:
+                if omm_atom.name == 'OP3':
+                    op2 = cx_res.find_atom('OP2')
+                    omm_atom.type = prefix + op2.gaff_type
+                    omm_atom.parameters['charge'] = op2.charge
+                    continue
+                raise
+            try:
+                if cx_atom.num_bonds == 0:
+                    gaff_type = "tip3pfb_standard-" + cx_atom.element.name + (str(cx_atom.charge)
+                        if abs(cx_atom.charge) > 1 else "") + ('+' if cx_atom.charge > 0 else '-')
+                else:
+                    gaff_type = prefix + cx_atom.gaff_type
 
-            #if adjust_gaff_type:
-            #    gaff_type = 'DNA-' + gaff_type
-            omm_atom.type = gaff_type
-            # The next line is necessary until a fixed version of OpenMM is available,
-            # as per: https://github.com/openmm/openmm/issues/5075
-            omm_atom.parameters = omm_atom.parameters.copy()
-            omm_atom.parameters['charge'] = cx_atom.charge
+                #if adjust_gaff_type:
+                #    gaff_type = 'DNA-' + gaff_type
+                omm_atom.type = gaff_type
+                omm_atom.parameters['charge'] = cx_atom.charge
+            except AttributeError as e:
+                if 'gaff_type' in str(e) or 'charge' in str(e):
+                    raise UserError("AMBER/GAFF types and partial charges must be assigned to atoms"
+                        " in the structure before minimization.  Use the Add Charge tool or the"
+                        " addcharge command to do that.")
+                else:
+                    raise
         omm_res.name = template.name
 
         forcefield.registerResidueTemplate(template)

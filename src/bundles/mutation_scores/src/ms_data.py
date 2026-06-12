@@ -67,6 +67,10 @@ class MutationSet(State):
         return self._computed_scores.get(score_name)
     def set_computed_values(self, score_name, score_values):
         self._computed_scores[score_name] = score_values
+    def rename_computed_values(self, score_name, new_score_name):
+        score_values = self.computed_values(score_name)
+        self.set_computed_values(new_score_name, score_values)
+        self.remove_computed_values(score_name)
     def remove_computed_values(self, score_name):
         if score_name in self._computed_scores:
             del self._computed_scores[score_name]
@@ -90,28 +94,40 @@ class MutationSet(State):
         seq = Sequence(characters = seq_chars)
         return seq
         
-    def associate_chains(self, session, report = True):
-        if len(self.associated_chains()) == 0:
-            chains = _find_matching_chains(session, self.residue_number_to_amino_acid())
-            self._associated_chains = chains
-            self._associated_residues = [(r.number, r) for chain in chains for r in chain.existing_residues]
-            if report and len(chains) > 0:
-                _report_associated_chains(self, session.logger)
-        return self._associated_chains
+    def associate_chains(self, chains, add = True):
+        new_chains = [c for c in chains if c not in self._associated_chains]
+        added_chains = _find_matching_chains(new_chains, self.residue_number_to_amino_acid())
+        if not add:
+            # Clear current associations
+            self._associated_chains.clear()
+            self._associated_residues.clear()
+            
+        self._associated_chains.extend(added_chains)
+        ares = [(r.number, r) for chain in added_chains for r in chain.existing_residues]
+        self._associated_residues.extend(ares)
+
+        return added_chains
 
     def associated_chains(self):
         self._remove_deleted_chains()
         return self._associated_chains
 
-    def set_associated_chains(self, chains, allow_mismatches = None, minimum_identity = 0.5, pairing = None):
+    def set_associated_chains(self, chains, allow_mismatches = None, minimum_identity = 0.5, pairing = None,
+                              replace = True):
         '''
         Pairing maps chains to match list where a match list is a two tuple of mutation score
         sequence numbers and corresponding chain ungapped positions.
         '''
+        if not replace:
+            # Unassociate and reassociate chains that are already associated.
+            self.remove_associated_chains(chains)
+
         if allow_mismatches is None:
             allow_mismatches = (pairing is not None)
         achains = []
         ares = []
+        accepted_messages = []
+        rejected_messages = []
         rnum_to_aa = self.residue_number_to_amino_acid()
         for chain in chains:
             cres = chain.existing_residues
@@ -131,30 +147,51 @@ class MutationSet(State):
 
             if mismatches and not allow_mismatches:
                 r = mismatches[0]
-                msg = f'Did not associate chain {chain} because sequence does not match mutation set {self.name} at {len(mismatches)} positions, first mistmatch is {r.name} {r.number}.  Use the "alignSequences" or "allowMismatches" command options to associate this chain.'
-                chain.structure.session.logger.warning(msg)
+                msg = f'Did not associate chain {chain} because sequence does not match at {len(mismatches)} positions, first mistmatch is {r.name} {r.number}.  Use the "alignSequences" or "allowMismatches" command options to associate this chain.'
                 accept = False
             elif matches < minimum_identity * len(rnum_to_aa):
-                msg = (f'Did not associate chain {chain} with mutation scores {self.name} because only {matches} residues matched, less than {"%.0f"%(100*minimum_identity)} percent of {len(rnum_to_aa)} mutation set residues.')
-                chain.structure.session.logger.info(msg)
+                msg = (f'Did not associate chain {chain} because only {matches} residues matched, less than {"%.0f"%(100*minimum_identity)} percent of {len(rnum_to_aa)} mutation set residues.')
                 accept = False
             elif pairing:
                 nalign = matches + len(mismatches)
-                msg = (f'Associated {nalign} residues of sequence {chain} to mutation scores {self.name} with {len(mismatches)} amino acid mismatches. {len(cres)} aligned residues have coordinates and mutation scores.')
-                chain.structure.session.logger.info(msg)
+                msg = (f'Associated {nalign} residues of sequence {chain} with {len(mismatches)} amino acid mismatches. {len(cres)} aligned residues have coordinates and mutation scores.')
                 accept = True
             else:
-                msg = f'Associated chain {chain} to mutation scores {self.name} with {len(mismatches)} mismatches.'
-                chain.structure.session.logger.info(msg)
+                msg = f'Associated chain {chain} with {len(mismatches)} mismatches.'
                 accept = True
                 
             if accept:
                 achains.append(chain)
                 aligned_res = [(rnum,r) for r,rnum in zip(cres,cres_num) if rnum in rnum_to_aa]
                 ares.extend(aligned_res)
+                accepted_messages.append(msg)
+            else:
+                rejected_messages.append(msg)
 
+        if replace:
+            self._associated_chains = []
+            self._associated_residues = []
+
+        self._associated_chains.extend(achains)
+        self._associated_residues.extend(ares)
+
+        if chains:
+            log = chains[0].structure.session.logger
+            plural = '' if len(accepted_messages) == 1 else 's'
+            summary = f'Associated {len(accepted_messages)} chain{plural} to mutation set {self.name}.'
+            if accepted_messages:
+                log.info(f'{summary}\n' + '\n'.join(accepted_messages))
+            elif rejected_messages:
+                log.warning(f'{summary}\n\n' + '\n\n'.join(rejected_messages))
+
+    def remove_associated_chains(self, chains):
+        cset = set(chains)
+        rchains = [c for c in self._associated_chains if c in cset]
+        achains = [c for c in self._associated_chains if c not in cset]
         self._associated_chains = achains
+        ares = [(rnum,r) for rnum,r in self._associated_residues if r.chain not in cset]
         self._associated_residues = ares
+        return rchains
 
     def _remove_deleted_chains(self):
         deleted = False
@@ -168,13 +205,13 @@ class MutationSet(State):
     def _remove_deleted_residues(self):
         self._associated_residues = [(rnum, r) for rnum, r in self._associated_residues if not r.deleted]
 
-    def associated_residues(self, res_nums):
+    def associated_residues(self, res_nums = None):
         rlist = []
         rnums = []
-        res_nums_set = set(res_nums)
+        res_nums_set = set(res_nums) if res_nums is not None else None
         deleted = False
         for rnum, r in self._associated_residues:
-            if rnum in res_nums_set:
+            if res_nums is None or rnum in res_nums_set:
                 if r.deleted:
                     deleted = True
                 else:
@@ -215,18 +252,13 @@ class MutationSet(State):
         ms._computed_scores = data['computed_scores']
         return ms
 
-def _find_matching_chains(session, resnum_to_aa):
-    from chimerax.atomic import AtomicStructure
-    structs = session.models.list(type = AtomicStructure)
+def _find_matching_chains(chains, resnum_to_aa):
     mchains = []
-    for s in structs:
-        chains = list(s.chains)
-        chains.sort(key = lambda c: c.chain_id)
-        for c in chains:
-            cres = c.existing_residues
-            matches, mismatches = _residue_type_matches(cres, cres.numbers, resnum_to_aa)
-            if len(mismatches) == 0 and matches > 0:
-                mchains.append(c)
+    for c in chains:
+        cres = c.existing_residues
+        matches, mismatches = _residue_type_matches(cres, cres.numbers, resnum_to_aa)
+        if len(mismatches) == 0 and matches > 0:
+            mchains.append(c)
     return mchains
         
 def _residue_type_matches(residues, res_nums, resnum_to_aa):
@@ -312,6 +344,24 @@ class ScoreValues(State):
         values = [val[3] for val in self._mutation_values]
         return min(values), max(values)
 
+    def synonymous_mean_and_sdev(self):
+        values = [value for res_num, from_aa, to_aa, value in self._mutation_values if to_aa == from_aa]
+        if len(values) == 0:
+            return None, None
+        from numpy import mean, std
+        return mean(values), std(values)
+
+    def mean_and_sdev(self):
+        values = [value for res_num, from_aa, to_aa, value in self._mutation_values]
+        if len(values) == 0:
+            return None, None
+        from numpy import mean, std
+        return mean(values), std(values)
+
+    def subtract_fit(self, score_values):
+        values = subtract_fit_values(self.all_values(), score_values.all_values())
+        return ScoreValues(values)
+    
     def take_snapshot(self, session, flags):
         return {'mutation_values': self._mutation_values,
                 'per_residue': self.per_residue,
@@ -322,10 +372,35 @@ class ScoreValues(State):
         sv = cls(data['mutation_values'], per_residue = data['per_residue'])
         return sv
 
+def subtract_fit_values(cvalues, svalues):
+    smap = {(res_num,from_aa,to_aa):value for res_num, from_aa, to_aa, value in svalues}
+    x = []
+    y = []
+    for res_num, from_aa, to_aa, value in cvalues:
+        svalue = smap.get((res_num,from_aa,to_aa))
+        if svalue is not None:
+            x.append(svalue)
+            y.append(value)
+    from numpy import polyfit
+    degree = 1
+    m,b = polyfit(x, y, degree)
+    sfvalues = [(res_num, from_aa, to_aa, value - (m*smap[(res_num,from_aa,to_aa)] + b))
+                for res_num, from_aa, to_aa, value in cvalues
+                if (res_num,from_aa,to_aa) in smap]
+    return sfvalues
+
 from chimerax.core.state import StateManager  # For session saving
 class MutationScoresManager(StateManager):
-    def __init__(self):
+    def __init__(self, session):
+        self._session = session
         self._scores = {}	# Maps name to MutationSet
+
+        triggers = session.triggers
+        create_mutation_set_add_remove_triggers(triggers)
+
+        # Update associated structure
+        triggers.add_handler('add models', self._structure_opened)
+        triggers.add_handler('remove models', self._structure_closed)
 
     def mutation_set(self, mutation_set_name):
         return self._scores.get(mutation_set_name)
@@ -341,30 +416,87 @@ class MutationScoresManager(StateManager):
         return s
     def add_scores(self, mutation_set):
         self._scores[mutation_set.name] = mutation_set
+        self._session.triggers.activate_trigger('mutation set added', mutation_set)
+        chains = mutation_set.associate_chains(_all_chains(self._session))
+        if chains:
+            self._session.logger.info(self._associate_message(mutation_set, chains))
     def remove_scores(self, mutation_set_name):
-        if mutation_set_name in self._scores:
+        mutation_set = self._scores.get(mutation_set_name)
+        if mutation_set:
             del self._scores[mutation_set_name]
+            self._session.triggers.activate_trigger('mutation set removed', mutation_set)
             return True
         return False
     def all_scores(self):
         return tuple(self._scores.values())
     def names(self):
         return tuple(self._scores.keys())
+
+    def _structure_opened(self, trigger_name, models):
+        self._update_associated_chains(models, 'add')
+    def _structure_closed(self, trigger_name, models):
+        self._update_associated_chains(models, 'remove')
+    def _update_associated_chains(self, models, add_or_remove):
+        if self.all_scores():
+            chains = _structure_chains(models)
+            if chains:
+                messages = []
+                for mset in self.all_scores():
+                    if add_or_remove == 'add':
+                        achains = mset.associate_chains(chains)
+                        if achains:
+                            messages.append(self._associate_message(mset, achains))
+                    elif add_or_remove == 'remove':
+                        mset.remove_associated_chains(chains)
+                if messages:
+                    log = models[0].session.logger
+                    log.info('\n'.join(messages))
+    def _associate_message(self, mset, chains):
+        from chimerax.atomic import concise_chain_spec
+        cspec = concise_chain_spec(chains)
+        return f'Associated {len(chains)} chains {cspec} with mutations {mset.name}'
+
     def take_snapshot(self, session, flags):
         return {'scores': self._scores,
                 'version': 1}
     @classmethod
     def restore_snapshot(cls, session, data):
-        msm = cls()
-        msm._scores = data['scores']
+        msm = mutation_scores_manager(session)
+        for mset in data['scores'].values():
+            msm.add_scores(mset)
         return msm
     def reset_state(self, session):
         self._scores.clear()
 
+def _structure_chains(models):
+    from chimerax.atomic import AtomicStructure
+    structures = [m for m in models if isinstance(m, AtomicStructure)]
+    chains = []
+    for s in structures:
+        chains.extend(list(s.chains))
+    return chains
+
+def _all_chains(session):
+    chains = []
+    from chimerax.atomic import AtomicStructure
+    for s in session.models.list(type = AtomicStructure):
+        chains.extend(s.chains)
+    return chains
+
+def create_mutation_set_add_remove_triggers(triggers, added_callback = None, removed_callback = None):
+    if not triggers.has_trigger('mutation set added'):
+        triggers.add_trigger('mutation set added')
+    if not triggers.has_trigger('mutation set removed'):
+        triggers.add_trigger('mutation set removed')
+    if added_callback:
+        triggers.add_handler('mutation set added', added_callback)
+    if removed_callback:
+        triggers.add_handler('mutation set removed', removed_callback)
+        
 def mutation_scores_manager(session, create = True):
     msm = getattr(session, 'mutation_scores_manager', None)
     if msm is None and create:
-        session.mutation_scores_manager = msm = MutationScoresManager()
+        session.mutation_scores_manager = msm = MutationScoresManager(session)
     return msm
 
 def mutation_scores(session, mutation_set, raise_error = True):
@@ -386,14 +518,38 @@ def mutation_scores_list(session):
     sets = '\n'.join(f'{scores.name} ({", ".join(scores.score_names())})' for scores in score_sets)
     session.logger.info(f'{len(score_sets)} mutation score sets\n{sets}')
     return msm.names()
+    
+def mutation_scores_names(session):
+    msm = mutation_scores_manager(session)
+    return msm.names()
 
-def mutation_scores_structure(session, chains = None,
+def mutation_scores_structure(session, chains = None, add = None, remove = None,
                               allow_mismatches = None, minimum_percent_identity = 50,
                               align_sequences = None, mutation_set = None):
     mset = mutation_scores(session, mutation_set)
-    if chains is None:
+
+    if (chains is None and add is None and remove is None) or chains == 'list':
         _report_associated_chains(mset, session.logger)
         return
+
+    if chains == 'clear':
+        mset.set_associated_chains([])
+        return
+
+    if remove:
+        rchains = mset.remove_associated_chains(remove)
+        if rchains:
+            from chimerax.atomic import concise_chain_spec
+            cspec = concise_chain_spec(rchains)
+            session.logger.info(f'Unassociated chains {cspec} from mutation set {mset.name}')
+
+    if chains is None and add is None:
+        return
+
+    chains = list(chains) if chains else []
+    if add:
+        for chain in add:
+            chains.append(chain)
 
     if isinstance(align_sequences, bool) and align_sequences:
         # Use mutation data sequence.
@@ -412,10 +568,10 @@ def mutation_scores_structure(session, chains = None,
         
     mset.set_associated_chains(chains, allow_mismatches = allow_mismatches,
                                minimum_identity = minimum_percent_identity/100,
-                               pairing = pairing)
+                               pairing = pairing, replace = not add)
 
 def _report_associated_chains(mset, logger):
-    chains = [chain for chain in mset.associated_chains()]
+    chains = mset.associated_chains()
     from chimerax.atomic import concise_chain_spec
     cspec = concise_chain_spec(chains)
     logger.status(f'Mutation set {mset.name} has {len(chains)} associated chains {cspec}.', log=True)
@@ -463,7 +619,7 @@ def _close_plots(session, mutation_set_name):
             tool.delete()
 
 def register_commands(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, FloatArg, Or
+    from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, FloatArg, Or, EnumOf
     from chimerax.atomic import UniqueChainsArg, SequenceArg
     from chimerax.seqalign import AlignmentArg
     
@@ -471,8 +627,10 @@ def register_commands(logger):
     register('mutationscores list', desc, mutation_scores_list, logger=logger)
 
     desc = CmdDesc(
-        optional = [('chains', UniqueChainsArg)],
-        keyword = [('allow_mismatches', BoolArg),
+        optional = [('chains', Or(EnumOf(('list', 'clear')), UniqueChainsArg))],
+        keyword = [('add', UniqueChainsArg),
+                   ('remove', UniqueChainsArg),
+                   ('allow_mismatches', BoolArg),
                    ('minimum_percent_identity', FloatArg),
                    ('align_sequences', Or(BoolArg, SequenceArg, AlignmentArg)),
                    ('mutation_set', StringArg)],

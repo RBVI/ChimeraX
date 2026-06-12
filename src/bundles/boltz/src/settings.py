@@ -37,6 +37,12 @@ class _BoltzSettings(Settings):
         'use_steering_potentials': False,	# Improves accuracy in boltz-1x and later.
         'samples': 1,		# Number of predicted structures
         'use_msa_cache': True,
+        'use_server': False,
+        'server_host': '',
+        'server_port': 30172,
+    }
+    AUTO_SAVE = {
+        'active_server_jobs': [],  # Directories of boltz runs sent to server
     }
 
 # -----------------------------------------------------------------------------

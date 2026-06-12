@@ -166,7 +166,7 @@ def write_modeller_scripts(license_key, num_models, het_preserve, water_preserve
         print(
             '<?xml version="1.0" encoding="UTF-8"?>\n'
             '<modeller9v8>\n'
-            '\t<key>%s</key>\n'
+            '%s'
             '\t<version>%d</version>\n'
             '\t<numModel>%s</numModel>\n'
             '\t<hetAtom>%s</hetAtom>\n'
@@ -174,8 +174,9 @@ def write_modeller_scripts(license_key, num_models, het_preserve, water_preserve
             '\t<allHydrogen>%s</allHydrogen>\n'
             '\t<veryFast>%s</veryFast>\n'
             '\t<loopInfo>%s</loopInfo>\n'
-            '</modeller9v8>' % (license_key, version, num_models, int(het_preserve),
-                                int(water_preserve), int(hydrogens), int(fast), repr(loop_info)), file=config_file)
+            '</modeller9v8>' % (('' if license_key is None else '\t<key>%s</key>\n' % license_key),
+            version, num_models, int(het_preserve), int(water_preserve), int(hydrogens), int(fast),
+            repr(loop_info)), file=config_file)
 
     if custom_script:
         return custom_script, config_file.name, temp_dir
@@ -728,7 +729,6 @@ class ModellerLocalJob(Job):
             if 'v' not in version and version.count('.') == 1:
                 version = version.replace('.', 'v')
             environ['VERSION'] = version
-            environ['KEY_MODELLER' + version] = get_license_key(self.session, None)
             environ['DIR'] = home
             environ['MODINSTALL' + version] = home
             environ['PYTHONPATH'] = os.path.join(home, 'modlib')

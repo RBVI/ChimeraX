@@ -1,10 +1,15 @@
---- tcia_utils-1.5.1.dist-info/METADATA.orig	2023-03-18 21:18:23
-+++ tcia_utils-1.5.1.dist-info/METADATA	2023-03-18 21:18:26
-@@ -13,7 +13,6 @@
- Requires-Dist: ipywidgets
- Requires-Dist: matplotlib
- Requires-Dist: numpy
+--- tcia_utils-3.2.1.dist-info/METADATA.orig	2026-04-06 12:00:00
++++ tcia_utils-3.2.1.dist-info/METADATA	2026-04-06 12:00:00
+@@ -10,12 +10,6 @@
+ Classifier: Operating System :: OS Independent
+ Classifier: Programming Language :: Python :: 3
+ Requires-Python: >=3.9
+-Requires-Dist: bs4
+-Requires-Dist: ipython
 -Requires-Dist: pandas
- Requires-Dist: pydicom
+-Requires-Dist: plotly
  Requires-Dist: requests
- Description-Content-Type: text/markdown
+-Requires-Dist: tqdm
+-Requires-Dist: unidecode
+ Provides-Extra: test
+ Requires-Dist: pytest; extra == 'test'

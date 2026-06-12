@@ -31,7 +31,7 @@ class _CmdLineSettings(Settings):
         'default_side': 'bottom'
     }
     AUTO_SAVE = {
-        "num_remembered": 500,
+        "num_remembered": 2000,
         "typed_only": True,
         "select_failed": False,
     }

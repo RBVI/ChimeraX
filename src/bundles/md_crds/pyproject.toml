@@ -4,13 +4,13 @@ build-backend = "chimerax.bundle_builder.cx_pep517"
 
 [project]
 name = "ChimeraX-MDcrds"
-version = "2.17.2"
+version = "2.19"
 license = { text = "Free for non-commercial use" }
 authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
 description = "Molecular dynamics support"
 dependencies = [
   "ChimeraX-Core ~=1.0",
-  "ChimeraX-Atomic ~=1.22",
+  "ChimeraX-Atomic ~=1.66",
   "ChimeraX-DataFormats ~=1.0",
   "ChimeraX-OpenCommand ~=1.0",
   "ChimeraX-SaveCommand ~=1.0",
@@ -191,10 +191,14 @@ text-format = "%d"
 [tool.chimerax.extension._gromacs]
 sources = ["gromacs/gromacs.cpp"]
 include-dirs = ["gromacs/xdrfile-1.1.4/include", "src/include"]
-include-modules = ["chimerax.core", "numpy"]
-library-modules = ["chimerax.core"]
+include-modules = ["chimerax.core", "numpy", "chimerax.arrays"]
+library-modules = ["chimerax.core", "chimerax.arrays"]
 library-dirs = ["src/lib", "gromacs/xdrfile-1.1.4/src/.libs/"]
-libraries = ["xdrfile"]
+libraries = ["xdrfile", "arrays"]
 
 [tool.chimerax.extension._gromacs.darwin]
 extra-link-args = ["-Wl,-rpath,@rpath"]
+
+[tool.chimerax.command."md cluster"]
+categories = ["MD/Ensemble Analysis"]
+description = "Cluster trajectory frames"

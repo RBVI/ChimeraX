@@ -371,7 +371,7 @@ class MarkedHistogram(QWidget):
 
     @redraw_delay.setter
     def redraw_delay(self, secs):
-        self._redraw_timer.setInterval(secs * 1000)
+        self._redraw_timer.setInterval(round(secs * 1000))
 
     @property
     def scaling(self):
@@ -426,7 +426,9 @@ class MarkedHistogram(QWidget):
 
     def _abs2rel(self, abs_xy):
         x, y = abs_xy
-        rel_x = (x - self._min_val) / float(self._max_val - self._min_val)
+        min_val = self._min_val if self._draw_min is None else self._draw_min
+        max_val = self._max_val if self._draw_max is None else self._draw_max
+        rel_x = (x - min_val) / float(max_val - min_val)
         rel_y = y / float(self._ymax)
         return rel_x, rel_y
 
@@ -500,38 +502,6 @@ class MarkedHistogram(QWidget):
             if self._active_markers.move_callback:
                 self._active_markers.move_callback('end')
 
-    def _scene_xy(self, abs_xy):
-        # minimum is in the _center_ of the first bin,
-        # likewise, maximum is in the center of the last bin
-
-        abs_x, abs_y = abs_xy
-
-        abs_y = max(0, abs_y)
-        abs_y = min(self._max_height, abs_y)
-        if self.scaling == 'logarithmic':
-            import math
-            abs_y = math.log(abs_y+1)
-        scene_y = self._bottom - (self._hist_height - 1) * (abs_y / self._max_height)
-
-        abs_x = max(self._min_val, abs_x)
-        abs_x = min(self._max_val, abs_x)
-        num_bins = len(self._bins)
-        if num_bins == self._hist_width:
-            bin_width = (self._max_val - self._min_val) / float(num_bins - 1)
-            left_edge = self._min_val - 0.5 * bin_width
-            scene_x = int((abs_x - left_edge) / bin_width)
-        else:
-            # histogram is effectively one bin wider (two half-empty bins on each end)
-            if num_bins == 1:
-                scene_x = 0.5 * (self._hist_width - 1)
-            else:
-                extra = (self._max_val - self._min_val) / (2.0*(num_bins-1))
-                eff_min_val = self._min_val - extra
-                eff_max_val = self._max_val + extra
-                eff_range = float(eff_max_val - eff_min_val)
-                scene_x = (self._hist_width - 1) * (abs_x - eff_min_val) / eff_range
-        return self._border + scene_x, scene_y
-
     def _color_button_cb(self, rgba):
         m = self._active_markers._sel_marker
         if not m:
@@ -540,8 +510,22 @@ class MarkedHistogram(QWidget):
             return
         m.rgba = rgba
 
+    def _ensure_range(self, abs_xy):
+        x = abs_xy[0]
+        if x < self._min_val and (self._draw_min is None or x < self._draw_min):
+            self._draw_min = x
+            self._redraw_cb()
+        elif x > self._max_val and (self._draw_max is None or x > self._draw_max):
+            self._draw_max = x
+            self._redraw_cb()
+
+    @property
+    def _int_values(self):
+        from numbers import Integral
+        return isinstance(self._min_val, Integral)
+
     def _marker2abs(self, marker):
-        if self._active_markers.coord_type == 'absolute':
+        if marker.markers.coord_type == 'absolute':
             return marker.xy
         else:
             return self._rel2abs(marker.xy)
@@ -635,7 +619,8 @@ class MarkedHistogram(QWidget):
         self._hist_width, self._hist_height = hist_width, hist_height = \
             hist_size.width() - 2*dx, hist_size.height()
         self._min_val, self._max_val, self._bins = ds
-        filled_range = self._max_val - self._min_val
+        data_min, data_max = self._min_val, self._max_val
+        filled_range = data_max - data_min
         temp_abs_markers = False
         if self._draw_min != None or self._draw_max != None:
             if self._active_markers is not None and self._active_markers.coord_type == "relative":
@@ -644,10 +629,10 @@ class MarkedHistogram(QWidget):
                 self._active_markers.coord_type = "absolute"
         empty_ranges = [0, 0]
         if self._draw_min != None:
-            empty_ranges[0] = self._min_val - self._draw_min
+            empty_ranges[0] = data_min - self._draw_min
             self._min_val = self._draw_min
         if self._draw_max != None:
-            empty_ranges[1] = self._draw_max - self._max_val
+            empty_ranges[1] = self._draw_max - data_max
             self._max_val = self._draw_max
         if temp_abs_markers:
             self._active_markers.coord_type = "relative"
@@ -664,15 +649,14 @@ class MarkedHistogram(QWidget):
             if empty_ranges[0] or empty_ranges[1]:
                 full_range = filled_range + empty_ranges[0] + empty_ranges[1]
                 filled_bins = self._bins(max(1, round(hist_width * filled_range / full_range)))
-                left = [0] * int(hist_width * empty_ranges[0] / full_range)
+                left = [0] * int(hist_width * empty_ranges[0] / filled_range)
                 right = [0] * (hist_width - len(filled_bins) - len(left))
                 self._bins = handle_list(left, filled_bins, right)
             else:
                 self._bins = self._bins(hist_width)
         elif empty_ranges[0] or empty_ranges[1]:
-            full_range = filled_range + empty_ranges[0] + empty_ranges[1]
-            left = [0] * int(len(self._bins) * empty_ranges[0] / full_range)
-            right = [0] * int(len(self._bins) * empty_ranges[1] / full_range)
+            left = [0] * int(len(self._bins) * empty_ranges[0] / filled_range)
+            right = [0] * int(len(self._bins) * empty_ranges[1] / filled_range)
             self._bins = handle_list(left, self._bins, right)
         if self._min_label:
             self._min_label.setText(self._str_val(self._min_val))
@@ -730,9 +714,43 @@ class MarkedHistogram(QWidget):
 
     def _rel2abs(self, rel_xy):
         x, y = rel_xy
-        abs_x = self._min_val * (1-x) + x * self._max_val
+        min_val = self._min_val if self._draw_min is None else self._draw_min
+        max_val = self._max_val if self._draw_max is None else self._draw_max
+        abs_x = min_val * (1-x) + x * max_val
         abs_y = y * self._ymax
         return abs_x, abs_y
+
+    def _scene_xy(self, abs_xy):
+        # minimum is in the _center_ of the first bin,
+        # likewise, maximum is in the center of the last bin
+
+        abs_x, abs_y = abs_xy
+
+        abs_y = max(0, abs_y)
+        abs_y = min(self._max_height, abs_y)
+        if self.scaling == 'logarithmic':
+            import math
+            abs_y = math.log(abs_y+1)
+        scene_y = self._bottom - (self._hist_height - 1) * (abs_y / self._max_height)
+
+        abs_x = max(self._min_val, abs_x)
+        abs_x = min(self._max_val, abs_x)
+        num_bins = len(self._bins)
+        if num_bins == self._hist_width:
+            bin_width = (self._max_val - self._min_val) / float(num_bins - 1)
+            left_edge = self._min_val - 0.5 * bin_width
+            scene_x = int((abs_x - left_edge) / bin_width)
+        else:
+            # histogram is effectively one bin wider (two half-empty bins on each end)
+            if num_bins == 1:
+                scene_x = 0.5 * (self._hist_width - 1)
+            else:
+                extra = (self._max_val - self._min_val) / (2.0*(num_bins-1))
+                eff_min_val = self._min_val - extra
+                eff_max_val = self._max_val + extra
+                eff_range = float(eff_max_val - eff_min_val)
+                scene_x = (self._hist_width - 1) * (abs_x - eff_min_val) / eff_range
+        return self._border + scene_x, scene_y
 
     def _select_marker_cb(self, event=None):
         if self._active_markers is not None:
@@ -794,8 +812,9 @@ class MarkedHistogram(QWidget):
         if isinstance(val, str):
             self._value_entry.setText(val)
             return
-        if isinstance(self._min_val, int):
-            val = int(val + 0.5)
+        if self._int_values:
+            from math import floor
+            val = floor(val + 0.5)
         self._value_entry.setText("%g" % val)
 
     def _str_val(self, val):
@@ -921,6 +940,8 @@ class HistogramMarkers:
     def append(self, val):
         marker = self._marker_func(val)
         self._markers.append(marker)
+        if self.coord_type == "absolute":
+            self.histogram._ensure_range(marker.xy)
         self._update_plot()
         if self._add_del_callback:
             self._add_del_callback(marker)
@@ -1114,13 +1135,6 @@ class HistogramMarkers:
     def sort(self, *args, **kw):
         self._markers.sort(*args, **kw)
 
-    def _scene_xy(self, xy):
-        if self.coord_type == 'relative':
-            abs_xy = self.histogram._rel2abs(xy)
-        else:
-            abs_xy = xy
-        return self.histogram._scene_xy(abs_xy)
-
     def _convert_coords(self):
         if self.coord_type == self._prev_coord_type:
             return
@@ -1198,6 +1212,13 @@ class HistogramMarkers:
         if color_info is None:
             color_info = self.new_color
         return Color(color_info).rgba
+
+    def _scene_xy(self, xy):
+        if self.coord_type == 'relative':
+            abs_xy = self.histogram._rel2abs(xy)
+        else:
+            abs_xy = xy
+        return self.histogram._scene_xy(abs_xy)
 
     def _unplot_markers(self, markers=None):
         if markers is None:

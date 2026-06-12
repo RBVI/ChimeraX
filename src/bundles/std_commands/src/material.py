@@ -103,6 +103,9 @@ def material(session, preset = None, reflectivity = None,
 
     v.material = m	# Let's viewer know the material has been changed.
 
+    from chimerax.core.core_triggers import LIGHTING_CHANGED
+    session.triggers.activate_trigger(LIGHTING_CHANGED, None)
+
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, EnumOf, FloatArg, BoolArg, register
     _material_desc = CmdDesc(

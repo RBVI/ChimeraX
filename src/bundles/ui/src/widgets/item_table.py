@@ -99,6 +99,10 @@ class QCxTableModel(QAbstractTableModel):
         if role == Qt.SizeHintRole:
             if col.display_format == self._item_table.COL_FORMAT_BOOLEAN:
                 return QSize(25, 25)
+            elif col.display_format == self._item_table.color_formats:
+                # Still doesn't seem to help if the color column is first,
+                # but seems correct to have it anyway
+                return QSize(16, 16)
         return None
 
     def flags(self, index):
@@ -370,12 +374,6 @@ class ItemTable(QTableView):
         self._highlighted = set()
         self.doubleClicked.connect(self.doubleclicked)
 
-    def doubleclicked(self, _) -> list:
-        self.get_selection.emit(self.selected)
-
-    def _toggle_columns_checkboxes(self):
-        self._col_checkbox_container.setVisible(not self._col_checkbox_container.isVisible())
-
     def add_column(self, title, data_fetch, *, format="%s", data_set=None, display=None, title_display=True,
             justification="center", balloon=None, font=None, refresh=True, color=None,
             header_justification=None, icon=None, editable=False, validator=None, sort_func=None,
@@ -580,6 +578,9 @@ class ItemTable(QTableView):
         self._data = []
         super().destroy()
 
+    def doubleclicked(self, _) -> list:
+        self.get_selection.emit(self.selected)
+
     def edit_cell(self, col_info, datum):
         if isinstance(col_info, str):
             for col in self._columns:
@@ -621,24 +622,7 @@ class ItemTable(QTableView):
             self._arrange_col_checkboxes()
         scroll_to = None
         if session_info:
-            version, selected, column_display, highlighted, sort_info, *version_args = session_info
-            if self._allow_user_sorting and sort_info is not None:
-                col_num, order = sort_info
-                self.sortByColumn(col_num, qt_enum_from_int(Qt.SortOrder, order))
-            sel_model = self.selectionModel()
-            for i in selected:
-                index = self._table_model.index(i,0)
-                if self._allow_user_sorting:
-                    index = self.model().mapFromSource(index)
-                sel_model.select(index, sel_model.Rows | sel_model.Select)
-                scroll_to = index
-            self.highlight([self._data[i] for i in highlighted])
-            for c in self._columns:
-                self.update_column(c, display=column_display.get(c.title, True))
-            if version >= 2:
-                header_info, *version_args = version_args
-                from Qt.QtCore import QByteArray
-                self.horizontalHeader().restoreState(QByteArray(header_info))
+            scroll_to = self.process_session_info(session_info)
 
         self.selectionModel().selectionChanged.connect(self._relay_selection_change)
         for i, col in enumerate(self._columns):
@@ -652,7 +636,36 @@ class ItemTable(QTableView):
             self.resizeRowsToContents()
 
         if scroll_to is not None:
-            QTimer.singleShot(10, lambda s=self, i=scroll_to: s.scrollTo(i))
+            # guard against table being destroyed immediately after creation...
+            def guarded_scroll_to(self=self, st=scroll_to):
+                try:
+                    self.scrollTo(st)
+                except RuntimeError:
+                    pass
+            QTimer.singleShot(10, guarded_scroll_to)
+
+    def process_session_info(self, session_info):
+        # normally called by launch(), but sometimes you have already launched the table, so...
+        version, selected, column_display, highlighted, sort_info, *version_args = session_info
+        if self._allow_user_sorting and sort_info is not None:
+            col_num, order = sort_info
+            self.sortByColumn(col_num, qt_enum_from_int(Qt.SortOrder, order))
+        sel_model = self.selectionModel()
+        scroll_to = None
+        for i in selected:
+            index = self._table_model.index(i,0)
+            if self._allow_user_sorting:
+                index = self.model().mapFromSource(index)
+            sel_model.select(index, sel_model.Rows | sel_model.Select)
+            scroll_to = index
+        self.highlight([self._data[i] for i in highlighted])
+        for c in self._columns:
+            self.update_column(c, display=column_display.get(c.title, True))
+        if version >= 2:
+            header_info, *version_args = version_args
+            from Qt.QtCore import QByteArray
+            self.horizontalHeader().restoreState(QByteArray(header_info))
+        return scroll_to
 
     def scroll_to(self, datum):
         """ Scroll the table to ensure that the given data item is visible """
@@ -899,6 +912,9 @@ class ItemTable(QTableView):
         for col in self._columns:
             display = display_defaults.get(col.title, fallback)
             self.update_column(col, display=display)
+
+    def _toggle_columns_checkboxes(self):
+        self._col_checkbox_container.setVisible(not self._col_checkbox_container.isVisible())
 
 class _ItemColumn:
     def __init__(self, title, data_fetch, display_format, data_set, title_display, justification, font,

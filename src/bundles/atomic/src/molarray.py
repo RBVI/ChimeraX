@@ -135,6 +135,8 @@ class Collection(State):
 
     def __eq__(self, items):
         if not isinstance(items, Collection):
+            if isinstance(items, self._object_class):
+                return self._pointers == items._c_pointer.value
             return False
         import numpy
         return numpy.array_equal(items._pointers, self._pointers)
@@ -422,6 +424,8 @@ class StructureDatas(Collection):
     '''Number of bonds in each structure. Read only.'''
     num_chains = cvec_property('structure_num_chains', size_t, read_only = True)
     '''Number of chains in each structure. Read only.'''
+    num_coordsets = cvec_property('structure_num_coordsets', size_t, read_only = True)
+    '''Number of coordinate sets in each structure. Read only.'''
     num_residues = cvec_property('structure_num_residues', size_t, read_only = True)
     '''Number of residues in each structure. Read only.'''
     residues = cvec_property('structure_residues', cptr, 'num_residues', astype = _residues,
@@ -814,10 +818,14 @@ class Atoms(Collection):
     def __init__(self, atom_pointers = None):
         Collection.__init__(self, atom_pointers, molobject.Atom)
 
-    def delete(self):
-        '''Delete the C++ Atom objects'''
-        c_function('atom_delete',
-            args = [ctypes.c_void_p, ctypes.c_size_t])(self._c_pointers, len(self))
+    def delete(self, *, compact_coordsets=False):
+        '''Delete the C++ Atom objects.
+        If 'compact_coordsets' is True, the coordinate sets will be compacted to remove the
+        unused coordinates, which will take additional time but save some memory.  If additional
+        coordinate sets might be added to the structure later then it would be crucial to
+        set 'compact_coordsets' to True.'''
+        c_function('atom_delete', args = [ctypes.c_void_p, ctypes.c_size_t, ctypes.c_bool])(
+            self._c_pointers, len(self), compact_coordsets)
 
     def update_ribbon_backbone_atom_visibility(self):
         '''Update the 'hide' status for ribbon backbone atoms, which

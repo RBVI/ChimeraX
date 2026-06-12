@@ -29,6 +29,9 @@ class ItemsGenerator:
 
     @property
     def all_values(self):
+        if not hasattr(self, 'value_map'):
+            # initialize
+            self._item_names()
         values = list(self.value_map.keys())
         values.sort(key=self.key_func)
         return values
@@ -67,6 +70,18 @@ class ItemsUpdater:
 
     def hideEvent(self, event):
         self._delete_handlers()
+
+    def ready_for_callback(self):
+        # In some cases the value_changed signal may be delayed to allow other tool widgets to
+        # be created/readied.  This function can be called in cases where those widgets are now
+        # ready and the callback needs to happen before some further code executes.
+        # Typically needed when a tool's constructor has been called and some tool function is
+        # then called without getting to the event loop in between (e.g. in a script).
+        if getattr(self, '_wau_timer_info', None):
+            timer, callback = self._wau_timer_info
+            timer.stop()
+            self._wau_timer_info = None
+            callback()
 
     def refresh(self):
         # can be needed if 'filter_func' was specified
@@ -506,8 +521,16 @@ def _when_all_updated(widget, func):
         try:
             alive = hasattr(widget, 'value_changed')
         except RuntimeError:
-            pass
-        else:
-            func()
-    from Qt.QtCore import QTimer
-    QTimer.singleShot(0, check_and_execute)
+            return
+        widget._wau_timer_info = None
+        func()
+    if not getattr(widget, '_wau_timer_info', None):
+        from Qt.QtCore import QTimer
+        timer = QTimer(widget)
+        widget._wau_timer_info = (timer, func)
+        timer.timeout.connect(check_and_execute)
+        timer.setSingleShot(True)
+    else:
+        timer, old_func = widget._wau_timer_info
+        timer.stop()
+    timer.start(0)

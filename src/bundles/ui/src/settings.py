@@ -26,11 +26,12 @@ class UI_Settings(Settings):
         'initial_window_size': ("last used", None),
         'tool_positions': {'toolbars': {}, 'windows': {}},
         'undockable': [
-            'Help Viewer', "Color Key",
+            'Help Viewer', "Color Key", "Mutation scores plot", "Mutation scores histogram",
         ],
     }
 
     AUTO_SAVE = {
+        'editor_custom_colors': [],
         'last_window_size': None,
         'file_history_show_full_filenames': False,
     }

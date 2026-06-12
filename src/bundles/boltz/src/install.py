@@ -118,7 +118,7 @@ class InstallBoltz:
         logger.info('Now installing machine learning package torch.')
         # TODO: We should try to match the system cuda version.
         command = [self._venv_python_executable(), '-m', 'pip', 'install', 'torch==2.7.1',
-                   '--index-url', 'https://download.pytorch.org/whl/cu126']
+                   '--index-url', 'https://download.pytorch.org/whl/cu128']
         logger.info(' '.join(command))
 
         # Echo subprocess output to the ChimeraX Log.
@@ -248,8 +248,9 @@ class log_subprocess_output:
         if wait:
             while t.is_alive():
                 self._log_queued_lines()
+            self._finished()
         else:
-            session.triggers.add_handler('new frame', self._log_queued_lines)
+            session.triggers.add_handler('new frame', self._log_queued_lines_while_alive)
 
     def _queue_output_in_thread(self):
         while True:
@@ -258,12 +259,15 @@ class log_subprocess_output:
                 break
             self._queue.put(line)
 
-    def _log_queued_lines(self, *trigger_args):
+    def _log_queued_lines(self):
         while not self._queue.empty():
             line = self._queue.get()
             import locale
             stdout_encoding = locale.getpreferredencoding()
             self._session.logger.info(line.decode(stdout_encoding, errors = 'ignore'))
+
+    def _log_queued_lines_while_alive(self, *trigger_args):
+        self._log_queued_lines()
         if not self._thread.is_alive():
             self._finished()
             return 'delete handler'
@@ -318,6 +322,6 @@ def register_boltz_install_command(logger):
         keyword = [('download_model_weights_and_ccd', BoolArg),
                    ('branch', StringArg)],
         synopsis = 'Install Boltz from PyPi in a virtual environment',
-        url = 'help:boltz_help.html'
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/boltz-apr2025/boltz_help.html#install'
     )
     register('boltz install', desc, boltz_install, logger=logger)

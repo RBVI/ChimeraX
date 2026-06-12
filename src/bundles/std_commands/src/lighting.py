@@ -40,8 +40,10 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
     ----------
     preset : string
       Names a standard set of lighting parameters. Allowed values are "default",
-      "simple", "full", "soft" and "flat".  Simple is the same as default and has
-      no shadows.  Full includes direct and ambient shadows.  Soft includes ambient
+      "simple", "full", "soft" and "flat".  Default resets all lighting parameters
+      to their initial values.  Simple sets intensities to their default values and
+      disables shadows, but does not change directions or colors.
+      Full includes direct and ambient shadows.  Soft includes ambient
       shadows from 64 directions and no direct lighting.  Flat has only anbient lighting
       and no shadows with silhouettes enabled.  Specifying a preset only specifies some
       of the lighting parameters. Specifying other options overrides the preset values.
@@ -130,8 +132,15 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
 
     ms_directions = lighting_settings(session).lighting_multishadow_directions
     sil = v.silhouette
-    if preset == 'default' or preset == 'simple':
+    if preset == 'default':
         lp.set_default_parameters(v.background_color)
+        sil.depth_jump = 0.03
+    elif preset == 'simple':
+        lp.shadows = False
+        lp.multishadow = 0
+        lp.key_light_intensity = 1
+        lp.fill_light_intensity = 0.5
+        lp.ambient_light_intensity = 0.4
         sil.depth_jump = 0.03
     elif preset == 'full':
         lp.shadows = True
@@ -222,6 +231,9 @@ def lighting(session, preset = None, direction = None, intensity = None, color =
 
     v.update_lighting = True
     v.redraw_needed = True
+
+    from chimerax.core.core_triggers import LIGHTING_CHANGED
+    session.triggers.activate_trigger(LIGHTING_CHANGED, preset)
 
 def lighting_model(session, models, depth_cue = None, shadows = None, multi_shadow = None,
                    directional = None):

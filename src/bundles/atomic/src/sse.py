@@ -185,14 +185,14 @@ class HelixCylinder:
         ( 0.613, 0.501, 0.610),
     ])
 
-    def __init__(self, coords, radius=None, maxiter=None):
+    def __init__(self, coords, radius=None, maxiter=None, straight=False):
         self.coords = coords
         self.maxiter = maxiter
         self._centers = None
         self._directions = None
         self._normals = None
         self._surface = None
-        if len(coords) < self.MIN_CURVE_LENGTH:
+        if straight or len(coords) < self.MIN_CURVE_LENGTH:
             self._straight_optimize()
         else:
             self._try_curved()
@@ -413,7 +413,7 @@ class HelixCylinder:
         if vdot(self.coords[-1] - self.coords[0], self.axis) < 0:
             self.axis = -self.axis
         radii = norm(self.coords - self.cylinder_centers(), axis=1)
-        self.radius = mean(radii)
+        self.radius = min(2.5, mean(radii))
 
     def _straight_initial(self):
         from numpy import mean, dot, newaxis

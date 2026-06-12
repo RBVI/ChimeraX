@@ -37,7 +37,7 @@ class _SDF_API(BundleAPI):
             @property
             def open_args(self):
                 from chimerax.core.commands import BoolArg
-                return { 'auto_style': BoolArg }
+                return { 'auto_style': BoolArg, 'break_triangle_waters': BoolArg }
         return SdfOpenerInfo()
 
 bundle_api = _SDF_API()

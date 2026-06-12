@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,38 +9,32 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Tool: Water Placement</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3><a href="../index.html#tools">Tool</a>: Water Placement</h3>
 <p>
 The <b>Water Placement</b> tool in ChimeraX:
 </p>
 <ul>
-<li>runs the <a href="https://phenix-online.org"
-target="_blank">Phenix</a> program
-<a href="https://phenix-online.org/documentation/reference/douse.html"
-target="_blank"><i>douse</i></a> to place water molecules in cryo-EM density;
+<li>runs the <a href="https://phenix-online.org" target="_blank">Phenix</a> program
+<a href="https://phenix-online.org/documentation/reference/douse.html" target="_blank"><i>douse</i></a> to place water molecules in cryo-EM density;
 the command implementation is 
 <a href="../commands/phenix.html#douse"><b>phenix douse</b></a>
-<li>provides a graphical interface for inspecting and editing the results
-</ul>
+</li><li>provides a graphical interface for inspecting and editing the results
+</li></ul>
 <p>
 Users should cite:
 </p>
 <blockquote>
-<a href="https://journals.iucr.org/d/issues/2019/10/00/di5033/index.html"
-target="_blank">
+<a href="https://journals.iucr.org/d/issues/2019/10/00/di5033/index.html" target="_blank">
 Macromolecular structure determination using X-rays, neutrons and electrons: 
 recent developments in Phenix.</a>
 Liebschner D, Afonine PV, Baker ML, Bunk&oacute;czi G, Chen VB, Croll TI, Hintze B, Hung LW, Jain S, McCoy AJ, Moriarty NW, Oeffner RD, Poon BK, Prisant MG, Read RJ, Richardson JS, Richardson DC, Sammito MD, Sobolev OV, Stockwell DH, Terwilliger TC, Urzhumtsev AG, Videau LL, Williams CJ, Adams PD. 
@@ -78,8 +70,7 @@ See also:
 <a href="fitloops.html"><b>Fit Loops</b></a>,
 <a href="../commands/view.html"><b>view</b></a>,
 <a href="../commands/clip.html"><b>clip</b></a>,
-video: <a href="https://www.youtube.com/watch?v=DlVgrQTZ5t8" 
-target="_blank">Phenix/ChimeraX setup</a>
+video: <a href="https://www.youtube.com/watch?v=DlVgrQTZ5t8" target="_blank">Phenix/ChimeraX setup</a>
 </p>
 <a name="initial"></a>
 <p>
@@ -93,24 +84,24 @@ menus of the available models, as well as other settings:
 <li><b>Keep waters from input structure</b> 
 (initial default <b>on</b>) 
 &ndash; whether to keep pre-existing waters instead of deleting them
-<li><b>First shell only</b> (initial default <b>on</b>) 
+</li><li><b>First shell only</b> (initial default <b>on</b>) 
 &ndash; if keeping waters from the input structure, whether <i>douse</i>
 should ignore them; since <i>douse</i> only places waters near existing atoms, 
 ignoring pre-existing waters means that only waters that interact directly 
 with the rest of the structure (&ldquo;first shell&rdquo;) will be added.
 If this option is <b>off</b>, <i>douse</i> may place waters that interact 
 directly with pre-existing waters but not the rest of the structure.
-<li><b>Map resolution</b> (initial default <b>3.0</b> &Aring;)
+</li><li><b>Map resolution</b> (initial default <b>3.0</b> &Aring;)
 (this option may not appear, depending on what version of Phenix is installed)
-<li><b>Hide map far from waters</b> (initial default <b>on</b>) 
-<li><b>Map-hiding distance</b> (initial default <b>8.0</b> &Aring;)
+</li><li><b>Hide map far from waters</b> (initial default <b>on</b>) 
+</li><li><b>Map-hiding distance</b> (initial default <b>8.0</b> &Aring;)
 &ndash; what distance is considered far for map-hiding purposes
-<li><b>Show residues with atoms within this distance of waters</b> 
+</li><li><b>Show residues with atoms within this distance of waters</b> 
 (initial default <b>5.0</b> &Aring;)
-<li><b>Show full douse output in log</b> (initial default <b>off</b>)
+</li><li><b>Show full douse output in log</b> (initial default <b>off</b>)
 &ndash; whether to echo all <i>douse</i> messages to the 
 <a href="log.html"><b>Log</b></a>
-</ul>
+</li></ul>
 <p>
 Clicking <b>OK</b> initiates the <i>douse</i> calculation.
 After the calculation completes, another panel will appear with a 
@@ -123,20 +114,19 @@ After the calculation completes, another panel will appear with a
 </p>
 <h3>List of Waters</h3>
 <table class="clRight">
-<tr><td>
-<img class="outline" src="waterplacement.png"
-alt="Water Placement dialog" width="340px">
+<tbody><tr><td>
+<img class="outline" src="waterplacement.png" alt="Water Placement dialog" width="340px">
 </td></tr>
-</table>
+</tbody></table>
 <p>
 There are three options for which set of waters to list,
 with their respective numbers of waters in parentheses:
 </p>
 <ul>
 <li><b>Douse only</b> (initial default)
-<li><b>In common</b>
-<li><b>Input only</b>
-</ul>
+</li><li><b>In common</b>
+</li><li><b>Input only</b>
+</li></ul>
 <p>
 For each water, the list gives the number of <b>H-bonds</b>,
 and if a corresponding density map was open before <b>Check Waters</b>
@@ -169,16 +159,17 @@ clicking <b>Apply</b> recalculates the H-bonds accordingly.
 <ul>
 <li>Clicking <b>Delete</b> deletes the chosen waters.
 Caution: deletion cannot be undone except by reopening the original structure.
-<li><b>Go to next water in list after Delete</b>
+</li><li><b>Go to next water in list after Delete</b>
 &ndash; whether deleting a single water should automatically choose 
 the next one in the list; either way, deleting multiple waters 
 at the same time will not choose anything automatically.
-<li>Clicking <b>Unclip</b> turns off 
+</li><li>Clicking <b>Unclip</b> turns off 
 <a href="../commands/clip.html">clipping</a>
 to allow viewing the entire depth of the structure.
-</ul>
+</li></ul>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
 November 2025</address>
+
 </body></html>

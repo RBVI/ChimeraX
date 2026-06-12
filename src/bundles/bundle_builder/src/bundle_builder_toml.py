@@ -61,7 +61,6 @@ if sys.version_info < (3, 11, 0):
     import tomli as tomllib
 else:
     import tomllib
-import traceback
 import unicodedata
 import warnings
 
@@ -86,9 +85,22 @@ from setuptools.build_meta import (
 
 # TODO: Verify
 # Always import this because it changes the behavior of setuptools
-from numpy import get_include as get_numpy_include_dirs
+from numpy import get_include as get_numpy_include_dirs  # noqa
 
 cpu_count = os.cpu_count()
+
+
+def _find_openmp_mac():
+    """Return (include_dir, lib_dir) for libomp on macOS, or (None, None) if not found."""
+    candidates = [
+        '/opt/homebrew/opt/libomp',  # Apple Silicon
+        '/usr/local/opt/libomp',      # Intel
+    ]
+    for path in candidates:
+        if os.path.exists(os.path.join(path, 'lib', 'libomp.dylib')):
+            return (os.path.join(path, 'include'), os.path.join(path, 'lib'))
+    return (None, None)
+
 
 try:
     from pybind11.setup_helpers import Pybind11Extension
@@ -119,7 +131,7 @@ except:
 # default STARTUPINFO class is replaced before calling
 # setuptools.setup() and reset after it returns.
 
-import subprocess
+import subprocess  # noqa
 
 try:
     from subprocess import STARTUPINFO
@@ -136,8 +148,8 @@ else:
             self.dwFlags |= _winapi.STARTF_USESHOWWINDOW
 
 
-from .metadata_templates import metadata_preamble, pure_wheel_platforms
-from .classifiers import (
+from .metadata_templates import metadata_preamble, pure_wheel_platforms  # noqa
+from .classifiers import (  # noqa
     Tool,
     Command,
     Selector,
@@ -152,6 +164,8 @@ from .classifiers import (
     ToolbarButton,
     Preset,
     Initialization,
+    IncludeDirectory,
+    LibraryDirectory,
 )
 
 # Python version was 3.7 in ChimeraX 1.0
@@ -175,9 +189,10 @@ def read_toml(file):
 
 
 class Bundle:
-    def __init__(self, logger, bundle_info):
+    def __init__(self, logger, bundle_info, bundle_path=None):
         self.logger = logger
         self.bundle_info = bundle_info
+        self._bundle_path = bundle_path
         project_data = bundle_info["project"]
         # If you use something with an automated TOML linter it's never going to shut up
         # about how additional properties are illegal, so accept 'tool.chimerax' as well
@@ -261,7 +276,7 @@ class Bundle:
             # Check that the version is valid and let the error propagate up if one is thrown
             self.version = str(Version(project_data["version"]))
 
-        self.path = os.getcwd()
+        self.path = self._bundle_path if self._bundle_path else os.getcwd()
         build_dir = os.path.join(self.path, "build")
         # Ensure a clean environment between builds, even when not using build isolation
         shutil.rmtree(build_dir, ignore_errors=True)
@@ -551,14 +566,48 @@ class Bundle:
         dist_info_name = name.replace("-", "_")
         return bundle_base_name, module_name, dist_info_name
 
+    @staticmethod
+    def _clear_distutils_cache():
+        """Clear distutils/setuptools directory creation cache.
+
+        Modern setuptools vendors its own distutils at setuptools._distutils,
+        which uses a SkipRepeatAbsolutePaths class to cache created directories.
+        Older versions used a _path_created dict. We try to clear both.
+        """
+        # Clear modern setuptools cache (SkipRepeatAbsolutePaths)
+        # The cache is a set instance stored as a class attribute
+        try:
+            from setuptools._distutils import dir_util as st_dir_util
+
+            cache_class = getattr(st_dir_util, "SkipRepeatAbsolutePaths", None)
+            if cache_class is not None:
+                instance = getattr(cache_class, "instance", None)
+                if instance is not None:
+                    # Directly clear the set (SkipRepeatAbsolutePaths extends set)
+                    set.clear(instance)
+        except Exception:
+            pass
+        # Clear legacy distutils cache (_path_created dict)
+        try:
+            import distutils.dir_util
+
+            cache = getattr(distutils.dir_util, "_path_created", None)
+            if cache is not None:
+                cache.clear()
+        except Exception:
+            pass
+
     @classmethod
     def from_toml_file(cls, logger, toml_file):
-        return cls(logger, read_toml(toml_file))
+        abs_toml_file = os.path.abspath(toml_file)
+        bundle_path = os.path.dirname(abs_toml_file)
+        return cls(logger, read_toml(abs_toml_file), bundle_path=bundle_path)
 
     @classmethod
     def from_path(cls, logger, bundle_path):
-        toml_file = os.path.join(os.path.abspath(bundle_path), "pyproject.toml")
-        return cls(logger, read_toml(toml_file))
+        abs_bundle_path = os.path.abspath(bundle_path)
+        toml_file = os.path.join(abs_bundle_path, "pyproject.toml")
+        return cls(logger, read_toml(toml_file), bundle_path=abs_bundle_path)
 
     def make_wheel(self, debug=False, release=False):
         self.build_wheel(debug=debug, release=release)
@@ -687,6 +736,8 @@ class Bundle:
         )
         for entry in all_metadata:
             self.classifiers.extend([str(entry)])
+        if self.c_libraries:
+            self.classifiers.append(str(LibraryDirectory("lib")))
         self.setup_arguments["classifiers"] = self.classifiers
         self.setup_arguments["package_dir"], self.setup_arguments["packages"] = (
             self._make_package_arguments()
@@ -705,6 +756,24 @@ class Bundle:
                         shutil.copytree(entry, destination, dirs_exist_ok=True)
                     else:
                         shutil.copy2(entry, destination)
+
+    def _copy_openmp_lib(self):
+        omp_inc, omp_lib = _find_openmp_mac()
+        if not omp_lib:
+            return
+        src = os.path.join(omp_lib, 'libomp.dylib')
+        dst = os.path.join("src", "lib", "libomp.dylib")
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copy2(src, dst)
+        # Change the library's install_name so binaries linking against it
+        # record @rpath/libomp.dylib instead of the absolute Homebrew path
+        subprocess.run(
+            ["install_name_tool", "-id", "@rpath/libomp.dylib", dst],
+            check=True
+        )
+        if self.package not in self.setup_arguments["package_data"]:
+            self.setup_arguments["package_data"][self.package] = []
+        self.setup_arguments["package_data"][self.package].append("lib/libomp.dylib")
 
     # Since we aren't trusting setuptools to compile libraries properly we have
     # to remove them ourselves. Work around the prepare_metadata_for_build_editable
@@ -786,9 +855,6 @@ class Bundle:
             with suppress_known_deprecation():
                 dist = setuptools.setup(**kw)
             return dist, True
-        except Exception:
-            traceback.print_exc()
-            return None, False
         except SystemExit:
             return None, False
         finally:
@@ -802,12 +868,17 @@ class Bundle:
         # for a single setup() run.  We want to run setup() multiple
         # times which can remove/create the same directories.
         # So we need to flush the cache before each run.
-        try:
-            distutils.dir_util._path_created.clear()
-        except AttributeError:
-            pass
+        self._clear_distutils_cache()
         # Copy additional files into package source tree
         self._copy_extrafiles()
+        # Copy libomp.dylib on macOS if any module uses OpenMP
+        uses_openmp = any(
+            getattr(cm, 'uses_openmp', False) for cm in self.c_modules
+        ) or any(
+            getattr(cl, 'uses_openmp', False) for cl in self.c_libraries
+        )
+        if sys.platform == "darwin" and uses_openmp:
+            self._copy_openmp_lib()
         if build_exts:
             # Build C libraries and executables
             for lib in self.c_libraries:
@@ -874,6 +945,8 @@ class Bundle:
         setup_args = ["--no-user-cfg", "build", f"-j{cpu_count}"]
         setup_args.extend(["bdist_wheel"])
         dist, built = self._run_setup(setup_args)
+        if not built:
+            raise RuntimeError(f"Failed to build wheel for {self.module_name}; see errors above")
         if not self.version:
             self.version = dist.get_version()
 
@@ -900,6 +973,8 @@ class Bundle:
         self._clear_distutils_dir_and_prep_srcdir()
         setup_args = ["sdist"]
         dist, built = self._run_setup(setup_args)
+        if not built:
+            raise RuntimeError(f"Failed to build sdist for {self.module_name}; see errors above")
         if not self.version:
             self.version = dist.get_version()
         sdist = self._check_output(type_="sdist")
@@ -914,6 +989,8 @@ class Bundle:
             if "editable_mode" in config_settings:
                 setup_args.extend(["--mode", config_settings["editable_mode"]])
         dist, built = self._run_setup(setup_args)
+        if not built:
+            raise RuntimeError(f"Failed to build editable wheel for {self.module_name}; see errors above")
         if not self.version:
             self.version = dist.get_version()
         wheel = self._check_output(type_="wheel")
@@ -973,6 +1050,7 @@ class _CompiledCode:
         self.macros = []
         self.target_lang = attrs.get("target-lang", None)
         self.limited_api = attrs.get("limited-api", None)
+        self.uses_openmp = attrs.get("uses-openmp", False)
         defines = attrs.get("define-macros", [])
         self.source_files = []
         for entry in source_files:
@@ -1099,6 +1177,21 @@ class _CompiledCode:
             if not any([flag.startswith("-std=") for flag in self.compile_arguments]):
                 cpp_flags.append("-std=c++11")
             extra_link_args = []
+        if self.uses_openmp:
+            if sys.platform == "darwin":
+                omp_inc, omp_lib = _find_openmp_mac()
+                if omp_inc:
+                    inc_dirs.append(omp_inc)
+                    lib_dirs.append(omp_lib)
+                    cpp_flags.extend(['-Xpreprocessor', '-fopenmp'])
+                    libraries.append('omp')
+                    extra_link_args.append('-Wl,-rpath,@loader_path')
+                # else: silently skip, pragmas become no-ops
+            elif sys.platform == "win32":
+                cpp_flags.append('/openmp')
+            else:
+                cpp_flags.append('-fopenmp')
+                extra_link_args.append('-fopenmp')
         for req in self.requires:
             if not os.path.exists(req):
                 return None

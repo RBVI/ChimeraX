@@ -1,13 +1,33 @@
-Common subdirectories: tcia_utils.orig/__pycache__ and tcia_utils/__pycache__
-diff --color -u tcia_utils.orig/datacite.py tcia_utils/datacite.py
---- tcia_utils.orig/datacite.py	2023-07-10 14:54:52
-+++ tcia_utils/datacite.py	2023-07-10 14:55:39
-@@ -1,13 +1,12 @@
--import pandas as pd
- import requests
- from datetime import datetime
+--- tcia_utils.orig/nbia.py	2026-04-06 11:51:39
++++ tcia_utils/nbia.py	2026-04-06 12:43:07
+@@ -1,9 +1,9 @@
+ ####### setup
++from __future__ import annotations
+ from typing import Union, List, Optional
  import logging
-
+ import warnings
+ import requests
+-import pandas as pd
+ import getpass
+ import zipfile
+ import io
+@@ -13,13 +13,6 @@
+ from datetime import datetime
+ from datetime import timedelta
+ from enum import Enum
+-import plotly.express as px
+-from tcia_utils.utils import searchDf
+-from tcia_utils.utils import copy_df_cols
+-from tcia_utils.utils import format_disk_space
+-from tcia_utils.utils import remove_html_tags
+-from tcia_utils.datacite import getDoi
+-from IPython.display import HTML
+ 
+ class StopExecution(Exception):
+     def _render_traceback_(self):
+@@ -27,10 +20,10 @@
+ 
+ 
  _log = logging.getLogger(__name__)
 -logging.basicConfig(
 -    format='%(asctime)s:%(levelname)s:%(message)s'
@@ -17,320 +37,234 @@ diff --color -u tcia_utils.orig/datacite.py tcia_utils/datacite.py
 +#    format='%(asctime)s:%(levelname)s:%(message)s'
 +#    , level=logging.INFO
 +#)
-
- ####### getDoi function
- # Gets metadata for one or more DOIs
-@@ -24,6 +23,7 @@
-            license = "",
-            format = ""):
-
+ 
+ 
+ def log_request_exception(err: requests.exceptions.RequestException) -> None:
+@@ -172,6 +165,8 @@
+ 
+         # --- Formatting Logic ---
+         if format.lower() in ["df", "csv", "html"]:
++            import pandas as pd
++            from IPython.display import HTML
+             df = pd.DataFrame(data)
+             if 'Series UID' in df.columns:
+                 df.rename(columns={'Series UID': 'SeriesInstanceUID'}, inplace=True)
+@@ -465,6 +460,7 @@
+     Returns:
+         Optional[pd.DataFrame]: A DataFrame containing the series metadata.
+     """
++    import pandas as pd
+     chunk_size = 10000
+     chunked_uids = [uids[i:i + chunk_size] for i in range(0, len(uids), chunk_size)]
+ 
+@@ -672,6 +668,10 @@
+     Setting a csv_filename will create the csv even if format isn't specified.
+     If `as_zip` is set to True, it skips the unzipping steps.
+     """
+-    # Prep a dataframe for later
+-    manifestDF = pd.DataFrame() if format in ["df", "csv"] or csv_filename else None
++    # Prep a dataframe for later if needed
++    if format in ["df", "csv"] or csv_filename:
++        import pandas as pd
++        manifestDF = pd.DataFrame()
++    else:
++        manifestDF = None
+ 
+@@ -834,6 +831,7 @@
+ 
+     data = queryData(endpoint, options, api_url, format)
+     if format == "df" and removeHtml == "yes":
++        from tcia_utils.utils import remove_html_tags
+         data['description'] = data['description'].apply(remove_html_tags)
+         return data
+     else:
+@@ -932,6 +930,7 @@
+     Returns:
+         Optional[pd.DataFrame]: A DataFrame containing DICOM tag metadata, or None if the query fails.
+     """
++    import pandas as pd
+     endpoint = "getDicomTags"
+     options = {'SeriesUID': seriesUid}
+ 
+@@ -1208,6 +1207,7 @@
+     input_type informs the function which of those types are being used.
+     If input_type = "manifest" the series_data should be the path to the manifest file.
+     """
++    import pandas as pd
+     # if input_type is manifest convert it to a list
+     if input_type == "manifest":
+         series_data = manifestToList(series_data)
+@@ -1444,6 +1444,9 @@
+             Set to 'restricted' for limited-access collections or
+             'nlst' for National Lung Screening trial.
+     """
++    import pandas as pd
++    from tcia_utils.utils import format_disk_space
++    from tcia_utils.datacite import getDoi
+     # format series_data into df depending on input_type
+     df = formatSeriesInput(series_data, input_type, api_url)
+ 
+@@ -1591,6 +1594,8 @@
+     """
+     Helper function for reportCollections() to create pie charts with plotly.
+     """
++    import pandas as pd
++    import plotly.express as px
+ 
+     # Calculate the total sum of data points
+     total = sum(data)
+@@ -1617,6 +1622,8 @@
+ 
+     Chart width and height can be customized.
+     """
++    import pandas as pd
++    import plotly.express as px
+ 
+     # format series_data into df depending on input_type
+     df = formatSeriesInput(series_data, input_type = "", api_url = "")
+@@ -1664,6 +1671,8 @@
+ 
+     Chart width and height can be customized.
+     """
++    import pandas as pd
++    import plotly.express as px
+ 
+     # format series_data into df depending on input_type
+     df = formatSeriesInput(series_data, input_type = "", api_url = "")
+@@ -1807,6 +1816,7 @@
+         Optional[pd.DataFrame]: A DataFrame containing the extracted DICOM tags with concatenated
+         column headers, or None if no tags were found.
+     """
++    import pandas as pd
+     tag_summary_list = []
+ 
+     for uid in series_uids:
+@@ -1932,6 +1942,8 @@
+         # Display the filtered results with IDC links
+         idcOhifViewer(patient_df)
+     """
++    import pandas as pd
++    from IPython.display import HTML
+     # --- 1. Handle different input types ---
+     if isinstance(data, list):
+         # Convert JSON/list output to a DataFrame
+--- tcia_utils.orig/utils.py	2026-04-06 11:51:39
++++ tcia_utils/utils.py	2026-04-06 11:56:23
+@@ -1,13 +1,10 @@
+-import pandas as pd
+ import logging
+-from bs4 import BeautifulSoup
+-from unidecode import unidecode
+ 
+ _log = logging.getLogger(__name__)
+-logging.basicConfig(
+-    format='%(asctime)s:%(levelname)s:%(message)s',
+-    level=logging.INFO
+-)
++#logging.basicConfig(
++#    format='%(asctime)s:%(levelname)s:%(message)s',
++#    level=logging.INFO
++#)
+ 
+ def searchDf(search_term, dataframe=None, column_name=None):
+     """
+@@ -21,6 +18,7 @@
+     Returns:
+     pd.DataFrame: A dataframe containing the rows where the search term was found. Returns None if an error occurs.
+     """
++    import pandas as pd
+ 
+     # If search_term is a string, convert it to a list
+     if isinstance(search_term, str):
+@@ -64,6 +62,7 @@
+     Returns:
+     pd.DataFrame: The updated dataframe.
+     """
++    import pandas as pd
+     # Create a copy of df_to_update to avoid modifying the original DataFrame
+     df_to_update_copy = df_to_update.copy()
+     
+@@ -135,6 +134,8 @@
+     """
+     Helper function to convert HTML to plain text.
+     """
++    from bs4 import BeautifulSoup
++    from unidecode import unidecode
+     soup = BeautifulSoup(text, 'html.parser')
+     plain_text = soup.get_text().strip()
+     clean_text = unidecode(plain_text)  # Apply unidecode to remove or replace non-ASCII characters
+--- tcia_utils.orig/datacite.py	2026-04-06 11:51:39
++++ tcia_utils/datacite.py	2026-04-06 11:57:31
+@@ -1,17 +1,14 @@
+-import pandas as pd
+ import requests
+ from datetime import datetime
+ import time
+ import logging
+-from tcia_utils.utils import searchDf
+-from tcia_utils.utils import copy_df_cols
+ 
+ 
+ _log = logging.getLogger(__name__)
+-logging.basicConfig(
+-    format='%(asctime)s:%(levelname)s:%(message)s'
+-    , level=logging.INFO
+-)
++#logging.basicConfig(
++#    format='%(asctime)s:%(levelname)s:%(message)s'
++#    , level=logging.INFO
++#)
+ 
+ def getDoi(format = ""):
+     """
+@@ -19,6 +16,7 @@
+         Returns a dataframe by default, but format can be set to CSV or JSON.
+         See https://support.datacite.org/docs/api-get-doi for more details.
+     """
 +    import pandas as pd
      datacite_url = "https://api.datacite.org/dois/"
      datacite_headers = {"accept": "application/vnd.api+json"}
      df = pd.DataFrame()
-@@ -106,25 +106,25 @@
-                     citation_count = item["attributes"]["citationCount"]
-                     reference_count = item["attributes"]["referenceCount"]
-                     related = f"{relation_type}: {related_identifier}" if relation_type and related_identifier else None
--                    dois.append({"DOI": doi,
--                                "Identifier": identifier,
-+                    dois.append({"DOI": doi,
-+                                "Identifier": identifier,
-                                 "CreatorNames": ", ".join(creator_names),
--                                "Title": title,
--                                "Created": created,
--                                "Updated": updated,
--                                "Related": related,
--                                "Version": version,
--                                "Rights": rights,
--                                "RightsURI": rights_uri,
--                                "Description": description,
--                                "FundingReferences": funding_references,
--                                "URL": url,
--                                "CitationCount": citation_count,
-+                                "Title": title,
-+                                "Created": created,
-+                                "Updated": updated,
-+                                "Related": related,
-+                                "Version": version,
-+                                "Rights": rights,
-+                                "RightsURI": rights_uri,
-+                                "Description": description,
-+                                "FundingReferences": funding_references,
-+                                "URL": url,
-+                                "CitationCount": citation_count,
-                                 "ReferenceCount": reference_count})
-
--                df = pd.DataFrame(dois, columns=["DOI", "Identifier", "CreatorNames", "Title", "Created", "Updated", "Related",
--                                                  "Version", "Rights", "RightsURI", "Description", "FundingReferences", "URL",
--                                                  "CitationCount", "ReferenceCount"])
-+                df = pd.DataFrame(dois, columns=["DOI", "Identifier", "CreatorNames", "Title", "Created", "Updated", "Related",
-+                                                  "Version", "Rights", "RightsURI", "Description", "FundingReferences", "URL",
-+                                                  "CitationCount", "ReferenceCount"])
-                 if format == "csv":
-                     now = datetime.now()
-                     dt_string = now.strftime("%Y-%m-%d_%H%M")
-@@ -135,7 +135,7 @@
-                 return data
-         else:
-             _log.info(f'No results found.')
--
-+
-     # handle errors
-     except requests.exceptions.HTTPError as errh:
-         _log.error(f'Error: {errh}')
-@@ -144,4 +144,4 @@
-     except requests.exceptions.Timeout as errt:
-         _log.error(f'Error: {errt}')
-     except requests.exceptions.RequestException as err:
--        _log.error(f'Error: {err}')
-\ No newline at end of file
-+        _log.error(f'Error: {err}')
-diff --color -u tcia_utils.orig/nbia.py tcia_utils/nbia.py
---- tcia_utils.orig/nbia.py	2023-07-10 14:54:52
-+++ tcia_utils/nbia.py	2023-07-10 14:55:34
-@@ -1,7 +1,6 @@
- ####### setup
- import logging
- import requests
--import pandas as pd
- import getpass
- import json
- import zipfile
-@@ -13,17 +12,15 @@
--import matplotlib.pyplot as plt
- import pydicom
- import numpy as np
--from ipywidgets import interact
-
- class StopExecution(Exception):
-     def _render_traceback_(self):
-         pass
-
- _log = logging.getLogger(__name__)
--logging.basicConfig(
--    format='%(asctime)s:%(levelname)s:%(message)s'
--    , level=logging.INFO
--)
-+#logging.basicConfig(
-+#    format='%(asctime)s:%(levelname)s:%(message)s'
-+#    , level=logging.INFO
-+#)
-
- # Used by functions that accept parameters used in GUI Simple Search
- # e.g. getSimpleSearchWithModalityAndBodyPartPaged()
-@@ -50,14 +48,14 @@
- def setApiUrl(endpoint, api_url):
+@@ -180,6 +178,7 @@
+         print("\nFound the following duplicate DOIs within records:")
+         print(duplicates_df)
      """
-     setApiUrl() is used by most other functions to select the correct base URL
--    and is generally not something that needs to be called directly in your code.
--
-+    and is generally not something that needs to be called directly in your code.
-+
-     It assists with:
-         1. verifying you are calling a supported endpoint
-         2. selecting the correct base URL for Search vs Advanced APIs
-         3. selecting the correct base URL for regular collections vs NLST
-         4. ensuring you have a valid security token where necessary
--
-+
-     Learn more about the NBIA APIs at https://wiki.cancerimagingarchive.net/x/ZoATBg
++    import pandas as pd
+     # Initialize empty lists to store relationship data and duplicates
+     relation_data = []
+     duplicate_data = []
+@@ -300,6 +299,7 @@
+     >>> df = getDerivedDois(single_doi, format='df')
+     >>> print(df)
      """
-     global searchEndpoints, advancedEndpoints
-@@ -108,7 +106,7 @@
-                     getToken(user = "nbia_guest", api_url = "nlst")
-                 if 'nlst_token_exp_time' in globals() and datetime.now() > nlst_token_exp_time:
-                     refreshToken(api_url = "nlst")
--                base_url = "https://nlst.cancerimagingarchive.net/nbia-api/services/"
-+                base_url = "https://nlst.cancerimagingarchive.net/nbia-api/services/"
-         elif api_url == "restricted":
-             if endpoint in searchEndpoints:
-                 # Using "Search with Authentication" API (login required): https://wiki.cancerimagingarchive.net/x/X4ATBg
-@@ -146,7 +144,7 @@
-
-         return base_url
-
--def getToken(user = "", pw = "", api_url = ""):
-+def getToken(user = "", pw = "", api_url = ""):
++    import pandas as pd
+     if isinstance(dois, str):
+         dois = [dois]
+ 
+@@ -356,6 +356,7 @@
+     Returns:
+     pd.DataFrame: DataFrame containing the search results with an additional 'DOI' column.
      """
-     getToken() accepts user and pw parameters to create a token to access APIs that require authorization.
-     Access tokens expire 2 hours after creation, and can be refreshed with refreshToken().
-@@ -160,7 +158,7 @@
-     if api_url == "nlst":
-         token_url = "https://nlst.cancerimagingarchive.net/nbia-api/oauth/token"
-         userName = "nbia_guest"
--        passWord = ""
-+        passWord = ""
-     # specify user/pw unless nbia_guest is being used for accessing Advanced API anonymously
-     else:
-         token_url = "https://nbia.cancerimagingarchive.net/nbia-api/oauth/token"
-@@ -185,7 +183,7 @@
-         'username' : userName,
-         'password': passWord
-         }
--
-+
-         data = requests.post(token_url, data = params)
-         data.raise_for_status()
-         access_token = data.json()["access_token"]
-@@ -198,7 +196,7 @@
-             nlst_refresh_token = data.json()["refresh_token"]
-             _log.info(f'Success - Token saved to nlst_api_call_headers variable and expires at {nlst_token_exp_time}')
-         else:
--            token_exp_time = current_time + timedelta(seconds=expires_in)
-+            token_exp_time = current_time + timedelta(seconds=expires_in)
-             api_call_headers = {'Authorization': 'Bearer ' + access_token}
-             refresh_token = data.json()["refresh_token"]
-             _log.info(f'Success - Token saved to api_call_headers variable and expires at {token_exp_time}')
-@@ -216,10 +214,10 @@
-     """
-     refreshToken() refreshes security tokens to extend access time for APIs that require authorization.
-     It attempts to verify that a refresh token exists and recommends using getToken() to create a new token if needed.
--    This function is called as needed by setApiUrl() and is generally not something that needs to be called directly in your code.
-+    This function is called as needed by setApiUrl() and is generally not something that needs to be called directly in your code.
-     """
-     global token_exp_time, nlst_token_exp_time, api_call_headers, nlst_api_call_headers
--
-+
-     # token URLs
-     if api_url == "nlst":
-         try:
-@@ -230,7 +228,7 @@
-             raise StopExecution
-         else:
-             token_url = "https://nlst.cancerimagingarchive.net/nbia-api/oauth/token"
--
-+
-     else:
-         try:
-             token = refresh_token
-@@ -248,7 +246,7 @@
-         'grant_type': 'refresh_token',
-         'refresh_token' : token,
-         }
--
-+
-         # obtain new access token
-         data = requests.post(token_url, data = params)
-         data.raise_for_status()
-@@ -273,8 +271,8 @@
-         _log.error(f"Timeout Error: {data.status_code}")
-     except requests.exceptions.RequestException as err:
-         _log.error(f"Request Error: {data.status_code}")
--
--def logoutToken(api_url = ""):
-+
-+def logoutToken(api_url = ""):
-     """
-     logoutToken() logs out security tokens used for APIs that require authorization.
-     Variables holding access token information are also deleted by this operation.
-@@ -289,7 +287,7 @@
-         api_call_headers = nlst_api_call_headers
-     elif api_url != "nlst" and 'api_call_headers' in globals():
-         url = "https://services.cancerimagingarchive.net/nbia-api/logout"
--    else:
-+    else:
-         _log.error("Error: You haven't created a token yet, or have already logged out.")
-         raise StopExecution
-
-@@ -315,14 +313,14 @@
-
- def makeCredentialFile(user = "", pw = ""):
-     """
--    Creates a credential file to use with NBIA Data Retriever.
-+    Creates a credential file to use with NBIA Data Retriever.
-     Interactive prompts are provided for user/pw if they're not specified as parameters.
-     The credential file is a text file that passes the user's credentials in the following format:
-         userName = YourUserName
-         passWord = YourPassword
-         Both parameters are case-sensitive.
-     Additional documentation:
--        https://wiki.cancerimagingarchive.net/x/2QKPBQ
-+        https://wiki.cancerimagingarchive.net/x/2QKPBQ
-         https://github.com/kirbyju/TCIA_Notebooks/blob/main/TCIA_Linux_Data_Retriever_App.ipynb
-     """
-     # set user name and password
-@@ -396,8 +394,8 @@
-         _log.error(errt)
-     except requests.exceptions.RequestException as err:
-         _log.error(err)
--
-
-+
- def getCollections(api_url = "",
-                    format = ""):
-     """
-@@ -822,7 +820,7 @@
-
-     # get base URL
-     base_url = setApiUrl(endpoint, api_url)
--
-+
-     # if input = manifest convert manifest to python list of uids
-     if input_type == "manifest":
-         series_data = manifestToList(series_data)
-@@ -1182,7 +1180,7 @@
-
-     data = queryData(endpoint, options, api_url, format)
-     return data
--
-+
- ####### getSegRefSeries function (Advanced)
- # Gets DICOM tag metadata for a given SEG/RTSTRUCT series UID (scan)
- # and then look up the series UID they were derived from
-@@ -1208,7 +1206,7 @@
-                 # Retrieve the value of "Series Instance UID" from the next row
-                 refSeriesUid = df.loc[index + 1, 'data']
-                 return refSeriesUid
--
-+
-             else:
-                 print("Segmentation doesn't contain a reference series UID.")
-                 refSeriesUid = "N/A"
-@@ -1226,7 +1224,7 @@
-                 # Retrieve the value of "Series Instance UID" from the next row
-                 refSeriesUid = df.loc[index + 1, 'data']
-                 return refSeriesUid
--
-+
-             else:
-                 print("Segmentation doesn't contain a reference series UID.")
-                 refSeriesUid = "N/A"
-@@ -1471,7 +1469,7 @@
- # Specify input_type = "manifest" to ingest a *.TCIA manifest file or "list" for a python list of UIDs
- # If input_type = "manifest" or "list" and there are series UIDs that are restricted
- #    you must call getToken() with a user ID that has access to all UIDs before calling this function.
--# Specifying api_url is only necessary if you are using input_type = "manifest" or "list" with NLST data (e.g. api_url = "nlst")
-+# Specifying api_url is only necessary if you are using input_type = "manifest" or "list" with NLST data (e.g. api_url = "nlst")
- # Specify format = "var" to return the report values as a dictionary
- # Access variables example after saving function output to report_data: subjects = report_data["subjects"]
- # Specify format = "file" to save the report to a file
-@@ -1490,7 +1488,7 @@
-     # if input_type is manifest convert it to a list
-     if input_type == "manifest":
-         series_data = manifestToList(series_data)
--
-+
-     # if input_type is a list or manifest download relevant metadata
-     if input_type == "list" or input_type == "manifest":
-         df = getSeriesList(series_data, api_url = "", csv_filename = "")
-@@ -1663,6 +1661,7 @@
-     Leave seriesUid empty if you want to provide a custom path.
-     The function assumes "tciaDownload/<seriesUid>/" as path if seriesUid is provided since this is where downloadSeries() saves data.
-     """
-+    from ipywidgets import interact
-     # set path where downloadSeries() saves the data if seriesUid is provided
-     if seriesUid != "":
-         path = "tciaDownload/" + seriesUid
-diff --color -u tcia_utils.orig/pathdb.py tcia_utils/pathdb.py
---- tcia_utils.orig/pathdb.py	2023-07-10 14:54:52
-+++ tcia_utils/pathdb.py	2023-07-10 14:55:45
-@@ -1,13 +1,12 @@
++    import pandas as pd
+     # get current TCIA DOIs
+     datacite_df = getDoi()
+ 
+--- tcia_utils.orig/pathdb.py	2026-04-06 11:51:39
++++ tcia_utils/pathdb.py	2026-04-06 11:58:38
+@@ -1,21 +1,15 @@
 -import pandas as pd
  import requests
  from datetime import datetime
+-import plotly.graph_objects as go
+-import numpy as np
  import logging
-
+-from tcia_utils.utils import searchDf
+-from tcia_utils.utils import copy_df_cols
+ import os
+ from urllib.parse import urlparse
+ import concurrent.futures
+-from tqdm import tqdm
+ 
  _log = logging.getLogger(__name__)
 -logging.basicConfig(
 -    format='%(asctime)s:%(levelname)s:%(message)s'
@@ -340,70 +274,83 @@ diff --color -u tcia_utils.orig/pathdb.py tcia_utils/pathdb.py
 +#    format='%(asctime)s:%(levelname)s:%(message)s'
 +#    , level=logging.INFO
 +#)
-
+ 
  base_url = 'https://pathdb.cancerimagingarchive.net/'
-
-@@ -19,6 +18,7 @@
-
- def getCollections(query = "", format = ""):
-
+ 
+@@ -26,6 +20,7 @@
+     Format parameter can be set to "df" for dataframe
+     or "csv" to save it to a file.
+     """
 +    import pandas as pd
+ 
      extracted_data = []
      url = base_url + 'collections?_format=json'
-     _log.info(f'Calling... {url}')
-@@ -57,7 +57,7 @@
-         _log.info(f"File saved to {filename}.")
-     else:
-         return extracted_data
--
-+
- ###################
- # getImages()
- # use "query" parameter to search collection names or enter a specific collection ID
-@@ -65,12 +65,13 @@
- #    or "csv" to save it to a file
-
- def getImages(query, format=""):
--
-+
-     collectionList = []  # for queries that match multiple collection names
+@@ -73,6 +68,7 @@
+     Function returns JSON, but format parameter can be set
+     to "df" for dataframe or "csv" to save it to a file.
+     """
 +    import pandas as pd
+     base_url = 'https://pathdb.cancerimagingarchive.net/'
      extracted_data = []
-
-     def getPaginatedResults(id):
--        page = 0
-+        page = 0
-
-         while True:
-             url = base_url + 'listofimages/' + str(id) + '?page=' + str(page) + '&_format=json'
-@@ -80,7 +81,7 @@
-                 data = response.json()
-                 if len(data) == 0:
-                     break  # No more pages, exit the loop
--
-+
-                 # Extract desired fields from the JSON data
-                 for item in data:
-                     extracted_item = {}
-@@ -99,12 +100,12 @@
-                 return None
-             page += 1
-         return extracted_data
--
-+
-     # if query was a collection ID (integer)
-     if isinstance(query,int):
-         extracted_data = getPaginatedResults(query)
-     # if query is a string, look for matching collection names
--    else:
-+    else:
-         collections = getCollections(query=query)
-         # iterate through all collections that matched query
-         for x in collections:
-@@ -121,4 +122,4 @@
-         filename = f"pathologyImages-{today}.csv"
-         df.to_csv(filename, index=False)
+ 
+@@ -165,6 +161,8 @@
+ 
+ 
+ def reportCollections(df, yearCreated=None, yearChanged=None, format=None):
++    import pandas as pd
++    import plotly.graph_objects as go
+     if yearCreated:
+         df['yearCreated'] = pd.to_datetime(df['created']).dt.year
+         df = df[df['yearCreated'] == yearCreated]
+@@ -244,6 +242,8 @@
+         max_workers (int): The maximum number of concurrent download threads.
+         number (int): The maximum number of new images to download. Defaults to 0 (no limit).
+     """
++    import pandas as pd
++    from tqdm import tqdm
+     if isinstance(images_data, pd.DataFrame):
+         images_data = images_data.to_dict('records')
+ 
+@@ -311,6 +311,8 @@
+ 
+ 
+ def reportSubmissions(df, useCreated=False, format=None):
++    import pandas as pd
++    import plotly.graph_objects as go
+     if useCreated:
+         time_column = 'created'
      else:
--        return extracted_data
-\ No newline at end of file
-+        return extracted_data
+--- tcia_utils.orig/wordpress.py	2026-04-06 11:51:39
++++ tcia_utils/wordpress.py	2026-04-06 11:59:03
+@@ -1,18 +1,14 @@
+-import pandas as pd
+ import json
+ import requests
+ from concurrent.futures import ThreadPoolExecutor, as_completed
+ from datetime import datetime
+ import logging
+-from tcia_utils.utils import searchDf
+-from tcia_utils.utils import remove_html_tags
+-from tcia_utils.utils import copy_df_cols
+ 
+ _log = logging.getLogger(__name__)
+-logging.basicConfig(
+-    format='%(asctime)s:%(levelname)s:%(message)s'
+-    , level=logging.INFO
+-)
++#logging.basicConfig(
++#    format='%(asctime)s:%(levelname)s:%(message)s'
++#    , level=logging.INFO
++#)
+ 
+ base_url = "https://cancerimagingarchive.net/api/v1/"
+ 
+@@ -36,6 +32,8 @@
+         ValueError: If an invalid format is provided.
+ 
+     """
++    import pandas as pd
++    from tcia_utils.utils import remove_html_tags
+     # Append custom fields to the endpoint if provided
+     if fields:
+         fields_str = ','.join(fields)

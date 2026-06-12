@@ -713,7 +713,11 @@ class RegionManager:
                     DEL_ASSOC, self._delAssocCB, None)
     """
 
-    def get_region(self, name, sequence=False, **kw):
+    def get_region(self, name=None, sequence=False, region_type=None, **kw):
+        if name is None:
+            if region_type is None:
+                raise ValueError("Must specify either 'name' or 'region_type' to get_region()")
+            name, *ignore = self._region_info_for_type(region_type)
         try:
             create = kw['create']
             del kw['create']
@@ -732,7 +736,7 @@ class RegionManager:
             kw['sequence'] = sequence
         if 'cover_gaps' not in kw:
             kw['cover_gaps'] = False
-        return self.new_region(name=name, **kw)
+        return self.new_region(name=name, region_type=region_type, **kw)
 
     def highlight(self, region, select_on_structures=True):
         if self._highlighted_region:
@@ -897,8 +901,12 @@ class RegionManager:
 
     def new_region(self, name=None, blocks=[], fill=None, outline=None,
             name_prefix="", select=False, assoc_with=None, cover_gaps=True,
-            after="ChimeraX selection", rebuild_table=True,
+            after="ChimeraX selection", rebuild_table=True, region_type=None,
             session_restore=False, sequence=None, **kw):
+        if region_type is not None:
+            name, fill, outline = self._region_info_for_type(region_type)
+        elif region_type is not None:
+            self.seq_canvas.sv.status("Unknown region type '%s'" % region_type, color="orange")
         if not name and not name_prefix:
             # possibly first user-dragged region
             for reg in self.regions:
@@ -1170,12 +1178,17 @@ class RegionManager:
 
     def show_chimerax_selection(self):
         sv = self.seq_canvas.sv
+        sel_fill = sv.settings.sel_region_interior
+        sel_outline = sv.settings.sel_region_border
+        if sv.session.ui.dark_mode():
+            sel_fill = darken(sel_fill)
+            sel_outline = darken(sel_outline)
         sel_region = self.get_region("ChimeraX selection", create=True, read_only=True,
-            fill=sv.settings.sel_region_interior, outline=sv.settings.sel_region_border)
+            fill=sel_fill, outline=sel_outline)
         sel_region.clear()
 
         from chimerax.atomic import selected_residues
-        sel_residues = set(selected_residues(self.seq_canvas.sv.session))
+        sel_residues = set(selected_residues(sv.session))
         blocks = []
         alignment = self.seq_canvas.alignment
         for aseq in alignment.seqs:
@@ -1261,13 +1274,14 @@ class RegionManager:
 
     def show_ss(self, show):
         """show actual secondary structure"""
+        prefix = "dark" if self.seq_canvas.sv.session.ui.dark_mode() else "light"
         from chimerax.atomic import Sequence
         helix_reg = self.get_region(self.ACTUAL_HELICES_REG_NAME, create=show,
-                fill=Sequence.default_helix_fill_color,
-                outline=Sequence.default_helix_outline_color)
+                fill=getattr(Sequence, prefix + "_mode_helix_fill"),
+                outline=getattr(Sequence, prefix + "_mode_helix_outline"))
         strand_reg = self.get_region(self.ACTUAL_STRANDS_REG_NAME, create=show,
-                fill=Sequence.default_strand_fill_color,
-                outline=Sequence.default_strand_outline_color)
+                fill=getattr(Sequence, prefix + "_mode_strand_fill"),
+                outline=getattr(Sequence, prefix + "_mode_strand_outline"))
         if helix_reg:
             helix_reg.shown = show
         if strand_reg:
@@ -1692,6 +1706,11 @@ class RegionManager:
         if region == self._highlighted_region:
             self._highlighted_region = None
 
+    def _region_info_for_type(self, region_type):
+        if region_type == "matched":
+            return self.seq_canvas.sv.MATCHED_REGION_INFO
+        raise ValueError("Unknown region type '%s'" % region_type)
+
     def _regionResiduesCB(self, event):
         region = self._region(event)
         if not region:
@@ -1774,9 +1793,15 @@ class RegionManager:
         self._sel_change_from_self = False
 
     def _sel_change_cb(self, _, changes):
-        settings = self.seq_canvas.sv.settings
+        sv = self.seq_canvas.sv
+        settings = sv.settings
+        sel_fill = settings.sel_region_interior
+        sel_outline = settings.sel_region_border
+        if sv.session.ui.dark_mode():
+            sel_fill = darken(sel_fill)
+            sel_outline = darken(sel_outline)
         sel_region = self.get_region("ChimeraX selection", create=True, read_only=True,
-            fill=settings.sel_region_interior, outline=settings.sel_region_border)
+            fill=sel_fill, outline=sel_outline)
         if self._sel_change_from_self:
             sel_region.clear()
         else:
@@ -2151,6 +2176,12 @@ class ScfDialog(OpenModeless):
                 text="Color structures also",
                 variable=self.colorStructureVar).grid()
 """
+
+def darken(color):
+    if color is None:
+        return None
+    from chimerax.core.colors import Color
+    return [c*0.7 for c in Color(color).rgba]
 
 def get_rgba(color_info):
     if isinstance(color_info, str):

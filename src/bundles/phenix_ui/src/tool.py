@@ -14,6 +14,7 @@
 from chimerax.core.tools import ToolInstance
 from chimerax.core.errors import UserError
 from chimerax.core.settings import Settings
+from chimerax.core.colors import ColorValue
 from Qt.QtCore import Qt
 from Qt.QtWidgets import QDialog
 
@@ -43,10 +44,225 @@ class PhenixCitation(Citation):
         kw['prefix'] = "%s uses the Phenix <i>%s</i> command. Please cite:" % (tool_name, phenix_name)
         super().__init__(session, cite, **kw)
 
-class DouseSettings(Settings):
+class LaunchBarbedWireAnalysisSettings(Settings):
     AUTO_SAVE = {
-        "show_hbonds": True,
+        'show_key': True,
+        'uncategorized_color': ColorValue(None),
     }
+
+class LaunchBarbedWireAnalysisTool(ToolInstance):
+    #help = "help:user/tools/fitligand.html"
+
+    def __init__(self, session, tool_name):
+        super().__init__(session, tool_name)
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
+
+        if not hasattr(self.__class__, 'settings'):
+            self.__class__.settings = LaunchBarbedWireAnalysisSettings(session, "launch barbedWire")
+
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QMenu, QLineEdit
+        from Qt.QtWidgets import QCheckBox, QGridLayout, QGroupBox, QStackedWidget, QFrame
+        from Qt.QtGui import QDoubleValidator, QIntValidator
+        from Qt.QtCore import Qt
+        layout = QVBoxLayout()
+        parent.setLayout(layout)
+        layout.setSpacing(1)
+
+        from chimerax.atomic.widgets import AtomicStructureListWidget
+        model_layout = QHBoxLayout()
+        model_layout.setContentsMargins(2,2,2,2)
+        layout.addLayout(model_layout, stretch=1)
+        model_layout.addStretch(1)
+        model_layout.addWidget(QLabel("Analyze:"), alignment=Qt.AlignRight|Qt.AlignVCenter)
+        from .barbed_wire import filter_out_gapped
+        self.structure_list = AtomicStructureListWidget(session, filter_func=filter_out_gapped)
+        model_layout.addWidget(self.structure_list, alignment=Qt.AlignLeft|Qt.AlignVCenter)
+        model_layout.addStretch(1)
+
+        color_layout = QHBoxLayout()
+        color_layout.setContentsMargins(2,2,2,2)
+        layout.addLayout(color_layout)
+        color_layout.addStretch(1)
+        color_layout.addWidget(QLabel("Uncategorized structure color:"),
+            alignment=Qt.AlignRight|Qt.AlignVCenter)
+        from chimerax.ui.widgets import ColorButton
+        self.uncategorized_color = ColorButton(max_size=(16,16))
+        color_setting = self.settings.uncategorized_color
+        if color_setting is None:
+            from .barbed_wire import default_uncategorized_color
+            color_setting = default_uncategorized_color(session)
+        self.uncategorized_color.color = color_setting
+        color_layout.addWidget(self.uncategorized_color, alignment=Qt.AlignLeft|Qt.AlignVCenter)
+        color_layout.addStretch(1)
+
+        self.show_key = QCheckBox("Show category-to-color key")
+        self.show_key.setChecked(self.settings.show_key)
+        layout.addWidget(self.show_key, alignment=Qt.AlignCenter)
+
+        layout.addWidget(Citation(session, '\n'.join([
+                "Williams CJ,  Chen VB, Richardson DC, and Richardson JS",
+                "Structural Biology, vol. 81, part 10, 558-572 (2025)"
+            ]),
+            prefix="%s uses the Phenix<br>" \
+                "<i>barbed_wire_analysis</i> command.&nbsp;&nbsp;Please cite:" % tool_name,
+            pubmed_id=40937679,
+            ), alignment=Qt.AlignCenter)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.launch_barbed_wire)
+        bbox.rejected.connect(self.delete)
+        if getattr(self, "help", False):
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
+        tw.manage(placement=None)
+
+    def launch_barbed_wire(self):
+        structures = self.structure_list.value
+        if not structures:
+            return tool_user_error("No structure(s) chosen for analysis")
+
+        cmd_string = "phenix barbedWire"
+
+        from chimerax.core.commands import run, concise_model_spec
+        from chimerax.atomic import AtomicStructure
+        spec = concise_model_spec(self.session, structures, relevant_types=AtomicStructure)
+        if spec:
+            cmd_string += ' ' + spec
+
+        from chimerax.core.colors import Color, color_name
+        from .barbed_wire import default_uncategorized_color
+        uncat_color = Color(self.uncategorized_color.color)
+        if uncat_color != Color(default_uncategorized_color(self.session)):
+            cmd_string += ' uncategorizedColor ' + color_name(uncat_color)
+            self.settings.uncategorized_color = list(uncat_color.rgba)
+        else:
+            self.settings.uncategorized_color = None
+
+        show_key = self.settings.show_key = self.show_key.isChecked()
+        if not show_key:
+            cmd_string += ' key false'
+
+        run(self.session, cmd_string)
+        self.delete()
+
+from .barbed_wire import semantic_category_order
+best_bw_first = list(reversed(semantic_category_order))
+class BarbedWireResultsSettings(Settings):
+    from .barbed_wire import semantic_category_order
+    AUTO_SAVE = {
+        'selected_categories': best_bw_first[3:]
+    }
+
+class BarbedWireResultsViewer(ToolInstance):
+
+    help = "help:user/tools/alphafold2barbedwire.html#results"
+
+    def __init__(self, session, *args):
+        # if only one arg, we are being restored from a session
+        # and _finalize_init() will be called later
+        super().__init__(session, "Barbed Wire Results")
+        if len(args) == 1:
+            return
+        self._finalize_init(*args)
+
+    def _finalize_init(self, structure, cat_colors):
+        self.structure = structure
+        self.cat_colors = cat_colors
+
+        from chimerax.core.models import REMOVE_MODELS
+        self.handlers = [
+            self.session.triggers.add_handler(REMOVE_MODELS, self._models_removed_cb),
+        ]
+
+        if not hasattr(self.__class__, 'settings'):
+            self.__class__.settings = BarbedWireResultsSettings(self.session, "barbed wire results")
+
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
+
+        from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QVBoxLayout, QRadioButton, QCheckBox
+        from Qt.QtWidgets import QPushButton, QLabel, QToolButton, QGridLayout
+        from Qt.QtGui import QPixmap, QColor, QIcon
+        layout = QHBoxLayout()
+        layout.setContentsMargins(2,2,2,2)
+        layout.setSpacing(0)
+        parent.setLayout(layout)
+
+        sel_but = QPushButton("Select")
+        sel_but.clicked.connect(self._select)
+        layout.addWidget(sel_but, alignment=Qt.AlignCenter)
+        rows_layout = QVBoxLayout()
+        layout.addLayout(rows_layout)
+        self.check_boxes = []
+        for row_items in [best_bw_first[:3], best_bw_first[3:]]:
+            row_layout = QHBoxLayout()
+            row_layout.setSpacing(2)
+            rows_layout.addLayout(row_layout)
+            for cat_name in row_items:
+                cb = QCheckBox()
+                cb.setChecked(cat_name in self.settings.selected_categories)
+                pm = QPixmap(16, 16)
+                pm.fill(QColor(*cat_colors[cat_name]))
+                cb.setIcon(QIcon(pm))
+                self.check_boxes.append(cb)
+                row_layout.addWidget(cb)
+                row_layout.addWidget(QLabel(cat_name))
+                row_layout.addSpacing(14)
+            row_layout.addStretch(1)
+
+        self.tool_window.manage('side')
+
+    def delete(self):
+        for handler in self.handlers:
+            handler.remove()
+        self.model = self.map = None
+        super().delete()
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        inst = super().restore_snapshot(session, data['ToolInstance'])
+        inst._finalize_init(data['structure'], data['category colors'])
+        for cat, box in zip(best_bw_first, inst.check_boxes):
+            box.setChecked(cat in data['checked boxes'])
+
+    SESSION_SAVE = True
+
+    def take_snapshot(self, session, flags):
+        return {
+            'ToolInstance': ToolInstance.take_snapshot(self, session, flags),
+            'checked boxes': [cat for cat, box in zip(best_bw_first, self.check_boxes) if box.isChecked()],
+            'category colors': self.cat_colors,
+            'structure': self.structure,
+        }
+
+    def _models_removed_cb(self, trig_name, trig_data):
+        if self.structure in trig_data:
+            self.delete()
+
+    def _select(self):
+        sel_cats = []
+        for cat, but in zip(best_bw_first, self.check_boxes):
+            if but.isChecked():
+                sel_cats.append(cat)
+        if not sel_cats:
+            raise UserError("No barbed-wire categories selected")
+        self.settings.selected_categories = sel_cats
+        from chimerax.core.commands import run, StringArg
+        def barbed_wire_selector(cat):
+            if cat == best_bw_first[-1]:
+                # uncategorized
+                return "::^barbed_wire_category"
+            return "::barbed_wire_category=%s" % StringArg.unparse(cat)
+        run(self.session, "select " + self.structure.atomspec + ' & ' + ' '.join([barbed_wire_selector(cat)
+            for cat in sel_cats]))
 
 from chimerax.check_waters.tool import CheckWaterViewer, check_overlap
 class DouseResultsViewer(CheckWaterViewer):
@@ -1251,7 +1467,7 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
     search_button_text = "Start ligand fitting"
 
     def __init__(self, session, initial_center, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
-            resolution, extent_type, extent_value, hbonds, clashes):
+            resolution, conformers, extent_type, extent_value, hbonds, clashes):
         self.session = session
         self.ligand_fmt = ligand_fmt
         self.ligand_value = ligand_value
@@ -1260,6 +1476,7 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         self.chain_id = chain_id
         self.res_num = res_num
         self.resolution = resolution
+        self.conformers = conformers
         self.extent_type = extent_type
         self.extent_value = extent_value
         self.hbonds = hbonds
@@ -1287,7 +1504,7 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
         from .ligand_fit import ijk_min_max
         ijk_min, ijk_max = ijk_min_max(map, initial_center, extent_angstroms)
         map.new_region(ijk_min, ijk_max, map.region[-1], adjust_step=False, adjust_voxel_limit=False)
-        map.rendering_options.show_outline_box = True
+        map.set_parameters(show_outline_box=True)
         map.add_volume_change_callback(self._vol_change_cb)
         self.center = initial_center
 
@@ -1346,8 +1563,9 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
             "While the '%s' mouse mode (below) is active, you can move the ligand with the right mouse"
             " to place its center where you want the search focused.  The ligand must be selected"
             " (green outline) to be moved.  Once satified with the search focus, switch to the '%s'"
-            " mouse mode to use the right mouse to adjust the bounds of the search area.  You can switch"
-            " between centering/focusing and bounds adjustment as needed.  When satisified with the search"
+            " mouse mode to use the right mouse to adjust the bounds of the search area.  Drag the"
+            " <i>faces</i> of the box to adjust the bounds.  You can switch"
+            " between centering/focusing and bounds adjustment as needed.  When satisfied with the search"
             " area, click the '%s' button to fit the ligand." % (self.move_text, self.bounds_text,
                 self.search_button_label)
         )
@@ -1358,8 +1576,8 @@ class VerifyLFCenterDialog(VerifyStructureCenterDialog):
             from chimerax.core.commands import run
             run(self.session, f"ui mousemode right '{self.prev_mouse_mode.name}'")
         _run_ligand_fit_command(self.session, self.search_center, self.ligand_fmt, self.ligand_value,
-            self.receptor, self.map, self.chain_id, self.res_num, self.resolution, None, None, self.hbonds,
-            self.clashes)
+            self.receptor, self.map, self.chain_id, self.res_num, self.resolution, self.conformers,
+            None, None, self.hbonds, self.clashes)
 
     @property
     def search_button_label(self):
@@ -1431,7 +1649,7 @@ class PickBlobDialog(QDialog):
         self.session = session
         self.verify_center = verify_center
         self.non_center_args = non_center_args
-        ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution, extent_type, \
+        ligand_fmt, ligand_value, receptor, map, chain_id, res_num, resolution, conformers, extent_type, \
             extent_value, hbonds, clashes = non_center_args
 
         from Qt.QtWidgets import QVBoxLayout, QLabel
@@ -1451,7 +1669,9 @@ class PickBlobDialog(QDialog):
         self.pick_text = "Pick volume blob"
         self.translate_text = "Translate scene"
 
-        from Qt.QtWidgets import QHBoxLayout, QButtonGroup, QGroupBox, QRadioButton
+        from Qt.QtWidgets import (
+            QHBoxLayout, QButtonGroup, QGroupBox, QRadioButton, QDoubleSpinBox, QCheckBox
+        )
         button_area = QGroupBox("Right Mouse Function")
         button_area.setAlignment(Qt.AlignHCenter)
         layout.addWidget(button_area)
@@ -1471,7 +1691,23 @@ class PickBlobDialog(QDialog):
         self.other_button.setEnabled(False)
         self.mouse_handler = self.session.triggers.add_handler("set mouse mode", self._mouse_mode_changed)
 
-        #self.add_custom_widgets(layout)
+        hide_density_layout = QHBoxLayout()
+        hide_density_layout.setSpacing(2)
+        layout.addLayout(hide_density_layout)
+        hide_density_layout.addStretch(1)
+        self.hide_density = QCheckBox("Hide density within ")
+        self.hide_density.setChecked(False)
+        # 'clicked' instead of 'toggled' so that _models_removed_cb can set state without callback
+        self.hide_density.clicked.connect(self._hide_density)
+        hide_density_layout.addWidget(self.hide_density)
+        self.hide_dist = QDoubleSpinBox()
+        self.hide_dist.setRange(0.5, 5.0)
+        self.hide_dist.setDecimals(1)
+        self.hide_dist.setSingleStep(0.1)
+        self.hide_dist.setValue(1.8)
+        hide_density_layout.addWidget(self.hide_dist)
+        hide_density_layout.addWidget(QLabel("\N{ANGSTROM SIGN} of existing structure"))
+        hide_density_layout.addStretch(1)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Cancel)
@@ -1481,13 +1717,14 @@ class PickBlobDialog(QDialog):
         bbox.rejected.connect(self.close)
         layout.addWidget(bbox)
 
-        self.check_models = [receptor, map]
+        self.receptor, self.map = self.check_models = [receptor, map]
         from chimerax.core.models import REMOVE_MODELS
         self.remove_models_handler = session.triggers.add_handler(REMOVE_MODELS, self._check_still_valid)
         from chimerax.atomic import get_triggers
         self.new_marker_handler = get_triggers().add_handler('changes', self._new_marker_check)
         self._current_marker = None
         self._creating_markers = False
+        self._inverted_map = None
 
         self.show()
 
@@ -1498,6 +1735,10 @@ class PickBlobDialog(QDialog):
         self.mouse_handler.remove()
         self.remove_models_handler.remove()
         self.new_marker_handler.remove()
+        if self._inverted_map is not None:
+            from chimerax.core.commands import run
+            # The "wait 1" is to prevent closing a model while a REMOVE_MODELS trigger might be resolving
+            run(self.session, f"wait 1; close {self._inverted_map.atomspec}")
         return super().closeEvent(event)
 
     def launch(self):
@@ -1514,6 +1755,10 @@ class PickBlobDialog(QDialog):
             self.show()
             from chimerax.ui import tool_user_error
             return tool_user_error("No volume blob picked")
+        if self._inverted_map is not None:
+            from chimerax.core.commands import run
+            run(self.session, f"close {self._inverted_map.atomspec}")
+            # _check_still_valid callback should set _inverted_map to None
         if self.verify_center:
             VerifyLFCenterDialog(self.session, center, *self.non_center_args)
         else:
@@ -1521,10 +1766,26 @@ class PickBlobDialog(QDialog):
         self.close()
 
     def _check_still_valid(self, trig_name, removed_models):
+        inverted_removed = self._inverted_map in removed_models
         for rm in removed_models:
             if rm in self.check_models:
                 self.close()
                 break
+        else:
+            if inverted_removed:
+                self._inverted_map = None
+                self.hide_density.setChecked(False)
+                from chimerax.core.commands import run
+                run(self.session, f"show {self.map.atomspec}")
+
+    def _hide_density(self, hide):
+        from chimerax.core.commands import run
+        if self._inverted_map is None:
+            self._inverted_map = run(self.session, f"volume zone {self.map.atomspec} near #!{self.receptor.id_string} range {self.hide_dist.value()} invert true newMap true")
+        if hide:
+            run(self.session, f"show {self._inverted_map.atomspec}; hide {self.map.atomspec}")
+        else:
+            run(self.session, f"hide {self._inverted_map.atomspec}; show {self.map.atomspec}")
 
     def _mouse_mode_changed(self, trig_name, trig_data):
         button, modifiers, mode = trig_data
@@ -1561,8 +1822,7 @@ class PickBlobDialog(QDialog):
                 break
 
 class LaunchLigandFitTool(ToolInstance):
-    #help = "help:user/tools/localemfitting.html"
-    help = None
+    help = "help:user/tools/fitligand.html"
 
     CENTER_BLOB = "picked volume blob"
     CENTER_MODEL = "center of model..."
@@ -1593,7 +1853,7 @@ class LaunchLigandFitTool(ToolInstance):
             self.__class__.settings = LaunchLigandFitSettings(session, "launch ligandFit")
 
         from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QWidget, QPushButton, QMenu, QLineEdit
-        from Qt.QtWidgets import QCheckBox, QGridLayout, QGroupBox, QStackedWidget
+        from Qt.QtWidgets import QCheckBox, QGridLayout, QGroupBox, QStackedWidget, QFrame
         from Qt.QtGui import QDoubleValidator, QIntValidator
         from Qt.QtCore import Qt
         layout = QVBoxLayout()
@@ -1768,10 +2028,36 @@ Choices are:
         self._extent_values = [None] * len(self.EXTENT_METHODS)
         self._set_extent_method()
 
-        layout.addStretch(1)
+        layout.addSpacing(10)
+
+        layout.addWidget(PhenixCitation(session, tool_name, "ligandfit"), alignment=Qt.AlignCenter)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.launch_ligand_fit)
+        default_button = bbox.button(qbbox.Ok)
+        default_button.setDefault(True)
+        self.resolution_entry.returnPressed.connect(default_button.click)
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_ligand_fit(apply=True))
+        bbox.rejected.connect(self.delete)
+        if self.help:
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
+        opt_b = bbox.addButton("Options", qbbox.ActionRole)
+        opt_b.clicked.connect(self._toggle_options)
+        layout.addWidget(bbox)
+
+        self.options_area = disclosure = QWidget()
+        disclosure.hide()
+        layout.addWidget(disclosure)
+        options_layout = QVBoxLayout()
+        disclosure.setLayout(options_layout)
 
         checkbox_area = QWidget()
-        layout.addWidget(checkbox_area, alignment=Qt.AlignCenter)
+        options_layout.addWidget(checkbox_area, alignment=Qt.AlignCenter)
+        options_layout.setContentsMargins(0,5,0,0)
         checkbox_layout = QVBoxLayout()
         checkbox_layout.setContentsMargins(0,0,0,0)
         checkbox_area.setLayout(checkbox_layout)
@@ -1785,65 +2071,87 @@ Choices are:
         self.show_clashes_checkbox.setChecked(True)
         checkbox_layout.addWidget(self.show_clashes_checkbox, alignment=Qt.AlignLeft)
 
-        layout.addSpacing(10)
-
-        layout.addWidget(PhenixCitation(session, tool_name, "ligandfit"), alignment=Qt.AlignCenter)
-
-        from Qt.QtWidgets import QDialogButtonBox as qbbox
-        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
-        bbox.accepted.connect(self.launch_ligand_fit)
-        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_ligand_fit(apply=True))
-        bbox.rejected.connect(self.delete)
-        if self.help:
-            from chimerax.core.commands import run
-            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
-        else:
-            bbox.button(qbbox.Help).setEnabled(False)
-        layout.addWidget(bbox)
+        conformers_layout = QHBoxLayout()
+        conformers_layout.setSpacing(0)
+        conformers_layout.setContentsMargins(0,0,0,0)
+        # For now, not exposing conformers option until more testing reveals if it's needed
+        #options_layout.addLayout(conformers_layout)
+        conformers_layout.addStretch(1)
+        conformers_layout.addWidget(QLabel("Number of conformers to try: "))
+        self.conformers_button = QPushButton("5")
+        menu = QMenu(self.conformers_button)
+        for num_conformers in ["default", "5", "10", "25", "100", "500"]:
+            menu.addAction(num_conformers)
+        menu.triggered.connect(lambda act, but=self.conformers_button: but.setText(act.text()))
+        self.conformers_button.setMenu(menu)
+        conformers_layout.addWidget(self.conformers_button)
+        conformers_layout.addStretch(1)
 
         tw.manage(placement=None)
 
     def launch_ligand_fit(self, apply=False):
+        from chimerax.ui import tool_user_error
         ligand_fmt = self.ligand_fmt_button.text()
         ligand_widget = self.ligand_stack.currentWidget()
         if ligand_fmt == self.LIGAND_FMT_MODEL:
             ligand_value = ligand_widget.value
             if not ligand_value:
-                raise UserError("No ligand model specified")
+                return tool_user_error("No ligand model specified")
         else:
             ligand_value = ligand_widget.text().strip()
             if not ligand_value:
-                raise UserError("No " + ligand_fmt + " text provided")
+                return tool_user_error("No " + ligand_fmt + " text provided")
 
         receptor = self.receptor_menu.value
         if not receptor:
-            raise UserError("Must specify a receptor structure")
+            return tool_user_error("Must specify a receptor structure")
         map = self.map_menu.value
         if map:
             if self.resolution_entry.hasAcceptableInput():
                 resolution = float(self.resolution_entry.text())
             else:
-                raise UserError("Must specify a resolution value for the map")
+                return tool_user_error("Must specify a resolution value for the map")
         else:
-            raise UserError("Must specify map for fitting")
+            return tool_user_error("Must specify map for fitting")
         chain_id = self.chain_id_entry.text().strip()
         if self.res_num_entry.text().strip():
             if self.res_num_entry.hasAcceptableInput():
                 res_num = int(self.res_num_entry.text())
             else:
-                raise UserError("Residue number must be an integer")
+                return tool_user_error("Residue number must be an integer")
+            existing_r = receptor.find_residue(chain_id, res_num)
+            if existing_r is not None:
+                choices = ([] if existing_r.neighbors else ["Replace existing residue (%s)" % existing_r]) \
+                    + ["Use next available number", "Return to Fit Ligand dialog" ]
+                choice, okayed = ResnumConflictDialog(res_num, chain_id, choices,
+                    parent=self.tool_window.ui_area).run()
+                if not okayed:
+                    if not apply:
+                        self.display(False)
+                    return
+                if choice.startswith("Replace"):
+                    receptor.delete_residue(existing_r)
+                elif choice.startswith("Use"):
+                    while receptor.find_residue(chain_id, res_num):
+                        res_num += 1
+                else:
+                    return
         else:
             res_num = None
         if not self.extent_entry.hasAcceptableInput():
-            raise UserError("Search-extent value not a valid number")
+            return tool_user_error("Search-extent value not a valid number")
         self.settings.extent_value = extent_value = float(self.extent_entry.text())
         self.settings.extent_type = extent_type = self.extent_button.text()
 
         if extent_value <= 0:
-            raise UserError("Search-extent value must be a positive number")
+            return tool_user_error("Search-extent value must be a positive number")
 
+        if self.conformers_button.text() == "default":
+            conformers = None
+        else:
+            conformers = int(self.conformers_button.text())
         non_center_args = (ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
-            resolution, extent_type, extent_value, self.show_hbonds_checkbox.isChecked(),
+            resolution, conformers, extent_type, extent_value, self.show_hbonds_checkbox.isChecked(),
             self.show_clashes_checkbox.isChecked())
 
         self.settings.search_center = method = self.centering_button.text()
@@ -1862,10 +2170,12 @@ Choices are:
         elif method == self.CENTER_MODEL:
             centering_model = self.model_menu.value
             if centering_model is None:
-                raise UserError("No model chosen for specifying search center")
+                self.display(True)
+                return tool_user_error("No model chosen for specifying search center")
             bnds = centering_model.bounds()
             if bnds is None:
-                raise UserError("No part of model for specifying search center is displayed")
+                self.display(True)
+                return tool_user_error("No part of model for specifying search center is displayed")
             center = bnds.center()
         elif method == self.CENTER_VIEW:
             # If pivot point shown or using fixed center of rotation, use that.
@@ -1890,11 +2200,13 @@ Choices are:
                 try:
                     view_center = view_box(self.session, view_map)
                 except ViewBoxError as e:
-                    raise UserError(str(e))
+                    self.display(True)
+                    return tool_user_error(str(e))
             center = view_center
         elif method == self.CENTER_SELECTION:
             if self.session.selection.empty():
-                raise UserError("Nothing selected")
+                self.display(True)
+                return tool_user_error("Nothing selected")
             from chimerax.atomic import selected_atoms
             sel_atoms = selected_atoms(self.session)
             from chimerax.geometry import point_bounds, union_bounds
@@ -1903,7 +2215,8 @@ Choices are:
             bbox = union_bounds([atom_bbox]
                 + [m.bounds() for m in self.session.selection.models() if m not in atom_models])
             if bbox is None:
-                raise UserError("No bounding box for selected items")
+                self.display(True)
+                return tool_user_error("No bounding box for selected items")
             center = bbox.center()
         else:
             raise AssertionError("Unknown centering method")
@@ -1952,6 +2265,11 @@ Choices are:
         self.extent_button.setText(method)
         self.extent_entry.setText("%g" % new_value)
 
+    def _toggle_options(self, *args):
+        self.options_area.setHidden(not self.options_area.isHidden())
+        if self.options_area.isHidden():
+            self.tool_window.shrink_to_fit()
+
     def _update_fmt_widgets(self, fmt):
         self.ligand_fmt_button.setText(fmt)
         self.ligand_stack.setCurrentIndex(self.ligand_fmt_to_index[fmt])
@@ -1992,6 +2310,43 @@ class LaunchLigandFitSettings(Settings):
         'extent_value': 1.1,
     }
 
+class ResnumConflictDialog(QDialog):
+    def __init__(self, res_num, chain_id, choices, *, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Duplicate Residue Number")
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QRadioButton
+        layout = QVBoxLayout()
+        layout.setSpacing(0)
+        self.setLayout(layout)
+        preface_layout = QHBoxLayout()
+        layout.addLayout(preface_layout)
+        preface_layout.addStretch(1)
+        preface_layout.addWidget(QLabel(
+            "Residue %d in chain %s already exists; choose an action:" % (res_num, chain_id)))
+        preface_layout.addStretch(1)
+        self.choice_buttons = []
+        for choice in choices:
+            choice_button = QRadioButton(choice)
+            self.choice_buttons.append(choice_button)
+            layout.addWidget(choice_button, alignment=Qt.AlignLeft)
+        self.choice_buttons[0].setChecked(True)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        bbox = qbbox(qbbox.Ok)
+        bbox.accepted.connect(lambda dlg=self: dlg.done(dlg.Accepted))
+        bbox.rejected.connect(lambda dlg=self: dlg.done(dlg.Rejected))
+        layout.addWidget(bbox)
+
+    def run(self):
+        okayed = self.exec()
+        if okayed:
+            for cb in self.choice_buttons:
+                if cb.isChecked():
+                    return cb.text(), okayed
+            else:
+                raise AssertionError("No choice checked")
+        return None, okayed
+
 def _run_emplace_local_command(session, structure, maps, resolution, prefitted, center, show_sharpened_map,
         apply_symmetry):
     from chimerax.core.commands import run, concise_model_spec, BoolArg, StringArg
@@ -2007,20 +2362,24 @@ def _run_emplace_local_command(session, structure, maps, resolution, prefitted, 
     run(session, cmd)
 
 def _run_ligand_fit_command(session, center, ligand_fmt, ligand_value, receptor, map, chain_id, res_num,
-        resolution, extent_type, extent_value, hbonds, clashes):
+        resolution, conformers, extent_type, extent_value, hbonds, clashes):
     from chimerax.core.commands import run, StringArg, BoolArg
     from chimerax.map import Volume
     LLFT = LaunchLigandFitTool
-    lig_arg = "%s%s" % (LaunchLigandFitTool.ligand_fmt_to_prefix[ligand_fmt],
+    lig_arg = "%s%s" % (LLFT.ligand_fmt_to_prefix[ligand_fmt],
         (ligand_value.atomspec if ligand_fmt == LLFT.LIGAND_FMT_MODEL else ligand_value))
     if extent_type is None:
         extent_arg = ""
     else:
         extent_arg =  " extentType %s extentValue %g" % (
-            ("length" if extent_type == LaunchLigandFitTool.EXTENT_LENGTH else "angstroms"), extent_value)
-    cmd = "phenix ligandFit %s ligand %s center %g,%g,%g inMap %s resolution %g%s " \
-        " hbonds %s clashes %s" % (receptor.atomspec, StringArg.unparse(lig_arg), *center,
-        map.atomspec, resolution, extent_arg, BoolArg.unparse(hbonds), BoolArg.unparse(clashes))
+            ("length" if extent_type == LLFT.EXTENT_LENGTH else "angstroms"), extent_value)
+    if conformers is None:
+        conformers_arg = ""
+    else:
+        conformers_arg =  f" conformers {conformers}"
+    cmd = "phenix ligandFit %s ligand %s center %g,%g,%g inMap %s resolution %g%s%s " \
+        " hbonds %s clashes %s" % (receptor.atomspec, StringArg.unparse(lig_arg), *center, map.atomspec,
+        resolution, extent_arg, conformers_arg, BoolArg.unparse(hbonds), BoolArg.unparse(clashes))
     if chain_id:
         cmd += " chain " + chain_id
     if res_num is not None:

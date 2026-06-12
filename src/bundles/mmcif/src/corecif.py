@@ -58,7 +58,7 @@ _additional_corecif_categories = (
 )
 
 
-def open_corecif(session, path, file_name=None, auto_style=True, log_info=True, extra_categories=()):
+def open_corecif(session, path, file_name=None, log_info=True, extra_categories=(), **kw):
     # coreCIF parsing requires an uncompressed file
 
     from . import _mmcif
@@ -73,7 +73,7 @@ def open_corecif(session, path, file_name=None, auto_style=True, log_info=True, 
         from os.path import basename
         file_name = basename(path)
     from chimerax.atomic.structure import AtomicStructure as StructureClass
-    models = [StructureClass(session, name=file_name, c_pointer=p, auto_style=auto_style, log_info=log_info)
+    models = [StructureClass(session, name=file_name, c_pointer=p, log_info=log_info, **kw)
               for p in pointers]
 
     for m in models:

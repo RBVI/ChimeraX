@@ -29,10 +29,10 @@ gui = [
   "PyOpenGL-accelerate==3.1.10",
   # PyQt handled in prereqs/PyQt"
   # sip handled in prereqs/PyQt
-  #PySide6==6.10.0
-  #shiboken6==6.10.0
+  #PySide6==6.10.1
+  #shiboken6==6.10.1
   "qtconsole==5.7.0",
-  "qtshim==1.2",
+  "qtshim==1.2.2",
   # Used by the DICOM bundle for a double-ended QSlider"
   "superqt==0.7.6",
   "tinyarray==1.2.5",
@@ -45,9 +45,10 @@ gui = [
   "docutils==0.21.2",
   "Jinja2==3.1.6",
   "Pygments==2.18.0",
-  "Sphinx==8.2.3",
+  "Sphinx==9.0.4",
   "sphinxcontrib-blockdiag==3.0.0",
-  "sphinx_autodoc_typehints==3.2.0",
+  "sphinx_autodoc_typehints==3.6.1",
+  "pydata-sphinx-theme",
   #
   # Windows
   #
@@ -60,11 +61,11 @@ gui = [
   "distro==1.9.0; sys_platform == 'linux'",
 ]
 wheel = [
-  "aiohttp==3.13.1",
+  "aiohttp==3.13.4",
   "appdirs==1.4.4",
   "beautifulsoup4==4.13.5",
   "colorama==0.4.6",
-  "Cython==3.1.4",
+  "Cython==3.2.4",
   "filelock==3.19.1",
   "grako==3.16.5",
   "html2text==2025.4.15",
@@ -72,11 +73,11 @@ wheel = [
   "imagecodecs==2024.6.1",
   # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
   # try a newer version of jedi
-  "ipykernel==6.30.1",
-  "ipython==9.5.0",
+  "ipykernel==7.1.0",
+  "ipython==9.9.0",
   # the version of jedi that works with ipython
   "jedi==0.19.2",
-  "jupyter-client==8.6.3",
+  "jupyter-client==8.8.0",
   "lxml==6.0.2",
   # lz4 4.4.4 has problems decompressing what it encoded, ticket #18140
   "lz4==4.3.2",
@@ -87,8 +88,9 @@ wheel = [
   "netCDF4==1.6.5",
   "networkx==3.3",
   "numpy==1.26.4",
-  "openmm==8.2.0 ; platform_machine != 'aarch64'",
-  "openmm-cuda-12==8.2.0 ; ((sys_platform == 'win32') or (sys_platform == 'linux')) and (platform_machine != 'aarch64')",
+  # if the OpenMM version changes, the patches in prereqs/pips need to be updated
+  "openmm==8.4.0 ; platform_machine != 'aarch64'",
+  "openmm-cuda-12==8.4.0 ; ((sys_platform == 'win32') or (sys_platform == 'linux')) and (platform_machine != 'aarch64')",
   "packaging==25.0",
   # as per Tristan's request in ticket #3055"
   "ParmEd==4.2.2",
@@ -103,9 +105,11 @@ wheel = [
   "pydicom==2.4.4",
   "pynrrd==1.0.0",
   "pyopenxr==1.1.4501",
-  "tcia_utils==1.5.1",
+  "tcia_utils==3.2.1",
   "python-dateutil==2.9.0.post0",
   "requests==2.32.5",
+  # Macs download scipy wheels directly, adjust the names in prereqs/pips accordingly
+  # if you upgrade this
   "scipy==1.14.0",
   "six==1.17.0",
   "sortedcontainers==2.4.0",
@@ -117,9 +121,6 @@ wheel = [
   "docutils==0.21.2",
   "Jinja2==3.1.6",
   "Pygments==2.18.0",
-  "Sphinx==8.2.3",
-  "sphinxcontrib-blockdiag==3.0.0",
-  "sphinx_autodoc_typehints==3.2.0",
   #
   # Windows
   #

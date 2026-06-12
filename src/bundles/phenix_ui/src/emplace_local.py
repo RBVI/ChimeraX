@@ -298,7 +298,7 @@ def _run_fit_subprocess(session, exe_path, optional_args, map1_file_name, map2_f
             "d_min=%g" % resolution,
             "model_file=%s" % StringArg.unparse(model_file_name),
             "sphere_center=(%g,%g,%g)" % tuple(search_center.scene_coordinates()),
-            "--json",
+            "--json", "--json-filename", "emplace_local_result.json"
         ] + prefitted_arg + positional_args
     tsafe=session.ui.thread_safe
     logger = session.logger

@@ -151,17 +151,10 @@ class Alignment(State):
         if create_headers:
             self._headers = [hdr_class(self) for hdr_class in session.alignments.headers()]
             if file_markups is not None:
+                from chimerax.core.attributes import string_to_attr
                 for name, markup in file_markups.items():
-                    from chimerax.core.attributes import string_to_attr
-                    from chimerax.alignment_headers import FixedHeaderSequence
-                    class MarkupHeaderSequence(FixedHeaderSequence):
-                        ident = string_to_attr(name, prefix="file_markup_")
-                        def settings_info(self):
-                            base_settings_name, defaults = super().settings_info()
-                            from chimerax.core.commands import BoolArg
-                            defaults.update({'initially_shown': (BoolArg, True)})
-                            return "sequence file header %s" % name, defaults
-                    self._headers.append(MarkupHeaderSequence(self, name, markup))
+                    self._headers.append(MarkupHeaderSequence(self, name, markup,
+                        identifier=string_to_attr(name, prefix="file_markup_")))
             self._headers.sort(key=lambda hdr: hdr.name.casefold())
             attr_headers = []
             for header in self._headers:
@@ -173,20 +166,13 @@ class Alignment(State):
             if not session_restore:
                 self._set_residue_attributes()
 
-    def add_fixed_header(self, name, contents, *, shown=True, identifier=None, base_class=None):
+    def add_fixed_header(self, name, contents, *, shown=True, identifier=None, hdr_class=None):
         if len(contents) != len(self._seqs[0]):
             raise ValueError(f"Fixed header '{name}' is not the same length as alignment")
-        from chimerax.alignment_headers import FixedHeaderSequence
-        if base_class is None:
-            base_class = FixedHeaderSequence
-        if identifier is None:
-            from chimerax.core.attributes import string_to_attr
-            identifier = string_to_attr(name, prefix=FixedHeaderSequence.ATTR_PREFIX)
-        class FixedHeaderWithIdent(base_class):
-            ident = identifier
-        header = FixedHeaderWithIdent(self, name, contents)
+        if hdr_class is None:
+            from chimerax.alignment_headers import FixedHeaderSequence as hdr_class
+        header = hdr_class(self, name, contents, identifier)
         self._headers.append(header)
-        self._headers.sort(key=lambda hdr: hdr.name.casefold())
         header.shown = shown
         return header
 
@@ -224,7 +210,7 @@ class Alignment(State):
         self.observers.append(observer)
 
     def associate(self, models, seq=None, force=True, min_length=10, reassoc=False,
-            keep_intrinsic=False):
+            keep_intrinsic=False, silent=False):
         """associate models with sequences
 
            'models' is normally a list of AtomicStructures, but it can be a Chain or None.
@@ -313,8 +299,9 @@ class Alignment(State):
                         gaps = " %sor gap%s" % (s2, s3)
                     else:
                         gaps = ""
-                    status("Associated %s %s to %s with %d mismatch%s%s" % (struct_name,
-                        sseq.name, best_match_map.align_seq.name, best_errors, s1, gaps), log=True)
+                    if not silent:
+                        status("Associated %s %s to %s with %d mismatch%s%s" % (struct_name,
+                            sseq.name, best_match_map.align_seq.name, best_errors, s1, gaps), log=True)
                 self.prematched_assoc_structure(best_match_map, best_errors, reassoc)
                 new_match_maps.append(best_match_map)
                 nonlocal associated
@@ -404,15 +391,16 @@ class Alignment(State):
                 for sseq in sseqs:
                     # aseqs are already sorted by length...
                     for aseq in aseqs:
-                        status("Using Needleman-Wunsch to test-associate"
-                            " %s %s with %s\n" % (struct_name, sseq.name, aseq.name))
+                        if not silent:
+                            status("Using Needleman-Wunsch to test-associate"
+                                " %s %s with %s\n" % (struct_name, sseq.name, aseq.name))
                         match_map, errors = nw_assoc(self.session, aseq, sseq)
                         if best_errors is None or errors < best_errors:
                             best_match_map = match_map
                             best_errors = errors
                 if best_match_map:
                     do_assoc(add_gaps=True)
-                else:
+                elif not silent:
                     status("No reasonable association found for %s %s" % (struct_name, sseq.name))
 
         if new_match_maps:
@@ -1014,7 +1002,8 @@ class Alignment(State):
                 if header_class:
                     aln._headers.append(header_class.session_restore(session, aln, header_state))
                 else:
-                    session.logger.warning("Could not find alignment header class %s" % class_name)
+                    session.logger.warning("Could not find alignment header class %s in bundle %s"
+                        % (class_name, bundle_name))
         aln._session_restore = False
         return aln
 
@@ -1151,3 +1140,11 @@ def nw_assoc(session, align_seq, struct_seq):
         errors -= len(sseq) - len(aseq)
 
     return match_map, errors
+
+from chimerax.alignment_headers import FixedHeaderSequence
+class MarkupHeaderSequence(FixedHeaderSequence):
+    def settings_info(self):
+        base_settings_name, defaults = super().settings_info()
+        from chimerax.core.commands import BoolArg
+        defaults.update({'initially_shown': (BoolArg, True)})
+        return "sequence file header %s" % self.name, defaults

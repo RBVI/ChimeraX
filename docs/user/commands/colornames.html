@@ -1,6 +1,4 @@
-<html lang="en">
-
-<!--
+<html lang="en"><!--
 === UCSF ChimeraX Copyright ===
 Copyright 2016 Regents of the University of California.
 All rights reserved.  This software provided pursuant to a
@@ -11,18 +9,15 @@ This notice must be embedded in or attached to all copies,
 including partial copies, of the software or any revisions
 or derivations thereof.
 === UCSF ChimeraX Copyright ===
--->
-
-<head>
-<link rel="stylesheet" type="text/css" href="../userdocs.css" />
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
 <title>Command-Line Color Specification</title>
 <style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
 </head><body>
 
 <a name="top"></a>
 <a href="../index.html">
-<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon"
-class="clRighticon" title="User Guide Index"/></a>
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h2>Command-Line Color Specification</h2>
 <p>
@@ -31,9 +26,9 @@ Colors can be specified in <a href="../index.html#commands">commands</a>
 </p>
 <ul>
 <li><a href="#builtin">predefined color names</a>
-<li>color names defined by the user with
+</li><li>color names defined by the user with
 <a href="color.html#name"><b>color name</b></a>
-<li>hexadecimal format starting with <b>#</b> and encoding
+</li><li>hexadecimal format starting with <b>#</b> and encoding
 <b>rgb</b> (3, 6, or 12 digits) or <b>rgba</b> (4, 8, or 16 digits), 
 for example: <b>#00ced1</b> 
 <!-- 
@@ -41,22 +36,21 @@ fix for #143 is to interpret as color instead of model number if it has
 any non-numbers and/or at least 6 digits; thus model numbers top out at #99999
 and all-number hex colors with fewer than 6 digits don't work
 -->
-<li><b>rgb</b> or <b>rgba</b> given as three or four comma-separated values 
+</li><li><b>rgb</b> or <b>rgba</b> given as three or four comma-separated values 
 <!-- integer, float both OK -->
 in the range 0-100 (no spaces, no % signs),
 for example: <b>75,10,55</b>
 <!--
 <font style="background:#bfff199a8ccc">&nbsp;&nbsp;&nbsp;&nbsp;</font>
 -->
-<li><a href="https://www.w3schools.com/cssref/css_colors_legal.asp"
-target="_blank">CSS-like specifications</a> in the following formats:
+</li><li><a href="https://www.w3schools.com/cssref/css_colors_legal.asp" target="_blank">CSS-like specifications</a> in the following formats:
   <ul>
   <li><b>rgb(<i>red, green, blue</i>)</b>
-  <li><b>rgba(<i>red, green, blue, alpha</i>)</b>
-  <li><b>hsl(<i>hue, saturation, lightness</i>)</b>
-  <li><b>hsla(<i>hue, saturation, lightness, alpha</i>)</b>
-  <li><b>gray(<i>grayscale</i>)</b> 
-  </ul>
+  </li><li><b>rgba(<i>red, green, blue, alpha</i>)</b>
+  </li><li><b>hsl(<i>hue, saturation, lightness</i>)</b>
+  </li><li><b>hsla(<i>hue, saturation, lightness, alpha</i>)</b>
+  </li><li><b>gray(<i>grayscale</i>)</b> 
+  </li></ul>
 The colorspace name must be in lowercase and immediately precede 
 the open parenthesis.  Otherwise, embedded spaces are allowed.
 Values for <i>red</i>, <i>green</i>, <i>blue</i>, <i>alpha</i>
@@ -64,15 +58,15 @@ Values for <i>red</i>, <i>green</i>, <i>blue</i>, <i>alpha</i>
 and <i>grayscale</i> (increasing black &rarr; white) can be given as:
   <ul>
   <li> percentages indicated with <b>%</b>
-  <li> fractional values in the range 0-1, indicated with a decimal point
+  </li><li> fractional values in the range 0-1, indicated with a decimal point
   (for example, 1. rather than 1)
-  </ul>
+  </li></ul>
 The <i>red</i>, <i>green</i>, <i>blue</i>, and <i>grayscale</i> 
 components can also be expressed as whole numbers in the range 0-255. 
 Values for <i>hue</i> are in the range 0-360,
 corresponding to angular positions on the color wheel.
 See <a href="#examples">more examples</a>.
-</ul>
+</li></ul>
 <p>
 The command <a href="color.html#list"><b>color list</b></a>
 lists the available names along with color swatches in the 
@@ -94,8 +88,7 @@ See also:
 <h3>Color Names</h3>
 <p>
 The following color names 
-(<a href="https://en.wikipedia.org/wiki/Web_colors#X11_color_names" 
-target="_blank">X11 colors</a> from the CSS3 specification)
+(<a href="https://en.wikipedia.org/wiki/Web_colors#X11_color_names" target="_blank">X11 colors</a> from the CSS3 specification)
 are predefined in ChimeraX.
 <!-- 138 colors, not counting synonyms -->
 Color names can be <a href="#truncation">truncated</a>,
@@ -108,10 +101,10 @@ See also: <a href="../tools/coloractions.html"><b>Color Actions</b></a>,
 the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 </p>
 <table style="margin 4px">
-<tr style="vertical-align:top;">
+<tbody><tr style="vertical-align:top;">
 <td>
 <table border cellpadding="2px" cellspacing="0px">
-<tr>
+<tbody><tr>
 <th class="shaded">Name</th>
 <th class="shaded">Hex</th>
 <th class="shaded">RGB<br>(%)</th>
@@ -131,12 +124,12 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#FFB6C1</code></td>
 <td>100,71,76</td>
 </tr>
-<tr style="background:hotpink;color:white">
+<tr style="background:hotpink;color:black">
 <td>hot&nbsp;pink</td>
 <td><code>#FF69B4</code></td>
 <td>100,41,71</td>
 </tr>
-<tr style="background:deeppink;color:white">
+<tr style="background:deeppink;color:black">
 <td>deep&nbsp;pink</td>
 <td><code>#FF1493</code></td>
 <td>100,8,58</td>
@@ -146,7 +139,7 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#C71585</code></td>
 <td>78,8,52</td>
 </tr>
-<tr style="background:palevioletred;color:white">
+<tr style="background:palevioletred;color:black">
 <td>pale&nbsp;violet&nbsp;red</td>
 <td><code>#DB7093</code></td>
 <td>86,44,58</td>
@@ -171,7 +164,7 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#E9967A</code></td>
 <td>91,59,48</td>
 </tr>
-<tr style="background:indianred;color:white">
+<tr style="background:indianred;color:black">
 <td>indian&nbsp;red</td>
 <td><code>#CD5C5C</code></td>
 <td>80,36,36</td>
@@ -201,17 +194,17 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#800000</code></td>
 <td>50,0,0</td>
 </tr>
-<tr style="background:red;color:white">
+<tr style="background:red;color:black">
 <td>red</td>
 <td><code>#FF0000</code></td>
 <td>100,0,0</td>
 </tr>
-<tr style="background:orangered;color:white">
+<tr style="background:orangered;color:black">
 <td>orange&nbsp;red</td>
 <td><code>#FF4500</code></td>
 <td>100,27,0</td>
 </tr>
-<tr style="background:tomato;color:white">
+<tr style="background:tomato;color:black">
 <td>tomato</td>
 <td><code>#FF6347</code></td>
 <td>100,39,28</td>
@@ -331,7 +324,7 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#CD853F</code></td>
 <td>80,52,25</td>
 </tr>
-<tr style="background:chocolate;color:white">
+<tr style="background:chocolate;color:black">
 <td>chocolate</td>
 <td><code>#D2691E</code></td>
 <td>82,41,12</td>
@@ -351,11 +344,11 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#BC8F8F</code></td>
 <td>74,56,56</td>
 </tr>
-</table>
+</tbody></table>
 </td>
 <td>
 <table border cellpadding="2px" cellspacing="0px">
-<tr>
+<tbody><tr>
 <th class="shaded">Name</th>
 <th class="shaded">Hex</th>
 <th class="shaded">RGB<br>(%)</th>
@@ -380,12 +373,12 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#556B2F</code></td>
 <td>33,42,18</td>
 </tr>
-<tr style="background:olive;color:white">
+<tr style="background:olive;color:black">
 <td>olive</td>
 <td><code>#808000</code></td>
 <td>50,50,0</td>
 </tr>
-<tr style="background:olivedrab;color:white">
+<tr style="background:olivedrab;color:black">
 <td>olive&nbsp;drab</td>
 <td><code>#6B8E23</code></td>
 <td>42,56,14</td>
@@ -420,7 +413,7 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#32CD32</code></td>
 <td>20,80,20</td>
 </tr>
-<tr style="background:forestgreen;color:white">
+<tr style="background:forestgreen;color:black">
 <td>forest&nbsp;green</td>
 <td><code>#228B22</code></td>
 <td>13,54,13</td>
@@ -460,7 +453,7 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#3CB371</code></td>
 <td>24,70,44</td>
 </tr>
-<tr style="background:seagreen;color:white">
+<tr style="background:seagreen;color:black">
 <td>sea&nbsp;green</td>
 <td><code>#2E8B57</code></td>
 <td>18,54,34</td>
@@ -505,12 +498,12 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#00CED1</code></td>
 <td>0,81,82</td>
 </tr>
-<tr style="background:cadetblue;color:white">
+<tr style="background:cadetblue;color:black">
 <td>cadet&nbsp;blue</td>
 <td><code>#5F9EA0</code></td>
 <td>34,62,63</td>
 </tr>
-<tr style="background:darkcyan;color:white">
+<tr style="background:darkcyan;color:black">
 <td>dark&nbsp;cyan</td>
 <td><code>#008B8B</code></td>
 <td>0,54,54</td>
@@ -540,7 +533,7 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#B0C4DE</code></td>
 <td>69,77,87</td>
 </tr>
-<tr style="background:steelblue;color:white">
+<tr style="background:steelblue;color:black">
 <td>steel&nbsp;blue</td>
 <td><code>#4682B4</code></td>
 <td>28,51,71</td>
@@ -595,11 +588,11 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#000080</code></td>
 <td>0,0,50</td>
 </tr>
-</table>
+</tbody></table>
 </td>
 <td>
 <table border cellpadding="2px" cellspacing="0px">
-<tr>
+<tbody><tr>
 <th class="shaded">Name</th>
 <th class="shaded">Hex</th>
 <th class="shaded">RGB<br>(%)</th>
@@ -629,7 +622,7 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#DA70D6</code></td>
 <td>86,44,84</td>
 </tr>
-<tr style="background:Magenta;color:white">
+<tr style="background:Magenta;color:black">
 <td>magenta (fuchsia)</td>
 <td><code>#FF00FF</code></td>
 <td>100,0,100</td>
@@ -644,7 +637,7 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#800080</code></td>
 <td>50,0,50</td>
 </tr>
-<tr style="background:mediumorchid;color:white">
+<tr style="background:mediumorchid;color:black">
 <td>medium&nbsp;orchid</td>
 <td><code>#BA55D3</code></td>
 <td>73,33,83</td>
@@ -664,7 +657,7 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#8A2BE2</code></td>
 <td>54,17,89</td>
 </tr>
-<tr style="background:mediumpurple;color:white">
+<tr style="background:mediumpurple;color:black">
 <td>medium&nbsp;purple</td>
 <td><code>#9370DB</code></td>
 <td>58,44,86</td>
@@ -679,7 +672,7 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#4B0082</code></td>
 <td>29,0,51</td>
 </tr>
-<tr style="background:mediumslateblue;color:white">
+<tr style="background:mediumslateblue;color:black">
 <td>medium&nbsp;slate&nbsp;blue</td>
 <td><code>#7B68EE</code></td>
 <td>48,41,93</td>
@@ -799,7 +792,7 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#A9A9A9</code></td>
 <td>66,66,66</td>
 </tr>
-<tr style="background:gray;color:white">
+<tr style="background:gray;color:black">
 <td>gray</td>
 <td><code>#808080</code></td>
 <td>50,50,50</td>
@@ -809,12 +802,12 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#696969</code></td>
 <td>41,41,41</td>
 </tr>
-<tr style="background:lightslategray; color:white;">
+<tr style="background:lightslategray; color:black;">
 <td>light&nbsp;slate&nbsp;gray</td>
 <td><code>#778899</code></td>
 <td>47,53,60</td>
 </tr>
-<tr style="background:slategray; color:white;">
+<tr style="background:slategray; color:black;">
 <td>slate&nbsp;gray</td>
 <td><code>#708090</code></td>
 <td>44,50,56</td>
@@ -829,10 +822,10 @@ the <a href="../menu.html#actcolor"><b>Actions... Color</b> menu</a>
 <td><code>#000000</code></td>
 <td>0,0,0</td>
 </tr>
-</table>
+</tbody></table>
 </td>
 </tr>
-</table>
+</tbody></table>
 
 <a name="examples"></a>
 <p class="nav">
@@ -872,7 +865,7 @@ Objects can be made transparent by including transparency (alpha &lt; 100%) in
 <a href="#top">command-line color specifications</a>.
 In addition, the <a href="transparency.html"><b>transparency</b></a> 
 command or the <a href="color.html"><b>color</b></a> command
-<a href="color.html#transparency"><b>transparency</b></a> option
+<a href="color.html#transparency"><b>transparency</b> option</a>
 can be used, as well as the system color-editing dialog
 (<i>e.g.</i>, shown by using menu:
 <a href="../menu.html#actcolor"><b>Actions... Color...  From Editor</b></a>).
@@ -898,5 +891,6 @@ keeping inner objects opaque.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2021</address>
+January 2026</address>
+
 </body></html>

@@ -14,7 +14,7 @@ from chimerax.core.tools import ToolInstance
 from chimerax.ui.open_save import SaveDialog
 
 from chimerax.animations.triggers import (add_handler, KF_EDIT, PREVIEW, PLAY, KF_ADD, KF_DELETE, RECORD, STOP_PLAYING, INSERT_TIME, REMOVE_TIME, remove_handler, STOP_RECORDING)
-from chimerax.animations.kf_editor_two import KeyframeEditorWidget
+from chimerax.animations.editor_widget import KeyframeEditorWidget
 
 
 class AnimationsTool(ToolInstance):
@@ -32,6 +32,7 @@ class AnimationsTool(ToolInstance):
 
     SESSION_ENDURING = False  # Does this instance persist when session closes
     SESSION_SAVE = True  # We do save/restore in sessions
+    help = "help:user/tools/animations.html"
 
     def __init__(self, session, tool_name):
         """
@@ -71,7 +72,7 @@ class AnimationsTool(ToolInstance):
         self.handlers.append(add_handler(INSERT_TIME, lambda trigger_name, data: run(self.session, f"animations insertTime {data[0]} {data[1]}")))
         self.handlers.append(add_handler(REMOVE_TIME, lambda trigger_name, data: run(self.session, f"animations removeTime {data[0]} {data[1]}")))
 
-        self.tool_window.manage("bottom")
+        self.tool_window.manage("bottom", split="above")
 
     def build_ui(self):
         """
@@ -80,7 +81,7 @@ class AnimationsTool(ToolInstance):
 
         main_vbox_layout = QVBoxLayout()
 
-        # Use the enhanced KeyframeEditorWidget that includes dual-mode support
+        # Use the dual-mode editor that switches between keyframe and scene timelines
         self.kf_editor_widget = KeyframeEditorWidget(self.session)
 
         # Hide mode toggle buttons to reclaim vertical space
@@ -152,7 +153,7 @@ class AnimationsTool(ToolInstance):
         settings = get_settings(self.session)
 
         # Listen for settings changes
-        settings.triggers.add_handler('setting changed', self._on_setting_changed)
+        self._settings_handler = settings.triggers.add_handler('setting changed', self._on_setting_changed)
 
     def _on_setting_changed(self, trigger_name, data):
         """Handle settings changes, particularly for animation mode."""
@@ -164,6 +165,12 @@ class AnimationsTool(ToolInstance):
             else:  # scene mode
                 self.kf_editor_widget.scene_mode_btn.setChecked(True)
                 self.kf_editor_widget.switch_mode(self.kf_editor_widget.scene_mode_btn)
+        elif setting_name == 'playback_fps':
+            self.kf_editor_widget._on_fps_changed(new_value)
+            # Update the combo box to match
+            idx = self.kf_editor_widget.fps_combo.findData(new_value)
+            if idx >= 0:
+                self.kf_editor_widget.fps_combo.setCurrentIndex(idx)
 
 
     def delete(self):
@@ -177,18 +184,52 @@ class AnimationsTool(ToolInstance):
         if hasattr(self, '_settings_handler'):
             from .settings import get_settings
             settings = get_settings(self.session)
-            settings.triggers.remove_handler('setting changed', self._on_setting_changed)
+            settings.triggers.remove_handler(self._settings_handler)
 
-        # Note: KeyframeEditorWidget cleanup is handled automatically by Qt
+        if hasattr(self.kf_editor_widget, 'cleanup'):
+            self.kf_editor_widget.cleanup()
 
         super().delete()
 
     def take_snapshot(self, session, flags):
+        # SceneAnimation is now a session state manager and is saved/restored
+        # independently.  We only need to store our own version marker.
         return {
-            'version': 1
+            'version': 3,
         }
 
     @classmethod
     def restore_snapshot(class_obj, session, data):
         inst = class_obj(session, "Animations")
+        version = data.get('version', 1)
+        if version == 2:
+            # Backward compat: v2 stored scene_animation data inside the tool
+            # snapshot.  Migrate it into the session state manager.
+            scene_anim_data = data.get('scene_animation')
+            if scene_anim_data:
+                scene_anim = session.get_state_manager("scene animations")
+                scene_anim.restore_from_data(scene_anim_data)
+        # For v3+, SceneAnimation is restored by the session machinery.
+        inst._repopulate_scene_timeline()
         return inst
+
+    def _repopulate_scene_timeline(self):
+        """Repopulate the scene timeline widget from the state manager."""
+        scene_anim = self.session.get_state_manager("scene animations")
+        scene_anim.validate_scenes()
+
+        timeline = self.kf_editor_widget.scene_timeline_widget
+        timeline_scene = timeline.timeline_scene
+
+        timeline_scene.duration = scene_anim.duration
+        timeline.timeline_controls.set_duration(scene_anim.duration)
+
+        for time, scene_name, transition_data in scene_anim.scenes:
+            timeline_scene.add_scene_marker(time, scene_name, transition_data)
+
+        timeline_scene.action_segments = list(scene_anim.action_segments)
+        timeline_scene.update()
+
+        if scene_anim.scenes:
+            first_scene_name = min(scene_anim.scenes, key=lambda s: s[0])[1]
+            self.session.scenes.restore_scene(first_scene_name)

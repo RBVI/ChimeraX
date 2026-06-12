@@ -162,6 +162,16 @@ class UI(QApplication):
             self.screenAdded.connect(self._screen_added)
             self.screenRemoved.connect(self._screen_removed)
 
+        if platform != 'darwin':
+            # As of Qt 6.9, non-Mac color choosers do not remember custom colors,
+            # so save/restore them
+            from Qt.QtWidgets import QColorDialog
+            from Qt.QtGui import QColor
+            saved_colors = self.settings.editor_custom_colors
+            for slot, custom_rgba in enumerate(saved_colors[:
+                    min(len(saved_colors), QColorDialog.customCount())]):
+                QColorDialog.setCustomColor(slot, QColor(*custom_rgba))
+
     def _set_linux_palette(self, new_scheme):
         # On Linux, the standard dark palette is lacking. Input fields are hard
         # distinguish, and radio buttons locations aren't visible
@@ -517,6 +527,12 @@ class UI(QApplication):
         from sys import platform
         if platform == 'darwin':
             return	# Avoid Mac Qt 6.8.2 crash on exit.  ChimeraX bug #17265
+        from Qt.QtWidgets import QColorDialog
+        custom_colors = []
+        for slot in range(QColorDialog.customCount()):
+            qc = QColorDialog.customColor(slot)
+            custom_colors.append((qc.red(), qc.green(), qc.blue(), qc.alpha()))
+        self.settings.editor_custom_colors = custom_colors
         QApplication.quit()
 
     def thread_safe(self, func, *args, post_event=False, **kw):
@@ -2305,7 +2321,7 @@ class ToolWindow(StatusLogger):
     }
     def manage(self, placement = None, fixed_size=False,
             allowed_areas=Qt.DockWidgetArea.RightDockWidgetArea|Qt.DockWidgetArea.LeftDockWidgetArea,
-            initially_hidden=False):
+            initially_hidden=False, split=None):
         """Supported API. Show this tool window in the interface
 
         Tool will be docked into main window on the side indicated by
@@ -2324,6 +2340,10 @@ class ToolWindow(StatusLogger):
 
         The tool will be displayed unless 'initially_hidden' is True.  This flag is needed because
         setting tool.shown to False after manage() will otherwise briefly show the tool.
+
+        If `split` is specified and there's already a dock widget in the target area,
+        the new tool will be split from the existing one rather than placed side-by-side.
+        Values: "above"/"below" for vertical splits, "left"/"right" for horizontal splits.
         """
         ui = self.session.ui
         settings =  ui.settings
@@ -2377,7 +2397,7 @@ class ToolWindow(StatusLogger):
             if overall_width - self.ui_area.sizeHint().width() < graphics_width / 2:
                 resize_docked = True
         ui.main_window._about_to_manage(self, place_floating)
-        self.__toolkit.manage(placement, allowed_areas, fixed_size, geometry)
+        self.__toolkit.manage(placement, allowed_areas, fixed_size, geometry, split)
         if resize_docked:
             ui.main_window.resizeDocks([self._dock_widget], [overall_width - central_width], Qt.Horizontal)
         if initially_hidden:
@@ -2695,7 +2715,7 @@ class _Qt:
                 self.dock_widget.setWindowFlags(self._docked_window_flags)
         self.main_window._float_changed(self.tool_window, floating)
 
-    def manage(self, placement, allowed_areas, fixed_size, geometry):
+    def manage(self, placement, allowed_areas, fixed_size, geometry, split=None):
         # map 'side' to the user's preferred side
         session = self.tool_window.tool_instance.session
         from Qt.QtCore import Qt
@@ -2726,7 +2746,22 @@ class _Qt:
             from Qt.QtCore import QTimer
             QTimer.singleShot(0, self.dock_widget.raise_)
         else:
+            # Check if we should split with an existing dock widget
+            existing_widget = None
+            if split in ("above", "below", "left", "right"):
+                existing_widget = self._find_dock_widget_in_area(mw, side)
+
+            # Always add the dock widget first
             mw.addDockWidget(side, self.dock_widget)
+
+            # Then split if needed
+            if existing_widget is not None:
+                split_orientation = Qt.Vertical if split in ("above", "below") else Qt.Horizontal
+                # "above"/"left" means new widget comes first, "below"/"right" means it comes second
+                if split in ("above", "left"):
+                    mw.splitDockWidget(self.dock_widget, existing_widget, split_orientation)
+                else:
+                    mw.splitDockWidget(existing_widget, self.dock_widget, split_orientation)
             if placement is None or allowed_areas == Qt.DockWidgetArea.NoDockWidgetArea:
                 self.dock_widget.setFloating(True)
                 if self.dock_widget.screen():
@@ -2755,6 +2790,17 @@ class _Qt:
             from Qt.QtWidgets import QSizePolicy
             self.dock_widget.widget().setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
 
+    def _find_dock_widget_in_area(self, main_window, area):
+        """Find an existing visible dock widget in the given area."""
+        from Qt.QtWidgets import QDockWidget
+        for dock in main_window.findChildren(QDockWidget):
+            if dock is self.dock_widget:
+                continue
+            if dock.isVisible() and not dock.isFloating():
+                if main_window.dockWidgetArea(dock) == area:
+                    return dock
+        return None
+
     def show_context_menu(self, event):
         _show_context_menu(event, self.tool_window.tool_instance, self.tool_window,
             self.tool_window.fill_context_menu,
@@ -2781,6 +2827,8 @@ class _Qt:
         #
         if shown:
             self.dock_widget.show()
+            # deiconify if necessary
+            self.dock_widget.showNormal()
             #ensure it's on top
             self.dock_widget.raise_()
             self.dock_widget.activateWindow()

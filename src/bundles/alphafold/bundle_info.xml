@@ -49,6 +49,7 @@
     -->
     <ChimeraXClassifier>Tool :: AlphaFold :: Structure Prediction :: Fetch or calculate AlphaFold structures</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: AlphaFold Error Plot :: Structure Prediction :: Plot AlphaFold predicted aligned error</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Predicted Aligned Error Plot :: Structure Prediction :: Plot AlphaFold, Boltz, ESMFold, OpenFold predicted aligned error heatmaps</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

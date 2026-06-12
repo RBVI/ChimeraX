@@ -29,8 +29,8 @@ class LaunchKVFinderTool(ToolInstance):
         from .cmd import cmd_kvfinder
         cmd_params = inspect.signature(cmd_kvfinder).parameters
         self.cmd_defaults = {
-            kw_name: cmd_params[kw_name].default
-                for kw_name in ['grid_spacing', 'probe_in', 'probe_out', 'removal_distance', 'volume_cutoff']
+            kw_name: cmd_params[kw_name].default for kw_name in
+                ['grid_spacing', 'probe_in', 'probe_out', 'removal_distance', 'volume_cutoff', 'box_pad']
         }
         global _launch_settings
         if _launch_settings is None:
@@ -42,6 +42,7 @@ class LaunchKVFinderTool(ToolInstance):
         self.tool_window = tw = MainToolWindow(self)
         parent = tw.ui_area
         from Qt.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel, QWidget, QGroupBox, QCheckBox
+        from Qt.QtWidgets import QDoubleSpinBox
         from Qt.QtCore import Qt
         self.layout = layout = QVBoxLayout()
         parent.setLayout(layout)
@@ -98,6 +99,27 @@ class LaunchKVFinderTool(ToolInstance):
             setattr(self, attr_name + '_option', opt)
             panel.add_option(opt)
 
+        restrict_layout = QHBoxLayout()
+        restrict_layout.setContentsMargins(0,0,0,0)
+        restrict_layout.setSpacing(0)
+        restrict_layout.addStretch(1)
+        self.restrict_box = QCheckBox("Restrict search to box around selected atoms with padding ")
+        self.restrict_box.toggled.connect(lambda enabled, s=self: s.padding_box.setEnabled(enabled))
+        restrict_layout.addWidget(self.restrict_box)
+        self.padding_box = QDoubleSpinBox()
+        self.padding_box.setRange(0, 999.9)
+        self.padding_box.setSingleStep(0.5)
+        self.padding_box.setDecimals(1)
+        self.padding_box.setAlignment(Qt.AlignCenter)
+        self.padding_box.setValue(2)
+        self.padding_box.setEnabled(False)
+        restrict_layout.addWidget(self.padding_box)
+        restrict_layout.addStretch(1)
+        layout.addLayout(restrict_layout)
+
+        self.include_box = QCheckBox("Include selected atoms as part of macromolecule")
+        layout.addWidget(self.include_box, alignment=Qt.AlignCenter)
+
         self.replace_prev = QCheckBox("Replace existing results, if any")
         self.replace_prev.setChecked(True)
         layout.addWidget(self.replace_prev, alignment=Qt.AlignCenter)
@@ -106,7 +128,7 @@ class LaunchKVFinderTool(ToolInstance):
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
         bbox.accepted.connect(self.find_cavities)
         # Since ApplyRole is not AcceptRole, simply connecting to the Apply button won't dismiss the dialog
-        bbox.button(qbbox.Apply).clicked.connect(self.find_cavities)
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args, fc=self.find_cavities: fc(apply=True))
         bbox.rejected.connect(self.delete)
         if getattr(self, 'help', None) is None:
             bbox.button(qbbox.Help).setEnabled(False)
@@ -117,9 +139,10 @@ class LaunchKVFinderTool(ToolInstance):
 
         tw.manage(placement=None)
 
-    def find_cavities(self):
-        self.tool_window.shown = False
-        self.session.ui.processEvents()
+    def find_cavities(self, apply=False):
+        if not apply:
+            self.tool_window.shown = False
+            self.session.ui.processEvents()
         from chimerax.ui import tool_user_error
         structures = self.structures_list.value
         if not structures:
@@ -137,10 +160,18 @@ class LaunchKVFinderTool(ToolInstance):
                 return tool_user_error("Grid spacing value must be > 0.0 and < 5.0")
             if cur_val != default_value:
                 cmd += " " + camel_case(attr_name) + " %g" % cur_val
+        if self.restrict_box.isChecked():
+            cmd += " boxAtoms sel"
+            padding = self.padding_box.value()
+            if padding != self.cmd_defaults["box_pad"]:
+                cmd += " boxPad %g" % padding
+        if self.include_box.isChecked():
+            cmd += " includeAtoms sel"
         if not self.replace_prev.isChecked():
             cmd += " replace false"
         run(self.session, cmd)
-        self.delete()
+        if not apply:
+            self.delete()
 
 
 _results_settings = None

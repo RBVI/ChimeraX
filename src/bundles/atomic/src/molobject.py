@@ -805,17 +805,30 @@ class Sequence(State):
         'W':'TRP', 'Y':'TYR', 'Z':'GLX' }
 
     # the following colors for use by alignment/sequence viewers
-    default_helix_fill_color = (1.0, 1.0, 0.8)
-    default_helix_outline_color = tuple([chan/255.0 for chan in (218, 165, 32)]) # goldenrod
-    default_strand_fill_color = (0.88, 1.0, 1.0) # light cyan
-    default_strand_outline_color = tuple([0.75*chan for chan in default_strand_fill_color])
+    light_mode_helix_fill = (1.0, 1.0, 0.8)
+    light_mode_helix_outline = tuple([chan/255.0 for chan in (218, 165, 32)]) # goldenrod
+    light_mode_strand_fill = (0.88, 1.0, 1.0) # light cyan
+    light_mode_strand_outline = tuple([0.75*chan for chan in light_mode_strand_fill])
+    dark_mode_helix_fill = tuple([0.6*chan for chan in light_mode_helix_fill])
+    dark_mode_helix_outline = light_mode_helix_fill
+    dark_mode_strand_fill = tuple([0.6*chan for chan in light_mode_strand_fill])
+    dark_mode_strand_outline = light_mode_strand_fill
+    default_helix_fill_color = light_mode_helix_fill
+    default_helix_outline_color = light_mode_helix_outline
+    default_strand_fill_color = light_mode_strand_fill
+    default_strand_outline_color = light_mode_strand_outline
 
     chimerax_exiting = False
 
-    def __init__(self, seq_pointer=None, *, name="sequence", characters=""):
+    def __init__(self, seq_pointer=None, *, name="sequence", characters="", is_reference=False):
+        """'is_reference' indicates a full reference sequence that should not be renumbered
+           as chains are associated/disassociated from it.  If the numbering should not start
+           at 1, set 'numbering_start' after creation.
+        """
         self.attrs = {} # miscellaneous attributes
         self.markups = {} # per-residue (strings or lists)
-        self.numbering_start = None
+        self.is_reference = is_reference
+        self.numbering_start = 1 if is_reference else None
         self._features = {}
         self.accession_id = {}
         from chimerax.core.triggerset import TriggerSet
@@ -983,6 +996,7 @@ class Sequence(State):
         self.characters = data['characters']
         self.attrs = data.get('attrs', {})
         self.markups = data.get('markups', {})
+        self.is_reference = data.get('is_reference', False)
         self.numbering_start = data.get('numbering_start', None)
         self._features = data.get('features', {})
         self.accession_id = data.get('accession_id', {})
@@ -1008,7 +1022,7 @@ class Sequence(State):
         data = { 'name': self.name, 'characters': self.characters, 'attrs': self.attrs,
             'markups': self.markups, 'numbering_start': self.numbering_start,
             'custom attrs': self.custom_attrs, 'features': self._features,
-            'accession_id': self.accession_id }
+            'accession_id': self.accession_id, 'is_reference': self.is_reference }
         return data
 
     def ungapped(self):
@@ -1569,7 +1583,9 @@ class StructureData:
     coordset_ids = c_property('structure_coordset_ids', int32, 'num_coordsets', read_only = True,
         doc = "Supported API. Return array of ids of all coordinate sets.")
     coordset_size = c_property('structure_coordset_size', int32, read_only = True,
-        doc = "Supported API. Return the size of the active coordinate set array.")
+        doc = "Supported API. Return the size of the active coordinate set array."
+        " If atoms have been deleted, this number could be more than the number of atoms, so in most"
+        " practical cases you should use the num_atoms attribute.")
     coordsets = c_property('structure_coordsets', cptr, 'num_coordsets', astype = convert.coordsets,
         read_only = True,
         doc = "Supported API. :class:`.CoordSets` collection containing all coordsets of the structure.")
@@ -1654,6 +1670,8 @@ class StructureData:
     '''Ribbon mode showing secondary structure as an arc (tube or plank).'''
     RIBBON_MODE_WRAP = 2
     '''Ribbon mode showing helix as ribbon wrapped around tube.'''
+    RIBBON_MODE_CYLINDER = 3
+    '''Ribbon mode showing helix as straight cylinder.'''
     ring_display_count = c_property('structure_ring_display_count', int32, read_only = True,
         doc = "Return number of residues with ring display set. Integer.")
     ss_assigned = c_property('structure_ss_assigned', npy_bool, doc =
@@ -1719,6 +1737,11 @@ class StructureData:
         import numpy
         return [Atoms(numpy.array(x, numpy.uintp)) for x in f(self._c_pointer, consider_missing_structure)]
 
+    def break_triangle_waters(self):
+        '''For waters with an H-H bond, break that bond'''
+        f = c_function('structure_break_triangle_waters', args = (ctypes.c_void_p,), ret = ctypes.c_void_p)
+        p = f(self._c_pointer)
+
     def chain_trace_atoms(self):
         '''
         Find pairs of atoms that should be connected in a chain trace.
@@ -1769,15 +1792,9 @@ class StructureData:
         if not xyzs.flags.c_contiguous:
             # molc.cpp code doesn't know about strides...
             xyzs = xyzs.copy()
-        cs_size = self.coordset_size
-        if cs_size > 0:
-            dim_check = cs_size
-            check_text = "previous coordinate sets"
-            do_check = True
-        else:
-            dim_check = self.num_atoms
-            check_text = "number of atoms"
-            do_check = dim_check > 0
+        dim_check = self.num_atoms
+        check_text = "number of atoms"
+        do_check = dim_check > 0
         if do_check and xyzs.shape[1] != dim_check:
             raise ValueError('add_coordsets(): second dimension of coordinate array'
                 ' must be same as %s' % check_text)

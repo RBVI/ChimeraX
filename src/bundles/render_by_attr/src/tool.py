@@ -198,6 +198,7 @@ class RenderByAttrTool(ToolInstance):
         self.radius_value_entry.setValidator(validator)
         from chimerax.ui import set_line_edit_width
         set_line_edit_width(self.radius_value_entry, 5)
+        self.radius_value_entry.editingFinished.connect(self._radius_edited)
         rh.add_custom_widget(self.radius_value_entry, left_side=False, alignment=Qt.AlignLeft)
         rv_widgets = [radius_label, self.radius_value_entry]
         self.render_type_widgets[self.RENDER_RADII] = rv_widgets
@@ -354,7 +355,128 @@ class RenderByAttrTool(ToolInstance):
             bbox.button(qbbox.Help).setEnabled(False)
         overall_layout.addWidget(bbox)
 
+        self.model_list.ready_for_callback()
         tw.manage(placement=None)
+
+    def configure(self, *, models=None, target=None, tab=None, attr_name=None, level_info=None,
+            no_value_info=None, render_type=None):
+        '''Configure the Render By Attribute interface programmatically.
+
+           All the arguments are optional.  Any argument not specified will retain the current value.
+
+           'models' should be a list models that the rendering/selection will apply to.
+
+           'target' is one of the names from the target menu.  It is an extensible list, but the
+           default values provided by the atomic bundle are: atoms, residues, chains, and structures.
+
+           'tab' is "render" or "select".
+
+           'attr_name' is the name of the attribute whose values will be shown in the histogram.
+
+           'level_info' is where to place markers on the histogram and, if rendering, their color
+           or radius value as appropriate.  So for rendering, level_info is a series of (attribute-value,
+           color-or-radius) tuples, and for selecting it's just a two-tuple/list of attribute values.
+
+           'no_value_info' controls the settings for rendering items with no value.  It is a two-tuple/list
+           consisting of a boolean and a color or radius.  The boolean controls whether checkbox for
+           applying results for no-value items is checked (and is ignored if rendering worms, which
+           has no checkbox).
+
+           'render_type' controls what sub-tab is shown for rendering.  It is one of
+           RenderByAttrTool.RENDER_COLORS, RENDER_RADII, or RENDER_WORMS.
+        '''
+        from chimerax.core.commands import commas
+        if models is not None:
+            self.model_list.value = models
+            # ensure the changes caused by model list changes happen now
+            self.model_list.ready_for_callback()
+
+        if target is not None:
+            menu = self.target_menu_button.menu()
+            for action in menu.actions():
+                if action.text().lower() == target.lower():
+                    action.trigger()
+                    break
+            else:
+                raise ValueError("No target named '%s'; target names are: %s" % (target,
+                    commas([act.text() for act in menu.actions()], "and")))
+
+        if tab is not None:
+            tab_widget = self.mode_widget
+            for index in range(tab_widget.count()):
+                if tab_widget.tabText(index).lower() == tab.lower():
+                    tab_widget.setCurrentIndex(index)
+                    break
+            else:
+                raise ValueError("No mode tab named '%s'; tab names are: %s" % (tab,
+                    commas([tab_widget.tabText(i) for i in range(tab_widget.count())], "and")))
+
+        if attr_name is not None:
+            menu = (self.render_attr_menu_button
+                if self.mode_widget.tabText(self.mode_widget.currentIndex()) == "Render"
+                else self.select_attr_menu_button).menu()
+            menu.aboutToShow.emit()
+            for action in menu.actions():
+                if action.text() == attr_name:
+                    action.trigger()
+                    break
+            else:
+                raise ValueError("No attribute named '%s'; attribute names are: %s" % (attr_name,
+                    commas([act.text() for act in menu.actions()], "and")))
+
+        if render_type is not None:
+            tab_widget = self.render_type_widget
+            for index in range(tab_widget.count()):
+                if tab_widget.tabText(index).lower() == render_type.lower():
+                    tab_widget.setCurrentIndex(index)
+                    break
+            else:
+                raise ValueError("No render tab named '%s'; tab names are: %s" % (tab,
+                    commas([tab_widget.tabText(i) for i in range(tab_widget.count())], "and")))
+
+        if no_value_info is not None:
+            check_box, value = no_value_info
+            render_type = self.render_type_widget.tabText(self.render_type_widget.currentIndex())
+            if render_type == self.RENDER_COLORS:
+                self.color_no_value.setChecked(check_box)
+                self.no_value_color.color = value
+            elif render_type == self.RENDER_RADII:
+                self.radii_affect_nv.value = check_box
+                self.radii_nv_radius.value = value
+            else:
+                self.worm_nv_radius.value = value
+
+        if level_info is not None:
+            rendering = self.mode_widget.tabText(self.mode_widget.currentIndex()) == "Render"
+            if rendering:
+                render_type = self.render_type_widget.tabText(self.render_type_widget.currentIndex())
+                if render_type == self.RENDER_COLORS:
+                    markers = self.render_color_markers
+                elif render_type == self.RENDER_RADII:
+                    markers = self.render_radius_markers
+                else:
+                    markers = self.render_worm_markers
+            else:
+                markers = self.select_markers
+            while len(markers) > 0:
+                markers.pop()
+            coord_type = markers.coord_type
+            markers.coord_type = "absolute"
+            for info in level_info:
+                if rendering:
+                    if render_type == self.RENDER_COLORS:
+                        level, color = info
+                        arg = ((level, 0.0), color)
+                    else:
+                        level, radius = info
+                        arg = ((level, 0.0), None)
+                else:
+                    level = info
+                    arg = ((level, 0.0), None)
+                marker = markers.append(arg)
+                if rendering and render_type != self.RENDER_COLORS:
+                    marker.radius = radius
+            markers.coord_type = coord_type
 
     @property
     def default_render_color_markers(self):
@@ -697,6 +819,14 @@ class RenderByAttrTool(ToolInstance):
         self.color_surfaces.setEnabled("surfaces" in color_targets)
         self._new_render_attr()
         self._new_select_attr()
+
+    def _radius_edited(self):
+        markers, cur_marker = self.render_histogram.current_marker_info()
+        if markers != self.render_radius_markers or not cur_marker:
+            return
+
+        if self.radius_value_entry.hasAcceptableInput():
+            cur_marker.radius = float(self.radius_value_entry.text().strip())
 
     def _radius_marker_add_del(self, marker=None):
         if marker:
