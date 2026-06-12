@@ -233,7 +233,7 @@ class GridCanvas:
             else:
                 row = label_to_row[self.MISC_LABEL]
             row_cols.append((row, col))
-        self._choose_cells(row_cols, clear=True)
+        self._choose_cells(row_cols, clear=True, report=False)
 
     def destroy(self):
         self._destroyed = True
