@@ -37,10 +37,10 @@ using chutil::CString;
 // len param includes null
 #if 0
 typedef CString<5, 'A', 't', 'o', 'm', ' ', 'N', 'a', 'm', 'e'>  AtomName; // if changed to string,
+// pdb reader's canonicalize_atom_name needs to be changed accordingly
 #else
 typedef std::string AtomName;
 #endif
-// pdb reader's canonicalize_atom_name needs to be changed accordingly
 typedef CString<5, 'A', 't', 'o', 'm', ' ', 'T', 'y', 'p', 'e'>  AtomType;
 typedef std::string ChainID;
 typedef std::string ResName;
