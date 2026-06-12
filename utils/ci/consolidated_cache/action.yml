@@ -29,33 +29,52 @@ runs:
           prereqs/pips/cxservices-1.2.3-py3-none-any.whl
         key: generic-plato-pips
 
-    - name: Restore cached Python (Linux)
+    # Single source of truth for the Python version is mk/config.make.  Read the
+    # pinned values from there so the cache keys, cache paths, and the download
+    # below never have to be kept in sync with the build by hand.  config.make
+    # includes os.make (which shells out to the compiler), so parse the three
+    # lines directly rather than evaluating the makefile.
+    - name: Resolve pinned Python version from the build config
+      id: python
+      shell: bash
+      run: |
+        cfg=mk/config.make
+        get() { awk -v k="$1" '$1 == k { print $3; exit }' "$cfg"; }
+        patch="$(get PYTHON_VERSION).$(get PYTHON_PATCH_VERSION)"
+        release="$(get PYTHON_BUILD_STANDALONE_RELEASE)"
+        if [ "$patch" = "." ] || [ -z "$release" ]; then
+          echo "Could not parse Python version/PBS release from $cfg" >&2
+          exit 1
+        fi
+        echo "patch=$patch" >> "$GITHUB_OUTPUT"
+        echo "release=$release" >> "$GITHUB_OUTPUT"
+        echo "Resolved Python $patch (python-build-standalone $release) from $cfg"
+
+    # macOS/Windows download a relocatable python-build-standalone "install_only"
+    # archive (named identically apart from the target triple); the cache just
+    # avoids re-downloading it.
+    - name: Restore cached Python (macOS/Windows)
+      id: cache-python-pbs
+      if: ${{ inputs.platform != 'linux' }}
+      uses: actions/cache@v4
+      with:
+        path: |
+          prereqs/Python/cpython-${{ steps.python.outputs.patch }}+${{ steps.python.outputs.release }}-*-install_only.tar.gz
+        key: ${{ runner.os }}-${{ inputs.architecture }}-python-${{ steps.python.outputs.patch }}-${{ steps.python.outputs.release }}
+
+    # Linux builds Python from source against the system OpenSSL, so the compiled
+    # interpreter is not cached (it is distro-specific and would go stale as the
+    # runner's OpenSSL/glibc/compiler change).  Cache only the source download
+    # from python.org so the build skips re-fetching it; the source tarball is
+    # distro-independent, so the key needs no distro tag.
+    - name: Restore cached Python source (Linux)
       id: cache-python-linux
       if: ${{ inputs.platform == 'linux' }}
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/Python/Python-3.11.13.tar.xz
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.13
-
-    - name: Restore cached Python (Windows)
-      id: cache-python-windows
-      if: ${{ inputs.platform == 'windows' }}
-      uses: actions/cache@v4
-      with:
-        path: |
-          prereqs/Python/python-3.11.9-win-amd64.tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.9
-
-
-    - name: Restore cached Python (macOS)
-      id: cache-python-macos
-      if: ${{ inputs.platform == 'macos' }}
-      uses: actions/cache@v4
-      with:
-        path: |
-          prereqs/Python/python-3.11.9-mac.tar.bz2
-        key: ${{ runner.os }}-${{ inputs.architecture }}-python-3.11.9
+          prereqs/Python/Python-${{ steps.python.outputs.patch }}.tar.xz
+        key: python-src-${{ steps.python.outputs.patch }}
 
     - name: Restore cached mmtf dependency sources
       id: cache-mmtf
@@ -234,21 +253,25 @@ runs:
         mv mmtf*.zip src/bundles/mmtf/
         mv msgpack*.zip src/bundles/mmtf/
 
-    - name: Fetch Python
+    # macOS/Windows fetch the prebuilt archive.  Linux has nothing to fetch
+    # here: the build always compiles Python from source, downloading it from
+    # python.org (that source download is what the Linux cache step above keeps).
+    - name: Fetch Python (macOS/Windows)
       shell: bash
-      if: ${{ steps[format('cache-python-{0}', inputs.platform)].outputs.cache-hit != 'true' }}
+      if: ${{ inputs.platform != 'linux' && steps.cache-python-pbs.outputs.cache-hit != 'true' }}
       run: |
-        if [ "${{ inputs.platform }}" = "linux" ] ; then
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/python/Python-3.11.13.tar.xz -O -J
-          mv Python* prereqs/Python/
-        fi
-        if [ "${{ inputs.platform }}" = "macos" ] ; then
-          cd prereqs/Python && NO_LOCAL_SSL_CERT=1 make -f Makefile.macos
-        fi
-        if [ "${{ inputs.platform }}" = "windows" ] ; then
-          curl https://cxtoolshed.rbvi.ucsf.edu/prereqs/python/python-3.11.9-win-amd64.tar.bz2 -O -J
-          mv python* prereqs/Python/
-        fi
+        PYVER=${{ steps.python.outputs.patch }}
+        PBS_RELEASE=${{ steps.python.outputs.release }}
+        case "${{ inputs.platform }}-${{ inputs.architecture }}" in
+          macos-x86_64)   TRIPLE=x86_64-apple-darwin ;;
+          macos-arm64)    TRIPLE=aarch64-apple-darwin ;;
+          windows-x86_64) TRIPLE=x86_64-pc-windows-msvc ;;
+          windows-arm64)  TRIPLE=aarch64-pc-windows-msvc ;;
+        esac
+        TARBALL=cpython-${PYVER}+${PBS_RELEASE}-${TRIPLE}-install_only.tar.gz
+        curl --silent --show-error --fail --location -O \
+          https://github.com/astral-sh/python-build-standalone/releases/download/${PBS_RELEASE}/${TARBALL}
+        mv "${TARBALL}" prereqs/Python/
 
     - name: Fetch generic pips
       shell: bash
