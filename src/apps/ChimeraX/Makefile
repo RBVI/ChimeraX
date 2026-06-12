@@ -156,6 +156,10 @@ ifeq ($(OS),Darwin)
 	# Add RPATH so Python ssl module can find libssl.dylib.
 	# It needs Python.Framework in the RPATH
 	install_name_tool -add_rpath '@executable_path/../Library/Frameworks/Python.framework' $(PROG)
+	# The python-build-standalone libpython and its extension modules use an
+	# install name of @rpath/libpython$(PYTHON_VERSION).dylib, which lives in
+	# the framework's Versions/$(PYTHON_VERSION)/lib directory.
+	install_name_tool -add_rpath '@executable_path/../Library/Frameworks/Python.framework/Versions/$(PYTHON_VERSION)/lib' $(PROG)
 endif
 
 ChimeraX-icon512.png: ChimeraX-icon.svg

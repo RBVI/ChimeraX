@@ -2,7 +2,7 @@ PREREQ_MAKE = 1
 TOP	= ../..
 include $(TOP)/mk/config.make
 
-# PYTHON_VERSION is in config.make
+# PYTHON_VERSION and PYTHON_PATCH_VERSION are in config.make
 PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
 
 PIP_VERSION = 25.2
@@ -10,155 +10,182 @@ WHEEL_VERSION = 0.45.1
 SETUPTOOLS_VERSION = 80.9.0
 BUILD_VERSION = 1.3.0
 
-ifeq ($(OS),Windows)
-DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-win-amd64.tar.bz2
-DISTDIR = $(tmpdir)/python-$(PYTHON_PATCH_LEVEL)-win-amd64
-SOURCE =
-DYNLOAD_DIR = $(bindir)/DLLs
-endif
+# macOS and Windows use relocatable distributions from python-build-standalone
+# (https://github.com/astral-sh/python-build-standalone), so no per-platform
+# building is needed there.  Linux is built from CPython source (python.org) so
+# that it dynamically links the distribution's system OpenSSL; the expensive
+# build result is packaged into a tarball that CI caches per-distro.
+
 ifeq ($(OS),Linux)
-DISTRIBUTION = Python-$(PYTHON_PATCH_LEVEL).tar.xz
-DISTDIR =
+# --- Linux: build from source, link the system OpenSSL ---------------------
+SOURCE_DIST = Python-$(PYTHON_PATCH_LEVEL).tar.xz
 SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
-DYNLOAD_DIR = $(libdir)/python$(PYTHON_VERSION)/lib-dynload
-endif
-ifeq ($(OS),Darwin)
-DISTRIBUTION = python-$(PYTHON_PATCH_LEVEL)-mac.tar.bz2
-DISTDIR =
-SOURCE =
-DYNLOAD_DIR = $(libdir)/python$(PYTHON_VERSION)/lib-dynload
-endif
+# Relocatable tarball of the freshly built interpreter (members relative to
+# build_prefix).  CI caches this so the source build only runs on a cache miss.
+# The per-distro identity lives in the CI cache key, not in this file name.
+LINUX_PREBUILT = python-$(PYTHON_PATCH_LEVEL)-$(OSARCH).tar.bz2
 
+CONFIG_OPTIONS += --enable-shared
+# --enable-optimizations (PGO+LTO) is left off: it greatly lengthens the build
+# and has broken some container builds.  Now that the result is cached, it could
+# be reconsidered after benchmarking.
 QUOTE_CC := $(subst ','\'',$(CC) $(TARGET_ARCH))
-
-# Make Python use our compiler options
-ENV_CONFIGURE = env CC='$(QUOTE_CC) -I$(includedir) -L$(libdir) -DUSE_DYLD_GLOBAL_NAMESPACE'
-
-ifdef DEBUG
-ENV_CONFIGURE += OPT='$(OPT)'
-endif
-
-SRC_PATCHES	= $(wildcard Python-$(PYTHON_PATCH_LEVEL)-*.patch) \
-	  $(wildcard Python-$(PYTHON_PATCH_LEVEL)_$(OS).patch) \
-	  $(wildcard Python-$(PYTHON_PATCH_LEVEL)_$(OS)_$(OPENGL_PLATFORM).patch)
-ifdef DEBUG
-SRC_PATCHES += $(wildcard Python-$(PYTHON_PATCH_LEVEL)_debug.patch)
-endif
-
-ifeq ($(OS),Linux)
-# -Wl,-rpath ends up in shared libraries in addition to executables,
-# which we do not want, so only add the rpath when linking the executable
-ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
+ENV_CONFIGURE = env CC='$(QUOTE_CC) -I$(includedir) -L$(libdir)' LDFLAGS='$(LDFLAGS)'
 ifdef HARDENING
 ENV_CONFIGURE += CFLAGS='-D_FORTIFY=2 -fstack-protector-strong'
 endif
-EXTRA_CFLAGS = '-fdebug-prefix-map=$(build_prefix)=.'
-CONFIG_OPTIONS += --enable-shared
 export LD_LIBRARY_PATH=$(libdir)
-# --enable-optimizations causes singularity build to fail (and causes long build times)
-# Try reneabling with newer versions of Python after benchmarking it is worth it.
-# CONFIG_OPTIONS += --enable-optimizations
-endif
-
-ifeq ($(OS),Darwin)
-# -Wl,-rpath ends up in shared libraries in addition to executables,
-# which we do not want, so we add the rpath later, and set the DYLD_LIBRARY_PATH
-# to compensate while we are building.  We also edit the Makefile so that the
-# _build_ Python executable, python.exe, gets the correct rpath but none of
-# the shared objects should get an explicit rpath (and hence should just use
-# the rpath from the ChimeraX/python executable).
-export DYLD_LIBRARY_PATH=$(libdir)
-ENV_CONFIGURE += PATH='$(bindir)':"$$PATH"
-ifndef USE_MAC_FRAMEWORKS
-ENV_CONFIGURE += LDFLAGS='$(LDFLAGS)'
-CONFIG_OPTIONS += --enable-shared
-else
-CONFIG_OPTIONS += --enable-framework=$(frameworkdir) --prefix=$(build_prefix)
-ENV_CONFIGURE += LDFLAGS='$(LDFLAGS) -F$(frameworkdir)'
-REL_PYTHON_FRAMEWORK = ../Library/Frameworks/Python.framework/Versions/$(PYTHON_VERSION)
-endif
-endif
-
 ifdef DEBUG
 CONFIG_OPTIONS += --with-pydebug
 endif
-
 ifneq (,$(shell [ ! -e $(TOP)/build_type ] || [ `cat $(TOP)/build_type` = alpha ] && echo found))
-# stuff to do only if it is a private or daily build
 ifneq (,$(wildcard /usr/include/valgrind/valgrind.h))
 CONFIG_OPTIONS += --with-valgrind
 endif
 endif
+SRC_PATCHES = $(wildcard Python-$(PYTHON_PATCH_LEVEL)-*.patch) \
+	$(wildcard Python-$(PYTHON_PATCH_LEVEL)_$(OS).patch)
+
+else
+# --- macOS / Windows: python-build-standalone -------------------------------
+# Map our OSARCH to a python-build-standalone target triple.
+ifeq ($(OSARCH),DarwinArm64)
+PBS_TRIPLE = aarch64-apple-darwin
+endif
+ifeq ($(OSARCH),DarwinIntel64)
+PBS_TRIPLE = x86_64-apple-darwin
+endif
+ifeq ($(OSARCH),Windows64)
+PBS_TRIPLE = x86_64-pc-windows-msvc
+endif
+ifeq ($(OSARCH),WindowsArm64)
+PBS_TRIPLE = aarch64-pc-windows-msvc
+endif
+
+DISTRIBUTION = cpython-$(PYTHON_PATCH_LEVEL)+$(PYTHON_BUILD_STANDALONE_RELEASE)-$(PBS_TRIPLE)-install_only.tar.gz
+# The archive unpacks to a top-level "python" directory.
+PBS_DIR = $(tmpdir)/python
+INSTALL_DEP = $(PBS_DIR)
+endif
+
+ifeq ($(OS),Windows)
+APP_INSTALL_DEP = $(PBS_DIR)
+endif
+
+ifeq ($(OS),Darwin)
+# Path from bindir/libdir/includedir (build/bin, build/lib, build/include) to
+# the framework, used for the convenience symlinks.
+REL_PYTHON_FRAMEWORK = ../Library/Frameworks/Python.framework/Versions/$(PYTHON_VERSION)
+endif
 
 all:
 
-install: $(SOURCE) $(DISTRIBUTION) $(DISTDIR)
+install: $(INSTALL_DEP)
 ifeq ($(OS),Windows)
+	# Windows layout: python.exe plus DLLs/Lib/include/libs at the top level.
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ --delete\
-	  '$(DISTDIR)'/DLLs \
-	  '$(DISTDIR)'/Lib \
-	  '$(DISTDIR)'/include \
-	  '$(DISTDIR)'/libs \
-	  '$(DISTDIR)'/python.exe \
-	  '$(DISTDIR)'/pythonw.exe \
-	  '$(DISTDIR)'/*.dll \
+	  '$(PBS_DIR)'/DLLs \
+	  '$(PBS_DIR)'/Lib \
+	  '$(PBS_DIR)'/include \
+	  '$(PBS_DIR)'/libs \
+	  '$(PBS_DIR)'/python.exe \
+	  '$(PBS_DIR)'/pythonw.exe \
+	  '$(PBS_DIR)'/*.dll \
 	  '$(bindir)'
 	# Leave include and libs in bindir so pip/setuptools will work.
 	# Also copy include and lib directories to common locations for
 	# our source code.
-	$(RSYNC) --delete '$(DISTDIR)'/include/* \
+	$(RSYNC) --delete '$(PBS_DIR)'/include/* \
 		$(includedir)/python$(PYTHON_VERSION)$(PYTHON_ABI)
-	$(RSYNC) '$(DISTDIR)'/libs/* $(libdir)
+	$(RSYNC) '$(PBS_DIR)'/libs/* $(libdir)
 
-else ifdef USE_MAC_FRAMEWORKS
-	rm -rf $(frameworkdir)/Python.framework
-	# essex2 complains about pax headers having a newer format, so
-	# force this line's error to go away
-	tar xf $(DISTRIBUTION) -C $(frameworkdir) || true
-
-	# Link framework bin, lib, and include files to app directories
-	-cd $(bindir) ; ln -s $(REL_PYTHON_FRAMEWORK)/bin/python* $(REL_PYTHON_FRAMEWORK)/bin/pip* .
-	-ln -s $(REL_PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION) $(libdir)
-	-ln -s $(REL_PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) $(includedir)
+else ifeq ($(OS),Linux)
+	# Use the cached prebuilt interpreter if present, otherwise build it from
+	# CPython source (which links the distribution's system OpenSSL) and package
+	# the result so CI can cache it.
+	if [ -f '$(LINUX_PREBUILT)' ]; then \
+		echo 'Unpacking cached Python build: $(LINUX_PREBUILT)' ; \
+		tar xjf '$(LINUX_PREBUILT)' -C $(build_prefix) --no-same-owner ; \
+	else \
+		$(MAKE) linux-source-build ; \
+	fi
 
 else
-	# Linux or Mac OS X without framework
-	cd $(SOURCE) && $(MAKE) && $(MAKE) install
-ifeq ($(OS),Linux)
-	# convert to RPATH
-	patchelf --remove-rpath $(PYTHON_LIBRARY_DIR)/lib-dynload/*.so
-	chmod 755 $(libdir)/libpython*.so; patchelf --remove-rpath $(libdir)/libpython*.so
-	patchelf --force-rpath --set-rpath '$$ORIGIN/../lib' $(PYTHON_BIN)
+	# macOS: repackage the relocatable distribution into a Python.framework so
+	# the rest of the macOS build, code-signing, and packaging are unchanged.
+	# The distribution's lib/ subtree is kept intact, so libpython and the
+	# extension modules retain their @rpath/libpython$(PYTHON_VERSION).dylib
+	# install names; the ChimeraX executable adds a matching rpath that points
+	# at this framework's Versions/$(PYTHON_VERSION)/lib directory.
+	rm -rf $(frameworkdir)/Python.framework
+	mkdir -p $(PYTHON_FRAMEWORK)
+	$(RSYNC) '$(PBS_DIR)'/bin '$(PBS_DIR)'/lib '$(PBS_DIR)'/include $(PYTHON_FRAMEWORK)
+	-[ -d '$(PBS_DIR)'/share ] && $(RSYNC) '$(PBS_DIR)'/share $(PYTHON_FRAMEWORK)
+	# framework entry points (the dylib is reached through these symlinks)
+	ln -sf lib/libpython$(PYTHON_VERSION).dylib $(PYTHON_FRAMEWORK)/Python
+	ln -sf include/python$(PYTHON_VERSION) $(PYTHON_FRAMEWORK)/Headers
+	mkdir -p $(PYTHON_FRAMEWORK)/Resources
+	sed -e 's/@PYTHON_PATCH_LEVEL@/$(PYTHON_PATCH_LEVEL)/g' \
+	    Info.plist.in > $(PYTHON_FRAMEWORK)/Resources/Info.plist
+	cd $(frameworkdir)/Python.framework/Versions && ln -sfn $(PYTHON_VERSION) Current
+	cd $(frameworkdir)/Python.framework && ln -sfn Versions/Current/Python Python
+	cd $(frameworkdir)/Python.framework && ln -sfn Versions/Current/Headers Headers
+	cd $(frameworkdir)/Python.framework && ln -sfn Versions/Current/Resources Resources
+	# Link framework bin, lib, and include into the build directories.
+	-cd $(bindir) ; ln -sf $(REL_PYTHON_FRAMEWORK)/bin/python* $(REL_PYTHON_FRAMEWORK)/bin/pip* .
+	-ln -sfn $(REL_PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION) $(libdir)/python$(PYTHON_VERSION)
+	-ln -sfn $(REL_PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) $(includedir)/python$(PYTHON_VERSION)
 endif
-	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
-	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(datadir)/valgrind-python.supp
-endif
-	# remove unused libraries
-	rm -rf $(PYTHON_LIBRARY_DIR)/config-*/*.{a,dylib}
+	# remove unused static libraries
+	-rm -rf $(PYTHON_LIBRARY_DIR)/config-*/*.{a,dylib}
 
-	# Since pip comes with Python 3.5, update it now so installs on
-	# Windows will work.  Wheel is needed so bdist_wheel will work.
+	# Update pip, setuptools, wheel, and build to our pinned versions.  pip
+	# uses its own vendored certificates for these downloads, so this works
+	# before certifi is installed by prereqs/pips.
 	$(PYTHON_EXE) -m ensurepip --upgrade
 	$(PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
 	$(PYTHON_EXE) -m pip install --upgrade setuptools==$(SETUPTOOLS_VERSION)
 	$(PYTHON_EXE) -m pip install --upgrade wheel==$(WHEEL_VERSION)
 	$(PYTHON_EXE) -m pip install --upgrade build==$(BUILD_VERSION)
 
-	# double check that _ssl was successfully made
-	test -f $(DYNLOAD_DIR)/_ssl.*$(PYMOD_EXT)
-	# double check that pyexpat was successfully made
-	test -f $(DYNLOAD_DIR)/pyexpat.*$(PYMOD_EXT)
+	# double check that ssl and expat support are present
+	$(PYTHON_EXE) -c 'import ssl, pyexpat'
+ifeq ($(OS),Darwin)
+	# Rewrite the build tree's recorded toolchain (python-build-standalone bakes
+	# in absolute paths to its hermetic build tools) so packages that compile
+	# against this Python can find the system compiler and archiver.  The Linux
+	# source build records the real system toolchain, so it needs no rewriting.
+	$(PYTHON_EXE) clean_config_vars.py $(build_prefix)
+endif
 
-app-install: $(DISTDIR)
+# Build CPython from source and package the result for caching (Linux only).
+linux-source-build: $(SOURCE)
+	cd $(SOURCE) && $(MAKE) && $(MAKE) install
+	# Convert absolute rpaths to $$ORIGIN-relative so the build is relocatable.
+	patchelf --remove-rpath $(PYTHON_LIBRARY_DIR)/lib-dynload/*.so
+	chmod 755 $(libdir)/libpython*.so; patchelf --remove-rpath $(libdir)/libpython*.so
+	patchelf --force-rpath --set-rpath '$$ORIGIN/../lib' $(PYTHON_BIN)
+	$(RSYNC) $(SOURCE)/Misc/valgrind-python.supp $(datadir)
+	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(datadir)/valgrind-python.supp
+	# Package the freshly built interpreter (without pip, which the install
+	# target installs fresh afterwards) so CI can cache it.
+	cd $(build_prefix) && tar cjf '$(abspath $(LINUX_PREBUILT))' \
+		bin/python$(PYTHON_VERSION) bin/python3 \
+		lib/libpython*.so* \
+		lib/python$(PYTHON_VERSION) \
+		include/python$(PYTHON_VERSION)$(PYTHON_ABI) \
+		share/valgrind-python.supp
+
+app-install: $(APP_INSTALL_DEP)
 	$(RSYNC) $(PYTHON_BIN) $(app_bindir)
 ifeq ($(OS),Windows)
 	# need include and libs so pip install will work
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ --delete\
-	  '$(DISTDIR)'/DLLs \
-	  '$(DISTDIR)'/Lib \
-	  '$(DISTDIR)'/include \
-	  '$(DISTDIR)'/libs \
-	  '$(DISTDIR)'/*.dll \
+	  '$(PBS_DIR)'/DLLs \
+	  '$(PBS_DIR)'/Lib \
+	  '$(PBS_DIR)'/include \
+	  '$(PBS_DIR)'/libs \
+	  '$(PBS_DIR)'/*.dll \
 	  $(app_bindir)
 else ifdef USE_MAC_FRAMEWORKS
 	$(RSYNC) $(frameworkdir)/Python.framework $(app_frameworkdir)
@@ -185,19 +212,19 @@ endif
 		setuptools==$(SETUPTOOLS_VERSION) \
 		build==$(BUILD_VERSION)
 
-ifeq ($(OS),Windows)
-
-$(DISTDIR): $(DISTRIBUTION)
-	tar xf $(DISTRIBUTION) -C $(tmpdir) --no-same-owner
-
-else
-
-$(SOURCE): $(DISTRIBUTION)
+# --- macOS / Windows: fetch and unpack the python-build-standalone archive ---
+$(PBS_DIR): $(DISTRIBUTION)
+	rm -rf $(PBS_DIR)
 	tar -xf $(DISTRIBUTION) -C $(tmpdir) --no-same-owner
 
+$(DISTRIBUTION):
+	$(FETCH_PYTHON) $(PYTHON_BUILD_STANDALONE_BASE)/$(PYTHON_BUILD_STANDALONE_RELEASE)/$(DISTRIBUTION)
+
+# --- Linux: fetch and configure the CPython source ---------------------------
+$(SOURCE): $(SOURCE_DIST)
+	tar -xf $(SOURCE_DIST) -C $(tmpdir) --no-same-owner
 	# avoid bootstrap (files generated by python, but python isn't built)
 	cd $(SOURCE) && touch Python/Python-ast.c Include/Python-ast.h
-
 ifneq (,$(SRC_PATCHES))
 	for p in $(SRC_PATCHES); do \
 		(cd $(SOURCE) && patch -f -p0) < $$p ; \
@@ -205,47 +232,14 @@ ifneq (,$(SRC_PATCHES))
 endif
 	cd $(SOURCE) && $(ENV_CONFIGURE) \
 	    ./configure --prefix=$(build_prefix) $(CONFIG_OPTIONS)
-
-ifdef USE_MAC_FRAMEWORKS
-	# Remove this when we no longer support El Capitan (10.11)
-	cd $(SOURCE) && \
-		mv pyconfig.h pyconfig.h.old && \
-		sed -e /HAVE_GETENTROPY/d \
-			-e /HAVE_CLOCK_GETRES/d \
-			-e /HAVE_CLOCK_GETTIME/d \
-			-e /HAVE_CLOCK_SETTIME/d \
-			< pyconfig.h.old > pyconfig.h
-endif
 	# Don't use stuff from /usr/local (especially Tcl, Tk, and SSL)
-	cd $(SOURCE) && \
-	    mv setup.py setup.py.orig ; \
-	    sed -e 's;/usr/local;$(build_prefix);' -e 's;/ssl/;/;' < setup.py.orig > setup.py
-ifdef USE_MAC_FRAMEWORKS
-	# say where to find Tcl and Tk (and any other frameworks)
-	(echo ':/framework_dirs =/s:$$: "$(frameworkdir)",:'; echo ':wq') \
-	    | env TERM=dumb ex -s $(SOURCE)/setup.py
-	(echo ':/^BASECFLAGS/s:$$: -F$(frameworkdir):'; echo ':wq') \
-	    | env TERM=dumb ex -s $(SOURCE)/Makefile
-	(echo ':/$$@ Programs\/python.o/s::& -Wl,-rpath,$(libdir):'; echo ':wq') \
-	    | env TERM=dumb ex -s $(SOURCE)/Makefile
-endif
+	cd $(SOURCE) && if [ -f setup.py ]; then \
+	    mv setup.py setup.py.orig && \
+	    sed -e 's;/usr/local;$(build_prefix);' -e 's;/ssl/;/;' < setup.py.orig > setup.py ; \
+	fi
 
-endif
-
-$(DISTRIBUTION):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/python/$(DISTRIBUTION)
-
-upload_new_version:
-	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/python
-
-make_win_distribution:
-	# only needed for Windows
-	version="$$(regtool -w get /machine/SOFTWARE/PYTHON/PythonCore/$(PYTHON_VERSION)/Version)" && \
-	exe_path="$$(regtool -w get /machine/SOFTWARE/PYTHON/PythonCore/$(PYTHON_VERSION)/InstallPath/ExecutablePath)" && \
-	tar -jcf python-$$version-win-amd64.tar.bz2 --exclude __pycache__ --xform "s/^./python-$$version-win-amd64/" -C "$$exe_path"/.. .
-
-make_mac_distribution:
-	make -f Makefile.macos
+$(SOURCE_DIST):
+	$(FETCH_PYTHON) $(PYTHON_SOURCE_BASE)/$(PYTHON_PATCH_LEVEL)/$(SOURCE_DIST)
 
 clean:
-	-rm -rf $(SOURCE) $(DISTRIBUTION)
+	-rm -rf $(PBS_DIR) $(DISTRIBUTION) $(SOURCE) $(SOURCE_DIST) $(LINUX_PREBUILT)
