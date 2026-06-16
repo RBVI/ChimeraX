@@ -60,6 +60,7 @@ be adjusted through <a href="../window.html#tool-context">context menus</a>.
 <a href="#top" class="nounder">&bull;</a>
 <b>ui dockable</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false
 &nbsp;<i>tool-name</i>
+[&nbsp;<b>windowName</b>&nbsp;&nbsp;<i>child-window-title</i>&nbsp;]
 <blockquote>
 <p>
 Whether panels of the tool should be allowed to reinsert automatically
@@ -69,6 +70,9 @@ adjusted through <a href="../window.html#tool-context">context menus</a>.
 Most panels are initially dockable unless 
 <b>Tool windows start undocked</b> is turned on in the
 <a href="../preferences.html#window"><b>Window</b> preferences</a>.
+The change will affect all windows of the specified tool (the main window
+and any child windows) unless the full name of the child window, as shown
+in its title bar, is given with the <b>windowName</b> option.
 </p>
 </blockquote>
 
@@ -965,6 +969,6 @@ and <a href="#slice-colorkey">color keys</a> on or off:
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-May 2026</address>
+June 2026</address>
 
 </body></html>
