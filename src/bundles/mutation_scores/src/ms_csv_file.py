@@ -62,7 +62,7 @@ def open_mutation_scores_csv(session, path, name = None, show_plot = False, chai
 def _read_mutation_scores_csv(path, name = None, logger = None):
     with open(path, 'r') as f:
         lines = f.readlines()
-    headings = [h.strip() for h in lines[0].split(',')]
+    headings = _comma_separated_fields(lines[0])
     hgvs_column = _hgvs_column(headings)
     mscores = []
     mut = set()
@@ -71,7 +71,7 @@ def _read_mutation_scores_csv(path, name = None, logger = None):
     for i, line in enumerate(lines[1:]):
         if line.strip() == '':
             continue	# Ignore blank lines
-        fields = line.split(',')
+        fields = _comma_separated_fields(line)
         if len(fields) != len(headings):
             from chimerax.core.errors import UserError
             raise UserError(f'Line {i+2} has wrong number of comma-separated fields, got {len(fields)}, but there are {len(headings)} headings')
@@ -98,6 +98,14 @@ def _read_mutation_scores_csv(path, name = None, logger = None):
 
     return mset
 
+def _comma_separated_fields(line):
+    fields = [_remove_quotes(field.strip()) for field in line.split(',')]
+    return fields
+
+def _remove_quotes(string):
+    unquoted = string[1:-1] if string.startswith('"') and string.endswith('"') else string
+    return unquoted
+
 def _hgvs_column(headings):
     hgvs_column = None
     hgvs_names = ('hgvs', 'hgvs_pro', 'variants')
@@ -107,7 +115,7 @@ def _hgvs_column(headings):
             break
     if hgvs_column is None:
         from chimerax.core.errors import UserError
-        raise UserError('Did not find variant column ({", ".join(hgvs_names)}) in first line headings ({", ".join(headings)})')
+        raise UserError(f'Did not find variant column ({", ".join(hgvs_names)}) in first line headings ({", ".join(headings)})')
     return hgvs_column
 
 
