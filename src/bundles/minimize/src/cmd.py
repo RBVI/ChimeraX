@@ -86,14 +86,26 @@ def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_ste
         in_missing = False
         prev_r = None
         for r in chain.residues:
-            if r is None:
-                if prev_r and Sequence.amino3to1(prev_r.name) != 'X':
-                    fake_c.add(prev_r)
-                in_missing = True
+            if chain.full_sequence_known:
+                if r is None:
+                    if prev_r and Sequence.amino3to1(prev_r.name) != 'X':
+                        fake_c.add(prev_r)
+                    in_missing = True
+                else:
+                    if in_missing and Sequence.amino3to1(r.name) != 'X':
+                        fake_n.add(r)
+                    in_missing = False
             else:
-                if in_missing and Sequence.amino3to1(r.name) != 'X':
-                    fake_n.add(r)
-                in_missing = False
+                if prev_r and r.number - prev_r.number > 1:
+                    pbg = structure.pseudobond_group(structure.PBG_MISSING_STRUCTURE, create_type=None)
+                    if pbg:
+                        target = set([prev_r, r])
+                        for pb in pbg.pseudobonds:
+                            a1, a2 = pb.atoms
+                            if set([a1.residue, a2.residue]) == target:
+                                fake_c.add(prev_r)
+                                fake_n.add(r)
+                                break
             prev_r = r
         # Also, if the *actual* terminus is missing needed atoms, add it to fake list so it gets fixed
         c_term = chain.residues[-1]

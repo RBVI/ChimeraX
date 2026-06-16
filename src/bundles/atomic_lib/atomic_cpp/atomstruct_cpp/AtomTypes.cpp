@@ -1090,7 +1090,24 @@ t0 = t1;
             if (redo[a] == 1) {
                 if ((sqlen <= p4c2c && bondee_element == Element::C)
                 || (sqlen <= p4c2n && bondee_element == Element::N)) {
-                    a->set_computed_idatm_type("C2");
+                    // redo 1's are currently C3; if there is a neighbor of the bondee
+                    // that is also C2 and has no bonds, only one of them can be C2 --
+                    // shortest bond length wins
+                    bool redone = false;
+                    for (auto gnb: bondee->neighbors()) {
+                        if (gnb == a)
+                            continue;
+                        if (gnb->bonds().size() == 1 && gnb->idatm_type() == "C2") {
+                            if (gnb->bonds()[0]->sqlength() > sqlen) {
+                                gnb->set_computed_idatm_type("C3");
+                            } else {
+                                // Other atom should remain C2 and this one C3
+                                redone = true;
+                            }
+                        }
+                    }
+                    if (!redone)
+                        a->set_computed_idatm_type("C2");
                     break;
                 }
                 if ((sqlen > p4c3c && bondee_element == Element::C)

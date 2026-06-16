@@ -25,9 +25,12 @@ class UI_Settings(Settings):
         'favorites': [],
         'initial_window_size': ("last used", None),
         'tool_positions': {'toolbars': {}, 'windows': {}},
-        'undockable': [
-            'Help Viewer', "Color Key", "Mutation scores plot", "Mutation scores histogram",
-        ],
+        'undockable': {
+            'Help Viewer': { None: True },
+            "Color Key": { None: True },
+            "Mutation scores plot": { None: True },
+            "Mutation scores histogram": { None: True },
+        },
     }
 
     AUTO_SAVE = {

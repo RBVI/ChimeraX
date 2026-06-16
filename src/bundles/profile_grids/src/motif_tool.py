@@ -29,7 +29,7 @@ class MotifTool:
     def __init__(self, grid, tool_window):
         self.grid = grid
         self.tool_window = tool_window
-        #tool_window.help = "help:user/tools/profilegrid.html#gridlabel"
+        tool_window.help = "help:user/tools/profilegrid.html#find-pattern"
 
         from Qt.QtWidgets import (QVBoxLayout, QLabel, QHBoxLayout, QGridLayout, QRadioButton, QGroupBox,
             QLineEdit, QSpinBox, QDoubleSpinBox)
