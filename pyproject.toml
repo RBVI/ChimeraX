@@ -77,7 +77,7 @@ wheel = [
   # the version of jedi that works with ipython
   "jedi==0.19.2",
   "jupyter-client==8.8.0",
-  "lxml==6.0.2",
+  "lxml==6.1.0",
   # lz4 4.4.4 has problems decompressing what it encoded, ticket #18140
   "lz4==4.3.2",
   "matplotlib==3.10.7",
