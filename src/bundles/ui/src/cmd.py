@@ -31,6 +31,7 @@ def register_ui_command(logger):
 
     ui_dockable_desc = CmdDesc(
         required=[('dockable', BoolArg), ('tool_name', StringArg)],
+        keyword=[('window_name', StringArg)],
         synopsis = "control whether a tool's windows can be docked")
     register('ui dockable', ui_dockable_desc, ui_dockable, logger=logger)
 
@@ -114,25 +115,51 @@ def ui_favorite(session, make_favorite, tool_name):
     if session.ui.is_gui:
         session.ui.main_window.update_favorites_menu(session)
 
+def get_undockable_settings(settings):
+    # Old style was just a list of undockable tool names;
+    # Current style is a dictionary of tool names:
+    #  if a tool name is missing, it and all its windows are dockable
+    #  if a tool name is present, the value is a dictionary where the values are
+    #  True if undockable and False if dockable, and the keys are child window
+    #  names or None.  None controls the main window and any unlisted child windows.
+    setting = settings.undockable
+    if isinstance(setting, list):
+        return { tn: { None: True } for tn in setting }
+    # return a copy, so that saving the setting actually sets it
+    return { k:v for k,v in setting.items() }
+
 # -----------------------------------------------------------------------------
 #
-def ui_dockable(session, dockable, tool_name):
+def ui_dockable(session, dockable, tool_name, *, window_name=None):
     '''
     Control whether a tool's windows are dockable
     '''
 
     settings = session.ui.settings
-    undockable_tools = settings.undockable[:]
-    if dockable:
-        while tool_name in undockable_tools:
-            undockable_tools.remove(tool_name)
+    undockable_tools = get_undockable_settings(settings)
+    if window_name is None:
+        if dockable:
+            if tool_name in undockable_tools:
+                del undockable_tools[tool_name]
+        else:
+            undockable_tools[tool_name] = { None: True }
     else:
-        if tool_name not in undockable_tools:
-            undockable_tools.append(tool_name)
+        if tool_name in undockable_tools:
+            undockable_windows = undockable_tools[tool_name]
+            if dockable == (not undockable_windows[None]):
+                # same as default
+                if window_name in undockable_windows:
+                    del undockable_windows[window_name]
+                    if len(undockable_windows) == 1 and not undockable_windows[None]:
+                        del undockable_tools[tool_name]
+            else:
+                undockable_windows[window_name] = not dockable
+        elif not dockable:
+            undockable_tools[tool_name] = { None: False, window_name: True }
     settings.undockable = undockable_tools
     settings.save('undockable')
     if session.ui.is_gui:
-        session.ui.main_window._dockability_change(tool_name, dockable)
+        session.ui.main_window._dockability_change(tool_name, window_name, dockable)
 
 # -----------------------------------------------------------------------------
 #
