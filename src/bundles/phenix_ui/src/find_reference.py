@@ -147,6 +147,10 @@ def _process_results(session, json_info, search_model, work_dir, superimpose_phe
     if search_model.deleted:
         raise UserError("Structure used as basis for search closed during search")
 
+    if json_info["n_results"] == 0:
+        session.logger.warning("No reference chains found for %s" % search_model.name)
+        return
+
     from chimerax.core.models import Model
     ref_group = Model("%s reference structures" % search_model.name, session)
     session.models.add([ref_group])
