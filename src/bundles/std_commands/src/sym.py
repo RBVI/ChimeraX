@@ -235,6 +235,10 @@ def show_symmetry(structures, sym_name, transforms, copies, new_model, surface_o
                 for s in surfs:
                     s.positions =  s.positions * symops
             else:
+                npos, nsym = len(m.positions), len(symops)
+                if npos > 1 and nsym > 1:
+                    # Warn to avoid user repeating same symmetry many times.  Ticket #20499
+                    session.logger.warning(f'Model {m} now has {npos*nsym} graphical instances after applying {nsym}-fold symmetry to {npos} existing instances. To remove the symmetry instances use command "sym clear {m.atomspec}"')
                 m.positions = m.positions * symops
 
     if copies or new_model:
