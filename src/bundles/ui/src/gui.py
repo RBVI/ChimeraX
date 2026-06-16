@@ -1228,12 +1228,13 @@ class MainWindow(QMainWindow, PlainTextLog):
         sb.addPermanentWidget(rab)
         self.setStatusBar(sb)
 
-    def _dockability_change(self, tool_name, dockable):
+    def _dockability_change(self, tool_name, window_name, dockable):
         """Call back from 'ui dockable' command"""
         for ti, tool_windows in self.tool_instance_to_windows.items():
             if ti.tool_name == tool_name:
                 for win in tool_windows:
-                    win._mw_set_dockable(dockable)
+                    if window_name is None or win.title == window_name:
+                        win._mw_set_dockable(dockable)
 
     @property
     def settings_ui_widget(self):
@@ -2348,13 +2349,17 @@ class ToolWindow(StatusLogger):
         ui = self.session.ui
         settings =  ui.settings
         tool_name = self.tool_instance.tool_name
+        from .cmd import get_undockable_settings
+        undockable_settings = get_undockable_settings(settings)
         if settings.auto_float_tools and tool_name not in settings.autostart:
-            if tool_name not in settings.undockable:
-                settings.undockable = settings.undockable + [tool_name]
+            undockable_settings[tool_name] = { None: True }
         from Qt.QtCore import Qt
         self.default_allowed_areas = allowed_areas
-        if tool_name in settings.undockable:
-            allowed_areas = Qt.DockWidgetArea.NoDockWidgetArea
+        if tool_name in undockable_settings:
+            undockable_windows = undockable_settings[tool_name]
+            undockable = undockable_windows.get(self.title, undockable_windows[None])
+            if undockable:
+                allowed_areas = Qt.DockWidgetArea.NoDockWidgetArea
         geometry = None
         if tool_name in settings.tool_positions['windows'] and isinstance(self, MainToolWindow):
             pos_info = settings.tool_positions['windows'][tool_name]
@@ -2898,15 +2903,31 @@ def _show_context_menu(event, tool_instance, tool_window, fill_cb, autostartable
         undock_action = QAction("Undock")
         undock_action.triggered.connect(lambda *, dock_widget=memorable: dock_widget.setFloating(True))
         menu.addAction(undock_action)
-    undockable = ti.tool_name in session.ui.settings.undockable
-    dock_action = QAction("Dockable Tool")
-    dock_action.setCheckable(True)
-    dock_action.setChecked(not undockable)
-    from chimerax.core.commands import run, StringArg
-    dock_action.triggered.connect(
-        lambda checked, *, ses=session, run=run, tool_name=ti.tool_name:
-        run(ses, "ui dockable %s %s" % (("true" if checked else "false"),
-        StringArg.unparse(ti.tool_name))))
+    from .cmd import get_undockable_settings
+    undockable_settings = get_undockable_settings(session.ui.settings)
+    tool_name = ti.tool_name
+    if isinstance(tool_window, ChildToolWindow):
+        window_name = tool_window.title
+        undockable = tool_name in undockable_settings and undockable_settings[tool_name].get(window_name,
+            undockable_settings[tool_name][None])
+        dock_action = QAction("Dockable Window")
+        dock_action.setCheckable(True)
+        dock_action.setChecked(not undockable)
+        from chimerax.core.commands import run, StringArg
+        dock_action.triggered.connect(
+            lambda checked, *, ses=session, run=run, tool_name=tool_name, window_name=window_name:
+            run(ses, "ui dockable %s %s windowName %s" % (("true" if checked else "false"),
+            StringArg.unparse(tool_name), StringArg.unparse(window_name))))
+    else:
+        undockable = tool_name in undockable_settings and undockable_settings[tool_name][None]
+        dock_action = QAction("Dockable Tool")
+        dock_action.setCheckable(True)
+        dock_action.setChecked(not undockable)
+        from chimerax.core.commands import run, StringArg
+        dock_action.triggered.connect(
+            lambda checked, *, ses=session, run=run, tool_name=tool_name:
+            run(ses, "ui dockable %s %s" % (("true" if checked else "false"),
+            StringArg.unparse(tool_name))))
     menu.addAction(dock_action)
     if memorable:
         position_action = QAction("Save Tool Position")
