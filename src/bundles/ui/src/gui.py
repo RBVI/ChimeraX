@@ -2357,7 +2357,10 @@ class ToolWindow(StatusLogger):
         self.default_allowed_areas = allowed_areas
         if tool_name in undockable_settings:
             undockable_windows = undockable_settings[tool_name]
-            undockable = undockable_windows.get(self.title, undockable_windows[None])
+            if isinstance(self, ChildToolWindow):
+                undockable = undockable_windows.get(self.title, undockable_windows[None])
+            else:
+                undockable = undockable_windows[None]
             if undockable:
                 allowed_areas = Qt.DockWidgetArea.NoDockWidgetArea
         geometry = None
