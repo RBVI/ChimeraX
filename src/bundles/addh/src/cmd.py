@@ -32,18 +32,27 @@ from chimerax.atomic.bond_geom import linear
 metal_dist_default = 3.95
 
 # functions in .dock_prep may need updating if cmd_addh() call signature changes
-def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=metal_dist_default,
+def cmd_addh(session, atoms_or_structures, *, hbond=True, in_isolation=True, metal_dist=metal_dist_default,
     template=False, use_his_name=True, use_glu_name=True, use_asp_name=True, use_lys_name=True,
     use_cys_name=True):
 
-    if structures is None:
-        from chimerax.atomic import AtomicStructure
+    from chimerax.atomic import AtomicStructure, AtomicStructures, Atoms
+    if atoms_or_structures is None:
         structures = [m for m in session.models if isinstance(m, AtomicStructure)]
-        from chimerax.atomic import AtomicStructures
+        struct_collection = AtomicStructures(structures)
+        partial_check = None
+    elif isinstance(atoms_or_structures, Atoms):
+        structures = []
+        partial_check = {}
+        for s, s_atoms in atoms_or_structures.by_structure:
+            structures.append(s)
+            if s.num_atoms > len(s_atoms):
+                partial_check[s] = s_atoms
         struct_collection = AtomicStructures(structures)
     else:
-        struct_collection = structures
-        structures = list(structures)
+        struct_collection = atoms_or_structures
+        structures = list(atoms_or_structures)
+        partial_check = None
     if not structures:
         from chimerax.core.errors import UserError
         raise UserError("No structures specified")
@@ -82,6 +91,18 @@ def cmd_addh(session, structures, *, hbond=True, in_isolation=True, metal_dist=m
             delattr(Atom, "_addh_coord")
             for structure in structures:
                 structure.alt_loc_change_notify = True
+        if partial_check:
+            for s, target_atoms in partial_check.items():
+                target_set = set(target_atoms)
+                deletions = []
+                for a in s.atoms:
+                    if a.element.number != 1:
+                        continue
+                    if a.neighbors[0] not in target_set:
+                        deletions.append(a)
+                if deletions:
+                    Atoms(deletions).delete()
+
         session.logger.status("Hydrogens added")
         atoms = struct_collection.atoms
         # If side chains are displayed, then the CA is _not_ hidden, so we
@@ -1098,9 +1119,9 @@ def _h_name(atom, h_num, total_hydrogens, naming_schema):
 
 def register_command(command_name, logger):
     from chimerax.core.commands import CmdDesc, register, BoolArg, Or, EmptyArg, FloatArg
-    from chimerax.atomic import AtomicStructuresArg
+    from chimerax.atomic import AtomsArg
     desc = CmdDesc(
-        required=[('structures', Or(AtomicStructuresArg,EmptyArg))],
+        required=[('atoms_or_structures', Or(AtomsArg,EmptyArg))],
         keyword = [('hbond', BoolArg), ('in_isolation', BoolArg), ('metal_dist', FloatArg),
             ('template', BoolArg), ('use_his_name', BoolArg), ('use_glu_name', BoolArg),
             ('use_asp_name', BoolArg), ('use_lys_name', BoolArg), ('use_cys_name', BoolArg)],
