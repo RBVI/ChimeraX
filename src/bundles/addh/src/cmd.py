@@ -47,7 +47,7 @@ def cmd_addh(session, atoms_or_structures, *, hbond=True, in_isolation=True, met
         for s, s_atoms in atoms_or_structures.by_structure:
             structures.append(s)
             if s.num_atoms > len(s_atoms):
-                partial_check[s] = s_atoms
+                partial_check[s] = (s_atoms, s.atoms)
         struct_collection = AtomicStructures(structures)
     else:
         struct_collection = atoms_or_structures
@@ -92,11 +92,16 @@ def cmd_addh(session, atoms_or_structures, *, hbond=True, in_isolation=True, met
             for structure in structures:
                 structure.alt_loc_change_notify = True
         if partial_check:
-            for s, target_atoms in partial_check.items():
+            for s, atoms_info in partial_check.items():
+                target_atoms, preexisting_atoms = atoms_info
                 target_set = set(target_atoms)
+                preexisting_set = set(preexisting_atoms)
                 deletions = []
                 for a in s.atoms:
+                    if a in preexisting_set:
+                        continue
                     if a.element.number != 1:
+                        deletions.append(a)
                         continue
                     if a.neighbors[0] not in target_set:
                         deletions.append(a)
