@@ -22,7 +22,7 @@ or derivations thereof.
 <h3><a href="../index.html#commands">Command</a>: addh</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>addh</b> 
-&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;
 [&nbsp;<b>hbond</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>inIsolation</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>metalDist</b>&nbsp;&nbsp;<i>d</i>&nbsp;]
@@ -31,7 +31,9 @@ or derivations thereof.
 </h3>
 <p>
 The <b>addh</b> command adds hydrogen atoms to atomic models, as well as
-OXT atoms where missing from peptide C-termini.
+OXT atoms where missing from peptide C-termini. If only part of a model is
+specified, the whole model is still protonated &ldquo;under the hood,&rdquo;
+but the hydrogens on the rest of the model will be omitted from the result.
 The corresponding tool is <a href="../tools/addhydrogens.html"><b>Add
 Hydrogens</b></a>.
 See also: <a href="delete.html"><b>delete</b></a>,
@@ -150,6 +152,6 @@ hydrogen addition will have no effect.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-April 2026</address>
+June 2026</address>
 
 </body></html>
