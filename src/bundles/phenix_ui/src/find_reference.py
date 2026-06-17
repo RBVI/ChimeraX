@@ -34,22 +34,22 @@ class FindRefJob(Job):
     SESSION_SAVE = False
 
     def __init__(self, session, executable_location, optional_args, model_file_name,
-            positional_args, work_dir, superimpose_phenix, verbose, callback, block):
+            positional_args, work_dir, superimpose_phenix, databases, verbose, callback, block):
         super().__init__(session)
         self._running = False
         self._monitor_time = 0
         self._monitor_interval = 10
         self.start(session, executable_location, optional_args, model_file_name, positional_args,
-            work_dir, superimpose_phenix, verbose, callback, blocking=block)
+            work_dir, superimpose_phenix, databases, verbose, callback, blocking=block)
 
     def run(self, session, executable_location, optional_args, model_file_name, positional_args,
-            work_dir, superimpose_phenix, verbose, callback, **kw):
+            work_dir, superimpose_phenix, databases, verbose, callback, **kw):
         self._running = True
         self.start_t = time()
         def threaded_run(self=self):
             try:
                 reference = _run_find_ref_subprocess(session, executable_location, optional_args,
-                    model_file_name, positional_args, work_dir, superimpose_phenix, verbose)
+                    model_file_name, positional_args, work_dir, superimpose_phenix, databases, verbose)
             except Exception as e:
                 from .util import thread_throw
                 thread_throw(session, e)
@@ -96,8 +96,9 @@ class FindRefJob(Job):
 command_defaults = {
     'verbose': False
 }
-def phenix_find_reference(session, chains, *, work_directory=None, superimpose_phenix=True, block=None,
-        phenix_location=None, verbose=command_defaults['verbose'], option_arg=[], position_arg=[]):
+def phenix_find_reference(session, chains, *, work_directory=None, superimpose_phenix=True, databases=None,
+        block=None, phenix_location=None, verbose=command_defaults['verbose'],
+        option_arg=[], position_arg=[]):
 
     # Find the phenix.find_reference executable
     from .locate import find_phenix_command
@@ -123,6 +124,11 @@ def phenix_find_reference(session, chains, *, work_directory=None, superimpose_p
             work_dir = d.name
         else:
             work_dir = work_directory
+            import os.path
+            if not os.path.exists(work_dir):
+                raise UserError("Specified work directory (%s) does not exist" % work_dir)
+            if not os.path.isdir(work_dir):
+                raise UserError("Specified work directory (%s) does not a directory!" % work_dir)
             d = None
 
         # Save model to file.
@@ -140,7 +146,7 @@ def phenix_find_reference(session, chains, *, work_directory=None, superimpose_p
         callback = lambda json_info, *args, session=session, model=structure, sup_phenix=superimpose_phenix,\
             work_dir=work_dir, d_ref=d: _process_results(session, json_info, model, work_dir, sup_phenix)
         FindRefJob(session, exe_path, option_arg, "model.pdb", position_arg, work_dir,
-            superimpose_phenix, verbose, callback, block)
+            superimpose_phenix, databases, verbose, callback, block)
 
 def _process_results(session, json_info, search_model, work_dir, superimpose_phenix):
     session.logger.status("Find-reference job finished")
@@ -246,16 +252,21 @@ def process(item):
     return item
 
 def _run_find_ref_subprocess(session, exe_path, optional_args, model_file_name, positional_args,
-        work_dir, superimpose_phenix, verbose):
+        work_dir, superimpose_phenix, databases, verbose):
     '''
     Run find_reference in a subprocess and return the reference information.
     '''
     super_arg = [] if superimpose_phenix else ["superpose_reference_on_target=False"]
+    if databases:
+        db_arg = ["include_models=" + ','.join([{ "computational": "csm", "experimental": "xray" }[db]
+            for db in databases])]
+    else:
+        db_arg = []
     from chimerax.core.commands import StringArg
     args = [exe_path] + optional_args + [
             "--json-filename", "find_reference.json",
             StringArg.unparse(model_file_name),
-        ] + super_arg + positional_args
+        ] + db_arg + super_arg + positional_args
     tsafe=session.ui.thread_safe
     logger = session.logger
     tsafe(logger.status, f'Running {exe_path} in directory {work_dir}')
@@ -289,10 +300,12 @@ def _run_find_ref_subprocess(session, exe_path, optional_args, model_file_name, 
         info = json.load(f)
     return info
 
+db_search_types = ["computational", "experimental"]
+
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register
     from chimerax.core.commands import (CenterArg, OpenFolderNameArg, BoolArg, NonNegativeFloatArg,
-        Or, RepeatOf, StringArg)
+        Or, RepeatOf, StringArg, ListOf, EnumOf)
     from chimerax.map import MapArg, MapsArg
     from chimerax.atomic import UniqueChainsArg, AtomicStructuresArg
     desc = CmdDesc(
@@ -300,6 +313,7 @@ def register_command(logger):
         ],
         keyword = [('block', BoolArg),
                    ('phenix_location', OpenFolderNameArg),
+                   ('databases', ListOf(EnumOf(db_search_types))),
                    ('superimpose_phenix', BoolArg),
                    ('work_directory', OpenFolderNameArg),
                    ('verbose', BoolArg),

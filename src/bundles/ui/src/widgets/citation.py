@@ -37,17 +37,19 @@ class Citation(QFrame):
 
         layout = QGridLayout()
         layout.setContentsMargins(5,5,5,5)
+        layout.setColumnStretch(0, 1)
+        layout.setColumnStretch(3, 1)
         self.setLayout(layout)
 
         if prefix is not None:
             prefix_label = QLabel(prefix)
             # center multi-line prefixes
             prefix_label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(prefix_label, 0, 0, 1, 2, Qt.AlignCenter)
+            layout.addWidget(prefix_label, 0, 0, 1, 4, Qt.AlignCenter)
 
         cite_label = QLabel(cite)
         cite_label.setFont(QFont("Times", 12))
-        layout.addWidget(cite_label, 1, 0, Qt.AlignLeft)
+        layout.addWidget(cite_label, 1, 1, Qt.AlignLeft)
 
         if url is None:
             if pubmed_id:
@@ -68,9 +70,9 @@ class Citation(QFrame):
             button = QToolButton()
             button.setDefaultAction(action)
             button.setAutoRaise(True)
-            layout.addWidget(button, 1, 1, Qt.AlignLeft | Qt.AlignVCenter)
+            layout.addWidget(button, 1, 2, Qt.AlignLeft | Qt.AlignVCenter)
         if suffix is not None:
-            layout.addWidget(QLabel(suffix), 2, 0, Qt.AlignLeft)
+            layout.addWidget(QLabel(suffix), 2, 0, 1, 4, Qt.AlignCenter)
 
     def _open_url(self):
         from chimerax.help_viewer import show_url

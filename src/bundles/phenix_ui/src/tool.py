@@ -41,7 +41,7 @@ class PhenixCitation(Citation):
         elif info is None:
             raise AssertionError("Citation 'title' argument supplied, but not 'info' argument")
         cite = '<br>'.join(["<b>" + title + "</b>"] + info)
-        kw['prefix'] = "%s uses the Phenix <i>%s</i> command. Please cite:" % (tool_name, phenix_name)
+        kw['prefix'] = "%s uses the Phenix <i>%s</i> command.<br>Please cite:" % (tool_name, phenix_name)
         super().__init__(session, cite, **kw)
 
 class LaunchBarbedWireAnalysisSettings(Settings):
@@ -921,6 +921,111 @@ class LaunchEmplaceLocalSettings(Settings):
         'opaque_maps': True,
         'show_sharpened_map': False
     }
+
+class LaunchFindReferenceTool(ToolInstance):
+    #help = "help:user/tools/fitloops.html"
+    help = None
+
+    def __init__(self, session, tool_name):
+        super().__init__(session, tool_name)
+        from chimerax.ui import MainToolWindow
+        self.tool_window = tw = MainToolWindow(self, close_destroys=False)
+        parent = tw.ui_area
+
+        if not hasattr(self.__class__, 'settings'):
+            self.__class__.settings = LaunchFindReferenceSettings(session, "launch phenix find reference")
+
+        from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QCheckBox, QRadioButton
+        from Qt.QtCore import Qt, QSize
+        layout = QVBoxLayout()
+        parent.setLayout(layout)
+        #layout.setContentsMargins(0,0,0,0)
+        layout.setSpacing(1)
+
+        from chimerax.atomic.widgets import ChainListWidget
+        self.chain_list = ChainListWidget(session)
+        layout.addWidget(self.chain_list)
+
+        db_layout = QHBoxLayout()
+        layout.addLayout(db_layout)
+        db_layout.addWidget(QLabel("Search databases: "))
+        db_layout.addStretch(1)
+        self.search_db_buttons = []
+        from .find_reference import db_search_types
+        for st in db_search_types:
+            b = QRadioButton(st)
+            self.search_db_buttons.append(b)
+            db_layout.addWidget(b)
+            db_layout.addStretch(1)
+        b = QRadioButton("both")
+        self.search_db_buttons.append(b)
+        db_layout.addWidget(b)
+        db_layout.addStretch(1)
+        preferred_search_types = self.settings.db_search_types
+        if len(preferred_search_types) == 1:
+            index = db_search_types.index(preferred_search_types[0])
+        else:
+            index = -1
+        self.search_db_buttons[index].setChecked(True)
+
+        self.keep_files_box = QCheckBox("Keep Phenix input/output files")
+        self.keep_files_box.setChecked(self.settings.keep_files)
+        layout.addWidget(self.keep_files_box, alignment=Qt.AlignLeft)
+
+        layout.addWidget(PhenixCitation(session, tool_name, "find_reference"), alignment=Qt.AlignCenter)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.launch_find_reference)
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_find_reference(apply=True))
+        bbox.rejected.connect(self.delete)
+        if self.help:
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=session: run(ses, "help " + self.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
+        tw.manage(placement=None)
+
+    def launch_find_reference(self, apply=False):
+        chains = self.chain_list.value
+        if not chains:
+            raise UserError("Must specify a chain or chains to find references for")
+        self.settings.keep_files = keep_files = self.keep_files_box.isChecked()
+        from chimerax.core.commands import run, StringArg
+        options = ""
+        if keep_files:
+            from Qt.QtWidgets import QFileDialog
+            # Don't use native dialog so that caption is actually shown on Mac
+            work_dir = QFileDialog.getExistingDirectory(self.tool_window.ui_area,
+                caption="Folder for Phenix Input/Output Files", options=QFileDialog.DontUseNativeDialog)
+            if not work_dir:
+                return
+            options += " work %s" % StringArg.unparse(work_dir)
+
+        from .find_reference import db_search_types
+        if self.search_db_buttons[-1].isChecked():
+            pref_db_types = db_search_types
+        else:
+            for but, arg in zip(self.search_db_buttons[:-1], db_search_types):
+                if but.isChecked():
+                    options += " databases %s" % StringArg.unparse(arg)
+                    pref_db_types = [arg]
+                    break
+        self.settings.db_search_types = pref_db_types
+        from chimerax.atomic import concise_chain_spec
+        run(self.session, "phenix findReference %s%s" % (concise_chain_spec(chains), options))
+        if not apply:
+            self.display(False)
+
+from .find_reference import db_search_types as fr_db_search_types
+class LaunchFindReferenceSettings(Settings):
+    AUTO_SAVE = {
+        'db_search_types': fr_db_search_types,
+        'keep_files': True,
+    }
+
 
 class LaunchFitLoopsTool(ToolInstance):
     help = "help:user/tools/fitloops.html"
