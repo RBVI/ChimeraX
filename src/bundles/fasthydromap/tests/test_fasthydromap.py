@@ -121,8 +121,10 @@ def test_fasthydromap_command_prefers_env_override(monkeypatch):
     cmd_module = _load_submodule(monkeypatch, "cmd")
     monkeypatch.setenv("FASTHYDROMAP_EXE", "/custom/fasthydromap")
 
-    command = cmd_module._fasthydromap_command(object(), Path("model.pdb"), Path("out"), install_location=None)
-    assert command == ["/custom/fasthydromap", "predict", "model.pdb", "-o", "out"]
+    command = cmd_module._fasthydromap_command(
+        object(), Path("model.pdb"), Path("out"), quantity="pc1", install_location=None
+    )
+    assert command == ["/custom/fasthydromap", "predict", "model.pdb", "-o", "out", "--quantity", "pc1"]
 
 
 def test_fasthydromap_command_uses_managed_install(monkeypatch):
@@ -130,8 +132,10 @@ def test_fasthydromap_command_uses_managed_install(monkeypatch):
     monkeypatch.delenv("FASTHYDROMAP_EXE", raising=False)
     monkeypatch.setattr(cmd_module, "managed_fasthydromap_executable", lambda session, install_location=None: "/venv/bin/fasthydromap")
 
-    command = cmd_module._fasthydromap_command(object(), Path("model.pdb"), Path("out"), install_location="/venv")
-    assert command == ["/venv/bin/fasthydromap", "predict", "model.pdb", "-o", "out"]
+    command = cmd_module._fasthydromap_command(
+        object(), Path("model.pdb"), Path("out"), quantity="fdewet", install_location="/venv"
+    )
+    assert command == ["/venv/bin/fasthydromap", "predict", "model.pdb", "-o", "out", "--quantity", "fdewet"]
 
 
 def test_fasthydromap_command_requires_install(monkeypatch):
@@ -140,7 +144,9 @@ def test_fasthydromap_command_requires_install(monkeypatch):
     monkeypatch.setattr(cmd_module, "managed_fasthydromap_executable", lambda session, install_location=None: None)
 
     with pytest.raises(cmd_module.UserError, match="Run 'fasthydromap install' first"):
-        cmd_module._fasthydromap_command(object(), Path("model.pdb"), Path("out"), install_location=None)
+        cmd_module._fasthydromap_command(
+            object(), Path("model.pdb"), Path("out"), quantity="fdewet", install_location=None
+        )
 
 
 def test_read_single_structure_scores(monkeypatch, tmp_path):
@@ -159,6 +165,15 @@ def test_read_single_structure_scores_current_long_format(monkeypatch, tmp_path)
 
     scores = cmd_module._read_single_structure_scores(csv_path)
     assert scores == {"A:1": 4.1, "_:2": 5.2, "3A": 6.3}
+
+
+def test_read_single_structure_scores_pc_quantity(monkeypatch, tmp_path):
+    cmd_module = _load_submodule(monkeypatch, "cmd")
+    csv_path = tmp_path / "pc_scores.csv"
+    csv_path.write_text("residue,PC1\nA:1,7.1\n_:2,-1.2\n", encoding="utf-8")
+
+    scores = cmd_module._read_single_structure_scores(csv_path, quantity="pc1")
+    assert scores == {"A:1": 7.1, "_:2": -1.2}
 
 
 @pytest.mark.parametrize(
@@ -181,15 +196,114 @@ def test_color_structure_uses_fixed_palette_and_range(monkeypatch):
     commands = types.ModuleType("chimerax.core.commands")
     commands.run = lambda session, command: calls.append(command)
     monkeypatch.setitem(sys.modules, "chimerax.core.commands", commands)
+    colors = types.ModuleType("chimerax.core.colors")
+    colors.BuiltinColors = {"gray": "gray-color"}
+    monkeypatch.setitem(sys.modules, "chimerax.core.colors", colors)
+    std_color = types.ModuleType("chimerax.std_commands.color")
+    std_color.color_by_attr = lambda session, attr_name, **kwargs: calls.append(
+        ("color_by_attr", attr_name, kwargs)
+    )
+    monkeypatch.setitem(sys.modules, "chimerax.std_commands.color", std_color)
+    monkeypatch.setattr(cmd_module, "_resolve_palette", lambda palette: f"RESOLVED({palette})")
 
-    structure = types.SimpleNamespace(atomspec="#1")
-    cmd_module._color_structure(object(), structure, target="acs", show_atoms=False)
+    structure = types.SimpleNamespace(atomspec="#1", atoms="atoms-object")
+    cmd_module._color_structure(
+        object(),
+        structure,
+        target="acs",
+        show_atoms=False,
+        attr_name="fasthydromap_fdewet",
+        palette="^lipophilicity",
+        color_range=(4.0, 6.5),
+    )
 
     assert calls[-1] == (
-        "color byattribute r:fasthydromap_score #1 target acs "
-        "palette ^lipophilicity range 4,6.5 novalue gray"
+        "color_by_attr",
+        "r:fasthydromap_fdewet",
+        {
+            "atoms": "atoms-object",
+            "target": "acs",
+            "palette": "RESOLVED(^lipophilicity)",
+            "range": (4.0, 6.5),
+            "no_value_color": "gray-color",
+            "log_info": False,
+        },
     )
     assert "hide #1 bonds" not in calls
+
+
+def test_color_structure_uses_palette_and_range_overrides(monkeypatch):
+    cmd_module = _load_submodule(monkeypatch, "cmd")
+    calls = []
+
+    commands = types.ModuleType("chimerax.core.commands")
+    commands.run = lambda session, command: calls.append(command)
+    monkeypatch.setitem(sys.modules, "chimerax.core.commands", commands)
+    colors = types.ModuleType("chimerax.core.colors")
+    colors.BuiltinColors = {"gray": "gray-color"}
+    monkeypatch.setitem(sys.modules, "chimerax.core.colors", colors)
+    std_color = types.ModuleType("chimerax.std_commands.color")
+    std_color.color_by_attr = lambda session, attr_name, **kwargs: calls.append(
+        ("color_by_attr", attr_name, kwargs)
+    )
+    monkeypatch.setitem(sys.modules, "chimerax.std_commands.color", std_color)
+    palette_object = object()
+    monkeypatch.setattr(cmd_module, "_resolve_palette", lambda palette: f"RESOLVED({palette is palette_object})")
+
+    structure = types.SimpleNamespace(atomspec="#1", atoms="atoms-object")
+    cmd_module._color_structure(
+        object(),
+        structure,
+        target="acs",
+        show_atoms=True,
+        attr_name="fasthydromap_pc1",
+        palette=palette_object,
+        color_range=(3.5, 7),
+    )
+
+    assert calls[-1] == (
+        "color_by_attr",
+        "r:fasthydromap_pc1",
+        {
+            "atoms": "atoms-object",
+            "target": "acs",
+            "palette": "RESOLVED(True)",
+            "range": (3.5, 7),
+            "no_value_color": "gray-color",
+            "log_info": False,
+        },
+    )
+
+
+def test_pc_color_specs_use_requested_palettes_and_ranges(monkeypatch):
+    cmd_module = _load_submodule(monkeypatch, "cmd")
+    assert cmd_module.QUANTITY_SPECS["pc1"]["palette"] == "red-white-blue"
+    assert cmd_module.QUANTITY_SPECS["pc1"]["range"] == (-8.0, 8.0)
+    assert cmd_module.QUANTITY_SPECS["pc2"]["palette"] == "cyanmaroon"
+    assert cmd_module.QUANTITY_SPECS["pc2"]["range"] == (-2.0, 8.0)
+    assert cmd_module.QUANTITY_SPECS["pc3"]["palette"] == "^lipophilicity"
+    assert cmd_module.QUANTITY_SPECS["pc3"]["range"] == (-2.0, 2.0)
+
+
+def test_resolve_palette_supports_builtin_and_reversed(monkeypatch):
+    cmd_module = _load_submodule(monkeypatch, "cmd")
+
+    class FakeMap:
+        def __init__(self, name):
+            self.name = name
+
+        def reversed(self):
+            return f"reversed-{self.name}"
+
+    colors = types.ModuleType("chimerax.core.colors")
+    colors.BuiltinColormaps = {
+        "lipophilicity": FakeMap("lipophilicity"),
+        "red-white-blue": FakeMap("red-white-blue"),
+    }
+    monkeypatch.setitem(sys.modules, "chimerax.core.colors", colors)
+
+    assert cmd_module._resolve_palette("^lipophilicity") == "reversed-lipophilicity"
+    assert cmd_module._resolve_palette("red-white-blue").name == "red-white-blue"
 
 
 def test_find_structure_residue_handles_chainless_and_insertion_code(monkeypatch):

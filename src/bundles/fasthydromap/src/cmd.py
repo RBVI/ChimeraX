@@ -20,9 +20,32 @@ from chimerax.core.errors import UserError
 
 from .install import managed_fasthydromap_executable
 
-ATTR_NAME = "fasthydromap_score"
-DEFAULT_PALETTE = "^lipophilicity"
-DEFAULT_RANGE = "4,6.5"
+QUANTITY_SPECS = {
+    "fdewet": {
+        "label": "Fdewet",
+        "attr": "fasthydromap_fdewet",
+        "palette": "^lipophilicity",
+        "range": (4.0, 6.5),
+    },
+    "pc1": {
+        "label": "PC1",
+        "attr": "fasthydromap_pc1",
+        "palette": "red-white-blue",
+        "range": (-8.0, 8.0),
+    },
+    "pc2": {
+        "label": "PC2",
+        "attr": "fasthydromap_pc2",
+        "palette": "cyanmaroon",
+        "range": (-2.0, 8.0),
+    },
+    "pc3": {
+        "label": "PC3",
+        "attr": "fasthydromap_pc3",
+        "palette": "^lipophilicity",
+        "range": (-2.0, 2.0),
+    },
+}
 
 
 def fasthydromap(
@@ -32,9 +55,17 @@ def fasthydromap(
     color=True,
     target="acs",
     show_atoms=None,
+    quantity="fdewet",
+    palette=None,
+    range=None,
     install_location=None,
 ):
     from chimerax.atomic import Residue, all_atomic_structures
+    quantity = quantity.lower()
+    if quantity not in QUANTITY_SPECS:
+        raise UserError(f"fasthydromap: unknown quantity {quantity!r}")
+    spec = QUANTITY_SPECS[quantity]
+    attr_name = spec["attr"]
 
     if structures is None:
         structures = list(all_atomic_structures(session))
@@ -44,13 +75,15 @@ def fasthydromap(
     if not structures:
         raise UserError("fasthydromap: no atomic structures specified")
 
-    Residue.register_attr(session, ATTR_NAME, "FastHydroMap", attr_type=float)
+    Residue.register_attr(session, attr_name, "FastHydroMap", attr_type=float)
 
     colored = 0
     for structure in structures:
         assigned = _assign_fasthydromap_scores(
             session,
             structure,
+            quantity=quantity,
+            attr_name=attr_name,
             install_location=install_location,
         )
         if assigned == 0:
@@ -58,16 +91,25 @@ def fasthydromap(
             continue
         colored += 1
         if color:
-            _color_structure(session, structure, target=target, show_atoms=show_atoms)
+            _color_structure(
+                session,
+                structure,
+                target=target,
+                show_atoms=show_atoms,
+                attr_name=attr_name,
+                palette=spec["palette"] if palette is None else palette,
+                color_range=spec["range"] if range is None else range,
+            )
 
     if colored == 0:
         raise UserError("fasthydromap: no structures produced usable FastHydroMap predictions")
 
 
-def _assign_fasthydromap_scores(session, structure, *, install_location):
+def _assign_fasthydromap_scores(session, structure, *, quantity, attr_name, install_location):
     scores = _predict_scores(
         session,
         structure,
+        quantity=quantity,
         install_location=install_location,
     )
     if not scores:
@@ -87,14 +129,16 @@ def _assign_fasthydromap_scores(session, structure, *, install_location):
                 f"FastHydroMap could not map prediction {residue_label} onto {structure}"
             )
             continue
-        setattr(residue, ATTR_NAME, float(score))
+        setattr(residue, attr_name, float(score))
         assigned += 1
 
-    session.logger.info(f"FastHydroMap assigned {assigned} residues for {structure}")
+    session.logger.info(
+        f"FastHydroMap assigned {assigned} {QUANTITY_SPECS[quantity]['label']} residues for {structure}"
+    )
     return assigned
 
 
-def _predict_scores(session, structure, *, install_location):
+def _predict_scores(session, structure, *, quantity, install_location):
     with TemporaryDirectory(prefix="fasthydromap_") as temp_dir:
         temp_path = Path(temp_dir)
         pdb_path = temp_path / "model.pdb"
@@ -108,6 +152,7 @@ def _predict_scores(session, structure, *, install_location):
             session,
             pdb_path,
             outroot,
+            quantity=quantity,
             install_location=install_location,
         )
         try:
@@ -135,17 +180,17 @@ def _predict_scores(session, structure, *, install_location):
             raise UserError(
                 f"fasthydromap did not produce {csv_path.name} for {structure}: {detail}"
             )
-        return _read_single_structure_scores(csv_path)
+        return _read_single_structure_scores(csv_path, quantity=quantity)
 
 
-def _fasthydromap_command(session, pdb_path, outroot, *, install_location):
+def _fasthydromap_command(session, pdb_path, outroot, *, quantity, install_location):
     exe_override = os.environ.get("FASTHYDROMAP_EXE")
     if exe_override:
-        return [exe_override, "predict", str(pdb_path), "-o", str(outroot)]
+        return [exe_override, "predict", str(pdb_path), "-o", str(outroot), "--quantity", quantity]
 
     managed_exe = managed_fasthydromap_executable(session, install_location=install_location)
     if managed_exe:
-        return [managed_exe, "predict", str(pdb_path), "-o", str(outroot)]
+        return [managed_exe, "predict", str(pdb_path), "-o", str(outroot), "--quantity", quantity]
 
     raise UserError(
         "FastHydroMap is not installed in ChimeraX yet. "
@@ -153,7 +198,7 @@ def _fasthydromap_command(session, pdb_path, outroot, *, install_location):
     )
 
 
-def _read_single_structure_scores(csv_path):
+def _read_single_structure_scores(csv_path, *, quantity="fdewet"):
     with open(csv_path, newline="") as f:
         rows = list(csv.reader(f))
     if len(rows) < 2:
@@ -166,9 +211,10 @@ def _read_single_structure_scores(csv_path):
             raise UserError(f"fasthydromap output {csv_path} has inconsistent column counts")
         return {label: float(score) for label, score in zip(header[1:], values[1:])}
 
-    if "residue" in header and "Fdewet" in header:
+    score_column = QUANTITY_SPECS[quantity]["label"]
+    if "residue" in header and score_column in header:
         residue_index = header.index("residue")
-        score_index = header.index("Fdewet")
+        score_index = header.index(score_column)
         scores = {}
         for row in rows[1:]:
             if len(row) <= max(residue_index, score_index):
@@ -179,8 +225,10 @@ def _read_single_structure_scores(csv_path):
     raise UserError(f"fasthydromap output {csv_path} has an unexpected header")
 
 
-def _color_structure(session, structure, *, target, show_atoms):
+def _color_structure(session, structure, *, target, show_atoms, attr_name, palette, color_range):
+    from chimerax.core.colors import BuiltinColors
     from chimerax.core.commands import run
+    from chimerax.std_commands.color import color_by_attr
 
     spec = structure.atomspec
     if "s" in target:
@@ -194,12 +242,28 @@ def _color_structure(session, structure, *, target, show_atoms):
         run(session, f"show {spec} bonds")
     else:
         run(session, f"hide {spec} atoms")
-    run(
+    color_by_attr(
         session,
-        f"color byattribute r:{ATTR_NAME} {spec} target {target} palette {DEFAULT_PALETTE}"
-            f" range {DEFAULT_RANGE}"
-            f" novalue gray",
+        f"r:{attr_name}",
+        atoms=structure.atoms,
+        target=target,
+        palette=_resolve_palette(palette),
+        range=color_range,
+        no_value_color=BuiltinColors["gray"],
+        log_info=False,
     )
+
+
+def _resolve_palette(palette):
+    if not isinstance(palette, str):
+        return palette
+
+    from chimerax.core.colors import BuiltinColormaps
+
+    reverse = palette.startswith("^")
+    palette_name = palette[1:] if reverse else palette
+    cmap = BuiltinColormaps[palette_name.casefold()]
+    return cmap.reversed() if reverse else cmap
 
 
 def _find_structure_residue(structure, residue_label, no_chain_lookup):
@@ -241,7 +305,10 @@ def _residue_label(residue, *, include_chain):
 def register_fasthydromap_command(logger):
     from chimerax.core.commands import (
         BoolArg,
+        ColormapArg,
+        ColormapRangeArg,
         CmdDesc,
+        EnumOf,
         Or,
         EmptyArg,
         SaveFolderNameArg,
@@ -256,8 +323,11 @@ def register_fasthydromap_command(logger):
             ("color", BoolArg),
             ("target", TargetArg),
             ("show_atoms", BoolArg),
+            ("quantity", EnumOf(tuple(QUANTITY_SPECS))),
+            ("palette", ColormapArg),
+            ("range", ColormapRangeArg),
             ("install_location", SaveFolderNameArg),
         ],
-        synopsis="Predict per-residue Fdewet with FastHydroMap and optionally color the result",
+        synopsis="Predict per-residue Fdewet/PC values with FastHydroMap and optionally color the result",
     )
     register("fasthydromap", desc, fasthydromap, logger=logger)
