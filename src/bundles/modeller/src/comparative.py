@@ -386,7 +386,7 @@ def form_strings(target, templates, chain_info):
         update_in_seq_hets(template)
     while True:
         try:
-            next_index = find_next_target_index(template_state)
+            next_index = find_next_target_index(template_state, chain_info)
         except TemplatesFinished:
             while target_index < len(target)-1:
                 target_index += 1
@@ -435,15 +435,16 @@ def form_strings(target, templates, chain_info):
 
     return ''.join(target_chars), template_state
 
-def find_next_target_index(template_state):
+def find_next_target_index(template_state, chain_info):
     next_index = False
     for template, template_info in template_state.items():
         chars, template_index, mmap = template_info
+        aseq, target, match_map = chain_info[template]
         if template_index >= len(template):
             continue
         r = template.residues[template_index]
         if r:
-            check_index = mmap[r] if r in mmap else None
+            check_index = aseq.ungapped_to_gapped(mmap[r]) if r in mmap else None
             if check_index is None:
                 return None
             if next_index is False or check_index < next_index:
