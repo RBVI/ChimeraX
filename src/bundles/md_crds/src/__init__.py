@@ -83,7 +83,7 @@ class _MDCrdsBundleAPI(BundleAPI):
             else:
                 class MDInfo(OpenerInfo):
                     def open(self, session, data, file_name, *, structure_model=None,
-                            md_type=name, replace=None, slider=True, start=1, step=1, end=None, **kw):
+                            md_type=name, replace=None, slider=True, **kw):
                         if structure_model is None:
                             from chimerax.core.errors import UserError, CancelOperation
                             from chimerax.atomic import Structure
