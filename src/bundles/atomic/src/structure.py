@@ -1883,6 +1883,9 @@ class AtomicStructure(Structure):
                         except KeyError:
                             session.logger.warning("No non-polymeric residue in chain %s has sequence"
                                 " number %s" % (chain_id, seq_id))
+                        except ValueError:
+                            # 'seq_id' is '.' or something [#20524]
+                            continue
                         break
                 else:
                     try:
