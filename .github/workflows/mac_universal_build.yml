@@ -35,7 +35,7 @@ jobs:
   build-mac-universal:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - name: Set up Python
