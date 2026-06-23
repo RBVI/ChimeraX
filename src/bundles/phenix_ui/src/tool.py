@@ -1002,6 +1002,16 @@ class LaunchFindReferenceTool(ToolInstance):
                 caption="Folder for Phenix Input/Output Files", options=QFileDialog.DontUseNativeDialog)
             if not work_dir:
                 return
+            import os
+            if 'find_reference.json' in os.listdir(work_dir):
+                from chimerax.ui.ask import ask
+                answer = ask(self.session, "Overwrite previous results?",
+                    info="Using folder '%s' will overwrite previous find_reference results." % work_dir,
+                    title="Find_reference Output")
+                if answer == "yes":
+                    options += " positionArg output.overwrite=True"
+                else:
+                    return
             options += " work %s" % StringArg.unparse(work_dir)
 
         from .find_reference import db_search_types
