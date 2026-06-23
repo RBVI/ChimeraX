@@ -1,17 +1,17 @@
-RECIPES = ubuntu-20.04.def ubuntu-22.04.def ubuntu-24.04.def \
-	  rhel-8.def rhel-9.def
-IMAGES = $(RECIPES:.def=.img)
+RECIPES = ubuntu-22.04.def ubuntu-24.04.def \
+	  rhel-8.def rhel-9.def rhel-10.def
+IMAGES = $(RECIPES:.def=.sif)
 SUDO =
 
 IMAGE_DIR = /usr/local/projects/chimerax/nobackup
 
-.SUFFIXES: .def .img
+.SUFFIXES: .def .sif
 
-.def.img:
+.def.sif:
 ifneq (,$(SUDO))
-	$(SUDO) singularity build $*.img $<
+	$(SUDO) apptainer build $*.sif $<
 else
-	singularity build --fakeroot $*.img $<
+	apptainer build --fakeroot $*.sif $<
 endif
 
 images: $(IMAGES)
