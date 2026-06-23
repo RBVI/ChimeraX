@@ -77,12 +77,12 @@ class MutationScoresList(ToolInstance):
         return tools.get_singleton(session, cls, 'Mutation Scores', create=create)
 
     def _mutation_set_added(self, trigger_name, mset):
-        if self.tool_window is None:
+        if self.tool_window.ui_area is None:
             return 'delete handler'
         self._update_list()
 
     def _mutation_set_removed(self, trigger_name, mset):
-        if self.tool_window is None:
+        if self.tool_window.ui_area is None:
             return 'delete handler'
         self._update_list()
         

@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-PhenixUI" version="1.6.1"
+<BundleInfo name="ChimeraX-PhenixUI" version="1.6.2"
 	    package="chimerax.phenix_ui"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -45,6 +45,7 @@
     <ChimeraXClassifier>Tool :: Fit Loops :: Structure Editing, Phenix :: Fill in missing structure or remodel structure guided by Cryo-EM map</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: Fit Ligand :: Structure Editing, Phenix :: Place a ligand based on map density</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: AlphaFold2 Barbed Wire :: Structure Prediction, Phenix :: Assign regions of AlphaFold prediction into categories based on pLDDT scores and geometry</ChimeraXClassifier>
+    <ChimeraXClassifier>Tool :: Find Reference Chain :: Structure Editing, Phenix :: Find a reference chain for further model building in Phenix</ChimeraXClassifier>
   </Classifiers>
 
 </BundleInfo>

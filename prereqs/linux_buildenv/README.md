@@ -15,21 +15,24 @@ from the vendor), and the AmberTools binaries that have a FORTRAN runtime
 dependency.
 
 
-Ubuntu End Of Life
--------------------
+Ubuntu End Of Life, Standard/Security
+-------------------------------------
 
 * Ubuntu 16.04: April 2024
 * Ubuntu 18.04: April 2028
 * Ubuntu 20.04: April 2030
-* Ubuntu 22.04: April 2032
+* Ubuntu 22.04: April 2027/2032
+* Ubuntu 24.04: April 2029/2034
+* Ubuntu 26.04: April 2031/2036
 
 
-RHEL End Of Life
-----------------
+RHEL End Of Life, Full/Maintenance
+----------------------------------
 
 * RHEL 7: June 30, 2024
-* RHEL 8: May 31, 2029
-* RHEL 9: May 31, 2032
+* RHEL 8: May 31, 2024/2029
+* RHEL 9: May 31, 2027/2032
+* RHEL 10: May 31, 2030/2035
 
 
 Qt 5 Requirements

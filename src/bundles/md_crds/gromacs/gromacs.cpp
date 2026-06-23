@@ -31,14 +31,24 @@ read_traj_file(PyObject *args, bool is_xtc)
 	char error_string[256];
 
 	char *file_name;
-	if (!PyArg_ParseTuple(args, PY_STUPID "s", &file_name)) {
+	long f_start, f_step, f_end;
+	PyObject* py_end;
+	if (!PyArg_ParseTuple(args, PY_STUPID "sllO", &file_name, &f_start, &f_step, &py_end)) {
 		if (is_xtc) {
 			ERROR_RETURN("readXtcFile: could not parse args");
 		} else {
 			ERROR_RETURN("readTrrFile: could not parse args");
 		}
 	}
-
+	if (py_end == Py_None) {
+		f_end = 0;
+	} else {
+		if (!PyLong_Check(py_end))
+			ERROR_RETURN("'end' must be a positive integer or None");
+		f_end = PyLong_AsLong(py_end);
+		if (f_end <= f_start)
+			ERROR_RETURN("'end' must be greater than 'start'");
+	}
 	int num_atoms, status;
 	const char *format;
 	if (is_xtc) {
@@ -62,21 +72,30 @@ read_traj_file(PyObject *args, bool is_xtc)
 		ERROR_RETURN("xdrfile_open failure");
 	
 	// Despite holding two copies of the coordinates in memory at once, this implementation's peak
-	// memory use is no worse (and might be better) that one that read the trajectory twice, once
+	// memory use is no worse (and might be better) that one that reads the trajectory twice, once
 	// to get the number of frames (to allocate a correctly sized numpy array) and a second time to
-	// actually transfer the coordinates into the array.  And that implementaion too twice as long!
+	// actually transfer the coordinates into the array.  And that implementaion took twice as long!
 	std::vector<rvec*> frame_list;
 	int step;
 	float time, precision;
 	matrix box;
 	float lambda;
+	long frame_num = 0;
+	long next_kept_frame = f_start;
+	rvec *gromacs_crds = nullptr;
+	bool pop_last = false;
 	do {
-		rvec *gromacs_crds = (rvec *)malloc(num_atoms * sizeof(rvec));
+		frame_num += 1;
+		if (f_end > 0 && frame_num > f_end) {
+			pop_last = false;
+			break;
+		}
+		if (gromacs_crds == nullptr)
+			gromacs_crds = (rvec *)malloc(num_atoms * sizeof(rvec));
 		if (gromacs_crds == nullptr) {
 			for (auto crds: frame_list) free(crds);
 			ERROR_RETURN("Cannot allocate memory for coordinates");
 		}
-		frame_list.push_back(gromacs_crds);
 		if (is_xtc)
 			status = read_xtc(xd, num_atoms, &step, &time, box, gromacs_crds, &precision);
 		else
@@ -85,6 +104,7 @@ read_traj_file(PyObject *args, bool is_xtc)
 			if (is_xtc) {
 				if (status != exdrENDOFFILE) {
 					for (auto crds: frame_list) free(crds);
+					free(gromacs_crds);
 					xdrfile_close(xd);
 					ERROR_RETURN3("read_%s failure; return code %d", format, status);
 				}
@@ -92,9 +112,19 @@ read_traj_file(PyObject *args, bool is_xtc)
 				status = exdrENDOFFILE; // trr doesn't return proper end-of-file status
 			}
 		}
+		if (frame_num == next_kept_frame) {
+			frame_list.push_back(gromacs_crds);
+			gromacs_crds = nullptr;
+			next_kept_frame += f_step;
+			pop_last = true;
+		} else {
+			pop_last = false;
+		}
 	} while (status == exdrOK);
-	free(frame_list.back());
-	frame_list.pop_back();
+	if (pop_last) {
+		free(frame_list.back());
+		frame_list.pop_back();
+	}
 
 	double* crd_ptr;
 	auto crd_array = python_double_array(frame_list.size(), num_atoms, 3, &crd_ptr);

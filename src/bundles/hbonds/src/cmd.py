@@ -202,23 +202,21 @@ def cmd_hbonds(session, atoms, intra_model=True, inter_model=True, relax=True,
     global_comp = (inter_model and len(m_ids) > 1) or (submodels and inter_submodel)
     if global_comp:
         # global comp nukes per-structure groups it covers if intra-model also
-        if intra_model and not retain_current:
-            closures = []
-            for s in structures:
-                pbg = s.pseudobond_group(name, create_type=None)
-                if pbg:
-                    closures.append(pbg)
-            if closures:
-                session.models.close(closures)
-        hb_info = [(result, session.pb_manager.get_group(name))]
+        hb_info = process_global(session, structures, result, name, intra_model, retain_current)
     elif doing_coordsets:
         hb_info = [(result, structures[0].pseudobond_group(name, create_type="coordset"))]
     else:
         per_structure = {s:[] for s in structures}
         for hb in result:
+            a1, a2 = hb
+            if a1.structure != a2.structure:
+                # User has screwed up their hierarchy, see #20513
+                hb_info = process_global(session, structures, result, name, intra_model, retain_current)
+                break
             per_structure[hb[0].structure].append(hb)
-        hb_info = [(hbs, s.pseudobond_group(name, create_type="coordset"))
-            for s, hbs in per_structure.items()]
+        else:
+            hb_info = [(hbs, s.pseudobond_group(name, create_type="coordset"))
+                for s, hbs in per_structure.items()]
 
     for grp_hbonds, pbg in hb_info:
         if retain_current or update_group:
@@ -334,6 +332,17 @@ def restrict_hbonds(hbonds, atoms, restrict):
                 continue
         filtered.append((d, a))
     return filtered
+
+def process_global(session, structures, result, name, intra_model, retain_current):
+    if intra_model and not retain_current:
+        closures = []
+        for s in structures:
+            pbg = s.pseudobond_group(name, create_type=None)
+            if pbg:
+                closures.append(pbg)
+        if closures:
+            session.models.close(closures)
+    return [(result, session.pb_manager.get_group(name))]
 
 def _file_output(file_name, output_info, naming_style):
     inter_model, intra_model, relax_constraints, \

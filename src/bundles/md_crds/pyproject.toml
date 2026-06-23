@@ -1,5 +1,5 @@
 [build-system]
-requires = ["ChimeraX-BundleBuilder>=1.4.0", "ChimeraX-Core ~=1.0"]
+requires = ["ChimeraX-BundleBuilder>=1.4.1", "ChimeraX-Core ~=1.0"]
 build-backend = "chimerax.bundle_builder.cx_pep517"
 
 [project]

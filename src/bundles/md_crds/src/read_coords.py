@@ -29,21 +29,25 @@ def read_coords(session, file_name, model, format_name, *,
     from numpy import array, float64
     def read_gromacs_file(read_func, file_name):
         try:
-            return read_func(file_name)
+            return read_func(file_name, start, step, end)
         except ValueError as e:
-            if "allocate enough memory" in str(e):
-                raise LimitationError(e)
+            for limit_msg in ["allocate enough memory", "Cannot allocate memory", "must be a positive",
+                    "must be greater"]:
+                if limit_msg in str(e):
+                    raise LimitationError(e)
             if "return code 12" in str(e):
                 raise LimitationError("The Gromacs coordinate-reading library cannot handle"
                     " file or folder names with unusual characters.  Ensure your file name"
                     " contains only simple ASCII characters, as well as all containing folder names.")
             raise
+    steps_processed = False
     if format_name == "xtc":
         from ._gromacs import read_xtc_file
         session.logger.status("Reading Gromacs xtc coordinates", blank_after=0)
         coords = read_gromacs_file(read_xtc_file, file_name)
         coords *= 10.0
         num_atoms = coords.shape[1]
+        steps_processed = True
         session.logger.status("Finished reading Gromacs xtc coordinates")
     elif format_name == "trr":
         from ._gromacs import read_trr_file
@@ -51,6 +55,7 @@ def read_coords(session, file_name, model, format_name, *,
         coords = read_gromacs_file(read_trr_file, file_name)
         coords *= 10.0
         num_atoms = coords.shape[1]
+        steps_processed = True
         session.logger.status("Finished reading Gromacs trr coordinates")
     elif format_name == "dcd":
         from .dcd.MDToolsMarch97.md_DCD import DCD
@@ -78,9 +83,10 @@ def read_coords(session, file_name, model, format_name, *,
     if model.num_atoms != num_atoms:
         raise UserError("Specified structure has %d atoms"
             " whereas the coordinates are for %d atoms" % (model.num_atoms, num_atoms))
-    start, step, end = process_limit_args(session, start, step, end, len(coords))
-    if start > 0 or step > 1 or end < len(coords):
-        coords = coords[start:end:step]
+    if not steps_processed:
+        start, step, end = process_limit_args(session, start, step, end, len(coords))
+        if start > 0 or step > 1 or end < len(coords):
+            coords = coords[start:end:step]
 
     if omit is not None:
         omit_mask = _make_omit_mask(model, omit)

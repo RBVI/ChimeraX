@@ -118,6 +118,11 @@ class ProfileGridsTool(ToolInstance):
         menu.addAction(action)
 
         headers_menu = self.alignment.add_headers_menu_entry(menu)
+        if "Numbering" not in [hdr.name for hdr in self.alignment.headers]:
+            action = headers_menu.addAction("Alignment Numbering")
+            action.triggered.connect(lambda *, l=len(self.alignment.seqs[0]), aln=self.alignment:
+                aln.add_fixed_header("Numbering", [("1" if i == 0 else (str(i+1) if i % 10 == 9
+                else (str(i+1) if i == l-1 else ' '))) for i in range(l)]))
         hdr_seq_menu = headers_menu.addMenu("Individual Sequence As Header")
         hdr_seq_menu.aboutToShow.connect(lambda *, s=self, m=hdr_seq_menu:
             s._menu_of_seqs(m, "", s.alignment.seqs,

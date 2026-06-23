@@ -81,6 +81,12 @@ class ArrayJSONEncoder(json.JSONEncoder):
         # Does this look like an array?
         if hasattr(val, "__len__") and hasattr(val, "shape"):
             return [self._translate(v) for v in val]
+        import numpy
+        # A bare numpy scalar (e.g. the numpy.int64 from arr.sum()) has 'shape'
+        # but not '__len__', so it skips the array branch above; coerce it to a
+        # native Python type rather than failing to encode.
+        if isinstance(val, numpy.generic):
+            return self._translate(val)
         if self._user_default is None:
             raise TypeError("Can't JSON-encode '%s'" % repr(val))
         return self._user_default(val)
@@ -89,6 +95,8 @@ class ArrayJSONEncoder(json.JSONEncoder):
         if hasattr(val, "__len__"):
             return [self._translate(v) for v in val]
         import numpy
+        if isinstance(val, numpy.bool_):
+            return bool(val)
         if isinstance(val, numpy.number):
             if isinstance(val, numpy.integer):
                 return int(val)
