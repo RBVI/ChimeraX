@@ -10,7 +10,7 @@
 
 TOP ?= ../../..
 -include $(TOP)/.makerc
-ifeq (,$(wildcard /app))
+ifeq (,$(wildcard /app/*))
 CHIMERAX_APP = $(wildcard $(TOP)/ChimeraX*.app)
 else
 CHIMERAX_APP = $(wildcard /app)
