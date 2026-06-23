@@ -33,8 +33,8 @@ or derivations thereof.
 The <b>addh</b> command adds hydrogen atoms to atomic models, as well as
 OXT atoms where missing from peptide C-termini.
 If only part of a model is specified, the whole model will still be 
-protonated &ldquo;under the hood,&rdquo; but the hydrogens on the rest
-of the model will be omitted from the result.
+protonated &ldquo;under the hood,&rdquo; but only hydrogens bonded to the 
+specified part will be added.
 The corresponding tool is <a href="../tools/addhydrogens.html"><b>Add
 Hydrogens</b></a>.
 See also: <a href="delete.html"><b>delete</b></a>,
@@ -44,8 +44,6 @@ See also: <a href="delete.html"><b>delete</b></a>,
 <a href="addcharge.html"><b>addcharge</b></a>,
 <a href="dockprep.html"><b>dockprep</b></a>
 </p><p>
-Hydrogens are added to entire atomic model(s) 
-even if only parts of models are specified.
 The positions of pre-existing atoms are not changed, but
 any lone pairs and atoms of unidentifiable element are deleted.
 Hydrogens are named in accordance with the PDB standard, if possible, and

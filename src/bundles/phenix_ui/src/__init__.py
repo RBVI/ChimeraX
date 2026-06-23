@@ -53,5 +53,8 @@ class _PhenixBundle(BundleAPI):
         if tool_name == 'AlphaFold2 Barbed Wire':
             from .tool import LaunchBarbedWireAnalysisTool
             return LaunchBarbedWireAnalysisTool(session, tool_name)
+        if tool_name == 'Find Reference Chain':
+            from .tool import LaunchFindReferenceTool
+            return LaunchFindReferenceTool(session, tool_name)
 
 bundle_api = _PhenixBundle()
