@@ -182,6 +182,7 @@ class Mol2Parser:
         self._bonds = []
         self._substs = []
         self._comments = []
+        self._prelude_lines = []
 
     def _make_structure(self):
         """

@@ -493,8 +493,17 @@ class GridCanvas:
         self.displayed_headers.append(header)
         group = self._fill_header_contents(header)
         bbox = group.sceneBoundingRect()
-        self.header_label_items[header] = label = self.header_label_scene.addSimpleText(header.name,
+        from chimerax.alignment_headers import FixedHeaderSequence
+        if isinstance(header, FixedHeaderSequence) and len(header.name) > 25:
+            header_name = header.name[:10] + '\N{HORIZONTAL ELLIPSIS}' + header.name[-10:]
+            balloon_text = header.name
+        else:
+            header_name = header.name
+            balloon_text = None
+        self.header_label_items[header] = label = self.header_label_scene.addSimpleText(header_name,
             font=self.font)
+        if balloon_text is not None:
+            label.setToolTip(balloon_text)
         label_rect = label.sceneBoundingRect()
         group_rect = group.boundingRect()
         label.setPos(-label_rect.width(), group_rect.y() - label_rect.height())
