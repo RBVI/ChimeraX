@@ -312,10 +312,12 @@ def standardize_residues(session, residues, *, res_types=standardizable_residues
     from . import Residues
     if not isinstance(residues, Residues):
         residues = Residues(residues)
+    standardization_occurred = False
     for res_type in res_types:
         target_residues = residues.filter(residues.names == res_type)
         if not target_residues:
             continue
+        standardization_occurred = True
         target_type = standardization_info[res_type]
         results = {}
         exec('func = _standardize_%s' % res_type, globals(), results)
@@ -326,6 +328,7 @@ def standardize_residues(session, residues, *, res_types=standardizable_residues
             if verbose:
                 session.logger.info("Residue %s changed %s\N{RIGHTWARDS ARROW}%s"
                     % (r, res_type, target_type))
+    return standardization_occurred
 
 def _standardize_CSL(session, r, *, verbose=True):
     _mutate_sugar_Se(session, r)

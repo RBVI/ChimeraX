@@ -146,7 +146,7 @@ runs:
         path: |
           prereqs/PyQt/pyqt6_commercial-6.11.0-cp310-abi3-manylinux_2_34_x86_64.whl
           prereqs/PyQt/pyqt6_webengine_commercial-6.11.0-cp310-abi3-manylinux_2_34_x86_64.whl
-        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6-6.11.0
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (Linux ARM)
       id: cache-pyqt6-linux-arm64
@@ -156,7 +156,7 @@ runs:
         path: |
           prereqs/PyQt/pyqt6_commercial-6.11.0-cp310-abi3-manylinux_2_39_aarch64.whl
           prereqs/PyQt/pyqt6_webengine_commercial-6.11.0-cp310-abi3-manylinux_2_39_aarch64.whl
-        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6-6.11.0
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (Windows)
       id: cache-pyqt6-windows-x86_64
@@ -166,7 +166,7 @@ runs:
         path: |
           prereqs/PyQt/pyqt6_commercial-6.11.0-cp310-abi3-win_amd64.whl
           prereqs/PyQt/pyqt6_webengine_commercial-6.11.0-cp310-abi3-win_amd64.whl
-        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6-6.11.0
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (macOS Intel)
       id: cache-pyqt6-macos-x86_64
@@ -176,7 +176,7 @@ runs:
         path: |
           prereqs/PyQt/pyqt6_commercial-6.11.0-cp310-abi3-macosx_10_14_universal2.whl
           prereqs/PyQt/pyqt6_webengine_commercial-6.11.0-cp310-abi3-macosx_10_14_universal2.whl
-        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6-6.11.0
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (macOS)
       id: cache-pyqt6-macos-arm64
@@ -186,7 +186,7 @@ runs:
         path: |
           prereqs/PyQt/pyqt6_commercial-6.11.0-cp310-abi3-macosx_10_14_universal2.whl
           prereqs/PyQt/pyqt6_webengine_commercial-6.11.0-cp310-abi3-macosx_10_14_universal2.whl
-        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6-6.11.0
 
     - name: Restore cached seggerx dependency sources
       id: cache-seggerx
