@@ -64,10 +64,12 @@ def assign_charges(session, uncharged_residues, his_scheme, charge_method, *, st
 
     from chimerax.atomic.struct_edit import standardize_residues
     from chimerax.add_charge import add_charges, default_standardized
+    any_standardized = False
     for struct, struct_residues in by_structure.items():
         # need to standardize residues before any structure copy occurs, so do it ourselves here
         # and prevent add_charge from doing it
-        standardize_residues(session, struct_residues, res_types=default_standardized)
+        any_standardized = any_standardized or standardize_residues(session, struct_residues,
+            res_types=default_standardized)
         if copy_needed[struct]:
             session.logger.status("Copying %s" % struct, secondary=True)
             charged_struct = struct.copy(name="copy of " + struct.name)
@@ -134,6 +136,11 @@ def assign_charges(session, uncharged_residues, his_scheme, charge_method, *, st
                 session.logger.status("Destroying copy of %s" % struct, secondary=True)
             finally:
                 charged_struct.delete()
+    if any_standardized:
+        # The changes will cause the surface to think its shape has changed, so eat the changes
+        # here before the surface coloring occurs
+        from chimerax.atomic.changes import check_for_changes
+        check_for_changes(session)
 
 class NoHydError(ValueError):
     pass
