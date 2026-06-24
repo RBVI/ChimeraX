@@ -33,6 +33,8 @@ See also: <a href="volume.html"><b>volume</b></a>
 &ndash; place waters into EM density
 </li><li><a href="#emplaceLocal"><b>phenix emplaceLocal</b></a>
 &ndash; local fitting into EM density
+</li><li><a href="#findReference"><b>phenix findReference</b></a>
+&ndash; search databases for reference structures for specified chains
 </li><li><a href="#fitLoops"><b>phenix fitLoops</b></a>
 &ndash; build short peptide segments into density
 </li><li><a href="#ligandFit"><b>phenix ligandFit</b></a>
@@ -207,7 +209,7 @@ any subsequent commands, default true when the command is being executed in a
 <p>
 Advanced options:
 </p>
-
+<ul>
 <li><b>optionArg</b> &nbsp;<i>string</i> 
 &ndash; pass command-line arguments to 
 <a href="https://phenix-online.org/documentation/reference/douse.html" target="_blank"><i>douse</i></a> that need to appear before the
@@ -218,8 +220,8 @@ can be used multiple times in the same command
 <a href="https://phenix-online.org/documentation/reference/douse.html" target="_blank"><i>douse</i></a> that need to appear after the
 map/structure arguments (such as <b>dist_max=5.0</b>);
 can be used multiple times in the same command
-
-</li></blockquote>
+</li></ul>
+</blockquote>
 
 <a name="emplaceLocal"></a>
 <a href="#top" class="nounder">&bull;</a>
@@ -282,6 +284,45 @@ The remaining options are as described above for
 <a href="#douse"><b>phenix douse</b></a>. See also: 
 <a href="../tools/localemfitting.html#symmetry">adding symmetry copies
 after fitting</a>
+</p>
+</blockquote>
+
+<a name="findReference"></a>
+<a href="#top" class="nounder">&bull;</a>
+<b>phenix findReference</b>
+&nbsp;<a href="atomspec.html#hierarchy"><i>chain-spec</i></a>&nbsp;
+[&nbsp;<b>databases</b>&nbsp;&nbsp;computational&nbsp;|&nbsp;experimental&nbsp;|&nbsp<b>computational,experimental</b>&nbsp;]
+[&nbsp;<b>workDirectory</b> &nbsp;<i>save-folder</i>&nbsp;]
+[&nbsp;<b>superimposePhenix</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>verbose</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>phenixLocation</b> &nbsp;<i>folder</i>&nbsp;]
+[&nbsp;<b>block</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+&nbsp;<a href="#advanced"><i>advanced-options</i></a>
+<blockquote>
+<p>
+Run the <a href="https://phenix-online.org" target="_blank">Phenix</a> program
+<i>find_reference</i> (under development) on the specified structure chain(s).
+The corresponding tool is
+<a href="../tools/findreferencechain.html"><b>Find Reference Chain</b></a>.
+</p><p>
+The <a href="atomspec.html#hierarchy"><i>chain-spec</i></a> indicates 
+one or more chains (in currently open atomic structures) for which to find
+the best reference structure in the indicated <b>databases</b>, which could be
+computational (modeled) structures only, experimental structures only,
+or both (default).
+The <b>workDirectory</b> option saves the phenix input and output files
+in <i>save-folder</i>, which can be specified as the word 
+<a href="usageconventions.html#browse"><b>browse</b></a> to open
+a file browser window to locate it interactively.
+If the option is not used, the files will not be saved.
+</p><p>
+The <b>superimposePhenix</b> option indicates whether to use the
+reference-query superpositions calculated by Phenix (<b>true</b>, default);
+if <b>false</b>, <a href="matchmaker.html"><b>matchmaker</b></a> will
+be used to superimpose each reference chain onto its query chain.
+</p><p>
+The remaining options are as described above for
+<a href="#douse"><b>phenix douse</b></a>.
 </p>
 </blockquote>
 
@@ -453,6 +494,6 @@ in the <a href="../tools/log.html"><b>Log</b></a>.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics /
-March 2026</address>
+June 2026</address>
 
 </body></html>
