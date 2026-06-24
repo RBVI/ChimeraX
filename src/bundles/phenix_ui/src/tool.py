@@ -923,8 +923,7 @@ class LaunchEmplaceLocalSettings(Settings):
     }
 
 class LaunchFindReferenceTool(ToolInstance):
-    #help = "help:user/tools/fitloops.html"
-    help = None
+    help = "help:user/tools/findreferencechain.html"
 
     def __init__(self, session, tool_name):
         super().__init__(session, tool_name)
