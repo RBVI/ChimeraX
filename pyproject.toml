@@ -31,7 +31,7 @@ gui = [
   # sip handled in prereqs/PyQt
   #PySide6==6.10.1
   #shiboken6==6.10.1
-  # "qtconsole==5.7.0",
+  "qtconsole==5.7.2",
   "qtshim==1.2.2",
   "superqt==0.7.6",
   "tinyarray==1.2.5",
@@ -72,11 +72,11 @@ wheel = [
   "imagecodecs==2024.6.1",
   # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
   # try a newer version of jedi
-  # "ipykernel==7.1.0",
-  # "ipython==9.9.0",
+  "ipykernel==7.3.0",
+  "ipython==9.14.1",
   # the version of jedi that works with ipython
-  # "jedi==0.19.2",
-  # "jupyter-client==8.8.0",
+  "jedi==0.20.0",
+  "jupyter-client==8.9.1",
   "lxml==6.0.2",
   # lz4 4.4.4 has problems decompressing what it encoded, ticket #18140
   "lz4==4.3.2",
@@ -106,7 +106,7 @@ wheel = [
   # Macs download scipy wheels directly, adjust the names in prereqs/pips accordingly
   # if you upgrade this
   "scipy==1.14.0",
-  # "six==1.17.0",
+  "six==1.17.0",
   "sortedcontainers==2.4.0",
   "tables==3.10.2",
   "tifffile==2025.3.13",
@@ -129,7 +129,7 @@ wheel = [
   #
   # Indirect dependencies listed here to pin the version number
   #
-  # "traitlets==5.14.3",
+  "traitlets==5.15.1",
 ]
 dev = ["line_profiler==5.0.0", "markdown==3.8.2"]
 test = ["pytest", "pytest-cov", "coverage"]
