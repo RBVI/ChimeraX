@@ -22,10 +22,23 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+import sys
 from chimerax.core.settings import Settings
 
 label_missing_attr = 'label_missing_structure_threshold'
+use_impostors_attr = 'use_impostors'
+
+# Impostor sphere/cylinder rendering is a fragment-shader raytrace against
+# a billboard quad.  Until conservative-depth lets us re-enable early-Z,
+# the gl_FragDepth writes cause heavy overdraw.  Mac is stuck at OpenGL
+# 4.1 (no GL_ARB_conservative_depth), so impostors there can't be made
+# perf-competitive with tessellated geometry; default off on Mac.
+_use_impostors_default = (sys.platform != 'darwin')
+
 class _AtomicSettings(Settings):
+    AUTO_SAVE = {
+        use_impostors_attr: _use_impostors_default,
+    }
     EXPLICIT_SAVE = {
         'always_label_structure': False,
         'atomspec_contents': 'simple', # choices: simple, command (-line specifier), serial (number)
@@ -33,6 +46,7 @@ class _AtomicSettings(Settings):
     }
 
 # 'settings' module attribute will be set by the initialization of the bundle API
+settings = None
 
 def register_settings_options(session):
     from chimerax.ui.options import SymbolicEnumOption, IntOption, BooleanOption

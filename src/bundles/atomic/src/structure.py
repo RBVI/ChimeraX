@@ -44,6 +44,54 @@ LADDER_THRESHOLD = 2000         # skip ladder nucleotide styling if more than th
 
 CATEGORY = toolshed.STRUCTURE
 
+def _use_impostors():
+    '''Look up the AtomicSettings 'use_impostors' toggle.  Falls back to the
+    platform default during very early bootstrap (before initialize_atomic
+    has wired the settings instance).'''
+    from .settings import settings, _use_impostors_default
+    if settings is None:
+        return _use_impostors_default
+    return getattr(settings, 'use_impostors', _use_impostors_default)
+
+def rebuild_atom_bond_drawings(session):
+    '''Tear down every Structure's atoms/bonds drawings and every
+    PseudobondGroup's pbond drawing so the next graphics update rebuilds
+    them in whichever mode (impostor vs tessellated mesh) the current
+    settings call for.  Call this after toggling the use_impostors
+    setting so the change takes effect on the active scene.'''
+    for s in all_structures(session):
+        ad = s._atoms_drawing
+        if ad is not None:
+            s.remove_drawing(ad)
+            s._atoms_drawing = None
+        bd = s._bonds_drawing
+        if bd is not None:
+            s.remove_drawing(bd)
+            s._bonds_drawing = None
+        s._graphics_changed |= s._SHAPE_CHANGE | s._COLOR_CHANGE | s._DISPLAY_CHANGE
+    from .pbgroup import all_pseudobond_groups
+    for pbg in all_pseudobond_groups(session):
+        d = pbg._pbond_drawing
+        if d is not None:
+            pbg.remove_drawing(d)
+            pbg._pbond_drawing = None
+        pbg._graphics_changed |= pbg._SHAPE_CHANGE | pbg._COLOR_CHANGE | pbg._DISPLAY_CHANGE
+    # Zero num_atoms_shown so the next graphics_update cycle treats the
+    # scene as having an unknown size and re-runs LOD scaling.  Without
+    # this, the rebuilt mesh-mode drawings would keep the default 200
+    # triangles/sphere instead of the auto-scaled value for the actual
+    # structure size — turning a 1M-atom structure into a 200M-triangle
+    # monster on impostors-off.
+    gu = structure_graphics_updater(session)
+    gu.num_atoms_shown = 0
+    # Force a synchronous update cycle so the drawings are rebuilt and
+    # LOD is rescaled before this function returns.  In the GUI this
+    # would happen on the next frame anyway, but doing it eagerly makes
+    # the change visible to subsequent commands (e.g. graphics quality
+    # reporting, save STL) without waiting for a render.
+    gu._update_graphics_if_needed()
+    session.main_view.redraw_needed = True
+
 class Structure(Model, StructureData):
     """
     Structure model including atomic coordinates.
@@ -607,8 +655,13 @@ class Structure(Model, StructureData):
             changes = self._ALL_CHANGE
             self._atoms_drawing = p = AtomsDrawing('atoms')
             self.add_drawing(p)
-            # Set impostor quad geometry (2 triangles per atom instance)
-            p._set_impostor_quad_geometry()
+            if _use_impostors():
+                # Set impostor quad geometry (2 triangles per atom instance).
+                # Real sphere shape is raytraced in the fragment shader.
+                p._set_impostor_quad_geometry()
+            else:
+                # Tessellated sphere mesh, instanced per atom via shift+scale.
+                self._level_of_detail.set_atom_sphere_geometry(p)
 
         if changes & (self._ADDDEL_CHANGE | self._DISPLAY_CHANGE):
             changes |= self._ALL_CHANGE
@@ -650,8 +703,13 @@ class Structure(Model, StructureData):
             changes = self._ALL_CHANGE
             self._bonds_drawing = p = BondsDrawing('bonds', PickedBond, PickedBonds)
             self.add_drawing(p)
-            # Set impostor quad geometry (2 triangles per bond instance)
-            p._set_impostor_quad_geometry()
+            if _use_impostors():
+                # Set impostor quad geometry (2 triangles per bond instance).
+                # Real cylinder shape is raytraced in the fragment shader.
+                p._set_impostor_quad_geometry()
+            else:
+                # Tessellated half-cylinder mesh, instanced via 2N placement matrices.
+                self._level_of_detail.set_bond_cylinder_geometry(p)
 
         if changes & (self._ADDDEL_CHANGE | self._DISPLAY_CHANGE):
             changes |= self._ALL_CHANGE
@@ -662,35 +720,47 @@ class Structure(Model, StructureData):
 
         bonds = p.visible_bonds
 
-        if changes & self._SHAPE_CHANGE or changes & self._COLOR_CHANGE:
-            # Full-bond placements: N matrices (not 2N half-bond matrices)
-            ba1, ba2 = bonds.atoms
-            xyz1, xyz2 = ba1.coords, ba2.coords
-            radii = bonds.radii
+        if getattr(p, '_use_impostor_cylinder', False):
+            if changes & self._SHAPE_CHANGE or changes & self._COLOR_CHANGE:
+                # Impostor path: N full-bond placement matrices, atom2 colour
+                # packed into the otherwise-unused matrix bottom row.
+                ba1, ba2 = bonds.atoms
+                xyz1, xyz2 = ba1.coords, ba2.coords
+                radii = bonds.radii
 
-            n = len(xyz1)
-            from numpy import empty, float32
-            matrices = empty((n, 4, 4), float32)
+                n = len(xyz1)
+                from numpy import empty, float32
+                matrices = empty((n, 4, 4), float32)
 
-            from chimerax.geometry import cylinder_rotations
-            cylinder_rotations(xyz1, xyz2, radii, matrices)
-            # Set translation to bond midpoint
-            matrices[:, 3, :3] = 0.5 * (xyz1 + xyz2)
+                from chimerax.geometry import cylinder_rotations
+                cylinder_rotations(xyz1, xyz2, radii, matrices)
+                # Set translation to bond midpoint
+                matrices[:, 3, :3] = 0.5 * (xyz1 + xyz2)
 
-            # Pack atom2 color into bottom row of each matrix (row 3)
-            # OpenGL array layout: matrices[instance, column, row]
-            c1, c2 = ba1.colors, ba2.colors  # Nx4 RGBA uint8
-            matrices[:, 0, 3] = c2[:, 0] / 255.0
-            matrices[:, 1, 3] = c2[:, 1] / 255.0
-            matrices[:, 2, 3] = c2[:, 2] / 255.0
-            matrices[:, 3, 3] = c2[:, 3] / 255.0
+                # Pack atom2 color into bottom row of each matrix (row 3)
+                # OpenGL array layout: matrices[instance, column, row]
+                c1, c2 = ba1.colors, ba2.colors  # Nx4 RGBA uint8
+                matrices[:, 0, 3] = c2[:, 0] / 255.0
+                matrices[:, 1, 3] = c2[:, 1] / 255.0
+                matrices[:, 2, 3] = c2[:, 2] / 255.0
+                matrices[:, 3, 3] = c2[:, 3] / 255.0
 
-            from chimerax.geometry import Places
-            p.positions = Places(opengl_array=matrices)
-            p.colors = c1  # atom1 colors as primary instance color
+                from chimerax.geometry import Places
+                p.positions = Places(opengl_array=matrices)
+                p.colors = c1  # atom1 colors as primary instance color
 
-        if changes & self._SELECT_CHANGE:
-            p.highlighted_positions = bonds.selected if bonds.num_selected > 0 else None
+            if changes & self._SELECT_CHANGE:
+                p.highlighted_positions = bonds.selected if bonds.num_selected > 0 else None
+        else:
+            # Tessellated mesh path: 2N half-cylinder placements + 2N half_colors.
+            if changes & self._SHAPE_CHANGE:
+                p.positions = bonds.halfbond_cylinder_placements(p.positions.opengl_matrices())
+
+            if changes & self._COLOR_CHANGE:
+                p.colors = bonds.half_colors
+
+            if changes & self._SELECT_CHANGE:
+                p.highlighted_positions = _selected_bond_cylinders(bonds)
 
     def _get_autochain(self):
         return self._auto_chain_trace
@@ -749,8 +819,16 @@ class Structure(Model, StructureData):
     display = property(_get_display, _set_display)
 
     def _update_level_of_detail(self, total_atoms):
-        # LOD not needed — AtomsDrawing and BondsDrawing use impostor quads
-        pass
+        # Impostor mode doesn't tessellate, so LOD is a no-op there.  In mesh
+        # mode the LOD object resizes the sphere/cylinder triangulation per
+        # the current quality + total-atom count.
+        lod = self._level_of_detail
+        bd = self._bonds_drawing
+        if bd is not None and not getattr(bd, '_use_impostor_cylinder', False):
+            lod.set_bond_cylinder_geometry(bd, total_atoms)
+        ad = self._atoms_drawing
+        if ad is not None and not ad._use_impostor:
+            lod.set_atom_sphere_geometry(ad, total_atoms)
 
     def _update_position(self, trig_name, updated_model):
         need_update = False
@@ -1276,6 +1354,7 @@ class AtomsDrawing(Drawing):
 
     def __init__(self, name):
         self.visible_atoms = None
+        self._use_impostor = False  # set True by _set_impostor_quad_geometry
         super().__init__(name)
 
     def _set_impostor_quad_geometry(self):
@@ -1285,16 +1364,18 @@ class AtomsDrawing(Drawing):
         normals = array([[0,0,1], [0,0,1], [0,0,1], [0,0,1]], float32)
         triangles = array([[0,1,2], [0,2,3]], int32)
         self.set_geometry(vertices, normals, triangles)
+        self._use_impostor = True
 
     def _shader_options(self, transparent_only=False, opaque_only=False):
         sopt = super()._shader_options(transparent_only, opaque_only)
-        from chimerax.graphics.opengl import Render
-        sopt |= Render.SHADER_IMPOSTOR_SPHERE
-        sopt &= ~Render.SHADER_LIGHTING_NORMALS
+        if self._use_impostor:
+            from chimerax.graphics.opengl import Render
+            sopt |= Render.SHADER_IMPOSTOR_SPHERE
+            sopt &= ~Render.SHADER_LIGHTING_NORMALS
         return sopt
 
     def export_geometry_baked(self):
-        return True
+        return self._use_impostor
 
     def export_geometry(self):
         '''
@@ -1302,7 +1383,12 @@ class AtomsDrawing(Drawing):
         for mesh-export formats.  Returns [(va, na, ta, vc, tca, parent_positions)].
         Bakes per-atom scale + translation into vertex positions and
         per-atom color into per-vertex colors.
+
+        In tessellated-mesh mode the drawing's own .vertices already hold a
+        real sphere; let the default Drawing.export_geometry() handle it.
         '''
+        if not self._use_impostor:
+            return super().export_geometry()
         if not self.display or not self.parents_displayed:
             return []
         if self.visible_atoms is None or len(self.visible_atoms) == 0:

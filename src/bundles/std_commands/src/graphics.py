@@ -103,6 +103,7 @@ def graphics_quality(
     ribbon_divisions=None,
     ribbon_sides=None,
     color_depth=None,
+    use_impostors=None,
 ):
     """
     Set graphics quality parameters.
@@ -140,6 +141,13 @@ def graphics_quality(
         Number of bits per color channel (red, green, blue, alpha) in framebuffer.
         If 16 is specified then offscreen rendering is used since it is not easy or
         possible to switch on-screen framebuffer depth.
+    use_impostors : bool
+        Whether atoms and bonds are drawn as fragment-shader impostors (single
+        billboard quad per atom/bond, sphere/cylinder shape raytraced per pixel)
+        or as tessellated triangle meshes.  Default is on for Windows and Linux,
+        off for macOS (Apple OpenGL is stuck at 4.1, where conservative-depth
+        layout qualifiers needed to keep Early Z working aren't available).
+        The setting is persisted across ChimeraX sessions.
     """
     from chimerax.atomic import structure_graphics_updater
 
@@ -225,6 +233,17 @@ def graphics_quality(
         r.offscreen.enabled = color_depth == 16
         v.redraw_needed = True
         change = True
+    if use_impostors is not None:
+        from chimerax.atomic.settings import settings as atomic_settings, use_impostors_attr
+        if atomic_settings is None:
+            raise UserError(
+                "Atomic settings not yet initialized; cannot change use_impostors."
+            )
+        # Assigning to an AUTO_SAVE attribute persists to disk and fires the
+        # 'setting changed' trigger, which our atomic init handler uses to
+        # tear down and rebuild atom/bond/pseudobond drawings.
+        setattr(atomic_settings, use_impostors_attr, bool(use_impostors))
+        change = True
 
     if change:
         gu.update_level_of_detail()
@@ -244,6 +263,10 @@ def graphics_quality(
             dmin, dmax = min(div), max(div)
             drange = "%d-%d" % (dmin, dmax) if dmin < dmax else "%d" % dmin
             msg += ", ribbon divisions %s" % drange
+        from chimerax.atomic.settings import settings as atomic_settings, _use_impostors_default
+        ui = (getattr(atomic_settings, "use_impostors", _use_impostors_default)
+              if atomic_settings is not None else _use_impostors_default)
+        msg += ", use impostors %s" % ("true" if ui else "false")
         session.logger.status(msg, log=True)
 
 
@@ -389,6 +412,7 @@ def register_command(logger):
             ("ribbon_divisions", IntOrDefaultArg),
             ("ribbon_sides", IntArg),
             ("color_depth", IntArg),
+            ("use_impostors", BoolArg),
         ],
         hidden=["subdivision"],  # Deprecated in favor of quality
         synopsis="Set graphics quality parameters",

@@ -809,7 +809,9 @@ class Render:
                 p = sp[capabilities]
                 sp[orig_cap] = p
         if p is None:
-            p = Shader(capabilities = capabilities, max_shadows = self.multishadow.max_multishadows())
+            p = Shader(capabilities = capabilities,
+                       max_shadows = self.multishadow.max_multishadows(),
+                       use_conservative_depth = self.use_conservative_depth_for_impostors())
             sp[capabilities] = p
             if capabilities & self.SHADER_LIGHTING:
                 self._bind_lighting_parameter_buffer(p)
@@ -1150,10 +1152,39 @@ class Render:
                  'GLSL version: %s' % GL.glGetString(GL.GL_SHADING_LANGUAGE_VERSION).decode('utf-8'),
                  'rgba bits: %d,%d,%d,%d' % self.framebuffer_rgba_bits(),
                  'depth bits: %d' % self.framebuffer_depth_bits()]
-        ne = GL.glGetIntegerv(GL.GL_NUM_EXTENSIONS)
-        for e in range(ne):
-            lines.append('extension: %s' % GL.glGetStringi(GL.GL_EXTENSIONS,e).decode('utf-8'))
+        for ext in sorted(self._opengl_extensions()):
+            lines.append('extension: %s' % ext)
         return '\n'.join(lines)
+
+    def _opengl_extensions(self):
+        '''Return the set of OpenGL extension names supported by the current
+        context.  Cached on first call.'''
+        exts = getattr(self, '_opengl_extension_set', None)
+        if exts is None:
+            ne = GL.glGetIntegerv(GL.GL_NUM_EXTENSIONS)
+            exts = {GL.glGetStringi(GL.GL_EXTENSIONS, i).decode('utf-8')
+                    for i in range(ne)}
+            self._opengl_extension_set = exts
+        return exts
+
+    def has_extension(self, name):
+        '''Return True if the named OpenGL extension is supported on the
+        current context.'''
+        return name in self._opengl_extensions()
+
+    def use_conservative_depth_for_impostors(self):
+        '''Whether impostor shaders may declare layout(depth_greater) on
+        gl_FragDepth to restore Early Z testing.  Requires
+        GL_ARB_conservative_depth — available on virtually every desktop
+        GL 3.3+ driver except Apple's frozen-at-4.1 macOS implementation.
+        Cached after first query.'''
+        v = getattr(self, '_use_conservative_depth', None)
+        if v is None:
+            import sys
+            v = (sys.platform != 'darwin'
+                 and self.has_extension('GL_ARB_conservative_depth'))
+            self._use_conservative_depth = v
+        return v
 
     def opengl_profile(self):
         pmask = GL.glGetIntegerv(GL.GL_CONTEXT_PROFILE_MASK)
@@ -2889,11 +2920,13 @@ class Shader:
     '''OpenGL shader program with specified capabilities.'''
 
     def __init__(self, capabilities = 0, max_shadows = 0,
-                 vertex_shader_path = None, fragment_shader_path = None):
+                 vertex_shader_path = None, fragment_shader_path = None,
+                 use_conservative_depth = False):
 
         self.check_uniforms = True
 
         self.capabilities = capabilities
+        self._use_conservative_depth = use_conservative_depth
 
         if vertex_shader_path is None:
             from os.path import dirname, join
@@ -3021,7 +3054,18 @@ class Shader:
         deflines = ['#define %s 1' % sopt.replace('SHADER_', 'USE_')
                     for sopt in shader_capability_names(capabilities)]
         deflines.append('#define MAX_SHADOWS %d' % max_shadows)
-        defs = '\n'.join(deflines)
+        # Conservative depth: when the impostor shader is active and the
+        # platform/driver supports GL_ARB_conservative_depth, redeclare
+        # gl_FragDepth with layout(depth_greater) so Early Z testing
+        # survives the gl_FragDepth writes the impostor fragment shader
+        # uses for ray-hit depths.  The #extension goes BEFORE any
+        # other code; the macro lets the shader code branch on it.
+        impostor_caps = (Render.SHADER_IMPOSTOR_SPHERE | Render.SHADER_IMPOSTOR_CYLINDER)
+        extlines = []
+        if self._use_conservative_depth and (capabilities & impostor_caps):
+            extlines.append('#extension GL_ARB_conservative_depth : require')
+            deflines.append('#define USE_CONSERVATIVE_DEPTH 1')
+        defs = '\n'.join(extlines + deflines)
         v = shader.find('#version')
         eol = shader[v:].find('\n') + 1
         s = shader[:eol] + defs + '\n' + shader[eol:]

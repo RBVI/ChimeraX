@@ -205,6 +205,16 @@ uniform mat4 projection_matrix;
 uniform int impostor_dashes;  // 0 = solid, >0 = number of dashes
 #endif
 
+// Restore Early Z for the impostor fragment shaders.  The vertex shader
+// sets polygon depth to the closest possible sphere/cylinder surface
+// point, and gl_FragDepth always lands on (or behind) the actual surface
+// — so depth_greater holds.  Without this, the gl_FragDepth writes below
+// force the GPU to disable Early Z and rasterize every fragment that
+// hits the billboard quad.
+#if defined(USE_CONSERVATIVE_DEPTH) && (defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER))
+layout(depth_greater) out float gl_FragDepth;
+#endif
+
 #ifdef USE_DEPTH_CUE
 uniform vec3 depth_cue_color;
 uniform vec2 depth_cue_range;	// start and end camera z values

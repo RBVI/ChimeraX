@@ -61,6 +61,16 @@ def initialize_atomic(session):
     from . import settings
     settings.settings = settings._AtomicSettings(session, "atomic")
 
+    # Rebuild atom/bond/pseudobond drawings whenever the impostor toggle
+    # flips, so the change takes effect on the active scene without
+    # waiting for the next file open.
+    def _impostor_setting_changed(trig_name, trig_vals, ses=session):
+        setting_name, old, new = trig_vals
+        if setting_name == settings.use_impostors_attr and old != new:
+            from .structure import rebuild_atom_bond_drawings
+            rebuild_atom_bond_drawings(ses)
+    settings.settings.triggers.add_handler('setting changed', _impostor_setting_changed)
+
     from chimerax import atomic_lib, pdb_lib # ensure libs we need are linked
     import os.path
     res_templates_dir = os.path.join(atomic_lib.__path__[0], 'data')

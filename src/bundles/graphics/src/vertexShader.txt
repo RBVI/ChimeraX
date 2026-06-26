@@ -301,6 +301,37 @@ void main(void)
 #endif
 
   gl_Position = projection_matrix * veye;
+
+#ifdef USE_CONSERVATIVE_DEPTH
+  // Override gl_Position.z so the polygon depth that Early Z tests against
+  // is the depth of the closest possible impostor surface point.  The
+  // fragment shader writes the true hit depth into gl_FragDepth, which is
+  // always >= this bound; that satisfies layout(depth_greater) and lets
+  // the GPU keep Early Z on despite the gl_FragDepth writes.
+  //
+  // Projection-matrix layout (column-major in GLSL):
+  //   m[2][2]*z_eye + m[3][2] = z_clip;  m[2][3]*z_eye + m[3][3] = w_clip.
+  // For perspective m[3][3]==0, for orthographic m[2][3]==0.  The same
+  // formula handles both.
+  #ifdef USE_IMPOSTOR_SPHERE
+    // Closest sphere surface point: eye_z = center.z + radius.
+    float cz_close = impostor_center.z + impostor_radius;
+  #elif defined(USE_IMPOSTOR_CYLINDER)
+    // Tight bound on max-eye-z extent of an oriented cylinder:
+    //   half_len*|axis.z| + radius*sqrt(1 - axis.z^2)
+    // (axis along z: extent is half_len; axis perp to z: extent is radius;
+    //  smoothly interpolates for arbitrary orientations.)
+    float az = abs(impostor_cyl_axis.z);
+    float cz_close = impostor_cyl_center.z
+                   + impostor_cyl_half_length * az
+                   + impostor_cyl_radius * sqrt(max(0.0, 1.0 - az*az));
+  #endif
+  #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
+    float close_z = projection_matrix[2][2] * cz_close + projection_matrix[3][2];
+    float close_w = projection_matrix[2][3] * cz_close + projection_matrix[3][3];
+    gl_Position.z = (close_z / close_w) * gl_Position.w;
+  #endif
+#endif
 }
 
 #endif
