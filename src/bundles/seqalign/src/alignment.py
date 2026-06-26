@@ -180,9 +180,9 @@ class Alignment(State):
         headers_menu = menu.addMenu("Headers")
         headers = self.headers
         headers.sort(key=lambda hdr: hdr.ident.casefold())
-        from chimerax.core.commands import run, StringArg
-        align_arg = "%s " % self if len(self.session.alignments.alignments) > 1 else ""
+        from chimerax.core.commands import run
         from Qt.QtGui import QAction
+        align_arg = self.align_arg
         for hdr in headers:
             action = QAction(hdr.name, headers_menu)
             action.setCheckable(True)
@@ -208,6 +208,11 @@ class Alignment(State):
         """Called by objects that care about alignment changes that are not themselves viewer
            (e.g. alignment headers).  Most of the documentation for attach_viewer() applies."""
         self.observers.append(observer)
+
+    @property
+    def align_arg(self):
+        from chimerax.core.commands import StringArg
+        return "%s " % StringArg.unparse(self.ident) if len(self.session.alignments.alignments) > 1 else ""
 
     def associate(self, models, seq=None, force=True, min_length=10, reassoc=False,
             keep_intrinsic=False, silent=False):
