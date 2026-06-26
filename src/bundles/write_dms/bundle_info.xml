@@ -1,0 +1,37 @@
+<BundleInfo name="ChimeraX-WriteDMS" version="1.0"
+	    package="chimerax.write_dms"
+  	    minSessionVersion="1" maxSessionVersion="1">
+
+  <Author>UCSF RBVI</Author>
+  <Email>chimerax@cgl.ucsf.edu</Email>
+  <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
+
+  <Synopsis>DMS writer</Synopsis>
+  <Description>Write DMS surface file</Description>
+
+  <Categories>
+    <Category name="I/O"/>
+  </Categories>
+
+  <Dependencies>
+    <Dependency name="ChimeraX-Core" version="~=13.0"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.69"/>
+    <Dependency name="ChimeraX-DataFormats" version="~=1.2"/>
+    <Dependency name="ChimeraX-OpenCommand" version="~=1.16"/>
+  </Dependencies>
+
+  <Providers manager="data formats">
+    <Provider name="dot molecular surface" synopsis="DMS" nicknames="dms" category="Molecular structure"
+		suffixes=".dms" encoding="utf-8" />
+  </Providers>
+
+  <Providers manager="save command">
+    <Provider name="dot molecular surface" />
+  </Providers>
+
+  <Classifiers>
+    <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
+    <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
+  </Classifiers>
+
+</BundleInfo>
