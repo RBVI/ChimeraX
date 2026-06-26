@@ -296,14 +296,14 @@ def write_stl(session, filename, models):
             for d in m.all_drawings():
                 drawings.add(d)
             
-    # Collect geometry, not including children, handle instancing
+    # Collect geometry, not including children, handle instancing.
+    # Drawing.export_geometry() lets impostor-based drawings (atoms, bonds,
+    # pseudobonds) expand their per-instance impostor representation into
+    # real triangle meshes before being written.
     geom = []
     for d in drawings:
-        va, ta = d.vertices, d.masked_triangles
-        if va is not None and ta is not None and d.display and d.parents_displayed:
-            pos = d.get_scene_positions(displayed_only = True)
-            if len(pos) > 0:
-                geom.append((va, ta, pos))
+        for va, na, ta, vc, tca, pos in d.export_geometry():
+            geom.append((va, ta, pos))
     from chimerax.surface import combine_geometry_vtp
     va, ta = combine_geometry_vtp(geom)
     from .stl_cpp import stl_pack

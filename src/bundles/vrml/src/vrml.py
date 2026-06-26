@@ -173,13 +173,37 @@ def all_visible_drawings(models):
 # -----------------------------------------------------------------------------
 #
 def drawing_geometry(drawing):
+    # Impostor drawings (atoms, bonds, pseudobonds) carry only a billboard
+    # quad as their own geometry; the real spheres / cylinders only exist
+    # inside the fragment shader.  Pull the expanded mesh from export_geometry()
+    # and apply just the parent's scene positions (per-instance placements
+    # are already baked in).
+    if drawing.export_geometry_baked():
+        from numpy import concatenate
+        vs, cs, ts = [], [], []
+        offset = 0
+        for va, na, ta, vc, tca, ppos in drawing.export_geometry():
+            if vc is None:
+                vc = single_vertex_color(len(va), drawing.color)
+            for p in ppos:
+                pv = va if p.is_identity() else (p * va)
+                vs.append(pv)
+                cs.append(vc)
+                ts.append(ta + offset)
+                offset += len(va)
+        if not vs:
+            from numpy import empty, float32, int32, uint8
+            return (empty((0,3), float32), empty((0,3), int32),
+                    empty((0,4), uint8))
+        return concatenate(vs), concatenate(ts), concatenate(cs)
+
     v = drawing.vertices.copy()
     vc = drawing.vertex_colors
     t = drawing.masked_triangles
 
     if len(t) < len(drawing.triangles):
         v, vc, t = remove_unused_vertices(v, vc, t)
-    
+
     # Expand instancing and create vertex colors if needed.
     positions = drawing.get_scene_positions(displayed_only = True)
     if len(positions) == 1:

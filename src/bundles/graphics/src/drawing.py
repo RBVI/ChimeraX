@@ -543,6 +543,48 @@ class Drawing:
         for c in self.child_drawings():
             c._scene_positions_changed()
 
+    def export_geometry_baked(self):
+        '''
+        True if export_geometry() returns geometry that bakes in this
+        drawing's per-instance placements.  Tree-aware exporters
+        (e.g. glTF) must then treat each returned piece as a stand-alone
+        mesh with explicit scene positions rather than instancing it
+        through this drawing's own .positions.  Default False; impostor
+        drawings (atoms, bonds, pseudobonds) override.
+        '''
+        return False
+
+    def export_geometry(self):
+        '''
+        Return triangle geometry suitable for export to mesh-file formats
+        (STL, OBJ, glTF, VRML, ...).  Returned as a list of tuples
+
+            [(vertices, normals, triangles, vertex_colors,
+              texture_coordinates, positions), ...]
+
+        where positions is a Places to apply to each tuple's vertex array.
+        vertex_colors and texture_coordinates may be None.  The default
+        implementation returns a single tuple holding this drawing's
+        own mesh arrays and its full scene positions.  Subclasses that
+        render via per-instance impostor expansion in the fragment shader
+        (atoms, bonds, pseudobonds) override this to bake their impostor
+        instances into real triangle meshes and return parent-only scene
+        positions (and also override export_geometry_baked() to True).
+
+        Returns [] when this drawing has nothing to export.
+        '''
+        va = self.vertices
+        ta = self.masked_triangles
+        if va is None or ta is None or len(va) == 0 or len(ta) == 0:
+            return []
+        if not self.display or not self.parents_displayed:
+            return []
+        pos = self.get_scene_positions(displayed_only = True)
+        if len(pos) == 0:
+            return []
+        return [(va, self.normals, ta, self.vertex_colors,
+                 self.texture_coordinates, pos)]
+
     def get_positions(self, displayed_only=False):
         if displayed_only and self.num_displayed_positions < len(self._positions):
             return self._positions.masked(self.display_positions)

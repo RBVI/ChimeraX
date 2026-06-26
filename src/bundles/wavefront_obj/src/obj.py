@@ -334,14 +334,19 @@ def write_obj(session, filename, models, obj_to_unity = True, single_object = Fa
             for d in m.all_drawings():
                 drawings.add(d)
             
-    # Collect geometry, not including children, handle instancing
+    # Collect geometry, not including children, handle instancing.
+    # Drawing.export_geometry() lets impostor-based drawings (atoms, bonds,
+    # pseudobonds) expand their per-instance impostor representation into
+    # real triangle meshes before being written.
     geom = []
     for d in drawings:
-        va, na, tca, ta = d.vertices, d.normals, d.texture_coordinates, d.masked_triangles
-        if va is not None and ta is not None and d.display and d.parents_displayed:
-            pos = d.get_scene_positions(displayed_only = True)
-            if len(pos) > 0:
-                geom.append((full_name(d), va, na, tca, ta, pos))
+        pieces = d.export_geometry()
+        # Name disambiguation when one drawing yields multiple pieces.
+        for i, (va, na, ta, vc, tca, pos) in enumerate(pieces):
+            name = full_name(d)
+            if len(pieces) > 1:
+                name = '%s_part%d' % (name, i)
+            geom.append((name, va, na, tca, ta, pos))
 
     if single_object:
         from chimerax.surface import combine_geometry_xvntctp

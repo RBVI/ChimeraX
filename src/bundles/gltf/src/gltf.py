@@ -704,8 +704,41 @@ def all_visible_drawings(models):
                 drawings.add(d)
     # Prune drawings with nothing displayed.
     ts = {}
-    dshown = tuple(d for d in drawings if any_triangles_shown(d, drawings, ts))
-    return dshown
+    dshown = [d for d in drawings if any_triangles_shown(d, drawings, ts)]
+
+    # Replace impostor-based drawings (atoms, bonds, pseudobonds) with
+    # proxy drawings whose vertex array holds the real expanded sphere /
+    # cylinder mesh.  Without this glTF would see only the 4-vertex
+    # billboard quad that the impostor shaders raycast against.
+    expanded = []
+    for d in dshown:
+        if d.export_geometry_baked():
+            expanded.extend(_export_proxies(d))
+        else:
+            expanded.append(d)
+    return tuple(expanded)
+
+# -----------------------------------------------------------------------------
+# Build stand-in Drawing objects holding the expanded triangle mesh for an
+# impostor drawing.  The proxies are not added to any model tree; their
+# positions encode parent scene placement so they are equivalent at the
+# scene level to what the impostor shader would have raycast.
+#
+def _export_proxies(drawing):
+    from chimerax.graphics import Drawing
+    proxies = []
+    for va, na, ta, vc, tca, ppos in drawing.export_geometry():
+        proxy = Drawing(drawing.name)
+        proxy.set_geometry(va, na, ta)
+        if vc is not None:
+            proxy.vertex_colors = vc
+        if tca is not None:
+            proxy.texture_coordinates = tca
+        proxy.positions = ppos
+        # Inherit drawing-level visual attrs so glTF material picks them up.
+        proxy.color = drawing.color
+        proxies.append(proxy)
+    return proxies
 
 # -----------------------------------------------------------------------------
 #

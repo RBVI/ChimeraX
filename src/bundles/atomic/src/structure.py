@@ -1293,6 +1293,60 @@ class AtomsDrawing(Drawing):
         sopt &= ~Render.SHADER_LIGHTING_NORMALS
         return sopt
 
+    def export_geometry_baked(self):
+        return True
+
+    def export_geometry(self):
+        '''
+        Expand per-atom impostor instances into a real sphere mesh suitable
+        for mesh-export formats.  Returns [(va, na, ta, vc, tca, parent_positions)].
+        Bakes per-atom scale + translation into vertex positions and
+        per-atom color into per-vertex colors.
+        '''
+        if not self.display or not self.parents_displayed:
+            return []
+        if self.visible_atoms is None or len(self.visible_atoms) == 0:
+            return []
+        sas = self.positions.shift_and_scale_array()
+        if sas is None or len(sas) == 0:
+            return []
+        n_atoms = len(sas)
+        centers = sas[:, 0:3]
+        radii = sas[:, 3]
+        icolors = self.colors
+        if icolors is None or len(icolors) != n_atoms:
+            from numpy import empty, uint8
+            icolors = empty((n_atoms, 4), uint8)
+            icolors[:] = self.color
+
+        # High-quality unit sphere mesh.  ntri must be a multiple of 4 with at
+        # least 4 triangles; matches LevelOfDetail._atom_max_triangles.
+        from chimerax.surface.shapes import sphere_geometry2
+        sv, sn, st = sphere_geometry2(2000)
+
+        nv, nt = len(sv), len(st)
+        from numpy import empty, float32, int32, uint8, arange, tile
+        va = empty((n_atoms * nv, 3), float32)
+        na = empty((n_atoms * nv, 3), float32)
+        ta = empty((n_atoms * nt, 3), int32)
+        vc = empty((n_atoms * nv, 4), uint8)
+
+        # Vertices = unit sphere scaled by radius, translated to atom center.
+        va[:] = (sv[None, :, :] * radii[:, None, None]
+                 + centers[:, None, :]).reshape(-1, 3)
+        # Normals don't change direction under uniform scale + translation.
+        na[:] = tile(sn, (n_atoms, 1))
+        # Triangles offset by i*nv per sphere instance.
+        offsets = (arange(n_atoms, dtype=int32) * nv)
+        ta[:] = (st[None, :, :] + offsets[:, None, None]).reshape(-1, 3)
+        # Per-vertex colors: replicate each atom's color across its nv vertices.
+        vc[:] = icolors[:, None, :].repeat(nv, axis=1).reshape(-1, 4)
+
+        ppos = self.parent.get_scene_positions(displayed_only=True) if self.parent else None
+        if ppos is None or len(ppos) == 0:
+            return []
+        return [(va, na, ta, vc, None, ppos)]
+
     def bounds(self):
         cpb = self._cached_position_bounds	# Attribute of Drawing.
         if cpb is not None:
@@ -1427,6 +1481,100 @@ class BondsDrawing(Drawing):
         if p is not None and p.capabilities & renderer.SHADER_IMPOSTOR_CYLINDER:
             p.set_integer("impostor_dashes", self.impostor_dashes)
 
+    def export_geometry_baked(self):
+        return getattr(self, '_use_impostor_cylinder', False)
+
+    def export_geometry(self):
+        '''
+        Expand per-bond impostor instances into a real cylinder mesh suitable
+        for mesh-export formats.  Returns [(va, na, ta, vc, tca, parent_positions)].
+        Each bond becomes one cylinder with vertices colored by their local-z
+        side of the bond midpoint to reproduce halfbond coloring.  Dashed
+        pseudobonds use dashed_cylinder_geometry().
+        '''
+        if not getattr(self, '_use_impostor_cylinder', False):
+            return super().export_geometry()
+        if not self.display or not self.parents_displayed:
+            return []
+        if self.visible_bonds is None or len(self.visible_bonds) == 0:
+            return []
+        if self.positions is None or len(self.positions) == 0:
+            return []
+
+        # Recover affine transforms from impostor placement matrices.  The
+        # bottom row (matrices[i, :, 3]) was overwritten to pack the atom2
+        # color, so the matrix is not directly usable as an affine transform;
+        # we read columns 0..2 (rotation*scale) and row 3 (translation)
+        # explicitly and use the (column, row) layout [i, col, :3].
+        pos_arr = self.positions.opengl_matrices()
+        n = len(pos_arr)
+        col0 = pos_arr[:, 0, :3]
+        col1 = pos_arr[:, 1, :3]
+        col2 = pos_arr[:, 2, :3]
+        midpoints = pos_arr[:, 3, :3]
+        from numpy import sqrt, uint8, empty, float32, int32, arange
+        radii = sqrt((col0 * col0).sum(axis=1))
+        lengths = sqrt((col2 * col2).sum(axis=1))
+        # Guard against zero-length / zero-radius bonds (would divide by 0).
+        nz_r = radii.copy(); nz_r[nz_r == 0] = 1.0
+        nz_l = lengths.copy(); nz_l[nz_l == 0] = 1.0
+
+        # Atom1 color is in self.colors, atom2 color is packed in matrix bottom row as floats in [0,1].
+        c1 = self.colors
+        if c1 is None or len(c1) != n:
+            c1 = empty((n, 4), uint8)
+            c1[:] = self.color
+        c2 = (pos_arr[:, :, 3] * 255.0).clip(0, 255).astype(uint8)
+
+        # High-quality unit cylinder mesh: radius 1, height 1 (z in [-0.5, 0.5]).
+        # Matches LevelOfDetail._bond_max_triangles (nc=40 gives 160 wall tris).
+        nc = 40
+        dashes = getattr(self, 'impostor_dashes', 0)
+        from chimerax.surface.shapes import cylinder_geometry, dashed_cylinder_geometry
+        if dashes > 0:
+            cv, cn, ct = dashed_cylinder_geometry(segments=dashes, radius=1, height=1,
+                                                  nz=2, nc=nc, caps=True)
+        else:
+            cv, cn, ct = cylinder_geometry(radius=1, height=1, nz=2, nc=nc, caps=True)
+        cv = cv.astype(float32, copy=False)
+        cn = cn.astype(float32, copy=False)
+        ct = ct.astype(int32, copy=False)
+
+        nv, nt = len(cv), len(ct)
+        va = empty((n * nv, 3), float32)
+        na = empty((n * nv, 3), float32)
+        ta = empty((n * nt, 3), int32)
+        vc = empty((n * nv, 4), uint8)
+
+        # Vertex transform: va[i,v] = col0[i]*cv[v,0] + col1[i]*cv[v,1] + col2[i]*cv[v,2] + midpoint[i]
+        va[:] = (cv[None, :, 0:1] * col0[:, None, :]
+                 + cv[None, :, 1:2] * col1[:, None, :]
+                 + cv[None, :, 2:3] * col2[:, None, :]
+                 + midpoints[:, None, :]).reshape(-1, 3)
+
+        # Normals: rotate cylinder normals by the unit basis (strip scale).
+        c0u = col0 / nz_r[:, None]
+        c1u = col1 / nz_r[:, None]
+        c2u = col2 / nz_l[:, None]
+        na[:] = (cn[None, :, 0:1] * c0u[:, None, :]
+                 + cn[None, :, 1:2] * c1u[:, None, :]
+                 + cn[None, :, 2:3] * c2u[:, None, :]).reshape(-1, 3)
+
+        # Triangles offset per-instance.
+        offsets = (arange(n, dtype=int32) * nv)
+        ta[:] = (ct[None, :, :] + offsets[:, None, None]).reshape(-1, 3)
+
+        # Per-vertex colors: split by local z sign at the bond midpoint.
+        z_neg = cv[:, 2] < 0
+        vc_grid = vc.reshape(n, nv, 4)
+        vc_grid[:, z_neg, :] = c1[:, None, :]
+        vc_grid[:, ~z_neg, :] = c2[:, None, :]
+
+        ppos = self.parent.get_scene_positions(displayed_only=True) if self.parent else None
+        if ppos is None or len(ppos) == 0:
+            return []
+        return [(va, na, ta, vc, None, ppos)]
+
     def bounds(self):
         cpb = self._cached_position_bounds	# Attribute of Drawing.
         if cpb is not None:
@@ -1489,8 +1637,12 @@ class BondsDrawing(Drawing):
             return
         ba1, ba2 = bonds.atoms
         cyl_info = _halfbond_cylinder_x3d(ba1.effective_coords, ba2.effective_coords, bonds.radii)
+        # cyl_info has 2N entries (one per half cylinder); self.colors carries
+        # only N atom1 colors in impostor mode.  Pull 2N half_colors from the
+        # bonds collection so the atom2-side cylinders aren't silently dropped.
+        half_colors = bonds.half_colors
         tab = ' ' * indent
-        for ci, c in zip(cyl_info, self.colors):
+        for ci, c in zip(cyl_info, half_colors):
             h = ci[0]
             r = ci[1]
             rot = ci[2:6]
