@@ -33,7 +33,7 @@ jobs:
           architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - name: Restore bundles and includes from cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: |
             linux-bundles.tar.gz
