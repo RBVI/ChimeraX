@@ -22,7 +22,7 @@ jobs:
       PYOPENGL_PLATFORM: egl
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - uses: Tiryoh/gha-jobid-action@v1
@@ -48,7 +48,7 @@ jobs:
           architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - name: Restore bundles and includes from cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: |
             linux-bundles.tar.gz
