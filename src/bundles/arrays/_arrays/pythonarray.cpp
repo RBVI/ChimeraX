@@ -94,8 +94,18 @@ bool array_from_python(PyObject *array, int dim, Numeric_Array *na, bool allow_d
       return false;
     }
 
-  Numeric_Array::Value_Type dtype;
   int type = PyArray_TYPE(a);
+  if (type == NPY_LONGLONG || type == NPY_ULONGLONG)
+    {
+      // On Windows in numpy 2 default integer arrays are 64-bit which are long long.
+      // Downcast these to long.
+      PyObject *a_long = PyArray_Cast(a, NPY_LONG);
+      Py_DECREF((PyObject *) a);
+      a = (PyArrayObject *)a_long;
+      type = NPY_LONG;
+    }
+
+  Numeric_Array::Value_Type dtype;
   switch ((NPY_TYPES) type)
     {
     case NPY_BOOL:  dtype = Numeric_Array::Unsigned_Char;   break;
@@ -113,7 +123,7 @@ bool array_from_python(PyObject *array, int dim, Numeric_Array *na, bool allow_d
     case NPY_FLOAT: dtype = Numeric_Array::Float;       break;
     case NPY_DOUBLE:    dtype = Numeric_Array::Double;      break;
     default:
-      PyErr_SetString(PyExc_TypeError, "Array argument has non-numeric values");
+      PyErr_Format(PyExc_TypeError, "Array argument has unsupported numpy value type %d", type);
       return false;
     };
 
