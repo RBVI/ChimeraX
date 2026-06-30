@@ -25,7 +25,7 @@
 from chimerax.core.errors import UserError
 from .settings import defaults
 
-def write_dms(session, file_name, *, surface=None, displayed_only=defaults['displayed_only'],
+def write_dms(session, file_name, *, models=None, displayed_only=defaults['displayed_only'],
         save_normals=defaults['save_normals'], status=None):
     """Write a DMS file.
 
@@ -35,8 +35,10 @@ def write_dms(session, file_name, *, surface=None, displayed_only=defaults['disp
     file_name : str, or file object open for writing
         Output file.
 
-    surface : a MolecularSurface model to write out.  If None, then look for open MolecularSurfaces.
-        If there is exactly one, write it out -- otherwise raise an error.
+    models : a MolecularSurface model to write out.  If None, then look for open MolecularSurfaces.
+        If there is exactly one, write it out -- otherwise raise an error.  Named 'models' so that
+        the save command machinery will automatically allow it to also be specified as a second
+        positional argument instead of a keyword argument.
 
     status : function or None
         If not None, a function that takes a string -- used to report the progress of the write.
@@ -47,6 +49,8 @@ def write_dms(session, file_name, *, surface=None, displayed_only=defaults['disp
     save_normals : bool
         Whether to also save vector normals in the file.
     """
+
+    surface = models
 
     if surface is None:
         from chimerax.atomic import MolecularSurface
