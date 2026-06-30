@@ -128,7 +128,6 @@ def find_vertex_info(session, surface, displayed_only, status):
     # distance from center of grid cube to corner is sqrt(3/4) * grid-spacing
     grid_chk = sqrt(0.75) * surface.grid_spacing
     from chimerax.geometry import distance
-    #vertex_colors = []
     for i, v_n_a in enumerate(zip(vertices, normals, areas)):
         if status and i % 10000 == 0:
             status("Finding contacting atoms (%.1f%%)" % (100 * i / len(vertices)), secondary=True)
@@ -153,10 +152,6 @@ def find_vertex_info(session, surface, displayed_only, status):
         if not nearest:
             raise ValueError("No surface atom near surface vertex?!?")
         atom_to_vinfo.setdefault(nearest, []).append((vertex, normal, area, len(contacts)))
-        #vertex_colors.append([255, 255, 255, 255] if len(contacts) == 1 else
-        #    ([34, 139, 34, 255] if len(contacts) == 2 else [255, 165, 0, 255]))
-    #from numpy import array, uint8
-    #surface.vertex_colors = array(vertex_colors, uint8)
 
     if status:
         status("", secondary=True)
