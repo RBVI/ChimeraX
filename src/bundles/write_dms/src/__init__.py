@@ -38,8 +38,8 @@ class _DMSBundleAPI(BundleAPI):
 
             @property
             def save_args(self):
-                from chimerax.core.commands import BoolArg, SurfaceArg
-                from chimerax.atomic import AtomsArg, MolecularSurface, AnnotationError
+                from chimerax.core.commands import BoolArg, SurfaceArg, AnnotationError
+                from chimerax.atomic import AtomsArg, MolecularSurface
                 class MolecularSurfaceArg(SurfaceArg):
                     @classmethod
                     def parse(cls, text, session):
