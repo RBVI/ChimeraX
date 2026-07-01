@@ -127,8 +127,8 @@ def read_binary_stl_geometry(path, replace_zero_normals = True):
     comment = input.read(80)
     
     # Next read uint32 triangle count.
-    from numpy import fromstring, uint32, float32, array, uint8
-    tc = fromstring(input.read(4), uint32)[0]        # triangle count
+    from numpy import frombuffer, uint32, float32, array, uint8
+    tc = frombuffer(input.read(4), uint32)[0]        # triangle count
 
     geom = input.read(tc*50)	# 12 floats per triangle, plus 2 bytes padding.
     input.close()
@@ -254,10 +254,10 @@ def stl_unpack(geom):
     # Next read 50 bytes per triangle containing float32 normal vector
     # followed three float32 vertices, followed by two "attribute bytes"
     # sometimes used to hold color information, but ignored by this reader.
-    from numpy import empty, float32, fromstring
+    from numpy import empty, float32, frombuffer
     nv = empty((tc, 12), float32)
     for t in range(tc):
-        nv[t, :] = fromstring(geom[50*t:50*t+48], float32)
+        nv[t, :] = frombuffer(geom[50*t:50*t+48], float32)
 
     # Assign numbers to vertices.
     from numpy import empty, int32, float32, zeros, sqrt, newaxis
