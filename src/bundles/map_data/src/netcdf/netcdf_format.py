@@ -116,7 +116,7 @@ class NetCDF_Data:
     elif 'component_name' in f.variables:         # or as a variable
       v = f.variables['component_name']
       if len(v.shape) == 1 and v.dtype.kind == 'S':
-        comp_name = v[:].tostring()
+        comp_name = v[:].tobytes()
     return comp_name
     
   # ---------------------------------------------------------------------------
