@@ -64,8 +64,8 @@ class Dock_Data:
     pos = bmp_file.tell()
 
     bmp_file.seek(0,0)
-    from numpy import fromstring, int32
-    sa = fromstring(bmp_file.read(4), int32)   # returns array
+    from numpy import frombuffer, int32
+    sa = frombuffer(bmp_file.read(4), int32)   # returns array
     array_size = sa[0]
 
     bmp_file.seek(pos, 0)                   # go back to original position
@@ -97,10 +97,10 @@ class Dock_Data:
   #
   def read_values(self, file, count, type):
 
-    from numpy import array, fromstring
+    from numpy import array, frombuffer
     type_size = array([], type).itemsize
 
-    a = fromstring(file.read(type_size*count), type)   # returns array
+    a = frombuffer(file.read(type_size*count), type)   # returns array
     if self.byte_swap:
       a = a.byteswap()
 

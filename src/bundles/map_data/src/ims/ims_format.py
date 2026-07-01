@@ -116,8 +116,8 @@ class IMS_Data:
         # Imaris image header values are numpy arrays of characters. Ugh.
         dsi = f.root.DataSetInfo
         im = dsi.Image._v_attrs
-        extent = [(float(im['ExtMin%d' % a].tostring()), float(im['ExtMax%d' % a].tostring())) for a in (0,1,2)]
-        size = [int(im[axis].tostring()) for axis in ('X','Y','Z')]
+        extent = [(float(im['ExtMin%d' % a].tobytes()), float(im['ExtMax%d' % a].tobytes())) for a in (0,1,2)]
+        size = [int(im[axis].tobytes()) for axis in ('X','Y','Z')]
         origin = [e1 for e1,e2 in extent]
         step = [(e2-e1)/s for (e1,e2),s in zip(extent,size)]
 
@@ -254,7 +254,7 @@ class IMS_Data:
             if cd is None:
                 break
             a = cd._v_attrs
-            color = a.Color.tostring()
+            color = a.Color.tobytes()
             rgba = tuple(float(r) for r in color.split()) + (1.0,)
             ccolors.append(rgba)
         return ccolors

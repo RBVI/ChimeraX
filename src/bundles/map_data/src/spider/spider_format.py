@@ -70,8 +70,8 @@ class SPIDER_Data:
 
     n = 24
     header = file.read(n * 4)
-    from numpy import fromstring, float32
-    values = fromstring(header, float32)
+    from numpy import frombuffer, float32
+    values = frombuffer(header, float32)
     if self.swap_bytes:
       values = values.byteswap()
 

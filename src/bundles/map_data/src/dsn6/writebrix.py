@@ -71,7 +71,7 @@ def write_data(matrix, prod, plus, file, progress):
           d[zbsize:,ybsize:,xbsize:] = 0  # For fragment blocks.
           d1d = d.ravel()
           bytes = (d1d*prod + plus).astype(uint8)   # Scale to 0-255
-          file.write(bytes.tostring())
+          file.write(bytes.tobytes())
 
     if progress:
       progress.done()

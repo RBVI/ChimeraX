@@ -26,7 +26,7 @@
 # Read part of a matrix from a binary file making at most one copy of array
 # in memory.
 #
-# The code array.fromstring(file.read()) creates two copies in memory.
+# The code array.frombuffer(file.read()) creates two copies in memory.
 # The numpy.fromfile() routine can't read into an existing array.
 #
 def read_array(path, byte_offset, ijk_origin, ijk_size, ijk_step,
@@ -55,7 +55,7 @@ def read_array(path, byte_offset, ijk_origin, ijk_size, ijk_step,
     kbytes = full_size[1] * jbytes
     ibytes = isize * element_size
     ioffset = io * element_size
-    from numpy import fromstring
+    from numpy import frombuffer
     for k in range(ko, ko+ksize, kstep):
       if progress:
         progress.plane((k-ko)//kstep)
@@ -64,7 +64,7 @@ def read_array(path, byte_offset, ijk_origin, ijk_size, ijk_step,
         offset = kbase + j * jbytes + ioffset
         file.seek(offset)
         data = file.read(ibytes)
-        slice = fromstring(data, type)
+        slice = frombuffer(data, type)
         matrix[(k-ko)//kstep,(j-jo)//jstep,:] = slice[::istep]
 
     file.close()

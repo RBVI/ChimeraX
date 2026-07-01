@@ -46,17 +46,17 @@ class DelPhi_Data:
       self.value_type = float32
       sc = params
     elif len(params) == 20:	# DelPhi Phi file
-      size = string_values(params[16:20], int32, swap)[0]
+      size = values_from_bytes(params[16:20], int32, swap)[0]
       self.value_type = float32
       sc = params[:16]
     elif len(params) == 36:	# 2008 Mac DelPhi Phi file
-      size = string_values(params[32:36], int32, swap)[0]
+      size = values_from_bytes(params[32:36], int32, swap)[0]
       self.value_type = float64
       sc = params[:32]
     else:
       raise SyntaxError('Parameter record size %d must be 16 or 20 or 36'
                         % len(params))
-    pval = string_values(sc, self.value_type, swap)
+    pval = values_from_bytes(sc, self.value_type, swap)
     scale = pval[0]
     xyz_center = pval[1:4]
 
@@ -73,8 +73,8 @@ class DelPhi_Data:
   #
   def need_to_swap_bytes(self, file):
 
-    from numpy import fromstring, int32
-    v = fromstring(file.read(4), int32)[0]
+    from numpy import frombuffer, int32
+    v = frombuffer(file.read(4), int32)[0]
     file.seek(0,0)
     return (v < 0 or v >= 65536)
     
@@ -83,7 +83,7 @@ class DelPhi_Data:
   def read_record(self, file, swap, skip = False):
 
     from numpy import int32
-    size = string_values(file.read(4), int32, swap)[0]
+    size = values_from_bytes(file.read(4), int32, swap)[0]
     if size < 0:
       raise SyntaxError('Negative record size %d' % size)
     if size > self.file_size:
@@ -97,7 +97,7 @@ class DelPhi_Data:
       string = file.read(size)
 
     from numpy import int32
-    esize = string_values(file.read(4), int32, swap)[0]
+    esize = values_from_bytes(file.read(4), int32, swap)[0]
     if esize != size:
       raise SyntaxError('Record size at end of record %d' % esize + 
                         ' != size at head of record %d' % size)
@@ -122,10 +122,10 @@ class DelPhi_Data:
 
 # -----------------------------------------------------------------------------
 #
-def string_values(string, type, swap):
+def values_from_bytes(data, type, swap):
 
-  from numpy import fromstring
-  values = fromstring(string, type)
+  from numpy import frombuffer
+  values = frombuffer(data, type)
   if swap:
     values = values.byteswap()
   return values

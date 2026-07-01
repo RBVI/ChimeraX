@@ -268,10 +268,10 @@ class IMAGIC_Data:
 
     from numpy import array
     esize = array((), etype).itemsize
-    string = file.read(esize * count)
-    if len(string) < esize * count:
+    data = file.read(esize * count)
+    if len(data) < esize * count:
       raise SyntaxError('IMAGIC file is truncated.  Failed reading %d values, type %s' % (count, etype.__name__))
-    values = self.read_values_from_string(string, etype, count)
+    values = self.read_values_from_bytes(data, etype, count)
     return values
 
   #
@@ -280,10 +280,10 @@ class IMAGIC_Data:
   # Read value(s) from a string
   # (copied from mrc_format.py)
   #
-  def read_values_from_string(self, string, etype, count):
+  def read_values_from_bytes(self, data, etype, count):
  
-    from numpy import fromstring
-    values = fromstring(string, etype)
+    from numpy import frombuffer
+    values = frombuffer(data, etype)
     if self.swap_bytes:
       values = values.byteswap()
     if count == 1:

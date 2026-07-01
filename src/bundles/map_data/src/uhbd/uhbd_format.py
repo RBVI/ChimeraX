@@ -118,16 +118,16 @@ class UHBD_Data:
 
     from numpy import array
     esize = array((), etype).itemsize
-    string = file.read(esize * count)
-    values = self.read_values_from_string(string, etype, count)
+    data = file.read(esize * count)
+    values = self.read_values_from_bytes(data, etype, count)
     return values
 
   # ---------------------------------------------------------------------------
   #
-  def read_values_from_string(self, string, etype, count):
+  def read_values_from_bytes(self, data, etype, count):
   
-    from numpy import fromstring
-    values = fromstring(string, etype)
+    from numpy import frombuffer
+    values = frombuffer(data, etype)
     if self.swap_bytes:
       values = values.byteswap()
     if count == 1:
@@ -147,7 +147,7 @@ class UHBD_Data:
     xsize, ysize, zsize = self.data_size
     plane_bytes = 4 * xsize * ysize
 
-    from numpy import zeros, float32, fromstring, reshape
+    from numpy import zeros, float32, frombuffer, reshape
     matrix = zeros((zsize, ysize*xsize), float32)
 
     file = open(self.path, 'rb')
@@ -160,7 +160,7 @@ class UHBD_Data:
         progress.plane(k)
       file.seek(24,1)  # skip rec-len-beg, k, im, jm, rec-len-end, rec-len-beg
       plane = file.read(plane_bytes)
-      matrix[k,:] = fromstring(plane, float32)
+      matrix[k,:] = frombuffer(plane, float32)
       file.seek(4,1)   # skip rec-len-end
 
     file.close()

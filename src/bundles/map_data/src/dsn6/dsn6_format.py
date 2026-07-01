@@ -140,16 +140,19 @@ class dsn6_map:
   #
   def read_integers(self, file, count):
 
-    value_string = file.read(2 * count)
-    if len(value_string) < 2 * count:
+    value_bytes = file.read(2 * count)
+    if len(value_bytes) < 2 * count:
       raise SyntaxError('Unexpected end of file reading %d bytes' % (2*count))
 
-    from numpy import fromstring, int16, little_endian
-    values = fromstring(value_string, int16)
+    from numpy import frombuffer, int16, little_endian, int32
+    values = frombuffer(value_bytes, int16)
     
     if little_endian:
       values = values.byteswap()
-      
+
+    # Convert values to 32-bit to avoid 16-bit overflow operations in numpy 2.
+    values = values.astype(int32)
+    
     return values
   
   # ---------------------------------------------------------------------------
@@ -173,7 +176,7 @@ class dsn6_map:
     block_size = 8
     bsize3 = block_size*block_size*block_size
     xsize, ysize, zsize = self.extent
-    from numpy import zeros, float32, fromstring, int16, uint8
+    from numpy import zeros, float32, frombuffer, int16, uint8
     data = zeros((zsize, ysize, xsize), float32)
     xblocks, yblocks, zblocks = ((self.extent - 1) // block_size) + 1
     for zblock in range(zblocks):
@@ -190,11 +193,11 @@ class dsn6_map:
           bytes = file.read(bsize3)
           if self.format == 'dsn6':
             # Swap each pair of bytes for DSN6 format.
-            btemp = fromstring(bytes, int16)
-            swapped_bytes = btemp.byteswap().tostring()
-            bdata = fromstring(swapped_bytes, uint8)
+            btemp = frombuffer(bytes, int16)
+            swapped_bytes = btemp.byteswap().tobytes()
+            bdata = frombuffer(swapped_bytes, uint8)
           else:
-            bdata = fromstring(bytes, uint8)
+            bdata = frombuffer(bytes, uint8)
           bdata3d = bdata.reshape(block_size,block_size,block_size)
           data[z:z+zbsize, y:y+ybsize, x:x+xbsize] = \
                            bdata3d[0:zbsize, 0:ybsize, 0:xbsize]

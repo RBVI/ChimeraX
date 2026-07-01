@@ -118,16 +118,16 @@ class EM_Data:
 
     from numpy import array
     esize = array((), etype).itemsize
-    string = file.read(esize * count)
-    values = self.read_values_from_string(string, etype, count)
+    data = file.read(esize * count)
+    values = self.read_values_from_bytes(data, etype, count)
     return values
 
   # ---------------------------------------------------------------------------
   #
-  def read_values_from_string(self, string, etype, count):
+  def read_values_from_bytes(self, data, etype, count):
 
-    from numpy import fromstring
-    values = fromstring(string, etype)
+    from numpy import frombuffer
+    values = frombuffer(data, etype)
     if self.swap_bytes:
       values = values.byteswap()
     if count == 1:

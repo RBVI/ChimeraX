@@ -80,7 +80,7 @@ def read_chunk(file, chunk_format):
             else:
                 a = read_values(vtype, count, file)
             if vtype == char and dim2 is None:
-                a = terminate_string_at_null_character(a.tostring())
+                a = terminate_string_at_null_character(a.tobytes())
             if dim2 and dim2 > 1:
                 a = a.reshape((count//dim2, dim2))
         else:                                               # Single value
@@ -92,12 +92,12 @@ def read_chunk(file, chunk_format):
 #
 def read_values(data_type, count, file):
 
-    from numpy import dtype, fromstring, little_endian
+    from numpy import dtype, frombuffer, little_endian
     bytes = dtype(data_type).itemsize * count
     s = file.read(bytes)
     if len(s) < bytes:
         raise SyntaxError('Failed reading %d bytes from IMOD file' % bytes)
-    a = fromstring(s, data_type)
+    a = frombuffer(s, data_type)
     if little_endian:
         # File format requires values always to be big endian.
         a = a.byteswap()
