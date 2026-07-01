@@ -3804,7 +3804,7 @@ def show_when_opened(v, show_on_open, max_voxels):
   voxel_limit = int(max_voxels * (2 ** 20))
   ijk_origin, ijk_size, ijk_step = v.ijk_aligned_region()
   sx,sy,sz = [s//st for s,st in zip(ijk_size, ijk_step)]
-  voxels = sx*sy*sz
+  voxels = int(sx)*int(sy)*int(sz)	# Avoid overflow in numpy int16 by casting to Python int.
 
   return (voxels <= voxel_limit)
 

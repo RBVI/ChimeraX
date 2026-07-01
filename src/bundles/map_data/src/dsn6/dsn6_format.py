@@ -144,12 +144,15 @@ class dsn6_map:
     if len(value_bytes) < 2 * count:
       raise SyntaxError('Unexpected end of file reading %d bytes' % (2*count))
 
-    from numpy import frombuffer, int16, little_endian
+    from numpy import frombuffer, int16, little_endian, int32
     values = frombuffer(value_bytes, int16)
     
     if little_endian:
       values = values.byteswap()
-      
+
+    # Convert values to 32-bit to avoid 16-bit overflow operations in numpy 2.
+    values = values.astype(int32)
+    
     return values
   
   # ---------------------------------------------------------------------------
