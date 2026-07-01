@@ -263,8 +263,8 @@ class PIF_Data:
 
     from numpy import array, int32
     esize = array((), int32).itemsize
-    string = file.read(esize * count)
-    values = self.read_values_from_string(string, int32, count)
+    data = file.read(esize * count)
+    values = self.read_values_from_bytes(data, int32, count)
     return values
             
   # ---------------------------------------------------------------------------
@@ -280,10 +280,10 @@ class PIF_Data:
   
   # ---------------------------------------------------------------------------
   #
-  def read_values_from_string(self, string, etype, count):
+  def read_values_from_bytes(self, data, etype, count):
   
-    from numpy import fromstring
-    values = fromstring(string, etype)
+    from numpy import frombuffer
+    values = frombuffer(data, etype)
     if self.swap_bytes:
       values = values.byteswap()
     if count == 1:

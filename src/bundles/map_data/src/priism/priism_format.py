@@ -31,8 +31,8 @@ class Priism_Data:
     # Infer file byte order from column axis size nc.  Requires nc < 2**16
     # Was using mode value but 0 is allowed and does not determine byte order.
     self.swap_bytes = 0
-    from numpy import fromstring, int32
-    nc = fromstring(file.read(4), int32)
+    from numpy import frombuffer, int32
+    nc = frombuffer(file.read(4), int32)
     self.swap_bytes = not (nc > 0 and nc < 65536)
     file.seek(0,0)
 
