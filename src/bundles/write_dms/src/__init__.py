@@ -50,7 +50,7 @@ class _DMSBundleAPI(BundleAPI):
                 return {
                     'displayed_only': BoolArg,
                     'save_normals': BoolArg,
-                    'surface': MolecularSurfaceArg,
+                    'models': MolecularSurfaceArg,
                 }
 
             def save_args_widget(self, session):
