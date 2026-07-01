@@ -83,7 +83,7 @@ wheel = [
   "matplotlib==3.10.7",
   "mcp==1.18.0",
   "msgpack==1.1.1",
-  "netCDF4==1.6.5",
+  "netCDF4==1.7.4",
   "networkx==3.3",
   "numpy==1.26.4",
   # if the OpenMM version changes, the patches in prereqs/pips need to be updated
