@@ -242,7 +242,7 @@ class NetCDF_Data:
     else:
       tname = name + '_typecode'
       if tname in f.variables:
-        typecode = f.variables[tname].getValue().tostring()
+        typecode = f.variables[tname].getValue().tobytes()
       else:
         typecode = var.dtype.kind
     return typecode
