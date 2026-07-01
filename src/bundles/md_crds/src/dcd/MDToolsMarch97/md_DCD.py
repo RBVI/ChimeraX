@@ -65,7 +65,7 @@ import tempfile
 import os
 import sys
 import time
-from numpy import array, zeros, float32, float64, fromstring, take
+from numpy import array, zeros, float32, float64, frombuffer, take
 
 from .md_AtomGroup import *
 
@@ -211,7 +211,7 @@ See also: AtomGroup, ASel
                         size = up(intFmt,f.read(cs(intFmt)))[0]
                         if size != cs(repr(self.N)+floatFmt) :
                                 raise DCDFormatError("9")
-                        tmp = fromstring(f.read(cs(repr(self.N)+floatFmt)),numpyFloat)
+                        tmp = frombuffer(f.read(cs(repr(self.N)+floatFmt)),numpyFloat)
                         if self.byteSwap:
                                 tmp.byteswap(True)
                         self.fixed_buff[...,0] = tmp
@@ -221,7 +221,7 @@ See also: AtomGroup, ASel
                         size = up('i',f.read(cs('i')))[0]
                         if size != cs(repr(self.N)+floatFmt) :
                                 raise DCDFormatError("11")
-                        tmp = fromstring(f.read(cs(repr(self.N)+floatFmt)),numpyFloat)
+                        tmp = frombuffer(f.read(cs(repr(self.N)+floatFmt)),numpyFloat)
                         if self.byteSwap:
                                 tmp.byteswap(True)
                         self.fixed_buff[...,1] = tmp
@@ -231,7 +231,7 @@ See also: AtomGroup, ASel
                         size = up('i',f.read(cs('i')))[0]
                         if size != cs(repr(self.N)+floatFmt) :
                                 raise DCDFormatError("13")
-                        tmp = fromstring(f.read(cs(repr(self.N)+floatFmt)),numpyFloat)
+                        tmp = frombuffer(f.read(cs(repr(self.N)+floatFmt)),numpyFloat)
                         if self.byteSwap:
                                 tmp.byteswap(True)
                         self.fixed_buff[...,2] = tmp
@@ -266,7 +266,7 @@ See also: AtomGroup, ASel
                 if self.fixed == 0 :
                         if size != cs(repr(self.N)+'f') :
                                 raise DCDFormatError("9")
-                        x = fromstring(f.read(cs(repr(self.N)+'f')),float32)
+                        x = frombuffer(f.read(cs(repr(self.N)+'f')),float32)
                         if self.byteSwap:
                                 x.byteswap(True)
                         size = up('i',f.read(cs('i')))[0]
@@ -275,7 +275,7 @@ See also: AtomGroup, ASel
                         size = up('i',f.read(cs('i')))[0]
                         if size != cs(repr(self.N)+'f') :
                                 raise DCDFormatError("11")
-                        y = fromstring(f.read(cs(repr(self.N)+'f')),float32)
+                        y = frombuffer(f.read(cs(repr(self.N)+'f')),float32)
                         if self.byteSwap:
                                 y.byteswap(True)
                         size = up('i',f.read(cs('i')))[0]
@@ -284,7 +284,7 @@ See also: AtomGroup, ASel
                         size = up('i',f.read(cs('i')))[0]
                         if size != cs(repr(self.N)+'f') :
                                 raise DCDFormatError("13")
-                        z = fromstring(f.read(cs(repr(self.N)+'f')),float32)
+                        z = frombuffer(f.read(cs(repr(self.N)+'f')),float32)
                         if self.byteSwap:
                                 z.byteswap(True)
                         size = up('i',f.read(cs('i')))[0]
@@ -297,7 +297,7 @@ See also: AtomGroup, ASel
                         sz = cs(fm)
                         if size != sz :
                                 raise DCDFormatError("9")
-                        xfree = fromstring(f.read(sz),float32)
+                        xfree = frombuffer(f.read(sz),float32)
                         if self.byteSwap:
                                 xfree.byteswap(True)
                         size = up('i',f.read(cs('i')))[0]
@@ -306,7 +306,7 @@ See also: AtomGroup, ASel
                         size = up('i',f.read(cs('i')))[0]
                         if size != sz :
                                 raise DCDFormatError("11")
-                        yfree = fromstring(f.read(sz),float32)
+                        yfree = frombuffer(f.read(sz),float32)
                         if self.byteSwap:
                                 yfree.byteswap(True)
                         size = up('i',f.read(cs('i')))[0]
@@ -315,7 +315,7 @@ See also: AtomGroup, ASel
                         size = up('i',f.read(cs('i')))[0]
                         if size != sz :
                                 raise DCDFormatError("13")
-                        zfree = fromstring(f.read(sz),float32)
+                        zfree = frombuffer(f.read(sz),float32)
                         if self.byteSwap:
                                 zfree.byteswap(True)
                         size = up('i',f.read(cs('i')))[0]

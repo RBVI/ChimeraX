@@ -56,8 +56,8 @@ appropriate suffix will be added to <i>filename</i>.
 </p><p>
 <a name="models"></a>
 Sessions, images, and scenes (most formats) include all contents, but 
-atomic coordinate, <a href="#map">map</a>, <a href="#gltf">GLTF</a>, and 
-<a href="#vrml">VRML</a>
+atomic coordinate, <a href="#map">map</a>, <a href="#gltf">GLTF</a>,
+<a href="#vrml">VRML</a>, and <a href="#dms">DMS</a>
 saving can be limited to specific models with the <b>models</b> option.
 The <b>models</b> keyword can be omitted if
 <a href="atomspec.html#hierarchy"><i>model-spec</i></a>
@@ -84,6 +84,7 @@ depending on the file type:
 </li><li><a href="#gltf"><b>GLTF</b></a>
 </li><li><a href="#vrml"><b>VRML</b></a>
 </li><li><a href="open.html#clipper"><b>MTZ (Options from Clipper)</b></a>
+</li><li><a href="#dms"><b>DMS</b></a>
 </li></ul>
 
 <a name="formats"></a>
@@ -281,6 +282,11 @@ PolyData
 <td align="center">.positions</td>
 <td align="center"><a href="../formats/positions.html">ChimeraX
 model positions</a></td>
+</tr><tr id="dms surface">
+<td align="center">DMS</td>
+<td align="center"><b>dms</b></td>
+<td align="center">.dms</td>
+<td align="center">dot molecular surface</td>
 </tr></tbody></table>
 
 <a name="image"></a>
@@ -1233,6 +1239,61 @@ VRML does not offer per-vertex transparency.
 If the entire scene has the same transparency, then this will be specified 
 as the VRML material transparency; otherwise, the VRML file will say 
 that the scene is opaque.
+</p>
+
+<a name="dms"></a>
+<p class="nav">
+[<a href="#top">back to top: save</a>]
+</p>
+<h3>Save DMS</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>save</b>&nbsp;&nbsp;<i>filename</i>
+[&nbsp;<b>format</b>&nbsp;&nbsp;dms&nbsp;]
+[&nbsp;<a href="#models"><b>models</b></a>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>&nbsp;]
+[&nbsp;<b>displayedOnly</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>saveNormals</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+</blockquote>
+<p>
+DMS-format files are usable as input to the
+<a href="http://dock.compbio.ucsf.edu/DOCK_6/dock6_manual.htm#Sphgen"><i>sphgen</i></a>
+module of
+<a href="http://dock.compbio.ucsf.edu/index.html">DOCK</a>.
+Surfaces created with the default grid spacing of 0.5 &Aring; produce vertex
+densities somewhere in the range of 13-16 vertices per &Aring;&sup2;, depending
+mostly on the overall shape of the surface.
+This is typically higher than what
+<a href="http://dock.compbio.ucsf.edu/DOCK_6/dock6_manual.htm#Sphgen"><i>sphgen</i></a>
+requires (around 5), and
+for large surfaces can produce large DMS files that are slow to create.
+In such situations you might want to specify a wider <b>gridSpacing</b> value
+to the <a href="surface.html">surface</a> command when creating the surface.
+The vertex density scales roughly with the inverse square of the grid spacing.
+</p><p>
+Options:
+</p>
+<blockquote>
+<b>displayedOnly</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to only write surface vertices that are displayed,
+which could include vertices that are invisible due to <a href="clip.html">clipping</a>,
+or that simply fall outside the current view.
+</blockquote>
+<blockquote>
+<b>models</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+<br>
+Specify the molecular surface model to write.
+Only necessary if multiple molecular surface models are open.
+The <b>models</b> keyword can be omitted if
+<a href="atomspec.html#hierarchy"><i>model-spec</i></a>
+is given immediately after <i>filename</i>.
+</blockquote>
+<blockquote>
+<b>saveNormals</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+Whether to include normal vectors
+(required by <a href="http://dock.compbio.ucsf.edu/DOCK_6/dock6_manual.htm#Sphgen"><i>sphgen</i></a>).
+</blockquote>
 </p>
 
 <hr>

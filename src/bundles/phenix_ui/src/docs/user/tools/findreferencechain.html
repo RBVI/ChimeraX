@@ -62,16 +62,28 @@ can be started from the <b>Phenix</b> section of the <b>Tools</b> menu.
 The structure chains of interest should be already open and chosen
 from the menu in the dialog. The user may choose to <b>search databases</b> of
 <b>computational</b> (modeled) structures only, <b>experimental</b> structures
-only, or <b>both</b> (initial default).
-</p><p>
-<b>Keep Phenix input/output files</b> 
-indicates whether to save the associated input and output files.
-If this option is checked (initial default), clicking <b>Apply</b>
+only, or <b>both</b> (initial default). Options:
+</p>
+<ul class="none">
+<li>
+<b>Keep Phenix input/output files</b> (initial default <b>on</b>)
+&ndash; whether to save the associated input and output files.
+If this option is on, clicking <b>Apply</b>
 (or <b>OK</b>, which also dismisses the dialog) will raise a file browser
 window for the user to specify a folder in which to save these files, and
-specifying the folder will start the search. If this option is not checked,
+specifying the folder will start the search. If this option is off,
 clicking <b>Apply</b> or <b>OK</b> will start the search immediately.
-</p><p>
+</li>
+<br>
+<li>
+<b>Prune reference chain to match ends of search chain</b>
+(initial default <b>on</b>) 
+&ndash; whether to delete residues in the reference chain that extend 
+beyond either end of the query.
+Any &ldquo;extra&rdquo; residues in the middle will not be deleted, however.
+</li>
+</ul>
+<p>
 Clicking <b>Close</b> simply dismisses the dialog without running the
 search, whereas <b>Help</b> shows this page in the 
 <a href="helpviewer.html"><b>Help Viewer</b></a>.

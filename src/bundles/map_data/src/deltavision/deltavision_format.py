@@ -178,15 +178,15 @@ class DeltaVision_Data:
     if len(string) < esize * count:
       raise SyntaxError(('MRC file is truncated.  Failed reading %d values, type %s'
                          % (count, etype.__name__)))
-    values = self.read_values_from_string(string, etype, count)
+    values = self.read_values_from_buffer(string, etype, count)
     return values
 
   # ---------------------------------------------------------------------------
   #
-  def read_values_from_string(self, string, etype, count = 1):
+  def read_values_from_bytes(self, data, etype, count = 1):
   
-    from numpy import fromstring
-    values = fromstring(string, etype)
+    from numpy import frombuffer
+    values = frombuffer(data, etype)
     if self.swap_bytes:
       values = values.byteswap()
     if count == 1:

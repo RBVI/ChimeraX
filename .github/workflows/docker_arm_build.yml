@@ -22,7 +22,7 @@ jobs:
     env:
       PYOPENGL_PLATFORM: egl
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.branch || 'develop' }}
       - run: sudo apt-get update && sudo apt-get upgrade -y && ${PWD}/utils/set_up_ubuntu.sh

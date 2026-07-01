@@ -72,9 +72,11 @@ class AssociationsTool:
         self._chain_changed()
 
     def _align_arg(self):
-        if len(self.grid.pg.session.alignments) > 1:
-            return ' ' + self.grid.alignment.ident
-        return ''
+        align_arg = self.grid.alignment.align_arg
+        if align_arg:
+            # need preceding space in this case
+            return ' ' + align_arg
+        return align_arg
 
     def _assoc_mod(self, note_data):
         # called from sequence viewer if associations modified
@@ -123,7 +125,7 @@ class AssociationsTool:
             cur_assoc = self.grid.alignment.associations.get(chain, None)
             if cur_assoc == req_assoc:
                 continue
-            from chimerax.core.commands import run
+            from chimerax.core.commands import run, StringArg
             if not req_assoc:
                 run(self.grid.pg.session, "sequence disassoc %s%s" % (chain.string(style="command"),
                     self._align_arg()))
@@ -131,5 +133,6 @@ class AssociationsTool:
                 run(self.grid.pg.session, "sequence assoc %s%s" % (chain.string(style="command"),
                     self._align_arg()))
             else:
-                run(self.grid.pg.session, "sequence assoc %s %s:%d" % (chain.string(style="command"),
-                    self.grid.alignment.ident, self.grid.alignment.seqs.index(req_assoc)+1))
+                run(self.grid.pg.session, "sequence assoc %s %s" % (chain.string(style="command"),
+                    StringArg.unparse("%s:%d" % (self.grid.alignment.ident,
+                    self.grid.alignment.seqs.index(req_assoc)+1))))

@@ -971,6 +971,10 @@ class LaunchFindReferenceTool(ToolInstance):
         self.keep_files_box.setChecked(self.settings.keep_files)
         layout.addWidget(self.keep_files_box, alignment=Qt.AlignLeft)
 
+        self.prune_ends_box = QCheckBox("Prune reference chain to match ends of search chain")
+        self.prune_ends_box.setChecked(self.settings.prune_ends)
+        layout.addWidget(self.prune_ends_box, alignment=Qt.AlignLeft)
+
         layout.addWidget(PhenixCitation(session, tool_name, "find_reference"), alignment=Qt.AlignCenter)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
@@ -1013,6 +1017,10 @@ class LaunchFindReferenceTool(ToolInstance):
                     return
             options += " work %s" % StringArg.unparse(work_dir)
 
+        self.settings.prune_ends = prune_ends = self.prune_ends_box.isChecked()
+        if not prune_ends:
+            options += " positionArg trim_reference_to_target=False"
+
         from .find_reference import db_search_types
         if self.search_db_buttons[-1].isChecked():
             pref_db_types = db_search_types
@@ -1033,6 +1041,7 @@ class LaunchFindReferenceSettings(Settings):
     AUTO_SAVE = {
         'db_search_types': fr_db_search_types,
         'keep_files': True,
+        'prune_ends': True,
     }
 
 

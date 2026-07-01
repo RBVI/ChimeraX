@@ -73,7 +73,7 @@ def write_mrc2000_grid_data(grid_data, path, options = {}, progress = None):
         matrix = grid_data.matrix((0,0,k), (isz,jsz,1))
         if type != mtype:
             matrix = matrix.astype(type)
-        f.write(matrix.tostring())
+        f.write(matrix.tobytes())
         stats.plane(matrix)
         if progress:
             progress.plane(k)
@@ -144,27 +144,27 @@ def mrc2000_header(grid_data, value_type, stats = None, ccp4_format = False):
     labels = [l + (80-len(l))*'\0' for l in labels]
     labelstr = ''.join(labels)
 
-    strings = [
-        binary_string(size, int32),  # nx, ny, nz
-        binary_string(mode, int32),  # mode
-        binary_string(start, int32), # nxstart, nystart, nzstart
-        binary_string(size, int32),  # mx, my, mz
-        binary_string(cell_size, float32), # cella
-        binary_string(grid_data.cell_angles, float32), # cellb
-        binary_string((1,2,3), int32), # mapc, mapr, maps
-        binary_string((dmin, dmax, dmean), float32), # dmin, dmax, dmean
-        binary_string(0, int32), # ispg
-        binary_string(0, int32), # nsymbt
-        binary_string([0]*25, int32), # extra
-        binary_string(origin, float32), # origin
+    data_bytes = [
+        values_to_bytes(size, int32),  # nx, ny, nz
+        values_to_bytes(mode, int32),  # mode
+        values_to_bytes(start, int32), # nxstart, nystart, nzstart
+        values_to_bytes(size, int32),  # mx, my, mz
+        values_to_bytes(cell_size, float32), # cella
+        values_to_bytes(grid_data.cell_angles, float32), # cellb
+        values_to_bytes((1,2,3), int32), # mapc, mapr, maps
+        values_to_bytes((dmin, dmax, dmean), float32), # dmin, dmax, dmean
+        values_to_bytes(0, int32), # ispg
+        values_to_bytes(0, int32), # nsymbt
+        values_to_bytes([0]*25, int32), # extra
+        values_to_bytes(origin, float32), # origin
         'MAP '.encode('utf-8'), # map
-        binary_string(machst, int32), # machst
-        binary_string(rms, float32), # rms
-        binary_string(nlabl, int32), # nlabl
+        values_to_bytes(machst, int32), # machst
+        values_to_bytes(rms, float32), # rms
+        values_to_bytes(nlabl, int32), # nlabl
         labelstr.encode('utf-8'),
         ]
 
-    header = b''.join(strings)
+    header = b''.join(data_bytes)
     return header
 
 # -----------------------------------------------------------------------------
@@ -216,10 +216,10 @@ class Matrix_Statistics:
 
 # -----------------------------------------------------------------------------
 #
-def binary_string(values, type):
+def values_to_bytes(values, type):
 
     from numpy import array
-    return array(values, type).tostring()
+    return array(values, type).tobytes()
 
 # -----------------------------------------------------------------------------
 #

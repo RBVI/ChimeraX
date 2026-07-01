@@ -129,7 +129,7 @@ def write_imagic_grid_data(grid_data, path, options = {}, progress = None):
     #
     # Dump matrix
     #
-    img.write(matrix.tostring())
+    img.write(matrix.tobytes())
 
     #
     # Close DENSITIES file
@@ -209,95 +209,95 @@ def imagic_header(grid_data, value_type, location, densmin, densmax, avdens, sig
     hist_array.extend([b' '*(228-len(hist_string))])
     history         = b''.join(hist_array)
 
-    strings = [
+    data_bytes = [
 
         # Image location number (1,2,3,...) - IMN
-        binary_string(imn, int32),
+        values_to_bytes(imn, int32),
 
         # Number of all 1D/2D images/sections following (0,1...) - IFOL
-        binary_string(ifol, int32),
+        values_to_bytes(ifol, int32),
 
         # Error code for this image during IMAGIC run
-        binary_string(0, int32),
+        values_to_bytes(0, int32),
 
         # Number of header blocks
         # each block containing 256 REAL/INTEGER values - NBLOCKS
-        binary_string(1, int32),
+        values_to_bytes(1, int32),
 
         # Creation date
-        binary_string(d.month, int32),
-        binary_string(d.day, int32),
-        binary_string(d.year, int32),
-        binary_string(d.hour, int32),
-        binary_string(d.minute, int32),
-        binary_string(d.second, int32),
+        values_to_bytes(d.month, int32),
+        values_to_bytes(d.day, int32),
+        values_to_bytes(d.year, int32),
+        values_to_bytes(d.hour, int32),
+        values_to_bytes(d.minute, int32),
+        values_to_bytes(d.second, int32),
 
         # Ignored * 2
-        binary_string([0]*2, int32),
+        values_to_bytes([0]*2, int32),
 
         # Number of lines per image (for 1D data IXLP=1) - IXLP
-        binary_string(ixlp, int32),
+        values_to_bytes(ixlp, int32),
 
         # Number of pixels per line - IYLP
-        binary_string(iylp, int32),
+        values_to_bytes(iylp, int32),
 
         # 4 coded characters determining the image type - TYPE
         type,
 
         # Ignored * 2
-        binary_string([0]*2, int32),
+        values_to_bytes([0]*2, int32),
 
         # Average density - AVDENS
-        binary_string(avdens, float32),
+        values_to_bytes(avdens, float32),
 
         # Sigma - SIGMA
-        binary_string(sigma, float32),
+        values_to_bytes(sigma, float32),
 
         # Ignored * 2
-        binary_string([0]*2, int32),
+        values_to_bytes([0]*2, int32),
 
         # Maximal and minimal density - DENSMAX, DENSMIN
-        binary_string(densmax, float32),
-        binary_string(densmin, float32),
+        values_to_bytes(densmax, float32),
+        values_to_bytes(densmin, float32),
 
         # Ignored * 6
-        binary_string([0]*6, int32),
+        values_to_bytes([0]*6, int32),
 
         # Coded NAME/TITLE of the image (80 characters) - NAME
         name,
 
         # Ignored * 11
-        binary_string([0]*11, int32),
+        values_to_bytes([0]*11, int32),
 
         # Number of 2D planes in 3D data - IZLP
-        binary_string(izlp, int32),
+        values_to_bytes(izlp, int32),
 
         # Number of "objects" in file - I4LP
-        binary_string(1, int32),
+        values_to_bytes(1, int32),
 
         # Ignored * 5
-        binary_string([0]*5, int32),
+        values_to_bytes([0]*5, int32),
 
         # IMAGIC version, which created the file (yyyymmdd) - IMAVERS
-        binary_string(imavers, int32),
+        values_to_bytes(imavers, int32),
 
         # Floating point type / machine stamp - REALTYPE
-        binary_string(endian, int32),
+        values_to_bytes(endian, int32),
 
         # Ignored * 53
-        binary_string([0]*53, int32),
+        values_to_bytes([0]*53, int32),
 
         # Pixel/Voxel size - PIXSIZE
-        binary_string(pixsize, float32),
+        values_to_bytes(pixsize, float32),
 
         # Ignored * 76
-        binary_string([0]*76, int32),
+        values_to_bytes([0]*76, int32),
 
         # Coded history of image (228 characters) - HISTORY
         history,
         ]
 
-    header = b''.join(strings)
+    header = b''.join(data_bytes)
     return header
     
 #
@@ -305,10 +305,10 @@ def imagic_header(grid_data, value_type, location, densmin, densmax, avdens, sig
 #
 # From array to string
 #
-def binary_string(values, type):
+def values_to_bytes(values, type):
 
     from numpy import array
-    return array(values, type).tostring()
+    return array(values, type).tobytes()
 
 #
 # -----------------------------------------------------------------------------

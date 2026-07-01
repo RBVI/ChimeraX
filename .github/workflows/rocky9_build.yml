@@ -26,7 +26,7 @@ jobs:
       - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
       - run: dnf update -y
       - run: dnf install -y git-all
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.branch || 'develop' }}
       # buildinfo.py breaks without this
@@ -135,7 +135,7 @@ jobs:
           tar -cvzf linux-bundles.tar.gz -C $BUNDLE_REPO_DIR .
           tar -cvzf linux-include.tar.gz -C build include
       - name: Cache the bundles and includes
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: |
             linux-bundles.tar.gz
