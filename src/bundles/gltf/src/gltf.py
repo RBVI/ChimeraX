@@ -113,16 +113,16 @@ def read_gltf(session, filename, name):
 # -----------------------------------------------------------------------------
 #
 def check_gltf_header(input):
-    from numpy import fromstring, uint32, float32, array, uint8
-    magic = fromstring(input.read(4), uint32)[0]        # magic number
+    from numpy import frombuffer, uint32, float32, array, uint8
+    magic = frombuffer(input.read(4), uint32)[0]        # magic number
     if magic != 0x46546c67:
         raise glTFError('glTF file does not start with magic number 0x46546c67, got %x' % magic)
 
-    version = fromstring(input.read(4), uint32)[0]        # version number
+    version = frombuffer(input.read(4), uint32)[0]        # version number
     if version != 2:
         raise glTFError('Require glTF version 2, got version %d' % version)
 
-    length = fromstring(input.read(4), uint32)[0]        # file length in bytes
+    length = frombuffer(input.read(4), uint32)[0]        # file length in bytes
 
     chunks = read_chunks(input)
     if len(chunks) != 2:
@@ -271,12 +271,12 @@ def copy_model(model, to_model = None):
 #
 def read_chunks(input):
     chunks = []
-    from numpy import fromstring, uint32
+    from numpy import frombuffer, uint32
     while True:
         l4 = input.read(4)
         if len(l4) == 0:
             break
-        clength = fromstring(l4, uint32)[0]        # chunk length
+        clength = frombuffer(l4, uint32)[0]        # chunk length
         ctype = input.read(4).decode('utf-8').replace('\x00','')
         chunks.append((ctype, input.read(clength)))
     return chunks
