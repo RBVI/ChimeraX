@@ -16,7 +16,7 @@ from Qt.QtCore import Qt, Signal
 
 class ItemsGenerator:
     def __init__(self, list_func=lambda: [], key_func=lambda x: x, filter_func=lambda x: True,
-            item_text_func=str, class_filter=None, **kw):
+            item_text_func=str, class_filter=None, add_numbering=False, **kw):
         self.list_func = list_func
         if class_filter:
             # filter classes first in case the filter_func uses attributes/methods only in that class
@@ -24,6 +24,7 @@ class ItemsGenerator:
         self.filter_func = filter_func
         self.key_func = key_func
         self.item_text_func = item_text_func
+        self.add_numbering = add_numbering
 
         super().__init__(**kw)
 
@@ -51,8 +52,10 @@ class ItemsGenerator:
         values = [v for v in self.list_func() if self.filter_func(v)]
         values.sort(key=self.key_func)
         items = []
-        for v in values:
+        for i, v in enumerate(values):
             text = self.item_text_func(v)
+            if self.add_numbering:
+                text += " (%d/%d)" % (i+1, len(values))
             self.item_map[text] = v
             self.value_map[v] = text
             items.append(text)

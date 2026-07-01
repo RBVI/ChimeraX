@@ -184,6 +184,28 @@ def _process_residue_kw(session, list_func=None, trigger_info=None, **kw):
         kw['trigger_info'] = trigger_info
     return kw
 
+class AtomListWidget(ItemListWidget):
+    def __init__(self, session, **kw):
+        super().__init__(**_process_atom_kw(session, **kw))
+
+class AtomMenuButton(ItemMenuButton):
+    def __init__(self, session, no_value_button_text="No atom chosen", **kw):
+        super().__init__(no_value_button_text=no_value_button_text, **_process_atom_kw(session, **kw))
+
+def _process_atom_kw(session, list_func=None, trigger_info=None, **kw):
+    if list_func is None:
+        from . import all_atoms
+        kw['list_func'] = lambda ses=session, f=all_atoms: f(ses)
+    else:
+        kw['list_func'] = list_func
+    if trigger_info is None:
+        from .triggers import get_triggers
+        from chimerax.core.models import ADD_MODELS
+        kw['trigger_info'] = [ (get_triggers(), 'changes'), (session.triggers, ADD_MODELS) ]
+    else:
+        kw['trigger_info'] = trigger_info
+    return kw
+
 def make_elements_menu(parent, *, _session=None, _parent_menus=None):
     '''keyword args for internal use only (adding Elements menu under main Select menu)'''
     if _session and _parent_menus:
