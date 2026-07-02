@@ -83,7 +83,7 @@ class MetalGeomTool(ToolInstance):
 
         controls_layout.addWidget(QLabel("Metal transparency"))
         from chimerax.ui.widgets import FloatSlider
-        self.transparency_slider = FloatSlider(0.0, 1.0, 0.01, 2, self._transparency_cb)
+        self.transparency_slider = FloatSlider(0.0, 1.0, 0.01, 2, self._transparency_cb, display_value=False)
         self.transparency_slider.set_left_text("opaque")
         self.transparency_slider.set_right_text("transparent")
         controls_layout.addWidget(self.transparency_slider)
