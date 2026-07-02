@@ -17,8 +17,8 @@
   </Categories>
 
   <Dependencies>
-    <Dependency name="ChimeraX-Core" version="~=1.13"/>
-    <Dependency name="ChimeraX-Atomic" version="~=1.69"/>
+    <Dependency name="ChimeraX-Core" version="~=1.12"/>
+    <Dependency name="ChimeraX-Atomic" version="~=1.70"/>
     <Dependency name="ChimeraX-UI" version="~=1.52"/>
   </Dependencies>
 
