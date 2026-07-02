@@ -373,7 +373,7 @@ class FloatSlider(QWidget):
     valueChanged = Signal(float)
 
     def __init__(self, minimum, maximum, step, decimal_places, continuous_callback, *,
-            ignore_wheel_event=False, **kw):
+            ignore_wheel_event=False, display_value=True, **kw):
         from Qt.QtWidgets import QGridLayout, QSlider, QLabel, QSizePolicy
         super().__init__()
         layout = QGridLayout()
@@ -392,6 +392,7 @@ class FloatSlider(QWidget):
         self._minimum = minimum
         self._maximum = maximum
         self._continuous = continuous_callback
+        self._display_value = display_value
         # slider are only integer, so have to do conversions
         self._slider.setMinimum(0)
         self._slider.setMaximum(5000)
@@ -407,9 +408,10 @@ class FloatSlider(QWidget):
         self._left_text.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         shrink_font(self._left_text)
         layout.addWidget(self._left_text, 1, 0)
-        self._value_text = QLabel()
-        self._value_text.setAlignment(Qt.AlignCenter | Qt.AlignTop)
-        layout.addWidget(self._value_text, 1, 1, alignment=Qt.AlignCenter | Qt.AlignTop)
+        if display_value:
+            self._value_text = QLabel()
+            self._value_text.setAlignment(Qt.AlignCenter | Qt.AlignTop)
+            layout.addWidget(self._value_text, 1, 1, alignment=Qt.AlignCenter | Qt.AlignTop)
         self._right_text = QLabel()
         self._right_text.setWordWrap(True)
         self._right_text.setAlignment(Qt.AlignRight | Qt.AlignTop)
@@ -432,7 +434,8 @@ class FloatSlider(QWidget):
         self._right_text.setText(text)
 
     def set_text(self, text):
-        self._value_text.setText(text)
+        if self._display_value:
+            self._value_text.setText(text)
 
     def setValue(self, float_val):
         fract = (float_val - self._minimum) / (self._maximum - self._minimum)
@@ -457,7 +460,8 @@ class FloatSlider(QWidget):
 
     def _slider_value_changed(self, int_val):
         float_val = self._int_val_to_float(int_val)
-        self._value_text.setText(self._value_to_text(float_val))
+        if self._display_value:
+            self._value_text.setText(self._value_to_text(float_val))
         if self._continuous:
             self.valueChanged.emit(float_val)
 
