@@ -80,8 +80,13 @@ def cmd_kvfinder(session, structures=None, *, box_atoms=None, box_extent=None, b
             probe_in, probe_out, removal_distance, volume_cutoff, None, 5.0, box_origin is not None,
             surface_type, None, False)
         for ignore_backbone in [True, False]:
-            contact_res_info = pyKVFinder.grid.constitutional(cavity_matrix, struct_input, vertices,
-                grid_spacing, probe_in, ignore_backbone)
+            # Avoid unneeded function call, as recommended by pyKVFinder authors
+            # https://github.com/LBC-LNBio/pyKVFinder/issues/207
+            if num_cavities > 0:
+                contact_res_info = pyKVFinder.grid.constitutional(cavity_matrix, struct_input, vertices,
+                    grid_spacing, probe_in, ignore_backbone)
+            else:
+                contact_res_info = {}
             processed_res_info = {}
             for cav_id, res_info in contact_res_info.items():
                 processed_res_info[cav_id] = Residues([s.find_residue(cid, int(pos))
