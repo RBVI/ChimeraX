@@ -299,8 +299,11 @@ class Task(State):
         self._terminate = None
 
     def _run_blocking_job(self, blocking):
+        from numbers import Real
         while True:
-            timeout = None if blocking is True else blocking
+            # Since boolean operations can return things other than True or False
+            # (e.g. session.in_script [In_Script object]), avoid using an 'is True' test.
+            timeout = blocking if isinstance(blocking, Real) else None
             if self._thread is not None:
                 self._thread.join(timeout=timeout)
             if timeout is None or self._thread is None or not self._thread.is_alive():
