@@ -461,7 +461,12 @@ class RenderByAttrTool(ToolInstance):
             while len(markers) > 0:
                 markers.pop()
             coord_type = markers.coord_type
-            markers.coord_type = "absolute"
+            # try to avoid an error of converting markers when histogram showing a string
+            if coord_type == "absolute":
+                convert_back = False
+            else:
+                convert_back = len(markers) > 0
+                markers.coord_type = "absolute"
             for info in level_info:
                 if rendering:
                     if render_type == self.RENDER_COLORS:
@@ -476,7 +481,8 @@ class RenderByAttrTool(ToolInstance):
                 marker = markers.append(arg)
                 if rendering and render_type != self.RENDER_COLORS:
                     marker.radius = radius
-            markers.coord_type = coord_type
+            if convert_back:
+                markers.coord_type = coord_type
 
     @property
     def default_render_color_markers(self):

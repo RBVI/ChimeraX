@@ -49,7 +49,7 @@ ifeq ($(OSARCH),DarwinArm64)
 SCIPY_WHEEL = $(subst ==,-,$(shell grep '"scipy' $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_12_0_arm64.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
-SCIPY_WHEEL = $(subst ==,-,$(shell grep '"scipy' $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_10_9_x86_64.whl
+SCIPY_WHEEL = $(subst ==,-,$(shell grep '"scipy' $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_10_14_x86_64.whl
 endif
 endif
 endif
@@ -170,7 +170,7 @@ ifeq ($(OSARCH),DarwinArm64)
 	$(APP_PIP) download --platform=macosx_12_0_arm64 --no-deps $(shell grep '"scipy' $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
 endif
 ifeq ($(OSARCH),DarwinIntel64)
-	$(APP_PIP) download --platform=macosx_10_9_x86_64 --no-deps $(shell grep '"scipy' $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
+	$(APP_PIP) download --platform=macosx_10_14_x86_64 --no-deps $(shell grep '"scipy' $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
 endif
 
 $(CYTHON_WHEEL):
