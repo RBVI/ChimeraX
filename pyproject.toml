@@ -95,7 +95,7 @@ wheel = [
   "pep517==0.13.1",
   # optional package to prevent warning in Python shell [#16571]
   "pickleshare==0.7.5",
-  "Pillow==11.3.0",
+  "Pillow==12.2.0",
   "pkginfo==1.12.1.2",
   "psutil==7.0.0",
   "pybind11==3.0.1",
