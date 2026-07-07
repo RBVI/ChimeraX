@@ -511,6 +511,8 @@ class MarkedHistogram(QWidget):
         m.rgba = rgba
 
     def _ensure_range(self, abs_xy):
+        if isinstance(self.data_source, str):
+            return
         x = abs_xy[0]
         if x < self._min_val and (self._draw_min is None or x < self._draw_min):
             self._draw_min = x
