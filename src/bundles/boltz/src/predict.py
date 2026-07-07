@@ -1303,13 +1303,15 @@ def _check_venv_valid(session, install_location):
     p.read_string(config)
 
     home = p.get('params', 'home', fallback = None)  # Python bin directory
-    if home and not exists(home):
-        from chimerax.core.commands import quote_path_if_necessary
-        install_loc = quote_path_if_necessary(install_location)
-        msg = f'The ChimeraX version you used to install Boltz no longer exists and Boltz uses the Python from that ChimeraX.  You need to reinstall Boltz with your current ChimeraX.  First remove the directory containing the old Boltz installation\n\n{install_location}\n\nThen restart ChimeraX and press the "Install Boltz" button on the ChimeraX Boltz panel or use the ChimeraX command\n\nboltz install {install_loc}'
-        session.logger.error(msg)
-        return False
-
+    if home:
+        from os.path import getmtime
+        if not exists(home) or getmtime(home) > getmtime(venv_config_path):
+            from chimerax.core.commands import quote_path_if_necessary
+            install_loc = quote_path_if_necessary(install_location)
+            msg = f'Could not find the original ChimeraX version you used to install Boltz.  Boltz uses the Python from that ChimeraX.  To fix this reinstall Boltz with your current ChimeraX.  First remove the directory containing the old Boltz installation\n\n{install_location}\n\nThen restart ChimeraX and press the "Install Boltz" button on the ChimeraX Boltz panel or use the ChimeraX command\n\nboltz install {install_loc}'
+            session.logger.error(msg)
+            return False
+            
     return True
 
 # ------------------------------------------------------------------------------

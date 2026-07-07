@@ -1,0 +1,5 @@
+# Fetched / built Python archives — never commit these (they are downloaded
+# from python.org or python-build-standalone, or built locally).
+/cpython-*.tar.gz
+/Python-*.tar.xz
+/python-*.tar.bz2

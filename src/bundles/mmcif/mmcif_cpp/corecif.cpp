@@ -552,7 +552,7 @@ SmallMolecule::to_cartesian(const double fract_xyz[3], Real xyz[3])
     xyz[0] = xyz[1] = xyz[2] = 0;
     for (auto i = 0; i < 3; ++i)
         for (auto j = 0; j < 3; ++j)
-            xyz[i] += fract_xyz[i] * cell[i][j];
+            xyz[j] += fract_xyz[i] * cell[i][j];
 }
 
 static PyObject*

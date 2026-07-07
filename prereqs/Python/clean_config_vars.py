@@ -1,8 +1,9 @@
+import os
 import sys
 
 
 def clean_makefile():
-    import os, sysconfig
+    import sysconfig
 
     build_path = sys.argv[1]
     makefile = sysconfig.get_makefile_filename()
@@ -23,11 +24,37 @@ _arg_map = {
     "INCLUDEDIR": [""],
 }
 
-if sys.platform == "darwin":
-    # Remove the LIBDIR variable from ChimeraX's Python on macOS since
-    # it points to the system Python framework directory and not the
-    # internal lib directory
-    _arg_map["LIBDIR"] = [""]
+# python-build-standalone records absolute paths to the hermetic toolchain it
+# was built with (e.g. .../tools/llvm/bin/llvm-ar).  Those paths do not exist
+# on the build or run machine, so any sysconfig variable naming a build tool is
+# rewritten to the system equivalent, resolved from PATH.
+_tool_vars = (
+    "AR", "RANLIB", "NM", "STRIP", "READELF",
+    "CC", "CXX", "CPP", "CXXCPP",
+    "LDSHARED", "LDCXXSHARED", "BLDSHARED", "LINKCC", "MAINCC",
+)
+
+# LLVM-prefixed tools are not generally on PATH; map them to the standard names.
+_tool_rename = {
+    "llvm-ar": "ar",
+    "llvm-ranlib": "ranlib",
+    "llvm-nm": "nm",
+    "llvm-strip": "strip",
+    "llvm-readelf": "readelf",
+}
+
+
+def clean_tool(value):
+    parts = []
+    for token in value.split():
+        # An absolute path to a build tool: keep only the tool name so it is
+        # found on PATH.  Skip script paths (e.g. a build-python launcher).
+        if token.startswith("/") and "/bin/" in token and not token.endswith(".py"):
+            base = os.path.basename(token)
+            parts.append(_tool_rename.get(base, base))
+        else:
+            parts.append(token)
+    return " ".join(parts)
 
 
 def clean_make_line(line, build_path):
@@ -63,6 +90,13 @@ def clean_sysconfigdata():
     clean_vars = {}
     for key, value in mod.build_time_vars.items():
         clean_vars[key] = clean_data_value(key, value, build_path)
+    # python-build-standalone records an empty LIBDIR, and it is built with
+    # --enable-shared, so distutils appends LIBDIR to the link library path when
+    # building extensions.  An empty value yields a bare "-L" that swallows the
+    # following argument and breaks linking, so point LIBDIR at this
+    # interpreter's real lib directory (where libpython lives).
+    if os.name == "posix":
+        clean_vars["LIBDIR"] = os.path.join(sys.base_prefix, "lib")
     print("path", configpath)
     with open(configpath, "w") as output:
         print(
@@ -75,6 +109,8 @@ def clean_sysconfigdata():
 
 
 def clean_data_value(key, value, build_path):
+    if key in _tool_vars and isinstance(value, str):
+        value = clean_tool(value)
     try:
         flag_prefixes = _arg_map[key]
     except KeyError:

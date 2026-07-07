@@ -33,10 +33,7 @@ include $(TOP)/mk/os.make
 # version numbers that leak out of prerequisites
 
 PYTHON_VERSION = 3.11
-PYTHON_PATCH_VERSION = 9
-ifeq ($(OS),Linux)
-PYTHON_PATCH_VERSION = 13
-endif
+PYTHON_PATCH_VERSION = 15
 
 ifndef DEBUG
 # Starting with Python 3.8 the ABI "m" has been dropped.
@@ -62,6 +59,19 @@ endif
 PREREQS_ARCHIVE = https://cxtoolshed.rbvi.ucsf.edu/prereqs
 FETCH_PREREQ = curl --silent --show-error --fail --insecure -O
 PREREQS_UPLOAD = plato.cgl.ucsf.edu:/usr/local/projects/chimerax/www/data/prereqs
+
+# On macOS and Windows, relocatable CPython is sourced from python-build-standalone
+# (maintained by Astral) instead of being built from source or hosted on our own
+# server.  Pin both the release and the patch version so builds are reproducible;
+# bump both together to upgrade.  See https://github.com/astral-sh/python-build-standalone
+PYTHON_BUILD_STANDALONE_RELEASE = 20260610
+PYTHON_BUILD_STANDALONE_BASE = https://github.com/astral-sh/python-build-standalone/releases/download
+# GitHub release downloads redirect to a CDN, so the fetch must follow redirects.
+FETCH_PYTHON = curl --silent --show-error --fail --location --insecure -O
+# Linux is built from CPython source instead, so it dynamically links the
+# distribution's system OpenSSL (which the distro patches for CVEs independently
+# of ChimeraX releases).  The source tarball comes from python.org.
+PYTHON_SOURCE_BASE = https://www.python.org/ftp/python
 
 # Location for large test data files
 TEST_DATA_ARCHIVE = https://www.rbvi.ucsf.edu/chimerax/data/test_data
