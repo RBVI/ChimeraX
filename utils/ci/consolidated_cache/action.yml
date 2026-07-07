@@ -163,9 +163,9 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/PyQt/pyqt6_commercial-6.11.0-cp310-abi3-manylinux_2_34_x86_64.whl
-          prereqs/PyQt/pyqt6_webengine_commercial-6.11.0-cp310-abi3-manylinux_2_34_x86_64.whl
-        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6-6.11.0
+          prereqs/PyQt/pyqt6_commercial-6.10.2-cp39-abi3-manylinux_2_34_x86_64.whl
+          prereqs/PyQt/pyqt6_webengine_commercial-6.10.0-1-cp39-abi3-manylinux_2_34_x86_64.whl
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6-6.10.2
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (Linux ARM)
       id: cache-pyqt6-linux-arm64
@@ -173,9 +173,9 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/PyQt/pyqt6_commercial-6.11.0-cp310-abi3-manylinux_2_39_aarch64.whl
-          prereqs/PyQt/pyqt6_webengine_commercial-6.11.0-cp310-abi3-manylinux_2_39_aarch64.whl
-        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6-6.11.0
+          prereqs/PyQt/pyqt6_commercial-6.10.2-cp39-abi3-manylinux_2_39_aarch64.whl
+          prereqs/PyQt/pyqt6_webengine_commercial-6.10.0-cp39-abi3-manylinux_2_39_aarch64.whl
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6-6.10.2
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (Windows)
       id: cache-pyqt6-windows-x86_64
@@ -183,9 +183,9 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/PyQt/pyqt6_commercial-6.11.0-cp310-abi3-win_amd64.whl
-          prereqs/PyQt/pyqt6_webengine_commercial-6.11.0-cp310-abi3-win_amd64.whl
-        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6-6.11.0
+          prereqs/PyQt/pyqt6_commercial-6.10.2-cp39-abi3-win_amd64.whl
+          prereqs/PyQt/pyqt6_webengine_commercial-6.10.0-cp39-abi3-win_amd64.whl
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6-6.10.2
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (macOS Intel)
       id: cache-pyqt6-macos-x86_64
@@ -193,9 +193,9 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/PyQt/pyqt6_commercial-6.11.0-cp310-abi3-macosx_10_14_universal2.whl
-          prereqs/PyQt/pyqt6_webengine_commercial-6.11.0-cp310-abi3-macosx_10_14_universal2.whl
-        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6-6.11.0
+          prereqs/PyQt/pyqt6_commercial-6.10.2-cp39-abi3-macosx_10_14_universal2.whl
+          prereqs/PyQt/pyqt6_webengine_commercial-6.10.0-cp39-abi3-macosx_10_14_universal2.whl
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6-6.10.2
 
     - name: Restore cached PyQt6 and PyQt6-WebEngine (macOS)
       id: cache-pyqt6-macos-arm64
@@ -203,9 +203,9 @@ runs:
       uses: actions/cache@v4
       with:
         path: |
-          prereqs/PyQt/pyqt6_commercial-6.11.0-cp310-abi3-macosx_10_14_universal2.whl
-          prereqs/PyQt/pyqt6_webengine_commercial-6.11.0-cp310-abi3-macosx_10_14_universal2.whl
-        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6-6.11.0
+          prereqs/PyQt/pyqt6_commercial-6.10.2-cp39-abi3-macosx_10_14_universal2.whl
+          prereqs/PyQt/pyqt6_webengine_commercial-6.10.0-cp39-abi3-macosx_10_14_universal2.whl
+        key: ${{ runner.os }}-${{ inputs.architecture }}-pyqt6-6.10.2
 
     - name: Restore cached seggerx dependency sources
       id: cache-seggerx
@@ -256,8 +256,12 @@ runs:
       shell: bash
       if: ${{ steps[format('cache-pyqt6-{0}-{1}', inputs.platform, inputs.architecture)].outputs.cache-hit != 'true' }}
       run: |
-        export PYQT_VERSION=6.11.0
-        export PYQTWE_VERSION=6.11.0
+        export PYQT_VERSION=6.10.2
+        if ${{ !(inputs.platform == 'linux' && inputs.architecture == 'x86_64') }}; then
+          export PYQTWE_VERSION=6.10.0
+        else
+          export PYQTWE_VERSION=6.10.0-1
+        fi
         export PYQT_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_pyqt.py?platform=${{ inputs.platform }}&version=${PYQT_VERSION}&webengine=false&architecture=${{ inputs.architecture }}"
         export PYQTWE_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_pyqt.py?platform=${{ inputs.platform }}&version=${PYQTWE_VERSION}&webengine=true&architecture=${{ inputs.architecture }}"
         curl -H "X-API-KEY: ${{ inputs.cache_key }}" ${PYQT_URL} -O -J

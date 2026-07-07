@@ -9,9 +9,9 @@ REMOTE_HOST = plato.cgl.ucsf.edu:
 REMOTE_DIR = $(REMOTE_HOST)/usr/local/src/PyQt6
 
 # QT_VERSION is overriden by Makefile
-BASE_VERSION = 6.11
-QT_MINOR_VERSION = 1
-PYQT_MINOR_VERSION = 0
+BASE_VERSION = 6.10
+QT_MINOR_VERSION = 2
+PYQT_MINOR_VERSION = 2
 ifeq ($(OS),Linux)
 PYQT_REVISION =
 else
@@ -32,10 +32,10 @@ PYQTWE_VERSION = $(BASE_VERSION)
 else
 PYQTWE_VERSION = $(BASE_VERSION).$(PYQTWE_MINOR_VERSION)
 endif
-SIP_VERSION = 13.11.1
+SIP_VERSION = 13.10.3
 
-PYTHON_TAGS = cp310
-WE_PYTHON_TAGS = cp310
+PYTHON_TAGS = cp39
+WE_PYTHON_TAGS = cp39
 WHEEL_ABI = abi3
 
 ifeq ($(OS),Darwin)
@@ -71,24 +71,14 @@ SIP_WHEEL := PyQt6-sip==$(SIP_VERSION)
 ifneq ($(PYQT_LICENSE),commercial)
 QT_WHEEL := PyQt6==$(PYQT_VERSION)
 WB_WHEEL := PyQt6_WebEngine==$(PYQTWE_VERSION)
-PIP_NODEPS =
 else
-# The commercial wheels are stored on the server with "_commercial" filenames so
-# that the webengine wheel's "Requires-Dist: PyQt6-commercial" dependency can be
-# satisfied by the qt wheel's filename. However the wheels' internal metadata Name
-# is still "PyQt6" / "PyQt6-WebEngine", and pip 24.1+ rejects a wheel whose filename
-# project name disagrees with its metadata. So we keep the "_commercial" names for
-# the remote (download) side but rename the local copies to their true distribution
-# names, and install with --no-deps (see the install targets) so pip does not try to
-# resolve the now-unmatched "PyQt6-commercial" dependency against an index.
+# New wheel filenames (built with recent setuptools) use all lowercase names 
+# which for some reason can break package dependencies. For example, PyQt6-WebEngine-Commercial
+# depends on PyQt6-Commercial but pip will trip up over pyqt6_commercial.whl
 QT_WHEEL_REMOTE = pyqt6_commercial-$(PYQT_VERSION)-$(BUILD_TAGS).whl
 WB_WHEEL_REMOTE = pyqt6_webengine_commercial-$(PYQTWE_VERSION)-$(WE_BUILD_TAGS).whl
-QT_WHEEL = pyqt6-$(PYQT_VERSION)-$(BUILD_TAGS).whl
-WB_WHEEL = pyqt6_webengine-$(PYQTWE_VERSION)-$(WE_BUILD_TAGS).whl
-# The WHEELS list below is the complete dependency closure, so skip pip's
-# dependency resolution (the renamed local wheels no longer match the
-# "PyQt6-commercial" requirement name that the webengine wheel declares).
-PIP_NODEPS = --no-deps
+QT_WHEEL = PyQt6_commercial-$(PYQT_VERSION)-$(BUILD_TAGS).whl
+WB_WHEEL = PyQt6_WebEngine_commercial-$(PYQTWE_VERSION)-$(WE_BUILD_TAGS).whl
 endif
 
 WHEELS = $(SIP_WHEEL) $(QT_WHEEL) PyQt6-Qt6==$(QT_VERSION) $(WB_WHEEL) PyQt6-WebEngine-Qt6==$(QT_VERSION)
@@ -96,10 +86,10 @@ WHEELS = $(SIP_WHEEL) $(QT_WHEEL) PyQt6-Qt6==$(QT_VERSION) $(WB_WHEEL) PyQt6-Web
 all:
 
 install: $(QT_WHEEL) $(WB_WHEEL)
-	$(PIP) install -U $(PIP_NODEPS) $(WHEELS)
+	$(PIP) install -U $(WHEELS)
 
 app-install: $(QT_WHEEL) $(WB_WHEEL)
-	$(APP_PIP) install -U $(PIP_NODEPS) $(WHEELS)
+	$(APP_PIP) install -U $(WHEELS)
 ifneq ($(MISSING_QTWEBENGINE_DICT),)
 # Work around Qt 6.6.3 bug spewing warnings to shell.  ChimeraX ticket #15088
 	-mkdir $(APP_PYSITEDIR)/$(MISSING_QTWEBENGINE_DICT)
