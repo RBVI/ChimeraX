@@ -96,7 +96,7 @@ def parse_gro(session, file_name, lines, structures, **kw):
         r.add_atom(a)
         a.coord = (x, y, z)
         a.serial_number = atom_num
-        if len(s.atoms) == num_atoms:
+        if s.num_atoms == num_atoms:
             break
     if s is None:
         raise UserError("'%s' has no non-comment lines!" % file_name)
