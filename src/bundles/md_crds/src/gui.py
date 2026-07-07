@@ -68,6 +68,10 @@ def fill_context_menu(menu, parent_tool_window, structure):
     from .cluster_gui import show_cluster_launcher
     cluster_action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure:
         show_cluster_launcher(tw, s))
+    rmsd_map_action = menu.addAction("RMSD Map")
+    from .rmsd_map_gui import show_rmsd_map_launcher
+    rmsd_map_action.triggered.connect(lambda *args, tw=parent_tool_window, s=structure:
+        show_rmsd_map_launcher(tw, s))
 
 def get_session_info(tool_window):
     data = {}
