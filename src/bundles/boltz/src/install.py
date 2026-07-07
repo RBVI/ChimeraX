@@ -63,12 +63,70 @@ class InstallBoltz:
         self.finished_callback = None
         self.success = None
 
-        if self._create_boltz_virtual_environment(directory):
+        python_install_success = self._create_boltz_virtual_environment(directory)
+        #python_install_success = self._install_python_for_boltz(directory)
+        if python_install_success:
             self._install_boltz()
         else:
             success = False
 
     # ------------------------------------------------------------------------------
+    #
+    def _install_python_for_boltz(self, directory):
+        import os
+        os.makedirs(directory, exist_ok=True)
+
+        url = self._astral_python_url()
+
+        import requests
+        with requests.get(url, stream=True) as response:
+            response.raise_for_status()  # Check for HTTP errors
+
+            def strip_python_prefix(member, dest_path):
+                # Remove prefix if it exists
+                member.name = member.name.removeprefix("python/")
+                return member if member.name else None
+
+            import tarfile
+            with tarfile.open(fileobj=response.raw, mode="r|*") as tar:
+                tar.extractall(path=directory, filter=strip_python_prefix)
+
+        logger = self._session.logger
+        logger.info(f'Successfully created Boltz Python environment {directory}.')
+
+        return True
+    
+    # ------------------------------------------------------------------------------
+    #
+    def _astral_python_url(self):
+        astral_download_url = 'https://github.com/astral-sh/python-build-standalone/releases/download/'
+
+        platform_urls = {
+            ('darwin', 'arm64'): '20260623/cpython-3.11.15+20260623-aarch64-apple-darwin-install_only.tar.gz',
+            ('darwin', 'x86_64'): '20260623/cpython-3.11.15+20260623-x86_64-apple-darwin-install_only.tar.gz',
+            ('linux', 'x86_64'): '20260623/cpython-3.11.15+20260623-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz',
+            ('linux', 'aarch64'): '20260623/cpython-3.11.15+20260623-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz',
+            ('windows','AMD64'): '20260623/cpython-3.11.15+20260623-x86_64-pc-windows-msvc-install_only_stripped.tar.gz',
+            ('windows', 'ARM64'): '20260623/cpython-3.11.15+20260623-aarch64-pc-windows-msvc-install_only_stripped.tar.gz'
+        }
+        
+        from sys import platform
+        from platform import machine
+        purl = platform_urls.get((platform, machine()))
+
+        if purl is None:
+            platforms = ', '.join(f'{platform} / {arch}'for platform, arch in platform_urls.keys())
+            from chimerax.core.errors import UserError
+            raise UserError(f'Boltz installation cannot find Python for platform "{platform} / {machine()}".  Available platforms {platforms}')
+
+        url = astral_download_url + purl
+        return url
+    
+    # ------------------------------------------------------------------------------
+    # We no longer use the ChimeraX Python for running Boltz.
+    # Instead we install a dedicate Boltz Python using _install_python_for_boltz().
+    # This chagne was made because ChimeraX updated to Python 3.14 and the
+    # official Boltz distribution requires Python < 3.13.  ChimeraX ticket #20576
     #
     def _create_boltz_virtual_environment(self, directory):
         # Create Python virtual environment using ChimeraX Python as base for installing Boltz.
