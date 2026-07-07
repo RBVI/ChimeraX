@@ -479,9 +479,13 @@ class ViewDockTool(ToolInstance):
                 col, rating_label = self.rating_label_info
                 rating_label.setText(col.display_value(s))
         if self.hide_rating_boxes[value].isChecked():
-            for s in self.struct_table.selected:
-                s.display = False
-            self.update_table_for_hidden()
+            # select the next ligand in sort order before we hide the selection...
+            need_hide = self.struct_table.selected
+            if need_hide:
+                self.next_selected(1)
+                for s in need_hide:
+                    s.display = False
+                self.update_table_for_hidden()
 
     def hide_rating_changed(self, val):
         hiding = self.hide_rating_boxes[val].isChecked()
