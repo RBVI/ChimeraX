@@ -106,8 +106,8 @@ class InstallBoltz:
             ('darwin', 'x86_64'): '20260623/cpython-3.11.15+20260623-x86_64-apple-darwin-install_only.tar.gz',
             ('linux', 'x86_64'): '20260623/cpython-3.11.15+20260623-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz',
             ('linux', 'aarch64'): '20260623/cpython-3.11.15+20260623-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz',
-            ('windows','AMD64'): '20260623/cpython-3.11.15+20260623-x86_64-pc-windows-msvc-install_only_stripped.tar.gz',
-            ('windows', 'ARM64'): '20260623/cpython-3.11.15+20260623-aarch64-pc-windows-msvc-install_only_stripped.tar.gz'
+            ('win32','AMD64'): '20260623/cpython-3.11.15+20260623-x86_64-pc-windows-msvc-install_only_stripped.tar.gz',
+            ('win32', 'ARM64'): '20260623/cpython-3.11.15+20260623-aarch64-pc-windows-msvc-install_only_stripped.tar.gz'
         }
         
         from sys import platform
@@ -363,10 +363,14 @@ def _no_subprocess_window():
 # ------------------------------------------------------------------------------
 #
 def find_executable(venv_directory, exe_name):
-    from os.path import join
+    from os.path import join, exists
     from sys import platform
     if platform == 'win32':
+        # Python venv executable location.
         exe = join(venv_directory, 'Scripts', exe_name + '.exe')
+        if not exists(exe):
+            # Astral Python executable location
+            exe = join(venv_directory, exe_name + '.exe')
     else:
         exe = join(venv_directory, 'bin', exe_name)
     return exe
