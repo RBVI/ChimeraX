@@ -216,6 +216,12 @@ endif
 $(PBS_DIR): $(DISTRIBUTION)
 	rm -rf $(PBS_DIR)
 	tar -xf $(DISTRIBUTION) -C $(tmpdir) --no-same-owner
+ifeq ($(OS),Windows)
+	# python-build-standalone's Windows archive stores DLLs (and .pyd extension
+	# modules, which are DLLs) without the execute bit; restore it so they load
+	# and package correctly from this Unix-style build host.
+	find $(PBS_DIR) \( -name '*.dll' -o -name '*.pyd' \) -exec chmod +x {} +
+endif
 
 $(DISTRIBUTION):
 	$(FETCH_PYTHON) $(PYTHON_BUILD_STANDALONE_BASE)/$(PYTHON_BUILD_STANDALONE_RELEASE)/$(DISTRIBUTION)
