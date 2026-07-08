@@ -63,8 +63,8 @@ class InstallBoltz:
         self.finished_callback = None
         self.success = None
 
-        python_install_success = self._create_boltz_virtual_environment(directory)
-        #python_install_success = self._install_python_for_boltz(directory)
+        #python_install_success = self._create_boltz_virtual_environment(directory)
+        python_install_success = self._install_python_for_boltz(directory)
         if python_install_success:
             self._install_boltz()
         else:
