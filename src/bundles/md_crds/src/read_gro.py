@@ -95,7 +95,11 @@ def parse_gro(session, file_name, lines, structures, **kw):
         a = s.new_atom(atom_name, element)
         r.add_atom(a)
         a.coord = (x, y, z)
-        a.serial_number = atom_num
+        if num_atoms < 100000:
+            # only assign serial number from input if that field can handle the number of atoms
+            a.serial_number = atom_num
+        else:
+            a.serial_number = s.num_atoms
         if s.num_atoms == num_atoms:
             break
     if s is None:
