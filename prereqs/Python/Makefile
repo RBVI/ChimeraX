@@ -212,7 +212,8 @@ endif
 	$(APP_PYTHON_EXE) -m pip install --upgrade \
 		wheel==$(WHEEL_VERSION) \
 		setuptools==$(SETUPTOOLS_VERSION) \
-		build==$(BUILD_VERSION)
+		build==$(BUILD_VERSION) \
+		uv==$(UV_VERSION)
 
 # --- macOS / Windows: fetch and unpack the python-build-standalone archive ---
 $(PBS_DIR): $(DISTRIBUTION)
