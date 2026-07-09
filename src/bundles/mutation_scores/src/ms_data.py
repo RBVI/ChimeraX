@@ -154,7 +154,13 @@ class MutationSet(State):
                 accept = False
             elif pairing:
                 nalign = matches + len(mismatches)
-                msg = (f'Associated {nalign} residues of sequence {chain} with {len(mismatches)} amino acid mismatches. {len(cres)} aligned residues have coordinates and mutation scores.')
+                if mismatches:
+                    mismatch_rnums = ', '.join(f'{r.one_letter_code}{r.number}{maa}' for (r,maa) in mismatches)
+                    plural = 'es' if len(mismatches) > 1 else ''
+                    mismatch_info = f'{len(mismatches)} amino acid mismatch{plural} ({mismatch_rnums})'
+                else:
+                    mismatch_info = ' no mismatches'
+                msg = f'Associated {nalign} residues of chain {chain} with {mismatch_info}.'
                 accept = True
             else:
                 msg = f'Associated chain {chain} with {len(mismatches)} mismatches.'
@@ -270,7 +276,7 @@ def _residue_type_matches(residues, res_nums, resnum_to_aa):
             if r.one_letter_code == rtype:
                 matches += 1
             else:
-                mismatches.append(r)
+                mismatches.append((r, rtype))
     return matches, mismatches
 
 def _check_scores_sequence(scores_sequence, rnum_to_aa):
