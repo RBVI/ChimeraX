@@ -209,7 +209,7 @@ class MutationStructureColoring(ToolInstance):
         chain_spec = concise_chain_spec(chains)
         palette_spec = self._palette_specifier(palette, values)
 
-        cmd_color = f'color byattribute r:{attr_name} {chain_spec} palette {palette_spec} noValueColor white'
+        cmd_color = f'color byattribute r:{attr_name} {chain_spec} palette {palette_spec} noValueColor gray'
         self._run_command(cmd_color)
 
         # Save in coloring history.
@@ -219,7 +219,7 @@ class MutationStructureColoring(ToolInstance):
             'combine_method': score_type,
             'mutation_set_name': mutation_set_name,
             'palette': palette_spec,
-            'noValueColor': 'white',
+            'noValueColor': 'gray',
             }
         if ranges:
             coloring_info['filtering'] = ranges
