@@ -1447,6 +1447,8 @@ class Chain(StructureSeq):
 
     @staticmethod
     def restore_snapshot(session, data):
+        if data['structure'] is None:
+            return StructureSeq.restore_snapshot(session, data['StructureSeq'])
         ptr = data['structure'].session_id_to_chain(data['ses_id'])
         chain = Chain.c_ptr_to_existing_py_inst(ptr)
         if not chain:
@@ -1470,6 +1472,11 @@ class Chain(StructureSeq):
         return struct_string + chain_str
 
     def take_snapshot(self, session, flags):
+        if self.structure is None:
+            return {
+                'structure': None,
+                'StructureSeq': StructureSeq.take_snapshot(self, session, flags)
+            }
         data = {
             'description': self.description,
             'ses_id': self.structure.session_chain_to_id(self._c_pointer),
