@@ -9,6 +9,7 @@ PIP_VERSION = 26.1.2
 WHEEL_VERSION = 0.47.0
 SETUPTOOLS_VERSION = 82.0.1
 BUILD_VERSION = 1.5.0
+UV_VERSION = 0.11.26
 
 # macOS and Windows use relocatable distributions from python-build-standalone
 # (https://github.com/astral-sh/python-build-standalone), so no per-platform
@@ -147,6 +148,7 @@ endif
 	$(PYTHON_EXE) -m pip install --upgrade setuptools==$(SETUPTOOLS_VERSION)
 	$(PYTHON_EXE) -m pip install --upgrade wheel==$(WHEEL_VERSION)
 	$(PYTHON_EXE) -m pip install --upgrade build==$(BUILD_VERSION)
+	$(PYTHON_EXE) -m pip install --upgrade uv==$(UV_VERSION)
 
 	# double check that ssl and expat support are present
 	$(PYTHON_EXE) -c 'import ssl, pyexpat'

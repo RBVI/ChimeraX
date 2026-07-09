@@ -192,13 +192,13 @@ PYTHON_EXE = $(PYTHON_BIN) -I
 APP_PYTHON_EXE = $(APP_PYTHON_BIN) -I
 PYSITEDIR = $(PYTHON_LIBRARY_DIR)/site-packages
 APP_PYSITEDIR = $(APP_PYTHON_LIBRARY_DIR)/site-packages
-APP_PIP = $(APP_EXE) -m pip
-APP_BOOTSTRAP_PIP = $(APP_PYTHON_EXE) -m pip
+APP_PIP = $(APP_EXE) -m uv pip
+APP_BOOTSTRAP_PIP = $(APP_PYTHON_EXE) -m uv pip
 ifeq ($(OSARCH),DarwinIntel64)
 ifneq ($(MACOSV1),10)
 # To get Python to install wheel filenames with os version 11_0, 12_0, ...
 # Details in ChimeraX ticket #4923.
-APP_BOOTSTRAP_PIP = env SYSTEM_VERSION_COMPAT=0 $(APP_PYTHON_EXE) -m pip
+APP_BOOTSTRAP_PIP = env SYSTEM_VERSION_COMPAT=0 $(APP_PYTHON_EXE) -m uv pip
 endif
 endif
 
