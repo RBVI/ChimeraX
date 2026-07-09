@@ -155,7 +155,7 @@ class MutationSet(State):
             elif pairing:
                 nalign = matches + len(mismatches)
                 if mismatches:
-                    mismatch_rnums = ', '.join(f'{r.one_letter_code}{r.number}{maa}' for (r,maa) in mismatches[:10])
+                    mismatch_rnums = ', '.join(f'{r.one_letter_code}{r.number}{maa}' for (r,maa) in mismatches)
                     plural = 'es' if len(mismatches) > 1 else ''
                     mismatch_info = f'{len(mismatches)} amino acid mismatch{plural} ({mismatch_rnums})'
                 else:
