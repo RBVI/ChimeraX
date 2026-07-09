@@ -579,9 +579,13 @@ def init(argv, event_loop=True):
     # Setup SSL CA certificates file
     # This used to be only necessary for darwin, but Windows
     # appears to need it as well.  So use it for all platforms.
+    # Use setdefault so that a SSL_CERT_FILE already set in the
+    # environment (e.g. pointing at an enterprise CA bundle behind a
+    # TLS-inspecting proxy) is respected instead of being overwritten
+    # by certifi's Mozilla bundle.
     import certifi
 
-    os.environ["SSL_CERT_FILE"] = certifi.where()
+    os.environ.setdefault("SSL_CERT_FILE", certifi.where())
 
     opts, args = parse_arguments(argv)
     if not opts.devel:
