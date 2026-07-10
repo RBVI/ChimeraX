@@ -18,7 +18,7 @@ else
 PYQT_REVISION =
 endif
 PYQTWE_MINOR_VERSION = 0
-ifeq ($(OS),Linux)
+ifeq ($(OSARCH),Linux64)
 PYQTWE_REVISION = 1
 endif
 QT_VERSION = $(BASE_VERSION).$(QT_MINOR_VERSION)
