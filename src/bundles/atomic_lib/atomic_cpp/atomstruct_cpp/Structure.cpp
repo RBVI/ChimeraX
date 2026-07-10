@@ -618,12 +618,22 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
                 ca->set_coord(crd);
                 ca->set_bfactor(a->bfactor());
                 ca->set_occupancy(a->occupancy());
+                if (a->has_aniso_u()) {
+                    auto aniso_u = a->aniso_u();
+                    ca->set_aniso_u((*aniso_u)[0], (*aniso_u)[1], (*aniso_u)[2], (*aniso_u)[3],
+                        (*aniso_u)[4], (*aniso_u)[5]);
+                }
             }
             a->set_alt_loc(aloc, false, true);	// Restore original alt loc.
             ca->set_alt_loc(aloc, false, true);
         } else {
             ca->set_bfactor(a->bfactor());
             ca->set_occupancy(a->occupancy());
+            if (a->has_aniso_u()) {
+                auto aniso_u = a->aniso_u();
+                ca->set_aniso_u((*aniso_u)[0], (*aniso_u)[1], (*aniso_u)[2], (*aniso_u)[3],
+                    (*aniso_u)[4], (*aniso_u)[5]);
+            }
         }
         ca->set_serial_number(serial_base + a->serial_number());
         ca->set_draw_mode(a->draw_mode());
