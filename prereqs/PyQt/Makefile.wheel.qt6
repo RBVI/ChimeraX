@@ -18,9 +18,9 @@ else
 PYQT_REVISION =
 endif
 PYQTWE_MINOR_VERSION = 0
-# The 6.11.0 WebEngine wheels have no build revision on any platform (unlike
-# 6.10.0, where the Linux x86_64 wheel was -1).
-PYQTWE_REVISION =
+ifeq ($(OS),Linux)
+PYQTWE_REVISION = 1
+endif
 QT_VERSION = $(BASE_VERSION).$(QT_MINOR_VERSION)
 ifeq (,$(PYQT_MINOR_VERSION))
 PYQT_VERSION = $(QT_VERSION)
