@@ -165,12 +165,14 @@ app-outdated:
 src-outdated:
 	$(PYTHON_EXE) -m package_checker ../../src
 
+# uv has no "pip download" equivalent (astral-sh/uv#3163), so fetch the
+# cross-platform scipy wheel with real pip, which the app Python still ships.
 $(SCIPY_WHEEL):
 ifeq ($(OSARCH),DarwinArm64)
-	$(APP_PIP) download --platform=macosx_12_0_arm64 --no-deps $(shell grep '"scipy' $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
+	$(APP_PYTHON_EXE) -m pip download --platform=macosx_12_0_arm64 --no-deps $(shell grep '"scipy' $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
 endif
 ifeq ($(OSARCH),DarwinIntel64)
-	$(APP_PIP) download --platform=macosx_10_14_x86_64 --no-deps $(shell grep '"scipy' $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
+	$(APP_PYTHON_EXE) -m pip download --platform=macosx_10_14_x86_64 --no-deps $(shell grep '"scipy' $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
 endif
 
 $(CYTHON_WHEEL):

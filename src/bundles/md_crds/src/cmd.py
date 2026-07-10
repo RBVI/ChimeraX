@@ -37,36 +37,12 @@ def cmd_cluster(session, atoms=None, *, start=None, step=None, end=None, exclude
         raise UserError("No trajectory atoms specified")
     results = []
     for traj, traj_atoms in atoms.by_structure:
-        from numpy import logical_not, logical_and
-        if exclude_solvent:
-            traj_atoms = traj_atoms.filter(traj_atoms.structure_categories != "solvent")
-            ions = traj_atoms.structure_categories == "ions"
-            metals = traj_atoms.elements.is_metal
-            non_metal_ions = logical_and(ions, logical_not(metals))
-            traj_atoms = traj_atoms.filter(logical_not(non_metal_ions))
-        if exclude_hydrogens:
-            traj_atoms = traj_atoms.filter(traj_atoms.elements.numbers > 1)
-        if exclude_ligands:
-            traj_atoms = traj_atoms.filter(traj_atoms.structure_categories != "ligand")
-        if exclude_metals:
-            if exclude_metals == "alkali":
-                metals = traj_atoms.elements.is_alkali_metal
-            else:
-                metals = traj_atoms.elements.is_metal
-            traj_atoms = traj_atoms.filter(logical_not(metals))
+        from .util import analysis_atoms, analysis_frames
+        traj_atoms = analysis_atoms(traj_atoms, exclude_solvent, exclude_hydrogens, exclude_ligands,
+            exclude_metals)
         if not traj_atoms:
             raise UserError("No atoms remain after filtering")
-        all_cs_ids = set(traj.coordset_ids)
-        if start is None:
-            start = min(all_cs_ids)
-        if end is None:
-            end = max(all_cs_ids)
-        if step is None:
-            step = 1 + int(len(all_cs_ids)/300)
-        frames = []
-        for fn in range(start, end+1, step):
-            if fn in all_cs_ids:
-                frames.append(fn)
+        frames = analysis_frames(traj, start, end, step)
         if not frames:
             raise UserError("No frames match start/step/end")
         from .cluster import cluster, ClusterError

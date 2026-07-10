@@ -20,14 +20,15 @@ from chimerax.core.errors import UserError
 
 from .gui import _md_tool_windows
 
-class ClusterLauncher:
-    def __init__(self, launcher_window, structure):
+class RMSDMapLauncher:
+    def __init__(self, main_tool_window, launcher_window, structure):
+        self.main_tool_window = main_tool_window
         self.tool_window = tw = launcher_window
-        tw.help = "help:user/commands/coordset.html#clustering"
+        #tw.help = "help:user/commands/coordset.html#clustering"
         def cleanup(lcd=self):
             inst = lcd.tool_window.tool_instance
             from .gui import _remove_tool_window
-            _remove_tool_window(inst, "cluster launcher")
+            _remove_tool_window(inst, "rmsd map launcher")
             delattr(lcd.tool_window, 'cleanup')
         tw.cleanup = cleanup
         self.session = structure.session
@@ -37,8 +38,16 @@ class ClusterLauncher:
         layout.setContentsMargins(0,0,0,0)
         tw.ui_area.setLayout(layout)
 
-        from chimerax.ui.options import OptionsPanel, IntOption, BooleanOption, EnumOption
-        options_panel = OptionsPanel(sorting=False, scrolled=False)
+        title = QLabel("Create RMSD map of trajectory against itself")
+        title.setAlignment(Qt.AlignCenter)
+        title.setFrameStyle(QLabel.Box | QLabel.Raised)
+        title.setLineWidth(2)
+        title.setMidLineWidth(3)
+        layout.addWidget(title)
+
+        self.settings = settings = LaunchRMSDMapSettings(self.session, "launch RMSD map")
+        from chimerax.ui.options import OptionsPanel, IntOption, BooleanOption, EnumOption, FloatOption
+        options_panel = OptionsPanel(sorting=False, scrolled=False, contents_margins=(2,2,2,2))
         cs_ids = structure.coordset_ids
         min_cs = min(cs_ids)
         max_cs = max(cs_ids)
@@ -49,7 +58,13 @@ class ClusterLauncher:
         options_panel.add_option(self.step_opt)
         self.end_opt = IntOption("Ending frame:", max_cs, None, min=min_cs, max=max_cs)
         options_panel.add_option(self.end_opt)
-        self.sel_opt = BooleanOption("Cluster based on current selection, if any:", True, None)
+        self.low_bound_opt = FloatOption("Lower RMSD threshold (white):", settings.low_rmsd, None,
+            min=0.0, max=999.999)
+        options_panel.add_option(self.low_bound_opt)
+        self.high_bound_opt = FloatOption("Upper RMSD threshold (black):", settings.high_rmsd, None,
+            min=0.0, max=999.999)
+        options_panel.add_option(self.high_bound_opt)
+        self.sel_opt = BooleanOption("Restrict map to current selection, if any:", True, None)
         options_panel.add_option(self.sel_opt)
         self.solution_opt = BooleanOption("Ignore solvent and non-metal ions:", True, None)
         options_panel.add_option(self.solution_opt)
@@ -61,12 +76,14 @@ class ClusterLauncher:
         mgr = get_plotting_manager(self.session)
         self.metal_opt = EnumOption("Ignore metal ions:", "alkali", None, values=mgr.exclude_info["metals"])
         options_panel.add_option(self.metal_opt)
+        self.recolor_opt = BooleanOption("Auto-recolor for contrast:", settings.auto_recolor, None)
+        options_panel.add_option(self.recolor_opt)
         layout.addWidget(options_panel)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
-        bbox.accepted.connect(self.launch_clustering)
-        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_clustering(apply=True))
+        bbox.accepted.connect(self.launch_rmsd_map)
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.launch_rmsd_map(apply=True))
         bbox.rejected.connect(tw.destroy)
         if getattr(tw, 'help', None):
             from chimerax.core.commands import run
@@ -77,98 +94,76 @@ class ClusterLauncher:
 
         tw.manage(None)
 
-    def launch_clustering(self, *, apply=False):
+    def launch_rmsd_map(self, *, apply=False):
         start = self.start_opt.value
         step = self.step_opt.value
         end = self.end_opt.value
-        sel = self.sel_opt.value
-        solution = self.solution_opt.value
-        hyd = self.hyd_opt.value
-        ligand = self.ligand_opt.value
-        metal = self.metal_opt.value
+        use_sel = self.sel_opt.value
+        low = self.low_bound_opt.value
+        high = self.high_bound_opt.value
+        exclude_solution = self.solution_opt.value
+        exclude_hydrogens = self.hyd_opt.value
+        exclude_ligands = self.ligand_opt.value
+        exclude_metals = self.metal_opt.value
+        recolor = self.recolor_opt.value
+        atoms = self.structure.atoms
+        if use_sel and atoms.selecteds.any():
+            atoms = atoms.filter(atoms.selecteds)
+        from .util import analysis_atoms, analysis_frames
+        atoms = analysis_atoms(atoms, exclude_solution, exclude_hydrogens, exclude_ligands, exclude_metals)
+        from chimerax.ui import tool_user_error
+        if not atoms:
+            return tool_user_error("No atoms remain after filtering")
+        frames = analysis_frames(self.structure, start, end, step)
+        if not frames:
+            return tool_user_error("No frames match start/step/end")
         if not apply:
             self.tool_window.destroy()
-        from chimerax.core.commands import run
-        spec = '#!' + self.structure.id_string
-        if sel and self.structure.atoms.selecteds.any():
-            spec += " & sel"
-        cmd = f"md cluster {spec} start {start} step {step} end {end}"
-        if not solution:
-            cmd += " excludeSolvent false"
-        if not hyd:
-            cmd += " excludeHydrogens false"
-        if ligand:
-            cmd += " excludeLigands true"
-        if metal != "alkali":
-            cmd += " excludeMetals " + metal
-        run(self.session, cmd)
+        inst = self.main_tool_window.tool_instance
+        inst_window_info = _md_tool_windows.setdefault(inst, {})
+        map_results = inst_window_info.setdefault("RMSD map", [])
+        map_results.append(
+            RMSDMap(self.session, self.main_tool_window.create_child_window("RMSD Map", statusbar=True),
+                atoms, frames, low, high, recolor))
 
-def show_cluster_launcher(main_tool_window, structure):
+from chimerax.core.settings import Settings
+class LaunchRMSDMapSettings(Settings):
+    AUTO_SAVE = {
+        "auto_recolor": True,
+        "low_rmsd": 0.5,
+        "high_rmsd": 3.0,
+    }
+
+def show_rmsd_map_launcher(main_tool_window, structure):
     inst = main_tool_window.tool_instance
     inst_window_info = _md_tool_windows.setdefault(inst, {})
     try:
-        cluster_launcher = inst_window_info["cluster launcher"]
+        rmsd_map_launcher = inst_window_info["rmsd map launcher"]
     except KeyError:
-        cluster_launcher = inst_window_info["cluster launcher"] = ClusterLauncher(
-            main_tool_window.create_child_window("Get Clustering Parameters"), structure)
+        rmsd_map_launcher = inst_window_info["rmsd map launcher"] = RMSDMapLauncher(main_tool_window,
+            main_tool_window.create_child_window("Get RMSD Map Parameters"), structure)
 
-    cluster_launcher.tool_window.shown = True
+    rmsd_map_launcher.tool_window.shown = True
 
-class TableEntry:
-    def __init__(self, clustering, results_dialog):
-        self.clustering = clustering
-        self.rgba = None
-        self.results_dialog = results_dialog
+class RMSDMap:
+    title_fmt = "%g-%g RMSD Map"
 
-    @property
-    def num_frames(self):
-        return len(self.clustering.frames)
-
-    @property
-    def representative(self):
-        return self.clustering.representative
-
-    @property
-    def rgba8(self):
-        return [round(c*255.0) for c in self.rgba]
-
-    @rgba8.setter
-    def rgba8(self, rgba8):
-        rgba = [c/255.0 for c in rgba8]
-        if self.rgba is None:
-            self.rgba = rgba
-        else:
-            self.rgba = rgba
-            brush = QBrush(QColor(*rgba8))
-            for rect in self.rects:
-                rect.setBrush(brush)
-
-    def session_info(self):
-        return {
-            'clustering': self.clustering,
-            'rgba': self.rgba,
-        }
-
-class ClusterResults:
-    scene_pixel_height = 100
-    scene_aspect = 4.0
-    def __init__(self, results_window, structure, clusterings):
+    def __init__(self, session, results_window, atoms, frames, min_rmsd, max_rmsd, recolor):
         self.tool_window = tw = results_window
-        tw.help = "help:user/commands/coordset.html#clusterdialog"
+        self.session = session
+        self.title = self.title_fmt % (min_rmsd, max_rmsd)
+        #tw.help = "help:user/commands/coordset.html#clusterdialog"
         def cleanup(lcd=self):
-            for handler in lcd.handlers:
-                handler.remove()
-            lcd.handlers.clear()
             inst = lcd.tool_window.tool_instance
-            _md_tool_windows[inst]["cluster results"].remove(self)
+            _md_tool_windows[inst]["RMSD map"].remove(self)
             delattr(lcd.tool_window, 'cleanup')
         tw.cleanup = cleanup
-        self.session = structure.session
-        self.structure = structure
-        self.handlers = [structure.triggers.add_handler('changes', self._changes_cb)]
         layout = QVBoxLayout()
         layout.setSpacing(0)
         tw.ui_area.setLayout(layout)
+
+
+        '''
         table_data = []
         table_rgbas = []
         from chimerax.core.colors import distinguish_from
@@ -210,11 +205,12 @@ class ClusterResults:
             self._setup_scene()
             self._update_indicator()
         layout.addWidget(self.view)
+        '''
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Save | qbbox.Close | qbbox.Help)
         bbox.rejected.connect(tw.destroy)
-        bbox.accepted.connect(self._show_save_clustering_dialog)
+        #bbox.accepted.connect(self._show_save_clustering_dialog)
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda *, run=run, ses=self.session:
             run(ses, "help " + self.tool_window.help))
@@ -228,6 +224,29 @@ class ClusterResults:
 
         tw.manage(None)
 
+        # see how long this takes just in Python
+        from time import time
+        t0 = time()
+        num_frames = len(frames)
+        from math import sqrt
+        import numpy
+        rmsds = numpy.zeros((num_frames, num_frames), float)
+        structure = atoms[0].structure
+        import sys
+        with structure.suppress_coordset_change_notifications():
+            for i, fn1 in enumerate(frames):
+                tw.status("Computing RMSDS for frame %d/%d" % (i+1, num_frames))
+                print("Computing RMSDS for frame %d/%d" % (i+1, num_frames), file=sys.__stderr__)
+                structure.active_coordset_id = fn1
+                coords1 = atoms.coords
+                for j in range(i+1, num_frames):
+                    structure.active_coordset_id = frames[j]
+                    diff = atoms.coords - coords1
+                    rmsds[i,j] = rmsds[j,i] = sqrt(numpy.sum(diff * diff) / len(atoms))
+        tw.status("Computed RMSDs for %d frames in %.1f seconds" % (num_frames, time() - t0))
+        print("Computed RMSDs for %d frames in %.1f seconds" % (num_frames, time() - t0), file=sys.__stderr__)
+
+    '''
     def restore_session_info(self, session_info):
         entries = []
         for entry_info in session_info['table_data']:
@@ -247,11 +266,6 @@ class ClusterResults:
             'table_data': [entry.session_info() for entry in self.table.data],
             'table_state': self.table.session_info(),
         }
-
-    def _changes_cb(self, trig_name, data):
-        s, changes = data
-        if 'active_coordset changed' in changes.structure_reasons():
-            self._update_indicator()
 
     def _show_save_clustering_dialog(self):
         from Qt.QtWidgets import QFileDialog
@@ -388,3 +402,4 @@ def restore_cluster_info(main_tool_window, info):
             session_info.pop('structure'), [])
         results.restore_session_info(session_info)
         results_dialogs.append(results)
+    '''

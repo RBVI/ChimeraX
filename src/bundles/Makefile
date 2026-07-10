@@ -74,7 +74,7 @@ install:
 	$(MAKE) -C core build
 	$(MAKE) -C toolshed_utils build
 	$(MAKE) build
-	cd $(SYNC_DIR) && $(APP_BOOTSTRAP_PIP) install --upgrade --upgrade-strategy only-if-needed *.whl
+	cd $(SYNC_DIR) && $(APP_BOOTSTRAP_PIP) install *.whl
 	$(APP_PYTHON_EXE) -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
 
 uv-install:

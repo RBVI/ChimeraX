@@ -24,6 +24,43 @@
 
 from chimerax.atomic import Element
 
+def analysis_atoms(atoms, exclude_solution, exclude_hyds, exclude_ligands, exclude_metals):
+    from numpy import logical_and, logical_not
+    if exclude_solution:
+        atoms = atoms.filter(atoms.structure_categories != "solvent")
+        ions = atoms.structure_categories == "ions"
+        metals = atoms.elements.is_metal
+        non_metal_ions = logical_and(ions, logical_not(metals))
+        atoms = atoms.filter(logical_not(non_metal_ions))
+    if exclude_hyds:
+        atoms = atoms.filter(atoms.elements.numbers > 1)
+    if exclude_ligands:
+        atoms = atoms.filter(atoms.structure_categories != "ligand")
+    if exclude_metals:
+        if exclude_metals == "alkali":
+            metals = atoms.elements.is_alkali_metal
+        else:
+            metals = atoms.elements.is_metal
+        atoms = atoms.filter(logical_not(metals))
+    return atoms
+
+def analysis_frames(traj, start, end, step):
+    all_cs_ids = set(traj.coordset_ids)
+    if start is None:
+        start = min(all_cs_ids)
+    if end is None:
+        end = max(all_cs_ids)
+    if step is None:
+        step = default_step(len(all_cs_ids))
+    frames = []
+    for fn in range(start, end+1, step):
+        if fn in all_cs_ids:
+            frames.append(fn)
+    return frames
+
+def default_step(num_cs_ids):
+    return 1 + int(num_cs_ids/300)
+
 def determine_element_from_mass(mass, *, consider_hydrogens=True):
     H = Element.get_element('H')
     nearest = None
