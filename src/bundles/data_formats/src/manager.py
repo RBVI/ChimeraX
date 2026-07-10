@@ -27,6 +27,8 @@ from chimerax.core.toolshed import ProviderManager
 
 class NoFormatError(ValueError):
     pass
+class MultipleFormatsError(ValueError):
+    pass
 
 class FormatsManager(ProviderManager):
     """
@@ -286,8 +288,8 @@ class FormatsManager(ProviderManager):
                     self._user_response_cache[suffix] = fmt
                 return fmt
 
-            raise UserError("Multiple formats (%s) support %s suffix and none are declared as default; need"
-                " to specify format by using 'format' keyword" %
+            raise MultipleFormatsError("Multiple formats (%s) support %s suffix and none are declared"
+                " as default; need to specify format by using 'format' keyword" %
                 (" ,".join([fmt.nicknames[0] for fmt in relevant_formats]), suffix))
         finally:
             if clear_cache_after:

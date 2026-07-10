@@ -90,7 +90,7 @@ def cmd_open(session, file_names, rest_of_line, *, log=True, return_json=False):
                 raise LimitationError(str(e))
         else:
             data_format = file_format(session, files[0], format_name, True, False)
-            if data_format is None:
+            if not data_format:
                 # let provider_open raise the error, which will show the command
                 provider_args = {}
             else:
@@ -503,12 +503,14 @@ def file_format(session, file_name, format_name, clear_before, clear_after):
         except KeyError:
             return None
 
-    from chimerax.data_formats import NoFormatError
+    from chimerax.data_formats import NoFormatError, MultipleFormatsError
     try:
         return session.data_formats.open_format_from_file_name(file_name, clear_cache_before=clear_before,
             cache_user_responses=True, clear_cache_after=clear_after)
-    except NoFormatError as e:
+    except NoFormatError:
         return None
+    except MultipleFormatsError:
+        return False
 
 def collated_open(session, database_name, data, data_format, main_opener, log_errors,
         func, func_args, func_kw):
@@ -551,12 +553,14 @@ class FileInfo:
     def __init__(self, session, file_name, format_name, clear_before, clear_after):
         self.file_name = file_name
         self.data_format = file_format(session, file_name, format_name, clear_before, clear_after)
-        if self.data_format is None:
+        if self.data_format in (None, False):
             from os.path import splitext
             from chimerax import io
             ext = splitext(io.remove_compression_suffix(file_name))[1]
             if ext:
-                raise UserError("Unrecognized file suffix '%s'" % ext)
+                if self.data_format is None:
+                    raise UserError("Unrecognized file suffix '%s'" % ext)
+                raise UserError("Multiple formats use file suffix '%s'" % ext)
             raise UserError("'%s' has no suffix" % file_name)
 
 def _usage_setup(session):

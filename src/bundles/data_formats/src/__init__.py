@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .manager import NoFormatError
+from .manager import NoFormatError, MultipleFormatsError
 
 from chimerax.core.toolshed import BundleAPI
 

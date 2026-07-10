@@ -63,7 +63,14 @@ class MainSaveDialog:
         cmd = "save %s" % SaveFileNameArg.unparse(fname)
         if provider_info.bundle_info.installed and self._current_option != self._no_options_label:
             cmd += ' ' + save_mgr.save_args_string_from_widget(fmt, self._current_option)
-        if not provider_info.is_default:
+        from chimerax.data_formats import MultipleFormatsError
+        try:
+            default_fmt = session.data_formats.save_format_from_file_name(fname)
+        except MultipleFormatsError:
+            add_fmt_kw = True
+        else:
+            add_fmt_kw = default_fmt != fmt
+        if add_fmt_kw:
             cmd += ' format ' + fmt.nicknames[0]
         run(session, cmd)
         if self._settings:

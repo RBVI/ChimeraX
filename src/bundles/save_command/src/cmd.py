@@ -137,11 +137,11 @@ def file_format(session, file_name, format_name, clear_before, clear_after):
         except KeyError:
             raise UserError("Unknown data format: '%s'" % format_name)
 
-    from chimerax.data_formats import NoFormatError
+    from chimerax.data_formats import NoFormatError, MultipleFormatsError
     try:
         return session.data_formats.save_format_from_file_name(file_name, clear_cache_before=clear_before,
             cache_user_responses=True, clear_cache_after=clear_after)
-    except NoFormatError as e:
+    except (NoFormatError,MultipleFormatsError) as e:
         raise UserError(str(e))
 
 def cmd_save_formats(session):
