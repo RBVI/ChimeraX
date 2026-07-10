@@ -23,11 +23,13 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.errors import LimitationError, UserError
-import pyKVFinder
 
 def cmd_kvfinder(session, structures=None, *, box_atoms=None, box_extent=None, box_origin=None, box_pad=2,
         grid_spacing=0.6, include_atoms=None, probe_in=1.4, probe_out=4.0, removal_distance=2.4,
         show_box=True, show_tool=True, surface_type='SES', replace=True, volume_cutoff=5.0):
+    from .prep import prep_input, check_pyKVFinder
+    check_pyKVFinder(session.logger)
+    import pyKVFinder
     if [box_origin, box_extent].count(None) == 1:
         raise UserError("Must specify both 'boxOrigin' and 'boxExtent' or neither")
     if box_atoms is not None:
@@ -54,7 +56,6 @@ def cmd_kvfinder(session, structures=None, *, box_atoms=None, box_extent=None, b
     if structures is None:
         structures = all_atomic_structures(session)
     show_tool = show_tool and session.ui.is_gui
-    from .prep import prep_input
     from chimerax.atomic.struct_edit import add_atom
     import numpy
     return_values = []

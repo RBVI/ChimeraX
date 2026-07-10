@@ -22,6 +22,20 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+def check_pyKVFinder(logger):
+    try:
+        import pyKVFinder
+    except ImportError:
+        from chimerax.core.commands import run
+        logger.status("pyKVFinder module not installed; fetching from PyPi repository...", log=True)
+        try:
+            pip_cmd = "pip install pyKVFinder"
+            run(logger.session, pip_cmd, log=False)
+        except (PermissionError, RuntimeError) as e:
+            logger.info("'%s' failed.  Error from pip: %s" % (pip_cmd, str(e)))
+            raise
+        logger.status("pyKVFinder module installed from PyPi repository.", log=True)
+
 def prep_input(structure, include_atoms, origin, extent, show_box, box_name, probe_in, probe_out, step):
 # Get atomic information of the target structure
     atom_infos = []
