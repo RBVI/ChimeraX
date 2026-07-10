@@ -373,11 +373,11 @@ class PseudobondGroup(PseudobondGroupData, Model):
             pseudobonds.radii = pb_state['radii']
             pseudobonds.selecteds = pb_state['selecteds']
         except ValueError:
-            if self.num_pseudobonds < len(pb_state['colors']):
-                self.session.logger.warning(f"Pseudobonds have been deleted"
-                    f" from {self} since scene was saved.  Cannot restore"
-                    f" {self} completely.  Do not delete pseudobonds involved in pre-existing"
-                    f" scenes!")
+            if self.num_pseudobonds != len(pb_state['colors']):
+                self.session.logger.warning(
+                    f"Pseudobonds have been %s {self} since scene was saved.  Cannot restore {self}"
+                    f" completely.  Do not add or delete pseudobonds involved in pre-existing scenes!"
+                    % ("deleted from" if self.num_pseudobonds < len(pb_state['colors']) else "added to"))
                 return
             raise
 
