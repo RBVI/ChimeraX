@@ -53,7 +53,8 @@ class RMSDMapLauncher:
         max_cs = max(cs_ids)
         self.start_opt = IntOption("Starting frame:", min_cs, None, min=min_cs, max=max_cs)
         options_panel.add_option(self.start_opt)
-        self.step_opt = IntOption("Step size:", 1 + int(len(cs_ids)/300), None, min=1, max=max_cs)
+        from .util import default_step
+        self.step_opt = IntOption("Step size:", default_step(len(cs_ids)), None, min=1, max=max_cs)
         options_panel.add_option(self.step_opt)
         self.end_opt = IntOption("Ending frame:", max_cs, None, min=min_cs, max=max_cs)
         options_panel.add_option(self.end_opt)
@@ -65,8 +66,8 @@ class RMSDMapLauncher:
         options_panel.add_option(self.high_bound_opt)
         self.sel_opt = BooleanOption("Restrict map to current selection, if any:", True, None)
         options_panel.add_option(self.sel_opt)
-        self.solvent_opt = BooleanOption("Ignore solvent and non-metal ions:", True, None)
-        options_panel.add_option(self.solvent_opt)
+        self.solution_opt = BooleanOption("Ignore solvent and non-metal ions:", True, None)
+        options_panel.add_option(self.solution_opt)
         self.hyd_opt = BooleanOption("Ignore hydrogens:", True, None)
         options_panel.add_option(self.hyd_opt)
         self.ligand_opt = BooleanOption("Ignore ligands:", False, None)
@@ -97,22 +98,33 @@ class RMSDMapLauncher:
         start = self.start_opt.value
         step = self.step_opt.value
         end = self.end_opt.value
-        sel = self.sel_opt.value
+        use_sel = self.sel_opt.value
         low = self.low_bound_opt.value
         high = self.high_bound_opt.value
-        solvent = self.solvent_opt.value
-        hyd = self.hyd_opt.value
-        ligand = self.ligand_opt.value
-        metal = self.metal_opt.value
+        exclude_solution = self.solution_opt.value
+        exclude_hydrogens = self.hyd_opt.value
+        exclude_ligands = self.ligand_opt.value
+        exclude_metals = self.metal_opt.value
         recolor = self.recolor_opt.value
+        atoms = self.structure.atoms
+        if use_sel and atoms.selecteds.any():
+            atoms = atoms.filter(atoms.selecteds)
+        from .util import analysis_atoms, analysis_frames
+        atoms = analysis_atoms(atoms, exclude_solution, exclude_hydrogens, exclude_ligands, exclude_metals)
+        from chimerax.ui import tool_user_error
+        if not atoms:
+            return tool_user_error("No atoms remain after filtering")
+        frames = analysis_frames(self.structure, start, end, step)
+        if not frames:
+            return tool_user_error("No frames match start/step/end")
         if not apply:
             self.tool_window.destroy()
         inst = self.main_tool_window.tool_instance
         inst_window_info = _md_tool_windows.setdefault(inst, {})
         map_results = inst_window_info.setdefault("RMSD map", [])
         map_results.append(
-            RMSDMap(self.main_tool_window.create_child_window("RMSD Map", statusbar=True),
-                self.structure, start, step, end, sel, low, high, solvent, hyd, ligand, metal, recolor))
+            RMSDMap(self.session, self.main_tool_window.create_child_window("RMSD Map", statusbar=True),
+                atoms, frames, low, high, recolor))
 
 from chimerax.core.settings import Settings
 class LaunchRMSDMapSettings(Settings):
@@ -136,9 +148,9 @@ def show_rmsd_map_launcher(main_tool_window, structure):
 class RMSDMap:
     title_fmt = "%g-%g RMSD Map"
 
-    def __init__(self, results_window, structure, start_frame, step, end_frame, use_sel, min_rmsd,
-            max_rmsd, ignore_bulk, ignore_hyds, ignore_ligand, metal_ions, recolor):
+    def __init__(self, session, results_window, atoms, frames, min_rmsd, max_rmsd, recolor):
         self.tool_window = tw = results_window
+        self.session = session
         self.title = self.title_fmt % (min_rmsd, max_rmsd)
         #tw.help = "help:user/commands/coordset.html#clusterdialog"
         def cleanup(lcd=self):
@@ -146,11 +158,11 @@ class RMSDMap:
             _md_tool_windows[inst]["RMSD map"].remove(self)
             delattr(lcd.tool_window, 'cleanup')
         tw.cleanup = cleanup
-        self.session = structure.session
-        self.structure = structure
         layout = QVBoxLayout()
         layout.setSpacing(0)
         tw.ui_area.setLayout(layout)
+
+
         '''
         table_data = []
         table_rgbas = []
@@ -211,6 +223,28 @@ class RMSDMap:
         tw.ui_area.parent().layout().addWidget(bbox)
 
         tw.manage(None)
+
+        # see how long this takes just in Python
+        from time import time
+        t0 = time()
+        num_frames = len(frames)
+        from math import sqrt
+        import numpy
+        rmsds = numpy.zeros((num_frames, num_frames), float)
+        structure = atoms[0].structure
+        import sys
+        with structure.suppress_coordset_change_notifications():
+            for i, fn1 in enumerate(frames):
+                tw.status("Computing RMSDS for frame %d/%d" % (i+1, num_frames))
+                print("Computing RMSDS for frame %d/%d" % (i+1, num_frames), file=sys.__stderr__)
+                structure.active_coordset_id = fn1
+                coords1 = atoms.coords
+                for j in range(i+1, num_frames):
+                    structure.active_coordset_id = frames[j]
+                    diff = atoms.coords - coords1
+                    rmsds[i,j] = rmsds[j,i] = sqrt(numpy.sum(diff * diff) / len(atoms))
+        tw.status("Computed RMSDs for %d frames in %.1f seconds" % (num_frames, time() - t0))
+        print("Computed RMSDs for %d frames in %.1f seconds" % (num_frames, time() - t0), file=sys.__stderr__)
 
     '''
     def restore_session_info(self, session_info):

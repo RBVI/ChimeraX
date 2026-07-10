@@ -431,6 +431,7 @@ class PlotDialog:
         self._update_plot(provider_name)
 
     def _process_exclude_widgets(self, sel_atoms, exclude_widgets):
+        arg_values = {}
         for kind, value_widget in exclude_widgets.items():
             if self.mgr.exclude_info[kind] == self.mgr.bools:
                 val = value_widget.isChecked()
@@ -440,28 +441,13 @@ class PlotDialog:
                     val = eval(val_text.capitalize())
                 else:
                     val = val_text
-            if val is False:
-                continue
-            from numpy import logical_not, logical_and
-            if kind == "solution":
-                sel_atoms = sel_atoms.filter(sel_atoms.structure_categories != "solvent")
-                ions = sel_atoms.structure_categories == "ions"
-                metals = sel_atoms.elements.is_metal
-                non_metal_ions = logical_and(ions, logical_not(metals))
-                sel_atoms = sel_atoms.filter(logical_not(non_metal_ions))
-            elif kind == "hydrogens":
-                sel_atoms = sel_atoms.filter(sel_atoms.elements.numbers > 1)
-            elif kind == "ligands":
-                sel_atoms = sel_atoms.filter(sel_atoms.structure_categories != "ligand")
-            elif kind == "metals":
-                if val == "alkali":
-                    metals = sel_atoms.elements.is_alkali_metal
-                else:
-                    metals = sel_atoms.elements.is_metal
-                sel_atoms = sel_atoms.filter(logical_not(metals))
+            if kind in ["solution", "hydrogens", "ligands", "metals"]:
+                arg_values[kind] = val
             else:
                 raise ValueError("Unknown kind of atom for 'exclude': %s" % kind)
-        return sel_atoms
+        from .util import analysis_atoms
+        return analysis_atoms(sel_atoms, arg_values['solution'], arg_values['hydrogens'],
+            arg_values['ligands'], arg_values['metals'])
 
     def _tab_setup(self, provider_name):
         ui_name = self.mgr.ui_name(provider_name)

@@ -44,14 +44,15 @@ class ClusterLauncher:
         max_cs = max(cs_ids)
         self.start_opt = IntOption("Starting frame:", min_cs, None, min=min_cs, max=max_cs)
         options_panel.add_option(self.start_opt)
-        self.step_opt = IntOption("Step size:", 1 + int(len(cs_ids)/300), None, min=1, max=max_cs)
+        from .util import default_step
+        self.step_opt = IntOption("Step size:", default_step(len(cs_ids)), None, min=1, max=max_cs)
         options_panel.add_option(self.step_opt)
         self.end_opt = IntOption("Ending frame:", max_cs, None, min=min_cs, max=max_cs)
         options_panel.add_option(self.end_opt)
         self.sel_opt = BooleanOption("Cluster based on current selection, if any:", True, None)
         options_panel.add_option(self.sel_opt)
-        self.solvent_opt = BooleanOption("Ignore solvent and non-metal ions:", True, None)
-        options_panel.add_option(self.solvent_opt)
+        self.solution_opt = BooleanOption("Ignore solvent and non-metal ions:", True, None)
+        options_panel.add_option(self.solution_opt)
         self.hyd_opt = BooleanOption("Ignore hydrogens:", True, None)
         options_panel.add_option(self.hyd_opt)
         self.ligand_opt = BooleanOption("Ignore ligands:", False, None)
@@ -81,7 +82,7 @@ class ClusterLauncher:
         step = self.step_opt.value
         end = self.end_opt.value
         sel = self.sel_opt.value
-        solvent = self.solvent_opt.value
+        solution = self.solution_opt.value
         hyd = self.hyd_opt.value
         ligand = self.ligand_opt.value
         metal = self.metal_opt.value
@@ -92,7 +93,7 @@ class ClusterLauncher:
         if sel and self.structure.atoms.selecteds.any():
             spec += " & sel"
         cmd = f"md cluster {spec} start {start} step {step} end {end}"
-        if not solvent:
+        if not solution:
             cmd += " excludeSolvent false"
         if not hyd:
             cmd += " excludeHydrogens false"
