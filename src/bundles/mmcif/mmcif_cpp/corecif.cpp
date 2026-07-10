@@ -228,15 +228,15 @@ SmallMolecule::parse_cell()
             [&] (const char* start) {
                 length_c = parse_float(start);
             });
-        pv.emplace_back(get_column("alpha"),
+        pv.emplace_back(get_column("angle_alpha"),
             [&] (const char* start) {
                 alpha = parse_float(start) * M_PI / 180;
             });
-        pv.emplace_back(get_column("beta"),
+        pv.emplace_back(get_column("angle_beta"),
             [&] (const char* start) {
                 beta = parse_float(start) * M_PI / 180;
             });
-        pv.emplace_back(get_column("gamma"),
+        pv.emplace_back(get_column("angle_gamma"),
             [&] (const char* start) {
                 gamma = parse_float(start) * M_PI / 180;
             });
@@ -552,7 +552,7 @@ SmallMolecule::to_cartesian(const double fract_xyz[3], Real xyz[3])
     xyz[0] = xyz[1] = xyz[2] = 0;
     for (auto i = 0; i < 3; ++i)
         for (auto j = 0; j < 3; ++j)
-            xyz[j] += fract_xyz[i] * cell[i][j];
+            xyz[i] += fract_xyz[j] * cell[j][i];
 }
 
 static PyObject*
