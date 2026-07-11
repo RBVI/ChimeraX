@@ -45,7 +45,7 @@ class RMSDMapLauncher:
         title.setMidLineWidth(3)
         layout.addWidget(title)
 
-        self.settings = settings = LaunchRMSDMapSettings(self.session, "launch RMSD map")
+        self.settings = settings = RMSDMapSettings(self.session, "RMSD map")
         from chimerax.ui.options import OptionsPanel, IntOption, BooleanOption, EnumOption, FloatOption
         options_panel = OptionsPanel(sorting=False, scrolled=False, contents_margins=(2,2,2,2))
         cs_ids = structure.coordset_ids
@@ -90,7 +90,8 @@ class RMSDMapLauncher:
             bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + tw.help))
         else:
             bbox.button(qbbox.Help).setEnabled(False)
-        layout.addWidget(bbox)
+        # Put the buttons below the status bar
+        tw.ui_area.parent().layout().addWidget(bbox)
 
         tw.manage(None)
 
@@ -117,6 +118,23 @@ class RMSDMapLauncher:
         frames = analysis_frames(self.structure, start, end, step)
         if not frames:
             return tool_user_error("No frames match start/step/end")
+
+        num_frames = len(frames)
+        from math import sqrt
+        import numpy
+        rmsds = numpy.zeros((num_frames, num_frames), float)
+        structure = atoms[0].structure
+        with structure.suppress_coordset_change_notifications():
+            for i, fn1 in enumerate(frames):
+                self.tool_window.status("Computing RMSDS for frame %d/%d" % (i+1, num_frames))
+                structure.active_coordset_id = fn1
+                coords1 = atoms.coords
+                for j in range(i+1, num_frames):
+                    structure.active_coordset_id = frames[j]
+                    diff = atoms.coords - coords1
+                    rmsds[i,j] = rmsds[j,i] = sqrt(numpy.sum(diff * diff) / len(atoms))
+        self.tool_window.status("Computed RMSDs; showing map")
+
         if not apply:
             self.tool_window.destroy()
         inst = self.main_tool_window.tool_instance
@@ -124,10 +142,10 @@ class RMSDMapLauncher:
         map_results = inst_window_info.setdefault("RMSD map", [])
         map_results.append(
             RMSDMap(self.session, self.main_tool_window.create_child_window("RMSD Map", statusbar=True),
-                atoms, frames, low, high, recolor))
+                rmsds, frames, low, high, recolor, self.settings))
 
 from chimerax.core.settings import Settings
-class LaunchRMSDMapSettings(Settings):
+class RMSDMapSettings(Settings):
     AUTO_SAVE = {
         "auto_recolor": True,
         "low_rmsd": 0.5,
@@ -141,17 +159,27 @@ def show_rmsd_map_launcher(main_tool_window, structure):
         rmsd_map_launcher = inst_window_info["rmsd map launcher"]
     except KeyError:
         rmsd_map_launcher = inst_window_info["rmsd map launcher"] = RMSDMapLauncher(main_tool_window,
-            main_tool_window.create_child_window("Get RMSD Map Parameters"), structure)
+            main_tool_window.create_child_window("Get RMSD Map Parameters", statusbar=True), structure)
 
     rmsd_map_launcher.tool_window.shown = True
 
 class RMSDMap:
-    title_fmt = "%g-%g RMSD Map"
+    title_fmt = "%.2g-%.2g RMSD Map"
 
-    def __init__(self, session, results_window, atoms, frames, min_rmsd, max_rmsd, recolor):
+    def __init__(self, session, results_window, rmsds, frames, min_rmsd, max_rmsd, recolor, settings):
         self.tool_window = tw = results_window
         self.session = session
-        self.title = self.title_fmt % (min_rmsd, max_rmsd)
+        self.rmsds = rmsds
+        self.settings = settings
+        if recolor:
+            rmsds_1D = rmsds.flatten()
+            import numpy
+            sorted_rmsds = numpy.sort(rmsds_1D)
+            self.min_rmsd = sorted_rmsds[round(len(sorted_rmsds)/3)]
+            self.max_rmsd = sorted_rmsds[round(2*len(sorted_rmsds)/3)]
+        else:
+            self.min_rmsd, self.max_rmsd = min_rmsd, max_rmsd
+        self.set_title()
         #tw.help = "help:user/commands/coordset.html#clusterdialog"
         def cleanup(lcd=self):
             inst = lcd.tool_window.tool_instance
@@ -161,51 +189,6 @@ class RMSDMap:
         layout = QVBoxLayout()
         layout.setSpacing(0)
         tw.ui_area.setLayout(layout)
-
-
-        '''
-        table_data = []
-        table_rgbas = []
-        from chimerax.core.colors import distinguish_from
-        # color the same trajectory consistently...
-        seed = structure.num_coordsets * structure.num_residues + structure.num_atoms
-        for clustering in clusterings:
-            entry = TableEntry(clustering, self)
-            entry.rgba = distinguish_from([(1.0,1.0,1.0,1.0)] + table_rgbas, seed=seed)
-            table_rgbas.append(entry.rgba)
-            table_data.append(entry)
-        from chimerax.ui.widgets import ItemTable
-        class ShortTable(ItemTable):
-            def sizeHint(self):
-                sh = super().sizeHint()
-                h = sh.height()
-                if h > 500:
-                    sh.setHeight(sh.height() // 2)
-                return sh
-        self.table = table = ShortTable()
-        # Putting color first makes the rows about twice as high as needed (and column titles bold!)
-        members_col = table.add_column("Members", "num_frames")
-        table.add_column("Color", "rgba8", format=table.COL_FORMAT_OPAQUE_COLOR, title_display=False)
-        table.add_column("Representative Frame", "representative")
-        table.data = table_data
-        table.launch()
-        table.sort_by(members_col, table.SORT_DESCENDING)
-        table.selection_changed.connect(self._update_scene)
-        layout.addWidget(table, alignment=Qt.AlignHCenter, stretch=1)
-
-        self.scene = QGraphicsScene()
-        class ResizingView(QGraphicsView):
-            def resizeEvent(self, event, *,
-                    _height=self.scene_pixel_height, _width=self.scene_aspect*self.scene_pixel_height):
-                super().resizeEvent(event)
-                self.fitInView(0.0, 0.0, _width, _height)
-        self.view = ResizingView(self.scene)
-        if clusterings:
-            # not a session restore
-            self._setup_scene()
-            self._update_indicator()
-        layout.addWidget(self.view)
-        '''
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Save | qbbox.Close | qbbox.Help)
@@ -224,27 +207,8 @@ class RMSDMap:
 
         tw.manage(None)
 
-        # see how long this takes just in Python
-        from time import time
-        t0 = time()
-        num_frames = len(frames)
-        from math import sqrt
-        import numpy
-        rmsds = numpy.zeros((num_frames, num_frames), float)
-        structure = atoms[0].structure
-        import sys
-        with structure.suppress_coordset_change_notifications():
-            for i, fn1 in enumerate(frames):
-                tw.status("Computing RMSDS for frame %d/%d" % (i+1, num_frames))
-                print("Computing RMSDS for frame %d/%d" % (i+1, num_frames), file=sys.__stderr__)
-                structure.active_coordset_id = fn1
-                coords1 = atoms.coords
-                for j in range(i+1, num_frames):
-                    structure.active_coordset_id = frames[j]
-                    diff = atoms.coords - coords1
-                    rmsds[i,j] = rmsds[j,i] = sqrt(numpy.sum(diff * diff) / len(atoms))
-        tw.status("Computed RMSDs for %d frames in %.1f seconds" % (num_frames, time() - t0))
-        print("Computed RMSDs for %d frames in %.1f seconds" % (num_frames, time() - t0), file=sys.__stderr__)
+    def set_title(self):
+        self.tool_window.title = self.title_fmt % (self.min_rmsd, self.max_rmsd)
 
     '''
     def restore_session_info(self, session_info):
@@ -266,113 +230,9 @@ class RMSDMap:
             'table_data': [entry.session_info() for entry in self.table.data],
             'table_state': self.table.session_info(),
         }
+    '''
 
-    def _show_save_clustering_dialog(self):
-        from Qt.QtWidgets import QFileDialog
-        fname = QFileDialog.getSaveFileName(self.tool_window.ui_area, "Save Clustering Information")[0]
-        if fname:
-            from chimerax.io import open_output
-            with open_output(fname, encoding='utf-8') as f:
-                print("# one cluster per line; first frame on each line is representative", file=f)
-                for entry in self.table.sorted_data:
-                    print(" ".join([str(entry.clustering.representative)] + [str(f)
-                        for f in entry.clustering.frames if f != entry.clustering.representative]), file=f)
-
-    def _setup_scene(self):
-        # Have to allow for the fact that the clustering may not involve all frames of the trajectory
-        scene_width = self.scene_pixel_height * self.scene_aspect
-        scene_height = self.scene_pixel_height
-        self.scene.setSceneRect(0.0, 0.0, scene_width, scene_height)
-        fns = []
-        for row in self.table.data:
-            fns.extend(row.clustering.frames)
-        fns.sort()
-        self.fn_index = fn_index = { fn: i for i, fn in enumerate(fns) }
-        self.index_fn = { i: fn for fn, i in fn_index.items() }
-        self.unit_x = unit_x = scene_width / len(fns)
-        to_x = lambda fn: unit_x * fn_index[fn]
-        pen = QPen(Qt.NoPen)
-        for row in self.table.data:
-            row.rects = rects = []
-            first_fn = last_fn = None
-            brush = QBrush(QColor(*row.rgba8))
-            for fn in row.clustering.frames:
-                if first_fn is None:
-                    first_fn = last_fn = fn
-                elif fn == last_fn + 1:
-                    last_fn = fn
-                else:
-                    rects.append(self.scene.addRect(to_x(first_fn), scene_height / 2.0,
-                        to_x(last_fn) - to_x(first_fn) + unit_x, scene_height, brush=brush, pen=pen))
-                    first_fn = last_fn = fn
-            if first_fn is not None:
-                rects.append(self.scene.addRect(to_x(first_fn), scene_height / 2.0,
-                    to_x(fn) - to_x(first_fn) + unit_x, scene_height, brush=brush, pen=pen))
-
-        self.scene_text = self.scene.addSimpleText("Choose in above table to show cluster")
-        text_rect = self.scene_text.boundingRect()
-        cx, cy = text_rect.x() + text_rect.width()/2, text_rect.y() + text_rect.height()/2
-        self.scene_text.moveBy(scene_width/2 - cx, scene_height/4 - cy)
-
-        self.indicator = self.scene.addPolygon(QPolygonF([QPointF(*args) for args in [
-            (0.0, 0.0), (11.5, 0.0), (5.75, 10.0)
-            ]]))
-        self.indicator.setZValue(1.0)
-
-        self.view.setMouseTracking(True)
-        self.scene.mouseMoveEvent = self._mouse_move_event
-        self.scene.mousePressEvent = self._mouse_press_event
-
-    def _mouse_move_event(self, event):
-        scene_x = event.scenePos().x()
-        scene_width = self.scene_pixel_height * self.scene_aspect
-        import math
-        index = min(max(0, math.floor(scene_x / self.unit_x)), len(self.index_fn)-1)
-        fn = self.index_fn[index]
-        self.tool_window.status("Frame %d" % fn)
-        if event.buttons() == Qt.LeftButton:
-           self.structure.active_coordset_id = fn
-
-    def _mouse_press_event(self, event):
-        if event.buttons() & Qt.LeftButton == 0:
-            return
-        scene_x = event.scenePos().x()
-        scene_width = self.scene_pixel_height * self.scene_aspect
-        import math
-        index = min(max(0, math.floor(scene_x / self.unit_x)), len(self.index_fn)-1)
-        fn = self.index_fn[index]
-        self.tool_window.status("Frame %d" % fn)
-        self.structure.active_coordset_id = fn
-
-    def _update_indicator(self, *args):
-        fn = self.structure.active_coordset_id
-        if fn not in self.fn_index:
-            self.indicator.hide()
-            return
-        self.indicator.show()
-        fn_x = self.unit_x * (self.fn_index[fn] + 0.5)
-        self.indicator.moveBy(fn_x - (self.indicator.pos().x() + 5.75), 0.0)
-
-    def _update_scene(self, *args):
-        sel_rows = set(self.table.selected)
-        if sel_rows:
-            self.scene_text.hide()
-        else:
-            self.scene_text.show()
-        scene_height = self.scene_pixel_height
-        for row in self.table.data:
-            if row in sel_rows:
-                y = 0.0
-                height = scene_height
-            else:
-                y = scene_height / 2.0
-                height = scene_height / 2.0
-            for rect_item in row.rects:
-                rect = rect_item.rect()
-                rect_item.setRect(rect.x(), y, rect.width(), height)
-        if len(sel_rows) == 1:
-           self.structure.active_coordset_id = sel_rows.pop().representative
-
+'''
 def show_cluster_results(main_tool_window, structure, clusterings):
     inst = main_tool_window.tool_instance
     inst_window_info = _md_tool_windows.setdefault(inst, {})
