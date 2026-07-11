@@ -1210,12 +1210,14 @@ def _check_venv_valid(session, install_location):
     p.read_string(config)
 
     home = p.get('params', 'home', fallback = None)  # Python bin directory
-    if home and not exists(home):
-        from chimerax.core.commands import quote_path_if_necessary
-        install_loc = quote_path_if_necessary(install_location)
-        msg = f'The ChimeraX version you used to install OpenFold no longer exists and OpenFold uses the Python from that ChimeraX.  You need to reinstall OpenFold with your current ChimeraX.  First remove the directory containing the old OpenFold installation\n\n{install_location}\n\nThen restart ChimeraX and press the "Install OpenFold" button on the ChimeraX OpenFold panel or use the ChimeraX command\n\nopenfold install {install_loc}'
-        session.logger.error(msg)
-        return False
+    if home:
+        from os.path import getmtime
+        if not exists(home) or getmtime(home) > getmtime(venv_config_path):
+            from chimerax.core.commands import quote_path_if_necessary
+            install_loc = quote_path_if_necessary(install_location)
+            msg = f'Could not find the original ChimeraX version you used to install OpenFold.  OpenFold uses the Python from that ChimeraX.  To fix this reinstall OpenFold with your current ChimeraX.  First remove the directory containing the old OpenFold installation\n\n{install_location}\n\nThen restart ChimeraX and press the "Install OpenFold" button on the ChimeraX OpenFold panel or use the ChimeraX command\n\nopenfold install {install_loc}'
+            session.logger.error(msg)
+            return False
 
     return True
 
