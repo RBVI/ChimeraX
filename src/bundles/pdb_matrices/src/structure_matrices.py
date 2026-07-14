@@ -152,11 +152,12 @@ def metadata_type(molecule):
     mdata = molecule.metadata
     if 'REMARK' in mdata or 'CRYST1' in mdata:
         mtype = 'pdb'
+    elif getattr(molecule, 'is_corecif', False):
+        mtype = 'cif'
     elif getattr(molecule, 'is_mmcif', False) or has_mmcif_tables(mdata):
         mtype = 'mmcif'
     else:
         mtype = None
-    # TODO: Add small-molecule CIF format if a reader is added to ChimeraX.
     return mtype
     
 # -----------------------------------------------------------------------------

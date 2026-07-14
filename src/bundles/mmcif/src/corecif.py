@@ -43,6 +43,9 @@ _additional_corecif_categories = (
     "publ_author",
     "refine",
     "reflns",
+    "symmetry",
+    "symmetry_equiv",
+    "space_group_symop",
     # Unable to unambigiously determine the category in CIF v1 files, so
     # register categories that are suffixes of previously listed categories.
     "chemical_conn_atom",
