@@ -120,6 +120,7 @@ struct SmallMolecule: public readcif::CIFFile
     double cell[3][3];
     std::map<string, std::pair<Atom*, char>> atom_lookup;
     std::map<string, StringVector> generic_tables;
+    vector<std::pair<Atom*, Atom*>> metal_bonds;
 };
 
 const char* SmallMolecule::builtin_categories[] = {
@@ -190,6 +191,7 @@ SmallMolecule::reset_parse()
     alpha = beta = gamma = M_PI / 2;
     atom_lookup.clear();
     generic_tables.clear();
+    metal_bonds.clear();
 }
 
 void
@@ -204,6 +206,15 @@ SmallMolecule::finished_parse()
             has_bonds.insert(a);
     }
     pdb_connect::connect_residue_by_distance(residue, &has_bonds);
+    for (auto& bond: metal_bonds) {
+        auto a1 = bond.first;
+        auto a2 = bond.second;
+        try {
+            molecule->new_bond(a1, a2);
+        } catch (std::exception&) {
+            ; // probably bond for alternate atoms
+        }
+    }
     pdb_connect::find_and_add_metal_coordination_bonds(molecule);
     molecule->metadata = generic_tables;
     molecule->use_best_alt_locs();
@@ -488,10 +499,14 @@ SmallMolecule::parse_geom_bond()
         if (ai == atom_lookup.end())
             continue;
         Atom *a2 = ai->second.first;
-        try {
-            molecule->new_bond(a1, a2);
-        } catch (std::exception&) {
-            ; // probably bond for alternate atoms
+        if (a1->element().is_metal() || a2->element().is_metal())
+            metal_bonds.emplace_back(a1, a2);
+        else {
+            try {
+                molecule->new_bond(a1, a2);
+            } catch (std::exception&) {
+                ; // probably bond for alternate atoms
+            }
         }
     }
 }

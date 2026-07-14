@@ -55,10 +55,15 @@ datadir = $(bindir)/share
 endif
 
 # Location for fetching third party binaries.
-# Need to use curl --insecure because SSL_CERT_FILE is set below to non-existent file on Mac.
 PREREQS_ARCHIVE = https://cxtoolshed.rbvi.ucsf.edu/prereqs
-FETCH_PREREQ = curl --silent --show-error --fail --insecure -O
+FETCH_PREREQ = curl --silent --show-error --fail -O
 PREREQS_UPLOAD = plato.cgl.ucsf.edu:/usr/local/projects/chimerax/www/data/prereqs
+
+# On macOS and Windows, there are no prebuilt prerequisites, so
+# we don't need to waste the minute or so tarring Python
+ifneq (,$(filter $(OS),Darwin Windows))
+NO_PREBUILT = 1
+endif
 
 # On macOS and Windows, relocatable CPython is sourced from python-build-standalone
 # (maintained by Astral) instead of being built from source or hosted on our own
@@ -199,12 +204,6 @@ ifneq ($(MACOSV1),10)
 # To get Python to install wheel filenames with os version 11_0, 12_0, ...
 # Details in ChimeraX ticket #4923.
 APP_BOOTSTRAP_PIP = env SYSTEM_VERSION_COMPAT=0 $(APP_PYTHON_EXE) -m uv pip
-endif
-endif
-
-ifeq ($(OS),Darwin)
-ifndef NO_LOCAL_SSL_CERT
-export SSL_CERT_FILE = $(PYSITEDIR)/certifi/cacert.pem
 endif
 endif
 
