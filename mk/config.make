@@ -59,6 +59,12 @@ PREREQS_ARCHIVE = https://cxtoolshed.rbvi.ucsf.edu/prereqs
 FETCH_PREREQ = curl --silent --show-error --fail -O
 PREREQS_UPLOAD = plato.cgl.ucsf.edu:/usr/local/projects/chimerax/www/data/prereqs
 
+# On macOS and Windows, there are no prebuilt prerequisites, so
+# we don't need to waste the minute or so tarring Python
+ifneq (,$(filter $(OS),Darwin Windows))
+NO_PREBUILT = 1
+endif
+
 # On macOS and Windows, relocatable CPython is sourced from python-build-standalone
 # (maintained by Astral) instead of being built from source or hosted on our own
 # server.  Pin both the release and the patch version so builds are reproducible;
