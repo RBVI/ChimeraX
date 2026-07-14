@@ -320,7 +320,8 @@ class BooleanOption(Option):
         return self.widget.isChecked()
 
     def set_value(self, value):
-        self.widget.setChecked(value)
+        # numpy 1's bool works with setChecked() but numpy 2's doesn't, so cast to bool
+        self.widget.setChecked(bool(value))
 
     value = property(get_value, set_value)
 
