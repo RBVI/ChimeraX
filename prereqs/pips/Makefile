@@ -77,6 +77,12 @@ endif
 	# Install Cython first so ndindex builds on Linux ARM64
 	$(APP_PIP_INSTALL) $(shell grep Cython $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt | sed -e 's/[\ #",]//g')
+	# pynmrstar 3.5.1 has no cp314 wheel, so it builds from its sdist using the
+	# maturin backend. Since we use --no-build-isolation, pip and uv won't create
+	# isolated, ephemeral environments with it, and we have to install it.
+	# puccinialin (which bootstraps a Rust toolchain when none is present) must
+	# also already be in the environment before pynmrstar builds.
+	$(APP_PIP_INSTALL) maturin puccinialin
 ifeq ($(OS),Darwin)
 	$(APP_PIP_INSTALL) ./$(SCIPY_WHEEL)
 endif
@@ -103,6 +109,7 @@ endif
 ifeq ($(OSARCH),Linux)
 	$(APP_PIP) uninstall -y nvidia-nvjitlink-cu12
 endif
+	$(APP_PIP) uninstall maturin puccinialin
 endif
 
 app_requirements.txt: ../../pyproject.toml
