@@ -76,14 +76,33 @@ runs:
           prereqs/Python/Python-${{ steps.python.outputs.patch }}.tar.xz
         key: python-src-${{ steps.python.outputs.patch }}
 
+    # Single source of truth for the mmtf-cpp and msgpack versions is the mmtf
+    # bundle's Makefile.  Read the pinned values from there so the cache key,
+    # cache paths, and the download URLs below never drift from the build.
+    - name: Resolve pinned mmtf dependency versions from the build config
+      id: mmtf
+      shell: bash
+      run: |
+        mk=src/bundles/mmtf/Makefile
+        get() { awk -v k="$1" '$1 == k { print $3; exit }' "$mk"; }
+        version="$(get MMTF_CPP_VERSION)"
+        msgpack="$(get MSGPACK_VERSION)"
+        if [ -z "$version" ] || [ -z "$msgpack" ]; then
+          echo "Could not parse MMTF_CPP_VERSION/MSGPACK_VERSION from $mk" >&2
+          exit 1
+        fi
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "msgpack=$msgpack" >> "$GITHUB_OUTPUT"
+        echo "Resolved mmtf-cpp $version, msgpack $msgpack from $mk"
+
     - name: Restore cached mmtf dependency sources
       id: cache-mmtf
       uses: actions/cache@v4
       with:
         path: |
-          src/bundles/mmtf/mmtf-cpp-1.1.0.zip
-          src/bundles/mmtf/msgpack-c-cpp-4.1.2.zip
-        key: mmtf-source-zip-file
+          src/bundles/mmtf/mmtf-cpp-${{ steps.mmtf.outputs.version }}.zip
+          src/bundles/mmtf/msgpack-c-cpp-${{ steps.mmtf.outputs.msgpack }}.zip
+        key: mmtf-source-zip-file-${{ steps.mmtf.outputs.version }}-${{ steps.mmtf.outputs.msgpack }}
 
     - name: Restore cached ambertools (Linux)
       id: cache-ambertools-linux
@@ -314,8 +333,10 @@ runs:
       shell: bash
       if: ${{ steps.cache-mmtf.outputs.cache-hit != 'true' }}
       run: |
-        curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/mmtf/msgpack-c-cpp-4.1.2.zip
-        curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/mmtf/mmtf-cpp-1.1.0.zip
+        MMTF_VERSION=${{ steps.mmtf.outputs.version }}
+        MSGPACK_VERSION=${{ steps.mmtf.outputs.msgpack }}
+        curl --silent --show-error --fail --location -o msgpack-c-cpp-${MSGPACK_VERSION}.zip https://github.com/msgpack/msgpack-c/archive/refs/tags/cpp-${MSGPACK_VERSION}.zip
+        curl --silent --show-error --fail --location -o mmtf-cpp-${MMTF_VERSION}.zip https://github.com/rcsb/mmtf-cpp/archive/refs/tags/v${MMTF_VERSION}.zip
         mv mmtf*.zip src/bundles/mmtf/
         mv msgpack*.zip src/bundles/mmtf/
 
