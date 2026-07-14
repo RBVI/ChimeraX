@@ -225,7 +225,7 @@ class RMSDMap:
         self.fixed_mpl_kw = {
             'cmap': cmap,
             'origin': 'lower',
-            'extent': (frames[0], frames[-1], frames[0], frames[-1]),
+            'extent': (0, len(frames), 0, len(frames)),
         }
         im = axis.imshow(rmsds, vmin = self.min_rmsd, vmax = self.max_rmsd, **self.fixed_mpl_kw)
         canvas.draw_idle()
@@ -281,12 +281,11 @@ class RMSDMap:
             if event.xdata is None or event.ydata is None:
                 self.tool_window.status('')
                 return
-            def expand(data):
-                map_range = self.frames[-1] - self.frames[0]
-                return self.frames[0] + int((map_range+1) * (data - self.frames[0]) / map_range)
-            #TODO: this isn't correct for stride>1
-            xframe, yframe = expand(event.xdata), expand(event.ydata)
-            self.tool_window.status("Frames %d/%d: RMSD %.3f" % (xframe, yframe, self.rmsds[xframe-1,yframe-1]))
+            # ensure that index at extreme right/top remains in range
+            mpl_to_index = lambda data, nf=len(self.frames): min(int(data), nf-1)
+            xi, yi = mpl_to_index(event.xdata), mpl_to_index(event.ydata)
+            self.tool_window.status("Frames %d/%d: RMSD %.3f"
+                % (self.frames[xi], self.frames[yi], self.rmsds[xi,yi]))
         else:
             raise ValueError("Unexpected Matplotlib event: %s" % event.name)
         '''
