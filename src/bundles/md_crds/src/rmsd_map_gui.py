@@ -25,11 +25,11 @@ class RMSDMapLauncher:
         self.main_tool_window = main_tool_window
         self.tool_window = tw = launcher_window
         #tw.help = "help:user/commands/coordset.html#clustering"
-        def cleanup(lcd=self):
-            inst = lcd.tool_window.tool_instance
+        def cleanup(self=self):
+            inst = self.tool_window.tool_instance
             from .gui import _remove_tool_window
             _remove_tool_window(inst, "rmsd map launcher")
-            delattr(lcd.tool_window, 'cleanup')
+            delattr(self.tool_window, 'cleanup')
         tw.cleanup = cleanup
         self.session = structure.session
         self.structure = structure
@@ -170,6 +170,7 @@ class RMSDMap:
         self.tool_window = tw = results_window
         self.session = session
         self.rmsds = rmsds
+        self.frames = frames
         self.settings = settings
         if recolor:
             rmsds_1D = rmsds.flatten()
@@ -181,14 +182,53 @@ class RMSDMap:
             self.min_rmsd, self.max_rmsd = min_rmsd, max_rmsd
         self.set_title()
         #tw.help = "help:user/commands/coordset.html#clusterdialog"
-        def cleanup(lcd=self):
-            inst = lcd.tool_window.tool_instance
+        def cleanup(self=self):
+            inst = self.tool_window.tool_instance
             _md_tool_windows[inst]["RMSD map"].remove(self)
-            delattr(lcd.tool_window, 'cleanup')
+            for cid in self._mouse_handlers:
+                self.canvas.mpl_disconnect(cid)
+            self._mouse_handlers.clear()
+            delattr(self.tool_window, 'cleanup')
         tw.cleanup = cleanup
         layout = QVBoxLayout()
         layout.setSpacing(0)
         tw.ui_area.setLayout(layout)
+
+        from matplotlib.colors import LinearSegmentedColormap as LSColormap
+        # color map dictionary so that low values are white and high values black
+        cm_dict = {
+            'red': ((0.0, 1.0, 1.0),
+                    (1.0, 0.0, 0.0)),
+            'green': ((0.0, 1.0, 1.0),
+                    (1.0, 0.0, 0.0)),
+            'blue': ((0.0, 1.0, 1.0),
+                    (1.0, 0.0, 0.0)),
+        }
+        cmap = LSColormap('rmsds', cm_dict, 256)
+        cmap.set_under(color='white')
+        cmap.set_over(color='black')
+
+        from matplotlib.backends.backend_qtagg import FigureCanvas
+        from matplotlib.figure import Figure
+        self.canvas = canvas = FigureCanvas(Figure())
+        layout.addWidget(canvas, stretch=1)
+        self._mouse_handlers = [
+            canvas.mpl_connect('motion_notify_event', self._mouse_event),
+            canvas.mpl_connect('button_press_event', self._mouse_event),
+        ]
+        figure = canvas.figure
+        axis = figure.subplots()
+        axis.tick_params(direction='out')
+        from matplotlib.ticker import MaxNLocator
+        axis.xaxis.set_major_locator(MaxNLocator(integer=True))
+        axis.yaxis.set_major_locator(MaxNLocator(integer=True))
+        self.fixed_mpl_kw = {
+            'cmap': cmap,
+            'origin': 'lower',
+            'extent': (frames[0], frames[-1], frames[0], frames[-1]),
+        }
+        im = axis.imshow(rmsds, vmin = self.min_rmsd, vmax = self.max_rmsd, **self.fixed_mpl_kw)
+        canvas.draw_idle()
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Save | qbbox.Close | qbbox.Help)
@@ -232,6 +272,39 @@ class RMSDMap:
         }
     '''
 
+    def _mouse_event(self, event):
+        from matplotlib.backend_bases import MouseButton
+        if event.name == "button_press_event":
+            if event.button != MouseButton.LEFT:
+                return
+        elif event.name == "motion_notify_event":
+            if event.xdata is None or event.ydata is None:
+                self.tool_window.status('')
+                return
+            def expand(data):
+                map_range = self.frames[-1] - self.frames[0]
+                return self.frames[0] + int((map_range+1) * (data - self.frames[0]) / map_range)
+            #TODO: this isn't correct for stride>1
+            xframe, yframe = expand(event.xdata), expand(event.ydata)
+            self.tool_window.status("Frames %d/%d: RMSD %.3f" % (xframe, yframe, self.rmsds[xframe-1,yframe-1]))
+        else:
+            raise ValueError("Unexpected Matplotlib event: %s" % event.name)
+        '''
+        for plot in self.plots:
+            if event.canvas == plot:
+                if not event.inaxes:
+                    break
+                cs_id = round(event.xdata)
+                if cs_id != self.structure.active_coordset_id:
+                    # rather than directly check if the ID is valid (there could be many coord sets)
+                    # just try to set it and catch the error
+                    try:
+                        self.structure.active_coordset_id = cs_id
+                    except IndexError:
+                        # non-existent
+                        pass
+                break
+        '''
 '''
 def show_cluster_results(main_tool_window, structure, clusterings):
     inst = main_tool_window.tool_instance
