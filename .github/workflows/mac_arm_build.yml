@@ -29,7 +29,7 @@ on:
         required: true
 
 env:
-  MACOSX_DEPLOYMENT_TARGET: 13
+  MACOSX_DEPLOYMENT_TARGET: "13.0"
 
 jobs:
   build-arm-macos:
@@ -40,7 +40,7 @@ jobs:
           ref: ${{ inputs.branch || 'develop' }}
       - name: Set up Homebrew
         id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@master
+        uses: Homebrew/actions/setup-homebrew@1f8e202ffddf94def7f42f6fa3a482e821489f9c
       - run: |
           brew install python@3.10
           python3.10 -m pip install lief dmgbuild

@@ -82,10 +82,12 @@ def clean_sysconfigdata():
     import sysconfig, os.path, pprint
 
     build_path = sys.argv[1]
-    libdir = os.path.dirname(sysconfig.__file__)
     configdata = sysconfig._get_sysconfigdata_name()
-    configpath = os.path.join(libdir, configdata + ".py")
     mod = __import__(configdata, globals(), locals(), ["build_time_vars"], 0)
+    # Take the path from the imported module itself; sysconfig is a package
+    # now, so dirname(sysconfig.__file__) points inside the package directory
+    # rather than at the lib directory the data module actually lives in.
+    configpath = mod.__file__
     print("mod", configdata, mod)
     clean_vars = {}
     for key, value in mod.build_time_vars.items():

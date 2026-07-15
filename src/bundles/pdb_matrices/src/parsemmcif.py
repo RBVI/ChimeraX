@@ -24,7 +24,7 @@ def mmcif_unit_cell_matrices(molecule, pack = None, group = False):
 
 # -----------------------------------------------------------------------------
 #
-def mmcif_unit_cell_parameters(molecule):
+def mmcif_unit_cell_parameters(molecule, z_field='z_pdb'):
 
   from chimerax import mmcif
   cell_table = mmcif.get_mmcif_tables_from_metadata(molecule, ['cell'])[0]
@@ -37,14 +37,14 @@ def mmcif_unit_cell_parameters(molecule):
 
   # Cell parameters can have uncertainty in parentheses at end.  Ick.
   try:
-    cell = [float(a) for a in params]
+    cell = [float(a.split('(')[0]) for a in params]
   except ValueError:
     return None
 
   from math import pi
   cell = cell[:3] + [a*pi/180 for a in cell[3:]]  # convert degrees to radians
 
-  z_pdb = cell_table.fields(['z_pdb'])[0][0]
+  z_pdb = cell_table.fields([z_field])[0][0]
   if z_pdb:
     try:
       z = int(z_pdb)

@@ -46,16 +46,15 @@ else
 ifeq ($(OS),Darwin)
 WHEEL_CFLAGS="-Wno-error=int-conversion"
 ifeq ($(OSARCH),DarwinArm64)
-SCIPY_WHEEL = $(subst ==,-,$(shell grep '"scipy' $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_12_0_arm64.whl
+SCIPY_WHEEL = $(subst ==,-,$(shell grep '"scipy' $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp314-cp314-macosx_12_0_arm64.whl
 else
 ifeq ($(OSARCH),DarwinIntel64)
-SCIPY_WHEEL = $(subst ==,-,$(shell grep '"scipy' $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp311-cp311-macosx_10_14_x86_64.whl
+SCIPY_WHEEL = $(subst ==,-,$(shell grep '"scipy' $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp314-cp314-macosx_10_15_x86_64.whl
 endif
 endif
 endif
 endif
 endif
-
 PLATO_WHEELS = $(CXSERVICES_WHEEL)
 
 all:
@@ -78,6 +77,12 @@ endif
 	# Install Cython first so ndindex builds on Linux ARM64
 	$(APP_PIP_INSTALL) $(shell grep Cython $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt | sed -e 's/[\ #",]//g')
+	# pynmrstar 3.5.1 has no cp314 wheel, so it builds from its sdist using the
+	# maturin backend. Since we use --no-build-isolation, pip and uv won't create
+	# isolated, ephemeral environments with it, and we have to install it.
+	# puccinialin (which bootstraps a Rust toolchain when none is present) must
+	# also already be in the environment before pynmrstar builds.
+	$(APP_PIP_INSTALL) maturin puccinialin
 ifeq ($(OS),Darwin)
 	$(APP_PIP_INSTALL) ./$(SCIPY_WHEEL)
 endif
@@ -104,6 +109,7 @@ endif
 ifeq ($(OSARCH),Linux)
 	$(APP_PIP) uninstall -y nvidia-nvjitlink-cu12
 endif
+	$(APP_PIP) uninstall maturin puccinialin
 endif
 
 app_requirements.txt: ../../pyproject.toml
@@ -172,7 +178,7 @@ ifeq ($(OSARCH),DarwinArm64)
 	$(APP_PYTHON_EXE) -m pip download --platform=macosx_12_0_arm64 --no-deps $(shell grep '"scipy' $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
 endif
 ifeq ($(OSARCH),DarwinIntel64)
-	$(APP_PYTHON_EXE) -m pip download --platform=macosx_10_14_x86_64 --no-deps $(shell grep '"scipy' $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
+	$(APP_PYTHON_EXE) -m pip download --platform=macosx_10_15_x86_64 --no-deps $(shell grep '"scipy' $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
 endif
 
 $(CYTHON_WHEEL):

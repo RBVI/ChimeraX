@@ -2389,7 +2389,7 @@ _chem_comp.mon_nstd_parent_comp_id               ?
 _chem_comp.pdbx_synonyms                         ? 
 _chem_comp.pdbx_formal_charge                    0 
 _chem_comp.pdbx_initial_date                     1999-07-08 
-_chem_comp.pdbx_modified_date                    2024-09-27 
+_chem_comp.pdbx_modified_date                    2026-06-18 
 _chem_comp.pdbx_ambiguous_flag                   N 
 _chem_comp.pdbx_release_status                   REL 
 _chem_comp.pdbx_replaced_by                      ? 
@@ -2549,18 +2549,22 @@ _pdbx_chem_comp_audit.processing_site
 G "Create component"  1999-07-08 RCSB 
 G "Modify descriptor" 2011-06-04 RCSB 
 G "Modify PCM"        2024-09-27 PDBE 
+G "Modify PCM"        2026-06-18 RCSB 
 # 
-_pdbx_chem_comp_pcm.pcm_id                             1 
-_pdbx_chem_comp_pcm.comp_id                            G 
-_pdbx_chem_comp_pcm.modified_residue_id                LYS 
-_pdbx_chem_comp_pcm.type                               GMPylation 
-_pdbx_chem_comp_pcm.category                           "Nucleotide monophosphate" 
-_pdbx_chem_comp_pcm.position                           "Amino-acid side chain" 
-_pdbx_chem_comp_pcm.polypeptide_position               "Any position" 
-_pdbx_chem_comp_pcm.comp_id_linking_atom               P 
-_pdbx_chem_comp_pcm.modified_residue_id_linking_atom   NZ 
-_pdbx_chem_comp_pcm.uniprot_specific_ptm_accession     ? 
-_pdbx_chem_comp_pcm.uniprot_generic_ptm_accession      ? 
+loop_
+_pdbx_chem_comp_pcm.pcm_id 
+_pdbx_chem_comp_pcm.comp_id 
+_pdbx_chem_comp_pcm.modified_residue_id 
+_pdbx_chem_comp_pcm.type 
+_pdbx_chem_comp_pcm.category 
+_pdbx_chem_comp_pcm.position 
+_pdbx_chem_comp_pcm.polypeptide_position 
+_pdbx_chem_comp_pcm.comp_id_linking_atom 
+_pdbx_chem_comp_pcm.modified_residue_id_linking_atom 
+_pdbx_chem_comp_pcm.uniprot_specific_ptm_accession 
+_pdbx_chem_comp_pcm.uniprot_generic_ptm_accession 
+1 G LYS GMPylation "Nucleotide monophosphate"       "Amino-acid side chain" "Any position" P     NZ  ? ? 
+2 G ASP None       "Covalent chemical modification" "Amino-acid side chain" "Any position" "C1'" OD2 ? ? 
 # 
 data_GLN
 # 
@@ -6466,6 +6470,62 @@ _chem_comp.pdbx_ideal_coordinates_missing_flag  N
 _chem_comp.pdbx_model_coordinates_db_code       ?
 _chem_comp.pdbx_subcomponent_list               ?
 _chem_comp.pdbx_processing_site                 RCSB
+##
+data_UNX
+#
+
+_chem_comp.id                                   UNX
+_chem_comp.name                                 "UNKNOWN ATOM OR ION"
+_chem_comp.type                                 NON-POLYMER
+_chem_comp.pdbx_type                            HETAIN
+_chem_comp.formula                              X
+_chem_comp.mon_nstd_parent_comp_id              ?
+_chem_comp.pdbx_synonyms                        ?
+_chem_comp.pdbx_formal_charge                   0
+_chem_comp.pdbx_initial_date                    1999-07-08
+_chem_comp.pdbx_modified_date                   2008-12-05
+_chem_comp.pdbx_ambiguous_flag                  Y
+_chem_comp.pdbx_release_status                  REL
+_chem_comp.pdbx_replaced_by                     ?
+_chem_comp.pdbx_replaces                        DUM
+_chem_comp.formula_weight                       ?
+_chem_comp.one_letter_code                      ?
+_chem_comp.three_letter_code                    UNX
+_chem_comp.pdbx_model_coordinates_details       ?
+_chem_comp.pdbx_model_coordinates_missing_flag  N
+_chem_comp.pdbx_ideal_coordinates_details       ?
+_chem_comp.pdbx_ideal_coordinates_missing_flag  N
+_chem_comp.pdbx_model_coordinates_db_code       ?
+_chem_comp.pdbx_subcomponent_list               ?
+_chem_comp.pdbx_processing_site                 PDBJ
+#
+_chem_comp_atom.comp_id                   UNX
+_chem_comp_atom.atom_id                   UNK
+_chem_comp_atom.alt_atom_id               UNK
+_chem_comp_atom.type_symbol               X
+_chem_comp_atom.charge                    0
+_chem_comp_atom.pdbx_align                0
+_chem_comp_atom.pdbx_aromatic_flag        N
+_chem_comp_atom.pdbx_leaving_atom_flag    N
+_chem_comp_atom.pdbx_stereo_config        N
+_chem_comp_atom.model_Cartn_x             0.000
+_chem_comp_atom.model_Cartn_y             0.000
+_chem_comp_atom.model_Cartn_z             0.000
+_chem_comp_atom.pdbx_model_Cartn_x_ideal  ?
+_chem_comp_atom.pdbx_model_Cartn_y_ideal  ?
+_chem_comp_atom.pdbx_model_Cartn_z_ideal  ?
+_chem_comp_atom.pdbx_component_atom_id    UNK
+_chem_comp_atom.pdbx_component_comp_id    UNX
+_chem_comp_atom.pdbx_ordinal              1
+#   #
+loop_
+_pdbx_chem_comp_descriptor.comp_id
+_pdbx_chem_comp_descriptor.type
+_pdbx_chem_comp_descriptor.program
+_pdbx_chem_comp_descriptor.program_version
+_pdbx_chem_comp_descriptor.descriptor
+UNX  SMILES_CANONICAL  "OpenEye OEToolkits"  1.5.0  *  
+UNX  SMILES            "OpenEye OEToolkits"  1.5.0  *  
 ##
 data_VAL
 # 

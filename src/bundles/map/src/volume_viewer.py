@@ -2363,7 +2363,7 @@ class Histogram_Pane:
     if v is None:
       return
 
-    shown = v.display
+    shown = bool(v.display)	# Convert to bool in case it is numpy.bool.  Ticket #20760
     fname = 'shown' if shown else 'hidden'
     s = self.shown
     if fname == getattr(s, 'file_name', None):
