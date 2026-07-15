@@ -24,6 +24,9 @@ file = "README.md"
 
 [project.optional-dependencies]
 gui = [
+  "maturin", # required to build pynmrstar
+  "puccinialin", # required to build pynmrstar
+  "pynmrstar==3.5.1",
   "openvr==1.26.701",
   "PyOpenGL==3.1.10",
   "PyOpenGL-accelerate==3.1.10",
@@ -60,7 +63,7 @@ gui = [
   "distro==1.9.0; sys_platform == 'linux'",
 ]
 wheel = [
-  "aiohttp==3.13.4",
+  "aiohttp==3.11.1",
   "appdirs==1.4.4",
   "beautifulsoup4==4.13.5",
   "colorama==0.4.6",
@@ -69,7 +72,7 @@ wheel = [
   "grako==3.16.5",
   "html2text==2025.4.15",
   "ihm==2.2",
-  "imagecodecs==2024.6.1",
+  "imagecodecs==2026.6.26",
   # if ipython updated, make sure autocompletion still works (e.g. "mi<tab>" becomes min) and if not then
   # try a newer version of jedi
   "ipykernel==7.3.0",
@@ -79,7 +82,7 @@ wheel = [
   "jupyter-client==8.9.1",
   "lxml==6.0.2",
   # lz4 4.4.4 has problems decompressing what it encoded, ticket #18140
-  "lz4==4.3.2",
+  "lz4==4.4.5",
   "matplotlib==3.10.7",
   "mcp==1.18.0",
   "msgpack==1.1.1",
@@ -95,7 +98,7 @@ wheel = [
   "pep517==0.13.1",
   # optional package to prevent warning in Python shell [#16571]
   "pickleshare==0.7.5",
-  "Pillow==11.3.0",
+  "Pillow==12.3.0",
   "pkginfo==1.12.1.2",
   "psutil==7.0.0",
   "pybind11==3.0.1",
@@ -105,7 +108,7 @@ wheel = [
   "requests==2.32.5",
   # Macs download scipy wheels directly, adjust the names in prereqs/pips accordingly
   # if you upgrade this
-  "scipy==1.17.1",
+  "scipy==1.18.0",
   "six==1.17.0",
   "sortedcontainers==2.4.0",
   "tables==3.11.1",

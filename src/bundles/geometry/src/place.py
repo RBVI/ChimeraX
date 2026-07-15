@@ -624,7 +624,7 @@ def _reuse_place(create = True):
     '''
     global _recent_place_instances
     for p in _recent_place_instances:
-        if getrefcount(p) == 3:
+        if getrefcount(p) == 2:
             p._reuse()
             return p
     if create:

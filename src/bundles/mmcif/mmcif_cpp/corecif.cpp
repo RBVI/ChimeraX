@@ -48,6 +48,7 @@
 #include <algorithm>
 #include <unordered_map>
 #include <set>
+#include <string>
 #include <stdlib.h>
 #include <ctype.h>
 #include <math.h>
@@ -120,6 +121,7 @@ struct SmallMolecule: public readcif::CIFFile
     double cell[3][3];
     std::map<string, std::pair<Atom*, char>> atom_lookup;
     std::map<string, StringVector> generic_tables;
+    vector<std::pair<Atom*, Atom*>> metal_bonds;
 };
 
 const char* SmallMolecule::builtin_categories[] = {
@@ -190,6 +192,7 @@ SmallMolecule::reset_parse()
     alpha = beta = gamma = M_PI / 2;
     atom_lookup.clear();
     generic_tables.clear();
+    metal_bonds.clear();
 }
 
 void
@@ -204,6 +207,15 @@ SmallMolecule::finished_parse()
             has_bonds.insert(a);
     }
     pdb_connect::connect_residue_by_distance(residue, &has_bonds);
+    for (auto& bond: metal_bonds) {
+        auto a1 = bond.first;
+        auto a2 = bond.second;
+        try {
+            molecule->new_bond(a1, a2);
+        } catch (std::exception&) {
+            ; // probably bond for alternate atoms
+        }
+    }
     pdb_connect::find_and_add_metal_coordination_bonds(molecule);
     molecule->metadata = generic_tables;
     molecule->use_best_alt_locs();
@@ -213,38 +225,63 @@ SmallMolecule::finished_parse()
 void
 SmallMolecule::parse_cell()
 {
+    // also put cell information in metadata
+    StringVector cell_headers;
+    cell_headers.reserve(8);
+    cell_headers.emplace_back("cell");
+    StringVector cell_data;
+    cell_data.reserve(7);
     CIFFile::ParseValues pv;
-    pv.reserve(6);
+    pv.reserve(7);
     try {
         pv.emplace_back(get_column("length_a", Required),
-            [&] (const char* start) {
+            [&] (const char* start, const char* end) {
                 length_a = parse_float(start);
+                cell_headers.emplace_back("length_a");
+                cell_data.emplace_back(string(start, end - start));
             });
         pv.emplace_back(get_column("length_b", Required),
-            [&] (const char* start) {
+            [&] (const char* start, const char* end) {
                 length_b = parse_float(start);
+                cell_headers.emplace_back("length_b");
+                cell_data.emplace_back(string(start, end - start));
             });
         pv.emplace_back(get_column("length_c", Required),
-            [&] (const char* start) {
+            [&] (const char* start, const char* end) {
                 length_c = parse_float(start);
+                cell_headers.emplace_back("length_c");
+                cell_data.emplace_back(string(start, end - start));
             });
         pv.emplace_back(get_column("angle_alpha"),
-            [&] (const char* start) {
+            [&] (const char* start, const char* end) {
                 alpha = parse_float(start) * M_PI / 180;
+                cell_headers.emplace_back("angle_alpha");
+                cell_data.emplace_back(string(start, end - start));
             });
         pv.emplace_back(get_column("angle_beta"),
-            [&] (const char* start) {
+            [&] (const char* start, const char* end) {
                 beta = parse_float(start) * M_PI / 180;
+                cell_headers.emplace_back("angle_beta");
+                cell_data.emplace_back(string(start, end - start));
             });
         pv.emplace_back(get_column("angle_gamma"),
-            [&] (const char* start) {
+            [&] (const char* start, const char* end) {
                 gamma = parse_float(start) * M_PI / 180;
+                cell_headers.emplace_back("angle_gamma");
+                cell_data.emplace_back(string(start, end - start));
+            });
+        pv.emplace_back(get_column("formula_units_Z"),
+            [&] (const char* start, const char* end) {
+                cell_headers.emplace_back("formula_units_Z");
+                cell_data.emplace_back(string(start, end - start));
             });
     } catch (std::runtime_error& e) {
         logger::warning(_logger, "Skipping cell category: ", e.what());
         return;
     }
     parse_row(pv);
+    generic_tables["cell"] = cell_headers;
+    generic_tables["cell data"] = cell_data;
 }
 
 void
@@ -488,10 +525,14 @@ SmallMolecule::parse_geom_bond()
         if (ai == atom_lookup.end())
             continue;
         Atom *a2 = ai->second.first;
-        try {
-            molecule->new_bond(a1, a2);
-        } catch (std::exception&) {
-            ; // probably bond for alternate atoms
+        if (a1->element().is_metal() || a2->element().is_metal())
+            metal_bonds.emplace_back(a1, a2);
+        else {
+            try {
+                molecule->new_bond(a1, a2);
+            } catch (std::exception&) {
+                ; // probably bond for alternate atoms
+            }
         }
     }
 }

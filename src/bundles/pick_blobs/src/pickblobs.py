@@ -265,7 +265,7 @@ def _triangle_opacity(surface, t):
         alpha = surface.color[3]
     else:
         v0,v1,v2 = surface.triangles[t]
-        alpha = (vc[v0][3] + vc[v1][3] + vc[v2][3]) // 3
+        alpha = (int(vc[v0][3]) + int(vc[v1][3]) + int(vc[v2][3])) // 3
     return alpha
 
 def hex_color(rgba8):
