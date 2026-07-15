@@ -74,6 +74,8 @@ jobs:
           upload-artifact: false
   build-and-test-macos:
     runs-on: macos-latest
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "13.0"
     steps:
       - name: Set up Homebrew
         id: set-up-homebrew
