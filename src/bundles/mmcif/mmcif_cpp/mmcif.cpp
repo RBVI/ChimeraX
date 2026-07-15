@@ -529,7 +529,7 @@ ExtractMolecule::find_template_residue(const ResName& name, bool start, bool sto
     // treat UN[LX][_0-9].* as UN[LX]
     if (name.size() > 3 && name[0] == 'U' && name[1] == 'N' && (name[2] == 'L' || name[2] == 'X')) {
         if (name[3] == '_' || std::isdigit(static_cast<unsigned char>(name[3])))
-            name = name.substr(0, 3);
+            return find_template_residue(name.substr(0, 3), start, stop);
     }
     auto tr = mmcif::find_template_residue(name, start, stop);
     if (tr == nullptr) {
