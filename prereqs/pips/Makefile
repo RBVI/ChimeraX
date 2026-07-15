@@ -178,7 +178,7 @@ ifeq ($(OSARCH),DarwinArm64)
 	$(APP_PYTHON_EXE) -m pip download --platform=macosx_12_0_arm64 --no-deps $(shell grep '"scipy' $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
 endif
 ifeq ($(OSARCH),DarwinIntel64)
-	$(APP_PYTHON_EXE) -m pip download --platform=macosx_10_14_x86_64 --no-deps $(shell grep '"scipy' $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
+	$(APP_PYTHON_EXE) -m pip download --platform=macosx_10_15_x86_64 --no-deps $(shell grep '"scipy' $(TOP)/pyproject.toml | sed 's/[\ ",]//g')
 endif
 
 $(CYTHON_WHEEL):
