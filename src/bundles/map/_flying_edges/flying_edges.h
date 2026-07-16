@@ -460,17 +460,19 @@ private:
   void pass2_process_yz_edges() {
     const AIndex nx = size[0], ny = size[1], nz = size[2];
     const AIndex num_x_edges_per_row = nx - 1;
-    const AIndex num_x_rows = ny * nz;
 
-    // Thread-local storage for counts - each thread gets its own copy
-    // Will be reduced into edge_meta_data at the end
+    // Each (j,k) iteration writes only rows it exclusively owns, so counts go
+    // straight into edge_meta_data with no reduction:
+    //   idx0 = k*ny+j        -- owned by this iteration alone.
+    //   idx1 = k*ny+j+1      -- written only at the +y boundary (j == ny-2), so
+    //                           it targets row ny-1, which no iteration owns as
+    //                           idx0 (j never reaches ny-1).
+    //   idx2 = (k+1)*ny+j    -- written only at the +z boundary (k == nz-2), so
+    //                           it targets row nz-1, likewise unowned.
+    //   idx3                 -- never written.
+    // No two iterations share a slot, and idx1/idx2 ranges are disjoint.
     #pragma omp parallel
     {
-      // Thread-local accumulators (zeroed)
-      std::vector<VIndex> local_y_ints(num_x_rows, 0);
-      std::vector<VIndex> local_z_ints(num_x_rows, 0);
-      std::vector<TIndex> local_num_tris(num_x_rows, 0);
-
       #pragma omp for collapse(2) schedule(static) nowait
       for (int64_t k = 0; k < (int64_t)(nz - 1); ++k) {
         for (int64_t j = 0; j < (int64_t)(ny - 1); ++j) {
@@ -560,31 +562,30 @@ private:
             unsigned char numTris = EdgeCases[eCase][0];
 
             if (numTris > 0) {
-              local_num_tris[idx0] += numTris;
+              edge_meta_data[idx0].num_tris += numTris;
 
               unsigned char *edgeUses = EdgeUses[eCase];
               // Count Y and Z axes edges (at voxel origin)
-              local_y_ints[idx0] += edgeUses[4];
-              local_z_ints[idx0] += edgeUses[8];
+              edge_meta_data[idx0].y_ints += edgeUses[4];
+              edge_meta_data[idx0].z_ints += edgeUses[8];
 
               // Count boundary edges into appropriate rows
               unsigned char loc =
                   yzLoc | (i >= dim0Wall ? MaxBoundary : Interior);
               if (loc != 0) {
-                // Inline boundary counting to use local arrays
                 if (loc & MaxBoundary) { // +x
-                  local_y_ints[idx0] += edgeUses[5];
-                  local_z_ints[idx0] += edgeUses[9];
+                  edge_meta_data[idx0].y_ints += edgeUses[5];
+                  edge_meta_data[idx0].z_ints += edgeUses[9];
                 }
                 if (loc & (MaxBoundary << 2)) { // +y
-                  local_z_ints[idx1] += edgeUses[10];
+                  edge_meta_data[idx1].z_ints += edgeUses[10];
                   if (loc & MaxBoundary) // +x +y
-                    local_z_ints[idx1] += edgeUses[11];
+                    edge_meta_data[idx1].z_ints += edgeUses[11];
                 }
                 if (loc & (MaxBoundary << 4)) { // +z
-                  local_y_ints[idx2] += edgeUses[6];
+                  edge_meta_data[idx2].y_ints += edgeUses[6];
                   if (loc & MaxBoundary) // +x +z
-                    local_y_ints[idx2] += edgeUses[7];
+                    edge_meta_data[idx2].y_ints += edgeUses[7];
                 }
               }
             }
@@ -594,16 +595,6 @@ private:
             ePtr[2]++;
             ePtr[3]++;
           }
-        }
-      }
-
-      // Reduce thread-local counts into global edge_meta_data
-      #pragma omp critical
-      {
-        for (AIndex i = 0; i < num_x_rows; ++i) {
-          edge_meta_data[i].y_ints += local_y_ints[i];
-          edge_meta_data[i].z_ints += local_z_ints[i];
-          edge_meta_data[i].num_tris += local_num_tris[i];
         }
       }
     } // end parallel
@@ -805,12 +796,12 @@ private:
           continue; // No triangles in this row
         }
 
-        // Get trim boundaries - DISABLED for now to fix vertex ID bug
-        // The issue: when xL > 0, vertices before xL are counted but not
-        // interpolated, causing triangles to reference uninitialized vertex
-        // slots (at origin)
-        AIndex xL = 0;                   // was: eMD[0]->x_min;
-        AIndex xR = num_x_edges_per_row; // was: eMD[0]->x_max;
+        // Trim boundaries computed and stored by pass 2. Pass 2 counts vertices
+        // and triangles only within [x_min, x_max), so pass 4 must iterate the
+        // same span: the counts and the writes stay in agreement, and no vertex
+        // slot is left uninitialized.
+        AIndex xL = eMD[0]->x_min;
+        AIndex xR = eMD[0]->x_max;
         // Skip completely empty rows
         if (eMD[0]->x_min >= eMD[0]->x_max)
           continue;

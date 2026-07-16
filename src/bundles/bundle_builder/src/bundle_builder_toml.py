@@ -90,15 +90,77 @@ from numpy import get_include as get_numpy_include_dirs  # noqa
 cpu_count = os.cpu_count()
 
 
+def _dylib_archs(path):
+    """Return the set of architectures in a Mach-O dylib, e.g. {"arm64"}.
+
+    Returns an empty set if the file cannot be parsed.
+    """
+    import struct
+
+    cpu_names = {0x01000007: 'x86_64', 0x0100000C: 'arm64', 0x0000000C: 'arm'}
+    try:
+        with open(path, 'rb') as f:
+            data = f.read(4096)
+    except OSError:
+        return set()
+    if len(data) < 8:
+        return set()
+    (magic,) = struct.unpack('>I', data[:4])
+    if magic in (0xCAFEBABE, 0xCAFEBABF):  # fat binary: big-endian header
+        (nfat,) = struct.unpack('>I', data[4:8])
+        entry = 20 if magic == 0xCAFEBABE else 32
+        archs = set()
+        for i in range(nfat):
+            off = 8 + i * entry
+            if off + 4 > len(data):
+                break
+            (cpu,) = struct.unpack('>I', data[off:off + 4])
+            if cpu in cpu_names:
+                archs.add(cpu_names[cpu])
+        return archs
+    (magic_le,) = struct.unpack('<I', data[:4])
+    if magic_le in (0xFEEDFACE, 0xFEEDFACF):
+        (cpu,) = struct.unpack('<I', data[4:8])
+        return {cpu_names[cpu]} if cpu in cpu_names else set()
+    return set()
+
+
 def _find_openmp_mac():
-    """Return (include_dir, lib_dir) for libomp on macOS, or (None, None) if not found."""
+    """Return (include_dir, lib_dir) for libomp on macOS, or (None, None) if not found.
+
+    Only accepts a libomp built for the architecture we are compiling for.
+    A Homebrew prefix for the other architecture may well exist (an Intel
+    /usr/local install on an Apple Silicon machine is common), and linking
+    against it silently produces an extension whose OpenMP symbols never
+    resolve -- the module then fails to load at import with a missing
+    ___kmpc_* symbol.
+    """
+    import platform
+
+    want = os.environ.get('ARCHFLAGS', '')
+    if 'arm64' in want and 'x86_64' not in want:
+        arch = 'arm64'
+    elif 'x86_64' in want and 'arm64' not in want:
+        arch = 'x86_64'
+    else:
+        arch = platform.machine()
     candidates = [
         '/opt/homebrew/opt/libomp',  # Apple Silicon
         '/usr/local/opt/libomp',      # Intel
     ]
+    root = os.environ.get('CHIMERAX_LIBOMP_ROOT')
+    if root:
+        candidates.insert(0, root)
     for path in candidates:
-        if os.path.exists(os.path.join(path, 'lib', 'libomp.dylib')):
-            return (os.path.join(path, 'include'), os.path.join(path, 'lib'))
+        lib = os.path.join(path, 'lib', 'libomp.dylib')
+        if not os.path.exists(lib):
+            continue
+        archs = _dylib_archs(lib)
+        if archs and arch not in archs:
+            print('bundle_builder: ignoring %s (built for %s, need %s)'
+                  % (lib, '/'.join(sorted(archs)), arch))
+            continue
+        return (os.path.join(path, 'include'), os.path.join(path, 'lib'))
     return (None, None)
 
 
@@ -771,6 +833,10 @@ class Bundle:
             ["install_name_tool", "-id", "@rpath/libomp.dylib", dst],
             check=True
         )
+        # install_name_tool invalidates the dylib's code signature. On Apple
+        # Silicon an invalidly-signed dylib is not merely a warning: the kernel
+        # SIGKILLs any process that loads it, so re-sign ad-hoc.
+        subprocess.run(["codesign", "--force", "--sign", "-", dst], check=True)
         if self.package not in self.setup_arguments["package_data"]:
             self.setup_arguments["package_data"][self.package] = []
         self.setup_arguments["package_data"][self.package].append("lib/libomp.dylib")
