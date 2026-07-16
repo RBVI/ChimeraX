@@ -84,7 +84,7 @@ wheel = [
   # lz4 4.4.4 has problems decompressing what it encoded, ticket #18140
   "lz4==4.4.5",
   "matplotlib==3.10.7",
-  "mcp==1.18.0",
+  "mcp==1.28.1",
   "msgpack==1.1.1",
   "netCDF4==1.7.4",
   "networkx==3.3",
