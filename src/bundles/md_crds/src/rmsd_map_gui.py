@@ -11,9 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from Qt.QtWidgets import QVBoxLayout, QLabel, QHBoxLayout, QGraphicsView, QGraphicsScene
-from Qt.QtGui import QBrush, QColor, QPen, QPolygonF
-from Qt.QtCore import Qt, QPointF
+from Qt.QtWidgets import QVBoxLayout, QLabel, QHBoxLayout, QLineEdit, QPushButton, QDialog
+from Qt.QtGui import QIntValidator
+from Qt.QtCore import Qt
 
 from chimerax.core.commands import plural_of
 from chimerax.core.errors import UserError
@@ -124,6 +124,7 @@ class RMSDMapLauncher:
         import numpy
         rmsds = numpy.zeros((num_frames, num_frames), float)
         structure = atoms[0].structure
+        min_rmsd = max_rmsd = None
         with structure.suppress_coordset_change_notifications():
             for i, fn1 in enumerate(frames):
                 self.tool_window.status("Computing RMSDS for frame %d/%d" % (i+1, num_frames))
@@ -132,7 +133,11 @@ class RMSDMapLauncher:
                 for j in range(i+1, num_frames):
                     structure.active_coordset_id = frames[j]
                     diff = atoms.coords - coords1
-                    rmsds[i,j] = rmsds[j,i] = sqrt(numpy.sum(diff * diff) / len(atoms))
+                    rmsds[i,j] = rmsds[j,i] = rmsd = sqrt(numpy.sum(diff * diff) / len(atoms))
+                    if min_rmsd is None or rmsd < min_rmsd:
+                        min_rmsd = rmsd
+                    if max_rmsd is None or rmsd > max_rmsd:
+                        max_rmsd = rmsd
         self.tool_window.status("Computed RMSDs; showing map")
 
         if not apply:
@@ -140,9 +145,10 @@ class RMSDMapLauncher:
         inst = self.main_tool_window.tool_instance
         inst_window_info = _md_tool_windows.setdefault(inst, {})
         map_results = inst_window_info.setdefault("RMSD map", [])
-        map_results.append(
-            RMSDMap(self.session, self.main_tool_window.create_child_window("RMSD Map", statusbar=True),
-                rmsds, frames, low, high, recolor, self.settings))
+        status_msg = "Calculated RMSD varies from %.3f to %.3f" % (min_rmsd, max_rmsd)
+        results_dialog = RMSDMap(self.session, structure, self.main_tool_window.create_child_window(
+            "RMSD Map", statusbar=True), rmsds, frames, low, high, recolor, self.settings, status_msg)
+        map_results.append(results_dialog)
 
 from chimerax.core.settings import Settings
 class RMSDMapSettings(Settings):
@@ -166,15 +172,17 @@ def show_rmsd_map_launcher(main_tool_window, structure):
 class RMSDMap:
     title_fmt = "%.2g-%.2g RMSD Map"
 
-    def __init__(self, session, results_window, rmsds, frames, min_rmsd, max_rmsd, recolor, settings):
+    def __init__(self, session, structure, results_window, rmsds, frames, min_rmsd, max_rmsd, recolor,
+            settings, status_msg):
         self.tool_window = tw = results_window
         self.session = session
+        self.structure = structure
         self.rmsds = rmsds
         self.frames = frames
         self.settings = settings
         if recolor:
-            rmsds_1D = rmsds.flatten()
             import numpy
+            rmsds_1D = rmsds.flatten()
             sorted_rmsds = numpy.sort(rmsds_1D)
             self.min_rmsd = sorted_rmsds[round(len(sorted_rmsds)/3)]
             self.max_rmsd = sorted_rmsds[round(2*len(sorted_rmsds)/3)]
@@ -219,16 +227,51 @@ class RMSDMap:
         figure = canvas.figure
         axis = figure.subplots()
         axis.tick_params(direction='out')
-        from matplotlib.ticker import MaxNLocator
-        axis.xaxis.set_major_locator(MaxNLocator(integer=True))
-        axis.yaxis.set_major_locator(MaxNLocator(integer=True))
+        num_frames = len(frames)
+        step = 5 if num_frames < 50 else (10 if num_frames < 500 else 100)
+        ticks = [i+0.5 for i in range(step-1, num_frames, step)]
+        labels = [str(frames[i]) for i in range(step-1, num_frames, step)]
+        axis.set_xticks(ticks, labels=labels)
+        axis.set_yticks(ticks, labels=labels)
         self.fixed_mpl_kw = {
             'cmap': cmap,
             'origin': 'lower',
-            'extent': (0, len(frames), 0, len(frames)),
+            'extent': (0, num_frames, 0, num_frames),
         }
         im = axis.imshow(rmsds, vmin = self.min_rmsd, vmax = self.max_rmsd, **self.fixed_mpl_kw)
         canvas.draw_idle()
+
+        frame_layout = QHBoxLayout()
+        class ShortLineEdit(QLineEdit):
+            def sizeHint(self):
+                sh = super().sizeHint()
+                sh.setWidth(sh.width() // 2)
+                return sh
+        frame_layout.addStretch(2)
+        frame_layout.addWidget(QLabel("Frame"))
+        frame_validator = QIntValidator()
+        self.frame1_edit = frame_edit = ShortLineEdit()
+        frame_edit.setValidator(frame_validator)
+        frame_edit.setPlaceholderText("Click")
+        frame_edit.setAlignment(Qt.AlignCenter)
+        frame_edit.setEnabled(False)
+        frame_layout.addWidget(frame_edit)
+        but = QPushButton("Go")
+        but.clicked.connect(lambda *args, f=self._frame_input, edit=frame_edit: f(edit))
+        frame_layout.addWidget(but)
+        frame_layout.addStretch(1)
+        frame_layout.addWidget(QLabel("Frame"))
+        self.frame2_edit = frame_edit = ShortLineEdit()
+        frame_edit.setValidator(frame_validator)
+        frame_edit.setPlaceholderText("on map")
+        frame_edit.setAlignment(Qt.AlignCenter)
+        frame_edit.setEnabled(False)
+        frame_layout.addWidget(frame_edit)
+        but = QPushButton("Go")
+        but.clicked.connect(lambda *args, f=self._frame_input, edit=frame_edit: f(edit))
+        frame_layout.addWidget(but)
+        frame_layout.addStretch(2)
+        layout.addLayout(frame_layout)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         self.bbox = bbox = qbbox(qbbox.Save | qbbox.Close | qbbox.Help)
@@ -245,7 +288,17 @@ class RMSDMap:
         # Put the buttons below the status bar
         tw.ui_area.parent().layout().addWidget(bbox)
 
+        tw.fill_context_menu = self.fill_context_menu
         tw.manage(None)
+
+        from Qt.QtCore import QTimer
+        QTimer.singleShot(100, lambda tw=tw, msg=status_msg: tw.status(msg, log=True))
+
+    def fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        act = QAction("Change RMSD Thresholds...", parent=menu)
+        act.triggered.connect(self._run_thresold_dialog)
+        menu.addAction(act)
 
     def set_title(self):
         self.tool_window.title = self.title_fmt % (self.min_rmsd, self.max_rmsd)
@@ -272,38 +325,80 @@ class RMSDMap:
         }
     '''
 
+    def _frame_input(self, edit):
+        if not edit.hasAcceptableInput():
+            self.tool_window.status("Invalid frame number: '%s'" % edit.text(), color="red")
+            return
+        self.tool_window.status("")
+        cs_id = int(edit.text())
+        if cs_id != self.structure.active_coordset_id:
+            # rather than directly check if the ID is valid (there could be many coord sets)
+            # just try to set it and catch the error
+            try:
+                self.structure.active_coordset_id = cs_id
+            except IndexError:
+                # non-existent
+                self.tool_window.status("%s does not have frame number %d" % (self.structure, cd_is),
+                    color="red")
+
     def _mouse_event(self, event):
         from matplotlib.backend_bases import MouseButton
         if event.name == "button_press_event":
             if event.button != MouseButton.LEFT:
                 return
+            if event.xdata is None or event.ydata is None:
+                return
+            # ensure that index at extreme right/top remains in range
+            self.frame1_edit.setEnabled(True)
+            self.frame2_edit.setEnabled(True)
+            mpl_to_index = lambda data, nf=len(self.frames): min(int(data), nf-1)
+            xi, yi = mpl_to_index(event.xdata), mpl_to_index(event.ydata)
+            self.frame1_edit.setText(str(self.frames[xi]))
+            self.frame2_edit.setText(str(self.frames[yi]))
         elif event.name == "motion_notify_event":
             if event.xdata is None or event.ydata is None:
-                self.tool_window.status('')
+                self.tool_window.status('', secondary=True)
                 return
             # ensure that index at extreme right/top remains in range
             mpl_to_index = lambda data, nf=len(self.frames): min(int(data), nf-1)
             xi, yi = mpl_to_index(event.xdata), mpl_to_index(event.ydata)
             self.tool_window.status("Frames %d/%d: RMSD %.3f"
-                % (self.frames[xi], self.frames[yi], self.rmsds[xi,yi]))
+                % (self.frames[xi], self.frames[yi], self.rmsds[xi,yi]), secondary=True)
         else:
             raise ValueError("Unexpected Matplotlib event: %s" % event.name)
-        '''
-        for plot in self.plots:
-            if event.canvas == plot:
-                if not event.inaxes:
-                    break
-                cs_id = round(event.xdata)
-                if cs_id != self.structure.active_coordset_id:
-                    # rather than directly check if the ID is valid (there could be many coord sets)
-                    # just try to set it and catch the error
-                    try:
-                        self.structure.active_coordset_id = cs_id
-                    except IndexError:
-                        # non-existent
-                        pass
-                break
-        '''
+
+    def _run_thresold_dialog(self):
+        td = ThresholdsDialog(self)
+        td.finished.connect(self._thresholds_set)
+        td.open()
+        self._td = td # hold a reference
+
+    def _thresholds_set(self):
+        # callback from ThresholdsDialog
+        #TODO
+        self._td = None # dispose of reference
+
+class ThresholdsDialog(QDialog):
+    def __init__(self, rmsd_map):
+        self.rmsd_map = rmsd_map
+        super().__init__()
+
+        self.setWindowTitle("Change RMSD Thresholds")
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        from chimerax.ui.options import OptionsPanel, FloatOption
+        self.min_opt = FloatOption("New lower RMSD threshold (white):", rmsd_map.min_rmsd, None, min=0.0)
+        self.max_opt = FloatOption("New upper RMSD threshold (black):", rmsd_map.max_rmsd, None, min=0.0)
+        panel = OptionsPanel(sorting=False, scrolled=False)
+        panel.add_option(self.min_opt)
+        panel.add_option(self.max_opt)
+        layout.addWidget(panel)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        layout.addWidget(bbox)
+        #TODO: react to the buttons
+
 '''
 def show_cluster_results(main_tool_window, structure, clusterings):
     inst = main_tool_window.tool_instance
