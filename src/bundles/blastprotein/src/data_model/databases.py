@@ -169,8 +169,7 @@ class NCBIDB(Database):
             # There is no species information in this description field
             title = desc
             species = ""
-        finally:
-            return title, species
+        return title, species
 
     @staticmethod
     def format_formulas(formulas):

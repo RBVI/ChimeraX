@@ -103,7 +103,7 @@ class AtomZoneMouseMode(MouseMode):
 
     def _unzone(self, log_command = True):
         r = self._zone_center_residue
-        if r is None:
+        if r is None or r.deleted:
             return
 
         self._restore_original_display()
@@ -118,7 +118,7 @@ class AtomZoneMouseMode(MouseMode):
 
     def _restore_original_display(self):
         r = self._zone_center_residue
-        if r is None:
+        if r is None or r.deleted:
             return
         s = r.structure
 
@@ -157,6 +157,8 @@ class AtomZoneMouseMode(MouseMode):
     def _show_labels(self):
         # Show residue labels for nearby residues
         r = self._zone_center_residue
+        if r is None or r.deleted:
+            return
         lres = self._nearby_residues(r, self._label_distance)
         from chimerax.core.objects import Objects
         aobj = Objects(atoms = lres.atoms)
@@ -205,7 +207,7 @@ class AtomZoneMouseMode(MouseMode):
 
     def _scale_range(self, scale, ribbon=True):
         r = self._zone_center_residue
-        if r is None:
+        if r is None or r.deleted:
             return
 
         # Accumulate scaling until a large enough scaling is requested
