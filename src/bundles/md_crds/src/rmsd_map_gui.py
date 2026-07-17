@@ -190,12 +190,15 @@ class RMSDMap:
             self.min_rmsd, self.max_rmsd = min_rmsd, max_rmsd
         self.set_title()
         #tw.help = "help:user/commands/coordset.html#clusterdialog"
+        self._td = None
         def cleanup(self=self):
             inst = self.tool_window.tool_instance
             _md_tool_windows[inst]["RMSD map"].remove(self)
             for cid in self._mouse_handlers:
                 self.canvas.mpl_disconnect(cid)
             self._mouse_handlers.clear()
+            if self._td is not None:
+                self._td.done(self._td.Accepted)
             delattr(self.tool_window, 'cleanup')
         tw.cleanup = cleanup
         layout = QVBoxLayout()
@@ -228,9 +231,9 @@ class RMSDMap:
         axis = figure.subplots()
         axis.tick_params(direction='out')
         num_frames = len(frames)
-        step = 5 if num_frames < 50 else (10 if num_frames < 500 else 100)
-        ticks = [i+0.5 for i in range(step-1, num_frames, step)]
-        labels = [str(frames[i]) for i in range(step-1, num_frames, step)]
+        step = 5 * max(1, round(num_frames / 50))
+        self.ticks = ticks = [i+0.5 for i in range(step-1, num_frames, step)]
+        self.labels = labels = [str(frames[i]) for i in range(step-1, num_frames, step)]
         axis.set_xticks(ticks, labels=labels)
         axis.set_yticks(ticks, labels=labels)
         self.fixed_mpl_kw = {
@@ -238,7 +241,7 @@ class RMSDMap:
             'origin': 'lower',
             'extent': (0, num_frames, 0, num_frames),
         }
-        im = axis.imshow(rmsds, vmin = self.min_rmsd, vmax = self.max_rmsd, **self.fixed_mpl_kw)
+        im = axis.imshow(rmsds, vmin=self.min_rmsd, vmax=self.max_rmsd, **self.fixed_mpl_kw)
         canvas.draw_idle()
 
         frame_layout = QHBoxLayout()
@@ -274,9 +277,10 @@ class RMSDMap:
         layout.addLayout(frame_layout)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
-        self.bbox = bbox = qbbox(qbbox.Save | qbbox.Close | qbbox.Help)
+        self.bbox = bbox = qbbox(qbbox.Close | qbbox.Help)
         bbox.rejected.connect(tw.destroy)
-        #bbox.accepted.connect(self._show_save_clustering_dialog)
+        bbox.addButton("Save RMSDs", qbbox.AcceptRole)
+        bbox.accepted.connect(self._save_rmsds)
         from chimerax.core.commands import run
         bbox.helpRequested.connect(lambda *, run=run, ses=self.session:
             run(ses, "help " + self.tool_window.help))
@@ -293,12 +297,27 @@ class RMSDMap:
 
         from Qt.QtCore import QTimer
         QTimer.singleShot(100, lambda tw=tw, msg=status_msg: tw.status(msg, log=True))
+        QTimer.singleShot(100, lambda tw=tw: tw.status("Use context menu to change coloring thresholds",
+            secondary=True))
 
     def fill_context_menu(self, menu, x, y):
         from Qt.QtGui import QAction
         act = QAction("Change RMSD Thresholds...", parent=menu)
         act.triggered.connect(self._run_thresold_dialog)
         menu.addAction(act)
+
+    def new_min_max(self, new_min, new_max):
+        self.settings.low_rmsd = self.min_rmsd = new_min
+        self.settings.high_rmsd = self.max_rmsd = new_max
+        self.tool_window.status("Recoloring map...", blank_after=0)
+        axis = self.canvas.figure.subplots()
+        axis.cla()
+        axis.set_xticks(self.ticks, labels=self.labels)
+        axis.set_yticks(self.ticks, labels=self.labels)
+        axis.imshow(self.rmsds, vmin=self.min_rmsd, vmax=self.max_rmsd, **self.fixed_mpl_kw)
+        self.canvas.draw_idle()
+        self.tool_window.status("Map recolored")
+        self.set_title()
 
     def set_title(self):
         self.tool_window.title = self.title_fmt % (self.min_rmsd, self.max_rmsd)
@@ -369,13 +388,16 @@ class RMSDMap:
 
     def _run_thresold_dialog(self):
         td = ThresholdsDialog(self)
-        td.finished.connect(self._thresholds_set)
+        td.finished.connect(self._thresholds_finished)
         td.open()
         self._td = td # hold a reference
 
-    def _thresholds_set(self):
-        # callback from ThresholdsDialog
+    def _save_rmsds(self):
         #TODO
+        print("save RMSDs")
+
+    def _thresholds_finished(self):
+        # ThresholdsDialog finished
         self._td = None # dispose of reference
 
 class ThresholdsDialog(QDialog):
@@ -385,19 +407,32 @@ class ThresholdsDialog(QDialog):
 
         self.setWindowTitle("Change RMSD Thresholds")
         layout = QVBoxLayout()
+        layout.setContentsMargins(4,0,4,0)
         self.setLayout(layout)
         from chimerax.ui.options import OptionsPanel, FloatOption
         self.min_opt = FloatOption("New lower RMSD threshold (white):", rmsd_map.min_rmsd, None, min=0.0)
         self.max_opt = FloatOption("New upper RMSD threshold (black):", rmsd_map.max_rmsd, None, min=0.0)
-        panel = OptionsPanel(sorting=False, scrolled=False)
+        panel = OptionsPanel(sorting=False, scrolled=False, contents_margins=(2,0,2,0))
         panel.add_option(self.min_opt)
         panel.add_option(self.max_opt)
         layout.addWidget(panel)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
         bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.apply_thresholds)
+        bbox.rejected.connect(lambda dlg=self: dlg.done(dlg.Rejected))
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.apply_thresholds(apply=True))
+        bbox.button(qbbox.Help).setEnabled(False)
         layout.addWidget(bbox)
-        #TODO: react to the buttons
+
+    def apply_thresholds(self, apply=False):
+        min_val = self.min_opt.value
+        max_val = self.max_opt.value
+        if min_val >= max_val:
+            raise UserError("Lower RMSD threshold must be less than upper RMSD threshold")
+        self.rmsd_map.new_min_max(min_val, max_val)
+        if not apply:
+            self.done(self.Accepted)
 
 '''
 def show_cluster_results(main_tool_window, structure, clusterings):
