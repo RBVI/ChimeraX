@@ -68,6 +68,12 @@ jobs:
           platform: linux
           architecture: arm64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      # flatpak-builder runs the test suite inside a bwrap sandbox that does not
+      # inherit this runner's CI/GITHUB_ACTIONS variables, so the test suite's
+      # _in_ci() check would otherwise miss. Inject CI here rather than in the
+      # committed manifest so that local flatpak builds are unaffected.
+      - name: Mark the CI environment in the Flatpak manifest
+        run: sed -i -e 's/\(USE_COVERAGE=1 make pytest\)/CI=1 \1/' arm-flatpak.yml
       - name: Build ChimeraX
         uses: flatpak/flatpak-github-actions/flatpak-builder@master
         with:
