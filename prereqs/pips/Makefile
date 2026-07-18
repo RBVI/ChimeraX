@@ -115,9 +115,6 @@ ifeq ($(OSARCH),Linux)
 endif
 endif
 	$(APP_PIP) uninstall maturin puccinialin
-ifeq ($(OSARCH),DarwinIntel64)
-	$(APP_PIP) uninstall cffi
-endif
 
 app_requirements.txt: ../../pyproject.toml
 	$(APP_PYTHON_BIN) make_requirements.py
