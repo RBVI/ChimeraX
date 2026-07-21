@@ -26,10 +26,11 @@ from chimerax.core.errors import UserError
 class IterationError(UserError):
     pass
 
-def align(session, atoms, to=None):
+from chimerax.axes_planes.cmd import determine_axes
+
+def align(session, atoms, to=None, *, per_model=False, bring=None):
     """Move atoms to align on axis"""
     from chimerax.core.errors import UserError
-    from chimerax.axes_planes.cmd import determine_axes
     from chimerax.core.commands import Axis
     if not isinstance(to, Axis):
         if len(to) < 2:
@@ -46,24 +47,57 @@ def align(session, atoms, to=None):
                 return self.center
         to = FakeAxis(center, vec, extent)
 
+    if per_model:
+        if bring:
+            raise UserError("Cannot specify 'bring' models if 'perModel' is true")
+        for s, s_atoms in atoms.by_structure:
+            axis_align(session, [s], s_atoms, to)
+    else:
+        axis_align(session, atoms.unique_structures, atoms, to, bring)
+
+def axis_align(session, structures, atoms, to, bring=None):
+    if bring:
+        bring = set(bring)
+        for s in structures:
+            if s in bring:
+                bring.discard(s)
+            else:
+                for b in bring:
+                    if b.id == s.id[:len(b.id)]:
+                        raise UserError("Cannot 'bring' parent model of structure being aligned")
+        if len(bring) == 0:
+            session.logger.warning("'bring' arg specifies no models that aren't already being aligned")
+            bring = None
+
     from chimerax.geometry import translation, vector_rotation
-    for s, s_atoms in atoms.by_structure:
-        if len(s_atoms) == 1:
-            atom = s_atoms[0]
-            session.logger.info("Moving single atom %s to axis base" % atom)
+    if len(atoms) == 1:
+        atom = atoms[0]
+        session.logger.info("Moving single atom %s to axis base" % atom)
+        for s in structures:
             s.scene_position *= translation(to.base_point() - atom.scene_coord)
-            return
-        name, center, vec, extent, radius, color = determine_axes(s_atoms, "temp", None, 0, 1, False, True,
-            False, False, None)[0]
-        s.scene_position = translation(to.base_point()) * vector_rotation(vec, to.vec) \
-            * translation(-center) * s.scene_position
+        if bring is not None:
+            for b in bring:
+                b.scene_position *= translation(to.base_point() - atom.scene_coord)
+        return
+    name, center, vec, extent, radius, color = determine_axes(atoms, "temp", None, 0, 1, False, True,
+        False, False, None)[0]
+    alignment = translation(to.base_point()) * vector_rotation(vec, to.vec) * translation(-center)
+    for s in structures:
+        s.scene_position = alignment * s.scene_position
+    if bring is not None:
+        for b in bring:
+            b.scene_position = alignment * b.scene_position
 
 def register_command(logger):
 
-    from chimerax.core.commands import CmdDesc, register, EnumOf, AxisArg, Or
+    from chimerax.core.commands import CmdDesc, register, EnumOf, AxisArg, Or, BoolArg, TopModelsArg
     from chimerax.atomic import AtomsArg
     desc = CmdDesc(required = [('atoms', AtomsArg)],
-                   keyword = [('to', Or(AxisArg, AtomsArg))],
+                   keyword = [
+                    ('to', Or(AxisArg, AtomsArg)),
+                    ('per_model', BoolArg),
+                    ('bring', TopModelsArg),
+                    ],
                    required_arguments = ['to'],
                    synopsis = 'Align atoms onto axis')
     register('axis align', desc, align, logger=logger)
