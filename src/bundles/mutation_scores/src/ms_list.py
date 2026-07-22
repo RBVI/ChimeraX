@@ -152,9 +152,19 @@ class MutationScoresList(ToolInstance):
         mset, score_names = self._selected_score_names()
         if mset is None:
             return
-        mset_option = f'mutationSet {mset.name}' if len(self._open_mutation_sets) > 1 else ''
-        scores_option = f'scores {",".join(score_names)}' if score_names else ''
+        mset_option = self._mset_option(mset.name)
+        from chimerax.core.commands import quote_if_necessary
+        scores_option = f'scores {quote_if_necessary(",".join(score_names))}' if score_names else ''
         self._run_command(f'mutationscores heatmap {scores_option} {mset_option}')
+
+    def _mset_option(self, mset_name, include_keyword = True):
+        if len(self._open_mutation_sets) > 1:
+            from chimerax.core.commands import quote_if_necessary
+            name = quote_if_necessary(mset_name)
+            mset_option = f'mutationSet {name}' if include_keyword else name
+        else:
+            mset_option = ''
+        return mset_option
 
     def _show_scatterplot(self):
         mset, score_names = self._selected_score_names()
@@ -164,16 +174,18 @@ class MutationScoresList(ToolInstance):
             from chimerax.core.users import UserError
             raise UserError(f'Mutation set {mset.name} does not have 2 scores for a scatter plot')
         x_score_name, y_score_name = score_names[:2] if len(score_names) >= 2 else mset.score_names()[:2]
-        mset_option = f'mutationSet {mset.name}' if len(self._open_mutation_sets) > 1 else ''
-        self._run_command(f'mutationscores scatterplot {x_score_name} {y_score_name} {mset_option}')
+        mset_option = self._mset_option(mset.name)
+        from chimerax.core.commands import quote_if_necessary
+        self._run_command(f'mutationscores scatterplot {quote_if_necessary(x_score_name)} {quote_if_necessary(y_score_name)} {mset_option}')
     
     def _show_histogram(self):
         mset, score_names = self._selected_score_names()
         if mset is None:
             return
         score_name = score_names[0] if score_names else mset.score_names()[0]
-        mset_option = f'mutationSet {mset.name}' if len(self._open_mutation_sets) > 1 else ''
-        self._run_command(f'mutationscores histogram {score_name} {mset_option}')
+        mset_option = self._mset_option(mset.name)
+        from chimerax.core.commands import quote_if_necessary
+        self._run_command(f'mutationscores histogram {quote_if_necessary(score_name)} {mset_option}')
     
     def _show_color_structure(self):
         from .ms_color_history import show_structure_coloring_gui

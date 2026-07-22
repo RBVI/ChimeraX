@@ -75,6 +75,13 @@ class MutationSet(State):
     def add_scores(self, mutation_scores):
         self.mutation_scores.extend(mutation_scores)
         self._score_names = None
+    def rename_score(self, name, new_name):
+        for ms in self.mutation_scores:
+            if name in ms.scores:
+                value = ms.scores[name]
+                del ms.scores[name]
+                ms.scores[new_name] = value
+        self._score_names = None
 
     def computed_values(self, score_name):
         return self._computed_scores.get(score_name)
@@ -91,6 +98,10 @@ class MutationSet(State):
         return False
     def computed_values_names(self):
         return tuple(self._computed_scores.keys())
+
+    @property
+    def number_of_variants(self):
+        return len(set((ms.residue_number, ms.from_aa, ms.to_aa) for ms in self.mutation_scores))
 
     def sequence(self, missing_code = 'X'):
         '''
