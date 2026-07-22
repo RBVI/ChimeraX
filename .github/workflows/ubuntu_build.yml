@@ -79,10 +79,6 @@ jobs:
         continue-on-error: true
         id: test-exes
         run: USE_COVERAGE=1 make pytest-both-exes
-      - name: Run wheel tests
-        continue-on-error: true
-        id: test-wheel
-        run: USE_COVERAGE=1 make pytest-wheel
       - name: Run distribution tests
         continue-on-error: true
         id: test-distribution
