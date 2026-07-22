@@ -469,6 +469,14 @@ class GridCanvas:
         check_box = self.mouse_selects if state['mouse selects'] else self.mouse_chooses
         check_box.setChecked(True)
 
+    def save_from_cells(self, fmt):
+        seqs = self.seqs_from_cells()
+        aln = self.pg.session.alignments.new_alignment(seqs, None, auto_associate=False, viewer=False)
+        from chimerax.core.commands import run, StringArg
+        run(self.pg.session, "save browse format %s alignment %s"
+                % (fmt.nicknames[0], StringArg.unparse(aln.ident)))
+        self.pg.session.alignments.destroy_alignment(aln)
+
     def save_image(self):
         from chimerax.ui.open_save import SaveQGraphicsDialog
         SaveQGraphicsDialog(self.pg.session,

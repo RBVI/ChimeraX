@@ -111,6 +111,13 @@ class ProfileGridsTool(ToolInstance):
             alignment_menu.addAction(viewer.title())
         alignment_menu.triggered.connect(
             lambda action, f=self.grid_canvas.alignment_from_cells: f(action.text().lower()))
+        subalign_menu = cell_menu.addMenu("Save Subalignment")
+        fmts = [fmt for fmt in self.session.save_command.save_data_formats if fmt.category == "Sequence"]
+        fmts.sort(key=lambda fmt: fmt.synopsis.casefold())
+        for fmt in fmts:
+            action = QAction(fmt.synopsis, subalign_menu)
+            action.triggered.connect(lambda *args, fmt=fmt, f=self.grid_canvas.save_from_cells: f(fmt))
+            subalign_menu.addAction(action)
         cell_menu.setEnabled(bool(self.grid_canvas.chosen_cells))
 
         action = QAction("Find Cell Pattern...", cell_menu)

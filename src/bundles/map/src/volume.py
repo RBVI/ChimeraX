@@ -4242,7 +4242,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
             in the path this will be the first integer used.  Default 1.
 
 
-    Parameters below only supported by Chimera Map format (\*.cmap)
+    Parameters below only supported by Chimera Map format (\\*.cmap)
 
     Parameters:
         subsamples: list of tuples of 3 integers or None
@@ -4268,7 +4268,7 @@ def save_map(session, path, format_name, models = None, region = None, step = (1
         compress_shuffle: bool
             Option to blosc compression.  Default False.
 
-    Parameters below only supported for MRC format (\*.mrc)
+    Parameters below only supported for MRC format (\\*.mrc)
 
     Parameters:
         value_type: string

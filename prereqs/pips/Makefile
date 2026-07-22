@@ -82,7 +82,11 @@ endif
 	# isolated, ephemeral environments with it, and we have to install it.
 	# puccinialin (which bootstraps a Rust toolchain when none is present) must
 	# also already be in the environment before pynmrstar builds.
+	# On Darwin Intel, we also need cffi
 	$(APP_PIP_INSTALL) maturin puccinialin
+ifeq ($(OSARCH),DarwinIntel64)
+	$(APP_PIP_INSTALL) cffi
+endif
 ifeq ($(OS),Darwin)
 	$(APP_PIP_INSTALL) ./$(SCIPY_WHEEL)
 endif
@@ -109,8 +113,8 @@ endif
 ifeq ($(OSARCH),Linux)
 	$(APP_PIP) uninstall -y nvidia-nvjitlink-cu12
 endif
-	$(APP_PIP) uninstall maturin puccinialin
 endif
+	$(APP_PIP) uninstall maturin puccinialin
 
 app_requirements.txt: ../../pyproject.toml
 	$(APP_PYTHON_BIN) make_requirements.py
