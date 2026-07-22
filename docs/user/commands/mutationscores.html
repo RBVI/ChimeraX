@@ -102,6 +102,8 @@ per position on the associated structure(s)
 into 2D with UMAP
 </li><li><a href="#structure"><b>mutationscores structure</b></a>
 &ndash; associate mutation data with one or more specified structure chains
+</li><li><a href="#merge"><b>mutationscores merge</b></a>
+&ndash; merge scores from one mutation set into another
 </li><li><a href="#list"><b>mutationscores list</b></a>
 &ndash; list the currently open sets of mutation data
 </li><li><a href="#close"><b>mutationscores close</b></a>
@@ -604,6 +606,16 @@ Associations can also be specified with the
 <a href="open.html#local"><b>open</b></a> command at the time
 of opening the mutation scores file.
 </p></blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="merge"></a>
+<b>mutationscores merge</b> &nbsp;<i>mutation-set</i>&nbsp; <b>into</b> &nbsp;<i>mutation-set</i>&nbsp;
+[ <b>scores</b>&nbsp;&nbsp;<i>score-names</i>&nbsp;]
+<blockquote>
+Merge scores from one mutation set into another mutation set that has identical sequence.
+If only certain scores should be merged the can be named with the <b>scores</b> option
+which is a comma-separated list of score names.
+</blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="list"></a>
