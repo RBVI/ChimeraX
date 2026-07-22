@@ -22,17 +22,17 @@ or derivations thereof.
 <h3><a href="../index.html#commands">Command</a>: axis align</h3>
 <h3 class="usage"><a href="usageconventions.html">Usage</a>:
 <br><b>axis align</b>
-&nbsp;<a href="atomspec.html"><i>atoms</i></a>&nbsp; <b>to</b> 
-&nbsp;<a href="atomspec.html"><i>axis</i></a>&nbsp;
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp; <b>to</b> 
+&nbsp;<i>axis</i>&nbsp;
 [&nbsp;<b>perModel</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>bring</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>other-models</i></a>&nbsp;]</h3>
 <p>
-The <b>axis align</b> command moves the models containing <a href="atomspec.html"><i>atoms</i></a>
+The <b>axis align</b> command moves the models containing any atoms of <a href="atomspec.html"><i>atom-spec</i></a>
 onto the <i>axis</i> so that the principal axis of those atoms aligns with <i>axis</i>.
-The principal axis is the first eigenvector calculated from the coordinates of <i>atoms</i>
+The principal axis is the first eigenvector calculated from the coordinates of the atoms
 after subtracting the position of their collective centroid, and the principal axis is anchored
 at that centroid.
-If <i>atoms</i> is a single atom, then its model is simply translated so that the atom lies on <i>axis</i>.
+If <i>atom-spec</i> is a single atom, then its model is simply translated so that the atom lies on <i>axis</i>.
 </p></p>
 The <i>axis</i> can be <b>x</b>, <b>y</b>, <b>z</b> or any of the other standard
 <a href="pointspec.html#vector">vector specifications</a>.
@@ -42,13 +42,14 @@ See also:
 <a href="matchmaker.html"><b>matchmaker</b></a>,
 <a href="align.html"><b>align</b></a>,
 <a href="measure.html#rotation"><b>measure rotation</b></a>,
+<a href="view.html"><b>view zalign</b></a>
 </p><p>
 The <b>perModel</b> option (default <b>false</b>)
 controls whether or not the models are treated as a unit or individually for positioning.
-If <b>false</b>, all <i>atoms</i> will be used to compute a principal axis,
-and the models containing <i>atoms</i> will be repositioned together to align that
+If <b>false</b>, all atoms of <i>atom-spec</i> will be used to compute a principal axis,
+and the models containing those atoms will be repositioned together to align that
 principal axis onto <i>axis</i>.
-If <b>true</b>, each model contributing to <i>atoms</i> will have a principal axis
+If <b>true</b>, each model contributing to <i>atom-spec</i> will have a principal axis
 computed based on the atoms it is contributing, and the model will be individually
 positioned to align that principal axis onto <i>axis</i>.
 </p>
@@ -59,6 +60,6 @@ the models being aligned.  This option can only be used if <b>perModel</b> is <b
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-April 2026</address>
+July 2026</address>
 
 </body></html>
