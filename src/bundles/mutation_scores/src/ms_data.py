@@ -30,7 +30,7 @@ class MutationSet(State):
         self.mutation_scores = mutation_scores	# List of MutationScores instances
         self._associated_chains = []		# Chain instances
         self._associated_residues = []		# List of (res_number, residue)
-        self._computed_scores = {}	# Map computed score name to ScoreValues instance
+        self._computed_scores = {}		# Map computed score name to ScoreValues instance
 
         # Cached values
         self._score_names = None
@@ -51,18 +51,31 @@ class MutationSet(State):
             raise UserError(f'No score named "{score_name}" in mutation scores {self.name}.')
         return values
 
-    def score_names(self):
+    def score_names(self, include_computed = False, include_per_residue = True, exclude_names = []):
         if self._score_names is None:
             names = set()
             for ms in self.mutation_scores:
                 names.update(ms.scores.keys())
             self._score_names = tuple(sorted(names))
-        return self._score_names
+        snames = self._score_names
+
+        if include_computed:
+            cnames = self.computed_values_names()
+            if not include_per_residue:
+                cnames = [cname for cname in cnames if not self.computed_values(cname).per_residue]
+            used_names = set(self._score_names)
+            cnames = [name for name in cnames if name not in used_names]
+            snames += tuple(sorted(cnames))
+
+        if exclude_names:
+            snames = tuple(name for name in snames if name not in exclude_names)
+
+        return snames
 
     def add_scores(self, mutation_scores):
         self.mutation_scores.extend(mutation_scores)
         self._score_names = None
-        
+
     def computed_values(self, score_name):
         return self._computed_scores.get(score_name)
     def set_computed_values(self, score_name, score_values):
@@ -146,8 +159,8 @@ class MutationSet(State):
             matches, mismatches = _residue_type_matches(cres, cres_num, rnum_to_aa)
 
             if mismatches and not allow_mismatches:
-                r = mismatches[0]
-                msg = f'Did not associate chain {chain} because sequence does not match at {len(mismatches)} positions, first mistmatch is {r.name} {r.number}.  Use the "alignSequences" or "allowMismatches" command options to associate this chain.'
+                r, maa = mismatches[0]
+                msg = f'Did not associate chain {chain} because sequence does not match at {len(mismatches)} positions, first mismatch is {r.one_letter_code}{r.number}{maa}.  Use the "alignSequences" or "allowMismatches" command options to associate this chain.'
                 accept = False
             elif matches < minimum_identity * len(rnum_to_aa):
                 msg = (f'Did not associate chain {chain} because only {matches} residues matched, less than {"%.0f"%(100*minimum_identity)} percent of {len(rnum_to_aa)} mutation set residues.')
@@ -294,7 +307,11 @@ class MutationScores(State):
         self.residue_number = residue_number
         self.from_aa = from_aa
         self.to_aa = to_aa
-        self.scores = scores
+        self.scores = scores	# Map of score name to score value
+
+    def filter(self, score_names):
+        scores = {score_name:value for score_name, value in self.scores.items() if score_name in score_names}
+        return MutationScores(self.residue_number, self.from_aa, self.to_aa, scores)
 
     def take_snapshot(self, session, flags):
         return {'residue_number': self.residue_number,
@@ -607,6 +624,42 @@ def _sequence_pairing_from_alignment(mset, chains, alignment):
 
     return pairing
 
+def mutation_scores_merge(session, mutation_set, into, scores = None):
+    mset = mutation_scores(session, mutation_set)
+    into_mset = mutation_scores(session, into)
+
+    # Check if replacing score names.
+    score_names = set(mset.score_names())
+    if scores is not None:
+        only_these_scores = [score_name.strip() for score_name in scores.split(',')]
+        score_names = score_names.intersection(only_these_scores)
+
+    common_names = score_names.intersection(into_mset.score_names())
+    if common_names:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Cannot replace existing score names: {", ".join(common_names)}')
+
+    # Check if sequences match.
+    _mutation_sequences_match(mset, into_mset, raise_error = True)
+
+    if scores:
+        mut_scores = [ms.filter(only_these_scores) for ms in mset.mutation_scores]
+    else:
+        mut_scores = mset.mutation_scores
+    into_mset.add_scores(mut_scores)
+
+def _mutation_sequences_match(mset1, mset2, raise_error = False):
+    ra1 = mset1.residue_number_to_amino_acid()
+    ra2 = mset2.residue_number_to_amino_acid()
+    for rnum, aa in ra1.items():
+        if rnum in ra2 and ra2[rnum] != aa:
+            if raise_error:
+                from chimerax.core.errors import UserError
+                raise UserError(f'Mutation set {mset.name} has residue {aa}{rnum} that conflicts with mutation set {mset2.name} which has {aa}{ra2[rnum]}')
+            else:
+                return False
+    return True
+    
 def mutation_scores_close(session, mutation_set = None):
     msm = mutation_scores_manager(session)
     if mutation_set is None:
@@ -643,6 +696,15 @@ def register_commands(logger):
         synopsis = 'Associate a structure with a set of mutation scores'
     )
     register('mutationscores structure', desc, mutation_scores_structure, logger=logger)
+
+    desc = CmdDesc(
+        required = [('mutation_set', StringArg)],
+        keyword = [('into', StringArg),
+                   ('scores', StringArg)],
+        required_arguments = ['into'],
+        synopsis = 'Merge one mutation set into another'
+    )
+    register('mutationscores merge', desc, mutation_scores_merge, logger=logger)
 
     desc = CmdDesc(
         optional = [('mutation_set', StringArg)],

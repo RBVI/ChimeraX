@@ -121,7 +121,7 @@ def parse_uniprot_variants(session, variant_info):
         if 'mutatedType' not in variant:
             continue  # Frameshift mutants don't have mutatedType
 
-        scores = {}
+        scores = {'observed': 1}
         if variant.get('predictions'):
             for prediction in variant['predictions']:
                 scores[prediction['predAlgorithmNameType']] = prediction['score']
