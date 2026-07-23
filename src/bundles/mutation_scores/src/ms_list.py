@@ -63,11 +63,16 @@ class MutationScoresList(ToolInstance):
                         ('Heatmap', self._show_heatmap),
                         ('Scatterplot', self._show_scatterplot),
                         ('Histogram', self._show_histogram),
-                        ('Color structure', self._show_color_structure),
-                         ('Close data', self._close_data),
-                         ('Help', self._show_help),
+                        ('Close data', self._close_data),
+                        ('Help', self._show_help),
                         spacing = 5)
         layout.addWidget(br.frame)
+
+        br2 = EntriesRow(parent,
+                         ('Color structure', self._show_color_structure),
+                         ('Alphafold structure', self._fetch_alphafold_structure),
+                         spacing = 5)
+        layout.addWidget(br2.frame)
                 
         tw.manage(placement="side")
     
@@ -196,6 +201,13 @@ class MutationScoresList(ToolInstance):
         coloring_gui.set_mutation_set(mset)
         if score_names:
             coloring_gui.set_coloring_score(score_names[0])
+    
+    def _fetch_alphafold_structure(self):
+        mset, score_names = self._selected_score_names()
+        if mset is None:
+            return
+        mset_option = self._mset_option(mset.name, include_keyword = False)
+        self._run_command(f'mutationscores alphafold {mset_option}')
     
     def _close_data(self):
         msets = self._selected_mutation_sets()

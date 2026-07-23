@@ -177,6 +177,11 @@ def _merge_mutation_sets(session, msets):
 
     for m in msets:
         mset.add_scores(m.mutation_scores)
+
+    uniprot_ids = set(m.uniprot_id for m in msets if m.uniprot_id)
+    if len(uniprot_ids) == 1:
+        mset.uniprot_id = uniprot_ids.pop()
+
     msm = mutation_scores_manager(session)
     msm.add_scores(mset)
     return mset

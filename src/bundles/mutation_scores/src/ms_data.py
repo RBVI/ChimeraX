@@ -28,6 +28,7 @@ class MutationSet(State):
         self.name = name
         self.path = path
         self.mutation_scores = mutation_scores	# List of MutationScores instances
+        self.uniprot_id = None			# Sometimes set for data from MaveDB
         self._associated_chains = []		# Chain instances
         self._associated_residues = []		# List of (res_number, residue)
         self._computed_scores = {}		# Map computed score name to ScoreValues instance
@@ -268,6 +269,7 @@ class MutationSet(State):
                 'associated_chains': self._associated_chains,
                 'associated_residues': self._associated_residues,
                 'computed_scores': self._computed_scores,
+                'uniprot_id': self.uniprot_id,
                 'version': 1}
 
     @classmethod
@@ -280,6 +282,8 @@ class MutationSet(State):
             ms._associated_chains = [chain]
             ms._associated_residues = [(r.number,r) for r in chain.existing_residues]
         ms._computed_scores = data['computed_scores']
+        if 'uniprot_id' in data:
+            ms.uniprot_id = data['uniprot_id']
         return ms
 
 def _find_matching_chains(chains, resnum_to_aa):
