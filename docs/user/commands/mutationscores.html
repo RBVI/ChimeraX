@@ -134,6 +134,8 @@ per position on the associated structure(s)
 into 2D with UMAP
 </li><li><a href="#structure"><b>mutationscores structure</b></a>
 &ndash; associate mutation data with one or more specified structure chains
+</li><li><a href="#alphafold"><b>mutationscores alphafold</b></a>
+&ndash; fetch an AlphaFold database predicted structure for mutation data
 </li><li><a href="#merge"><b>mutationscores merge</b></a>
 &ndash; merge scores from one mutation set into another
 </li><li><a href="#list"><b>mutationscores list</b></a>
@@ -638,6 +640,21 @@ Associations can also be specified with the
 <a href="open.html#local"><b>open</b></a> command at the time
 of opening the mutation scores file.
 </p></blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="alphafold"></a>
+<b>mutationscores alphafold</b> [&nbsp;<i>mutation-set</i>&nbsp;]
+<blockquote>
+Fetch a predicted atomic structure with sequence matching the specified mutation data.
+If more than one mutation set is opened then the mutation set argument must be specified.
+If the mutation set has a UniProt identifier (available for most <a href="https://www.mavedb.org">MaveDB</a> entries)
+then the fetch uses that UniProt identifier, otherwise a sequence search of the
+<a href="https://alphafold.ebi.ac.uk">AlphaFold database</a>
+using the sequence implied by the mutation data is used.  If the AlphaFold database model
+does not have exactly the same sequence as the mutation data then the structure is associated
+with the mutation data using a sequence alignment using the <a href="#structure">mutationscores structure</a>
+<b>align True</b> option.
+</blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="merge"></a>
