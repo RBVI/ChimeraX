@@ -121,7 +121,7 @@ class CheckWaterViewer(ToolInstance):
             self.compare_model, self.compared_waters = compare_info
         if self.compared_waters is None and self.compare_model:
             from . import compare_waters
-            self.compared_waters = compare_waters(compare_model, check_model)
+            self.compared_waters = compare_waters(self.compare_model, check_model)
         self.compared_waters = [x.__class__(sorted(x)) for x in self.compared_waters
             ] if self.compared_waters else None
         if model_labels is None:
