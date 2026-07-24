@@ -350,7 +350,7 @@ SmallMolecule::parse_atom_site()
     string current_assembly, current_group, first_group;
     compute_cell_matrix();
     molecule = new AtomicStructure(_logger);
-    residue = molecule->new_residue("UNL", "A", 1);
+    residue = molecule->new_residue("LIG", "A", 1);
     std::vector<Atom*> alt_atoms;
     size_t alt_count = 0;
     bool alt_warned = false;
