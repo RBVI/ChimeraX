@@ -34,25 +34,54 @@ in the presence of different drugs and measuring cell viability or fluorescence.
 </p><p>
 <a name="mutant"></a>
 In this page, <b><i>mutant</i></b> refers to a variant of the protein 
-defined by a specific residue type (which could be the same as the wild type)
+defined by a specific amino acid residue type (which could be the same as the wild type)
 at a specific position in the sequence, and in which
 all of the other positions have the wild-type residue.
 The result of a <b><i>synonymous mutation</i></b> is the same amino acid
 as in the wild-type protein, although the nucleic acid codon could 
-have been different.
-</p><p>
+have been different.  Currently ChimeraX does not handle sequence variants
+that have multiple residue mutations, deletions, insertions or stop codons
+although we would like to add support for these.
+</p>
+
+<h3>Sources of mutation data</h3>
+
+<p>
 In general, each type of assay yields a score for each mutant.
-The scores are read from a <i><b>mutation scores</b></i> .csv file
-(<a href="../formats/mutationcsv.html">details...</a>) that can be opened
+Scores can be read from comma-separated value .csv files or
+<a href="../commands/open.html#fetch">fetched</a> from several databases.
+</p>
+
+<ul>
+
+<li><b>Comma-separated-values files</b>
+Scores from a <i><b>mutation scores</b></i> .csv file
+(<a href="../formats/mutationcsv.html">details...</a>) can be opened
 from the the <a href="../menu.html#file"><b>File</b> menu</a>
 or with the <a href="../commands/open.html"><b>open</b></a> command.
 Each file gives rise to a <b><i>mutation set</i></b>,
 and multiple mutation sets can be open at the same time.
-A mutation set can also be <a href="../commands/open.html#fetch">fetched</a>
-from the <a href="https://www.science.org/doi/10.1126/science.adg7492" target="_blank">AlphaMissense database</a> (score name <b>amiss</b>) or from
-<a href="https://www.uniprot.org/help/disease_phenotypes_variants_section" target="_blank">UniProt Variants</a> (score names <b>PolyPhen</b> and
-<b>SIFT</b>).
-</p><p>
+
+<li><a href="https://www.science.org/doi/10.1126/science.adg7492" target="_blank">AlphaMissense database</a>
+contains predicted pathogenicity scores (score name <b>amiss</b>) for all genes in the human proteome for
+mutations of every position to each of the 20 standard amino acids.
+
+<li><a href="https://www.uniprot.org/help/disease_phenotypes_variants_section" target="_blank">UniProt Variants</a>
+  includes predicted pathogenicity scores (names <b>PolyPhen</b> and <b>SIFT</b>,
+  a score (name <b>observed</b>) whose value is always 1 for clinically observed mutations,
+  scores <b>allele_frequency</b> and <b>minor_allele_frequency</b> giving frequency of occurrence and frequency of the second most common allele at the residue position.
+
+<li><a href="https://www.mavedb.org">MaveDB</a>
+The Multiplexed Assays of Variant Effects database (MaveDB) includes deep mutational scan data.
+Entries have numeric identifiers 1, 2, ... and there are currently (2026) about 2600 data sets
+for a variety of protein and nucleic acid sequences.  To find relevant entries use the 
+<a href="https://www.mavedb.org">MaveDB website</a>.  Data can be opened with a ChimeraX command like
+<b>open 1 from mavedb</b> or using the File / Fetch By ID menu entry.
+</ul>
+
+
+<h3>Visualizaton of mutation scores</h3>
+<p>
 Opening a mutation scores file automatically shows the 
 <a href="../tools/mutationscores.html"><b>Mutation Scores</b></a> tool
 for displaying the data as
@@ -61,7 +90,14 @@ with two kinds of scores as the axes, or as a
 <a href="#heatmap">heatmap</a> or <a href="#histogram">histogram</a>
 of one kind of score. Each type of plot has controls for changing
 which scores are plotted and for which mutation set.
-</p><p>
+</p>
+<p>
+See also: 
+<a href="../tools/mutationscores.html#coloring">Mutation Structure Coloring</a>,
+<a href="https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html" target="_blank">ChimeraX visualization of mutation scores</a>
+</p>
+<h3>Associating atomic structures with mutation data</h3>
+<p>
 <a name="associated"></a>
 By default, mutation scores are automatically <b><i>associated</i></b> with 
 each structure chain that has exactly the same sequence and residue
@@ -73,11 +109,8 @@ However, specific structure chains to associate can be designated with the
 at the time of opening the mutation data, or the associations
 can be adjusted manually later (after opening the files) 
 with <a href="#structure"><b>mutationscores structure</b></a>.
-</p><p>
-See also: 
-<a href="../tools/mutationscores.html#coloring">Mutation Structure Coloring</a>,
-<a href="https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html" target="_blank">ChimeraX visualization of mutation scores</a>
 </p>
+<h3>Mutation score commands</h3>
 <ul>
 <li><a href="#heatmap"><b>mutationscores heatmap</b></a>
 &ndash; show a heatmap of score values
@@ -101,6 +134,10 @@ per position on the associated structure(s)
 into 2D with UMAP
 </li><li><a href="#structure"><b>mutationscores structure</b></a>
 &ndash; associate mutation data with one or more specified structure chains
+</li><li><a href="#alphafold"><b>mutationscores alphafold</b></a>
+&ndash; fetch an AlphaFold database predicted structure for mutation data
+</li><li><a href="#merge"><b>mutationscores merge</b></a>
+&ndash; merge scores from one mutation set into another
 </li><li><a href="#list"><b>mutationscores list</b></a>
 &ndash; list the currently open sets of mutation data
 </li><li><a href="#close"><b>mutationscores close</b></a>
@@ -151,7 +188,7 @@ Pausing the cursor over the heatmap reports the mutation name,
 score name, and value in the status area next to the <b>Help</b> button.
 </p><p>
 The <b>scores</b> to include are designated as a comma-separated list of 
-score names.
+score names (including scores computed with the <a href="#define">mutationscores define</a> command).
 The <b>aminoAcids</b> option specifies the top-to-bottom ordering of 
 amino acid types as an uppercase string of amino acid 1-letter codes
 (the default <b>HRKDEFWYNQILCSTVMAGP</b> groups chemically similar types);
@@ -603,6 +640,31 @@ Associations can also be specified with the
 <a href="open.html#local"><b>open</b></a> command at the time
 of opening the mutation scores file.
 </p></blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="alphafold"></a>
+<b>mutationscores alphafold</b> [&nbsp;<i>mutation-set</i>&nbsp;]
+<blockquote>
+Fetch a predicted atomic structure with sequence matching the specified mutation data.
+If more than one mutation set is opened then the mutation set argument must be specified.
+If the mutation set has a UniProt identifier (available for most <a href="https://www.mavedb.org">MaveDB</a> entries)
+then the fetch uses that UniProt identifier, otherwise a sequence search of the
+<a href="https://alphafold.ebi.ac.uk">AlphaFold database</a>
+using the sequence implied by the mutation data is used.  If the AlphaFold database model
+does not have exactly the same sequence as the mutation data then the structure is associated
+with the mutation data using a sequence alignment using the <a href="#structure">mutationscores structure</a>
+<b>align True</b> option.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="merge"></a>
+<b>mutationscores merge</b> &nbsp;<i>mutation-set</i>&nbsp; <b>into</b> &nbsp;<i>mutation-set</i>&nbsp;
+[ <b>scores</b>&nbsp;&nbsp;<i>score-names</i>&nbsp;]
+<blockquote>
+Merge scores from one mutation set into another mutation set that has identical sequence.
+If only certain scores should be merged the can be named with the <b>scores</b> option
+which is a comma-separated list of score names.
+</blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
 <a name="list"></a>

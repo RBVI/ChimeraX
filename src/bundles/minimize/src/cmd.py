@@ -222,6 +222,11 @@ def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_ste
     import os
     forcefield = ForceField('amber14-all.xml', 'amber14/tip3pfb.xml')
     forcefield.loadFile(os.path.join(os.path.dirname(__file__), 'gaff-2.2.20.xml'))
+    # if more type conversions need to be added, consult https://ambermd.org/antechamber/gaff.html
+    # for GAFF types, and Chimera.app/Contents/Resources/bin/amber18/dat/leap/parm/parm14ipq.dat
+    # for AMBER types
+    amber_to_gaff = { 'N': 'n', 'CX': 'c3', 'C': 'c', 'O': 'o', '2C': 'c3', 'H': 'hn', 'H1': 'hc',
+        'HC': 'hc' }
     while True:
         templates, no_tmpl_omm_residues = forcefield.generateTemplatesForUnmatchedResidues(top)
         if not templates:
@@ -229,9 +234,6 @@ def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_ste
         omm_res_to_cx = { omm_r: cx_r for cx_r, omm_r in residues.items() }
         template, omm_res = templates[0], no_tmpl_omm_residues[0]
         cx_res = omm_res_to_cx[omm_res]
-        #TODO: try to fix NAD (in 7cmc for example) by prepending 'DNA-', but there is no
-        # DNA-N (atom n7n) so needs further investigation
-        #adjust_gaff_type = cx_res.name in ['ADP', 'ATP', 'GDP', 'GTP', 'NAD', 'NDP']
         template.name = "%s-%s-%s%s" % ("blank" if cx_res.chain_id.isspace() else cx_res.chain_id,
             cx_res.name, cx_res.number, cx_res.insertion_code)
         if cx_res.polymer_type != cx_res.PT_NUCLEIC:
@@ -255,7 +257,9 @@ def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_ste
                     gaff_type = "tip3pfb_standard-" + cx_atom.element.name + (str(cx_atom.charge)
                         if abs(cx_atom.charge) > 1 else "") + ('+' if cx_atom.charge > 0 else '-')
                 else:
-                    gaff_type = cx_atom.gaff_type
+                    # If template is a modified (e.g. deprotonated amide in /A:463 of 6OF8)
+                    # the the "gaff_type" might actually be an AMBER type, so apply mapping
+                    gaff_type = amber_to_gaff.get(cx_atom.gaff_type, cx_atom.gaff_type)
 
                 #if adjust_gaff_type:
                 #    gaff_type = 'DNA-' + gaff_type

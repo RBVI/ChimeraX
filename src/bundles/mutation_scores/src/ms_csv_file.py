@@ -22,20 +22,25 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def open_mutation_scores_csv(session, path, name = None, show_plot = False, chains = None, allow_mismatches = False):
-    mset = _read_mutation_scores_csv(path, name = name, logger = session.logger)
+def open_mutation_scores_csv(session, path, name = None, score_names = None,
+                             show_plot = False, chains = None, allow_mismatches = False, manage = True):
+    mset, warnings = read_mutation_scores_csv(path, name = name, score_names = score_names)
+    if warnings:
+        disclaimer = '<p>ChimeraX only handles single amino acid non-synonymous and synonymous mutations and ignores multi-residue variants, deletions, insertions, stop codons, and alternate codons.</p>'
+        session.logger.info(disclaimer + warnings, is_html = True)
 
     if chains:
         mset.set_associated_chains(chains, allow_mismatches = allow_mismatches)
 
-    from .ms_data import mutation_scores_manager
-    msm = mutation_scores_manager(session)
-    msm.add_scores(mset)
+    if manage:
+        from .ms_data import mutation_scores_manager
+        msm = mutation_scores_manager(session)
+        msm.add_scores(mset)
 
     nmut = len(mset.mutation_scores)
     dresnums = set(mset.residue_number_to_amino_acid().keys())
-    score_names = ', '.join(mset.score_names())
-    message = f'Opened deep mutational scan data for {nmut} mutations of {len(dresnums)} residues with score names {score_names}.'
+    found_score_names = ', '.join(mset.score_names())
+    message = f'Opened deep mutational scan data for {nmut} mutations of {len(dresnums)} residues with score names {found_score_names}.'
     
     if chains:
         res, rnums = mset.associated_residues(dresnums)
@@ -59,14 +64,20 @@ def open_mutation_scores_csv(session, path, name = None, show_plot = False, chai
 
     return mset, message
 
-def _read_mutation_scores_csv(path, name = None, logger = None):
+def read_mutation_scores_csv(path, name = None, score_names = None):
     with open(path, 'r') as f:
         lines = f.readlines()
     headings = _comma_separated_fields(lines[0])
     hgvs_column = _hgvs_column(headings)
+    hgvs_nt_column = headings.index('hgvs_nt') if 'hgvs_nt' in headings else None
+    if score_names is None:
+        score_columns = [col for col,h in enumerate(headings) if h != hgvs_column]
+    else:
+        score_columns = [col for col,h in enumerate(headings) if h in score_names]
     mscores = []
     mut = set()
     hgvs_ignored = []
+    duplicates = []
     from .ms_data import MutationScores    
     for i, line in enumerate(lines[1:]):
         if line.strip() == '':
@@ -80,23 +91,30 @@ def _read_mutation_scores_csv(path, name = None, logger = None):
         if res_type2 is None:
             hgvs_ignored.append(hgvs)
             continue
+        if hgvs_nt_column is not None:
+            # MaveDB entry 1 has synonymous and non-synonymous mutations shown in the
+            # hgvs_nt column, but only has the non-synonymous in the hgvs_pro column.
+            # That is a multiple mutation that we drop.
+            hgvs_nt = fields[hgvs_nt_column]
+            if _is_multiresidue_mutation(hgvs_nt):
+                hgvs_ignored.append(hgvs_nt)
+                continue
         if (res_num, res_type, res_type2) in mut:
-            from chimerax.core.errors import UserError
-            raise UserError(f'Duplicated mutation "{hgvs}" at line {i+2}')
+            duplicates.append((res_num, res_type, res_type2, hgvs, i+2))
+            continue
         mut.add((res_num, res_type, res_type2))
-        scores = _parse_scores(headings, fields)
+        scores = _parse_scores(headings, fields, score_columns)
         mscores.append(MutationScores(res_num, res_type, res_type2, scores))
 
     from os.path import basename, splitext
-    name = splitext(basename(path))[0] if name is None else name
+    filename = basename(path)
+    name = splitext(filename)[0] if name is None else name
     from .ms_data import MutationSet
     mset = MutationSet(name, mscores, path = path)
 
-    if hgvs_ignored and logger:
-        message = _classify_ignored(hgvs_ignored)
-        logger.info(message)
+    warnings = _classify_ignored(hgvs_ignored, duplicates, len(lines), path)
 
-    return mset
+    return mset, warnings
 
 def _comma_separated_fields(line):
     fields = [_remove_quotes(field.strip()) for field in line.split(',')]
@@ -125,6 +143,8 @@ aa_3_to_1 = {'Cys':'C', 'Asp':'D', 'Ser':'S', 'Gln':'Q', 'Lys':'K',
              'Ala':'A', 'Val':'V', 'Glu':'E', 'Tyr':'Y', 'Met':'M'}
 
 def _parse_hgvs(hgvs, line_num):
+    if hgvs in ('_wt', '_sy'):
+        return None, None, None  # Deprecated MaveDB indicators of wild-type or synonymous, occurs in MaveDB entry 3
     if not hgvs.startswith('p.'):
         from chimerax.core.errors import UserError
         raise UserError(f'Line {line_num} has hgvs field "{hgvs}" not starting with "p."')
@@ -140,7 +160,7 @@ def _parse_hgvs(hgvs, line_num):
             if res_type2 == '=':
                 res_type2 = res_type
         else:
-            # 3-letter coes
+            # 3-letter codes
             res_type = aa_3_to_1[var[:3]]
             if var.endswith('='):
                 res_num = int(var[3:-1])
@@ -152,29 +172,58 @@ def _parse_hgvs(hgvs, line_num):
         return None, None, None
     return res_num, res_type, res_type2
 
-def _parse_scores(headings, fields):
+def _is_multiresidue_mutation(hgvs_nt):
+    if hgvs_nt.startswith('c.[') and hgvs_nt.endswith(']'):
+        mutations = hgvs_nt[3:-1].split(';')
+        resnums = set()
+        for mut in mutations:
+            if 'delins' in mut:
+                # Example mut = "241_243delinsCTG"
+                rnum0, rnum1 = [1+(int(i)-1)//3 for i in mut[:mut.index('delins')].split('_')]
+                for rnum in range(rnum0, rnum1+1):
+                    resnums.add(rnum)
+            else:
+                # Example mut = "371A>G"
+                rnum = 1+(int(mut[:-3])-1)//3
+                resnums.add(rnum)
+        return len(resnums) > 1
+    return False
+    
+def _parse_scores(headings, fields, score_columns):
     scores = {}
-    for h,f in zip(headings[1:], fields[1:]):
+    for column in score_columns:
+        h = headings[column]
+        f = fields[column]
         try:
             scores[h] = float(f)
         except ValueError:
             continue
     return scores
 
-def _classify_ignored(hgvs_ignored):
-    double = [hgvs for hgvs in hgvs_ignored if hgvs.count(';') == 1]
-    deletions = [hgvs for hgvs in hgvs_ignored if hgvs.endswith('del') or hgvs.endswith('del)')]
-    insertions = [hgvs for hgvs in hgvs_ignored if 'ins' in hgvs]
-    stop = [hgvs for hgvs in hgvs_ignored if 'Ter' in hgvs or '*' in hgvs]
+def _classify_ignored(hgvs_ignored, duplicates, num_lines, path):
+    if len(hgvs_ignored) == 0 and len(duplicates) == 0:
+        return ''
+
+    multi = [hgvs for hgvs in hgvs_ignored if hgvs.count(';') >= 1 or 'delins' in hgvs]
+    single = [hgvs for hgvs in hgvs_ignored if ';' not in hgvs and 'delins' not in hgvs]
+    deletions = [hgvs for hgvs in single if 'del' in hgvs]
+    insertions = [hgvs for hgvs in single if 'ins' in hgvs]
+    stop = [hgvs for hgvs in single if 'Ter' in hgvs or '*' in hgvs]
     types = []
-    categorized = set(double + deletions + insertions + stop)
+    categorized = set(multi + deletions + insertions + stop)
     other = [hgvs for hgvs in hgvs_ignored if hgvs not in categorized]
-    for type, name in [(double, 'double mutants'), (deletions, 'deletions'), (insertions, 'insertions'),
-                       (stop, 'stop codons'), (other, 'other')]:
+    alt_codon = [hgvs for res_num, res_type, res_type2, hgvs, line in duplicates]
+    for type, name in [(multi, 'multi-residue'), (deletions, 'deletions'), (insertions, 'insertions'),
+                       (stop, 'stop codons'), (alt_codon, 'alternate codons'), (other, 'unrecognized')]:
         if len(type) > 0:
-            cat = f'{len(type)} {name} {", ".join(type[:3])}'
-            if len(type) > 3:
-                cat += ' ...'
+            cat = f'<li>{len(type)} {name} {", ".join(type[:1])}'
+            if len(type) > 1:
+                cat += ', ...'
             types.append(cat)
-    message = f'Ignored {len(hgvs_ignored)} variants: {", ".join(types)}'
+
+    types_info = '<ul style="margin-top: 0; margin-bottom: 0;">' + '\n'.join(types) + '</ul>'
+    from os.path import basename
+    filename = basename(path)
+    ni = len(hgvs_ignored) + len(duplicates)
+    message = f'Discarded {ni} of {num_lines-1} variants in {filename}:\n{types_info}'
     return message
