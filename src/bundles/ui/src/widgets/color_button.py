@@ -121,7 +121,7 @@ class ColorButton(QPushButton):
             elif self.isEnabled():
                 color = self._color
             else:
-                color = [int((c + 218)/2) for c in self._color]
+                color = [int((int(c) + 218)/2) for c in self._color]
             self.setStyleSheet('background-color: %s' % hex_color_name(color))
 
     def _color_changed_cb(self, color):
