@@ -77,16 +77,90 @@ typedef vector<string> StringVector;
 static const bool Required = true;  // column is required
 
 double
-parse_float(const char* repr)
+parse_float(const char* start, double* esdp = nullptr, std::pair<string, string>* str_repr = nullptr)
 {
-    // CIF floats are optionally followed by a unsigned ESD value in parenthesis.
-    // If not a legal float, return NAN.
+    // From the CIF standard:
+    // "A number may be supplied as an integer, as a floating-point number,
+    // or in scientific notation. When concatenated with an integer in
+    // parentheses, that integer is assumed to be the estimated standard
+    // deviation in the final digit(s) of the number. For example: 34.5,
+    // 3.45E1, 34.5(12), 3.45E1(12) are all versions of 34.5 with and without
+    // an e.s.d. of 1.2."
+    // If not a legal float, return NAN.  If ESD is not present, return NAN for ESD.
     char* endptr;
-    if (*repr == '"' || *repr == '\'')
-        ++repr;
-    double d = strtod(repr, &endptr);
-    if (repr == endptr)
+    if (*start == '"' || *start == '\'')
+        ++start;
+    double d = strtod(start, &endptr);
+    if (start == endptr) {
         d = strtod("nan", nullptr);
+        if (str_repr)
+            str_repr->first = "?";
+        if (esdp != nullptr) {
+            *esdp = d;
+            if (str_repr)
+                str_repr->second = "?";
+        }
+        return d;
+    }
+    // text contains valid floating point number
+    if (str_repr)
+        str_repr->first = string(start, endptr - start);
+    if (esdp == nullptr)
+        return d;
+    if (*endptr != '(') {
+        *esdp = strtod("nan", nullptr);
+        if (str_repr)
+            str_repr->second = "?";
+        return d;
+    }
+    // Create template to compute ESD from original number,
+    // by setting all digits before exponent to zero
+    string num = string(start, endptr - start);
+    int num_digits = 0;  // number of digits in mantissa
+    int last_digit_pos;  // position of last digit in mantissa
+    for (last_digit_pos = 0; last_digit_pos < num.size(); ++last_digit_pos) {
+        if (num[last_digit_pos] == '.')
+            continue;
+        if (!isdigit(num[last_digit_pos]))
+            break;
+        num[last_digit_pos] = '0';
+        num_digits += 1;
+    }
+    last_digit_pos -= 1;
+    while (!isdigit(num[last_digit_pos]))
+        last_digit_pos -= 1;   // handle 3.e2 (no digit after .)
+    // Find end of ESD integer, limited to number of digits in mantissa
+    char* start_esd_ptr = endptr + 1;
+    char* end_esd_ptr = start_esd_ptr;
+    while (end_esd_ptr - start_esd_ptr < num_digits && *end_esd_ptr != '\0' && isdigit(*end_esd_ptr))
+        end_esd_ptr += 1;
+    if (end_esd_ptr == start_esd_ptr) {
+        // no digit after left parenthesis
+        *esdp = strtod("nan", nullptr);
+        if (str_repr)
+            str_repr->second = "?";
+        return d;
+    }
+    // Substitute final digits
+    for (char* cp = end_esd_ptr - 1; cp >= start_esd_ptr; --cp) {
+        num[last_digit_pos] = *cp;
+        last_digit_pos -= 1;
+        if (!isdigit(num[last_digit_pos]))
+            last_digit_pos -= 1;
+    }
+    // Calculate ESD
+    *esdp = strtod(num.c_str(), nullptr);
+    if (str_repr) {
+        // remove leading zeros in string representation
+        int i = 0;
+        if (num.size() > 1) {
+            for (i = 0; i < num.size() - 1; ++i) {
+                if (num[i] != '0' || !isdigit(num[i + 1]))
+                    break;
+            }
+        }
+        str_repr->second = num.substr(i);
+    }
     return d;
 }
 
@@ -227,53 +301,65 @@ SmallMolecule::parse_cell()
 {
     // also put cell information in metadata
     StringVector cell_headers;
-    cell_headers.reserve(8);
+    cell_headers.reserve(17);
     cell_headers.emplace_back("cell");
     StringVector cell_data;
-    cell_data.reserve(7);
+    cell_data.reserve(16);
     CIFFile::ParseValues pv;
-    pv.reserve(7);
+    pv.reserve(8);
+    auto save_scalar = [&](const char* name, const char* esd_name, const char* start, const char* end) {
+        double esd;
+        std::pair<string, string> str_repr;
+        double length = parse_float(start, &esd, &str_repr);
+        cell_headers.emplace_back(name);
+        cell_data.emplace_back(str_repr.first);
+        cell_headers.emplace_back(esd_name);
+        cell_data.emplace_back(str_repr.second);
+        return length;
+    };
+    auto save_angle = [&](const char* name, const char* esd_name, const char* start, const char* end) {
+        double esd;
+        std::pair<string, string> str_repr;
+        double angle = parse_float(start, &esd, &str_repr) * M_PI / 180;
+        cell_headers.emplace_back(name);
+        cell_data.emplace_back(str_repr.first);
+        cell_headers.emplace_back(esd_name);
+        cell_data.emplace_back(str_repr.second);
+        return angle;
+    };
     try {
         pv.emplace_back(get_column("length_a", Required),
             [&] (const char* start, const char* end) {
-                length_a = parse_float(start);
-                cell_headers.emplace_back("length_a");
-                cell_data.emplace_back(string(start, end - start));
+                length_a = save_scalar("length_a", "length_a_esd", start, end);
             });
         pv.emplace_back(get_column("length_b", Required),
             [&] (const char* start, const char* end) {
-                length_b = parse_float(start);
-                cell_headers.emplace_back("length_b");
-                cell_data.emplace_back(string(start, end - start));
+                length_b = save_scalar("length_b", "length_b_esd", start, end);
             });
         pv.emplace_back(get_column("length_c", Required),
             [&] (const char* start, const char* end) {
-                length_c = parse_float(start);
-                cell_headers.emplace_back("length_c");
-                cell_data.emplace_back(string(start, end - start));
+                length_c = save_scalar("length_c", "length_c_esd", start, end);
             });
         pv.emplace_back(get_column("angle_alpha"),
             [&] (const char* start, const char* end) {
-                alpha = parse_float(start) * M_PI / 180;
-                cell_headers.emplace_back("angle_alpha");
-                cell_data.emplace_back(string(start, end - start));
+                alpha = save_angle("angle_alpha", "angle_alpha_esd", start, end);
             });
         pv.emplace_back(get_column("angle_beta"),
             [&] (const char* start, const char* end) {
-                beta = parse_float(start) * M_PI / 180;
-                cell_headers.emplace_back("angle_beta");
-                cell_data.emplace_back(string(start, end - start));
+                beta = save_angle("angle_beta", "angle_beta_esd", start, end);
             });
         pv.emplace_back(get_column("angle_gamma"),
             [&] (const char* start, const char* end) {
-                gamma = parse_float(start) * M_PI / 180;
-                cell_headers.emplace_back("angle_gamma");
-                cell_data.emplace_back(string(start, end - start));
+                gamma = save_angle("angle_gamma", "angle_gamma_esd", start, end);
             });
         pv.emplace_back(get_column("formula_units_Z"),
             [&] (const char* start, const char* end) {
                 cell_headers.emplace_back("formula_units_Z");
                 cell_data.emplace_back(string(start, end - start));
+            });
+        pv.emplace_back(get_column("volume"),
+            [&] (const char* start, const char* end) {
+                save_scalar("volume", "volume_esd", start, end);
             });
     } catch (std::runtime_error& e) {
         logger::warning(_logger, "Skipping cell category: ", e.what());
