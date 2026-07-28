@@ -118,7 +118,7 @@ ifeq ($(OSARCH),Linux)
 	$(APP_PIP) uninstall -y nvidia-nvjitlink-cu12
 endif
 endif
-	$(APP_PIP) uninstall maturin puccinialin
+	$(APP_PIP) uninstall -y maturin puccinialin
 
 app_requirements.txt: ../../pyproject.toml
 	$(APP_PYTHON_BIN) make_requirements.py
