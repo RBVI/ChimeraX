@@ -526,20 +526,23 @@ def _set_app_dirs(version):
     # this must happen before pip is imported so that "--user" installs
     # will go in the right place.
     import site
+    import sysconfig
 
     if not is_root:
         site.USER_BASE = ad.user_data_dir
-        lib = "lib"
-        python = "python"
-        if sys.platform == "win32":
-            lib = ""
-            python = f"Python{sys.version_info.major}{sys.version_info.minor}"
-        if sys.platform == "linux":
-            python = f"python{sys.version_info.major}.{sys.version_info.minor}"
-        site.USER_SITE = os.path.join(site.USER_BASE, lib, python, "site-packages")
+        # Derive USER_SITE from the interpreter's own "user" install scheme
+        # rather than hand-building the path.  pip runs in a subprocess (with
+        # PYTHONUSERBASE set to user_data_dir) and computes its "--user"
+        # target from this same scheme, so deriving it here guarantees the
+        # toolshed scans the directory pip actually installs into.  A
+        # hand-built path silently diverges whenever the prereq Python
+        # changes layout (e.g. the framework -> python-build-standalone move,
+        # which switched macOS from lib/python to lib/pythonX.Y).
+        scheme = sysconfig.get_preferred_scheme("user")
+        site.USER_SITE = sysconfig.get_path(
+            "platlib", scheme, vars={"userbase": site.USER_BASE}
+        )
     else:
-        import sysconfig
-
         site.USER_SITE = sysconfig.get_paths()["platlib"]
     site.ENABLE_USER_SITE = True
 
