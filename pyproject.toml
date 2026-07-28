@@ -10,9 +10,9 @@ description = "Analysis and visualization of molecular structures and 3D microsc
 classifiers = [
   'Development Status :: 3 - Alpha',
   'Intended Audience :: Science/Research',
-  'Programming Language :: Python :: 3.11',
+  'Programming Language :: Python :: 3.14',
 ]
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 dynamic = ["version"]
 
 [project.urls]
@@ -36,27 +36,27 @@ gui = [
   #shiboken6==6.10.1
   "qtconsole==5.7.2",
   "qtshim==1.2.2",
-  "superqt==0.7.6",
+  "superqt==0.8.1",
   "tinyarray==1.2.5",
-  "webcolors==24.11.1",
-  "wheel-filename==1.4.2",
+  "webcolors==25.10.0",
+  "wheel-filename==2.1.0",
   #
   # Documentation
   #
   "blockdiag==3.0.0",
-  "docutils==0.21.2",
+  "docutils==0.22",  # Sphinx requires 0.22
   "Jinja2==3.1.6",
-  "Pygments==2.18.0",
-  "Sphinx==9.0.4",
+  "Pygments==2.20.0",
+  "Sphinx==9.1.0",
   "sphinxcontrib-blockdiag==3.0.0",
-  "sphinx_autodoc_typehints==3.6.1",
+  "sphinx_autodoc_typehints==3.13.0",
   "pydata-sphinx-theme",
   #
   # Windows
   #
-  "pywin32==311; sys_platform == 'win32'",
+  "pywin32==312; sys_platform == 'win32'",
   "WMI==1.5.1; sys_platform == 'win32'",
-  "comtypes==1.4.11; sys_platform == 'win32'",
+  "comtypes==1.4.16; sys_platform == 'win32'",
   #
   # Linux
   #
@@ -65,10 +65,10 @@ gui = [
 wheel = [
   "aiohttp==3.14.3",
   "appdirs==1.4.4",
-  "beautifulsoup4==4.13.5",
+  "beautifulsoup4==4.15.0",
   "colorama==0.4.6",
-  "Cython==3.2.4",
-  "filelock==3.20.3",
+  "Cython==3.2.9",
+  "filelock==3.32.0",
   "grako==3.16.5",
   "html2text==2025.4.15",
   "ihm==2.2",
@@ -80,19 +80,19 @@ wheel = [
   # the version of jedi that works with ipython
   "jedi==0.20.0",
   "jupyter-client==8.9.1",
-  "lxml==6.0.2",
+  "lxml==6.1.1",
   # lz4 4.4.4 has problems decompressing what it encoded, ticket #18140
   "lz4==4.4.5",
   "matplotlib==3.10.7",
   "mcp==1.28.1",
-  "msgpack==1.1.1",
+  "msgpack==1.2.1",
   "netCDF4==1.7.4",
   "networkx==3.3",
   "numpy==2.4.6",
   # if the OpenMM version changes, the patches in prereqs/pips need to be updated
   "openmm==8.4.0 ; platform_machine != 'aarch64'",
   "openmm-cuda-12==8.4.0 ; ((sys_platform == 'win32') or (sys_platform == 'linux')) and (platform_machine != 'aarch64')",
-  "packaging==25.0",
+  "packaging==26.2",
   # as per Tristan's request in ticket #3055"
   "ParmEd==4.2.2",
   "pep517==0.13.1",
@@ -100,31 +100,31 @@ wheel = [
   "pickleshare==0.7.5",
   "Pillow==12.3.0",
   "pkginfo==1.12.1.2",
-  "psutil==7.0.0",
-  "pybind11==3.0.1",
+  "psutil==7.2.2",
+  "pybind11==3.0.4",
   "pycollada==0.8",
   "pyopenxr==1.1.4501",
   "python-dateutil==2.9.0.post0",
-  "requests==2.32.5",
+  "requests==2.34.2",
   # Macs download scipy wheels directly, adjust the names in prereqs/pips accordingly
   # if you upgrade this
   "scipy==1.18.0",
   "six==1.17.0",
   "sortedcontainers==2.4.0",
   "tables==3.11.1",
-  "tifffile==2025.3.13",
-  "webcolors==24.11.1",
-  "wheel-filename==1.4.2",
+  "tifffile==2026.7.14",
+  "webcolors==25.10.0",
+  "wheel-filename==2.1.0",
   "blockdiag==3.0.0",
-  "docutils==0.21.2",
+  "docutils==0.22",
   "Jinja2==3.1.6",
-  "Pygments==2.18.0",
+  "Pygments==2.20.0",
   #
   # Windows
   #
-  "pywin32==311; sys_platform == 'win32'",
+  "pywin32==312; sys_platform == 'win32'",
   "WMI==1.5.1; sys_platform == 'win32'",
-  "comtypes==1.4.11; sys_platform == 'win32'",
+  "comtypes==1.4.16; sys_platform == 'win32'",
   #
   # Linux
   #
@@ -134,7 +134,7 @@ wheel = [
   #
   "traitlets==5.15.1",
 ]
-dev = ["line_profiler==5.0.0", "markdown==3.8.2"]
+dev = ["line_profiler==5.0.2", "markdown==3.10.2"]
 test = ["pytest", "pytest-cov", "coverage"]
 
 [tool.setuptools.dynamic]
