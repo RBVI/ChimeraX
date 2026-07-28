@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-ProfileGrids" version="1.11"
+<BundleInfo name="ChimeraX-ProfileGrids" version="1.12"
 	    package="chimerax.profile_grids"
   	    minSessionVersion="1" maxSessionVersion="1">
 
@@ -25,7 +25,7 @@
     <Dependency name="ChimeraX-AlignmentHdrs" version="~=3.2"/>
     <Dependency name="ChimeraX-Arrays" build="true" version="~=1.0"/>
     <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=14.0"/>
-    <Dependency name="ChimeraX-UI" version="~=1.51"/>
+    <Dependency name="ChimeraX-UI" version="~=1.54"/>
   </Dependencies>
 
   <Providers manager="alignments">

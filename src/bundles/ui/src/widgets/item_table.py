@@ -777,37 +777,11 @@ class ItemTable(QTableView):
             'header_vals' should be a list of strings and 'row_func' should be a function that takes
             a data item as its only argument and returns a list of strings.
         """
-        all_separators = ['\t', ',']
-        if separator is None:
-            separators = all_separators
-        else:
-            separators = [separator]
+        kw = {}
+        if separator:
+            kw['separators'] = [separator]
         if file is None:
-            class SepInfo:
-                def __init__(self, sep):
-                    if sep not in all_separators:
-                        raise ValueError("Unsupported separator: %s" % repr(separator))
-                    self.sep = sep
-                    self.text = "comma" if sep == ',' else "tab"
-                    self.suffix = ".csv" if sep == ',' else ".tsv"
-                    self.filter =  "%s-separated value (*%s)" % (self.text.capitalize(), self.suffix)
-            separator = '.'
-            filter_suffix = ".csv"
-            title_adjective = "CSV"
-            filter_adjective = "Comma-separated"
-            sep_infos = [SepInfo(sep) for sep in separators]
-            sep_infos.sort(key=lambda si: si.text)
-            filter_to_sep = { si.filter: si.sep for si in sep_infos }
-            kw = {
-                'parent': self,
-                'caption': "Save %sSeparated File" % " or ".join(
-                    [si.text.capitalize() + '-' for si in sep_infos]),
-                'filter': ";;".join([si.filter for si in sep_infos])
-            }
-            file, filter = QFileDialog.getSaveFileName(**kw)
-            if not file:
-                return
-            separator = filter_to_sep[filter]
+            file, separator = get_csv_info(self, **kw)
         from chimerax.io import open_output
         with open_output(file, encoding="utf-8") as f:
             if header_vals is None:
@@ -1003,3 +977,33 @@ class _ItemColumn:
         if data_color:
             changed.append(Qt.ForegroundRole)
         return changed
+
+all_csv_separators = ['\t', ',']
+def get_csv_info(parent, *, separators=all_csv_separators):
+    class SepInfo:
+        def __init__(self, sep):
+            if sep not in all_csv_separators:
+                raise ValueError("Unsupported separator: %s" % repr(separator))
+            self.sep = sep
+            self.text = "comma" if sep == ',' else "tab"
+            self.suffix = ".csv" if sep == ',' else ".tsv"
+            self.filter =  "%s-separated value (*%s)" % (self.text.capitalize(), self.suffix)
+    separator = '.'
+    filter_suffix = ".csv"
+    title_adjective = "CSV"
+    filter_adjective = "Comma-separated"
+    sep_infos = [SepInfo(sep) for sep in separators]
+    sep_infos.sort(key=lambda si: si.text)
+    filter_to_sep = { si.filter: si.sep for si in sep_infos }
+    kw = {
+        'parent': parent,
+        'caption': "Save %sSeparated File" % " or ".join(
+            [si.text.capitalize() + '-' for si in sep_infos]),
+        'filter': ";;".join([si.filter for si in sep_infos])
+    }
+    file, filter = QFileDialog.getSaveFileName(**kw)
+    if not file:
+        from chimerax.core.errors import CancelOperation
+        raise CancelOperation("CSV/TSV file output cancelled")
+    separator = filter_to_sep[filter]
+    return file, separator
