@@ -1179,7 +1179,7 @@ class AtomSpec:
             if add_implied:
                 add_implied_bonds(right_results)
             from ..objects import Objects
-            results = Objects.intersect(left_results, right_results)
+            results = Objects.intersect(left_results, right_results, ordered=order_implicit_atoms)
             if self.outermost_inversion is None:
                 self.outermost_inversion = False
         else:
