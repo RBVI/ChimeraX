@@ -34,6 +34,13 @@ PATCHES += openmm_metadata.patch
 endif
 endif
 
+# maturin's PEP517 backend (used to build pynmrstar's sdist, which has no cp314
+# wheel) shells out to the `maturin` console script by bare name. With
+# --no-build-isolation there is no ephemeral build venv whose bin is on PATH, so
+# we must prepend the directory pip installed the script into ourselves. On a
+# macOS framework build that is Versions/$(PYTHON_VERSION)/bin, not Contents/bin.
+APP_SCRIPT_DIR = $(shell $(APP_PYTHON_EXE) -c "import sysconfig; print(sysconfig.get_path('scripts'))")
+
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 
 ifeq ($(OS),Windows)
@@ -90,11 +97,7 @@ endif
 ifeq ($(OS),Darwin)
 	$(APP_PIP_INSTALL) ./$(SCIPY_WHEEL)
 endif
-ifdef UV_BUILD
-	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
-else
-	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
-endif
+	PATH="$(APP_SCRIPT_DIR):$$PATH" CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifdef USE_PYSIDE6
 	$(APP_PIP_INSTALL) $(shell grep PySide6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 	$(APP_PIP_INSTALL) $(shell grep shiboken6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
