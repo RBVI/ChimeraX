@@ -11,7 +11,7 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from Qt.QtWidgets import QVBoxLayout, QLabel, QHBoxLayout, QLineEdit, QPushButton, QDialog
+from Qt.QtWidgets import QVBoxLayout, QLabel, QHBoxLayout, QLineEdit, QPushButton, QDialog, QFileDialog
 from Qt.QtGui import QIntValidator
 from Qt.QtCore import Qt
 
@@ -87,7 +87,8 @@ class RMSDMapLauncher:
         bbox.rejected.connect(tw.destroy)
         if getattr(tw, 'help', None):
             from chimerax.core.commands import run
-            bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + tw.help))
+            bbox.helpRequested.connect(lambda *, run=run, ses=self.session, tw=tw:
+                run(ses, "help " + tw.help))
         else:
             bbox.button(qbbox.Help).setEnabled(False)
         # Put the buttons below the status bar
@@ -120,11 +121,11 @@ class RMSDMapLauncher:
             return tool_user_error("No frames match start/step/end")
 
         num_frames = len(frames)
-        from math import sqrt
         import numpy
         rmsds = numpy.zeros((num_frames, num_frames), float)
         structure = atoms[0].structure
         min_rmsd = max_rmsd = None
+        from chimerax.geometry import align_points
         with structure.suppress_coordset_change_notifications():
             for i, fn1 in enumerate(frames):
                 self.tool_window.status("Computing RMSDS for frame %d/%d" % (i+1, num_frames))
@@ -132,8 +133,8 @@ class RMSDMapLauncher:
                 coords1 = atoms.coords
                 for j in range(i+1, num_frames):
                     structure.active_coordset_id = frames[j]
-                    diff = atoms.coords - coords1
-                    rmsds[i,j] = rmsds[j,i] = rmsd = sqrt(numpy.sum(diff * diff) / len(atoms))
+                    xform, rmsd = align_points(atoms.coords, coords1)
+                    rmsds[i,j] = rmsds[j,i] = rmsd
                     if min_rmsd is None or rmsd < min_rmsd:
                         min_rmsd = rmsd
                     if max_rmsd is None or rmsd > max_rmsd:
@@ -189,7 +190,7 @@ class RMSDMap:
         else:
             self.min_rmsd, self.max_rmsd = min_rmsd, max_rmsd
         self.set_title()
-        #tw.help = "help:user/commands/coordset.html#clusterdialog"
+        tw.help = "help:user/commands/coordset.html#rmsddialog"
         self._td = None
         def cleanup(self=self):
             inst = self.tool_window.tool_instance
@@ -282,8 +283,12 @@ class RMSDMap:
         bbox.addButton("Save RMSDs", qbbox.AcceptRole)
         bbox.accepted.connect(self._save_rmsds)
         from chimerax.core.commands import run
-        bbox.helpRequested.connect(lambda *, run=run, ses=self.session:
-            run(ses, "help " + self.tool_window.help))
+        if getattr(tw, 'help', None):
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=self.session, tw=tw:
+                run(ses, "help " + tw.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
         # Setting buttons' default and autoDefault properties to False doesn't seem to actually
         # do anything on Mac, so use this horrible kludge
         b = bbox.addButton("", qbbox.ActionRole)
@@ -393,8 +398,17 @@ class RMSDMap:
         self._td = td # hold a reference
 
     def _save_rmsds(self):
-        #TODO
-        print("save RMSDs")
+        file_name, filter = QFileDialog.getSaveFileName(parent=self.tool_window.ui_area,
+            caption="Save RMSD Map")
+        if not file_name:
+            return
+        from chimerax.io import open_output
+        with open_output(file_name, encoding="utf-8") as f:
+            dim = len(self.rmsds)
+            for i in range(dim):
+                for j in range(dim):
+                    print("%6.3f" % self.rmsds[i,j], end=('\n' if j == dim-1 else ' '), file=f)
+            print("End of File", file=f)
 
     def _thresholds_finished(self):
         # ThresholdsDialog finished

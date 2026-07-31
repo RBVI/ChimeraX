@@ -73,12 +73,12 @@ def cluster(structure, atoms, frame_nums, *, test_abort=None, status=None):
         same_as = {}
         from math import sqrt
         import numpy
+        from chimerax.geometry import align_points
         for i, frame1 in enumerate(frame_nums):
             crds1 = crd_arrays[frame1]
             for j, frame2 in enumerate(frame_nums[i+1:]):
                 crds2 = crd_arrays[frame2]
-                diff = crds1 - crds2
-                rmsd = sqrt(numpy.sum(diff * diff) / len(atoms))
+                xform, rmsd = align_points(crds1, crds2)
                 full_DM.set(i, i+j+1, rmsd)
                 if rmsd == 0.0 and frame2 not in same_as:
                     same_as[frame2] = frame1
