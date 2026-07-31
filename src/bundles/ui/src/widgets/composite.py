@@ -233,7 +233,8 @@ class MenuEntry:
     def __init__(self, parent, values):
         from Qt.QtWidgets import QPushButton, QMenu
         self._button = b = QPushButton(parent)
-        b.setText(values[0])
+        self._shorten = None
+        self.value = values[0]
         m = QMenu(b)
         for value in values:
             if value == '-':
@@ -245,10 +246,27 @@ class MenuEntry:
     def _menu_selection_cb(self, action):
         self.value = action.text()
     def _get_value(self):
-        return self._button.text()
+        return self._value
     def _set_value(self, value):
-        self._button.setText(value)
+        self._value = value
+        self._button.setText(self._shorten_text(value))
     value = property(_get_value, _set_value)
+    def shorten_text(self, side, width):
+        '''
+        Side is where the ... goes: left, middle or right.
+        Width is in pixels.
+        '''
+        from Qt.QtCore import Qt
+        where = {'left':Qt.ElideLeft, 'middle':Qt.ElideMiddle, 'right':Qt.ElideRight}[side]
+        self._shorten = (where, width)
+        self._button.setText(self._shorten_text(self._button.text()))
+    def _shorten_text(self, text):
+        if self._shorten:
+            where, width = self._shorten
+            font = self._button.font()
+            from Qt.QtGui import QFontMetrics
+            text = QFontMetrics(font).elidedText(text, where, width)
+        return text
     @property
     def widget(self):
         return self._button
