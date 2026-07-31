@@ -31,7 +31,11 @@ substitutions (of the 20 standard amino acids) at each position of a protein
 and assessing the results with multiple high-throughput assays. 
 For example, the assays could include growing cells expressing the mutants
 in the presence of different drugs and measuring cell viability or fluorescence.
-</p><p>
+</p>
+
+<h3>Types of sequence variants</h3>
+
+<p>
 <a name="mutant"></a>
 In this page, <b><i>mutant</i></b> refers to a variant of the protein 
 defined by a specific amino acid residue type (which could be the same as the wild type)
@@ -39,12 +43,18 @@ at a specific position in the sequence, and in which
 all of the other positions have the wild-type residue.
 The result of a <b><i>synonymous mutation</i></b> is the same amino acid
 as in the wild-type protein, although the nucleic acid codon could 
-have been different.  Currently ChimeraX does not handle sequence variants
-that have multiple residue mutations, deletions, insertions or stop codons
-although we would like to add support for these.
+have been different.  ChimeraX also can display sequence variants scores
+for deletions, insertions or stop codons.  Currently no methods to visualize
+multiple residue mutations are offered, except
+deletions of one or more consecutive residues, or insertions of one or more residues
+at a single position are treated as a mutation at a single residue position in
+heatmaps and structure coloring.  We hope to add support for visualizing
+multi-residue variants and non-consecutive sites in the future.
 </p>
 
+<a name="sources">
 <h3>Sources of mutation data</h3>
+</a>
 
 <p>
 In general, each type of assay yields a score for each mutant.
@@ -76,40 +86,49 @@ The Multiplexed Assays of Variant Effects database (MaveDB) includes deep mutati
 Entries have numeric identifiers 1, 2, ... and there are currently (2026) about 2600 data sets
 for a variety of protein and nucleic acid sequences.  To find relevant entries use the 
 <a href="https://www.mavedb.org">MaveDB website</a>.  Data can be opened with a ChimeraX command like
-<b>open 1 from mavedb</b> or using the File / Fetch By ID menu entry.
-</ul>
+<b>open 1 from mavedb</b> or using the File / Fetch By ID menu entry.  Not all MaveDB entries
+can be visualized due to several <a href="../formats/mutationmavedb.html">issues</a>.
 
+</ul>
 
 <h3>Visualizaton of mutation scores</h3>
 <p>
 Opening a mutation scores file automatically shows the 
 <a href="../tools/mutationscores.html"><b>Mutation Scores</b></a> tool
-for displaying the data as
-a <a href="#scatterplot">scatter plot</a> of the mutants
-with two kinds of scores as the axes, or as a 
-<a href="#heatmap">heatmap</a> or <a href="#histogram">histogram</a>
+for displaying the data as a <a href="#heatmap">heatmap</a>,
+or a <a href="#scatterplot">scatter plot</a> of the mutants
+with two kinds of scores as the axes, or a <a href="#histogram">histogram</a>
 of one kind of score. Each type of plot has controls for changing
-which scores are plotted and for which mutation set.
+which scores are plotted and for which mutation set.  There
+is also a 
+<a href="../tools/mutationscores.html#coloring">Mutation Structure Coloring</a>
+panel to color structure residues according to score values.
 </p>
+
 <p>
 See also: 
-<a href="../tools/mutationscores.html#coloring">Mutation Structure Coloring</a>,
 <a href="https://www.rbvi.ucsf.edu/chimerax/data/mutation-scores-oct2024/mutation_scores.html" target="_blank">ChimeraX visualization of mutation scores</a>
 </p>
+
+<a name="associated">
 <h3>Associating atomic structures with mutation data</h3>
+</a>
+
 <p>
-<a name="associated"></a>
-By default, mutation scores are automatically <b><i>associated</i></b> with 
-each structure chain that has exactly the same sequence and residue
-numbering (as in the mutation data) when the mutation data or structures
-are opened.
+By default, mutation scores are automatically associated with each
+open structure chain that has exactly the same sequence and residue
+numbering (as in the mutation data) when the structure or mutation data is opened.
 However, specific structure chains to associate can be designated with the
-<a href="open.html#chains"><b>chains</b></a> option of the
-<a href="open.html"><b>open</b></a> command
-at the time of opening the mutation data, or the associations
-can be adjusted manually later (after opening the files) 
-with <a href="#structure"><b>mutationscores structure</b></a>.
+<a href="../commands/open.html#chains"><b>chains</b></a> option of the
+<a href="../commands/open.html"><b>open</b></a> command
+at the time of opening the mutation data, or later (after opening the data) 
+with <a href="../commands/mutationscores.html#structure"><b>mutationscores
+structure</b></a>.  If structure sequences do not match with the same residue
+numbering and amino acids then the <b>alignSequences true</b> option of the
+<b>mutationscores structure</b> command can be used to align and then associate
+the structure sequence with the mutation data sequence.
 </p>
+
 <h3>Mutation score commands</h3>
 <ul>
 <li><a href="#heatmap"><b>mutationscores heatmap</b></a>
@@ -150,6 +169,7 @@ into 2D with UMAP
 [&nbsp;<i>heatmapName</i>&nbsp;]
 [&nbsp;<b>scores</b>&nbsp;&nbsp;<i>names</i>&nbsp;]
 [&nbsp;<b>aminoAcids</b>&nbsp;&nbsp;<i>1-letter-codes</i>&nbsp;]
+[&nbsp;<b>modifications</b>&nbsp;&nbsp;<i>mod-names</i>&nbsp;]
 [&nbsp;<b>grouping</b>&nbsp;&nbsp;<b>score</b>&nbsp;|&nbsp;amino acid&nbsp;]
 [&nbsp;<b>residues</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>residue-spec</i></a>&nbsp;] 
 [&nbsp;<b>labelEveryResidue</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -176,6 +196,7 @@ into 2D with UMAP
 title="heat map details..." width="250px"></a>
 </td></tr>
 </tbody></table>
+
 <p>
 Create a new heatmap or change the settings of an existing heatmap
 with the specified <i>heatmapName</i>.
@@ -186,7 +207,9 @@ Residue positions along the chain are plotted on the horizontal axis, and
 amino acid types along the vertical axis.
 Pausing the cursor over the heatmap reports the mutation name,
 score name, and value in the status area next to the <b>Help</b> button.
-</p><p>
+</p>
+
+<p>
 The <b>scores</b> to include are designated as a comma-separated list of 
 score names (including scores computed with the <a href="#define">mutationscores define</a> command).
 The <b>aminoAcids</b> option specifies the top-to-bottom ordering of 
@@ -195,11 +218,28 @@ amino acid types as an uppercase string of amino acid 1-letter codes
 all 20 standard types may be included, or a subset to limit the plot to
 only those types, and the vertical <b>grouping</b> when multiple scores
 are plotted can be by <b>score</b> (score name, default) or by
-<b>amino acid</b> type. The <b>residues</b> option allows limiting the 
+<b>amino acid</b> type.
+</p>
+
+<p>
+The <b>modifications</b> option adds rows to the
+heatmap for deletions, insertions, and stop codons.  The value of this option
+is a string of comma separated names such as <i>del1</i>, <i>del2</i>, <i>del3</i>
+for 1, 2 or 3 consecutive deletions, <i>insG</i>, <i>insGS</i>, <i>insGSA</i>
+for insertions of glycine (G) or glycine-serine (GS) or glycine-serine-alanine (GSA), and <i>stop</i>
+for residues that are replaced by stop codons.  The insertion display in heatmaps
+is intended for cases where the same few amino acids are inserted at all or many positions
+along the sequence.  It is not intended to show insertions of many different amino acid
+subsequences since each unique subsequence requires a new row in the heatmap.
+</p>
+
+<p>The <b>residues</b> option allows limiting the 
 plot to only the <a href="atomspec.html#hierarchy">specified residues</a>,
 and the <b>labelEveryResidue</b> option specifies whether to label each 
 horizontal position instead of at intervals (default <b>false</b>) 
-</p><p>
+</p>
+
+<p>
 Each mutation is represented by a colored square,
 with <b>pixelsPerCell</b> specifying the side length of each square in pixels
 (default <i>zoom</i> = <b>2</b>). The coloring <b>palette</b> is given as a 
@@ -310,7 +350,9 @@ color in blue all circles for &ldquo;mutants&rdquo; that have the same
 residue type as the wild-type protein (default <b>true</b>) 
 and the <b>bounds</b> option indicates
 whether to show dashed lines delimiting mean &plusmn; 2 standard deviations 
-of their values (default <b>true</b>).
+of their values (default <b>true</b>).  Deletions, insertions, stop codons,
+and multi-residue variants are currently not shown in scatter plots although
+we would like to add this in the future.
 The <b>correlation</b> option indicates whether to draw a line 
 showing the least-squares fit (default <b>false</b>).
 The scatter plot will replace a pre-existing scatter plot unless
@@ -333,6 +375,7 @@ See <a href="../tools/mutationscores.html#scatterplot">scatterplot details</a>.
 [&nbsp;<b>aa</b>&nbsp;&nbsp;<i>one-letter-codes</i>&nbsp;]
 [&nbsp;<b>toAa</b>&nbsp;&nbsp;<i>one-letter-codes</i>&nbsp;]
 [&nbsp;<b>synonymous</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>modifications</b>&nbsp;&nbsp;<i>mod-names</i>&nbsp;]
 [&nbsp;<b>above</b>&nbsp;&nbsp;<i>value</i>&nbsp;]
 [&nbsp;<b>below</b>&nbsp;&nbsp;<i>value</i>&nbsp;]
 [&nbsp;<b>ranges</b>&nbsp;&nbsp;<i>comparison-expression</i>&nbsp;]
@@ -359,6 +402,13 @@ The <b>aa</b> and <b>toAa</b> options limit the mutations to specific
 &ldquo;before and after&rdquo; (before and after mutation) amino acid types.
 Specifying <b>synonymous true</b> limits the &ldquo;mutations&rdquo; 
 to those in which the before and after amino acids are the same (wild-type).
+The <b>modifications</b> option includes scores for deletions, insertions
+and stop codon mutants specified as a comma-separated list of strings such as
+<i>del1</i>, <i>del2</i>, <i>del3</i>, <i>insG</i>, <i>insGS</i>, <i>insGSA</i>, <i>stop</i>
+for 1, 2, or 3 consecutive deletions, insertions of G, GS, or GSA, and stop codons.
+Scores for one or more consecutive deletions are mapped to the first deleted residue
+and scores for insertions of one or more amino acids are mapped to the immediately
+proceeding residue.
 The <b>above</b> and <b>below</b> options limit the mutations to those
 within a given range of a single type of score specified with
 <b>fromScoreName</b> <i>from-score</i>.
@@ -446,6 +496,9 @@ residue type as the wild-type protein (default <b>true</b>)
 and the <b>bounds</b> option indicates
 whether to show dashed lines delimiting mean &plusmn; 2 standard deviations 
 of their values (default <b>true</b>).
+Deletions, insertions, stop codons,
+and multi-residue variants are currently not shown in histograms although
+we would like to add this in the future.
 The histogram will replace a pre-existing histogram unless
 <b>replace false</b> is given. The menus below the histogram can be used
 to change which score is plotted and for which

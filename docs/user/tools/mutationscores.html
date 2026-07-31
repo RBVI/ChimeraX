@@ -139,13 +139,26 @@ to use; currently, a single heatmap cannot include scores from more than one
 </li><li><b>Score names</b> &ndash; which scores to include, entered directly
 as a comma-separated list of score names, or by clicking <b>Choose</b>
 and using the checkboxes in the resulting dialog
-</li><li><b>Amino acid order</b>
+</li>
+<li><b>Amino acid order</b> (default <b>on</b>)
 &ndash; top-to-bottom order of amino acid types along the vertical axis,
 entered as an uppercase string of amino acid 1-letter codes 
 (the default <b>HRKDEFWYNQILCSTVMAGP</b> groups chemically similar types);
 all 20 standard types may be included, or a subset to limit the plot to
-only those types
-</li><li><b>Group by</b> &ndash; if more than one kind of score is included,
+only those types.  If the checkbutton is off then no amino acid rows are shown.
+</li>
+<li><b>Deletions, insertions, stop codons</b> (default <b>off</b>)
+&ndash; comma-separated list of modifications such as <i>del1</i>, <i>del2</i>, <i>del3</i>
+for 1, 2 or 3 consecutive residue deletions, <i>insG</i>, <i>insGS</i>, <i>insGSA</i>
+for insertions of glycine (G) or glycine-serine (GS) or glycine-serine-alanine (GSA), and <i>stop</i>
+for residues that are replaced by stop codons.  Each name will get a new row in the heatmap.
+Scores for one or more consecutive deletions are mapped to the first deleted residue
+and scores for insertions of one or more amino acids are mapped to the immediately
+proceeding residue in the heatmap.  The <b>All</b> button lists the 10 most commonly
+occuring modifications in the mutation data.  Modifications are only shown in
+the heatmap if the checkbutton is enabled.
+</li>
+<li><b>Group by</b> &ndash; if more than one kind of score is included,
 group vertically by <b>amino acid</b> type or by <b>score name</b> (default)
 with black horizontal lines between the different scores
 </li><li><b>Label every residue</b> (default <b>off</b>)
@@ -384,7 +397,9 @@ The <b>Mutation Structure Coloring</b> dialog can be shown by:
 in the <a href="#dialog"><b>Mutation Scores</b></a> tool
 </li><li>choosing <b>Show structure coloring panel</b>
 from the <a href="#scatterplot">scatterplot context menu</a>.
-</li></ul>
+</li>
+</ul>
+
 <p>
 In this dialog, clicking <b>Color structures</b> colors any
 <a href="#associated">associated structures</a>
@@ -397,7 +412,11 @@ An <a href="../attributes.html">attribute</a> named <b>mutation_score</b>
 is assigned to the <a href="#associated">associated structure</a> residues.
 If the coloring is subsequently <a href="#previous-colorings">named/saved</a>,
 the attribute name is changed to match the name of the score.
-</p><p>
+</p>
+
+<h3>Defining residue scores for coloring</h3>
+
+<p>
 <table class="clRight">
 <tbody><tr><td><img border="1" src="ranges.png" alt="define ranges dialog" 
 width="400px">
@@ -412,7 +431,9 @@ a <b>filter mutations</b> setting of <b>all</b> mutations
 shown in the <a href="#scatterplot">scatterplot</a>), or <b>define ranges...</b>
 to choose only specific ranges of one or more scores
 in the <b>Mutation Score Ranges</b> dialog.
-</p><p>
+</p>
+
+<p>
 For example, in the image of the <b>Mutation Score Ranges</b> dialog on the 
 right, only mutations with <b>dox</b> and <b>mtx</b> greater than 2 standard 
 deviations from the mean would be included. A name for the range set 
@@ -425,9 +446,12 @@ would be included instead. Both <b>low</b> and <b>high</b> can be checked
 for the same score to limit it at both extremes; in that case, the
 threshold values should be adjusted from the defaults so that the lower
 limit is below the upper limit.
-</p><p>
+</p>
+
+<p>
 The single value per position can be computed as one of:
 </p>
+
 <ul>
 <li><b>mean</b> &ndash; average of values
 </li><li><b>count</b> &ndash; how many different mutations are being used
@@ -437,7 +461,20 @@ The single value per position can be computed as one of:
 </li><li><b>max</b>
 </li><li><b>median</b>
 </li><li><b>stddev</b> &ndash; standard deviation
-</li></ul>
+</li>
+</ul>
+
+<p>
+The <b>filter mutations</b> menu may also include entries for modifications such as
+<b>del1</b>, <b>del2</b>, <b>del3</b>
+for 1, 2 or 3 consecutive residue deletions, <b>insG</b>, <b>insGS</b>, <b>insGSA</b>
+for insertions of glycine (G) or glycine-serine (GS) or glycine-serine-alanine (GSA), and <b>stop</b>
+for residues that are replaced by stop codons.  Choosing one of these types of modifications
+uses only scores for that type of sequence variant in the structure coloring.
+</p>
+
+<h3>Specifying color palettes and score thresholds</h3>
+
 <p>
 Choices of <b>palette</b> for coloring by mutation scores include:
 </p>
@@ -468,7 +505,11 @@ for four-color palettes</li>
 Clicking <b>Adjust colors</b> shows the
 <a href="render.html"><b>Render by Attribute</b></a> tool
 for interactively moving the thresholds and/or changing their colors.
-</p><p>
+</p>
+
+<h3>Naming structure colorings</h3>
+
+<p>
 <a name="previous-colorings"></a>
 Clicking <b>Name</b> saves the current <b>coloring</b> settings to
 the specified name. Subsequently clicking
