@@ -74,7 +74,7 @@ def fetch_mavedb(session, experiment_set_id, ignore_cache=False, **kw):
         msg = f'Opened MaveDB entry {short_id} containing {nvar} variants {targets} with {len(score_set_ids)} scores from directory {cache_dir}.'
     else:
         targets = ', '.join(set(gene_names))
-        msg = f'MaveDB entry {short_id} contains variants for {targets} and cannot be opened because ChimeraX only handles variants for proteins.'
+        msg = f'MaveDB entry {short_id} containing variants for {targets} cannot be opened because ChimeraX only handles variants specified as protein amino acid mutations (e.g. p.Ser49Thr) not as DNA nucleotide mutations (e.g. c.903A>T).'
         from chimerax.core.errors import UserError
         raise UserError(msg)
     models = []
@@ -84,7 +84,6 @@ def fetch_mavedb(session, experiment_set_id, ignore_cache=False, **kw):
 def _open_mutation_scores(session, cache_dir, score_set_ids):
     msets = []
     messages = []
-    errors = []
     gene_names = []
     for score_set_id in score_set_ids:
         filename = _score_set_csv_filename(score_set_id)
@@ -98,13 +97,15 @@ def _open_mutation_scores(session, cache_dir, score_set_ids):
             score_name = score_set_data['title']
             genes = score_set_data.get('targetGenes', [])
             gene_names.extend(gene['name'] for gene in genes)
+            if len(experiment_name) > 40 and len(gene_names) == 1:
+                # Name mutation set using a shorter name
+                experiment_name = gene_names[0]
         from .ms_csv_file import read_mutation_scores_csv
         from chimerax.core.errors import UserError
         try:
-            mset, warnings = read_mutation_scores_csv(csv_path, name = experiment_name,
-                                                      score_names = ['score'])
+            mset = read_mutation_scores_csv(csv_path, name = experiment_name, score_names = ['score'])
         except UserError as e:
-            errors.append(f'{filename}: {e}')
+            messages.append(str(e))
             continue
         mset.rename_score('score', score_name)
         if len(genes) == 1:
@@ -121,15 +122,14 @@ def _open_mutation_scores(session, cache_dir, score_set_ids):
         mset.gene_name = gene_name
         mset.uniprot_id = uniprot_id
         msets.append(mset)
+        from .variants import variant_parsing_problems
+        warnings = variant_parsing_problems(mset, csv_path)
         if warnings:
             messages.append(warnings)
 
     if messages:
-        disclaimer = '<p>ChimeraX only handles single amino acid non-synonymous and synonymous mutations and ignores multi-residue variants, deletions, insertions, stop codons, and alternate codons.</p>'
         msg = '\n'.join(messages)
-        session.logger.info(disclaimer + msg, is_html = True)
-#    if errors:
-#        session.logger.warning(f'Failed opening {len(errors)} of {len(score_set_ids)} mutation score files from directory {cache_dir}\n{"\n".join(errors)}')
+        session.logger.info(msg, is_html = True)
 
     return msets, gene_names
 
@@ -157,7 +157,7 @@ def _merge_mutation_sets(session, msets):
     for m in msets:
         for score_name in m.score_names():
             if score_name in all_score_names:
-                unique_score_name = _unique_name(score_name, all_scores)
+                unique_score_name = _unique_name(score_name, all_score_names)
                 m.rename_score(score_name, unique_score_name)
                 all_score_names.add(unique_score_name)
             else:
@@ -195,6 +195,31 @@ def _unique_name(name, used_names):
                 return new_name
             i += 1
     return name
+
+def _mavedb_fix_missing_synonymous(hgvs, hgvs_nt, nt_sequence):
+    '''
+    MaveDB (e.g. entry 1) has synonymous and non-synonymous mutations shown in the
+    nucleotide hgvs_nt column, but only has the non-synonymous in the protein hgvs_pro column.
+    For example, c.[326C>A;678C>A],p.Ala109Asp or c.[687T>C;705G>T],p.= in entry 80 score set a_1.
+    Compute a new protein hgvs using the nucleotide to include the synonymous changes.
+    '''
+    if hgvs.count(';') == hgvs_nt.count(';'):
+        return hgvs
+    changes = {}
+    nt_changes = hgvs_nt.lstrip('c.[').rstrip(']').split(';')
+    for nt_change in nt_changes:
+        nnum = int(nt_change[:-3])
+        from_nt = nt_change[-3]
+        to_nt = nt_change[-1]
+        if nt_sequence[nnum-1] != from_nt:
+            raise ValueError(f'{hgvs_nt} has component {nt_change} that does not match sequence {nt_sequence}')
+        changes[nnum-1] = to_nt
+    pchanges = set(nnum//3 for nnum in changes.keys())
+    for rnum in pchanges:
+        nt_sequence[3*rnum:3*rnum+3]
+
+    # TODO: This is going to be tricky to include insertions and deletions.
+    #       Maybe should just try ot add in synonymous?
 
 def _download_experiment_set_files(session, full_id, short_id, cache_dir, cache_subdir, ignore_cache):
     from os import makedirs

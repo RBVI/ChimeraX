@@ -176,7 +176,7 @@ class MutationScoresList(ToolInstance):
         if mset is None:
             return
         if len(mset.score_names()) < 2:
-            from chimerax.core.users import UserError
+            from chimerax.core.errors import UserError
             raise UserError(f'Mutation set {mset.name} does not have 2 scores for a scatter plot')
         x_score_name, y_score_name = score_names[:2] if len(score_names) >= 2 else mset.score_names()[:2]
         mset_option = self._mset_option(mset.name)

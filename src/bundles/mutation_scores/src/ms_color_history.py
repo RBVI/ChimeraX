@@ -76,20 +76,23 @@ class MutationStructureColoring(ToolInstance):
                                'value', ('mean', 'count', 'sum absolute', 'sum', 'min', 'median', 'max', 'stddev'),
                                'palette', ('blue to red', 'red to blue', 'white to red', 'red to white',
                                            'white to blue', 'blue to white'))
-        self._color_score_menu, self._subtract_fit_menu, self._mutation_set_menu = controls.values
+        self._color_score_menu, self._subtract_fit_menu, self._mutation_set_menu = csm, sfm, msm = controls.values
         score_names = self._score_names()
-        self._color_score_menu.value = score_names[0] if score_names else 'none'
+        csm.shorten_text('middle', 200)
+        csm.value = score_names[0] if score_names else 'none'
         self._mutation_set_menu_label = controls.labels[2]
         self._color_which_menu, self._color_score_type_menu, self._color_palette_menu = controls2.values
 
         cwmenu = self._color_which_menu.widget.menu()
         cwmenu.triggered.connect(self._color_which_chosen)
         cwmenu.aboutToShow.connect(lambda *,menu=cwmenu: self._menu_about_to_show(menu))
-        smenu = self._color_score_menu.widget.menu()
+        msm.shorten_text('middle', 200)
+        smenu = csm.widget.menu()
         smenu.aboutToShow.connect(lambda *,menu=smenu: self._menu_about_to_show(menu))
-        msmenu = self._mutation_set_menu.widget.menu()
+        msmenu = msm.widget.menu()
         msmenu.aboutToShow.connect(lambda *,menu=msmenu: self._menu_about_to_show(menu))
-        sfmenu = self._subtract_fit_menu.widget.menu()
+        msmenu.triggered.connect(self._mutation_set_changed)
+        sfmenu = sfm.widget.menu()
         sfmenu.aboutToShow.connect(lambda *,menu=sfmenu: self._menu_about_to_show(menu))
         self._set_mutation_set_menu_visibility()
 
@@ -127,6 +130,13 @@ class MutationStructureColoring(ToolInstance):
             raise UserError('Press the "Color structure" button, then you can name the coloring')
         self._last_coloring_name = new_coloring_name
 
+    @property
+    def _mutation_set(self):
+        mutation_set_name = self._mutation_set_menu.value
+        from .ms_data import mutation_scores
+        mset = mutation_scores(self.session, mutation_set_name)
+        return mset
+        
     def set_mutation_set(self, mset):
         self._mutation_set_menu.value = mset.name
 
@@ -135,6 +145,12 @@ class MutationStructureColoring(ToolInstance):
         visible = (len(mutation_scores_names(self.session)) > 1)
         self._mutation_set_menu.widget.setVisible(visible)
         self._mutation_set_menu_label.setVisible(visible)
+
+    def _mutation_set_changed(self, action):
+        score_name = self._color_score_menu.value
+        score_names = self._score_names()
+        if score_name not in score_names:
+            self._color_score_menu.value = score_names[0]
 
     def set_coloring_score(self, score_name):
         self._color_score_menu.value = score_name
@@ -154,6 +170,8 @@ class MutationStructureColoring(ToolInstance):
             named_ranges = _named_score_ranges(self.session)
             if named_ranges:
                 filters += tuple(named_ranges.names())
+            self._mod_names = self._mutation_set.modification_names()
+            filters += self._mod_names
             for filter in filters:
                 menu.addAction(filter)
         else:
@@ -161,19 +179,16 @@ class MutationStructureColoring(ToolInstance):
                 menu.addAction('none')
             for name in self._score_names():
                 menu.addAction(name)
-
+        # Show or hide mutation set menu if mutation sets opened or closed.
+        self._set_mutation_set_menu_visibility()
+        
     def _score_names(self):
-        from .ms_data import mutation_scores
-        ms_name = self._mutation_set_menu.value
-        mset = mutation_scores(self.session, ms_name)
-        return mset.score_names()
+        return self._mutation_set.score_names()
 
     def _color_structures(self):
-        from .ms_data import mutation_all_scores, mutation_scores
+        mset = self._mutation_set
         mutation_set_name = self._mutation_set_menu.value
-        session = self.session
-        scores = mutation_scores(session, mutation_set_name)
-        if len(scores.associated_chains()) == 0:
+        if len(mset.associated_chains()) == 0:
             from chimerax.core.errors import UserError
             raise UserError(f'There are no structures associated with mutations {mutation_set_name}')
 
@@ -183,13 +198,17 @@ class MutationStructureColoring(ToolInstance):
         score_type = score_type.replace(" ", "_")
         palette = self._color_palette_menu.value # 'blue to red', ...
         subtract_fit_name = self._subtract_fit_menu.value
-
+        modifications = None
+        
         if which == 'drag box on scatterplot':
             ranges = self._box_ranges(score_name)
         elif which == 'all':
             ranges = None
         elif which == 'define ranges...':
-            ranges = _get_score_ranges_from_gui(session)
+            ranges = _get_score_ranges_from_gui(self.session)
+        elif which in getattr(self, '_mod_names', []):
+            ranges = None
+            modifications = which
         else:
             ranges = self._named_ranges(which)
 
@@ -198,14 +217,17 @@ class MutationStructureColoring(ToolInstance):
         cmd_score = f'mutationscores define {attr_name} from {quote_if_necessary(score_name)} combine {score_type}'
         if ranges:
             cmd_score += f' ranges "{ranges}"'
+        if modifications:
+            cmd_score += f' modifications {modifications}'
         if subtract_fit_name != 'none':
             cmd_score += f' subtractFit {subtract_fit_name}'
-        if len(mutation_all_scores(session)) > 1:
+        from .ms_data import mutation_all_scores
+        if len(mutation_all_scores(self.session)) > 1:
             cmd_score += f' mutationSet {quote_if_necessary(mutation_set_name)}'
         rvalues = self._run_command(cmd_score)
-        values = [value for rnum, from_aa, to_aa, value in rvalues.all_values()]
+        values = [value for variant, value in rvalues.all_values()]
 
-        chains = scores.associated_chains()
+        chains = mset.associated_chains()
         from chimerax.atomic import concise_chain_spec
         chain_spec = concise_chain_spec(chains)
         palette_spec = self._palette_specifier(palette, values)
@@ -1021,7 +1043,7 @@ class MutationColorHistoryPanel(ToolInstance):
                 if rnum in scores:
                     rscores = scores[rnum]
                     if len(rscores) == 1:
-                        from_aa, to_aa, value = rscores[0]
+                        variant, value = rscores[0]
                         score = value_format % value
                 row.append(score)
             lines.append(','.join(row))

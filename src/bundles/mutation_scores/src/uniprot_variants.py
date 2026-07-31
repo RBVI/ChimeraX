@@ -111,7 +111,7 @@ def open_uniprot_variant_scores(session, path, identifier = None, chains = None,
 def parse_uniprot_variants(session, variant_info):
     '''Return a list of MutationScores instances.'''
     mscores = []
-    from .ms_data import MutationScores
+    from .ms_data import MutationScores, Variant
     features = variant_info['features']
     for variant in features:
         if variant['type'] != 'VARIANT':
@@ -137,7 +137,9 @@ def parse_uniprot_variants(session, variant_info):
             res_num = int(variant['begin'])
             from_aa = variant['wildType']	# One-letter amino acid code
             to_aa = variant['mutatedType']	# One-letter amino acid code
-            mscores.append(MutationScores(res_num, from_aa, to_aa, scores))
+            hgvs_pro = f'p.{from_aa}{res_num}{to_aa}'
+            variant = Variant(hgvs_pro)
+            mscores.append(MutationScores(variant, scores))
     return mscores
 
 '''

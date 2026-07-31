@@ -38,8 +38,9 @@ def mutation_scores_label(session, residues, score_name = None, mutation_set = N
         colormap = _colormap_with_range(palette, r)
         count = 0
         for res in cresidues:
-            mut_colors = {to_aa:colormap.interpolated_rgba8([value])[0]
-                          for from_aa, to_aa, value in score_values.mutation_values(res.number)}
+            mut_colors = {variant.to_aa:colormap.interpolated_rgba8([value])[0]
+                          for variant, value in score_values.mutation_values(res.number)
+                          if variant.to_aa is not None}
             if mut_colors:
                 label_residue(res, mut_colors, no_data_color, height = height, offset = offset, on_top = on_top)
                 count += 1

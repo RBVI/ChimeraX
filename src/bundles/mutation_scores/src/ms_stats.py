@@ -34,9 +34,9 @@ def mutation_scores_statistics(session, score_name = None, mutation_set = None, 
             raise UserError(f'No mutation score named {score_name}')
     
     values = []
-    for res_num, from_aa, to_aa, value in score_values.all_values():
+    for variant, value in score_values.all_values():
         if type == 'synonymous' and not score_values.per_residue:
-            if to_aa == from_aa or to_aa is None:
+            if variant.is_synonymous:
                 values.append(value)
         else:
             values.append(value)

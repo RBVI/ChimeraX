@@ -93,7 +93,10 @@ class MutationScatterPlot(Graph):
                            ' X axis', ('score1', 'score2'),
                            'Y axis', ('score1', 'score2'),
                            'Mutations', ('set1', 'set2'))
-        self._x_axis_menu, self._y_axis_menu, self._mutation_set_menu = menus.values
+        self._x_axis_menu, self._y_axis_menu, self._mutation_set_menu = xam, yam, msm = menus.values
+        xam.shorten_text('middle', 200)
+        yam.shorten_text('middle', 200)
+        msm.shorten_text('middle', 200)
         self._mutation_set_menu_label = menus.labels[2]
         for m in menus.values:
             menu = m.widget.menu()
@@ -183,20 +186,22 @@ class MutationScatterPlot(Graph):
             is_mutation_plot = False	# Residues plotted instead of mutations
         elif x_scores.per_residue or y_scores.per_residue:
             rscores, mscores = (x_scores,y_scores) if x_scores.per_residue else (y_scores,x_scores)
-            r_values = {(res_num,from_aa):r_value for res_num, from_aa, to_aa, r_value in rscores.all_values()}
-            for res_num, from_aa, to_aa, m_value in mscores.all_values():
-                r_value = r_values.get((res_num, from_aa))
+            r_values = {variant:r_value for variant, r_value in rscores.all_values()}
+            for variant, m_value in mscores.all_values():
+                r_value = r_values.get(variant.residue_variant())
                 if r_value is not None:
                     points.append((r_value, m_value) if x_scores.per_residue else (m_value, r_value))
-                    point_names.append(f'{from_aa}{res_num}{to_aa}')
+                    name = variant.hgvs_protein if variant.residue_number is None else f'{variant.from_aa}{variant.residue_number}'
+                    point_names.append(name)
             is_mutation_plot = True
         else:
-            y_values = {(res_num,from_aa,to_aa):y_value for res_num, from_aa, to_aa, y_value in y_scores.all_values()}
-            for res_num, from_aa, to_aa, x_value in x_scores.all_values():
-                y_value = y_values.get((res_num, from_aa, to_aa))
+            y_values = dict(y_scores.all_values())
+            for variant, x_value in x_scores.all_values():
+                y_value = y_values.get(variant)
                 if y_value is not None:
                     points.append((x_value, y_value))
-                    point_names.append(f'{from_aa}{res_num}{to_aa}')
+                    name = variant.hgvs_protein if variant.residue_number is None else f'{variant.from_aa}{variant.residue_number}{variant.to_aa}'
+                    point_names.append(name)
             is_mutation_plot = True
 
         from numpy import array, float32
@@ -351,7 +356,30 @@ class MutationScatterPlot(Graph):
         xval = f'{xlabel} {"%6.2f" % x}' if x is not None else ''
         yval = f'{ylabel} {"%6.2f" % y}' if y is not None else ''
         msg =  f'   {xval}    {yval}    {descrip}'
-        self._status_line.setText(msg)
+
+        # Make xy labels shorter if message is wider than window
+        sline = self._status_line
+        from Qt.QtGui import QFontMetrics
+        fm = QFontMetrics(sline.font())
+        extra = fm.boundingRect(msg).width() - self.tool_window.ui_area.width()
+        if extra > 0:
+            x_width, y_width = fm.boundingRect(xlabel).width(), fm.boundingRect(ylabel).width()
+            wmax = (x_width + y_width - extra) // 2
+            wmin = 40
+            if wmax < wmin:
+                xlabel = ylabel = ''
+            from Qt.QtCore import Qt
+            if x_width > wmax and y_width > wmax:
+                xlabel = fm.elidedText(xlabel, Qt.ElideRight, wmax)
+                ylabel = fm.elidedText(ylabel, Qt.ElideRight, wmax)
+            elif x_width > wmax:
+                xlabel = fm.elidedText(xlabel, Qt.ElideRight, x_width-extra)
+            else:
+                ylabel = fm.elidedText(ylabel, Qt.ElideRight, y_width-extra)
+            xval = f'{xlabel} {"%6.2f" % x}' if x is not None else ''
+            yval = f'{ylabel} {"%6.2f" % y}' if y is not None else ''
+            msg =  f'   {xval}    {yval}    {descrip}'
+        sline.setText(msg)
 
     @property
     def mutation_set(self):
@@ -644,7 +672,7 @@ class MutationScatterPlot(Graph):
             sp.show_least_squares_fit()
         sp.draw_graph()
         return sp
-    
+
 def _find_close_residues(residue, residues, distance):
     rxyz = residue.atoms.coords
     aatoms = residues.atoms
@@ -654,10 +682,13 @@ def _find_close_residues(residue, residues, distance):
     close_res = aatoms[ai].residues.unique()
     return close_res
 
-def _find_mutation_scatter_plot(session, mutation_set_name = None):
+def _find_mutation_scatter_plot(session, mutation_set_name = None, show = True):
     plots = [tool for tool in session.tools.list()
              if isinstance(tool, MutationScatterPlot) and (mutation_set_name is None or tool.mutation_set_name == mutation_set_name)]
-    return plots[-1] if plots else None
+    p = plots[-1] if plots else None
+    if show and p:
+        p.display(True)
+    return p
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg

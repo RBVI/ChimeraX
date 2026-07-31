@@ -158,6 +158,9 @@ class _MutationScoresAPI(BundleAPI):
         elif class_name == 'MutationScores':
             from .ms_data import MutationScores
             return MutationScores
+        elif class_name == 'Variant':
+            from .ms_data import Variant
+            return Variant
         elif class_name == 'ScoreValues':
             from .ms_data import ScoreValues
             return ScoreValues

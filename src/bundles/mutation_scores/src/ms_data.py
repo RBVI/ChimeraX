@@ -22,6 +22,8 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from .variants import Variant
+
 from chimerax.core.state import State  # For session saving
 class MutationSet(State):
     def __init__(self, name, mutation_scores, chains = None, allow_mismatches = False, path = None):
@@ -40,9 +42,13 @@ class MutationSet(State):
         if chains:
             self.set_associated_chains(chains, allow_mismatches)
 
-    def score_values(self, score_name, raise_error = True):
-        svalues = [(ms.residue_number, ms.from_aa, ms.to_aa, ms.scores[score_name])
-                   for ms in self.mutation_scores if score_name in ms.scores]
+    def score_values(self, score_name, include_modifications = False, raise_error = True):
+        svalues = []
+        for ms in self.mutation_scores:
+            if score_name in ms.scores:
+                v = ms.variant
+                if include_modifications or v.to_aa is not None:
+                    svalues.append((v, ms.scores[score_name]))
         if len(svalues) == 0:
             values = self.computed_values(score_name)
         else:
@@ -102,7 +108,18 @@ class MutationSet(State):
 
     @property
     def number_of_variants(self):
-        return len(set((ms.residue_number, ms.from_aa, ms.to_aa) for ms in self.mutation_scores))
+        return len(set(ms.variant for ms in self.mutation_scores))
+
+    def modification_names(self, max_names = 10):
+        changes = [ms.variant.change for ms in self.mutation_scores if ms.variant.change]
+        change_counts = {name:0 for name in set(changes)}
+        for c in changes:
+            change_counts[c] += 1
+        change_names = list(change_counts.keys())
+        change_names.sort(key = lambda n: change_counts[n], reverse=True)
+        names = change_names[:max_names]
+        names.sort()
+        return tuple(names)
 
     def sequence(self, missing_code = 'X'):
         '''
@@ -257,7 +274,11 @@ class MutationSet(State):
 
     def residue_number_to_amino_acid(self):
         if self._resnum_to_aa is None:
-            self._resnum_to_aa = {ms.residue_number:ms.from_aa for ms in self.mutation_scores}
+            self._resnum_to_aa = rnum_to_aa = {}
+            for ms in self.mutation_scores:
+                v = ms.variant
+                if v.residue_number:
+                    rnum_to_aa[v.residue_number] = v.from_aa
         return self._resnum_to_aa
 
     def take_snapshot(self, session, flags):
@@ -318,32 +339,34 @@ def _check_scores_sequence(scores_sequence, rnum_to_aa):
             raise UserError(f'Alignment reference sequence "{scores_sequence}" does not match mutation scores sequence "{mseq}" at position {rnum}')
     
 class MutationScores(State):
-    def __init__(self, residue_number, from_aa, to_aa, scores):
-        self.residue_number = residue_number
-        self.from_aa = from_aa
-        self.to_aa = to_aa
+    def __init__(self, variant, scores):
+        self.variant = variant
         self.scores = scores	# Map of score name to score value
 
     def filter(self, score_names):
         scores = {score_name:value for score_name, value in self.scores.items() if score_name in score_names}
-        return MutationScores(self.residue_number, self.from_aa, self.to_aa, scores)
+        return MutationScores(self.variant, scores)
 
     def take_snapshot(self, session, flags):
-        return {'residue_number': self.residue_number,
-                'from_aa': self.from_aa,
-                'to_aa': self.to_aa,
+        return {'variant': self.variant,
                 'scores': self.scores,
-                'version': 1}
+                'version': 2}
 
     @classmethod
     def restore_snapshot(cls, session, data):
-        ms = cls(data['residue_number'], data['from_aa'], data['to_aa'], data['scores'])
+        ver = data['version']
+        if ver == 1:
+            hgvs_pro = f'p.{data["from_aa"]}{data["residue_number"]}{data["to_aa"]}'
+            variant = Variant(hgvs_pro)
+        else:
+            variant = data['variant']
+        ms = cls(variant, data['scores'])
         return ms
-
+    
 class ScoreValues(State):
     def __init__(self, mutation_values, per_residue = False):
-        self._mutation_values = mutation_values # List of (res_num, from_aa, to_aa, value)
-        self._values_by_residue_number = None	# res_num -> (from_aa, to_aa, value)
+        self._mutation_values = mutation_values # List of (variant, value)
+        self._values_by_residue_number = None	# res_num -> (variant, value)
         self.per_residue = per_residue
 
     def all_values(self):
@@ -353,14 +376,16 @@ class ScoreValues(State):
         return len(self._mutation_values)
 
     def residue_numbers(self):
-        return tuple(self.values_by_residue_number.keys())
+        rnums = tuple(set(variant.residue_number for variant, value in self._mutation_values
+                          if variant.residue_number is not None))
+        return rnums
 
     def residue_numbers_and_types(self):
-        return tuple((rnum, rvals[0][0]) for rnum, rvals in self.values_by_residue_number.items())
+        return tuple((rnum, rvals[0][0].from_aa) for rnum, rvals in self.values_by_residue_number.items())
 
     def residue_value(self, residue_number):
         mvalues = self.mutation_values(residue_number)
-        return None if len(mvalues) == 0 else sum(value for from_aa, to_aa, value in mvalues)
+        return None if len(mvalues) == 0 else sum(value for variant, value in mvalues)
 
     def mutation_values(self, residue_number):
         '''Return list of (from_aa, to_aa, value).'''
@@ -371,26 +396,28 @@ class ScoreValues(State):
     def values_by_residue_number(self):
         if self._values_by_residue_number is None:
             self._values_by_residue_number = vbrn = {}
-            for val in self._mutation_values:
-                if val[0] in vbrn:
-                    vbrn[val[0]].append(val[1:])
-                else:
-                    vbrn[val[0]] = [val[1:]]
+            for variant, value in self._mutation_values:
+                rnum = variant.residue_number
+                if rnum is not None:
+                    if rnum in vbrn:
+                        vbrn[rnum].append((variant,value))
+                    else:
+                        vbrn[rnum] = [(variant,value)]
         return self._values_by_residue_number
         
     def value_range(self):
-        values = [val[3] for val in self._mutation_values]
+        values = [value for variant,value in self._mutation_values]
         return min(values), max(values)
 
     def synonymous_mean_and_sdev(self):
-        values = [value for res_num, from_aa, to_aa, value in self._mutation_values if to_aa == from_aa]
+        values = [value for variant, value in self._mutation_values if variant.is_synonymous]
         if len(values) == 0:
             return None, None
         from numpy import mean, std
         return mean(values), std(values)
 
     def mean_and_sdev(self):
-        values = [value for res_num, from_aa, to_aa, value in self._mutation_values]
+        values = [value for variant, value in self._mutation_values]
         if len(values) == 0:
             return None, None
         from numpy import mean, std
@@ -411,20 +438,19 @@ class ScoreValues(State):
         return sv
 
 def subtract_fit_values(cvalues, svalues):
-    smap = {(res_num,from_aa,to_aa):value for res_num, from_aa, to_aa, value in svalues}
+    smap = {variant:value for variant,value in svalues}
     x = []
     y = []
-    for res_num, from_aa, to_aa, value in cvalues:
-        svalue = smap.get((res_num,from_aa,to_aa))
+    for variant, value in cvalues:
+        svalue = smap.get(variant)
         if svalue is not None:
             x.append(svalue)
             y.append(value)
     from numpy import polyfit
     degree = 1
     m,b = polyfit(x, y, degree)
-    sfvalues = [(res_num, from_aa, to_aa, value - (m*smap[(res_num,from_aa,to_aa)] + b))
-                for res_num, from_aa, to_aa, value in cvalues
-                if (res_num,from_aa,to_aa) in smap]
+    sfvalues = [(variant, value - (m*smap[variant] + b))
+                for variant, value in cvalues if variant in smap]
     return sfvalues
 
 from chimerax.core.state import StateManager  # For session saving
@@ -453,6 +479,8 @@ class MutationScoresManager(StateManager):
                     s = self._scores[full_names[0]]
         return s
     def add_scores(self, mutation_set):
+        if mutation_set.name in self._scores:
+            mutation_set.name = self._unique_mutation_set_name(mutation_set.name)
         self._scores[mutation_set.name] = mutation_set
         self._session.triggers.activate_trigger('mutation set added', mutation_set)
         chains = mutation_set.associate_chains(_all_chains(self._session))
@@ -469,7 +497,13 @@ class MutationScoresManager(StateManager):
         return tuple(self._scores.values())
     def names(self):
         return tuple(self._scores.keys())
-
+    def _unique_mutation_set_name(self, name):
+        new_name = name
+        suffix = 1
+        while new_name in self._scores:
+            suffix += 1
+            new_name = f'{name} {suffix}'
+        return new_name
     def _structure_opened(self, trigger_name, models):
         self._update_associated_chains(models, 'add')
     def _structure_closed(self, trigger_name, models):

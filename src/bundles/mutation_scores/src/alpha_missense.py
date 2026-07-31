@@ -89,7 +89,7 @@ def open_alpha_missense_scores(session, path, identifier = None, chains = None, 
         if chains:
             mset.set_associated_chains(chains, allow_mismatches)
 
-    nres = len(set(ms.residue_number for ms in mutation_scores))
+    nres = len(set(ms.variant.residue_number for ms in mutation_scores if ms.variant.residue_number is not None))
     msg = f'Fetched AlphaMissense scores {identifier} for {nres} residues'
 
     if session.ui.is_gui:
@@ -106,14 +106,13 @@ def open_alpha_missense_scores(session, path, identifier = None, chains = None, 
 def parse_alpha_missense_scores(session, lines, score_name = 'amiss'):
     '''Return a list of MutationScores instances.'''
     mscores = []
-    from .ms_data import MutationScores
+    from .ms_data import MutationScores, Variant
     for line in lines[1:]:
         m, score, descrip = line.split(',')
-        res_num = int(m[1:-1])
-        from_aa = m[0]
-        to_aa = m[-1]
+        hgvs_pro = f'p.{m}'
+        variant = Variant(hgvs_pro)
         scores = {'amiss': float(score)}
-        mscores.append(MutationScores(res_num, from_aa, to_aa, scores))
+        mscores.append(MutationScores(variant, scores))
     return mscores
 
 '''
