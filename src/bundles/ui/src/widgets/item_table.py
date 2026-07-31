@@ -37,10 +37,7 @@ class QCxTableModel(QAbstractTableModel):
             if isinstance(val, bool):
                 return None
             if col.display_format in ItemTable.color_formats:
-                if self._item_table._allow_user_sorting:
-                    sorted_index = self._item_table.model().mapFromSource(index)
-                else:
-                    sorted_index = index
+                sorted_index = self._item_table.model().mapFromSource(index)
                 widget = self._item_table.indexWidget(sorted_index)
                 if not widget:
                     has_alpha = col.display_format == ItemTable.COL_FORMAT_TRANSPARENT_COLOR
@@ -51,10 +48,7 @@ class QCxTableModel(QAbstractTableModel):
                 widget.color = val
                 return None
             if col.is_html:
-                if self._item_table._allow_user_sorting:
-                    sorted_index = self._item_table.model().mapFromSource(index)
-                else:
-                    sorted_index = index
+                sorted_index = self._item_table.model().mapFromSource(index)
                 widget = self._item_table.indexWidget(sorted_index)
                 if not widget:
                     widget = QLabel()
@@ -295,7 +289,8 @@ class ItemTable(QTableView):
                 table adds columns whose 'data_set' attribute is a string (since it will be run as command).
             color_column_width: Columns containing color buttons will be this wide.  Some tables for
                 practical or esthetic reasons may prefer a narrower value (e.g. 16).
-            allow_user_sorting: controls whether the user can rearrange columns by dragging the headers
+            allow_user_column_ordering: controls whether the user can rearrange columns by dragging the
+                headers
 
         Notes:
             For a menu the value of column_control_info should be:
@@ -607,13 +602,11 @@ class ItemTable(QTableView):
     def launch(self, *, select_mode=QAbstractItemView.SelectionMode.ExtendedSelection, session_info=None,
             suppress_resize=False):
         self._table_model = QCxTableModel(self)
+        sort_model = NumSortingProxyModel()
+        sort_model.setSourceModel(self._table_model)
+        self.setModel(sort_model)
         if self._allow_user_sorting:
-            sort_model = NumSortingProxyModel()
-            sort_model.setSourceModel(self._table_model)
-            self.setModel(sort_model)
             self.setSortingEnabled(True)
-        else:
-            self.setModel(self._table_model)
         if self._allow_user_column_ordering:
             self.horizontalHeader().setSectionsMovable(True)
         self.setSelectionBehavior(self.SelectRows)
@@ -647,15 +640,14 @@ class ItemTable(QTableView):
     def process_session_info(self, session_info):
         # normally called by launch(), but sometimes you have already launched the table, so...
         version, selected, column_display, highlighted, sort_info, *version_args = session_info
-        if self._allow_user_sorting and sort_info is not None:
+        if sort_info is not None:
             col_num, order = sort_info
             self.sortByColumn(col_num, qt_enum_from_int(Qt.SortOrder, order))
         sel_model = self.selectionModel()
         scroll_to = None
         for i in selected:
             index = self._table_model.index(i,0)
-            if self._allow_user_sorting:
-                index = self.model().mapFromSource(index)
+            index = self.model().mapFromSource(index)
             sel_model.select(index, sel_model.Rows | sel_model.Select)
             scroll_to = index
         self.highlight([self._data[i] for i in highlighted])
@@ -670,42 +662,28 @@ class ItemTable(QTableView):
     def scroll_to(self, datum):
         """ Scroll the table to ensure that the given data item is visible """
         index = self._table_model.index(self._data.index(datum), 0)
-        if self._allow_user_sorting:
-            index = self.model().mapFromSource(index)
+        index = self.model().mapFromSource(index)
         self.scrollTo(index, self.PositionAtCenter)
 
     @property
     def selected(self):
-        if self._allow_user_sorting:
-            return [self._data[self.model().mapToSource(i).row()]
-                for i in self.selectionModel().selectedRows()]
-        return [self._data[i.row()] for i in self.selectionModel().selectedRows()]
+        return [self._data[self.model().mapToSource(i).row()] for i in self.selectionModel().selectedRows()]
 
     @selected.setter
     def selected(self, items):
         sel_model = self.selectionModel()
         data_rows = [self._data.index(item) for item in items]
-        if self._allow_user_sorting:
-            model_indices = [self.model().mapFromSource(self._table_model.index(row, 0))
-                for row in data_rows]
-        else:
-            model_indices = [self.model().index(row, 0) for row in data_rows]
+        model_indices = [self.model().mapFromSource(self._table_model.index(row, 0)) for row in data_rows]
         sel_model.clear()
         for index in model_indices:
             sel_model.select(index, sel_model.Select | sel_model.Rows)
 
     def session_info(self):
         version = 2
-        if self._allow_user_sorting:
-            selected = set([self.model().mapToSource(i).row() for i in self.selectionModel().selectedRows()])
-        else:
-            selected = set([i.row() for i in self.selectedIndexes()])
+        selected = set([self.model().mapToSource(i).row() for i in self.selectionModel().selectedRows()])
         column_display = { c.title: c.display for c in self._columns }
         highlighted = [i for i, d in enumerate(self.data) if d in self._highlighted]
-        if self._allow_user_sorting:
-            sort_info = (self.model().sortColumn(), qt_enum_as_int(self.model().sortOrder()))
-        else:
-            sort_info = None
+        sort_info = (self.model().sortColumn(), qt_enum_as_int(self.model().sortOrder()))
         if self._allow_user_column_ordering:
             header_info = self.horizontalHeader().saveState().data()
         else:
@@ -718,16 +696,12 @@ class ItemTable(QTableView):
         return super().sizeHintForColumn(col_index)
 
     def sort_by(self, column, order):
-        if not self._allow_user_sorting:
-            raise ValueError("Table was not configured to allow sorting")
         self.sortByColumn(self._columns.index(column), order)
 
     @property
     def sorted_data(self):
-        if self._allow_user_sorting:
-            return [self._data[self.model().mapToSource(self.model().index(i,0)).row()]
-                for i in range(len(self._data))]
-        return self._data
+        return [self._data[self.model().mapToSource(self.model().index(i,0)).row()]
+            for i in range(len(self._data))]
 
     def update_cell(self, col_info, datum):
         if isinstance(col_info, str):
@@ -851,12 +825,8 @@ class ItemTable(QTableView):
                 col += 1
 
     def _relay_selection_change(self, selected, deselected):
-        if self._allow_user_sorting:
-            sel_data, desel_data = [list(set(self._data[self.model().mapToSource(i).row()]
-                for i in x.indexes())) for x in (selected, deselected)]
-        else:
-            sel_data, desel_data = [list(set(self._data[i.row()] for i in x.indexes()))
-                for x in (selected, deselected)]
+        sel_data, desel_data = [list(set(self._data[self.model().mapToSource(i).row()]
+            for i in x.indexes())) for x in (selected, deselected)]
         self.selection_changed.emit(sel_data, desel_data)
 
     def _set_default(self):
