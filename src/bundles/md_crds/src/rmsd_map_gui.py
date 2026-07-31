@@ -11,9 +11,9 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from Qt.QtWidgets import QVBoxLayout, QLabel, QHBoxLayout, QGraphicsView, QGraphicsScene
-from Qt.QtGui import QBrush, QColor, QPen, QPolygonF
-from Qt.QtCore import Qt, QPointF
+from Qt.QtWidgets import QVBoxLayout, QLabel, QHBoxLayout, QLineEdit, QPushButton, QDialog, QFileDialog
+from Qt.QtGui import QIntValidator
+from Qt.QtCore import Qt
 
 from chimerax.core.commands import plural_of
 from chimerax.core.errors import UserError
@@ -25,11 +25,11 @@ class RMSDMapLauncher:
         self.main_tool_window = main_tool_window
         self.tool_window = tw = launcher_window
         #tw.help = "help:user/commands/coordset.html#clustering"
-        def cleanup(lcd=self):
-            inst = lcd.tool_window.tool_instance
+        def cleanup(self=self):
+            inst = self.tool_window.tool_instance
             from .gui import _remove_tool_window
             _remove_tool_window(inst, "rmsd map launcher")
-            delattr(lcd.tool_window, 'cleanup')
+            delattr(self.tool_window, 'cleanup')
         tw.cleanup = cleanup
         self.session = structure.session
         self.structure = structure
@@ -45,7 +45,7 @@ class RMSDMapLauncher:
         title.setMidLineWidth(3)
         layout.addWidget(title)
 
-        self.settings = settings = LaunchRMSDMapSettings(self.session, "launch RMSD map")
+        self.settings = settings = RMSDMapSettings(self.session, "RMSD map")
         from chimerax.ui.options import OptionsPanel, IntOption, BooleanOption, EnumOption, FloatOption
         options_panel = OptionsPanel(sorting=False, scrolled=False, contents_margins=(2,2,2,2))
         cs_ids = structure.coordset_ids
@@ -87,10 +87,12 @@ class RMSDMapLauncher:
         bbox.rejected.connect(tw.destroy)
         if getattr(tw, 'help', None):
             from chimerax.core.commands import run
-            bbox.helpRequested.connect(lambda *, run=run, ses=self.session: run(ses, "help " + tw.help))
+            bbox.helpRequested.connect(lambda *, run=run, ses=self.session, tw=tw:
+                run(ses, "help " + tw.help))
         else:
             bbox.button(qbbox.Help).setEnabled(False)
-        layout.addWidget(bbox)
+        # Put the buttons below the status bar
+        tw.ui_area.parent().layout().addWidget(bbox)
 
         tw.manage(None)
 
@@ -117,17 +119,40 @@ class RMSDMapLauncher:
         frames = analysis_frames(self.structure, start, end, step)
         if not frames:
             return tool_user_error("No frames match start/step/end")
+
+        num_frames = len(frames)
+        import numpy
+        rmsds = numpy.zeros((num_frames, num_frames), float)
+        structure = atoms[0].structure
+        min_rmsd = max_rmsd = None
+        from chimerax.geometry import align_points
+        with structure.suppress_coordset_change_notifications():
+            for i, fn1 in enumerate(frames):
+                self.tool_window.status("Computing RMSDS for frame %d/%d" % (i+1, num_frames))
+                structure.active_coordset_id = fn1
+                coords1 = atoms.coords
+                for j in range(i+1, num_frames):
+                    structure.active_coordset_id = frames[j]
+                    xform, rmsd = align_points(atoms.coords, coords1)
+                    rmsds[i,j] = rmsds[j,i] = rmsd
+                    if min_rmsd is None or rmsd < min_rmsd:
+                        min_rmsd = rmsd
+                    if max_rmsd is None or rmsd > max_rmsd:
+                        max_rmsd = rmsd
+        self.tool_window.status("Computed RMSDs; showing map")
+
         if not apply:
             self.tool_window.destroy()
         inst = self.main_tool_window.tool_instance
         inst_window_info = _md_tool_windows.setdefault(inst, {})
         map_results = inst_window_info.setdefault("RMSD map", [])
-        map_results.append(
-            RMSDMap(self.session, self.main_tool_window.create_child_window("RMSD Map", statusbar=True),
-                atoms, frames, low, high, recolor))
+        status_msg = "Calculated RMSD varies from %.3f to %.3f" % (min_rmsd, max_rmsd)
+        results_dialog = RMSDMap(self.session, structure, self.main_tool_window.create_child_window(
+            "RMSD Map", statusbar=True), rmsds, frames, low, high, recolor, self.settings, status_msg)
+        map_results.append(results_dialog)
 
 from chimerax.core.settings import Settings
-class LaunchRMSDMapSettings(Settings):
+class RMSDMapSettings(Settings):
     AUTO_SAVE = {
         "auto_recolor": True,
         "low_rmsd": 0.5,
@@ -141,79 +166,129 @@ def show_rmsd_map_launcher(main_tool_window, structure):
         rmsd_map_launcher = inst_window_info["rmsd map launcher"]
     except KeyError:
         rmsd_map_launcher = inst_window_info["rmsd map launcher"] = RMSDMapLauncher(main_tool_window,
-            main_tool_window.create_child_window("Get RMSD Map Parameters"), structure)
+            main_tool_window.create_child_window("Get RMSD Map Parameters", statusbar=True), structure)
 
     rmsd_map_launcher.tool_window.shown = True
 
 class RMSDMap:
-    title_fmt = "%g-%g RMSD Map"
+    title_fmt = "%.2g-%.2g RMSD Map"
 
-    def __init__(self, session, results_window, atoms, frames, min_rmsd, max_rmsd, recolor):
+    def __init__(self, session, structure, results_window, rmsds, frames, min_rmsd, max_rmsd, recolor,
+            settings, status_msg):
         self.tool_window = tw = results_window
         self.session = session
-        self.title = self.title_fmt % (min_rmsd, max_rmsd)
-        #tw.help = "help:user/commands/coordset.html#clusterdialog"
-        def cleanup(lcd=self):
-            inst = lcd.tool_window.tool_instance
+        self.structure = structure
+        self.rmsds = rmsds
+        self.frames = frames
+        self.settings = settings
+        if recolor:
+            import numpy
+            rmsds_1D = rmsds.flatten()
+            sorted_rmsds = numpy.sort(rmsds_1D)
+            self.min_rmsd = sorted_rmsds[round(len(sorted_rmsds)/3)]
+            self.max_rmsd = sorted_rmsds[round(2*len(sorted_rmsds)/3)]
+        else:
+            self.min_rmsd, self.max_rmsd = min_rmsd, max_rmsd
+        self.set_title()
+        tw.help = "help:user/commands/coordset.html#rmsddialog"
+        self._td = None
+        def cleanup(self=self):
+            inst = self.tool_window.tool_instance
             _md_tool_windows[inst]["RMSD map"].remove(self)
-            delattr(lcd.tool_window, 'cleanup')
+            for cid in self._mouse_handlers:
+                self.canvas.mpl_disconnect(cid)
+            self._mouse_handlers.clear()
+            if self._td is not None:
+                self._td.done(self._td.Accepted)
+            delattr(self.tool_window, 'cleanup')
         tw.cleanup = cleanup
         layout = QVBoxLayout()
         layout.setSpacing(0)
         tw.ui_area.setLayout(layout)
 
+        from matplotlib.colors import LinearSegmentedColormap as LSColormap
+        # color map dictionary so that low values are white and high values black
+        cm_dict = {
+            'red': ((0.0, 1.0, 1.0),
+                    (1.0, 0.0, 0.0)),
+            'green': ((0.0, 1.0, 1.0),
+                    (1.0, 0.0, 0.0)),
+            'blue': ((0.0, 1.0, 1.0),
+                    (1.0, 0.0, 0.0)),
+        }
+        cmap = LSColormap('rmsds', cm_dict, 256)
+        cmap.set_under(color='white')
+        cmap.set_over(color='black')
 
-        '''
-        table_data = []
-        table_rgbas = []
-        from chimerax.core.colors import distinguish_from
-        # color the same trajectory consistently...
-        seed = structure.num_coordsets * structure.num_residues + structure.num_atoms
-        for clustering in clusterings:
-            entry = TableEntry(clustering, self)
-            entry.rgba = distinguish_from([(1.0,1.0,1.0,1.0)] + table_rgbas, seed=seed)
-            table_rgbas.append(entry.rgba)
-            table_data.append(entry)
-        from chimerax.ui.widgets import ItemTable
-        class ShortTable(ItemTable):
+        from matplotlib.backends.backend_qtagg import FigureCanvas
+        from matplotlib.figure import Figure
+        self.canvas = canvas = FigureCanvas(Figure())
+        layout.addWidget(canvas, stretch=1)
+        self._mouse_handlers = [
+            canvas.mpl_connect('motion_notify_event', self._mouse_event),
+            canvas.mpl_connect('button_press_event', self._mouse_event),
+        ]
+        figure = canvas.figure
+        axis = figure.subplots()
+        axis.tick_params(direction='out')
+        num_frames = len(frames)
+        step = 5 * max(1, round(num_frames / 50))
+        self.ticks = ticks = [i+0.5 for i in range(step-1, num_frames, step)]
+        self.labels = labels = [str(frames[i]) for i in range(step-1, num_frames, step)]
+        axis.set_xticks(ticks, labels=labels)
+        axis.set_yticks(ticks, labels=labels)
+        self.fixed_mpl_kw = {
+            'cmap': cmap,
+            'origin': 'lower',
+            'extent': (0, num_frames, 0, num_frames),
+        }
+        im = axis.imshow(rmsds, vmin=self.min_rmsd, vmax=self.max_rmsd, **self.fixed_mpl_kw)
+        canvas.draw_idle()
+
+        frame_layout = QHBoxLayout()
+        class ShortLineEdit(QLineEdit):
             def sizeHint(self):
                 sh = super().sizeHint()
-                h = sh.height()
-                if h > 500:
-                    sh.setHeight(sh.height() // 2)
+                sh.setWidth(sh.width() // 2)
                 return sh
-        self.table = table = ShortTable()
-        # Putting color first makes the rows about twice as high as needed (and column titles bold!)
-        members_col = table.add_column("Members", "num_frames")
-        table.add_column("Color", "rgba8", format=table.COL_FORMAT_OPAQUE_COLOR, title_display=False)
-        table.add_column("Representative Frame", "representative")
-        table.data = table_data
-        table.launch()
-        table.sort_by(members_col, table.SORT_DESCENDING)
-        table.selection_changed.connect(self._update_scene)
-        layout.addWidget(table, alignment=Qt.AlignHCenter, stretch=1)
-
-        self.scene = QGraphicsScene()
-        class ResizingView(QGraphicsView):
-            def resizeEvent(self, event, *,
-                    _height=self.scene_pixel_height, _width=self.scene_aspect*self.scene_pixel_height):
-                super().resizeEvent(event)
-                self.fitInView(0.0, 0.0, _width, _height)
-        self.view = ResizingView(self.scene)
-        if clusterings:
-            # not a session restore
-            self._setup_scene()
-            self._update_indicator()
-        layout.addWidget(self.view)
-        '''
+        frame_layout.addStretch(2)
+        frame_layout.addWidget(QLabel("Frame"))
+        frame_validator = QIntValidator()
+        self.frame1_edit = frame_edit = ShortLineEdit()
+        frame_edit.setValidator(frame_validator)
+        frame_edit.setPlaceholderText("Click")
+        frame_edit.setAlignment(Qt.AlignCenter)
+        frame_edit.setEnabled(False)
+        frame_layout.addWidget(frame_edit)
+        but = QPushButton("Go")
+        but.clicked.connect(lambda *args, f=self._frame_input, edit=frame_edit: f(edit))
+        frame_layout.addWidget(but)
+        frame_layout.addStretch(1)
+        frame_layout.addWidget(QLabel("Frame"))
+        self.frame2_edit = frame_edit = ShortLineEdit()
+        frame_edit.setValidator(frame_validator)
+        frame_edit.setPlaceholderText("on map")
+        frame_edit.setAlignment(Qt.AlignCenter)
+        frame_edit.setEnabled(False)
+        frame_layout.addWidget(frame_edit)
+        but = QPushButton("Go")
+        but.clicked.connect(lambda *args, f=self._frame_input, edit=frame_edit: f(edit))
+        frame_layout.addWidget(but)
+        frame_layout.addStretch(2)
+        layout.addLayout(frame_layout)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
-        self.bbox = bbox = qbbox(qbbox.Save | qbbox.Close | qbbox.Help)
+        self.bbox = bbox = qbbox(qbbox.Close | qbbox.Help)
         bbox.rejected.connect(tw.destroy)
-        #bbox.accepted.connect(self._show_save_clustering_dialog)
+        bbox.addButton("Save RMSDs", qbbox.AcceptRole)
+        bbox.accepted.connect(self._save_rmsds)
         from chimerax.core.commands import run
-        bbox.helpRequested.connect(lambda *, run=run, ses=self.session:
-            run(ses, "help " + self.tool_window.help))
+        if getattr(tw, 'help', None):
+            from chimerax.core.commands import run
+            bbox.helpRequested.connect(lambda *, run=run, ses=self.session, tw=tw:
+                run(ses, "help " + tw.help))
+        else:
+            bbox.button(qbbox.Help).setEnabled(False)
         # Setting buttons' default and autoDefault properties to False doesn't seem to actually
         # do anything on Mac, so use this horrible kludge
         b = bbox.addButton("", qbbox.ActionRole)
@@ -222,29 +297,35 @@ class RMSDMap:
         # Put the buttons below the status bar
         tw.ui_area.parent().layout().addWidget(bbox)
 
+        tw.fill_context_menu = self.fill_context_menu
         tw.manage(None)
 
-        # see how long this takes just in Python
-        from time import time
-        t0 = time()
-        num_frames = len(frames)
-        from math import sqrt
-        import numpy
-        rmsds = numpy.zeros((num_frames, num_frames), float)
-        structure = atoms[0].structure
-        import sys
-        with structure.suppress_coordset_change_notifications():
-            for i, fn1 in enumerate(frames):
-                tw.status("Computing RMSDS for frame %d/%d" % (i+1, num_frames))
-                print("Computing RMSDS for frame %d/%d" % (i+1, num_frames), file=sys.__stderr__)
-                structure.active_coordset_id = fn1
-                coords1 = atoms.coords
-                for j in range(i+1, num_frames):
-                    structure.active_coordset_id = frames[j]
-                    diff = atoms.coords - coords1
-                    rmsds[i,j] = rmsds[j,i] = sqrt(numpy.sum(diff * diff) / len(atoms))
-        tw.status("Computed RMSDs for %d frames in %.1f seconds" % (num_frames, time() - t0))
-        print("Computed RMSDs for %d frames in %.1f seconds" % (num_frames, time() - t0), file=sys.__stderr__)
+        from Qt.QtCore import QTimer
+        QTimer.singleShot(100, lambda tw=tw, msg=status_msg: tw.status(msg, log=True))
+        QTimer.singleShot(100, lambda tw=tw: tw.status("Use context menu to change coloring thresholds",
+            secondary=True))
+
+    def fill_context_menu(self, menu, x, y):
+        from Qt.QtGui import QAction
+        act = QAction("Change RMSD Thresholds...", parent=menu)
+        act.triggered.connect(self._run_thresold_dialog)
+        menu.addAction(act)
+
+    def new_min_max(self, new_min, new_max):
+        self.settings.low_rmsd = self.min_rmsd = new_min
+        self.settings.high_rmsd = self.max_rmsd = new_max
+        self.tool_window.status("Recoloring map...", blank_after=0)
+        axis = self.canvas.figure.subplots()
+        axis.cla()
+        axis.set_xticks(self.ticks, labels=self.labels)
+        axis.set_yticks(self.ticks, labels=self.labels)
+        axis.imshow(self.rmsds, vmin=self.min_rmsd, vmax=self.max_rmsd, **self.fixed_mpl_kw)
+        self.canvas.draw_idle()
+        self.tool_window.status("Map recolored")
+        self.set_title()
+
+    def set_title(self):
+        self.tool_window.title = self.title_fmt % (self.min_rmsd, self.max_rmsd)
 
     '''
     def restore_session_info(self, session_info):
@@ -266,113 +347,108 @@ class RMSDMap:
             'table_data': [entry.session_info() for entry in self.table.data],
             'table_state': self.table.session_info(),
         }
+    '''
 
-    def _show_save_clustering_dialog(self):
-        from Qt.QtWidgets import QFileDialog
-        fname = QFileDialog.getSaveFileName(self.tool_window.ui_area, "Save Clustering Information")[0]
-        if fname:
-            from chimerax.io import open_output
-            with open_output(fname, encoding='utf-8') as f:
-                print("# one cluster per line; first frame on each line is representative", file=f)
-                for entry in self.table.sorted_data:
-                    print(" ".join([str(entry.clustering.representative)] + [str(f)
-                        for f in entry.clustering.frames if f != entry.clustering.representative]), file=f)
-
-    def _setup_scene(self):
-        # Have to allow for the fact that the clustering may not involve all frames of the trajectory
-        scene_width = self.scene_pixel_height * self.scene_aspect
-        scene_height = self.scene_pixel_height
-        self.scene.setSceneRect(0.0, 0.0, scene_width, scene_height)
-        fns = []
-        for row in self.table.data:
-            fns.extend(row.clustering.frames)
-        fns.sort()
-        self.fn_index = fn_index = { fn: i for i, fn in enumerate(fns) }
-        self.index_fn = { i: fn for fn, i in fn_index.items() }
-        self.unit_x = unit_x = scene_width / len(fns)
-        to_x = lambda fn: unit_x * fn_index[fn]
-        pen = QPen(Qt.NoPen)
-        for row in self.table.data:
-            row.rects = rects = []
-            first_fn = last_fn = None
-            brush = QBrush(QColor(*row.rgba8))
-            for fn in row.clustering.frames:
-                if first_fn is None:
-                    first_fn = last_fn = fn
-                elif fn == last_fn + 1:
-                    last_fn = fn
-                else:
-                    rects.append(self.scene.addRect(to_x(first_fn), scene_height / 2.0,
-                        to_x(last_fn) - to_x(first_fn) + unit_x, scene_height, brush=brush, pen=pen))
-                    first_fn = last_fn = fn
-            if first_fn is not None:
-                rects.append(self.scene.addRect(to_x(first_fn), scene_height / 2.0,
-                    to_x(fn) - to_x(first_fn) + unit_x, scene_height, brush=brush, pen=pen))
-
-        self.scene_text = self.scene.addSimpleText("Choose in above table to show cluster")
-        text_rect = self.scene_text.boundingRect()
-        cx, cy = text_rect.x() + text_rect.width()/2, text_rect.y() + text_rect.height()/2
-        self.scene_text.moveBy(scene_width/2 - cx, scene_height/4 - cy)
-
-        self.indicator = self.scene.addPolygon(QPolygonF([QPointF(*args) for args in [
-            (0.0, 0.0), (11.5, 0.0), (5.75, 10.0)
-            ]]))
-        self.indicator.setZValue(1.0)
-
-        self.view.setMouseTracking(True)
-        self.scene.mouseMoveEvent = self._mouse_move_event
-        self.scene.mousePressEvent = self._mouse_press_event
-
-    def _mouse_move_event(self, event):
-        scene_x = event.scenePos().x()
-        scene_width = self.scene_pixel_height * self.scene_aspect
-        import math
-        index = min(max(0, math.floor(scene_x / self.unit_x)), len(self.index_fn)-1)
-        fn = self.index_fn[index]
-        self.tool_window.status("Frame %d" % fn)
-        if event.buttons() == Qt.LeftButton:
-           self.structure.active_coordset_id = fn
-
-    def _mouse_press_event(self, event):
-        if event.buttons() & Qt.LeftButton == 0:
+    def _frame_input(self, edit):
+        if not edit.hasAcceptableInput():
+            self.tool_window.status("Invalid frame number: '%s'" % edit.text(), color="red")
             return
-        scene_x = event.scenePos().x()
-        scene_width = self.scene_pixel_height * self.scene_aspect
-        import math
-        index = min(max(0, math.floor(scene_x / self.unit_x)), len(self.index_fn)-1)
-        fn = self.index_fn[index]
-        self.tool_window.status("Frame %d" % fn)
-        self.structure.active_coordset_id = fn
+        self.tool_window.status("")
+        cs_id = int(edit.text())
+        if cs_id != self.structure.active_coordset_id:
+            # rather than directly check if the ID is valid (there could be many coord sets)
+            # just try to set it and catch the error
+            try:
+                self.structure.active_coordset_id = cs_id
+            except IndexError:
+                # non-existent
+                self.tool_window.status("%s does not have frame number %d" % (self.structure, cd_is),
+                    color="red")
 
-    def _update_indicator(self, *args):
-        fn = self.structure.active_coordset_id
-        if fn not in self.fn_index:
-            self.indicator.hide()
-            return
-        self.indicator.show()
-        fn_x = self.unit_x * (self.fn_index[fn] + 0.5)
-        self.indicator.moveBy(fn_x - (self.indicator.pos().x() + 5.75), 0.0)
-
-    def _update_scene(self, *args):
-        sel_rows = set(self.table.selected)
-        if sel_rows:
-            self.scene_text.hide()
+    def _mouse_event(self, event):
+        from matplotlib.backend_bases import MouseButton
+        if event.name == "button_press_event":
+            if event.button != MouseButton.LEFT:
+                return
+            if event.xdata is None or event.ydata is None:
+                return
+            # ensure that index at extreme right/top remains in range
+            self.frame1_edit.setEnabled(True)
+            self.frame2_edit.setEnabled(True)
+            mpl_to_index = lambda data, nf=len(self.frames): min(int(data), nf-1)
+            xi, yi = mpl_to_index(event.xdata), mpl_to_index(event.ydata)
+            self.frame1_edit.setText(str(self.frames[xi]))
+            self.frame2_edit.setText(str(self.frames[yi]))
+        elif event.name == "motion_notify_event":
+            if event.xdata is None or event.ydata is None:
+                self.tool_window.status('', secondary=True)
+                return
+            # ensure that index at extreme right/top remains in range
+            mpl_to_index = lambda data, nf=len(self.frames): min(int(data), nf-1)
+            xi, yi = mpl_to_index(event.xdata), mpl_to_index(event.ydata)
+            self.tool_window.status("Frames %d/%d: RMSD %.3f"
+                % (self.frames[xi], self.frames[yi], self.rmsds[xi,yi]), secondary=True)
         else:
-            self.scene_text.show()
-        scene_height = self.scene_pixel_height
-        for row in self.table.data:
-            if row in sel_rows:
-                y = 0.0
-                height = scene_height
-            else:
-                y = scene_height / 2.0
-                height = scene_height / 2.0
-            for rect_item in row.rects:
-                rect = rect_item.rect()
-                rect_item.setRect(rect.x(), y, rect.width(), height)
-        if len(sel_rows) == 1:
-           self.structure.active_coordset_id = sel_rows.pop().representative
+            raise ValueError("Unexpected Matplotlib event: %s" % event.name)
 
+    def _run_thresold_dialog(self):
+        td = ThresholdsDialog(self)
+        td.finished.connect(self._thresholds_finished)
+        td.open()
+        self._td = td # hold a reference
+
+    def _save_rmsds(self):
+        file_name, filter = QFileDialog.getSaveFileName(parent=self.tool_window.ui_area,
+            caption="Save RMSD Map")
+        if not file_name:
+            return
+        from chimerax.io import open_output
+        with open_output(file_name, encoding="utf-8") as f:
+            dim = len(self.rmsds)
+            for i in range(dim):
+                for j in range(dim):
+                    print("%6.3f" % self.rmsds[i,j], end=('\n' if j == dim-1 else ' '), file=f)
+            print("End of File", file=f)
+
+    def _thresholds_finished(self):
+        # ThresholdsDialog finished
+        self._td = None # dispose of reference
+
+class ThresholdsDialog(QDialog):
+    def __init__(self, rmsd_map):
+        self.rmsd_map = rmsd_map
+        super().__init__()
+
+        self.setWindowTitle("Change RMSD Thresholds")
+        layout = QVBoxLayout()
+        layout.setContentsMargins(4,0,4,0)
+        self.setLayout(layout)
+        from chimerax.ui.options import OptionsPanel, FloatOption
+        self.min_opt = FloatOption("New lower RMSD threshold (white):", rmsd_map.min_rmsd, None, min=0.0)
+        self.max_opt = FloatOption("New upper RMSD threshold (black):", rmsd_map.max_rmsd, None, min=0.0)
+        panel = OptionsPanel(sorting=False, scrolled=False, contents_margins=(2,0,2,0))
+        panel.add_option(self.min_opt)
+        panel.add_option(self.max_opt)
+        layout.addWidget(panel)
+
+        from Qt.QtWidgets import QDialogButtonBox as qbbox
+        bbox = qbbox(qbbox.Ok | qbbox.Apply | qbbox.Close | qbbox.Help)
+        bbox.accepted.connect(self.apply_thresholds)
+        bbox.rejected.connect(lambda dlg=self: dlg.done(dlg.Rejected))
+        bbox.button(qbbox.Apply).clicked.connect(lambda *args: self.apply_thresholds(apply=True))
+        bbox.button(qbbox.Help).setEnabled(False)
+        layout.addWidget(bbox)
+
+    def apply_thresholds(self, apply=False):
+        min_val = self.min_opt.value
+        max_val = self.max_opt.value
+        if min_val >= max_val:
+            raise UserError("Lower RMSD threshold must be less than upper RMSD threshold")
+        self.rmsd_map.new_min_max(min_val, max_val)
+        if not apply:
+            self.done(self.Accepted)
+
+'''
 def show_cluster_results(main_tool_window, structure, clusterings):
     inst = main_tool_window.tool_instance
     inst_window_info = _md_tool_windows.setdefault(inst, {})
