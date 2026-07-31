@@ -231,6 +231,11 @@ class Collection(State):
         '''Return a new collection that is the intersection with the *objects* :class:`.Collection`.'''
         pointers = self.pointers[self.mask(objects)]
         return self.__class__(pointers)
+    def ordered_intersect(self, objects):
+        intersection = self.intersect(objects)
+        ptr_set = set(self.pointers[self.mask(objects)])
+        from numpy import array, uintp
+        return self.__class__(array([ptr for ptr in self._pointers if ptr in ptr_set], dtype=uintp))
     def intersects(self, objects):
         '''Whether this collection has any element in common
         with the *objects* :class:`.Collection`. Returns bool.'''

@@ -469,6 +469,28 @@ class GridCanvas:
         check_box = self.mouse_selects if state['mouse selects'] else self.mouse_chooses
         check_box.setChecked(True)
 
+    def save_csv_file(self):
+        from chimerax.ui.widgets import get_csv_info
+        file_name, separator = get_csv_info(self.main_view)
+        from chimerax.io import open_output
+        with open_output(file_name, encoding="utf-8") as f:
+            def row_text(row, displayed_row, separator, columns):
+                items = []
+                items.append(self.row_labels[row])
+                for col in range(columns):
+                    try:
+                        items.append(self.cell_text_infos[(displayed_row,col)][0].text())
+                    except KeyError:
+                        items.append("")
+                return separator.join(items)
+            displayed_row = 0
+            rows, columns = self.grid_data.shape
+            for row in range(rows):
+                if row in self.empty_rows:
+                    continue
+                print(row_text(row, displayed_row, separator, columns), file=f)
+                displayed_row += 1
+
     def save_from_cells(self, fmt):
         seqs = self.seqs_from_cells()
         aln = self.pg.session.alignments.new_alignment(seqs, None, auto_associate=False, viewer=False)

@@ -1,0 +1,65 @@
+<html lang="en"><!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
+<title>Command: axis align</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
+
+<h3><a href="../index.html#commands">Command</a>: axis align</h3>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<br><b>axis align</b>
+&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp; <b>to</b> 
+&nbsp;<i>axis</i>&nbsp;
+[&nbsp;<b>perModel</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>bring</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>other-models</i></a>&nbsp;]</h3>
+<p>
+The <b>axis align</b> command moves the models containing any atoms of <a href="atomspec.html"><i>atom-spec</i></a>
+onto the <i>axis</i> so that the principal axis of those atoms aligns with <i>axis</i>.
+The principal axis is the first eigenvector calculated from the coordinates of the atoms
+after subtracting the position of their collective centroid, and the principal axis is anchored
+at that centroid.
+If <i>atom-spec</i> is a single atom, then its model is simply translated so that the atom lies on <i>axis</i>.
+</p></p>
+The <i>axis</i> can be <b>x</b>, <b>y</b>, <b>z</b> or any of the other standard
+<a href="pointspec.html#vector">vector specifications</a>.
+In addition it can be three or more atoms, in which cases the principal eigenvector of those atoms'
+coordinates will be used.
+See also:
+<a href="matchmaker.html"><b>matchmaker</b></a>,
+<a href="align.html"><b>align</b></a>,
+<a href="measure.html#rotation"><b>measure rotation</b></a>,
+<a href="view.html"><b>view zalign</b></a>
+</p><p>
+The <b>perModel</b> option (default <b>false</b>)
+controls whether or not the models are treated as a unit or individually for positioning.
+If <b>false</b>, all atoms of <i>atom-spec</i> will be used to compute a principal axis,
+and the models containing those atoms will be repositioned together to align that
+principal axis onto <i>axis</i>.
+If <b>true</b>, each model contributing to <i>atom-spec</i> will have a principal axis
+computed based on the atoms it is contributing, and the model will be individually
+positioned to align that principal axis onto <i>axis</i>.
+</p>
+</p><p>
+The <b>bring</b> option specifies one or more additional models to move along with
+the models being aligned.  This option can only be used if <b>perModel</b> is <b>false</b>.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+July 2026</address>
+
+</body></html>

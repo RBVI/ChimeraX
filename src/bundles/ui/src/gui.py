@@ -290,6 +290,7 @@ class UI(QApplication):
                     'Path override failed for key base::DIR_APP_DICTIONARIES',  # Qt 6.6.3
                     'Already setting window visible!', # Qt 6.6.3
                     'Compositor returned null texture', # Qt 6.6.3
+                    'GBM is not supported', # Qt 6.10.2
                     )):
                 return	# Supress Qt warnings
             if 'QWindowsWindow::setDarkBorderToWindow' in msg_string:

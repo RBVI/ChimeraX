@@ -194,13 +194,14 @@ class MutationStructureColoring(ToolInstance):
             ranges = self._named_ranges(which)
 
         attr_name = self._coloring_attribute_name
-        cmd_score = f'mutationscores define {attr_name} from {score_name} combine {score_type}'
+        from chimerax.core.commands import quote_if_necessary
+        cmd_score = f'mutationscores define {attr_name} from {quote_if_necessary(score_name)} combine {score_type}'
         if ranges:
             cmd_score += f' ranges "{ranges}"'
         if subtract_fit_name != 'none':
             cmd_score += f' subtractFit {subtract_fit_name}'
         if len(mutation_all_scores(session)) > 1:
-            cmd_score += f' mutationSet {mutation_set_name}'
+            cmd_score += f' mutationSet {quote_if_necessary(mutation_set_name)}'
         rvalues = self._run_command(cmd_score)
         values = [value for rnum, from_aa, to_aa, value in rvalues.all_values()]
 

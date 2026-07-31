@@ -53,6 +53,8 @@ class _MutationScoresAPI(BundleAPI):
         ms_color_history.register_command(logger)
         from . import ms_heatmap
         ms_heatmap.register_command(logger)
+        from . import ms_alphafold
+        ms_alphafold.register_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr):
@@ -138,6 +140,14 @@ class _MutationScoresAPI(BundleAPI):
                                 'allow_mismatches': BoolArg,
                                 'identifier': StringArg}
                 return AlphaMissenseInfo()
+            elif name == 'mavedb':
+                from chimerax.open_command import FetcherInfo
+                class MaveDBInfo(FetcherInfo):
+                    def fetch(self, session, experiment_set_id, format_name, ignore_cache, **kw):
+                        from .mavedb_fetch import fetch_mavedb
+                        mset, msg = fetch_mavedb(session, experiment_set_id, ignore_cache = ignore_cache, **kw)
+                        return [], msg
+                return MaveDBInfo()
 
     # Map class name to class for session restore
     @staticmethod

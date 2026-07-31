@@ -47,6 +47,7 @@
     <ChimeraXClassifier>Command :: align :: Structure Comparison :: superimpose specific parts of structures</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: altlocs :: Structure Editing :: change/remove alternate atom locations</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: angle :: Structure Analysis :: Report or set angle between atoms/objects</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: axis align :: Structure Comparison :: move atoms to align on an axis</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: camera :: Viewing Controls :: change "camera" parametrs of main viewing window</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: cartoon :: Depiction :: show stylized representation of structure</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: ~cartoon :: Depiction :: stop show stylized representation of structure</ChimeraXClassifier>

@@ -213,7 +213,7 @@ class MutationScoresHeatmap(ToolInstance):
     #
     def _filtered_score_names(self, exclude = ['position'], default_all = True):
         mset = self._mutation_set
-        score_names = [score_name for score_name in mset.score_names() if score_name not in exclude]
+        score_names = mset.score_names(include_computed = True, include_per_residue = False, exclude_names = exclude)
         sf = self._score_name_filter.value
         snames = [name.strip() for name in sf.split(',')]
         filtered_names = []
