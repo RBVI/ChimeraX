@@ -320,6 +320,87 @@ and the trajectory can be navigated by moving the triangle.
 Although more than one cluster can be chosen in the
 top part of the dialog, only one frame can be displayed at a time.
 </p><p>
+<a name="rmsd-map"></a>
+</li><li><b>RMSD Map</b>
+&ndash; generate a map of all-by-all pairwise root-mean-square deviations
+(RMSDs) among specified frames.
+RMSD options:
+<br><br>
+  <ul>
+  <li><b>Starting frame</b> (first frame loaded, by default)
+  &ndash; number of the first frame to include
+  in clustering calculations; must be within the range originally loaded
+  </li><li><b>Step size [<i>n</i>]</b>
+  &ndash; level of sampling within the indicated range;
+   every <i>n</i><sup>th</sup> frame will be used (default 
+    <i>n</i> = 1 + [number of frames loaded]/300, rounded down to an integer)
+  </li><li><b>Ending frame</b> (last frame loaded, by default)
+  &ndash; number of the last frame to possibly include 
+  (if not skipped by sampling); must be within the range originally loaded
+  </li><li><b>Lower RMSD threshold (white)</b> (initial default <b>0.5</b>)
+  &ndash; initial lower RMSD threshold for coloring, in &Aring;; white will
+  be used for this value and lower. If <a href="#recolor">TODO: auto-recoloring</a>
+  is turned on, the threshold may change after all of the values have been computed.
+  </li><li><b>Upper RMSD threshold (black)</b> (initial default <b>3.0</b>)
+  initial upper RMSD threshold for coloring, in &Aring;; black will be used for
+  this value and higher. RMSD values between the thresholds will be mapped to
+  grayscale. If <a href="#recolor">TODO: auto-recoloring</a> is turned on, the
+  threshold may change after all of the values have been computed.  Explicitly
+  changing the thresholds with the results dialog's <a href="TODO">TODO: Change
+  RMSD Thresholds...</a> context menu item will change the initial defaults.
+  </li><li><b>Restrict map to current selection, if any</b>
+  (default <b>on</b>) &ndash; whether to limit calculations to only the
+  <a href="../selection.html">selected</a> atoms, when a selection exists
+  <li><b>Ignore solvent and non-metal ions</b> (default <b>on</b>)
+  &ndash; whether to omit <a href="atomspec.html#surfcats">solvent</a> residues
+  and non-metal monatomic ions 
+  (Cl<sup>&ndash;</sup>, Br<sup>&ndash;</sup>, <i>etc.</i>) 
+  </li><li><b>Ignore hydrogens</b> (for calculating RMSDs; default <b>on</b>)
+  </li><li><b>Ignore ligands</b> (default <b>off</b>)
+  &ndash; whether to omit <a href="atomspec.html#surfcats">ligand</a> residues
+  </li><li><b>Ignore metal ions</b> (<b>alkali</b>/true/false)
+  &ndash; whether to ignore alkali metal ions (Li<sup>+</sup>, Na<sup>+</sup>,
+  K<sup>+</sup>, <i>etc.</i>), or all metal ions (if <b>true</b>),
+  or none (if <b>false</b>, thus including any metal ions)
+  <li><b>Auto-recolor for contrast</b> (<b>true</b>/false)
+  &ndash; whether the RMSD map should be recolored automatically after all
+  values have been computed, using <a href="#thresolds">TODO: thresholds</a>
+  that enclose the middle third of values (i.e., the lowest third of values
+  will be white, the middle third in grayscale, the highest third black)
+  </li></ul>
+<p>
+<b>OK</b> and <b>Apply</b> initiate the calculations with and without
+closing the dialog, respectively, whereas <b>Close</b> simply dismisses the
+dialog. <b>Help</b> opens this manual page in a browser window.
+</p><p>
+The calculation uses the 
+<a href="md.html#cluster"><b>md cluster</b></a> command.
+For each frame-to-frame comparison, the least-squares-fit RMSD between
+the indicated sets of atoms will be calculated, without applying any
+transformation. The calculations may take several minutes, 
+depending on the size of the system and the number of frames.
+To decrease computational time, use a sparser sampling of frames 
+and/or fewer atoms in the calculation.
+</p><p>
+<a name="rmsd-map-dialog"></a>
+<b>Trajectory clustering results</b><br>
+The top part of the clustering results dialog
+lists the clusters, and for each, the number of <b>Members</b>
+(how many of the input frames belong to the cluster)
+and the frame number of the <b>Representative Frame</b>.
+Different colors are used to show membership in the different clusters
+within the timeline plot in the bottom part of the dialog.
+Clicking the cluster color well allows changing its color interactively.
+</p><p>
+Clicking the line for a cluster in the top part of the dialog
+displays its representative frame in the main window
+and makes the bars for all of the members of that cluster taller
+on the timeline plot.
+The current frame is indicated with an inverted triangle on the plot,
+and the trajectory can be navigated by moving the triangle.
+Although more than one cluster can be chosen in the
+top part of the dialog, only one frame can be displayed at a time.
+</p><p>
 <b>Save</b> allows writing the clustering information
 (membership and representatives) to a text file.
 <b>Close</b> dismisses the cluster dialog.

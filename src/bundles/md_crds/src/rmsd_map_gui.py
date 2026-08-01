@@ -24,7 +24,7 @@ class RMSDMapLauncher:
     def __init__(self, main_tool_window, launcher_window, structure):
         self.main_tool_window = main_tool_window
         self.tool_window = tw = launcher_window
-        #tw.help = "help:user/commands/coordset.html#clustering"
+        #tw.help = "help:user/commands/coordset.html#rmsd-map"
         def cleanup(self=self):
             inst = self.tool_window.tool_instance
             from .gui import _remove_tool_window
@@ -171,7 +171,7 @@ def show_rmsd_map_launcher(main_tool_window, structure):
     rmsd_map_launcher.tool_window.shown = True
 
 class RMSDMap:
-    title_fmt = "%.2g-%.2g RMSD Map"
+    title_fmt = "%g-%g RMSD Map"
 
     def __init__(self, session, structure, results_window, rmsds, frames, min_rmsd, max_rmsd, recolor,
             settings, status_msg):
@@ -185,12 +185,19 @@ class RMSDMap:
             import numpy
             rmsds_1D = rmsds.flatten()
             sorted_rmsds = numpy.sort(rmsds_1D)
-            self.min_rmsd = sorted_rmsds[round(len(sorted_rmsds)/3)]
-            self.max_rmsd = sorted_rmsds[round(2*len(sorted_rmsds)/3)]
+            new_min = float("%.1f" % sorted_rmsds[round(len(sorted_rmsds)/3)])
+            new_max = float("%.1f" % sorted_rmsds[round(2*len(sorted_rmsds)/3)])
+            if new_min == new_max:
+                if new_min > 0:
+                    new_min -= 0.1
+                else:
+                    new_max += 0.1
+            self.min_rmsd = new_min
+            self.max_rmsd = new_max
         else:
             self.min_rmsd, self.max_rmsd = min_rmsd, max_rmsd
         self.set_title()
-        tw.help = "help:user/commands/coordset.html#rmsddialog"
+        tw.help = "help:user/commands/coordset.html#rmsd-map-dialog"
         self._td = None
         def cleanup(self=self):
             inst = self.tool_window.tool_instance
