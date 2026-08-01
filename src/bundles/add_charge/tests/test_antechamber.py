@@ -120,6 +120,35 @@ def _walk_dependencies(exe, max_files=300):
     return resolved, missing
 
 
+def _locate_in_tree(filename, root, limit=50000):
+    """Find every copy of filename under root (case-insensitive), so we can tell
+    a DLL that is missing from the whole build apart from one that is merely not
+    on the process's DLL search path."""
+    hits = []
+    scanned = 0
+    for dirpath, _dirnames, filenames in os.walk(root):
+        for f in filenames:
+            scanned += 1
+            if f.lower() == filename.lower():
+                hits.append(os.path.join(dirpath, f))
+        if scanned > limit:
+            hits.append("(search truncated after %d files)" % limit)
+            break
+    return hits
+
+
+def _app_root():
+    """Best-effort ChimeraX.app directory to search for stray DLLs."""
+    try:
+        import chimerax
+        bin_dir = getattr(chimerax, "app_bin_dir", None)
+        if bin_dir:
+            return os.path.dirname(bin_dir)
+    except Exception:
+        pass
+    return None
+
+
 def _dump_dependencies(exe):
     """Print antechamber's DLL dependency tree and, crucially, any DLL that
     cannot be found on the search path -- the cause of a 0xC0000135 launch."""
@@ -130,6 +159,10 @@ def _dump_dependencies(exe):
     print("dependency scan of %s:" % exe)
     for name in sorted(resolved):
         print("  %-32s %s" % (name, resolved[name] or "*** NOT FOUND ***"))
+    # API-set names are resolved virtually by the loader; a real missing DLL is
+    # what actually breaks the launch, so separate the two.
+    real_missing = [(d, imp) for (d, imp) in missing
+        if not d.lower().startswith(("api-ms-win-", "ext-ms-win-"))]
     if missing:
         print("MISSING DLLs (this is why antechamber could not launch):")
         for dll, importer in missing:
@@ -139,6 +172,21 @@ def _dump_dependencies(exe):
             print("  %s  (imported by %s)%s" % (dll, importer, note))
     else:
         print("all imported DLLs resolved on the current search path")
+    # For each genuinely missing DLL, look for it anywhere in the app so we know
+    # whether the build ships it at all (fix = PATH/co-location) or omits it
+    # entirely (fix = regenerate the amber prebuilt tarball).
+    root = _app_root()
+    if real_missing and root and os.path.isdir(root):
+        print("searching for the missing DLL(s) under %s ..." % root)
+        for dll, _importer in real_missing:
+            hits = _locate_in_tree(dll, root)
+            if hits:
+                print("  %s found at:" % dll)
+                for h in hits:
+                    print("    %s" % h)
+            else:
+                print("  %s not present anywhere under the app tree "
+                    "(the build does not ship it)" % dll)
 
 
 def _dump_diagnostics(kept_dirs, procs):
