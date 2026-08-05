@@ -59,7 +59,7 @@ def align_points(xyz, ref_xyz):
 
         # Find the eigenvalues and eigenvectors
         from numpy import linalg
-        evals, evecs = linalg.eig(P)    # eigenvectors are columns
+        evals, evecs = linalg.eigh(P)    # eigenvectors are columns
         q = evecs[:,evals.argmax()]
         R = quaternion_rotation_matrix(q)
         tf = empty((3,4), float64)
