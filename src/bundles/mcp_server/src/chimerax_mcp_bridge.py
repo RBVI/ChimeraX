@@ -59,14 +59,39 @@ Multi-Instance Usage:
 - Use list_chimerax_instances() to see all running instances
 - Use set_default_session() to change default target
 
+Environment:
+- CHIMERAX_REST_HOST  host the REST server is reachable on (default localhost)
+- CHIMERAX_REST_PORT  pin the bridge to one ChimeraX (see below); unset by
+                      default, in which case the port is 8080 and discovery
+                      behaves as it always has
+
+Pinned mode (CHIMERAX_REST_PORT):
+Setting the port says "I already know which ChimeraX you should talk to", so
+the bridge takes it literally and does two further things:
+- It does not scan for other instances. Discovery exists to guess a port; when
+  one was supplied there is nothing to guess, and guessing is harmful -- a
+  momentarily unresponsive ChimeraX would otherwise send commands to somebody
+  else's instance on a fallback port.
+- It does not auto-start ChimeraX. A caller that pinned a port either started
+  that ChimeraX itself or knows who did. Launching a second one behind its
+  back is never the repair it wants, and on a display-less machine the launch
+  cannot succeed anyway.
+An explicit session_id argument still overrides the pin for a single call;
+only the *default* target is fixed.
+
+This is what makes the bridge usable for headless and parallel work: a caller
+can start N ChimeraX REST servers, hand each bridge its own port, and know
+that no bridge will wander onto a sibling's instance.
+
 Session Management Behavior:
-1. Default port starts at 8080 (configurable)
+1. Default port starts at 8080, or CHIMERAX_REST_PORT when that is set
 2. start_new_chimerax_session() ALWAYS forces a new instance (no auto-reuse)
 3. Commands without session_id use auto-discovery:
    - First checks default port
    - Then scans instances this bridge started, then _FALLBACK_PORTS
    - If none found, auto-starts on default port (or, if another program
      holds it, on the next free port)
+   - Skipped entirely when CHIMERAX_REST_PORT pins the port
 4. Auto-discovery NO LONGER changes the default port (use set_default_session() explicitly)
 5. check_chimerax_status() only checks, never starts ChimeraX
 """
@@ -86,9 +111,38 @@ from typing import Optional
 
 logger = logging.getLogger("chimerax-bridge")
 
-# ChimeraX connection settings
-CHIMERAX_HOST = 'localhost'
-DEFAULT_CHIMERAX_PORT = 8080
+# ChimeraX connection settings. Both are read from the environment, which is
+# how the documented client configurations above have always advertised them.
+
+
+def _env_port(name: str) -> Optional[int]:
+    """Read a TCP port from environment variable `name`, or None if unusable.
+
+    A bad value is reported and ignored rather than raised: this runs at import
+    time in a stdio MCP server, where an exception is an opaque startup failure
+    for the user, and falling back to the normal default is a safe outcome.
+    """
+    raw = os.environ.get(name)
+    if not raw:
+        return None
+    try:
+        port = int(raw)
+    except ValueError:
+        logger.warning("Ignoring %s=%r: not an integer", name, raw)
+        return None
+    if not 1 <= port <= 65535:
+        logger.warning("Ignoring %s=%r: not a valid TCP port", name, raw)
+        return None
+    return port
+
+
+CHIMERAX_HOST = os.environ.get('CHIMERAX_REST_HOST') or 'localhost'
+
+# When set, the bridge talks to exactly this ChimeraX: no discovery scan and no
+# auto-start. See "Pinned mode" in the module docstring for why both follow.
+PINNED_PORT = _env_port('CHIMERAX_REST_PORT')
+
+DEFAULT_CHIMERAX_PORT = PINNED_PORT if PINNED_PORT is not None else 8080
 
 # Global state for managing multiple ChimeraX instances
 _instances = {}  # port -> instance info
@@ -206,7 +260,12 @@ def _candidate_ports() -> list:
     happens to be free, which need not be one of _FALLBACK_PORTS.
 
     The default port is excluded: every caller checks it separately, first.
+
+    Empty when the port is pinned: the caller named the instance, so there is
+    nothing to guess and a guess could only land on somebody else's ChimeraX.
     """
+    if PINNED_PORT is not None:
+        return []
     seen = {_default_port}
     return [p for p in list(_instances) + list(_FALLBACK_PORTS)
             if not (p in seen or seen.add(p))]
@@ -346,6 +405,19 @@ async def start_chimerax(port: Optional[int] = None, session_name: Optional[str]
     """
     if port is None:
         port = _default_port
+
+    # Pinned: never launch ChimeraX. The caller either started the pinned
+    # instance or knows who did, so a second one is not the repair it wants --
+    # and where pinning is most useful (headless nodes, parallel harnesses) the
+    # launch could not succeed anyway. Reporting failure lets callers surface
+    # "the ChimeraX you pinned is not answering", which is the actionable fact.
+    if PINNED_PORT is not None:
+        if await is_chimerax_running(PINNED_PORT):
+            return True, PINNED_PORT
+        logger.error(
+            "No ChimeraX REST server is answering on pinned port %d "
+            "(CHIMERAX_REST_PORT); not starting one", PINNED_PORT)
+        return False, PINNED_PORT
 
     # First check if there's already a ChimeraX with REST server running (unless forcing new)
     # NOTE: We only do this auto-discovery if port is None and force_new is False
@@ -539,6 +611,12 @@ async def find_best_chimerax_instance() -> int:
     Use set_default_session() explicitly if you want to change the default port.
     """
     global _default_port
+
+    # Pinned: the caller supplied the port, so return it without probing. Not
+    # even a liveness check -- a pinned ChimeraX that is briefly busy must not
+    # cause us to fall through to a different instance.
+    if PINNED_PORT is not None:
+        return PINNED_PORT
 
     # First check if default port is running
     if await is_chimerax_running(_default_port):
@@ -1972,6 +2050,12 @@ async def start_new_chimerax_session(session_name: Optional[str] = None, port: O
         session_name: Optional name for the session (defaults to session_<port>)
         port: Specific port to use (defaults to finding available port)
     """
+    if PINNED_PORT is not None:
+        # Say so here rather than letting start_chimerax() refuse further down,
+        # which would report a failure against a port the caller never chose.
+        return (f"This bridge is pinned to the ChimeraX on port {PINNED_PORT} "
+                f"by CHIMERAX_REST_PORT and does not start new instances.")
+
     if port is None:
         # Find an available port, starting from the default
         port = find_available_port(_default_port)
@@ -2036,6 +2120,11 @@ async def set_default_session(session_id: int) -> str:
         session_id: ChimeraX session port to use as default
     """
     global _default_port
+
+    if PINNED_PORT is not None:
+        return (f"The default session is pinned to port {PINNED_PORT} by "
+                f"CHIMERAX_REST_PORT and cannot be changed. Pass session_id "
+                f"explicitly to target another instance for a single command.")
 
     if not await is_chimerax_running(session_id):
         return f"No ChimeraX instance running on port {session_id}"
