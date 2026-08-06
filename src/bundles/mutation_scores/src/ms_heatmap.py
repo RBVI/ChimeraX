@@ -215,7 +215,8 @@ class MutationScoresHeatmap(ToolInstance):
         mset = self._mutation_set
         score_names = mset.score_names(include_computed = True, include_per_residue = False, exclude_names = exclude)
         sf = self._score_name_filter.value
-        snames = [name.strip() for name in _csv_split(sf)]
+        from .ms_csv_file import csv_split
+        snames = [name.strip() for name in csv_split(sf)]
         filtered_names = []
         if snames:
             for sname in snames:
@@ -765,7 +766,8 @@ class MutationScoresHeatmap(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _chose_score_names(self, score_names):
-        self._score_name_filter.value = _csv_join(score_names)
+        from .ms_csv_file import csv_join
+        self._score_name_filter.value = csv_join(score_names)
         self._draw_graphics()
 
     # ---------------------------------------------------------------------------
@@ -1066,23 +1068,6 @@ class MutationScoresHeatmap(ToolInstance):
             self._score_view._initial_size_hint = settings['view_size']
         self._block_drawing = False
         self._draw_graphics()
-
-def _csv_split(string):
-    '''Handle commas in quoted fields.'''
-    import csv
-    reader = csv.reader([string], skipinitialspace=True)
-    fields = [field.strip() for field in next(reader)]
-    return fields
-
-def _csv_join(strings):
-    '''Handle commas in quoted fields.'''
-    import io
-    output = io.StringIO()
-    import csv
-    writer = csv.writer(output)
-    writer.writerow(strings)
-    csv_string = output.getvalue()
-    return csv_string
     
 class ScoreChooser(ToolInstance):
     help = 'help:user/tools/mutationscores.html#heatmap'

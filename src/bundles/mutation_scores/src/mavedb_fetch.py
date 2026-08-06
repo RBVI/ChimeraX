@@ -141,8 +141,8 @@ def _group_mutation_sets(session, msets):
         mset_group = [mset]
         keep_msets = []
         for mset2 in remaining_msets[1:]:
-            from .ms_data import _mutation_sequences_match
-            if _mutation_sequences_match(mset, mset2):
+            from .ms_data import mutation_sequences_match
+            if mutation_sequences_match(mset, mset2):
                 mset_group.append(mset2)
             else:
                 keep_msets.append(mset2)

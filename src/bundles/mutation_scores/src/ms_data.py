@@ -689,7 +689,7 @@ def mutation_scores_merge(session, mutation_set, into, scores = None):
         raise UserError(f'Cannot replace existing score names: {", ".join(common_names)}')
 
     # Check if sequences match.
-    _mutation_sequences_match(mset, into_mset, raise_error = True)
+    mutation_sequences_match(mset, into_mset, raise_error = True)
 
     if scores:
         mut_scores = [ms.filter(only_these_scores) for ms in mset.mutation_scores]
@@ -697,7 +697,7 @@ def mutation_scores_merge(session, mutation_set, into, scores = None):
         mut_scores = mset.mutation_scores
     into_mset.add_scores(mut_scores)
 
-def _mutation_sequences_match(mset1, mset2, raise_error = False):
+def mutation_sequences_match(mset1, mset2, raise_error = False):
     ra1 = mset1.residue_number_to_amino_acid()
     ra2 = mset2.residue_number_to_amino_acid()
     for rnum, aa in ra1.items():

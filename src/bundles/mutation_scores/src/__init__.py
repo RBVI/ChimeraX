@@ -140,6 +140,7 @@ class _MutationScoresAPI(BundleAPI):
                                 'allow_mismatches': BoolArg,
                                 'identifier': StringArg}
                 return AlphaMissenseInfo()
+
             elif name == 'mavedb':
                 from chimerax.open_command import FetcherInfo
                 class MaveDBInfo(FetcherInfo):
@@ -148,6 +149,27 @@ class _MutationScoresAPI(BundleAPI):
                         mset, msg = fetch_mavedb(session, experiment_set_id, ignore_cache = ignore_cache, **kw)
                         return [], msg
                 return MaveDBInfo()
+
+        elif mgr == session.save_command:
+            if name == 'Mutation scores':
+                from chimerax.save_command import SaverInfo
+                class MutationScoresInfo(SaverInfo):
+                    def save(self, session, path, mutation_sets=None, score_names=None,
+                             sort=True, value_format='%.5g', merge_duplicates=True):
+                        from .ms_csv_file import save_mutation_scores_csv
+                        save_mutation_scores_csv(session, path, mutation_sets=mutation_sets,
+                                                 score_names=score_names, sort=sort,
+                                                 value_format=value_format,
+                                                 merge_duplicates=merge_duplicates)
+                    @property
+                    def save_args(self):
+                        from chimerax.core.commands import StringArg, BoolArg
+                        return { 'mutation_sets': StringArg,
+                                 'score_names': StringArg,
+                                 'sort': BoolArg,
+                                 'value_format': StringArg,
+                                 'merge_duplicates': BoolArg }
+                return MutationScoresInfo()
 
     # Map class name to class for session restore
     @staticmethod

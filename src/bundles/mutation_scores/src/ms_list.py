@@ -63,14 +63,15 @@ class MutationScoresList(ToolInstance):
                         ('Heatmap', self._show_heatmap),
                         ('Scatterplot', self._show_scatterplot),
                         ('Histogram', self._show_histogram),
-                        ('Close data', self._close_data),
-                        ('Help', self._show_help),
+                        ('Color structure', self._show_color_structure),
+                        ('Alphafold structure', self._fetch_alphafold_structure),
                         spacing = 5)
         layout.addWidget(br.frame)
 
         br2 = EntriesRow(parent,
-                         ('Color structure', self._show_color_structure),
-                         ('Alphafold structure', self._fetch_alphafold_structure),
+                         ('Save .csv', self._save_csv),
+                         ('Close data', self._close_data),
+                         ('Help', self._show_help),
                          spacing = 5)
         layout.addWidget(br2.frame)
                 
@@ -208,7 +209,57 @@ class MutationScoresList(ToolInstance):
             return
         mset_option = self._mset_option(mset.name, include_keyword = False)
         self._run_command(f'mutationscores alphafold {mset_option}')
-    
+
+    def _save_csv(self):
+        mset_names = []
+        score_names = []
+        mset_to_score_names = self._selected_mutation_scores()
+        if len(mset_to_score_names) == 0:
+            from chimerax.core.errors import UserError
+            raise UserError('There are not mutation scores to save')
+
+        # Classify unique and non-unique score names for making save command options.
+        score_name_unique = {}
+        from .ms_data import mutation_all_scores
+        all_msets = mutation_all_scores(self.session)
+        for mset in all_msets:
+            for score_name in mset.score_names():
+                score_name_unique[score_name] = (score_name not in score_name_unique)
+
+        # Compute mutation sets and score names to use in save command
+        for mset, mset_score_names in mset_to_score_names.items():
+            if len(mset_score_names) == 0 or set(mset.score_names()) == set(mset_score_names):
+                mset_names.append(mset.name)
+            else:
+                score_names.extend([score_name if score_name_unique.get(score_name) else f'{mset.name}:{score_name}'
+                                    for score_name in mset_score_names])
+
+        # Create save command options specifying mutation sets and score names.
+        options = []
+        if mset_names:
+            from .ms_csv_file import csv_join
+            mset_names_csv = csv_join(mset_names)
+            options.append(f'mutationSets {mset_names_csv}')
+        if score_names:
+            from .ms_csv_file import csv_join
+            score_names_csv = csv_join(score_names)
+            options.append(f'scoreNames {score_names_csv}')
+
+        # Show file browser to specify .csv file path
+        mset_paths = [mset.path for mset in mset_to_score_names.keys() if mset.path]
+        from os.path import dirname
+        suggested_path = dirname(mset_paths[0]) if mset_paths else ''
+        from Qt.QtWidgets import QFileDialog
+        path, ftype  = QFileDialog.getSaveFileName(self.tool_window.ui_area,
+                                                   'Save Mutation Scores .csv',
+                                                   suggested_path,
+                                                   'Mutation scores (*.csv)')
+        if not path:
+            return 	# Cancelled
+        
+        # Run save command to create .csv file.
+        self._run_command(f'save {path} {" ".join(options)}')
+        
     def _close_data(self):
         msets = self._selected_mutation_sets()
         from .ms_data import mutation_scores_close

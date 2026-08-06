@@ -29,13 +29,19 @@ class Variant(State):
         self.hgvs_protein = hgvs_protein
         self.hgvs_nucleotide = hgvs_nucleotide	# Used to distinguish alternate codons
 
-        self.residue_number, self.from_aa, self.to_aa, self.change = _parse_hgvs(hgvs_protein)
+        resnum, from_aa, to_aa, change, canonical_hgvs = _parse_hgvs(hgvs_protein)
 
+        self.residue_number = resnum
+        self.from_aa = from_aa
+        self.to_aa = to_aa
+        self.change = change
+        self.canonical_hgvs_protein = canonical_hgvs
+        
     def __hash__(self):
-        return hash((self.hgvs_protein, self.hgvs_nucleotide))
+        return hash((self.canonical_hgvs_protein, self.hgvs_nucleotide))
 
     def __eq__(self, v):
-        return v.hgvs_protein == self.hgvs_protein and v.hgvs_nucleotide == self.hgvs_nucleotide
+        return v.canonical_hgvs_protein == self.canonical_hgvs_protein and v.hgvs_nucleotide == self.hgvs_nucleotide
 
     @property
     def is_synonymous(self):
@@ -91,14 +97,15 @@ aa_1 = set(aa_3_to_1.values())
 def _parse_hgvs(hgvs):
 
     res_num = from_aa = to_aa = change = None
+    canonical = hgvs
 
     if not hgvs.startswith('p.'):
         # Not a protein variant
-        return res_num, from_aa, to_aa, change
+        return res_num, from_aa, to_aa, change, canonical
 
     if ';' in hgvs:
         # Multi-position variant
-        return res_num, from_aa, to_aa, change
+        return res_num, from_aa, to_aa, change, canonical
 
     # Strip p. and parentheses.
     var = hgvs[2:]
@@ -138,7 +145,10 @@ def _parse_hgvs(hgvs):
                 else:
                     from_aa = res_num = None
 
-    return res_num, from_aa, to_aa, change
+    if res_num and from_aa and (to_aa or change):
+        canonical = f'p.{from_aa}{res_num}{to_aa or change}'
+
+    return res_num, from_aa, to_aa, change, canonical
 
 def _prefix_amino_acid(string):
     if string[:3] in aa_3_to_1:
