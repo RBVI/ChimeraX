@@ -276,12 +276,21 @@ class _AtomicBundleAPI(BundleAPI):
                             spec += f'{prefix}^{attr_name}'
                         else:
                             between, low, high = params
-                            if between:
-                                spec += f'{prefix}{attr_name}>={FloatArg.unparse(low)} & ' \
-                                    f'{prefix}{attr_name}<={FloatArg.unparse(high)}'
+                            if spec:
+                                # the parser doesn't allow parens tight against an
+                                # attribute test, hence the extra space
+                                if self.class_object == Structure:
+                                    lparen, rparen = '( ', ' )'
+                                else:
+                                    lparen, rparen = ' & ( ', ' )'
                             else:
-                                spec += f'{prefix}{attr_name}<{FloatArg.unparse(low)} | ' \
-                                    f'{prefix}{attr_name}>{FloatArg.unparse(high)}'
+                                lparen = rparen = ''
+                            if between:
+                                spec += f'{lparen}{prefix}{attr_name}>={FloatArg.unparse(low)} & ' \
+                                    f'{prefix}{attr_name}<={FloatArg.unparse(high)}{rparen}'
+                            else:
+                                spec += f'{lparen}{prefix}{attr_name}<{FloatArg.unparse(low)} | ' \
+                                    f'{prefix}{attr_name}>{FloatArg.unparse(high)}{rparen}'
                     run(session, "select " + spec)
 
                 def values(self, attr_name, models):

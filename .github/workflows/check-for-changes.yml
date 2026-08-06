@@ -89,7 +89,7 @@ jobs:
     steps:
       - name: Set up Homebrew
         id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@18fcb8e3e06b4247c676c506750dc95ea7226479
+        uses: Homebrew/actions/setup-homebrew@9af03b7ae3f9e2ae5c174f659d5c3909f7e7dbac
       - uses: actions/checkout@v7
       - run: ${PWD}/utils/set_up_macos.sh
       - name: Fetch Plato prerequisites
