@@ -76,6 +76,10 @@ structure</b></a>.
 [<a href="#top">back to top: Mutation Scores</a>]
 </p>
 <h3>Mutation Scores Dialog</h3>
+<table class="clRight">
+<tbody><tr><td><img border="1" src="mutationscores.png" alt="mutation scores" width="300px">
+</td></tr>
+</tbody></table>
 <p>
 Opening a 
 <a href="../formats/mutationcsv.html">mutation scores file</a>
@@ -101,6 +105,8 @@ are chosen) as a <a href="#scatterplot">scatterplot</a>
 &ndash; show the <a href="#coloring">Mutation Structure Coloring</a> dialog
 </li><li><b>AlphaFold structure</b>
 &ndash; fetch an AlphaFold Database predicted structure using the <a href="../commands/mutationscores.html#alphafold">mutationscores alphafold</a> command
+</li><li><b>Save .csv</b>
+&ndash; <a href="#save">Save selected scores</a> to a .csv file
 </li><li><b>Close data</b>
 &ndash; close the mutation set
 </li><li><b>Help</b> &ndash; show documentation in the
@@ -527,6 +533,23 @@ to a comma-separated values file with fields:
 residue number, residue type, score1-name, score2-name, ...
 </li><li><b>Delete</b> one or more chosen colorings
 </ul>
+
+<a name="save"></a>
+<p class="nav">
+[<a href="#top">back to top: Mutation Scores</a>]
+</p>
+<h3>Save Mutation Scores</h3>
+
+<p>
+The <b>Save .csv</b> button on the Mutation Scores panel saves the scores selected from
+the panel list in a comma-separated-values file.  A file browser will be displayed to choose the
+location for saving the file.  Scores from multiple mutation sets can
+be saved to a single file provided the wild-type sequences match and the score names are unique.
+If a mutation set line is selected all scores from that set are saved, and if individual
+score lines in the panel are selected but not the mutation set line then just those selected
+scores are saved.  Scores can also be saved using the
+<a href="../commands/save.html#mutations">save command</a>.
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 

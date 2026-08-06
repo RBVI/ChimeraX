@@ -81,6 +81,7 @@ depending on the file type:
 &nbsp;<a href="#mol2"><b>Mol2</b></a>&nbsp;
 </li><li><a href="#attributes"><b>Attribute Values</b></a>
 </li><li><a href="#sequence"><b>Sequence Data</b></a>
+</li><li><a href="#mutations"><b>Mutation Scores</b></a>
 </li><li><a href="#gltf"><b>GLTF</b></a>
 </li><li><a href="#vrml"><b>VRML</b></a>
 </li><li><a href="open.html#clipper"><b>MTZ (Options from Clipper)</b></a>
@@ -1052,6 +1053,81 @@ Example:
 <blockquote>
 <b>save example.pir alignment 1.A</b>
 </blockquote> 
+
+<a name="mutations"></a>
+<p class="nav">
+[<a href="#top">back to top: save</a>]
+</p>
+<h3>Save Mutation Scores</h3>
+<blockquote>
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>save</b>&nbsp;&nbsp;<i>filename</i>
+[&nbsp;<b>mutationSets</b>&nbsp;&nbsp;<i>mutation-sets</i>&nbsp;]
+[&nbsp;<b>scoreNames</b>&nbsp;&nbsp;<i>score-names</i>&nbsp;]
+[&nbsp;<b>sort</b>&nbsp;&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>valueFormat</b>&nbsp;&nbsp;<i>format-string</i>&nbsp;]
+[&nbsp;<b>mergeDuplicates</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+</blockquote>
+
+<p>
+Mutation scores from deep mutational scans can be saved to a comma-separated-values
+.csv file.  Open mutation score data is shown in the 
+<a href="../tools/mutationscores.html"><b>Mutation Scores</b></a> panel and
+that panel has a <b>Save .csv</b> button to save mutation score data which
+invokes the save command.  Multiple mutation sets can be saved to a single .csv
+file provided the wild-type sequences match and the score names are unique.
+If the mutationSets and scoreNames options are not given
+then all scores of all open mutation sets are saved. 
+</p>
+
+<p>
+Example:
+</p>
+<blockquote>
+<b>save</b> mor.csv <b>mutationSets</b> mu_opioid_receptor <b>scoreNames</b> P35372:observed
+</blockquote> 
+
+<p>
+Which scores to include and their format in the .csv file can be controlled with several options:
+</p>
+
+<blockquote>
+<b>mutationSets</b>&nbsp;&nbsp;<i>mutation-sets</i>
+<br>
+A comma-separated list of mutation set names.
+All scores in listed mutation sets are written to the .csv file.
+</blockquote>
+
+<blockquote>
+<b>scoreNames</b>&nbsp;&nbsp;<i>score-names</i>
+<br>
+A comma-separated list of score names to be written to the .csv file.
+If a score name occurs in more than one open mutation set then it must be specified as
+<i>mutation-set-name</i>:<i>score-name</i>.
+</blockquote>
+
+<blockquote>
+<b>sort</b>&nbsp;&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>  
+Whether to sort the variants in the .csv file by residue number (default true).
+</blockquote>
+
+<blockquote>
+<b>valueFormat</b>&nbsp;&nbsp;<i>format-string</i>
+<br>
+The score values
+are floating point numbers and the number of significant digits and format in the .csv
+file can be specified with the <b>valueFormat</b> option defaulting to 5 significant
+digits (default "%.5g", a python printf-style string format specifier).
+</blockquote>
+
+<blockquote>
+<b>mergeDuplicates</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
+<br>
+If a variant occurs in more than one source file its scores will be combined on line of the
+output .csv file if <b>mergeDuplicates</b> is true (default), otherwise the same variant will be listed
+on multiple .csv file lines, one line per source file containing scores for that variant.
+</blockquote>
 
 <a name="export"></a>
 <p class="nav">
