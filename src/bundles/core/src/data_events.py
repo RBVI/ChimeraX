@@ -176,8 +176,9 @@ class Tracker:
 
     def __enter__(self):
         self.block()
+        return self
 
-    def __exit__(self):
+    def __exit__(self, exc_type, exc_value, traceback):
         self.release()
 
     def _activate(self, data_type):
