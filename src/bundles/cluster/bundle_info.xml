@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-Cluster" version="1.0" package="chimerax.cluster"
+<BundleInfo name="ChimeraX-Cluster" version="1.0.1" package="chimerax.cluster"
   	    minSessionVersion="1" maxSessionVersion="1">
 
   <!-- Additional information about bundle source -->
