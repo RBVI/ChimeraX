@@ -42,7 +42,7 @@ Either of the following methods of communication can be used:
 [&nbsp;<b>ssl</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>json</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>log</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>cors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;allow-list&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>cors</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 <br>
 <a href="usageconventions.html"><b>Usage</b></a>:
 <b>remotecontrol rest stop</b>
@@ -93,10 +93,10 @@ The <b>cors</b> option enables
 With <b>cors true</b>, the server will respond with appropriate
 <code>Access-Control-Allow-Origin</code> headers for requests originating from
 <code>http://localhost:*</code>, <code>http://127.0.0.1:*</code>, or their HTTPS equivalents.
-With <b>cors allow-list</b>, the server will allow requests from a comma-separated list of origins.
-Allowing cross-origin requests is useful for browser-based applications (such as interactive tutorials or web-based tools)
+This is useful for browser-based applications (such as interactive tutorials or web-based tools)
 that need to communicate with ChimeraX via JavaScript <code>fetch()</code> from a different port.
 The default is <b>cors false</b>, which blocks cross-origin requests.
+Note that CORS is only enabled for localhost origins as a security measure.
 </p><p>
 If sending large data, use POST with "multipart/form-data" in the header.
 </p><p>
