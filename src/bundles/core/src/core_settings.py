@@ -44,6 +44,7 @@ class _CoreSettings(Settings):
         'https_proxy': ("https", "", 443),
         'resize_window_on_session_restore': False,
         'resize_window_on_scene_restore': False,
+        'color_scheme': "system",
     }
     AUTO_SAVE = {
         'toolshed_update_interval': 'week',

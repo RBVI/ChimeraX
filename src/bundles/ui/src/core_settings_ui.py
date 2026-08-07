@@ -19,7 +19,7 @@ TODO
 """
 
 from chimerax.core.core_settings import set_proxies, settings as core_settings
-from .options import SymbolicEnumOption, ColorOption, BooleanOption, IntOption, Option
+from .options import EnumOption, SymbolicEnumOption, ColorOption, BooleanOption, IntOption, Option
 from .options import StringOption, ProtocolHostPortOption
 from chimerax.core.colors import color_name
 from dataclasses import dataclass
@@ -27,6 +27,9 @@ from dataclasses import dataclass
 class UpdateIntervalOption(SymbolicEnumOption):
     values = ("day", "week", "month", "never")
     labels = ("every day", "every week", "every month", "never")
+
+class ColorSchemeOption(EnumOption):
+    values = ("system", "light", "dark")
 
 @dataclass
 class SettingInfo:
@@ -69,6 +72,14 @@ class CoreSettingsPanel:
     #     before any updater is called.  Otherwise, the updater is in charge of setting the
     #     setting.  Usually only set to False if the updater needs to examine the old value.
     settings_info = {
+        'color_scheme': (
+            "Window color scheme",
+            "Window",
+            ColorSchemeOption,
+            lambda ses, val: ses.ui.set_color_scheme(val),
+            None,
+            "Set the UI's appearance",
+            False),
         'background_color': (
             "Background color",
             "Background",

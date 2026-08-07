@@ -98,6 +98,7 @@ class UI(QApplication):
         self._fatal_error_log_file = None
         self._force_float_count = 0
         self.session = session
+        self.color_scheme = None
 
         from .settings import UI_Settings
         self.settings = UI_Settings(session, "ui")
@@ -125,25 +126,8 @@ class UI(QApplication):
         from Qt.QtCore import Qt
         if sys.platform == 'win32':
             self.setStyle('Fusion')
-        self.fixed_color_scheme = color_scheme
-        if color_scheme is None:
-            if self.styleHints().colorScheme() == Qt.ColorScheme.Dark:
-                color_scheme = 'dark'
-            else:
-                color_scheme = 'light'
-            self.styleHints().colorSchemeChanged.connect(self._update_color_scheme)
-        elif color_scheme == 'dark':
-            self.styleHints().setColorScheme(Qt.ColorScheme.Dark)
-            if self.styleHints().colorScheme() != Qt.ColorScheme.Dark:
-                self.session.logger.warning("Unable to set dark mode")
-                color_scheme = 'light'
-        else:
-            self.styleHints().setColorScheme(Qt.ColorScheme.Light)
-        from sys import platform
-        if platform == 'linux':
-            self._set_linux_palette(color_scheme)
-        self.color_scheme = color_scheme
-        set_default_color_scheme(self.color_scheme)
+        self.set_color_scheme(color_scheme, first_time=True)
+        self.styleHints().colorSchemeChanged.connect(self._update_color_scheme)
 
         self._keystroke_sinks = []
         self._key_callbacks = {}	# Maps Qt key number to callback func(session, key_num).
@@ -224,7 +208,7 @@ class UI(QApplication):
                 self._set_linux_palette(new_scheme)
             sbar = self.main_window._status_bar
             sbar.set_colors()
-            msg = f"Desktop color scheme is {new_scheme}"
+            msg = f'Window color scheme is now "{new_scheme}"'
             self.session.logger.status(msg)
             print(msg)  # cause log to redraw with new color scheme
             if hasattr(self.main_window, 'fh'):
@@ -234,6 +218,31 @@ class UI(QApplication):
                 # HTML widgets need to wait
                 self.thread_safe(fh.update_html, post_event=True)
             self.thread_safe(self.triggers.activate_trigger, 'color scheme changed', None, post_event=True)
+
+    def set_color_scheme(self, color_scheme, first_time=False):
+        if color_scheme == "system":
+            color_scheme = None
+        if color_scheme is None:
+            self.color_scheme = None
+            self.styleHints().setColorScheme(Qt.ColorScheme.Unknown)
+            if self.styleHints().colorScheme() == Qt.ColorScheme.Dark:
+                color_scheme = 'dark'
+            else:
+                color_scheme = 'light'
+        else:
+            if color_scheme == 'light':
+                self.styleHints().setColorScheme(Qt.ColorScheme.Light)
+            else:
+                self.styleHints().setColorScheme(Qt.ColorScheme.Dark)
+                if self.styleHints().colorScheme() != Qt.ColorScheme.Dark:
+                    self.session.logger.warning("Unable to set dark mode")
+                    color_scheme = 'light'
+        from sys import platform
+        if platform == 'linux':
+            self._set_linux_palette(color_scheme)
+        self.color_scheme = color_scheme
+        set_default_color_scheme(self.color_scheme)
+
 
     def _screen_added(self):
         self._block_redraw_during_screen_change()

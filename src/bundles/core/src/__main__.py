@@ -286,7 +286,7 @@ def _parse_chimerax_args(argv, arguments, usage):
         elif opt == "--disable-qt":
             opts.disable_qt = True
         elif opt == "--color-scheme":
-            if optarg not in ("light", "dark"):
+            if optarg not in ("system", "light", "dark"):
                 print(f"{argv[0]}: unknown color scheme", file=sys.stderr)
                 raise SystemExit(os.EX_USAGE)
             opts.color_scheme = optarg
@@ -718,7 +718,10 @@ def init(argv, event_loop=True):
     # sets up logging
     if opts.gui:
         from chimerax.ui import gui
-        sess.ui = gui.UI(sess, color_scheme=opts.color_scheme)
+        color_scheme = opts.color_scheme
+        if color_scheme is None:
+            color_scheme = core_settings.settings.color_scheme
+        sess.ui = gui.UI(sess, color_scheme=color_scheme)
  
     # Set ui options
     sess.ui.stereo = opts.stereo
