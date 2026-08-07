@@ -55,9 +55,11 @@ def start_server(session, log=None, port=None, ssl=None, json=False, cors=False)
          LEVEL_DESCRIPTS, and values that are lists of messages logged at that level during command
          execution.
 
-    If 'cors' is True, then CORS (Cross-Origin Resource Sharing) headers will be sent to allow
-    requests from localhost origins (http://localhost:* and http://127.0.0.1:*). This is useful
-    for browser-based applications that need to communicate with ChimeraX from a different port.
+    If 'cors' is a list of request origins, then CORS (Cross-Origin Resource Sharing) headers will be
+    sent to allow requests from those origins. If 'cors' is True, localhost origins
+    (http://localhost:* and http://127.0.0.1:*) are allowed. If 'cors' is False, then CORS headers
+    will deny all origins. This is useful for browser-based applications that need to communicate with
+    ChimeraX from a different port.
     """
 
     global _server
@@ -77,7 +79,7 @@ def start_server(session, log=None, port=None, ssl=None, json=False, cors=False)
             _server.start(port, ssl, json)
 
 
-from chimerax.core.commands import CmdDesc, IntArg, BoolArg
+from chimerax.core.commands import CmdDesc, IntArg, BoolArg, StringArg, Or
 
 start_desc = CmdDesc(
     keyword=[
@@ -85,7 +87,7 @@ start_desc = CmdDesc(
         ("ssl", BoolArg),
         ("json", BoolArg),
         ("log", BoolArg),
-        ("cors", BoolArg),
+        ("cors", Or(BoolArg, StringArg)),
     ],
     synopsis="Start REST server",
 )

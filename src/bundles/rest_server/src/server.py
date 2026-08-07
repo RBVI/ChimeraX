@@ -25,6 +25,7 @@
 from http.server import BaseHTTPRequestHandler
 from chimerax.core.tasks import Task
 from chimerax.core.logger import PlainTextLog, StringPlainTextLog
+from urllib.parse import urlparse
 
 
 class RESTServer(Task):
@@ -35,7 +36,27 @@ class RESTServer(Task):
 
         self.httpd = None
         self.log = kw.pop("log", False)
-        self.cors = kw.pop("cors", False)
+        cors = kw.pop("cors", False)
+        self.allowed_origins = set()
+        if not cors:
+            self.cors = False
+        elif isinstance(cors, str):
+            self.cors = True
+            for url in cors.split(","):
+                parsed = urlparse(url)
+                if parsed.scheme not in ["http", "https"] or not parsed.netloc:
+                    continue
+                self.allowed_origins.add((parsed.scheme, parsed.netloc))
+        else:
+            self.cors = True
+            self.allowed_origins = set([
+                ("http", "localhost"),
+                ("https", "localhost"),
+                ("http", "127.0.0.1"),
+                ("https", "127.0.0.1"),
+                ("http", "::1"),
+                ("https", "::1"),
+            ])
         self.run_count = 0
         self.run_lock = threading.Lock()
         super().__init__(*args, **kw)
@@ -64,6 +85,23 @@ class RESTServer(Task):
     @property
     def server_address(self):
         return self.httpd.server_address
+
+    def _is_allowed_origin(self, origin):
+        """Check if an origin should be allowed by CORS.
+
+        Returns True if the origin is in the allowlist, False otherwise.
+        """
+        if not origin or not self.cors:
+            return False
+        from urllib.parse import urlparse
+        try:
+            parsed = urlparse(origin)
+            # Only allow http and https schemes
+            if parsed.scheme not in ('http', 'https'):
+                return False
+            return (parsed.scheme, parsed.netloc) in self.allowed_origins
+        except Exception:
+            return False
 
     def run(self, port, use_ssl, json):
         from http.server import HTTPServer
@@ -126,30 +164,6 @@ class RESTServer(Task):
         return "REST Server, ID %s" % self.id
 
 
-def _is_localhost_origin(origin):
-    """Check if an origin is a localhost origin (http://localhost:* or http://127.0.0.1:*).
-
-    Returns True if the origin is a localhost origin, False otherwise.
-    """
-    if not origin:
-        return False
-    from urllib.parse import urlparse
-    try:
-        parsed = urlparse(origin)
-        # Only allow http and https schemes
-        if parsed.scheme not in ('http', 'https'):
-            return False
-        # Check for localhost or 127.0.0.1
-        host = parsed.hostname
-        if host in ('localhost', '127.0.0.1'):
-            return True
-        # Also allow ::1 (IPv6 localhost)
-        if host == '::1':
-            return True
-        return False
-    except Exception:
-        return False
-
 
 class RESTHandler(BaseHTTPRequestHandler):
     """Process one REST request."""
@@ -171,8 +185,8 @@ class RESTHandler(BaseHTTPRequestHandler):
             return
 
         origin = self.headers.get("Origin")
-        if not _is_localhost_origin(origin):
-            self.send_error(403, "Forbidden: CORS only allowed for localhost origins")
+        if not self.server.chimerax_restserver._is_allowed_origin(origin):
+            self.send_error(403, "Forbidden: CORS only allowed for allowlisted origins")
             return
 
         self.send_response(200)
@@ -252,13 +266,13 @@ class RESTHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         if length is not None:
             self.send_header("Content-Length", str(length))
-        # Add CORS headers if enabled and origin is localhost
-        if self.server.chimerax_restserver.cors:
-            origin = self.headers.get("Origin")
-            if _is_localhost_origin(origin):
-                self.send_header("Access-Control-Allow-Origin", origin)
-                self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-                self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        # Add CORS headers if enabled and origin is allowlisted
+        origin = self.headers.get("Origin")
+        if self.server.chimerax_restserver._is_allowed_origin(origin):
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
     def _run(self, args):
@@ -338,11 +352,15 @@ class RESTHandler(BaseHTTPRequestHandler):
                 else:
                     q.put(rest_log.getvalue())
 
-        session.ui.thread_safe(f)
-        data = bytes(q.get(), "utf-8")
-        content_type = "application/json" if json else "text/plain"
-        self._header(200, content_type, len(data))
-        self.wfile.write(data)
+        origin = self.headers.get("Origin")
+        if self.server.chimerax_restserver._is_allowed_origin(origin):
+            session.ui.thread_safe(f)
+            data = bytes(q.get(), "utf-8")
+            content_type = "application/json" if json else "text/plain"
+            self._header(200, content_type, len(data))
+            self.wfile.write(data)
+        else:
+            self.send_error(403, "Forbidden: CORS only allowed for allowlisted origins")
 
 from chimerax.atomic import Structure, AtomicStructure, Chain, Atom, Bond, Residue
 try:
