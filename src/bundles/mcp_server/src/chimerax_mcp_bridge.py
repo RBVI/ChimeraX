@@ -64,8 +64,9 @@ Session Management Behavior:
 2. start_new_chimerax_session() ALWAYS forces a new instance (no auto-reuse)
 3. Commands without session_id use auto-discovery:
    - First checks default port
-   - Then scans common ports [8081, 8082, 8083, 7955, 9000]
-   - If none found, auto-starts on default port
+   - Then scans instances this bridge started, then _FALLBACK_PORTS
+   - If none found, auto-starts on default port (or, if another program
+     holds it, on the next free port)
 4. Auto-discovery NO LONGER changes the default port (use set_default_session() explicitly)
 5. check_chimerax_status() only checks, never starts ChimeraX
 """
@@ -94,6 +95,41 @@ _instances = {}  # port -> instance info
 _default_port = DEFAULT_CHIMERAX_PORT
 
 from mcp.server.fastmcp import FastMCP
+
+# Strings that must appear in rest_server's static/cmdline.html. Used to tell a
+# real ChimeraX REST server apart from any other HTTP server that happens to
+# hold the port. Both are long-standing fixtures of that file: the licence
+# banner is boilerplate in every ChimeraX source file, and the title has been
+# stable since the REST server was introduced.
+_CMDLINE_HTML_MARKERS = (
+    "=== UCSF ChimeraX Copyright ===",
+    "Chimera Web Command Line",
+)
+
+# Keys that rest_server's _run() always puts in a JSON-mode response. Their
+# absence means we are not talking to a ChimeraX REST server in JSON mode.
+_REST_ENVELOPE_KEYS = ("log messages", "error")
+
+
+class PortNotChimeraXError(Exception):
+    """An HTTP server answered where ChimeraX was expected, but is not one.
+
+    Raised when a port serves HTTP 200 without the ChimeraX JSON-mode response
+    envelope. Callers treat this like a refused connection -- the port is
+    unusable, so ChimeraX should be started elsewhere -- rather than believing
+    the empty response and reporting success.
+    """
+
+    def __init__(self, port: int, detail: str = ""):
+        self.port = port
+        message = (
+            f"Port {port} is serving HTTP but is not a ChimeraX REST server in "
+            f"JSON mode"
+        )
+        if detail:
+            message += f" ({detail})"
+        super().__init__(message + ".")
+
 
 def find_chimerax_executable():
     """Find ChimeraX executable, starting from bridge script location"""
@@ -157,8 +193,41 @@ def find_available_port(start_port: int = 8080) -> int:
             continue
     raise RuntimeError("No available ports found")
 
+# Ports to sweep when looking for an already-running ChimeraX, besides the
+# default one.
+_FALLBACK_PORTS = (8081, 8082, 8083, 7955, 9000)
+
+
+def _candidate_ports() -> list:
+    """Ports besides the default worth probing for a ChimeraX, best first.
+
+    Instances this bridge started come first. They matter because when the
+    default port is held by another program we start ChimeraX on whatever port
+    happens to be free, which need not be one of _FALLBACK_PORTS.
+
+    The default port is excluded: every caller checks it separately, first.
+    """
+    seen = {_default_port}
+    return [p for p in list(_instances) + list(_FALLBACK_PORTS)
+            if not (p in seen or seen.add(p))]
+
+
 async def is_chimerax_running(port: Optional[int] = None) -> bool:
-    """Check if ChimeraX REST server is running on specified port"""
+    """Check if a ChimeraX REST server is running on the specified port.
+
+    A bare "did something answer with 200?" check is not enough: port 8080 is
+    the most contended port in software (webpack, Flask, Jenkins, Tomcat,
+    Spring Boot, ...), and a stray server that answers 200 to everything would
+    otherwise be mistaken for ChimeraX -- suppressing auto-start and making
+    every subsequent command silently do nothing. So also require the body to
+    actually be ChimeraX's page.
+
+    We probe the static /cmdline.html rather than running a command via /run:
+    static files are served straight from the request handler thread, whereas
+    /run is dispatched onto the UI thread (session.ui.thread_safe). A busy
+    ChimeraX would fail a /run probe and get a redundant second instance
+    started underneath it.
+    """
     if port is None:
         port = _default_port
 
@@ -167,7 +236,10 @@ async def is_chimerax_running(port: Optional[int] = None) -> bool:
         # Use a simple GET request to a known static file
         url = f"http://{CHIMERAX_HOST}:{port}/cmdline.html"
         async with session.get(url, timeout=aiohttp.ClientTimeout(total=1)) as response:
-            return response.status == 200
+            if response.status != 200:
+                return False
+            body = await response.text()
+            return any(marker in body for marker in _CMDLINE_HTML_MARKERS)
     except:
         return False
 
@@ -236,7 +308,7 @@ async def check_existing_rest_server() -> tuple[bool, int]:
     """Check if ChimeraX already has a REST server running, returns (has_server, port)"""
 
     # Try to find any running ChimeraX instances first
-    for check_port in [_default_port] + [8081, 8082, 8083, 7955, 9000]:
+    for check_port in [_default_port] + _candidate_ports():
         if await is_chimerax_running(check_port):
             try:
                 # Found ChimeraX, check if it has REST server info
@@ -289,14 +361,19 @@ async def start_chimerax(port: Optional[int] = None, session_name: Optional[str]
         logger.info("ChimeraX is already running on port %d", port)
         return True, port
 
-    # If port is taken but not by ChimeraX, find a new one
-    if port != _default_port:
-        try:
-            import socket
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind((CHIMERAX_HOST, port))
-        except OSError:
-            port = find_available_port(port)
+    # If the port is taken but not by ChimeraX, find a new one. This applies to
+    # the default port too: it used to be exempt, which meant a foreign server
+    # squatting on 8080 sent ChimeraX off to bind a port it could never get,
+    # and the launch just timed out.
+    try:
+        import socket
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind((CHIMERAX_HOST, port))
+    except OSError:
+        taken_port = port
+        port = find_available_port(port)
+        logger.info("Port %d is in use by another program; starting ChimeraX on "
+                    "port %d instead", taken_port, port)
 
     chimerax_path = find_chimerax_executable()
     if not chimerax_path:
@@ -468,9 +545,12 @@ async def find_best_chimerax_instance() -> int:
         logger.info("Using default ChimeraX instance on port %d", _default_port)
         return _default_port
 
-    # Quick scan for any running ChimeraX instances (common ports only)
+    # Quick scan for any running ChimeraX instances. Instances this bridge
+    # started come first: when the default port is held by another program we
+    # fall back to an arbitrary free port, which need not be in the fixed list
+    # below -- and forgetting it would start a redundant ChimeraX per command.
     # NOTE: We scan but DO NOT change _default_port anymore to avoid confusion
-    common_ports = [8081, 8082, 8083, 7955, 9000]  # Common alternatives
+    common_ports = _candidate_ports()
     for port in common_ports:
         if port == _default_port:
             continue  # Already checked
@@ -486,27 +566,45 @@ async def find_best_chimerax_instance() -> int:
     logger.info("No ChimeraX instances found, will try to start on port %d", _default_port)
     return _default_port
 
-async def _execute_command_request(session, url: str, command: str) -> dict:
+async def _execute_command_request(session, url: str, command: str, port: int) -> dict:
     """Helper to execute a ChimeraX command and parse the response.
-    
+
     Args:
         session: aiohttp ClientSession
         url: Full URL to the ChimeraX /run endpoint
         command: ChimeraX command to execute
-    
+        port: Port `url` points at; used to report port conflicts
+
     Returns:
         dict with 'return_values', 'json_values', and 'logs' keys
-    
+
     Raises:
+        PortNotChimeraXError if the responder is not a JSON-mode ChimeraX
         Exception if request fails or ChimeraX returns an error (with helpful hints)
     """
     params = {'command': command}
-    
+
     async with session.get(url, params=params) as response:
         if response.status == 200:
-            # Parse JSON response
-            data = await response.json()
-            
+            # Parse JSON response. A non-JSON 200 means we are either talking to
+            # something that is not ChimeraX at all, or to a REST server started
+            # without `json true` (which replies text/plain).
+            try:
+                data = await response.json()
+            except aiohttp.ContentTypeError as e:
+                raise PortNotChimeraXError(
+                    port, f"replied {response.content_type}, not JSON") from e
+
+            # rest_server's _run() always emits the full envelope in JSON mode,
+            # so anything else -- notably a server that answers `{}` to every
+            # request -- is not ChimeraX. Without this check an empty reply
+            # looks like a command that simply produced no output, and every
+            # command reports success while doing nothing at all.
+            if not isinstance(data, dict) or not all(
+                    key in data for key in _REST_ENVELOPE_KEYS):
+                raise PortNotChimeraXError(
+                    port, "response lacked the ChimeraX JSON envelope")
+
             if logger.isEnabledFor(logging.DEBUG):
                 import json as _json
                 logger.debug("Response for %r (url=%s): %s",
@@ -554,9 +652,21 @@ async def run_chimerax_command(command: str, port: Optional[int] = None) -> dict
 
     try:
         # Use GET with query parameters (JSON mode enabled at startup)
-        return await _execute_command_request(session, url, command)
+        return await _execute_command_request(session, url, command, port)
 
-    except aiohttp.ClientConnectorError:
+    except (aiohttp.ClientConnectorError, PortNotChimeraXError) as exc:
+        # Nothing usable at `port`. Either nobody answered (ClientConnectorError)
+        # or somebody did but is not a JSON-mode ChimeraX. Distinguish the one
+        # case where starting a second ChimeraX would be wrong: a real ChimeraX
+        # whose REST server was started without `json true`.
+        if isinstance(exc, PortNotChimeraXError) and await is_chimerax_running(port):
+            raise Exception(
+                f"ChimeraX is running on port {port}, but its REST server is not "
+                f"in JSON mode, so the MCP bridge cannot read command results. "
+                f"Run `mcp start` in that ChimeraX to reconfigure it (or "
+                f"`remotecontrol rest start port {port} json true log true`)."
+            ) from exc
+
         # Try to start ChimeraX if it's not running
         success, actual_port = await start_chimerax(port)
         if success:
@@ -564,9 +674,13 @@ async def run_chimerax_command(command: str, port: Optional[int] = None) -> dict
             if actual_port != port:
                 base_url = get_chimerax_url(actual_port)
                 url = f"{base_url}/run"
-            
+
             # Retry the command after starting ChimeraX
-            return await _execute_command_request(session, url, command)
+            return await _execute_command_request(session, url, command, actual_port)
+        elif isinstance(exc, PortNotChimeraXError):
+            raise Exception(
+                f"{exc} ChimeraX could not be started on another port either."
+            ) from exc
         else:
             raise Exception(f"Cannot connect to ChimeraX at {base_url} and failed to start ChimeraX automatically.")
     except Exception as e:
