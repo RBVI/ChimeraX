@@ -136,7 +136,7 @@ misc_test_commands = [
 commands = [
     open_2tpk,
     alias_test_commands,
-    alignment_test_commands,
+#    alignment_test_commands,	# Commented out to test garbage collection crash on Mac ARM64 in nightly builds
     camera_test_commands,
     cartoon_test_commands,
     directory_test_commands,
