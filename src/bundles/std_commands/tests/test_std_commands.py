@@ -3,7 +3,7 @@ import pytest
 
 open_2tpk = ["open 2tpk autostyle false"]
 alias_test_commands = ["alias foo bar", "alias list", "alias delete foo", "alias foo bar", "~alias foo"]
-alignment_test_commands = [*open_2tpk, "align #1 to #1"]
+alignment_test_commands = [*open_2tpk, *open_2tpk, "align #1 to #2"]
 camera_test_commands = ["camera"]
 cartoon_test_commands = [*open_2tpk, "cartoon", "~cartoon", "cartoon :4-34 smooth .4 suppressBackboneDisplay false", "cartoon hide"]
 directory_test_commands = ["cd", "pwd"]
@@ -136,7 +136,7 @@ misc_test_commands = [
 commands = [
     open_2tpk,
     alias_test_commands,
-#    alignment_test_commands,	# Commented out to test garbage collection crash on Mac ARM64 in nightly builds
+    alignment_test_commands,
     camera_test_commands,
     cartoon_test_commands,
     directory_test_commands,
