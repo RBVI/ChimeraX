@@ -1940,7 +1940,9 @@ t0 = t1;
 
         bool c2_possible = false;
         std::vector<Atom *> nb_valence1;
+#ifdef P5N
         int num_bonded_Npls = 0;
+#endif
         for (auto bondee: a->neighbors()) {
             auto bondee_type = bondee->idatm_type();
 
@@ -1948,12 +1950,20 @@ t0 = t1;
             if (i == info_map.end())
                 continue;
             if ((*i).second.geometry == 3 && bondee_type != "Cac"
+// Not sure why I thought this P5N code was needed.  It prevents the Npl-C2 moiety in COD 2214833
+// from begin recognized and is not needed for guanidinium recognition.  Leaving it here in case
+// there are other situations I'm missing where some modified version of it might be necessary.
+// Possibly something to do with rings?
+#ifdef P5N
                     && bondee_type != "N2+"
                     // Npl with two bonds or less may be N2
                     && !(bondee_type == "Npl"
                     && bondee->neighbors().size() > 2
                     // because Ng+ isn't assigned until next pass
                     && heavys[bondee] > 1)) {
+#else
+                    ) {
+#endif
                 c2_possible = true;
                 break;
             } else if (bondee->neighbors().size() == 1)
@@ -1961,9 +1971,11 @@ t0 = t1;
             if (bondee_type == "Npl")
                 ++num_bonded_Npls;
         }
+#ifdef P5N
         if (num_bonded_Npls == 3)
-            // guanidium
+            // guanidinium
             c2_possible = true;
+#endif
 
         if (!c2_possible) {
             if (a->neighbors().size() == 3 && nb_valence1.size() > 0) {
