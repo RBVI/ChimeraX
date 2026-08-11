@@ -1968,8 +1968,10 @@ t0 = t1;
                 break;
             } else if (bondee->neighbors().size() == 1)
                 nb_valence1.push_back(bondee);
+#ifdef P5N
             if (bondee_type == "Npl")
                 ++num_bonded_Npls;
+#endif
         }
 #ifdef P5N
         if (num_bonded_Npls == 3)
