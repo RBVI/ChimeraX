@@ -320,6 +320,12 @@ and the trajectory can be navigated by moving the triangle.
 Although more than one cluster can be chosen in the
 top part of the dialog, only one frame can be displayed at a time.
 </p><p>
+</p><p>
+<b>Save</b> allows writing the clustering information
+(membership and representatives) to a text file.
+<b>Close</b> dismisses the cluster dialog.
+<b>Help</b> opens this manual page in a browser window.
+</p>
 <a name="rmsd-map"></a>
 </li><li><b>RMSD Map</b>
 &ndash; generate a map of all-by-all pairwise root-mean-square deviations
@@ -337,16 +343,17 @@ RMSD options:
   </li><li><b>Ending frame</b> (last frame loaded, by default)
   &ndash; number of the last frame to possibly include 
   (if not skipped by sampling); must be within the range originally loaded
+  <a name="thresholds">
   </li><li><b>Lower RMSD threshold (white)</b> (initial default <b>0.5</b>)
   &ndash; initial lower RMSD threshold for coloring, in &Aring;; white will
-  be used for this value and lower. If <a href="#recolor">TODO: auto-recoloring</a>
+  be used for this value and lower. If <a href="#recolor">auto-recoloring</a>
   is turned on, the threshold may change after all of the values have been computed.
   </li><li><b>Upper RMSD threshold (black)</b> (initial default <b>3.0</b>)
   initial upper RMSD threshold for coloring, in &Aring;; black will be used for
   this value and higher. RMSD values between the thresholds will be mapped to
-  grayscale. If <a href="#recolor">TODO: auto-recoloring</a> is turned on, the
+  grayscale. If <a href="#recolor">auto-recoloring</a> is turned on, the
   threshold may change after all of the values have been computed.  Explicitly
-  changing the thresholds with the results dialog's <a href="TODO">TODO: Change
+  changing the thresholds with the results dialog's <a href="#changethresh">Change
   RMSD Thresholds...</a> context menu item will change the initial defaults.
   </li><li><b>Restrict map to current selection, if any</b>
   (default <b>on</b>) &ndash; whether to limit calculations to only the
@@ -362,9 +369,9 @@ RMSD options:
   &ndash; whether to ignore alkali metal ions (Li<sup>+</sup>, Na<sup>+</sup>,
   K<sup>+</sup>, <i>etc.</i>), or all metal ions (if <b>true</b>),
   or none (if <b>false</b>, thus including any metal ions)
-  <li><b>Auto-recolor for contrast</b> (<b>true</b>/false)
+  <li><a name="recolor"><b>Auto-recolor for contrast</b> (<b>true</b>/false)
   &ndash; whether the RMSD map should be recolored automatically after all
-  values have been computed, using <a href="#thresolds">TODO: thresholds</a>
+  values have been computed, using <a href="#thresolds">thresholds</a>
   that enclose the middle third of values (i.e., the lowest third of values
   will be white, the middle third in grayscale, the highest third black)
   </li></ul>
@@ -373,39 +380,47 @@ RMSD options:
 closing the dialog, respectively, whereas <b>Close</b> simply dismisses the
 dialog. <b>Help</b> opens this manual page in a browser window.
 </p><p>
-The calculation uses the 
-<a href="md.html#cluster"><b>md cluster</b></a> command.
+<table border="1" align="right" style="margin:8px 8px 8px 8px" cellpadding="0" cellspacing="0">
+<tbody><tr><td><img src="coordset-rmsd.png" alt="computer generated image"></td></tr>
+</tbody></table>
+<p>
 For each frame-to-frame comparison, the least-squares-fit RMSD between
 the indicated sets of atoms will be calculated, without applying any
-transformation. The calculations may take several minutes, 
-depending on the size of the system and the number of frames.
-To decrease computational time, use a sparser sampling of frames 
-and/or fewer atoms in the calculation.
+transformation.  The values will be shown as grayscale squares within an
+<b><i>RMSD map</i></b>.
 </p><p>
-<a name="rmsd-map-dialog"></a>
-<b>Trajectory clustering results</b><br>
-The top part of the clustering results dialog
-lists the clusters, and for each, the number of <b>Members</b>
-(how many of the input frames belong to the cluster)
-and the frame number of the <b>Representative Frame</b>.
-Different colors are used to show membership in the different clusters
-within the timeline plot in the bottom part of the dialog.
-Clicking the cluster color well allows changing its color interactively.
+Multiple RMSD maps can be open at the same time.
+When the cursor is placed over a map,
+the corresponding frame numbers and RMSD value are given below the map.
+Clicking on a map places the corresponding 
+frame numbers in the <b>Frame</b> fields; clicking <b>Go</b>
+will show the corresponding frame of the trajectory in the graphics window.
 </p><p>
-Clicking the line for a cluster in the top part of the dialog
-displays its representative frame in the main window
-and makes the bars for all of the members of that cluster taller
-on the timeline plot.
-The current frame is indicated with an inverted triangle on the plot,
-and the trajectory can be navigated by moving the triangle.
-Although more than one cluster can be chosen in the
-top part of the dialog, only one frame can be displayed at a time.
-</p><p>
-<b>Save</b> allows writing the clustering information
-(membership and representatives) to a text file.
-<b>Close</b> dismisses the cluster dialog.
-<b>Help</b> opens this manual page in a browser window.
-</p>
+Other buttons on the RMSD map dialog:
+</p><ul>
+<li><b>Save RMSDs</b> - save the matrix of RMSD values to a text file
+</li><li><b>Close</b> - dismiss/delete the RMSD map
+</li><li><b>Help</b> - show this manual page in a browser window
+</li></ul>
+<p></p>
+<blockquote>
+The map dialog has its own 
+<a href="../window.html#context-menu">context menu</a>, including:
+  <ul>
+  <a name="changethresh">
+  </li><li><b>Change RMSD Thresholds...</b> adjust the map's
+  white/black <a href="#thresholds">threshold settings</a>
+  to recolor the map without recalculation of RMSD values.
+  This also updates the initial defaults to these thresholds
+  <li><b>Save Map Image...</b> save the RMSD map to an image file 
+(several choices of image file format), optionally with a
+<b>Transparent background</b> and a specified <b>DPI</b>
+(resolution in pixels per inch; although the displayed aspect ratio is
+retained, however, there is no way to specify the size in inches,
+which is somehow determined by
+<a href="https://matplotlib.org/" target="_blank">Matplotlib</a>)
+  </li></ul>
+</blockquote>
 </li><li><b>Loop Playback</b> (initially on)
 &ndash; whether interactive playback should continue until explicitly paused 
 </li><li><b>Bounce Playback</b> (only available when <b>Loop Playback</b> is on)

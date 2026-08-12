@@ -138,13 +138,14 @@ class PlotDialog:
         provider_name = self.cur_provider
         plot = self.plot(provider_name)
 
-        spd = SavePlotDialog(self.session, plot)
-        if not spd.exec():
+        from .gui import SaveMatplotImageDialog
+        smid = SaveMatplotImageDialog(self.session, plot)
+        if not smid.exec():
             return
-        path = spd.path
+        path = smid.path
         if path is None:
             return
-        plot.figure.savefig(path, transparent=spd.transparent_background, dpi=spd.dpi)
+        plot.figure.savefig(path, transparent=smid.transparent_background, dpi=smid.dpi)
         self.session.logger.info("%s plot saved to %s" % (self.mgr.ui_name(provider_name), path))
 
     def save_values(self, *args):
@@ -575,94 +576,6 @@ class TableEntry:
     @property
     def values(self):
         return self._values
-
-from chimerax.core.settings import Settings
-class SavePlotDialogSettings(Settings):
-    AUTO_SAVE = {
-        "dpi": None,
-        "save_format": "PNG",
-        "transparent_background": False,
-    }
-
-# Cribbed from chimerax.ui.open_save.SaveDialog, but since we need to save the formats ourselves and
-# save some formats otherwise unknown to ChimeraX (e.g. EPS, SVG), we provide our own dialog
-from Qt.QtWidgets import QFileDialog
-class SavePlotDialog(QFileDialog):
-    def __init__(self, session, parent = None, *args, **kw):
-        self.format_info = [
-            ("PNG", "Portable Network Graphics", "png"),
-            ("JPEG/JPG", "Joint Photographic Experts Group", "jpg *.jpeg"),
-            ("TIFF", "Tagged Image File Format", "tiff"),
-            ("PDF", "Portable Document Format", "pdf"),
-            ("SVG", "Scalable Vector Graphics", "svg"),
-            ("EPS", "Encapsulated PostScript", "eps"),
-            ("PS", "PostScript", "ps"),
-        ]
-        name_filters = ["%s [%s] (*.%s)" % fmt_info for fmt_info in self.format_info]
-        self.filter_to_info = {flt: info for flt, info in zip(name_filters, self.format_info)}
-        fmt_to_filter = { info[0]: flt for flt, info in self.filter_to_info.items() }
-        super().__init__(parent, *args, **kw)
-        self.setFileMode(QFileDialog.AnyFile)
-        self.setAcceptMode(QFileDialog.AcceptSave)
-        self.setOption(QFileDialog.DontUseNativeDialog)
-        self.setNameFilters(name_filters)
-        self.settings = SavePlotDialogSettings(session, "MD save plot dialog")
-        try:
-            self.selectNameFilter(fmt_to_filter[self.settings.save_format])
-        except KeyError:
-            self.selectNameFilter(fmt_to_filter["PNG"])
-
-        custom_area = QFrame(self)
-        custom_area.setFrameStyle(QFrame.Panel | QFrame.Raised)
-        custom_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        layout = self.layout()
-        row = layout.rowCount()
-        layout.addWidget(custom_area, row, 0, 1, -1)
-        custom_layout = QHBoxLayout()
-        custom_area.setLayout(custom_layout)
-        custom_layout.addStretch(1)
-        self._transparent_checkbox = QCheckBox("Transparent background")
-        self._transparent_checkbox.setChecked(self.settings.transparent_background)
-        custom_layout.addWidget(self._transparent_checkbox)
-        custom_layout.addStretch(1)
-        custom_layout.addWidget(QLabel("DPI:"))
-        self._dpi_entry = QLineEdit()
-        self._dpi_entry.setAlignment(Qt.AlignCenter)
-        self._dpi_entry.setPlaceholderText("default")
-        self._dpi_entry.setMaximumWidth(50)
-        validator = QIntValidator()
-        validator.setBottom(1)
-        self._dpi_entry.setValidator(validator)
-        if self.settings.dpi is not None:
-            self._dpi_entry.setText(str(self.settings.dpi))
-        custom_layout.addWidget(self._dpi_entry)
-        custom_layout.addStretch(1)
-
-    @property
-    def dpi(self):
-        if self._dpi_entry.hasAcceptableInput():
-            return int(self._dpi_entry.text())
-        return None
-
-    @property
-    def path(self):
-        paths = self.selectedFiles()
-        if not paths:
-            return None
-        path = paths[0]
-        name_filter = self.selectedNameFilter()
-        fmt_name, fmt_desc, suffix_info = self.filter_to_info[name_filter]
-        self.settings.save_format = fmt_name
-        self.settings.transparent_background = self.transparent_background
-        self.settings.dpi = self.dpi
-        suffix = '.' + (suffix_info[:suffix_info.index(' ')] if ' ' in suffix_info else suffix_info)
-        if path.endswith(suffix):
-            return path
-        return path + suffix
-
-    @property
-    def transparent_background(self):
-        return self._transparent_checkbox.isChecked()
 
 def show_plot_dialog(main_tool_window, structure):
     inst = main_tool_window.tool_instance

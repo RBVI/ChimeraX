@@ -318,6 +318,11 @@ class RMSDMap:
         act.triggered.connect(self._run_thresold_dialog)
         menu.addAction(act)
 
+        from Qt.QtGui import QAction
+        act = QAction("Save Map Image...", parent=menu)
+        act.triggered.connect(self.save_map)
+        menu.addAction(act)
+
     def new_min_max(self, new_min, new_max):
         self.settings.low_rmsd = self.min_rmsd = new_min
         self.settings.high_rmsd = self.max_rmsd = new_max
@@ -330,6 +335,17 @@ class RMSDMap:
         self.canvas.draw_idle()
         self.tool_window.status("Map recolored")
         self.set_title()
+
+    def save_map(self, *args):
+        from .gui import SaveMatplotImageDialog
+        smid = SaveMatplotImageDialog(self.session, self.canvas)
+        if not smid.exec():
+            return
+        path = smid.path
+        if path is None:
+            return
+        self.canvas.figure.savefig(path, transparent=smid.transparent_background, dpi=smid.dpi)
+        self.session.logger.info("RMSD map saved to %s" % path)
 
     def set_title(self):
         self.tool_window.title = self.title_fmt % (self.min_rmsd, self.max_rmsd)
