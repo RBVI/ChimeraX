@@ -236,7 +236,8 @@ class QCxTableModel(QAbstractTableModel):
     def _title_text(self, col):
         if not col.title_display or col.icon is not None:
             return None
-        if self._item_table._auto_multiline_headers:
+        if (col.multiline_header is None and self._item_table._auto_multiline_headers) \
+        or col.multiline_header:
             title = self._make_multiline(col.title)
         else:
             title = col.title
@@ -372,7 +373,7 @@ class ItemTable(QTableView):
     def add_column(self, title, data_fetch, *, format="%s", data_set=None, display=None, title_display=True,
             justification="center", balloon=None, font=None, refresh=True, color=None,
             header_justification=None, icon=None, editable=False, validator=None, sort_func=None,
-            show_tooltips=False, data_color=None, is_html=False):
+            show_tooltips=False, data_color=None, is_html=False, multiline_header=None):
         """ Add a column who's header text is 'title'.  It is allowable to add a column with the
             same title multiple times.  The duplicative additions will be ignored.
 
@@ -453,6 +454,9 @@ class ItemTable(QTableView):
 
             Set 'is_html' to True if you need HTML formatting.  This uses a QLabel for each cell in the
             column so is somewhat higher overhead, so only use it when actually needed if possible.
+
+            'multiline_header' controls whether this column allows multiline headers or not.  If the 
+            value is None then the table default (as specified in the table constructor) is used.
         """
         titles = [c.title for c in self._columns]
         if title in titles:
@@ -478,7 +482,7 @@ class ItemTable(QTableView):
 
         c = _ItemColumn(title, data_fetch, format, data_set, title_display, justification, font, color,
             header_justification, balloon, icon, self._session, editable, validator, sort_func,
-            show_tooltips, data_color, is_html)
+            show_tooltips, data_color, is_html, multiline_header)
 
         c.display = display
         if self._column_control_info:
@@ -863,7 +867,7 @@ class ItemTable(QTableView):
 class _ItemColumn:
     def __init__(self, title, data_fetch, display_format, data_set, title_display, justification, font,
             header_color, header_justification, balloon, icon, session, editable, validator, sort_func,
-            show_tooltips, data_color, is_html):
+            show_tooltips, data_color, is_html, multiline_header):
         # set all args to corresponding 'self' attributes...
         import inspect
         args, varargs, keywords, locals = inspect.getargvalues(inspect.currentframe())
