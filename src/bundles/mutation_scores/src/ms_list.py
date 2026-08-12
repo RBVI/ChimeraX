@@ -53,10 +53,12 @@ class MutationScoresList(ToolInstance):
         lw.itemClicked.connect(self._list_item_clicked)
         layout.addWidget(lw)
         self._update_list()
+
+        triggers = session.triggers
         from . import ms_data
-        ms_data.create_mutation_set_add_remove_triggers(session.triggers,
-                                                        self._mutation_set_added,
-                                                        self._mutation_set_removed)
+        ms_data.create_mutation_set_triggers(triggers)
+        triggers.add_handler('mutation set added', self._mutation_set_added)
+        triggers.add_handler('mutation set removed', self._mutation_set_removed)
 
         from chimerax.ui.widgets import EntriesRow
         br = EntriesRow(parent,
@@ -69,6 +71,7 @@ class MutationScoresList(ToolInstance):
         layout.addWidget(br.frame)
 
         br2 = EntriesRow(parent,
+                         ('Associate structures', self._associate_structures),
                          ('Save .csv', self._save_csv),
                          ('Close data', self._close_data),
                          ('Help', self._show_help),
@@ -209,6 +212,13 @@ class MutationScoresList(ToolInstance):
             return
         mset_option = self._mset_option(mset.name, include_keyword = False)
         self._run_command(f'mutationscores alphafold {mset_option}')
+    
+    def _associate_structures(self):
+        from .ms_associate import show_associate_structure_panel
+        asp = show_associate_structure_panel(self.session)
+        msets = self._selected_mutation_sets()
+        if msets:
+            asp.set_mutation_set(msets[0])
 
     def _save_csv(self):
         mset_names = []
