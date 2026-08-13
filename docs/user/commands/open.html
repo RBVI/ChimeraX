@@ -137,12 +137,6 @@ see also <a href="altlocs.html">alternate locations</a></td>
 and <a href="altlocs.html">alternate locations</a>;
 <br>see also the <a href="#fetchEmdbMap"><b>fetchEmdbMap</b></a> option)</td>
 </tr><tr>
-<td align="center" class="text"><a href="https://mmtf.rcsb.org/" target="_blank">MMTF (Macromolecular Transmission Format)</a></td>
-<td align="center"><b>mmtf</b></td>
-<td align="center">.mmtf
-<br><a href="#compressed">+&nbsp;compressed</a></td>
-<td align="center">atomic coordinates and associated annotations</td>
-</tr><tr>
 <td align="center">
 <a href="http://ww1.iucr.org/iucr-top/cif/standard/cifstd1.html" target="_blank">Crystallographic Information File (CIF)</a></td>
 <td align="center"><b>corecif<br>smallcif</b></td>
@@ -1975,7 +1969,7 @@ For example, myfile.pdb.gz is a gzipped PDB file.
 The file types that can be read by ChimeraX in compressed form
 (as well as uncompressed) are
 ALN, BILD, Collada, compiled Python code, directional FSC,
-FASTA, glTF, HSSP, MMTF, MSF, NIfTI, PDB, Pfam, PIR, pseudobonds, Python code,
+FASTA, glTF, HSSP, MSF, NIfTI, PDB, Pfam, PIR, pseudobonds, Python code,
 RSF, STL, Stockholm, STORM, VTK PolyData, and Wavefront OBJ.
 </p>
 
@@ -2108,7 +2102,7 @@ before the identifier or the <b>fromDatabase</b> option.
 The default database for a 4-character identifier without prefix is the
 <a href="https://www.rcsb.org/" target="_blank">RCSB Protein Data Bank</a>;
 the default format
-for that database is <b>mmcif</b>, although <b>pdb</b> or <b>mmtf</b>
+for that database is <b>mmcif</b>, although <b>pdb</b>
 can be specified with the <b>format</b> option.
 Specifying multiple identifiers is equivalent to using the <b>open</b> command
 multiple times with the same options for each identifier.
@@ -2166,8 +2160,7 @@ or web service</b></td>
 <td align="center" rowspan="2"><a href="https://www.rcsb.org/" target="_blank">RCSB Protein Data Bank</a></td>
 <td align="center"><b>pdb</b></td>
 <td align="center">atomic coordinates and associated annotations</td>
-<td align="center"><b>mmcif</b> (default) or <b>pdb</b>
-<br>or <a href="https://mmtf.rcsb.org/" target="_blank"><b>mmtf</b></a></td>
+<td align="center"><b>mmcif</b> (default) or <b>pdb</b></td>
 </tr><tr>
 <td align="center" class="text"><b>rcsb_bio</b></td>
 <td align="center" class="text">atomic coordinates for biological assembly

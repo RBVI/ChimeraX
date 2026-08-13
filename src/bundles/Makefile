@@ -36,7 +36,7 @@ REST_SUBDIRS = add_charge addh alignment_algs alignment_headers \
 	  map map_data map_eraser map_filter map_fit map_series \
 	  markers mask match_align match_maker mcopy mcp_server md_crds \
 	  meeting minimize mlp model_series \
-	  mmcif mmtf model_archive model_panel modeller \
+	  mmcif model_archive model_panel modeller \
 	  mol2 mole morph mouse_modes movie mutation_scores nmrstar \
 	  neuron nucleotides open_command openfold orthopick \
 	  pdb pdb_bio pdb_lib pdb_matrices \
