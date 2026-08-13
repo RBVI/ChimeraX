@@ -26,7 +26,7 @@ SINGLE_PREFIX = "single_seq_"
 ALIGNMENT_PREFIX = "alignment_"
 
 from chimerax.ui.options import Option, BooleanOption, IntOption, \
-    OptionalRGBAOption, OptionalRGBAPairOption
+    OptionalRGBAOption, OptionalRGBAPairOption, FontOption
 
 APPEARANCE = "Appearance"
 REGIONS = "Regions"
@@ -48,6 +48,10 @@ defaults = {
         OptionalRGBAPairOption, {'labels': ("full", "partial")}, (None, None)),
     "error_region_interiors": (REGIONS, "Structure-mismatch interior", 11,
         OptionalRGBAPairOption, {'labels': ("full", "partial")}, ((1.0, 0.3, 0.3, 1.0), "pink")),
+    "font": (APPEARANCE, "Font", -1, FontOption, {}, "Helvetica"),
+    SINGLE_PREFIX + "font": (APPEARANCE, "Font", -1, FontOption, {}, "Helvetica"),
+    "font_size": (APPEARANCE, "Font size", -2, IntOption, {'min': 4, 'max': 36}, 12),
+    SINGLE_PREFIX + "font_size": (APPEARANCE, "Font size", -2, IntOption, {'min': 4, 'max': 36}, 12),
     "gap_region_shown": (REGIONS, "Show missing-structure regions", 6, BooleanOption, {}, True),
     "gap_region_borders": (REGIONS, "Missing-structure border", 7, OptionalRGBAPairOption,
         {'labels': ("full", "partial")}, ("black", [chan/255.0 for chan in (190, 190, 190, 255)])),

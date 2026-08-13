@@ -170,7 +170,8 @@ class SeqCanvas:
             (self.sv.prefs[FONT_NAME], self.sv.prefs[FONT_SIZE]))
         """
         from Qt.QtGui import QFont, QFontMetrics
-        self.font = QFont("Helvetica")
+        self.font = QFont(self.get_prefixed_setting("font"))
+        self.font.setPointSize(self.get_prefixed_setting("font_size"))
         self.emphasis_font = QFont(self.font)
         self.emphasis_font.setBold(True)
         self.font_metrics = QFontMetrics(self.font)
@@ -695,6 +696,10 @@ class SeqCanvas:
                     "  %d" % (numbering_start + offset)))
         return [lwidth, rwidth]
 
+    def get_prefixed_setting(self, attr_name):
+        prefix = SINGLE_PREFIX if len(self.alignment.seqs) == 1 else ""
+        return getattr(self.sv.settings, prefix + attr_name)
+
     """
     def headerDisplayOrder(self):
         return self.lead_block.lines[:-len(self.alignment.seqs)]
@@ -795,10 +800,7 @@ class SeqCanvas:
         self._update_scene_rects()
 
     def letter_gaps(self):
-        column_sep_attr_name = "column_separation"
-        if len(self.alignment.seqs) == 1:
-            column_sep_attr_name = SINGLE_PREFIX + column_sep_attr_name
-        return [getattr(self.sv.settings, column_sep_attr_name), 1]
+        return [self.get_prefixed_setting("column_separation"), 1]
 
     def _line_width_fits(self, pixels, num_characters):
         lnw, rnw = self.find_numbering_widths(num_characters)
@@ -816,7 +818,7 @@ class SeqCanvas:
                 prefix = SINGLE_PREFIX
             else:
                 prefix = ""
-            lwm = getattr(self.sv.settings, prefix + "line_width_multiple")
+            lwm = self.get_prefixed_setting("line_width_multiple")
             lw = lwm
             try_lw = lw + lwm
             win_width = self.main_view.viewport().size().width()
@@ -1021,6 +1023,21 @@ class SeqCanvas:
             activeNode = self.activeNode()
         """
         self.lead_block.destroy()
+        pt_size = self.get_prefixed_setting("font_size")
+        font_name = self.get_prefixed_setting("font")
+        from Qt.QtGui import QFontMetrics, QFont
+        if font_name != self.font.family():
+            self.font = QFont(font_name)
+            self.font.setPointSize(pt_size)
+            self.emphasis_font = QFont(self.font)
+            self.emphasis_font.setBold(True)
+            self.font_metrics = QFontMetrics(self.font)
+            self.emphasis_font_metrics = QFontMetrics(self.emphasis_font)
+        elif pt_size != self.font.pointSize():
+            self.font.setPointSize(pt_size)
+            self.emphasis_font.setPointSize(pt_size)
+            self.font_metrics = QFontMetrics(self.font)
+            self.emphasis_font_metrics = QFontMetrics(self.emphasis_font)
         initial_headers = [hd for hd in self.alignment.headers if hd.shown]
         self.label_width = _find_label_width(self.alignment.seqs + initial_headers,
             self.sv.settings, self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
