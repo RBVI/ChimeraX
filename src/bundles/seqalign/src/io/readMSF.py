@@ -44,22 +44,22 @@ import re
 class MSF:
 
     _Hdr = re.compile(r'\s*(\S*)\s*'            # name
-                'MSF:\s*(\S*)\s*'    # length?
-                'Type:\s*(\S*)\s*'    # type
-                '(.*)\s*'        # date/time
-                'Check:\s*(\S*)\s*'    # checksum
-                '\.\.')            # signature
+                r'MSF:\s*(\S*)\s*'    # length?
+                r'Type:\s*(\S*)\s*'    # type
+                r'(.*)\s*'        # date/time
+                r'Check:\s*(\S*)\s*'    # checksum
+                r'\.\.')            # signature
     _MultalinHdr = re.compile(r'\s*(\S.*)\s*'    # name
-                'MSF:\s*(\S*)\s*'    # length?
+                r'MSF:\s*(\S*)\s*'    # length?
                             # missing type
                             # missing date/time
-                'Check:\s*(\S*)\s*'    # checksum
-                '\.\.')            # signature
+                r'Check:\s*(\S*)\s*'    # checksum
+                r'\.\.')            # signature
 
     _Sum = re.compile(r'\s*Name:\s*(\S*)\s*o*\s*'    # name
-                'Len:\s*(\S*)\s*'    # length
-                'Check:\s*(\S*)\s*'    # checksum
-                'Weight:\s*(\S*)\s*')    # weight
+                r'Len:\s*(\S*)\s*'    # length
+                r'Check:\s*(\S*)\s*'    # checksum
+                r'Weight:\s*(\S*)\s*')    # weight
 
     def __init__(self, session, f):
         self.session = session
