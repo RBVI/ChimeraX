@@ -96,7 +96,7 @@ test src.test: testimports
 	$(MAKE) -C src test
 
 testimports:
-	$(APP_EXE) --exit --nogui --silent utils/cxtestimports.py
+	cd utils > /dev/null && $(APP_EXE) --exit --nogui --silent cxtestimports.py
 
 ifdef FLATPAK_DIST
 SCRIPT_COVERAGE_ARGS := $(if $(USE_COVERAGE),-c -s -f,)
