@@ -25,3 +25,14 @@ diff --color -u grako.orig/util.py grako/util.py
          not isinstance(value, strtype)
      )
  
+--- grako.orig/codegen/objectmodel.py	2026-08-13 15:26:34.641118397 -0700
++++ grako/codegen/objectmodel.py	2026-08-13 15:26:41.497972416 -0700
+@@ -17,7 +17,7 @@
+ from grako.codegen.cgbase import ModelRenderer, CodeGenerator
+ 
+ 
+-NODE_NAME_PATTERN = '(?!\d)\w+(' + BASE_CLASS_TOKEN + '(?!\d)\w+)*'
++NODE_NAME_PATTERN = r'(?!\d)\w+(' + BASE_CLASS_TOKEN + '(?!\d)\w+)*'
+ 
+ 
+ _TypeSpec = NT('TypeSpec', ['class_name', 'base'])
