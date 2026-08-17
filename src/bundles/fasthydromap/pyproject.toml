@@ -35,7 +35,6 @@ max-session-version = 1
 categories = ["Structure Analysis"]
 classifiers = [
   "Development Status :: 3 - Alpha",
-  "License :: OSI Approved :: MIT License",
 ]
 
 [tool.chimerax.package-data]

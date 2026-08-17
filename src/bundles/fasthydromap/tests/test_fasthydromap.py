@@ -1,12 +1,25 @@
 import importlib.util
 import sys
+import tomllib
 import types
 from pathlib import Path
 
 import pytest
 
 
-BUNDLE_SRC = Path(__file__).resolve().parents[1] / "src"
+BUNDLE_ROOT = Path(__file__).resolve().parents[1]
+BUNDLE_SRC = BUNDLE_ROOT / "src"
+
+
+def test_bundle_metadata_uses_license_expression_without_legacy_classifier():
+    with open(BUNDLE_ROOT / "pyproject.toml", "rb") as metadata_file:
+        metadata = tomllib.load(metadata_file)
+
+    assert metadata["project"]["license"] == "MIT"
+    assert not any(
+        classifier.startswith("License ::")
+        for classifier in metadata["tool"]["chimerax"]["classifiers"]
+    )
 
 
 def _stub_chimerax_modules(monkeypatch):
