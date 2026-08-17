@@ -8,7 +8,7 @@ license = "MIT"
 authors = [{ name = "Samuel Lobo", email = "samuels.lobo@gmail.com" }]
 description = "Run FastHydroMap from ChimeraX and color structures by predicted Fdewet or PC maps"
 dependencies = [
-  "ChimeraX-Core ~=1.0",
+  "ChimeraX-Core ~=1.12",
   "ChimeraX-Atomic >=1.66",
   "ChimeraX-PDB >=2.0",
   "ChimeraX-Surface >=1.0",

@@ -68,6 +68,14 @@ class InstallFastHydroMap:
         from subprocess import run
 
         python_exe = chimerax_python_executable()
+        if _is_macos_app_translocation(python_exe):
+            self._session.logger.error(
+                "Cannot install FastHydroMap while ChimeraX is running from a temporary "
+                "macOS App Translocation path. Install ChimeraX in Applications with Finder, "
+                "quit ChimeraX, relaunch the installed app, and run 'fasthydromap install' again."
+            )
+            self._finished("create environment", success=False)
+            return False
         command = [python_exe, "-m", "venv", self._directory]
         p = run(command, capture_output=True, text=True, encoding="utf-8", errors="replace",
                 creationflags=_no_subprocess_window())
@@ -270,6 +278,12 @@ def _no_subprocess_window():
 
         return CREATE_NO_WINDOW
     return 0
+
+
+def _is_macos_app_translocation(executable):
+    from sys import platform
+
+    return platform == "darwin" and "/AppTranslocation/" in executable
 
 
 def register_fasthydromap_install_command(logger):

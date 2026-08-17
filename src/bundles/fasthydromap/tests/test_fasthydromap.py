@@ -11,11 +11,12 @@ BUNDLE_ROOT = Path(__file__).resolve().parents[1]
 BUNDLE_SRC = BUNDLE_ROOT / "src"
 
 
-def test_bundle_metadata_uses_license_expression_without_legacy_classifier():
+def test_bundle_metadata_release_constraints():
     with open(BUNDLE_ROOT / "pyproject.toml", "rb") as metadata_file:
         metadata = tomllib.load(metadata_file)
 
     assert metadata["project"]["license"] == "MIT"
+    assert "ChimeraX-Core ~=1.12" in metadata["project"]["dependencies"]
     assert not any(
         classifier.startswith("License ::")
         for classifier in metadata["tool"]["chimerax"]["classifiers"]
@@ -372,3 +373,20 @@ def test_install_command_uses_pypi_and_cli_torch(monkeypatch):
         ],
         ["/tmp/fhm/bin/fasthydromap", "install-torch", "--variant", "cpu"],
     ]
+
+
+def test_macos_app_translocation_detection(monkeypatch):
+    install_module = _load_submodule(monkeypatch, "install")
+
+    monkeypatch.setattr(sys, "platform", "darwin")
+    assert install_module._is_macos_app_translocation(
+        "/private/var/folders/example/AppTranslocation/UUID/d/ChimeraX.app/Contents/bin/python3.11"
+    )
+    assert not install_module._is_macos_app_translocation(
+        "/Applications/ChimeraX-1.12.app/Contents/bin/python3.11"
+    )
+
+    monkeypatch.setattr(sys, "platform", "linux")
+    assert not install_module._is_macos_app_translocation(
+        "/private/var/folders/example/AppTranslocation/UUID/d/ChimeraX.app/Contents/bin/python3.11"
+    )
