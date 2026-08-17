@@ -1,0 +1,78 @@
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
+<title>Command: fasthydromap</title>
+</head>
+<body>
+
+<a name="top"></a>
+<h3>Command: fasthydromap</h3>
+<p>
+The <b>fasthydromap</b> command predicts per-residue hydrophobicity or
+water-structure values with
+<a href="https://github.com/samlobe/FastHydroMap">FastHydroMap</a>, stores the
+values as ChimeraX residue attributes, and optionally colors the structure.
+</p>
+
+<a name="install"></a>
+<h3>Installation</h3>
+<p>
+Before the first prediction, install FastHydroMap and PyTorch into an isolated,
+bundle-managed Python environment:
+</p>
+<blockquote><b>fasthydromap install</b>
+[ <i>directory</i> ]
+[&nbsp;<b>torchVariant</b>&nbsp;&nbsp;<i>variant</i>&nbsp;]
+[&nbsp;<b>wait</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+</blockquote>
+<p>
+The default installation directory is inside the ChimeraX user data directory,
+and the default Torch variant is <b>cpu</b>. A CUDA-enabled variant supported by
+FastHydroMap, such as <b>cu121</b>, can be requested with <b>torchVariant</b>.
+The installation may take several minutes and requires internet access.
+</p>
+
+<a name="usage"></a>
+<h3>Usage</h3>
+<blockquote><b>fasthydromap</b> <i>structures</i>
+[&nbsp;<b>quantity</b>&nbsp;&nbsp;fdewet&nbsp;|&nbsp;pc1&nbsp;|&nbsp;pc2&nbsp;|&nbsp;pc3&nbsp;]
+[&nbsp;<b>color</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>target</b>&nbsp;&nbsp;<i>letters</i>&nbsp;]
+[&nbsp;<b>showAtoms</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>palette</b>&nbsp;&nbsp;<i>palette</i>&nbsp;]
+[&nbsp;<b>range</b>&nbsp;&nbsp;<i>low,high</i>&nbsp;]
+[&nbsp;<b>installLocation</b>&nbsp;&nbsp;<i>directory</i>&nbsp;]
+</blockquote>
+<p>
+If no model is specified, all open atomic structures are processed. The
+<b>quantity</b> defaults to <b>fdewet</b>. The resulting residue attributes are
+named <b>fasthydromap_fdewet</b>, <b>fasthydromap_pc1</b>,
+<b>fasthydromap_pc2</b>, and <b>fasthydromap_pc3</b>.
+</p>
+<p>
+The <b>target</b> letters select atoms (<b>a</b>), cartoons (<b>c</b>), and
+surfaces (<b>s</b>); the default is <b>acs</b>. Each quantity has a scientifically
+chosen default palette and numeric range, which can be overridden with
+<b>palette</b> and <b>range</b>.
+</p>
+
+<a name="examples"></a>
+<h3>Examples</h3>
+<blockquote>
+<b>fasthydromap #1</b><br>
+Predict Fdewet for model #1 and color its atoms, cartoon, and surface.
+</blockquote>
+<blockquote>
+<b>fasthydromap #1 quantity pc1 target cs</b><br>
+Predict PC1 and color only the cartoon and surface.
+</blockquote>
+<blockquote>
+<b>fasthydromap #1 quantity pc2 palette blue:white:red range -2,8</b><br>
+Predict PC2 using a custom color palette and range.
+</blockquote>
+
+<hr>
+<address>FastHydroMap / August 2026</address>
+</body>
+</html>

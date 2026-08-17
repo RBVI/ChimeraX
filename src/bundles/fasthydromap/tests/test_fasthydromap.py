@@ -340,7 +340,7 @@ def test_install_command_uses_pypi_and_cli_torch(monkeypatch):
     installer = install_module.InstallFastHydroMap.__new__(install_module.InstallFastHydroMap)
     installer._session = session
     installer._directory = "/tmp/fhm"
-    installer._package_spec = "fasthydromap"
+    installer._package_spec = "fasthydromap>=0.1.3,<0.2"
     installer._torch_variant = "cpu"
     installer._wait = True
 
@@ -350,6 +350,12 @@ def test_install_command_uses_pypi_and_cli_torch(monkeypatch):
 
     assert recorded == [
         ["/tmp/fhm/bin/python", "-m", "pip", "install", "--upgrade", "pip", "setuptools<81", "wheel"],
-        ["/tmp/fhm/bin/python", "-m", "pip", "install", "fasthydromap"],
+        [
+            "/tmp/fhm/bin/python",
+            "-m",
+            "pip",
+            "install",
+            "fasthydromap>=0.1.3,<0.2",
+        ],
         ["/tmp/fhm/bin/fasthydromap", "install-torch", "--variant", "cpu"],
     ]

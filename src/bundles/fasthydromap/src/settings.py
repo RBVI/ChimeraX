@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright 2026 Samuel Lobo
+
 from chimerax.core.settings import Settings
 
 

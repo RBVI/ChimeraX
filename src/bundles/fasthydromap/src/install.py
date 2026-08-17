@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Copyright 2026 Samuel Lobo
+
 from os.path import exists, expanduser, isdir, join
 
 from chimerax.core.errors import UserError
@@ -5,7 +8,7 @@ from chimerax.core.errors import UserError
 from .settings import _fasthydromap_settings
 
 
-DEFAULT_PACKAGE_SPEC = "fasthydromap"
+DEFAULT_PACKAGE_SPEC = "fasthydromap>=0.1.3,<0.2"
 DEFAULT_TORCH_VARIANT = "cpu"
 
 
