@@ -26,6 +26,7 @@ IMPORT_EXCLUDES = {
     "chimerax.modeller.script_head",  # fragment of a Modeller script
     "chimerax.modeller.script_tail",  # fragment of a Modeller script
     "chimerax.openfold.download_weights", # OpenFold install script
+    "chimerax.openfold.install_kalign", # OpenFold install script
     "chimerax.remote_control.run",  # imports Python2 xmlrpclib
     "chimerax.segger.ChimeraExtension",  # unported segger features
     "chimerax.segger.Mesh",

@@ -59,6 +59,8 @@ def matches_to_gapped_seqs(matches, s1, s2, gap_char=".", reverse_sorts=True):
     gapped1 = clone_seq(s1)
     gapped2 = clone_seq(s2)
     prev1 = prev2 = -1
+    # avoid modifying input 'matches'...
+    matches = matches[:]
     if reverse_sorts:
         matches.reverse()
     else:

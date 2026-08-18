@@ -77,7 +77,7 @@ structure</b></a>.
 </p>
 <h3>Mutation Scores Dialog</h3>
 <table class="clRight">
-<tbody><tr><td><img border="1" src="mutationscores.png" alt="mutation scores" width="300px">
+<tbody><tr><td><img border="1" src="mutationscores.png" alt="mutation scores" width="450px">
 </td></tr>
 </tbody></table>
 <p>
@@ -105,6 +105,9 @@ are chosen) as a <a href="#scatterplot">scatterplot</a>
 &ndash; show the <a href="#coloring">Mutation Structure Coloring</a> dialog
 </li><li><b>AlphaFold structure</b>
 &ndash; fetch an AlphaFold Database predicted structure using the <a href="../commands/mutationscores.html#alphafold">mutationscores alphafold</a> command
+</li><li><b>Associate structures</b>
+&ndash; show panel to <a href="#associate">associate atomic structures</a> with mutation data
+to allow coloring structures
 </li><li><b>Save .csv</b>
 &ndash; <a href="#save">Save selected scores</a> to a .csv file
 </li><li><b>Close data</b>
@@ -533,6 +536,53 @@ to a comma-separated values file with fields:
 residue number, residue type, score1-name, score2-name, ...
 </li><li><b>Delete</b> one or more chosen colorings
 </ul>
+
+<a name="associate"></a>
+<p class="nav">
+[<a href="#top">back to top: Mutation Scores</a>]
+</p>
+<h3>Associate Structures</h3>
+
+<table class="clRight">
+<tbody><tr><td><img border="1" src="mut_assoc_structures.png" 
+alt="mutation structure association dialog" width="450px">
+</td></tr>
+</tbody></table>
+
+<p>
+The <b>Associate Structures with Mutation Data</b> dialog allows associating or
+unassociating atomic structures with mutation data.
+The dialog table lists all open structure chains.  Select lines of the
+table and click the Associate or Unassociate button to set associated structures
+that will be used for coloring by mutation data.
+</p>
+
+<p>
+Structure chains that exactly match the sequence of mutation data are automatically associated when
+a structure is opened.  Structures where the sequence is not identical are associated
+by computing an alignment using the <b>alignSequences true</b> option of the
+<a href="../commands/mutationscores.html#structure">mutationscores structure</a> command.
+The number of sequence positions in the structure that match or do not match the mutation data
+are reported in the table when an association is made.
+</p>
+
+<table class="clRight">
+<tbody><tr><td><img border="1" src="mut_seqalign.png" 
+alt="mutation structure sequence alignment" width="450px">
+</td></tr>
+</tbody></table>
+
+<p>
+The <b>Show Alignment</b> button shows sequence alignments for the selected table rows for
+associated structures.  A sequence alignment is shown with the first sequence being the mutation data
+wild type sequence, and the second sequence being that of the atomic structure.  Positions highlighted
+in red show mismatches.  Positions highlighted in yellow are locations with no mutation data (one letter
+code X).
+Click on any red position in the alignment to select all the mismatched
+residues in the structure.  Or drag a box around any sequence position or region to select the
+corresponding residues in the structure.  Sequence regions with a black outline indicate residues
+not present in the atomic structure.
+</p>
 
 <a name="save"></a>
 <p class="nav">

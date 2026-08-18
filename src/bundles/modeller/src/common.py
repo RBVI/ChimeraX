@@ -604,7 +604,7 @@ class ModellerWebJob(CxServicesJob):
     def monitor(self):
         super().monitor(poll_freq_override=5)
         files = self.get_all_filenames(refresh=True).keys()
-        generated_model_pattern = re.compile('.*\.B.*\.pdb') # aka *.B*.pdb
+        generated_model_pattern = re.compile(r'.*\.B.*\.pdb') # aka *.B*.pdb
         num_done = len([name for name in files if generated_model_pattern.match(name)])
         if not num_done:
             self.thread_safe_status("Modeller Webservice: No models generated yet")
