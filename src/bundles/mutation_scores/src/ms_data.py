@@ -314,8 +314,7 @@ class MutationSet(State):
                 gapped_chain = Sequence(characters = gapped_chain.characters + '.' * (-end_gap))
         else:
             from chimerax.alignment_algs.NeedlemanWunsch import matches_to_gapped_seqs
-            match_list_copy = list(match_list)  # Beware matches_to_gapped_seqs() modifies the match_list argument
-            gapped_mseq, gapped_chain = matches_to_gapped_seqs(match_list_copy, mseq, chain, gap_char = '.')
+            gapped_mseq, gapped_chain = matches_to_gapped_seqs(match_list, mseq, chain, gap_char = '.')
         return (gapped_mseq, gapped_chain)
 
     def residue_number_to_amino_acid(self):
