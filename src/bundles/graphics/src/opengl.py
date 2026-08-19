@@ -53,7 +53,7 @@ class OpenGLContext:
     This implementation uses Qt QOpenGLContext.
     '''
 
-    required_opengl_version = (3, 3)
+    required_opengl_version = (4, 1)
     required_opengl_core_profile = True
 
     def __init__(self, graphics_window, screen, use_stereo = False):
@@ -1134,13 +1134,13 @@ class Render:
         'String description of the OpenGL renderer for the current context.'
         return GL.glGetString(GL.GL_RENDERER).decode('utf-8')
 
-    def check_opengl_version(self, major = 3, minor = 3):
+    def check_opengl_version(self, major = 4, minor = 1):
         '''Check if current OpenGL context meets minimum required version.'''
         vmajor, vminor = self.opengl_version_number()
         if vmajor < major or (vmajor == major and vminor < minor):
-            raise OpenGLVersionError('ChimeraX requires OpenGL graphics version 3.3.\n'
+            raise OpenGLVersionError('ChimeraX requires OpenGL graphics version %d.%d.\n'
                                      'Your computer graphics driver provided version %d.%d.\n'
-                                     % (vmajor, vminor))
+                                     % (major, minor, vmajor, vminor))
 
     def opengl_info(self):
         lines = ['vendor: %s' % GL.glGetString(GL.GL_VENDOR).decode('utf-8'),
