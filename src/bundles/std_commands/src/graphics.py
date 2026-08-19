@@ -48,6 +48,18 @@ def graphics(session, bg_color=None, background_color=None):
         session.logger.info(msg)
 
 
+def graphics_transparency(session, method=None):
+    """Set or report the method used to render transparent objects."""
+    from chimerax.graphics import TransparencyMethod
+
+    view = session.main_view
+    if method is None:
+        session.logger.info("Transparency rendering method: %s" % str(view.transparency_method))
+        return
+
+    view.transparency_method = TransparencyMethod(method)
+
+
 def graphics_rate(
     session, report_frame_rate=None, max_frame_rate=None, wait_for_vsync=None
 ):
@@ -427,6 +439,13 @@ def register_command(logger):
         keyword=[("flush", NoArg), ("checkUniforms", BoolArg)],
     )
     register("graphics shader", desc, graphics_shader, logger=logger)
+
+    from chimerax.graphics import TransparencyMethod
+    desc = CmdDesc(
+        optional=[("method", EnumOf([e.value for e in TransparencyMethod]))],
+        synopsis="Set or report the transparency rendering method"
+    )
+    register("graphics transparency", desc, graphics_transparency, logger=logger)
 
 
 def graphics_triangles(session, models=None):
