@@ -40,6 +40,27 @@ void main()
 }
 
 /* ----------------------------------------------------------------------------
+* Shader for compositing weighted-blended transparency
+*/
+#elif defined(USE_OIT_COMPOSITE)
+
+in vec2 tex_coord_2d;
+uniform sampler2D oit_accumulation_texture;
+uniform sampler2D oit_revealage_texture;
+out vec4 frag_color;
+
+void main(void)
+{
+  vec4 accumulation = texture(oit_accumulation_texture, tex_coord_2d);
+  float revealage = texture(oit_revealage_texture, tex_coord_2d).r;
+  float alpha = 1.0 - clamp(revealage, 0.0, 1.0);
+  if (alpha <= 0.0)
+    discard;
+  vec3 color = accumulation.rgb / max(accumulation.a, 1.0e-6);
+  frag_color = vec4(color, alpha);
+}
+
+/* ----------------------------------------------------------------------------
 * Shader for drawing selection outlines.
 */
 #elif defined(USE_TEXTURE_OUTLINE)
@@ -247,7 +268,21 @@ in vec3 ambient_tex_coord;
 uniform sampler3D tex3d;
 #endif
 
+#ifdef USE_WEIGHTED_OIT
+layout(location = 0) out vec4 oit_accumulation;
+layout(location = 1) out float oit_revealage;
+#else
 out vec4 frag_color;
+#endif
+
+#ifdef USE_WEIGHTED_OIT
+float weighted_oit_weight(float alpha)
+{
+  float alpha_weight = pow(min(1.0, alpha * 10.0) + 0.01, 3.0);
+  float depth_weight = pow(1.0 - gl_FragCoord.z * 0.9, 3.0);
+  return clamp(alpha_weight * 1.0e8 * depth_weight, 1.0e-2, 3.0e3) / 3.0e3;
+}
+#endif
 
 void main (void)
 {
@@ -306,10 +341,10 @@ void main (void)
   // Gradient offset: use small value for sharp gradients
   float grad_offset = min(step_length * 0.5, 0.002);
 
-  frag_color = vec4(0);
+  vec4 ray_color = vec4(0);
   vec3 view_dir = normalize(ray_direction);
 
-  while(ray_length > 0 && frag_color.a < 0.99) {
+  while(ray_length > 0 && ray_color.a < 0.99) {
     // Clamp position to valid texture range to avoid boundary artifacts
     vec3 sample_pos = clamp(position, vec3(0.001), vec3(0.999));
 
@@ -351,8 +386,8 @@ void main (void)
       cmap_color.a = corrected_alpha;
 
       // Front-to-back compositing
-      frag_color.rgb += (1.0 - frag_color.a) * cmap_color.a * cmap_color.rgb;
-      frag_color.a += (1.0 - frag_color.a) * cmap_color.a;
+      ray_color.rgb += (1.0 - ray_color.a) * cmap_color.a * cmap_color.rgb;
+      ray_color.a += (1.0 - ray_color.a) * cmap_color.a;
     }
 
     ray_length -= step_length;
@@ -364,9 +399,17 @@ void main (void)
     }
   }
 
+#ifdef USE_WEIGHTED_OIT
+  float alpha = ray_color.a;
+  float weight = weighted_oit_weight(alpha);
+  oit_accumulation = vec4(ray_color.rgb, alpha) * weight;
+  oit_revealage = alpha;
+#else
   // Blend with background
-  frag_color.rgb += (1.0 - frag_color.a) * background_color.rgb;
-  frag_color.a = frag_color.a + (1.0 - frag_color.a) * background_color.a;
+  ray_color.rgb += (1.0 - ray_color.a) * background_color.rgb;
+  ray_color.a = ray_color.a + (1.0 - ray_color.a) * background_color.a;
+  frag_color = ray_color;
+#endif
 }
 #else
   #ifdef USE_DEPTH_TEXTURE
@@ -514,7 +557,13 @@ void main (void)
   #endif
 
   // final color
+#ifdef USE_WEIGHTED_OIT
+  float weight = weighted_oit_weight(a);
+  oit_accumulation = vec4(Ifrag * a, a) * weight;
+  oit_revealage = a;
+#else
   frag_color = vec4(Ifrag, a);
+#endif
 }
 #endif
 #endif

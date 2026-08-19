@@ -1565,6 +1565,12 @@ def draw_transparent(renderer, drawings):
         lambda: _draw_multiple(drawings, r, Drawing.TRANSPARENT_DEPTH_DRAW_PASS),
         lambda: _draw_multiple(drawings, r, Drawing.TRANSPARENT_DRAW_PASS))
 
+def draw_transparent_depth(renderer, drawings):
+    """Draw only the depth of transparent geometry."""
+    r = renderer
+    r.draw_transparent_depth(
+        lambda: _draw_multiple(drawings, r, Drawing.TRANSPARENT_DEPTH_DRAW_PASS)
+    )
 
 def _draw_multiple(drawings, renderer, draw_pass):
     '''Draws the specified drawings but not their children.'''

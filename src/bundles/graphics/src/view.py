@@ -105,7 +105,7 @@ class View:
     @property
     def render(self):
         return self._render
-    
+
     def initialize_rendering(self, opengl_context):
         r = self._render
         if r is None:
@@ -138,7 +138,7 @@ class View:
         if self._opengl_initialized:
             return
         self._opengl_initialized = True
-        
+
         r = self._render
         r.check_opengl_version()
         r.set_background_color(self.background_color)
@@ -170,7 +170,7 @@ class View:
         from . import gllist
         if use_calllist and gllist.replay_opengl(self, drawings, camera, swap_buffers):
             return
-        
+
         if check_for_changes:
             self.check_for_drawing_change()
 
@@ -199,7 +199,7 @@ class View:
 
         if use_calllist:
             gllist.call_opengl_list(self, trace=True)
-        
+
         if swap_buffers:
             if camera.do_swap_buffers():
                 r.swap_buffers()
@@ -224,12 +224,22 @@ class View:
             offscreen = r.offscreen
         if offscreen and r.current_framebuffer() is not r.default_framebuffer():
             offscreen = None  # Already using an offscreen framebuffer
-            
+
         silhouette = self.silhouette
 
+        from .opengl import TransparencyMethod
+        weighted_transparency = (
+            bool(transparent_drawings)
+            and r.transparency_method == TransparencyMethod.WEIGHTED_BLENDED
+        )
+
         shadow, multishadow = self._compute_shadowmaps(opaque_drawings, transparent_drawings, camera)
-            
-        from .drawing import draw_depth, draw_opaque, draw_transparent, draw_highlight_outline, draw_on_top
+
+        from .drawing import (
+            draw_depth, draw_opaque,
+            draw_transparent, draw_transparent_depth,
+            draw_highlight_outline, draw_on_top
+        )
         for vnum in range(camera.number_of_views()):
             camera.set_render_target(vnum, r)
             if no_drawings:
@@ -239,6 +249,8 @@ class View:
                 offscreen.start(r)
             if silhouette.enabled:
                 silhouette.start_silhouette_drawing(r)
+            if weighted_transparency:
+                r.weighted_blended_oit.start(r)
             camera.draw_background(vnum, r)
             self._update_projection(camera, vnum)
             if r.recording_opengl:
@@ -267,7 +279,13 @@ class View:
                     # Draw opaque object silhouettes behind transparent surfaces
                     silhouette.draw_silhouette(r)
                 draw_transparent(r, transparent_drawings)
+                if weighted_transparency and silhouette.enabled:
+                    draw_transparent_depth(r, transparent_drawings)
             self._finish_timing()
+            if weighted_transparency:
+                r.weighted_blended_oit.finish(
+                    r, copy_depth=silhouette.enabled or bool(highlight_drawings)
+                )
             if multishadow:
                 r.allow_equal_depth(False)
             if silhouette.enabled:
@@ -516,7 +534,7 @@ class View:
         # to adjust sizes of rendered objects with sizes in pixels to preserve
         # the on-screen sizes.  This is used for 2d label sizing.
         r.image_save = True
-            
+
         if supersample is None:
             self.draw(c, drawings, swap_buffers = False)
             rgba = r.frame_buffer_image(w, h)
@@ -639,7 +657,7 @@ class View:
         lp = r.lighting
         if not lp.shadows and lp.multishadow == 0:
             return False, False
-        
+
         shadow_drawings = opaque_drawings
         mp = r.material
         if mp.transparent_cast_shadows:
@@ -652,7 +670,7 @@ class View:
 
         multishadow_enabled = r.multishadow.use_multishadow_map(shadow_drawings)
         r.enable_shader_multishadows(multishadow_enabled)
-        
+
         return shadow_enabled, multishadow_enabled
 
     def max_multishadow(self):
@@ -811,7 +829,7 @@ class View:
         depth along camera axis of the specified point.
         '''
         self._center_of_rotation = self._center_point_matching_depth(point)
-        
+
     def _front_center_cofr(self):
         '''
         Compute the center of rotation of displayed drawings.
@@ -871,7 +889,7 @@ class View:
                     from chimerax.geometry import distance
                     if p is None or ucp.distance * distance(ucxyz1, ucxyz2) < distance(ucxyz1, xyz1):
                         p = ucp
-            
+
         return p
 
     def picked_object_on_segment(self, xyz1, xyz2, exclude=unpickable, beyond=None,
@@ -882,7 +900,7 @@ class View:
         have an attribute position giving the point where the intercept occurs.
         Beyond is minimum distance as fraction (0-1) along the segment.
         '''
-    
+
         if beyond is not None:
             fb = beyond + 1e-5
             xyz1 = (1-fb)*xyz1 + fb*xyz2
@@ -890,21 +908,21 @@ class View:
         p = self.drawing.first_intercept(xyz1, xyz2, exclude=exclude)
         if p is None:
             return None
-        
+
         if max_transparent_layers > 0:
             if getattr(p, 'pick_through', False) and p.distance is not None:
                 p2 = self.picked_object_on_segment(xyz1, xyz2, exclude=exclude, beyond=p.distance,
                                                    max_transparent_layers = max_transparent_layers-1)
                 if p2:
                     p = p2
-            
+
         f = p.distance
         p.position = (1.0 - f) * xyz1 + f * xyz2
 
         if beyond:
             # Correct distance fraction to refer to clip planes.
             p.distance = fb + f*(1-fb)
-            
+
         return p
 
     def rectangle_pick(self, win_x1, win_y1, win_x2, win_y2, exclude=unpickable):
@@ -937,7 +955,7 @@ class View:
             picks = cpicks + upicks
         else:
             picks = self.drawing.planes_pick(all_planes, exclude=exclude)
-            
+
         return picks
 
     def _update_projection(self, camera, view_num):
@@ -1010,7 +1028,7 @@ class View:
             return (None, None)
 
         near, far = self.near_far_distances(c, view_num, include_clipping = False)
-        cplanes = [(origin + near*direction, direction), 
+        cplanes = [(origin + near*direction, direction),
                    (origin + far*direction, -direction)]
         if include_scene_clipping:
             cplanes.extend((p.plane_point, p.normal) for p in self.clip_planes.planes())
@@ -1082,7 +1100,7 @@ class View:
                 np.plane_point += plane_shift
             if fp:
                 fp.plane_point += plane_shift
-        
+
     def move(self, tf, drawings=None):
         '''
         Move camera to simulate a motion of drawings.

@@ -493,6 +493,9 @@ class Render:
         # Offscreen rendering. Used for 16-bit color depth.
         self.offscreen = Offscreen()
 
+        # Weighted-blended order-independent transparency
+        self.weighted_blended_oit = WeightedBlendedOIT()
+
         # Blending textures for multichannel image rendering.
         self.blend = BlendTextures(self)
 
@@ -547,6 +550,9 @@ class Render:
 
         self.offscreen.delete()
         self.offscreen = None
+
+        self.weighted_blended_oit.delete()
+        self.weighted_blended_oit = None
 
         self.blend.delete()
         self.blend = None
@@ -743,6 +749,7 @@ class Render:
             or self.SHADER_BLEND_TEXTURE_2D & c
             or self.SHADER_BLEND_TEXTURE_3D & c
             or self.SHADER_SHOW_DEPTH_BUFFER & c
+            or self.SHADER_OIT_COMPOSITE & c
         ):
             self.set_projection_matrix()
             self.set_model_matrix()
@@ -761,9 +768,14 @@ class Render:
         if self.SHADER_TEXTURE_CUBEMAP & c:
             shader.set_integer("texcube", 0)
         if self.SHADER_VOLUME_RAYCASTING & c:
-            self._set_raycasting_background()
+            if not (self.SHADER_WEIGHTED_OIT & c):
+                self._set_raycasting_background()
             self._set_window_params()
-        if not (self.SHADER_VERTEX_COLORS & c or self.SHADER_SHOW_DEPTH_BUFFER & c):
+        if not (
+            self.SHADER_VERTEX_COLORS & c
+            or self.SHADER_SHOW_DEPTH_BUFFER & c
+            or self.SHADER_OIT_COMPOSITE & c
+        ):
             self.set_model_color()
         if self.SHADER_FRAME_NUMBER & c:
             self.set_frame_number()
@@ -1240,7 +1252,7 @@ class Render:
                 rname = self.opengl_renderer()
                 if rname.startswith('NVIDIA'):
                     self.broken_front_buffer_rendering = True
-                
+
     def pixel_scale(self):
         return self._opengl_context.pixel_scale()
 
@@ -1328,20 +1340,24 @@ class Render:
     def draw_front_buffer(self, front):
         GL.glDrawBuffer(GL.GL_FRONT if front else GL.GL_BACK)
 
-    def draw_transparent(self, draw_depth, draw):
-        '''
-        Render using single-layer transparency. This is a two-pass
-        drawing.  In the first pass is only sets the depth buffer,
-        but not colors, and in the second path it draws the colors for
-        pixels at or in front of the recorded depths.  The draw_depth and
-        draw routines, taking no arguments perform the actual drawing,
-        and are invoked by this routine after setting the appropriate
-        OpenGL color and depth drawing modes.
-        '''
+    def draw_transparent_depth(self, draw):
         # Single layer transparency
         GL.glColorMask(GL.GL_FALSE, GL.GL_FALSE, GL.GL_FALSE, GL.GL_FALSE)
-        draw_depth()
-        GL.glColorMask(GL.GL_TRUE, GL.GL_TRUE, GL.GL_TRUE, GL.GL_TRUE)
+        try:
+            draw()
+        finally:
+            GL.glColorMask(GL.GL_TRUE, GL.GL_TRUE, GL.GL_TRUE, GL.GL_TRUE)
+
+    def draw_transparent(self, draw_depth, draw):
+        '''
+        Render transparent geometry using the configured transparency method.
+        '''
+        if (self.transparency_method == TransparencyMethod.WEIGHTED_BLENDED):
+            oit = self.weighted_blended_oit
+            oit.draw_transparent(self, draw)
+            oit.composite(self)
+            return
+        self.draw_transparent_depth(draw_depth)
         GL.glDepthFunc(GL.GL_LEQUAL)
         GL.glEnable(GL.GL_BLEND)
         GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
@@ -1470,7 +1486,11 @@ class Render:
 
     def _set_raycasting_background(self):
         p = self.current_shader_program
-        if p is not None and p.capabilities & self.SHADER_VOLUME_RAYCASTING:
+        if (
+            p is not None
+            and p.capabilities & self.SHADER_VOLUME_RAYCASTING
+            and not (p.capabilities & self.SHADER_WEIGHTED_OIT)
+        ):
             p.set_rgba("background_color", self._last_background_color)
 
     def _set_window_params(self) -> None:
@@ -1864,6 +1884,145 @@ class Multishadow:
         if shader.capabilities & Render.SHADER_LIGHTING_NORMALS:
             shader.set_float("shadow_depth", self._multishadow_depth)
 
+
+class WeightedBlendedOIT:
+    """Framebuffer resources for weighted-blended transparency."""
+
+    def __init__(self):
+        self._framebuffer = None
+        self._accumulation_texture = None
+        self._revealage_texture = None
+
+    def start(self, render):
+        framebuffer = self.framebuffer(render)
+        render.push_framebuffer(framebuffer)
+
+    def finish(self, render, copy_depth=False):
+        framebuffer = render.pop_framebuffer()
+        destination = render.current_framebuffer()
+        destination.copy_from_framebuffer(framebuffer, depth=copy_depth)
+
+    def delete(self):
+        framebuffer = self._framebuffer
+        if framebuffer is not None:
+            framebuffer.delete()
+            self._framebuffer = None
+        accumulation_texture = self._accumulation_texture
+        if accumulation_texture is not None:
+            accumulation_texture.delete_texture()
+            self._accumulation_texture = None
+        revealage_texture = self._revealage_texture
+        if revealage_texture is not None:
+            revealage_texture.delete_texture()
+            self._revealage_texture = None
+
+    def framebuffer(self, render):
+        width, height = render.render_size()
+        alpha = render.current_framebuffer().alpha
+
+        framebuffer = self._framebuffer
+
+        if (
+            framebuffer is not None
+            and (
+                framebuffer.width != width
+                or framebuffer.height != height
+                or framebuffer.alpha != alpha
+            )
+        ):
+            self.delete()
+            framebuffer = None
+
+        if framebuffer is None:
+            accumulation = Texture(linear_interpolation = False, clamp_to_edge = True)
+            accumulation.initialize_rgba16f((width, height))
+
+            revealage = Texture(linear_interpolation = False, clamp_to_edge = True)
+            revealage.initialize_r16f((width, height))
+
+            depth = Texture()
+            depth.linear_interpolation = False
+            depth.initialize_depth((width, height), depth_compare_mode=False)
+
+            framebuffer = Framebuffer(
+                'weighted-blended transparency',
+                render.opengl_context,
+                width, height, alpha=alpha, depth_texture=depth
+            )
+            framebuffer.attach_color_texture(accumulation, attachment=1)
+            framebuffer.attach_color_texture(revealage, attachment=2)
+
+            self._framebuffer = framebuffer
+            self._accumulation_texture = accumulation
+            self._revealage_texture = revealage
+
+        return framebuffer
+
+    def draw_transparent(self, render, draw):
+        GL.glDrawBuffers(
+            2,
+            (
+                GL.GL_COLOR_ATTACHMENT1,
+                GL.GL_COLOR_ATTACHMENT2
+             )
+        )
+        GL.glClearBufferfv(GL.GL_COLOR, 0, (0.0, 0.0, 0.0, 0.0))
+        GL.glClearBufferfv(GL.GL_COLOR, 1, (1.0, 1.0, 1.0, 1.0))
+
+        previous_capabilities = render.enable_capabilities
+        render.enable_capabilities |= render.SHADER_WEIGHTED_OIT
+        render.write_depth(False)
+
+        GL.glEnable(GL.GL_BLEND)
+        GL.glBlendEquationi(0, GL.GL_FUNC_ADD)
+        GL.glBlendEquationi(1, GL.GL_FUNC_ADD)
+        GL.glBlendFunci(0, GL.GL_ONE, GL.GL_ONE)
+        GL.glBlendFunci(1, GL.GL_ZERO, GL.GL_ONE_MINUS_SRC_COLOR)
+
+        try:
+            draw()
+        finally:
+            render.enable_capabilities = previous_capabilities
+            render.write_depth(True)
+            render.enable_blending(False)
+            GL.glDrawBuffer(GL.GL_COLOR_ATTACHMENT0)
+
+    def composite(self, render):
+        framebuffer = self._framebuffer
+        accumulation = self._accumulation_texture
+        revealage = self._revealage_texture
+
+        framebuffer.detach_color_texture(1)
+        framebuffer.detach_color_texture(2)
+
+        try:
+            texture_window = render._texture_window(
+                accumulation, render.SHADER_OIT_COMPOSITE
+            )
+            revealage.bind_texture(tex_unit=1)
+
+            shader = render.current_shader_program
+            shader.set_integer('oit_accumulation_texture', 0)
+            shader.set_integer('oit_revealage_texture', 1)
+
+            GL.glEnable(GL.GL_BLEND)
+            GL.glBlendEquation(GL.GL_FUNC_ADD)
+            GL.glBlendFuncSeparate(
+                GL.GL_SRC_ALPHA,
+                GL.GL_ONE_MINUS_SRC_ALPHA,
+                GL.GL_ONE,
+                GL.GL_ONE_MINUS_SRC_ALPHA,
+            )
+            texture_window.draw()
+        finally:
+            GL.glDisable(GL.GL_BLEND)
+            accumulation.unbind_texture()
+            revealage.unbind_texture(tex_unit=1)
+            framebuffer.attach_color_texture(accumulation, attachment=1)
+            framebuffer.attach_color_texture(revealage, attachment=2)
+
+
+
 class Offscreen:
     '''Offscreen framebuffer for 16-bit color depth.'''
 
@@ -2176,6 +2335,8 @@ shader_options = (
     "SHADER_ALL_WHITE",
     "SHADER_VOLUME_RAYCASTING",
     "SHADER_SHOW_DEPTH_BUFFER",
+    "SHADER_WEIGHTED_OIT",
+    "SHADER_OIT_COMPOSITE",
 )
 for i, sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)
@@ -2186,6 +2347,7 @@ Render.SHADER_NO_PROJECTION_MATRIX = (
     | Render.SHADER_BLEND_TEXTURE_2D
     | Render.SHADER_BLEND_TEXTURE_3D
     | Render.SHADER_SHOW_DEPTH_BUFFER
+    | Render.SHADER_OIT_COMPOSITE
 )
 
 
@@ -2229,6 +2391,7 @@ class Framebuffer:
         self._color_bits = opengl_context._framebuffer_color_bits # 8 or 16-bit depth
         self._depth_rb = None
         self._draw_buffer = GL.GL_COLOR_ATTACHMENT0
+        self._color_texture_attachments = {}
         self._deleted = False
 
         self._fbo = None
@@ -2281,6 +2444,14 @@ class Framebuffer:
             GL.glReadBuffer(GL.GL_NONE)
             self._draw_buffer = GL.GL_NONE
 
+        for attachment, texture in self._color_texture_attachments.items():
+            GL.glFramebufferTexture2D(
+                GL.GL_FRAMEBUFFER,
+                GL.GL_COLOR_ATTACHMENT0 + attachment,
+                GL.GL_TEXTURE_2D,
+                texture.id,
+                0,
+            )
         if isinstance(depth_buf, Texture):
             self.attach_depth_texture(depth_buf)
         elif depth_buf is not None:
@@ -2317,6 +2488,35 @@ class Framebuffer:
         self.height = h
         self.viewport = (0,0,w,h)
 
+    def attach_color_texture(self, color_texture, attachment=0):
+        if color_texture.dimension != 2:
+            raise ValueError('Framebuffer color attachments must be 2D textures')
+        if color_texture.size != (self.width, self.height):
+            raise ValueError(
+                'Framebuffer color attachment size %s does not match %s'
+                % (color_texture.size, (self.width, self.height))
+            )
+        self._color_texture_attachments[attachment] = color_texture
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.framebuffer_id)
+        GL.glFramebufferTexture2D(
+            GL.GL_FRAMEBUFFER,
+            GL.GL_COLOR_ATTACHMENT0 + attachment,
+            GL.GL_TEXTURE_2D,
+            color_texture.id,
+            0
+        )
+
+    def detach_color_texture(self, attachment):
+        self._color_texture_attachments.pop(attachment, None)
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.framebuffer_id)
+        GL.glFramebufferTexture2D(
+            GL.GL_FRAMEBUFFER,
+            GL.GL_COLOR_ATTACHMENT0 + attachment,
+            GL.GL_TEXTURE_2D,
+            0,
+            0
+        )
+
     def attach_depth_texture(self, depth_texture):
         tid = 0 if depth_texture is None else depth_texture.id
         level = 0
@@ -2336,6 +2536,8 @@ class Framebuffer:
             self._opengl_context.make_current()
 
         self._release()
+
+        self._color_texture_attachments.clear()
 
         ct = self.color_texture
         if ct is not None:
@@ -3071,6 +3273,24 @@ class Texture:
         tdtype = GL.GL_UNSIGNED_BYTE
         ncomp = 4
         self.initialize_texture(size, format, iformat, tdtype, ncomp)
+
+    def initialize_rgba16f(self, size):
+        self.initialize_texture(
+            size,
+            GL.GL_RGBA,
+            GL.GL_RGBA16F,
+            GL.GL_HALF_FLOAT,
+            4
+        )
+
+    def initialize_r16f(self, size):
+        self.initialize_texture(
+            size,
+            GL.GL_RED,
+            GL.GL_R16F,
+            GL.GL_HALF_FLOAT,
+            1
+        )
 
     def initialize_8_bit(self, size):
 
