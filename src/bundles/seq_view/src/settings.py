@@ -26,7 +26,28 @@ SINGLE_PREFIX = "single_seq_"
 ALIGNMENT_PREFIX = "alignment_"
 
 from chimerax.ui.options import Option, BooleanOption, IntOption, \
-    OptionalRGBAOption, OptionalRGBAPairOption, FontOption
+    OptionalRGBAOption, OptionalRGBAPairOption, FontOption, SymbolicEnumOption
+
+RC_DEFAULT = "default"
+RC_CLUSTALX = "Clustal X"
+RC_HYDROPHOBICITY = "Kyte-Doolittle hydrophobicity"
+RC_RIBBON = "ribbon"
+RC_CUSTOM_SCHEMES = "custom_coloring_schemes"
+non_file_residue_colorings = [RC_DEFAULT, RC_CLUSTALX, RC_RIBBON]
+builtin_residue_colorings = non_file_residue_colorings + [RC_HYDROPHOBICITY]
+RC_BALLOON = "How to color %s residue letters.  'default' means black if your\n" \
+            "desktop uses a light color theme and white for a dark desktop theme."
+
+class ResidueColoringOption(SymbolicEnumOption):
+    @property
+    def values(self):
+        return builtin_residue_colorings + getattr(self.settings, RC_CUSTOM_SCHEMES)
+
+    @property
+    def labels(self):
+        import os.path
+        return builtin_residue_colorings + [os.path.basename(x)
+            for x in getattr(self.settings, RC_CUSTOM_SCHEMES)]
 
 APPEARANCE = "Appearance"
 REGIONS = "Regions"
@@ -57,6 +78,10 @@ defaults = {
         {'labels': ("full", "partial")}, ("black", [chan/255.0 for chan in (190, 190, 190, 255)])),
     "gap_region_interiors": (REGIONS, "Missing-structure interior", 8,
         OptionalRGBAPairOption, {'labels': ("full", "partial")}, (None, None)),
+    "letter_color_scheme": (APPEARANCE, "Residue lettering color scheme", 6, ResidueColoringOption,
+        {'balloon': RC_BALLOON % "alignment"}, RC_DEFAULT),
+    SINGLE_PREFIX + "letter_color_scheme": (APPEARANCE, "Residue lettering color scheme", 5,
+        ResidueColoringOption, {'balloon': RC_BALLOON % "sequence"}, RC_DEFAULT),
     "line_width_multiple": (APPEARANCE, "Wrap lines at multiple of", 3, IntOption,
         {'balloon': LINE_WRAP_BALLOON, 'min': 1}, 5),
     SINGLE_PREFIX + "line_width_multiple": (APPEARANCE, "Wrap lines at multiple of", 3, IntOption,
@@ -84,6 +109,7 @@ from copy import deepcopy
 class _SVSettings(Settings):
     EXPLICIT_SAVE = { k: v[-1] for k, v in defaults.items() }
     AUTO_SAVE = {
+        RC_CUSTOM_SCHEMES: [],
         "regions_tool_last_use": None,
         "scf_colors_structures": True,
     }
