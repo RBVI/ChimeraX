@@ -35,6 +35,12 @@ and texture coordinates.  The Bindings class defines the connections
 between Buffers and shader program variables.  The Texture class manages
 2D texture storage.  '''
 
+from enum import StrEnum
+
+class TransparencyMethod(StrEnum):
+    SINGLE_LAYER = 'singleLayer'
+    WEIGHTED_BLENDED = 'weightedBlended'
+
 # Set to PyOpenGL module OpenGL.GL by _initialize_pyopengl().
 GL = None
 
@@ -430,6 +436,7 @@ class Render:
         self._recording_calls = None
         self._front_buffer_valid = False
         self.show_depth_buffer = False
+        self.transparency_method = TransparencyMethod.SINGLE_LAYER
 
         if not hasattr(oc, 'shader_programs'):
             oc.shader_programs = {}

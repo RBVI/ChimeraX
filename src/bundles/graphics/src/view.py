@@ -40,6 +40,8 @@ class View:
         self._render = None
         self._opengl_initialized = False
 
+        from .opengl import TransparencyMethod
+        self.transparency_method = TransparencyMethod.SINGLE_LAYER
         self.set_default_parameters()
 
         # Graphics overlays, used for example for crossfade
@@ -111,6 +113,7 @@ class View:
             self._render = r = Render(opengl_context)
             r.lighting = self._lighting
             r.material = self._material
+            r.transparency_method = self._transparency_method
             r.silhouette = self._silhouette
             pscale = opengl_context.pixel_scale()
             self.silhouette.thickness = pscale
@@ -414,6 +417,22 @@ class View:
 
     material = property(_get_material, _set_material)
     '''Material reflectivity parameters.'''
+
+    @property
+    def transparency_method(self):
+        return self._transparency_method
+
+    @transparency_method.setter
+    def transparency_method(self, method):
+        from .opengl import TransparencyMethod
+        method = TransparencyMethod(method)
+        if method == getattr(self, '_transparency_method', None):
+              return
+        self._transparency_method = method
+        r = self._render
+        if r is not None:
+            r.transparency_method = method
+        self.redraw_needed = True
 
     @property
     def silhouette(self):

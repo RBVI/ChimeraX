@@ -29,7 +29,7 @@ __all__ = [
     'StereoCamera', 'SplitStereoCamera',
     'Mono360Camera', 'Stereo360Camera', 'DomeCamera',
     'CrossFade', 'MotionBlur',
-    'Texture', 'Lighting', 'Material',
+    'Texture', 'Lighting', 'Material', 'TransparencyMethod',
     'View', 'OpenGLContext',
 ]
 
@@ -45,7 +45,7 @@ from .camera360 import Mono360Camera, Stereo360Camera, DomeCamera
 
 from .crossfade import CrossFade, MotionBlur
 
-from .opengl import Texture, Lighting, Material
+from .opengl import Texture, Lighting, Material, TransparencyMethod
 from .opengl import OffScreenRenderingContext, OpenGLContext
 from .opengl import remember_current_opengl_context, restore_current_opengl_context
 from .opengl import Render, OpenGLError, OpenGLVersionError
