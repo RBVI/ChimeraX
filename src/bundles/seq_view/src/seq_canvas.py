@@ -497,6 +497,18 @@ class SeqCanvas:
 
     """
 
+    def _cf_clustalx(self, line, position):
+        consensus_chars = self.clustal_consensus_chars(position)
+        res = line[position].upper()
+        if res in self._clustal_colorings:
+            for rgba, needed in self._clustal_colorings[res]:
+                if not needed:
+                    return rgba
+                for n in needed:
+                    if n in consensus_chars:
+                        return rgba
+        return SeqBlock.normal_text_rgba
+
     def _cf_ribbon(self, line, position):
         if line not in self.alignment.match_maps:
             return SeqBlock.normal_text_rgba
@@ -534,6 +546,29 @@ class SeqCanvas:
                         self.refresh(aseq, update_attrs=False)
                     else:
                         self.update_balloons(aseq)
+
+    def clustal_consensus_chars(self, offset):
+        try:
+            consensus_chars = self._clustalx_cache[offset]
+            return consensus_chars
+        except KeyError:
+            pass
+        chars = {}
+        for seq in self.alignment.seqs:
+            char = seq[offset].lower()
+            chars[char] = chars.get(char, 0) + 1
+        consensus_chars = {}
+        num_seqs = len(self.alignment.seqs)
+
+        for members, threshold, result in self._clustal_categories:
+            sum = 0
+            for c in members:
+                sum += chars.get(c, 0)
+            if sum / num_seqs >= threshold:
+                consensus_chars[result] = True
+
+        self._clustalx_cache[offset] = consensus_chars
+        return consensus_chars
 
     @property
     def consensus_capitalize_threshold(self):
@@ -798,6 +833,10 @@ class SeqCanvas:
         self._show_ruler = self.sv.settings.alignment_show_ruler_at_startup and len(self.alignment.seqs) > 1
         self.line_width = self.line_width_from_settings()
         self.numbering_widths = self.find_numbering_widths(self.line_width)
+        self._clustalx_cache = {}
+        from .clustalX import clustal_info
+        self._clustal_categories, self._clustal_colorings = clustal_info()
+        self._update_seq_colorings()
         """TODO
         self.showNumberings = [self.sv.leftNumberingVar.get(),
                     self.sv.rightNumberingVar.get()]
@@ -1061,18 +1100,7 @@ class SeqCanvas:
             self.emphasis_font.setPointSize(pt_size)
             self.font_metrics = QFontMetrics(self.font)
             self.emphasis_font_metrics = QFontMetrics(self.emphasis_font)
-        from .settings import RC_CLUSTALX, RC_DEFAULT, RC_RIBBON
-        res_coloring = self.get_prefixed_setting("letter_color_scheme")
-        if res_coloring == RC_DEFAULT:
-            for seq in self.alignment.seqs:
-                try:
-                    delattr(seq, "position_color")
-                except AttributeError:
-                    pass
-        else:
-            color_func = self._cf_ribbon
-            for seq in self.alignment.seqs:
-                seq.position_color = lambda pos, line=seq, cf=color_func: cf(line, pos)
+        self._update_seq_colorings()
         initial_headers = [hd for hd in self.alignment.headers if hd.shown]
         self.label_width = _find_label_width(self.alignment.seqs + initial_headers,
             self.sv.settings, self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
@@ -1114,11 +1142,13 @@ class SeqCanvas:
             if note_name == self.alignment.NOTE_REF_SEQ:
                 self.lead_block.rerule()
             elif note_name == self.alignment.NOTE_SEQ_CONTENTS:
+                self._clustalx_cache = {}
                 self.refresh(note_data)
             elif note_name == self.alignment.NOTE_SEQ_NAME:
                 self._update_label(note_data[0])
             elif note_name == self.alignment.NOTE_REALIGNMENT:
                 # headers are notified before us, so they should be "ready to go"
+                self._clustalx_cache = {}
                 self.sv.region_manager.clear_regions()
                 self._reformat()
             if note_name not in (self.alignment.NOTE_HDR_SHOWN, self.alignment.NOTE_HDR_VALUES,
@@ -1562,6 +1592,20 @@ class SeqCanvas:
             lbr = self.label_scene.itemsBoundingRect()
             mr = self.main_scene.sceneRect()
             self.label_scene.setSceneRect(lbr.x(), mr.y(), lbr.width(), mr.height())
+    
+    def _update_seq_colorings(self):
+        from .settings import RC_CLUSTALX, RC_DEFAULT, RC_RIBBON
+        res_coloring = self.get_prefixed_setting("letter_color_scheme")
+        if res_coloring == RC_DEFAULT:
+            for seq in self.alignment.seqs:
+                try:
+                    delattr(seq, "position_color")
+                except AttributeError:
+                    pass
+        else:
+            color_func = self._cf_ribbon if res_coloring == RC_RIBBON else self._cf_clustalx
+            for seq in self.alignment.seqs:
+                seq.position_color = lambda pos, line=seq, cf=color_func: cf(line, pos)
 
 from .region_browser import get_rgba, rgba_to_qcolor
 
