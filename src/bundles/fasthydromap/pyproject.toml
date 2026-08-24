@@ -22,9 +22,10 @@ text = """Predict per-residue FastHydroMap Fdewet and water-structure PC maps fr
 
 [project.urls]
 Home = "https://github.com/samlobe/FastHydroMap"
-Documentation = "https://github.com/samlobe/FastHydroMap#readme"
+Documentation = "https://github.com/samlobe/FastHydroMap/blob/main/docs/ChimeraX_tutorial.md"
 Source = "https://github.com/samlobe/ChimeraX/tree/feature/fasthydromap-command/src/bundles/fasthydromap"
 Issues = "https://github.com/samlobe/FastHydroMap/issues"
+Publication = "https://doi.org/10.64898/2026.06.07.730647"
 
 [tool.setuptools.dynamic]
 version = { attr = "src.__version__" }

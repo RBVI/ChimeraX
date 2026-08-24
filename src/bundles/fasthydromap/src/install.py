@@ -8,7 +8,7 @@ from chimerax.core.errors import UserError
 from .settings import _fasthydromap_settings
 
 
-DEFAULT_PACKAGE_SPEC = "fasthydromap>=0.1.3,<0.2"
+DEFAULT_PACKAGE_SPEC = "fasthydromap>=0.1.4,<0.2"
 DEFAULT_TORCH_VARIANT = "cpu"
 
 
@@ -199,7 +199,7 @@ class InstallFastHydroMap:
 
     def _finished(self, task_name, success=True):
         if success:
-            self._session.logger.info("Successfully installed FastHydroMap in a managed ChimeraX environment.")
+            _log_ready_message(self._session)
         self.success = success
         if self.finished_callback:
             self.finished_callback(success)
@@ -284,6 +284,21 @@ def _is_macos_app_translocation(executable):
     from sys import platform
 
     return platform == "darwin" and "/AppTranslocation/" in executable
+
+
+def _log_ready_message(session):
+    session.logger.info(
+        "<b>FastHydroMap is ready.</b><br>"
+        "Try: "
+        '<a href="cxcmd:open 1a1u">open 1a1u</a>, then '
+        '<a href="cxcmd:fasthydromap #1">fasthydromap #1</a>.<br>'
+        "Explore water structure with "
+        '<a href="cxcmd:fasthydromap #1 quantity pc1">'
+        "fasthydromap #1 quantity pc1</a>, or open "
+        '<a href="cxcmd:help fasthydromap">help fasthydromap</a> '
+        "for examples and interpretation.",
+        is_html=True,
+    )
 
 
 def register_fasthydromap_install_command(logger):

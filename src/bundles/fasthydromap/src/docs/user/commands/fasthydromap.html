@@ -13,6 +13,23 @@ The <b>fasthydromap</b> command predicts per-residue hydrophobicity or
 water-structure values with
 <a href="https://github.com/samlobe/FastHydroMap">FastHydroMap</a>, stores the
 values as ChimeraX residue attributes, and optionally colors the structure.
+Only amino-acid polymer residues are sent to FastHydroMap. Nucleic acids,
+waters, ions, and ligands remain in the open model but are excluded from the
+temporary prediction input. A warning in the Log lists examples of ignored
+residues.
+</p>
+<p>
+FastHydroMap assumes neutral histidine chemistry. It does not distinguish
+HID/HIE (or HSD/HSE) tautomer assignments and does not represent the positive
+charge of HIP/HSP. A warning is shown for structures containing histidine.
+</p>
+<p>
+Unlike sequence hydropathy scales that assign one value to each amino-acid
+identity, Fdewet is a context-dependent thermodynamic measure of how readily
+water can be removed from a local surface. Lower Fdewet is more hydrophobic;
+higher Fdewet is more hydrophilic. See the
+<a href="https://doi.org/10.64898/2026.06.07.730647">HydroMap and FastHydroMap paper</a>
+for the method and applications.
 </p>
 
 <a name="install"></a>
@@ -30,7 +47,9 @@ bundle-managed Python environment:
 The default installation directory is inside the ChimeraX user data directory,
 and the default Torch variant is <b>cpu</b>. A CUDA-enabled variant supported by
 FastHydroMap, such as <b>cu121</b>, can be requested with <b>torchVariant</b>.
-The installation may take several minutes and requires internet access.
+The installation may take several minutes and requires internet access. When it
+finishes, the Log shows clickable commands for a first prediction and this help
+page.
 </p>
 
 <a name="usage"></a>
@@ -51,10 +70,32 @@ named <b>fasthydromap_fdewet</b>, <b>fasthydromap_pc1</b>,
 <b>fasthydromap_pc2</b>, and <b>fasthydromap_pc3</b>.
 </p>
 <p>
-The <b>target</b> letters select atoms (<b>a</b>), cartoons (<b>c</b>), and
-surfaces (<b>s</b>); the default is <b>acs</b>. Each quantity has a scientifically
-chosen default palette and numeric range, which can be overridden with
-<b>palette</b> and <b>range</b>.
+Each quantity has a scientifically chosen default palette and numeric range.
+These defaults are intended for normal use. The <b>palette</b> and <b>range</b>
+options customize the color scale, while <b>target</b> and <b>showAtoms</b>
+provide additional display-only control.
+</p>
+
+<a name="interpretation"></a>
+<h3>Interpretation</h3>
+<table border="1" cellpadding="4" cellspacing="0">
+<tr><th>Map</th><th>Negative or low values</th><th>Positive or high values</th></tr>
+<tr><td><b>Fdewet</b></td><td>Easier to remove water; more hydrophobic</td>
+<td>Water retained more strongly; more hydrophilic</td></tr>
+<tr><td><b>PC1</b></td><td>More tetrahedral water ordering; generally more hydrophobic</td>
+<td>Shift toward simple-fluid/icosahedral motifs</td></tr>
+<tr><td><b>PC2</b></td><td>Enrichment around 125&ndash;150&deg; and depletion around 80&ndash;105&deg;</td>
+<td>Enrichment around 80&ndash;105&deg; (maximum loading at 92.5&deg;) and depletion around
+120&ndash;150&deg;; disordered water associated with large, smooth hydrophobic interfaces</td></tr>
+<tr><td><b>PC3</b></td><td>Depleted high-coordination water signature</td>
+<td>More highly coordinated water near polar/charged sites; generally more hydrophilic</td></tr>
+</table>
+<p>
+PC1-PC3 are signed water-structure descriptors, not energy scales. PC2 is
+particularly sensitive to surface geometry. Its positive, roughly
+90&deg;-centered signature can be called disordered, simple-fluid-like, or
+vapor-interface-like, but it is not a literal ideal-gas order parameter. It
+should be interpreted alongside Fdewet and the structure.
 </p>
 
 <a name="examples"></a>
@@ -64,13 +105,20 @@ chosen default palette and numeric range, which can be overridden with
 Predict Fdewet for model #1 and color its atoms, cartoon, and surface.
 </blockquote>
 <blockquote>
-<b>fasthydromap #1 quantity pc1 target cs</b><br>
-Predict PC1 and color only the cartoon and surface.
+<b>fasthydromap #1 quantity pc1</b><br>
+Predict PC1 and color the structure with its default palette and range.
 </blockquote>
 <blockquote>
 <b>fasthydromap #1 quantity pc2 palette blue:white:red range -2,8</b><br>
 Predict PC2 using a custom color palette and range.
 </blockquote>
+<a name="tutorial"></a>
+<h3>Tutorial</h3>
+<p>
+The complete walkthrough, including installation, the motivation for Fdewet,
+water-structure sign conventions, and palette controls, is available in the
+<a href="https://github.com/samlobe/FastHydroMap/blob/main/docs/ChimeraX_tutorial.md">FastHydroMap ChimeraX tutorial</a>.
+</p>
 
 <hr>
 <address>FastHydroMap / August 2026</address>

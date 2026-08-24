@@ -22,6 +22,9 @@ def test_bundle_metadata_release_constraints():
         for classifier in metadata["tool"]["chimerax"]["classifiers"]
     )
 
+    init_text = (BUNDLE_SRC / "__init__.py").read_text(encoding="utf-8")
+    assert '__version__ = "0.1.1"' in init_text
+
 
 def _stub_chimerax_modules(monkeypatch):
     for name in list(sys.modules):
@@ -163,6 +166,20 @@ def test_fasthydromap_command_requires_install(monkeypatch):
         )
 
 
+def test_fasthydromap_without_open_structure_shows_quick_start(monkeypatch):
+    cmd_module = _load_submodule(monkeypatch, "cmd")
+    atomic = types.ModuleType("chimerax.atomic")
+    atomic.Residue = object
+    atomic.all_atomic_structures = lambda session: []
+    monkeypatch.setitem(sys.modules, "chimerax.atomic", atomic)
+
+    with pytest.raises(cmd_module.UserError, match="open 1a1u") as error:
+        cmd_module.fasthydromap(object())
+
+    assert "fasthydromap #1" in str(error.value)
+    assert "help fasthydromap" in str(error.value)
+
+
 def test_read_single_structure_scores(monkeypatch, tmp_path):
     cmd_module = _load_submodule(monkeypatch, "cmd")
     csv_path = tmp_path / "scores.csv"
@@ -188,6 +205,117 @@ def test_read_single_structure_scores_pc_quantity(monkeypatch, tmp_path):
 
     scores = cmd_module._read_single_structure_scores(csv_path, quantity="pc1")
     assert scores == {"A:1": 7.1, "_:2": -1.2}
+
+
+def test_save_protein_only_pdb_excludes_nucleic_acids_and_ligands(
+    monkeypatch, tmp_path
+):
+    cmd_module = _load_submodule(monkeypatch, "cmd")
+    deleted_atoms = []
+    saved_models = []
+
+    class FakeResidue:
+        PT_AMINO = 1
+
+        def __init__(self, polymer_type, atoms, name, number, chain_id="A"):
+            self.polymer_type = polymer_type
+            self.atoms = atoms
+            self.name = name
+            self.number = number
+            self.chain_id = chain_id
+            self.insertion_code = " "
+
+    class FakeAtoms(list):
+        def delete(self):
+            deleted_atoms.extend(self)
+
+    copy_model = types.SimpleNamespace(
+        residues=[
+            FakeResidue(
+                FakeResidue.PT_AMINO,
+                ["protein-N", "protein-CA"],
+                "ALA",
+                1,
+            ),
+            FakeResidue(2, ["dna-P", "dna-C1'"], "DC", 3, chain_id="P"),
+            FakeResidue(0, ["zinc"], "ZN", 1301),
+        ],
+        delete=lambda: setattr(copy_model, "was_deleted", True),
+        was_deleted=False,
+    )
+    structure = types.SimpleNamespace(
+        name="mixed complex",
+        residues=[
+            FakeResidue(FakeResidue.PT_AMINO, ["original-protein"], "ALA", 1),
+            FakeResidue(2, ["original-dna"], "DC", 3, chain_id="P"),
+            FakeResidue(0, ["original-zinc"], "ZN", 1301),
+        ],
+        copy=lambda name: copy_model,
+    )
+    warnings = []
+    session = types.SimpleNamespace(
+        logger=types.SimpleNamespace(warning=warnings.append)
+    )
+
+    atomic = types.ModuleType("chimerax.atomic")
+    atomic.Atoms = FakeAtoms
+    pdb = types.ModuleType("chimerax.pdb")
+    pdb.save_pdb = lambda session, path, models: saved_models.extend(models)
+    monkeypatch.setitem(sys.modules, "chimerax.atomic", atomic)
+    monkeypatch.setitem(sys.modules, "chimerax.pdb", pdb)
+
+    cmd_module._save_protein_only_pdb(session, structure, tmp_path / "model.pdb")
+
+    assert deleted_atoms == ["dna-P", "dna-C1'", "zinc"]
+    assert saved_models == [copy_model]
+    assert copy_model.was_deleted
+    assert len(warnings) == 1
+    assert "ignoring 2 non-protein residues" in warnings[0]
+    assert "P:3 DC" in warnings[0]
+    assert "A:1301 ZN" in warnings[0]
+
+
+def test_prediction_warning_describes_histidine_charge_limitations(monkeypatch):
+    cmd_module = _load_submodule(monkeypatch, "cmd")
+
+    def residue(name, number):
+        return types.SimpleNamespace(
+            name=name,
+            number=number,
+            chain_id="A",
+            insertion_code=" ",
+        )
+
+    warnings = []
+    session = types.SimpleNamespace(
+        logger=types.SimpleNamespace(warning=warnings.append)
+    )
+    cmd_module._warn_prediction_limitations(
+        session,
+        "model #1",
+        protein_residues=[residue("HIS", 5), residue("HID", 9), residue("ALA", 10)],
+        nonprotein_residues=[],
+    )
+
+    assert len(warnings) == 1
+    assert "assumes neutral histidine chemistry" in warnings[0]
+    assert "HID/HIE" in warnings[0]
+    assert "HIP/HSP" in warnings[0]
+    assert "A:5 HIS" in warnings[0]
+    assert "A:9 HID" in warnings[0]
+
+
+def test_save_protein_only_pdb_rejects_nonprotein_model(monkeypatch, tmp_path):
+    cmd_module = _load_submodule(monkeypatch, "cmd")
+
+    class FakeResidue:
+        PT_AMINO = 1
+        polymer_type = 2
+
+    structure = types.SimpleNamespace(residues=[FakeResidue()])
+
+    with pytest.raises(cmd_module.UserError, match="contains no protein residues"):
+        cmd_module._save_protein_only_pdb(object(), structure, tmp_path / "model.pdb")
 
 
 @pytest.mark.parametrize(
@@ -341,6 +469,8 @@ def test_install_command_uses_pypi_and_cli_torch(monkeypatch):
     install_module = _load_submodule(monkeypatch, "install")
     recorded = []
 
+    assert install_module.DEFAULT_PACKAGE_SPEC == "fasthydromap>=0.1.4,<0.2"
+
     monkeypatch.setattr(
         install_module,
         "log_subprocess_output",
@@ -390,3 +520,22 @@ def test_macos_app_translocation_detection(monkeypatch):
     assert not install_module._is_macos_app_translocation(
         "/private/var/folders/example/AppTranslocation/UUID/d/ChimeraX.app/Contents/bin/python3.11"
     )
+
+
+def test_install_success_logs_clickable_quick_start(monkeypatch):
+    install_module = _load_submodule(monkeypatch, "install")
+    calls = []
+    session = types.SimpleNamespace(
+        logger=types.SimpleNamespace(
+            info=lambda message, **kwargs: calls.append((message, kwargs))
+        )
+    )
+
+    install_module._log_ready_message(session)
+
+    message, kwargs = calls[0]
+    assert "FastHydroMap is ready" in message
+    assert 'cxcmd:open 1a1u' in message
+    assert 'cxcmd:fasthydromap #1' in message
+    assert 'cxcmd:help fasthydromap' in message
+    assert kwargs == {"is_html": True}

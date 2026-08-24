@@ -39,6 +39,8 @@ QUANTITY_SPECS = {
     },
 }
 
+HISTIDINE_NAMES = frozenset({"HIS", "HID", "HIE", "HIP", "HSD", "HSE", "HSP"})
+
 
 def fasthydromap(
     session,
@@ -65,7 +67,11 @@ def fasthydromap(
         structures = list(structures)
 
     if not structures:
-        raise UserError("fasthydromap: no atomic structures specified")
+        raise UserError(
+            "fasthydromap: no atomic structures specified. Open a protein, for example "
+            "with 'open 1a1u', then run 'fasthydromap #1'. See 'help fasthydromap' "
+            "for more examples."
+        )
 
     Residue.register_attr(session, attr_name, "FastHydroMap", attr_type=float)
 
@@ -137,8 +143,7 @@ def _predict_scores(session, structure, *, quantity, install_location):
         outroot = temp_path / "fasthydromap"
         csv_path = Path(f"{outroot}.csv")
 
-        from chimerax.pdb import save_pdb
-        save_pdb(session, str(pdb_path), models=[structure])
+        _save_protein_only_pdb(session, structure, pdb_path)
 
         command = _fasthydromap_command(
             session,
@@ -173,6 +178,83 @@ def _predict_scores(session, structure, *, quantity, install_location):
                 f"fasthydromap did not produce {csv_path.name} for {structure}: {detail}"
             )
         return _read_single_structure_scores(csv_path, quantity=quantity)
+
+
+def _save_protein_only_pdb(session, structure, pdb_path):
+    """Write a disposable protein-only copy without changing the open model."""
+    residues = list(structure.residues)
+    protein_residues = [
+        residue for residue in residues if residue.polymer_type == residue.PT_AMINO
+    ]
+    nonprotein_residues = [
+        residue for residue in residues if residue.polymer_type != residue.PT_AMINO
+    ]
+    if not protein_residues:
+        raise UserError(f"fasthydromap: {structure} contains no protein residues")
+
+    _warn_prediction_limitations(
+        session,
+        structure,
+        protein_residues=protein_residues,
+        nonprotein_residues=nonprotein_residues,
+    )
+
+    filtered_structure = structure.copy(name=f"{structure.name} FastHydroMap input")
+    try:
+        nonprotein_atoms = [
+            atom
+            for residue in filtered_structure.residues
+            if residue.polymer_type != residue.PT_AMINO
+            for atom in residue.atoms
+        ]
+        if nonprotein_atoms:
+            from chimerax.atomic import Atoms
+
+            Atoms(nonprotein_atoms).delete()
+
+        from chimerax.pdb import save_pdb
+
+        save_pdb(session, str(pdb_path), models=[filtered_structure])
+    finally:
+        filtered_structure.delete()
+
+
+def _warn_prediction_limitations(
+    session, structure, *, protein_residues, nonprotein_residues
+):
+    if nonprotein_residues:
+        session.logger.warning(
+            f"FastHydroMap predicts proteins only; ignoring "
+            f"{len(nonprotein_residues)} non-protein residues in {structure}. DNA, RNA, "
+            "waters, ions, and ligands are not modeled. Ignored residues include: "
+            f"{_residue_preview(nonprotein_residues)}"
+        )
+
+    histidines = [
+        residue
+        for residue in protein_residues
+        if residue.name.strip().upper() in HISTIDINE_NAMES
+    ]
+    if histidines:
+        session.logger.warning(
+            "FastHydroMap assumes neutral histidine chemistry. Histidine tautomer "
+            "assignments such as HID/HIE (or HSD/HSE) and protonated histidine charge "
+            "states such as HIP/HSP are not modeled; interpret predictions cautiously "
+            f"for: {_residue_preview(histidines)}"
+        )
+
+
+def _residue_preview(residues, max_items=10):
+    labels = []
+    for residue in residues:
+        chain_id = residue.chain_id.strip() or "_"
+        insertion_code = residue.insertion_code.strip()
+        labels.append(
+            f"{chain_id}:{residue.number}{insertion_code} {residue.name.strip()}"
+        )
+    if len(labels) > max_items:
+        return ", ".join(labels[:max_items]) + f", ... (+{len(labels) - max_items} more)"
+    return ", ".join(labels)
 
 
 def _fasthydromap_command(session, pdb_path, outroot, *, quantity, install_location):

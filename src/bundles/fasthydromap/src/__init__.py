@@ -3,7 +3,7 @@
 
 from chimerax.core.toolshed import BundleAPI
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 
 class _FastHydroMapAPI(BundleAPI):
