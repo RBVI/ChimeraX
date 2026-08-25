@@ -1041,7 +1041,7 @@ class AlphaFoldPAE:
         if self._row_residues_or_atoms is not None:
             if s.num_atoms != self._num_atoms or s.num_residues != self._num_residues:
                 # If user deletes some residues or atoms remove them from row list.
-                self._row_residues_or_atoms = tuple((None if ra.deleted else ra)
+                self._row_residues_or_atoms = tuple((None if ra is None or ra.deleted else ra)
                                                     for ra in self._row_residues_or_atoms)
                 self._num_atoms = s.num_atoms
                 self._num_residues = s.num_residues
@@ -1111,7 +1111,7 @@ class AlphaFoldPAE:
     #
     def residues_or_atoms_deleted(self):
         for ra in self.row_residues_or_atoms():
-            if ra.deleted:
+            if ra is None or ra.deleted:
                 return True
         return False
     
