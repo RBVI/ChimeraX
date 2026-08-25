@@ -180,6 +180,13 @@ Sequence::push_front(char c)
     pushed.swap(_contents);
 }
 
+void
+Sequence::python_destroyed()
+{
+    destroyed_from_python = true;
+    delete this;
+}
+
 char
 Sequence::rname3to1(const ResName& rn)
 {

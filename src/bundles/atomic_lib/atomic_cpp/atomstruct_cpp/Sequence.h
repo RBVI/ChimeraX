@@ -129,7 +129,7 @@ public:
     void  pop_front() { _clear_cache(); _contents.erase(_contents.begin()); }
     void  push_back(char c) { _clear_cache(); _contents.push_back(c); }
     void  push_front(char c);
-    virtual void  python_destroyed() { delete this; }
+    virtual void  python_destroyed();
     Contents::const_reverse_iterator  rbegin() const
         { return _contents.rbegin(); }
     Contents::const_reverse_iterator  rend() const { return _contents.rend(); }
