@@ -46,6 +46,10 @@ class SettingsTool:
         settings_panel.add_tab(APPEARANCE, appearance_panel)
 
         for attr_name, option_info in defaults.items():
+            # Since I accidentally put these changes on the develop branch, screen this out
+            # so I can use (push) the develop branch while this feature is still incomplete
+            if "letter_color_scheme" in attr_name:
+                continue
             category, description, sort_val, option_class, ctor_keywords, default = option_info
             val = getattr(sv.settings, attr_name)
             opt = option_class(description, val, lambda o, s=self, cat=category:
