@@ -770,7 +770,7 @@ start_t = end_t;
             start_connect = true;
             recent_TER = true;
             break_hets = false;
-            if (second_chain_let_okay && chain_residues.size() > 1)
+            if (second_chain_let_okay && (chain_residues.size() > 1))
                 correct_chain_ids(chain_residues, second_chain_id_let, two_let_chains);
             second_chain_let_okay = true;
             second_chain_id_let = '\0';
@@ -791,7 +791,9 @@ start_t = end_t;
                 start_connect = true;
                 recent_TER = true;
                 break_hets = false;
-                if (second_chain_let_okay && chain_residues.size() > 1)
+                // Correct chain IDs for isolated residues if we've already seen
+                // two-character chain IDs [#20849]
+                if (second_chain_let_okay && (chain_residues.size() > 1 || two_let_chains))
                     correct_chain_ids(chain_residues, second_chain_id_let, two_let_chains);
                 second_chain_let_okay = true;
                 second_chain_id_let = '\0';
