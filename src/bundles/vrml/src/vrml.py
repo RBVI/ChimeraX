@@ -42,7 +42,8 @@ def write_vrml(session, filename, models = None,
     if models is None:
         models = session.models.list()
 
-    geom_list = models_geometry(models)
+    from chimerax.graphics import ExportGeometryContext
+    geom_list = models_geometry(models, ExportGeometryContext(session))
 
     if center or size is not None:
         center_and_size(models, geom_list, center, size)
@@ -152,9 +153,9 @@ def center_and_size(models, geom_list, center, size):
 
 # -----------------------------------------------------------------------------
 #
-def models_geometry(models):
+def models_geometry(models, export_context=None):
     drawings = all_visible_drawings(models)
-    geom_list = [drawing_geometry(d) for d in drawings]
+    geom_list = [drawing_geometry(d, export_context) for d in drawings]
     return geom_list
 
 # -----------------------------------------------------------------------------
@@ -166,16 +167,24 @@ def all_visible_drawings(models):
     for m in models:
         if m.visible and m not in drawings:
             for d in m.all_drawings(displayed_only = True):
-                if d.num_masked_triangles > 0:
+                if d.has_export_geometry():
                     drawings.add(d)
     return tuple(drawings)
 
 # -----------------------------------------------------------------------------
 #
-def drawing_geometry(drawing):
-    v = drawing.vertices.copy()
-    vc = drawing.vertex_colors
-    t = drawing.masked_triangles
+def drawing_geometry(drawing, export_context=None):
+    if drawing.primitive_batch is not None:
+        return _primitive_drawing_geometry(drawing, export_context)
+
+    mesh = next(drawing.export_geometry(export_context), None)
+    if mesh is None:
+        from numpy import empty, float32, int32, uint8
+        return (empty((0, 3), float32), empty((0, 3), int32),
+                empty((0, 4), uint8))
+    v = mesh.vertices.copy()
+    vc = mesh.vertex_colors
+    t = mesh.triangles
 
     if len(t) < len(drawing.triangles):
         v, vc, t = remove_unused_vertices(v, vc, t)
@@ -200,6 +209,35 @@ def drawing_geometry(drawing):
         else:
             v, vc, t = combine_instance_geometry(v, vc, t, ppositions, None)
     return v, t, vc
+
+# -----------------------------------------------------------------------------
+#
+def _primitive_drawing_geometry(drawing, export_context):
+    from chimerax.graphics import ExportGeometryContext
+    context = export_context if export_context is not None else ExportGeometryContext()
+    positions = drawing.get_scene_positions(displayed_only=True)
+    geom = []
+    for mesh in drawing.export_geometry(context):
+        v, vc, t = mesh.vertices, mesh.vertex_colors, mesh.triangles
+        if len(positions) == 1:
+            v = v.copy()
+            p = positions[0]
+            if not p.is_identity():
+                p.transform_points(v, in_place=True)
+        else:
+            v, vc, t = combine_instance_geometry(v, vc, t, positions, None)
+        geom.append((v, t, vc))
+    if len(geom) == 1:
+        return geom[0]
+    from numpy import concatenate
+    vertices, triangles, colors = [], [], []
+    offset = 0
+    for v, t, vc in geom:
+        vertices.append(v)
+        colors.append(vc)
+        triangles.append(t + offset)
+        offset += len(v)
+    return concatenate(vertices), concatenate(triangles), concatenate(colors)
 
 # -----------------------------------------------------------------------------
 #

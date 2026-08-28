@@ -200,9 +200,18 @@ in vec3 impostor_cyl_center;
 in vec3 impostor_cyl_axis;
 in float impostor_cyl_radius;
 in float impostor_cyl_half_length;
-in vec4 impostor_cyl_color2;
+flat in int impostor_cyl_caps;
 uniform mat4 projection_matrix;
-uniform int impostor_dashes;  // 0 = solid, >0 = number of dashes
+#endif
+
+#if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
+uniform mat4 inverse_view_matrix;
+flat in vec3 impostor_scene_offset;
+#endif
+
+#if (defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)) && defined(USE_CLIP_PLANES)
+uniform int num_clip_planes;
+uniform vec4 clip_planes[8];
 #endif
 
 #ifdef USE_DEPTH_CUE
@@ -404,11 +413,24 @@ void main (void)
     float discriminant = b_coeff * b_coeff - c_coeff;
     if (discriminant < 0.0)
       discard;
-    float t_hit = -b_coeff - sqrt(discriminant);
+    float root = sqrt(discriminant);
+    float t_near = -b_coeff - root;
+    float t_far = -b_coeff + root;
+    float t_hit = t_near > 0.0 ? t_near : t_far;
+    if (t_hit <= 0.0)
+      discard;
 
     // Intersection point and normal in eye space
     vec3 impostor_hit = ray_origin + t_hit * ray_dir;
     vec3 impostor_normal = normalize(impostor_hit - impostor_center);
+
+    #ifdef USE_CLIP_PLANES
+      vec3 impostor_hit_scene = (inverse_view_matrix * vec4(impostor_hit, 1)).xyz +
+                                impostor_scene_offset;
+      for (int i = 0; i < num_clip_planes; ++i)
+        if (dot(vec4(impostor_hit_scene, 1), clip_planes[i]) < 0.0)
+          discard;
+    #endif
 
     // Write correct depth from intersection point.
     // Apply depth_range to match rasterizer behavior (needed for outline depth test).
@@ -438,75 +460,56 @@ void main (void)
     vec3 impostor_hit;
     vec3 impostor_normal;
     bool cyl_hit_found = false;
+    float nearest_cyl_t = 3.402823e38;
 
-    if (cyl_disc >= 0.0) {
-      float cyl_t = (-cyl_b - sqrt(cyl_disc)) / cyl_a;
-      vec3 cyl_hit_pt = cyl_ray_origin + cyl_t * cyl_ray_dir;
-      float cyl_along = dot(cyl_hit_pt - impostor_cyl_center, impostor_cyl_axis);
+    if (cyl_disc >= 0.0 && cyl_a > 1e-8) {
+      float cyl_root = sqrt(cyl_disc);
+      for (int root_index = 0; root_index < 2; ++root_index) {
+        float signed_root = root_index == 0 ? -cyl_root : cyl_root;
+        float cyl_t = (-cyl_b + signed_root) / cyl_a;
+        vec3 cyl_hit_pt = cyl_ray_origin + cyl_t * cyl_ray_dir;
+        float cyl_along = dot(cyl_hit_pt - impostor_cyl_center, impostor_cyl_axis);
 
-      if (abs(cyl_along) <= impostor_cyl_half_length) {
-        // Hit the cylinder wall
-        impostor_hit = cyl_hit_pt;
-        impostor_normal = normalize(cyl_hit_pt - impostor_cyl_center - cyl_along * impostor_cyl_axis);
-        cyl_hit_found = true;
+        if (cyl_t > 0.0 && cyl_t < nearest_cyl_t &&
+            abs(cyl_along) <= impostor_cyl_half_length) {
+          // Hit the finite cylinder wall.
+          nearest_cyl_t = cyl_t;
+          impostor_hit = cyl_hit_pt;
+          impostor_normal = normalize(cyl_hit_pt - impostor_cyl_center -
+                                      cyl_along * impostor_cyl_axis);
+          cyl_hit_found = true;
+        }
       }
     }
 
-    if (!cyl_hit_found) {
-      // End cap intersection (flat discs at both ends)
-      // Atom-end cap is hidden inside atom sphere by depth test;
-      // midpoint-end cap fills the junction between half-bonds.
-      float cap_t0 = (impostor_cyl_half_length - cyl_delta_dot_a) / cyl_d_dot_a;
-      float cap_t1 = (-impostor_cyl_half_length - cyl_delta_dot_a) / cyl_d_dot_a;
-      // Try nearest cap first
-      float cap_t = (cap_t0 > 0.0 && cap_t1 > 0.0) ? min(cap_t0, cap_t1) :
-                    (cap_t0 > 0.0 ? cap_t0 : cap_t1);
-      if (cap_t > 0.0) {
-        vec3 cap_hit = cyl_ray_origin + cap_t * cyl_ray_dir;
-        vec3 cap_offset = cap_hit - impostor_cyl_center;
-        float cap_along = dot(cap_offset, impostor_cyl_axis);
-        vec3 cap_radial = cap_offset - cap_along * impostor_cyl_axis;
-        if (dot(cap_radial, cap_radial) <= impostor_cyl_radius * impostor_cyl_radius) {
-          impostor_hit = cap_hit;
-          impostor_normal = sign(cap_along) * impostor_cyl_axis;
-          cyl_hit_found = true;
+    if (abs(cyl_d_dot_a) > 1e-8) {
+      for (int cap_index = 0; cap_index < 2; ++cap_index) {
+        int cap_bit = 1 << cap_index;
+        if ((impostor_cyl_caps & cap_bit) != 0) {
+          float cap_along = cap_index == 0 ? -impostor_cyl_half_length : impostor_cyl_half_length;
+          float cap_t = (cap_along - cyl_delta_dot_a) / cyl_d_dot_a;
+          if (cap_t > 0.0 && cap_t < nearest_cyl_t) {
+            vec3 cap_hit = cyl_ray_origin + cap_t * cyl_ray_dir;
+            vec3 cap_radial = cap_hit - impostor_cyl_center - cap_along * impostor_cyl_axis;
+            if (dot(cap_radial, cap_radial) <= impostor_cyl_radius * impostor_cyl_radius) {
+              nearest_cyl_t = cap_t;
+              impostor_hit = cap_hit;
+              impostor_normal = (cap_index == 0 ? -1.0 : 1.0) * impostor_cyl_axis;
+              cyl_hit_found = true;
+            }
+          }
         }
       }
     }
     if (!cyl_hit_found) discard;
 
-    // Dashed pseudobonds: discard fragments in gaps between dashes
-    if (impostor_dashes > 0) {
-      float cyl_pos_along = dot(impostor_hit - impostor_cyl_center, impostor_cyl_axis);
-      float cyl_frac = (cyl_pos_along / impostor_cyl_half_length) * 0.5 + 0.5;
-      float dash_pos = cyl_frac * float(impostor_dashes) + 0.75;
-      float dash_frac = fract(dash_pos);
-      if (dash_frac > 0.5) {
-        // Wall hit is in a gap — try dash edge caps
-        // Find nearest dash edges (transitions at fract = 0.0 and 0.5)
-        bool dash_cap_hit = false;
-        float edge_offsets[2] = float[](0.5 - dash_frac, 1.0 - dash_frac);
-        for (int ei = 0; ei < 2; ++ei) {
-          float edge_dash = dash_pos + edge_offsets[ei];
-          float edge_frac = (edge_dash - 0.75) / float(impostor_dashes);
-          float edge_along = (edge_frac * 2.0 - 1.0) * impostor_cyl_half_length;
-          // Ray-plane intersection at this axis position
-          float cap_denom = dot(cyl_ray_dir, impostor_cyl_axis);
-          if (abs(cap_denom) < 0.0001) continue;
-          float cap_t = (edge_along - dot(cyl_ray_origin - impostor_cyl_center, impostor_cyl_axis)) / cap_denom;
-          if (cap_t < 0.0) continue;
-          vec3 cap_pt = cyl_ray_origin + cap_t * cyl_ray_dir;
-          vec3 cap_radial = cap_pt - impostor_cyl_center - edge_along * impostor_cyl_axis;
-          if (dot(cap_radial, cap_radial) <= impostor_cyl_radius * impostor_cyl_radius) {
-            impostor_hit = cap_pt;
-            impostor_normal = sign(edge_offsets[ei]) * impostor_cyl_axis;
-            dash_cap_hit = true;
-            break;
-          }
-        }
-        if (!dash_cap_hit) discard;
-      }
-    }
+    #ifdef USE_CLIP_PLANES
+      vec3 impostor_hit_scene = (inverse_view_matrix * vec4(impostor_hit, 1)).xyz +
+                                impostor_scene_offset;
+      for (int i = 0; i < num_clip_planes; ++i)
+        if (dot(vec4(impostor_hit_scene, 1), clip_planes[i]) < 0.0)
+          discard;
+    #endif
 
     // Write correct depth
     vec4 cyl_clip_pos = projection_matrix * vec4(impostor_hit, 1.0);
@@ -550,13 +553,6 @@ void main (void)
         #endif
       #endif
     #endif
-  #endif
-
-  #ifdef USE_IMPOSTOR_CYLINDER
-    // Half-bond coloring: positive axis = color2 (atom2), negative = color1 (atom1)
-    float cyl_color_along = dot(impostor_hit - impostor_cyl_center, impostor_cyl_axis);
-    if (cyl_color_along > 0.0)
-      fcolor = impostor_cyl_color2;
   #endif
 
   #ifdef USE_TRANSPARENT_ONLY
@@ -608,22 +604,7 @@ void main (void)
     #else
     vec3 stc = shadow_tex_coord;
     #endif
-    // Poisson disk PCF soft shadows (16 samples)
-    float shadow = 0.0;
-    vec2 shadow_texel = 1.0 / vec2(textureSize(shadow_map, 0));
-    const vec2 poisson[16] = vec2[](
-      vec2( 0.0,     0.0),    vec2(-0.4317,  0.4340),
-      vec2( 0.5765, -0.1383), vec2(-0.1706, -0.6389),
-      vec2( 0.2955,  0.7103), vec2(-0.7455, -0.1562),
-      vec2( 0.8012,  0.3680), vec2(-0.3628, -0.9012),
-      vec2(-0.9012,  0.3628), vec2( 0.1562,  -0.4549),
-      vec2( 0.6389,  0.7455), vec2(-0.7103, -0.5765),
-      vec2( 0.9340, -0.1706), vec2(-0.1383, -0.2955),
-      vec2( 0.4340,  0.1706), vec2(-0.5765,  0.8012)
-    );
-    for (int i = 0; i < 16; ++i)
-      shadow += texture(shadow_map, stc + vec3(poisson[i] * shadow_texel * 1.5, 0.0));
-    shadow /= 16.0;
+    float shadow = texture(shadow_map, stc);
   #else
     float shadow = 1;
   #endif
@@ -641,21 +622,26 @@ void main (void)
     float mshadow = 0;
     for (int i = 0 ; i < shadow_count ; ++i)
       {
-        mat4 stf = shadow_transforms[i];
-        #ifdef USE_STEREO_360
-          vec3 shadow_tex_coord = (stf*vec4(vshadow,1)).stp;
-        #elif defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
-          vec3 shadow_tex_coord = (stf*vec4(impostor_hit,1)).stp;
-        #else
-          vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
-          // vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
-        #endif
         #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER) || defined(USE_LIGHTING_NORMALS)
-          vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
+          vec3 light_direction = shadow_depth * vec3(
+            shadow_transforms[i][0][2], shadow_transforms[i][1][2],
+            shadow_transforms[i][2][2]);
           float diffuse = max(-dot(N1,light_direction),0.0);
-  	      // float diffuse = max(-dot(nscene,light_direction),0.0);
+          // A back-facing AO direction has exactly zero weight.  Avoid its
+          // shadow-map transform and texture read; this removes about half of
+          // the multishadow samples on a smooth surface with no image change.
+          if (diffuse <= 0.0)
+            continue;
         #else
           float diffuse = 0.25;
+        #endif
+        mat4 stf = shadow_transforms[i];
+        #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
+          vec3 shadow_tex_coord = (stf*vec4(impostor_hit,1)).stp;
+        #elif defined(USE_STEREO_360)
+          vec3 shadow_tex_coord = (stf*vec4(vshadow,1)).stp;
+        #else
+          vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
         #endif
         mshadow += diffuse * texture(multishadow_map, shadow_tex_coord);
       }

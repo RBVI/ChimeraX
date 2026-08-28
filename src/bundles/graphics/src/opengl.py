@@ -505,6 +505,9 @@ class Render:
         # OpenGL texture size limit
         self._max_3d_texture_size = None
 
+        # One static billboard shared by all analytic primitive drawings.
+        self._impostor_quad_buffers = None
+
     def delete(self):
         if self._opengl_context._deleted:
             raise RuntimeError('Render.delete(): OpenGL context deleted before Render instance')
@@ -543,6 +546,12 @@ class Render:
 
         self.blend.delete()
         self.blend = None
+
+        iqb = self._impostor_quad_buffers
+        if iqb is not None:
+            for b in iqb:
+                b.delete_buffer()
+            self._impostor_quad_buffers = None
 
     @property
     def opengl_context(self):
@@ -644,6 +653,23 @@ class Render:
         fb = self.current_framebuffer()
         x, y, w, h = fb.viewport
         return (w, h)
+
+    def impostor_quad_buffers(self):
+        '''Return renderer-owned vertex and element buffers for impostor quads.'''
+        buffers = self._impostor_quad_buffers
+        if buffers is None:
+            from numpy import array, float32, int32
+            vertices = array(((-1, -1, 0), (1, -1, 0),
+                              (1, 1, 0), (-1, 1, 0)), float32)
+            triangles = array(((0, 1, 2), (0, 2, 3)), int32)
+            vertex_buffer = Buffer(VERTEX_BUFFER)
+            vertex_buffer.buffer_attribute_name = '_impostor_quad_vertices'
+            vertex_buffer.update_buffer_data(vertices)
+            element_buffer = Buffer(ELEMENT_BUFFER)
+            element_buffer.buffer_attribute_name = '_impostor_quad_elements'
+            element_buffer.update_buffer_data(triangles)
+            self._impostor_quad_buffers = buffers = (vertex_buffer, element_buffer)
+        return buffers
 
     def max_framebuffer_size(self):
         max_rb_size = GL.glGetInteger(GL.GL_MAX_RENDERBUFFER_SIZE)
@@ -897,10 +923,17 @@ class Render:
                     p.set_matrix('model_matrix', cmm.opengl_matrix())
                 if cvm:
                     p.set_matrix('view_matrix', cvm.opengl_matrix())
-            if self.SHADER_VOLUME_RAYCASTING & p.capabilities:
+            needs_inverse_view = (
+                p.capabilities & self.SHADER_VOLUME_RAYCASTING or
+                (p.capabilities & self.SHADER_CLIP_PLANES and
+                 p.capabilities & (self.SHADER_IMPOSTOR_SPHERE |
+                                   self.SHADER_IMPOSTOR_CYLINDER)))
+            if needs_inverse_view:
                 cvm = self.current_view_matrix
                 if cvm:
-                    # Raycasting needs inverse view matrix (camera to scene)
+                    # Unclipped impostor variants do not use this uniform, so
+                    # GLSL may optimize it out (notably in shadow-map passes).
+                    # Raycasting and analytic clipping need camera-to-scene.
                     inv_vm = cvm.inverse(is_orthonormal=True)
                     p.set_matrix('inverse_view_matrix', inv_vm.opengl_matrix())
             if not self.lighting.move_lights_with_camera:
@@ -2594,7 +2627,8 @@ class Bindings:
     shader variable ids.
     '''
     attribute_id = {'position': 0, 'tex_coord': 1, 'normal': 2, 'vcolor': 3,
-                    'instance_shift_and_scale': 4, 'instance_placement': 5}
+                    'instance_shift_and_scale': 4, 'instance_placement': 5,
+                    'instance_cylinder_end': 5}
 
     def __init__(self, name, opengl_context):
         self._name = name # Used for debugging
@@ -2733,6 +2767,8 @@ INSTANCE_SHIFT_AND_SCALE_BUFFER = BufferType(
     'instance_shift_and_scale', instance_buffer=True)
 INSTANCE_MATRIX_BUFFER = BufferType(
     'instance_placement', instance_buffer=True)
+INSTANCE_CYLINDER_END_BUFFER = BufferType(
+    'instance_cylinder_end', instance_buffer=True)
 INSTANCE_COLOR_BUFFER = BufferType(
     'vcolor', instance_buffer=True, value_type=uint8, normalize=True,
     requires_capabilities=Render.SHADER_VERTEX_COLORS)

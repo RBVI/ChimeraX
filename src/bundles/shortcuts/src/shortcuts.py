@@ -1160,11 +1160,15 @@ def show_triangle_count(session):
     for m in mols:
         ad = m._atoms_drawing
         if m.visible and ad:
-            dp = ad.display_positions
-            if dp is not None:
-                nma = dp.sum()
-                na += nma
-                if ad:
+            pg = ad.primitive_batch
+            if pg is not None:
+                na += pg.primitive_count
+                nt += 2 * pg.primitive_count
+            else:
+                dp = ad.display_positions
+                if dp is not None:
+                    nma = dp.sum()
+                    na += nma
                     nt += nma * len(ad.triangles)
 
     n = len(models)

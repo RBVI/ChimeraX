@@ -98,6 +98,7 @@ class Drawing:
         self._vertices = None		# N x 3 float32 numpy array
         self._triangles = None		# N x 3 int32 numpy array
         self._normals = None		# N x 3 float32 numpy array
+        self._primitive_batch = None # Compact semantic spheres or cylinders
 
         self._vertex_colors = None
         self._opaque_vertex_color_count = 0
@@ -192,6 +193,7 @@ class Drawing:
         self._draw_highlight = None
         self._shader_opt = None                 # Cached shader options
         self._vertex_buffers = []               # Buffers used by both drawing and highlight
+        self._owns_vertex_buffers = True
         self._opengl_context = None		# For deleting buffers, to make context current
 
         self.was_deleted = False
@@ -238,6 +240,11 @@ class Drawing:
         '''
         return self._triangles
 
+    @property
+    def primitive_batch(self):
+        '''Retained semantic primitives, distinct from tessellated geometry.'''
+        return self._primitive_batch
+
     def _get_shape_changed(self):
         rn = self._redraw_needed
         return rn.shape_changed if rn else False
@@ -253,7 +260,8 @@ class Drawing:
             self.redraw_needed()
         if key in self._effects_buffers:
             self._attribute_changes.add(key)
-            sc = key in ('_vertices', '_triangles', '_triangle_mask')
+            sc = key in ('_vertices', '_triangles', '_triangle_mask',
+                         '_primitive_batch')
             if sc:
                 self._cached_geometry_bounds = None
                 self._cached_position_bounds = None
@@ -446,7 +454,9 @@ class Drawing:
             sp = self._highlighted_positions
             if sp is None:
                 from numpy import ones
-                self._highlighted_positions = ones(len(self.positions), bool)
+                pg = self._primitive_batch
+                count = pg.primitive_count if pg is not None else len(self.positions)
+                self._highlighted_positions = ones(count, bool)
             else:
                 sp[:] = True
                 self._highlighted_positions = sp # Need to set to track changes
@@ -556,9 +566,10 @@ class Drawing:
         np = len(positions)
         if self._displayed_positions is not None and len(self._displayed_positions) != np:
             self._displayed_positions = None
-        if self._highlighted_positions is not None and len(self._highlighted_positions) != np:
+        if (self._primitive_batch is None and self._highlighted_positions is not None and
+                len(self._highlighted_positions) != np):
             self._highlighted_positions = None
-        if len(self._colors) != np:
+        if self._primitive_batch is None and len(self._colors) != np:
             from numpy import empty, uint8
             c = empty((np, 4), uint8)
             c[:,:] = self._colors[0,:] if len(self._colors) > 0 else 255
@@ -586,14 +597,18 @@ class Drawing:
         return np
 
     def get_color(self):
-        return self._colors[0]
+        return (self._colors[0] if len(self._colors) > 0 else
+                (178, 178, 178, 255))
 
     def set_color(self, rgba):
         from numpy import empty, uint8
-        np = len(self._positions)
+        pg = self._primitive_batch
+        np = pg.primitive_count if pg is not None else len(self._positions)
         c = empty((np, 4), uint8)
         c[:, :] = rgba
         self._colors = c
+        if pg is not None:
+            pg.colors = c
         opc = (np if rgba[3] == 255 else 0)
         tchange = (opc != self._opaque_color_count)
         self._opaque_color_count = opc
@@ -604,6 +619,9 @@ class Drawing:
     specified, 0-255 red, green, blue, alpha values.'''
 
     def get_colors(self, displayed_only=False):
+        pg = self._primitive_batch
+        if pg is not None:
+            return pg.colors
         if displayed_only:
             dp = self.display_positions
             return self._colors if dp is None else self._colors[dp]
@@ -612,6 +630,11 @@ class Drawing:
     def set_colors(self, rgba):
         from numpy import ndarray, array, uint8
         c = rgba if isinstance(rgba, ndarray) else array(rgba, uint8)
+        pg = self._primitive_batch
+        if pg is not None:
+            if len(c) != pg.primitive_count:
+                raise ValueError('Primitive drawing colors must match primitive count')
+            pg.colors = c
         self._colors = c
         opc = opaque_count(c)
         tchange = (opc != self._opaque_color_count)
@@ -700,6 +723,10 @@ class Drawing:
     def set_geometry(self, vertices, normals, triangles,
                      edge_mask = None, triangle_mask = None):
         '''Set vertices, normals and triangles defining the shape to be drawn.'''
+        was_primitive = self._primitive_batch is not None
+        old_color = (self._colors[0].copy() if len(self._colors) > 0 else
+                     (178, 178, 178, 255))
+        self._primitive_batch = None
         self._vertices = vertices
         self._normals = normals
         self._triangles = triangles
@@ -707,6 +734,11 @@ class Drawing:
         self._edge_mask = edge_mask
         self._triangle_mask = triangle_mask
         self._highlighted_triangles_mask = None
+        if was_primitive:
+            if (self._highlighted_positions is not None and
+                    len(self._highlighted_positions) != len(self.positions)):
+                self._highlighted_positions = None
+            self.color = old_color
         self.redraw_needed(shape_changed=True)
 
         arv = self.auto_recolor_vertices
@@ -717,15 +749,70 @@ class Drawing:
         if art:
             art()
 
+    def set_primitive_batch(self, batch):
+        '''Set compact sphere or cylinder primitives for analytic rendering.
+
+        Triangle arrays are deliberately cleared.  Use :meth:`export_geometry`
+        to obtain transient triangle batches when serializing the drawing.
+        '''
+        from .primitive import PrimitiveBatch
+        if batch is not None and not isinstance(batch, PrimitiveBatch):
+            raise TypeError('batch must be a PrimitiveBatch instance or None')
+        if batch is not None and batch.kind not in ('spheres', 'cylinders'):
+            raise TypeError('Only sphere and cylinder primitive batches are supported')
+        self._vertices = self._normals = self._triangles = None
+        self._edge_mask = self._triangle_mask = None
+        self._highlighted_triangles_mask = None
+        self._primitive_batch = batch
+        if batch is not None:
+            if (self._highlighted_positions is not None and
+                    len(self._highlighted_positions) != batch.primitive_count):
+                self._highlighted_positions = None
+            self.colors = batch.colors
+        self.redraw_needed(shape_changed=True)
+
+    def has_export_geometry(self):
+        '''Whether this drawing has displayed geometry that can be exported.'''
+        if self.num_displayed_positions == 0:
+            return False
+        pg = self._primitive_batch
+        return pg.primitive_count > 0 if pg is not None else self.num_masked_triangles > 0
+
+    def export_geometry(self, context=None):
+        '''Yield transient local-coordinate triangle batches for export.'''
+        if context is None:
+            from .primitive import ExportGeometryContext
+            session = getattr(self, 'session', None)
+            if session is None and self.parent is not None:
+                session = getattr(self.parent, 'session', None)
+            context = ExportGeometryContext(session)
+        pg = self._primitive_batch
+        if pg is not None:
+            yield from pg.export_geometry(context)
+        elif self.num_masked_triangles > 0:
+            from .primitive import ExportMesh
+            yield ExportMesh(self.vertices, self.normals, self.masked_triangles,
+                             self.vertex_colors, self.texture_coordinates)
+
     def empty_drawing(self):
         '''Does this drawing have no geometry? Does not consider child
         drawings.'''
+        pg = self._primitive_batch
+        if pg is not None:
+            return pg.primitive_count == 0 or len(self.positions) == 0
         v,t = self.vertices, self.triangles
         return v is None or t is None or len(t) == 0 or len(self.positions) == 0
 
     def number_of_triangles(self, displayed_only=False):
         '''Return the number of triangles including all child drawings
         and all positions.'''
+        pg = self._primitive_batch
+        if pg is not None:
+            np = self.number_of_positions(displayed_only)
+            tc = 2 * pg.primitive_count * np  # shared billboard triangles
+            for d in self.child_drawings():
+                tc += np * d.number_of_triangles(displayed_only)
+            return tc
         np = self.number_of_positions(displayed_only)
         if np == 0:
             return 0
@@ -803,13 +890,14 @@ class Drawing:
                        transparent_only=False, opaque_only=False):
         ''' Draw the geometry.'''
 
-        if self.vertices is None:
+        if self.vertices is None and self._primitive_batch is None:
             return
 
         self._opengl_context = renderer.opengl_context
 
+        self._ensure_vertex_buffer_layout()
         if len(self._vertex_buffers) == 0:
-            self._create_vertex_buffers()
+            self._create_vertex_buffers(renderer)
 
         # Update opengl buffers to reflect drawing changes
         self._update_buffers()
@@ -845,7 +933,13 @@ class Drawing:
         pos = self.positions
         use_instancing = (len(pos) > 1 or pos.shift_and_scale_array() is not None
                           or getattr(self, '_force_instancing', lambda: False)())
-        spos = self.parent.get_scene_positions(displayed_only=True) if use_instancing else self.get_scene_positions(displayed_only=True)
+        if self._primitive_batch is not None:
+            # Primitive slots are already used for sphere/cylinder instances;
+            # retain arbitrary affine Drawing positions as outer draw calls.
+            spos = self.get_scene_positions(displayed_only=True)
+        else:
+            spos = (self.parent.get_scene_positions(displayed_only=True)
+                    if use_instancing else self.get_scene_positions(displayed_only=True))
         for p in spos:
             # TODO: Optimize this to use same 4x4 opengl matrix each call.
             renderer.set_model_matrix(p)
@@ -892,6 +986,13 @@ class Drawing:
                 sopt |= Render.SHADER_SHIFT_AND_SCALE
             elif len(self.positions) > 1:
                 sopt |= Render.SHADER_INSTANCING
+            pg = self._primitive_batch
+            if pg is not None:
+                if pg.kind == 'spheres':
+                    sopt |= Render.SHADER_IMPOSTOR_SPHERE | Render.SHADER_SHIFT_AND_SCALE
+                elif pg.kind == 'cylinders':
+                    sopt |= Render.SHADER_IMPOSTOR_CYLINDER | Render.SHADER_SHIFT_AND_SCALE
+                sopt &= ~(Render.SHADER_LIGHTING_NORMALS | Render.SHADER_INSTANCING)
             if not self.accept_shadow:
                 sopt |= Render.SHADER_NO_SHADOW
             if not self.accept_multishadow:
@@ -911,7 +1012,7 @@ class Drawing:
 
     _effects_shader = set(
         ('use_lighting', '_vertex_colors', '_colors', 'texture',
-         'ambient_texture', '_positions',
+         'ambient_texture', '_positions', '_primitive_batch',
          'allow_depth_cue', 'allow_clipping', 'accept_shadow', 'accept_multishadow'))
 
     # Update the contents of vertex, element and instance buffers if associated
@@ -930,17 +1031,18 @@ class Drawing:
             '_triangle_mask' in changes or
             (self.display_style == self.Mesh and '_edge_mask' in changes) or
             '_highlighted_triangles_mask' in changes):
-            ta = self.triangles
-            style = self.display_style
-            em = self._edge_mask
-            tm = self._triangle_mask
-            tmsel = self.highlighted_displayed_triangles_mask
-            ds.update_element_buffer(ta, style, tm, em)
-            if tmsel is tm:
-                # Avoid slow recomputation of mesh edges. Ticket #6243
-                dss.copy_elements(ds)
-            else:
-                dss.update_element_buffer(ta, style, tmsel, em)
+            if self._primitive_batch is None:
+                ta = self.triangles
+                style = self.display_style
+                em = self._edge_mask
+                tm = self._triangle_mask
+                tmsel = self.highlighted_displayed_triangles_mask
+                ds.update_element_buffer(ta, style, tm, em)
+                if tmsel is tm:
+                    # Avoid slow recomputation of mesh edges. Ticket #6243
+                    dss.copy_elements(ds)
+                else:
+                    dss.update_element_buffer(ta, style, tmsel, em)
 
         # Update instancing buffers
         p = self.positions
@@ -948,21 +1050,27 @@ class Drawing:
             '_vertex_colors' in changes or
             '_positions' in changes or
             '_displayed_positions' in changes or
-            '_highlighted_positions' in changes):
-            c = self.colors if self._vertex_colors is None else None
-            pm = self._position_mask()
-            pmsel = self._position_mask(True)
+            '_highlighted_positions' in changes or
+            '_primitive_batch' in changes):
+            pg = self._primitive_batch
+            c = (pg.colors if pg is not None else self.colors) if self._vertex_colors is None else None
             fi = getattr(self, '_force_instancing', lambda: False)()
-            ds.update_instance_buffers(p, c, pm, force_instancing=fi)
-            dss.update_instance_buffers(p, c, pmsel, force_instancing=fi)
+            pm = None if pg is not None else self._position_mask()
+            pmsel = (self._highlighted_positions if pg is not None
+                     else self._position_mask(True))
+            ds.update_instance_buffers(p, c, pm, force_instancing=fi,
+                                       primitive_batch=pg)
+            dss.update_instance_buffers(p, c, pmsel, force_instancing=fi,
+                                        primitive_batch=pg)
 
         # Update buffers shared by drawing and highlight
-        for b in self._vertex_buffers:
-            aname = b.buffer_attribute_name
-            if aname in changes:
-                data = getattr(self, aname)
-                ds.update_vertex_buffer(b, data)
-                dss.update_vertex_buffer(b, data)
+        if self._owns_vertex_buffers:
+            for b in self._vertex_buffers:
+                aname = b.buffer_attribute_name
+                if aname in changes:
+                    data = getattr(self, aname)
+                    ds.update_vertex_buffer(b, data)
+                    dss.update_vertex_buffer(b, data)
 
         changes.clear()
 
@@ -1020,6 +1128,12 @@ class Drawing:
         cb = self._cached_geometry_bounds
         if cb is not None:
             return cb
+
+        pg = self._primitive_batch
+        if pg is not None:
+            b = pg.bounds()
+            self._cached_geometry_bounds = b
+            return b
 
         va = self.vertices
         if va is None:
@@ -1098,6 +1212,22 @@ class Drawing:
     def _first_intercept_excluding_children(self, mxyz1, mxyz2):
         if self.empty_drawing():
             return None
+        pg = self._primitive_batch
+        if pg is not None:
+            if self.positions.is_identity():
+                result = self._primitive_intercept(pg, mxyz1, mxyz2)
+                return (None if result is None else
+                        PickedPrimitive(result[0], result[1], 0, self))
+            closest = None
+            position_numbers = self.bounds_intercept_copies(
+                self.geometry_bounds(), mxyz1, mxyz2)
+            for position_number in position_numbers:
+                cxyz1, cxyz2 = self.positions[position_number].inverse() * (mxyz1, mxyz2)
+                result = self._primitive_intercept(pg, cxyz1, cxyz2)
+                if result is not None and (closest is None or result[0] < closest.distance):
+                    closest = PickedPrimitive(result[0], result[1],
+                                              position_number, self)
+            return closest
         va = self.vertices
         ta = self.masked_triangles
         if ta.shape[1] != 3:
@@ -1117,6 +1247,19 @@ class Drawing:
                 if fmin is not None and (p is None or fmin < p.distance):
                     p = PickedTriangle(fmin, tmin, i, self)
         return p
+
+    @staticmethod
+    def _primitive_intercept(batch, xyz1, xyz2):
+        from chimerax import geometry as geom
+        if batch.kind == 'spheres':
+            distance, primitive_index = geom.closest_sphere_intercept(
+                batch.centers, batch.radii, xyz1, xyz2)
+        else:
+            distance, primitive_index = geom.closest_cylinder_intercept(
+                batch.starts, batch.ends, batch.radii, xyz1, xyz2)
+        if distance is None:
+            return None
+        return distance, primitive_index
 
     def bounds_intercept_copies(self, bounds, mxyz1, mxyz2):
         '''
@@ -1182,13 +1325,30 @@ class Drawing:
                             # Pick displayed positions only
                             from numpy import logical_and
                             logical_and(pmask, dp, pmask)
-                        picks.append(PickedInstance(pmask, self))
+                        if self._primitive_batch is None:
+                            picks.append(PickedInstance(pmask, self))
+                        elif pmask.any():
+                            from numpy import ones
+                            primitive_mask = ones(
+                                self._primitive_batch.primitive_count, bool)
+                            picks.append(PickedPrimitives(primitive_mask, self))
             else:
                 # For non-instances pick using all vertices.
                 from chimerax.geometry import transform_planes
                 pplanes = transform_planes(self.position, planes)
-                vmask = points_within_planes(self.vertices, pplanes)
-                if vmask.sum() > 0:
+                pg = self._primitive_batch
+                if pg is not None:
+                    points = (pg.centers if pg.kind == 'spheres' else
+                              .5 * (pg.starts + pg.ends))
+                    pmask = points_within_planes(points, pplanes)
+                    if pmask.sum() > 0:
+                        picks.append(PickedPrimitives(pmask, self))
+                    vmask = None
+                else:
+                    vmask = points_within_planes(self.vertices, pplanes)
+                if vmask is None:
+                    pass
+                elif vmask.sum() > 0:
                     t = self.triangles
                     from numpy import logical_or, logical_and
                     tmask = logical_or(vmask[t[:,0]], vmask[t[:,1]])
@@ -1256,6 +1416,7 @@ class Drawing:
         self._vertices = None
         self._triangles = None
         self._normals = None
+        self._primitive_batch = None
         self._edge_mask = None
         self._triangle_mask = None
         self._highlighted_triangles_mask = None
@@ -1271,9 +1432,11 @@ class Drawing:
             self.colormap.delete_texture()
             self.colormap = None
 
-        for b in self._vertex_buffers:
-            b.delete_buffer()
+        if self._owns_vertex_buffers:
+            for b in self._vertex_buffers:
+                b.delete_buffer()
         self._vertex_buffers = []
+        self._owns_vertex_buffers = True
 
         for ds in (self._draw_shape, self._draw_highlight):
             if ds:
@@ -1283,8 +1446,18 @@ class Drawing:
 
         self._opengl_context = None
 
-    def _create_vertex_buffers(self):
+    def _create_vertex_buffers(self, renderer=None):
         from . import opengl
+        if self._primitive_batch is not None:
+            quad_vertex_buffer, quad_element_buffer = renderer.impostor_quad_buffers()
+            self._vertex_buffers = [quad_vertex_buffer]
+            self._owns_vertex_buffers = False
+            self._draw_shape = _DrawShape(self.name, self._vertex_buffers,
+                                          shared_element_buffer=quad_element_buffer)
+            self._draw_highlight = _DrawShape(self.name + ' highlight', self._vertex_buffers,
+                                              shared_element_buffer=quad_element_buffer)
+            return
+
         vbufs = (
             ('_vertices', opengl.VERTEX_BUFFER),
             ('_normals', opengl.NORMAL_BUFFER),
@@ -1293,6 +1466,7 @@ class Drawing:
         )
 
         self._vertex_buffers = vb = []
+        self._owns_vertex_buffers = True
         for a, v in vbufs:
             b = opengl.Buffer(v)
             b.buffer_attribute_name = a
@@ -1301,10 +1475,30 @@ class Drawing:
         self._draw_shape = _DrawShape(self.name, vb)
         self._draw_highlight = _DrawShape(self.name + ' highlight', vb)
 
+    def _ensure_vertex_buffer_layout(self):
+        """Discard stale bindings when switching mesh/primitive geometry kinds."""
+        if not self._vertex_buffers:
+            return
+        primitive_layout = self._primitive_batch is not None
+        current_primitive_layout = not self._owns_vertex_buffers
+        if primitive_layout == current_primitive_layout:
+            return
+
+        if self._owns_vertex_buffers:
+            for buffer in self._vertex_buffers:
+                buffer.delete_buffer()
+        for draw_shape in (self._draw_shape, self._draw_highlight):
+            if draw_shape is not None:
+                draw_shape.delete()
+        self._vertex_buffers = []
+        self._draw_shape = self._draw_highlight = None
+        self._owns_vertex_buffers = True
+
     _effects_buffers = set(
         ('_vertices', '_normals', '_vertex_colors', 'texture_coordinates',
          '_triangles', 'display_style', '_displayed_positions', '_colors', '_positions',
-         '_edge_mask', '_triangle_mask', '_highlighted_triangles_mask', '_highlighted_positions'))
+         '_edge_mask', '_triangle_mask', '_highlighted_triangles_mask', '_highlighted_positions',
+         '_primitive_batch'))
 
     EDGE0_DISPLAY_MASK = 1
     ALL_EDGES_DISPLAY_MASK = 7
@@ -1404,7 +1598,7 @@ class Drawing:
         from chimerax.core import x3d
         # x3d_scene.need(x3d.Components.Core, 2)  # Prototyping
         x3d_scene.need(x3d.Components.Grouping, 1)  # Group, Transform
-        if any_transp and self.vertex_colors is not None:
+        if any_transp and (self.vertex_colors is not None or self._primitive_batch is not None):
             x3d_scene.need(x3d.Components.Rendering, 4)  # ColorRGBA
         else:
             x3d_scene.need(x3d.Components.Rendering, 3)  # IndexedTriangleSet
@@ -1462,7 +1656,8 @@ class Drawing:
         print("%s <Material ambientIntensity='1' diffuseColor='%g %g %g' specularColor='0.85 0.85 0.85' shininess='0.234375' transparency='%g'/>" % (tab, color[0] / 255, color[1] / 255, color[2] / 255, 1 - color[3] / 255), file=stream)
         print('%s</Appearance>' % tab, file=stream)
 
-    def reuse_its(self, stream, x3d_scene, indent, def_use_tag, indices, colors, normals, any_transp):
+    def reuse_its(self, stream, x3d_scene, indent, def_use_tag, indices, colors,
+                  normals, any_transp, vertices=None):
         tab = ' ' * indent
         if def_use_tag is None:
             def_use = ''
@@ -1490,7 +1685,8 @@ class Drawing:
         if normals is None:
             print(' normalPerVertex="false"', end='', file=stream)
         print('>', file=stream)
-        vertices = ['%g' % x for x in self.vertices.flatten()]
+        varray = self.vertices if vertices is None else vertices
+        vertices = ['%g' % x for x in varray.flatten()]
         print('%s <Coordinate point="' % tab, end='', file=stream)
         bulk_write(vertices, 3 * 1024, stream)
         print('"/>', file=stream)
@@ -1517,6 +1713,10 @@ class Drawing:
 
         This is a generic version and assumes that positions are orthogonal.
         """
+        if self._primitive_batch is not None:
+            self._primitive_x3d(stream, x3d_scene, indent, place)
+            return
+
         any_opaque, any_transp = self._transparency()
         # cases:
         #  1 position, 1 color
@@ -1548,6 +1748,39 @@ class Drawing:
                            colors, normals, any_transp)
             print('%s </Shape>' % tab, file=stream)
             print('%s</Transform>' % tab, file=stream)
+        print('%s</Group>' % tab, file=stream)
+
+    def _primitive_x3d(self, stream, x3d_scene, indent, place):
+        from .primitive import ExportGeometryContext
+        session = getattr(self, 'session', None)
+        if session is None and self.parent is not None:
+            session = getattr(self.parent, 'session', None)
+        context = getattr(x3d_scene, '_export_geometry_context', None)
+        if context is None:
+            context = ExportGeometryContext(session)
+            x3d_scene._export_geometry_context = context
+        any_opaque, any_transp = self._transparency()
+        tab = ' ' * indent
+        print('%s<Group>' % tab, file=stream)
+        meshes = tuple(self.export_geometry(context))
+        for position_index, position in enumerate(self.get_positions(displayed_only=True)):
+            transform = place if position.is_identity() else place * position
+            for batch_index, mesh in enumerate(meshes):
+                vertices = mesh.vertices
+                normals = mesh.normals
+                if not transform.is_identity():
+                    vertices = vertices.copy()
+                    transform.transform_points(vertices, in_place=True)
+                    if normals is not None:
+                        normals = normals.copy()
+                        transform.transform_vectors(normals, in_place=True)
+                print('%s <Shape>' % tab, file=stream)
+                self.reuse_appearance(stream, x3d_scene, indent + 2, (255, 255, 255, 255))
+                self.reuse_its(stream, x3d_scene, indent + 2,
+                               (self, position_index, batch_index),
+                               mesh.triangles.flatten(), mesh.vertex_colors,
+                               normals, any_transp, vertices=vertices)
+                print('%s </Shape>' % tab, file=stream)
         print('%s</Group>' % tab, file=stream)
 
 def opaque_count(rgba):
@@ -1707,13 +1940,14 @@ def _element_type(display_style):
 
 class _DrawShape:
 
-    def __init__(self, name, vertex_buffers):
+    def __init__(self, name, vertex_buffers, shared_element_buffer=None):
 
         self._name = name			# Use for debbugging
 
         # Arrays derived from positions, colors and geometry
         self.instance_shift_and_scale = None   # N by 4 array, (x, y, z, scale)
         self.instance_matrices = None	    # matrices for displayed instances
+        self.instance_cylinder_end = None
         self.instance_colors = None
         self.elements = None                # Triangles after mask applied
         self._masked_edges = None
@@ -1730,7 +1964,8 @@ class _DrawShape:
         self.bindings = None    	      # Shader variable bindings in an opengl vertex array object
         self._buffers_need_update = set()     # Buffers that need data copied to opengl buffer object
         self.vertex_buffers = vertex_buffers
-        self.element_buffer = None
+        self.element_buffer = shared_element_buffer
+        self._owns_element_buffer = shared_element_buffer is None
         self.instance_buffers = []
 
     def delete(self):
@@ -1738,10 +1973,11 @@ class _DrawShape:
         self._masked_edges = None
         self.instance_shift_and_scale = None
         self.instance_matrices = None
+        self.instance_cylinder_end = None
         self.instance_colors = None
-        if self.element_buffer:
+        if self.element_buffer and self._owns_element_buffer:
             self.element_buffer.delete_buffer()
-            self.element_buffer = None
+        self.element_buffer = None
         for b in self.instance_buffers:
             b.delete_buffer()
         self.instance_buffers = []
@@ -1855,6 +2091,7 @@ class _DrawShape:
         ibufs = (
             ('instance_shift_and_scale', opengl.INSTANCE_SHIFT_AND_SCALE_BUFFER),
             ('instance_matrices', opengl.INSTANCE_MATRIX_BUFFER),
+            ('instance_cylinder_end', opengl.INSTANCE_CYLINDER_END_BUFFER),
             ('instance_colors', opengl.INSTANCE_COLOR_BUFFER),
         )
         ib = []
@@ -1865,10 +2102,14 @@ class _DrawShape:
         return ib
 
     def update_instance_buffers(self, positions, colors, position_mask,
-                                force_instancing=False):
+                                force_instancing=False, primitive_batch=None):
 
-        self.update_instance_arrays(positions, colors, position_mask,
-                                    force_instancing=force_instancing)
+        if primitive_batch is None:
+            self.update_instance_arrays(positions, colors, position_mask,
+                                        force_instancing=force_instancing)
+            self.instance_cylinder_end = None
+        else:
+            self.update_primitive_arrays(primitive_batch, position_mask)
 
         ib = self.instance_buffers
         if len(ib) == 0:
@@ -1876,6 +2117,26 @@ class _DrawShape:
 
         for b in ib:
             self.buffer_needs_update(b)
+
+    def update_primitive_arrays(self, batch, position_mask):
+        parameters = batch.instance_parameters
+        endpoints = batch.endpoints if batch.kind == 'cylinders' else None
+        colors = batch.colors
+        pm = position_mask
+        if pm is not None:
+            if len(pm) == 1:
+                if not pm[0]:
+                    parameters = parameters[:0]
+                    colors = colors[:0]
+                    endpoints = None if endpoints is None else endpoints[:0]
+            elif len(pm) == batch.primitive_count:
+                parameters = parameters[pm]
+                colors = colors[pm]
+                endpoints = None if endpoints is None else endpoints[pm]
+        self.instance_shift_and_scale = parameters
+        self.instance_matrices = None
+        self.instance_cylinder_end = endpoints
+        self.instance_colors = colors
 
     def update_instance_arrays(self, positions, colors, position_mask,
                                force_instancing=False):
@@ -1900,7 +2161,7 @@ class _DrawShape:
 
     def instance_count(self):
         im = self.instance_matrices
-        isas = self.instance_colors
+        isas = self.instance_shift_and_scale
         if im is not None:
             ninst = len(im)
         elif isas is not None:
@@ -1935,8 +2196,17 @@ class _DrawShape:
         if bi is None:
             from . import opengl
             self.bindings = bi = opengl.Bindings(self._name, renderer.opengl_context)
-
-        bi.activate()
+            bi.activate()
+            # Static impostor quad buffers are created and populated by the
+            # renderer, rather than queued through this drawing's updates.
+            for b in self.vertex_buffers:
+                if b.opengl_buffer is not None:
+                    bi.bind_shader_variable(b)
+            eb = self.element_buffer
+            if eb is not None and eb.opengl_buffer is not None:
+                bi.bind_shader_variable(eb)
+        else:
+            bi.activate()
         self.update_buffers()
 
 class Pick:
@@ -2113,6 +2383,51 @@ class PickedInstance(Pick):
             from numpy import logical_xor
             logical_xor(pmask, pm, pmask)
         d.highlighted_positions = pmask
+
+
+class PickedPrimitive(Pick):
+    """A semantic sphere or cylinder selected by analytic intersection."""
+
+    def __init__(self, distance, primitive_index, copy_number, drawing):
+        Pick.__init__(self, distance)
+        self.primitive_index = primitive_index
+        self.source_id = int(drawing.primitive_batch.picking_ids[primitive_index])
+        self._copy = copy_number
+        self._drawing = drawing
+
+    def description(self):
+        description = '%s primitive %d' % (self._drawing.name, self.source_id)
+        if len(self._drawing.positions) > 1:
+            description += ', copy %d' % self._copy
+        return description
+
+    def drawing(self):
+        return self._drawing
+
+    def select(self, mode='add'):
+        drawing = self._drawing
+        batch = drawing.primitive_batch
+        source_mask = batch.picking_ids == self.source_id
+        highlighted = drawing.highlighted_positions
+        if highlighted is None:
+            from numpy import zeros
+            highlighted = zeros(batch.primitive_count, bool)
+        if mode == 'add':
+            highlighted[source_mask] = True
+        elif mode == 'subtract':
+            highlighted[source_mask] = False
+        elif mode == 'toggle':
+            highlighted[source_mask] = ~highlighted[source_mask]
+        drawing.highlighted_positions = highlighted
+
+
+class PickedPrimitives(PickedInstance):
+    """A mask of semantic primitives selected by a plane pick."""
+
+    def description(self):
+        mask = self._positions_mask
+        return '%s, %d of %d primitives' % (
+            self._drawing.name, mask.sum(), len(mask))
 
 
 def rgba_drawing(drawing, rgba, pos=(-1, -1), size=(2, 2), opaque = True,

@@ -172,17 +172,23 @@ class ToQuest(ToolInstance):
     def _report_quality(self):
         from chimerax.atomic import Structure
         structs = [m for m in self.session.models.list(type = Structure) if m.visible]
-        atri = max([len(s._atoms_drawing.triangles) for s in structs if s._atoms_drawing],
-                   default = None)
-        btri = max([len(s._bonds_drawing.triangles) for s in structs if s._bonds_drawing],
-                   default = None)
+        from chimerax.atomic import structure_graphics_updater
+        gu = structure_graphics_updater(self.session)
+        lod = gu.level_of_detail
+        atom_counts = [s._atoms_drawing.primitive_batch.quality_count
+                       for s in structs if s._atoms_drawing is not None and
+                       s._atoms_drawing.primitive_batch is not None]
+        bond_counts = [s._bonds_drawing.primitive_batch.quality_count
+                       for s in structs if s._bonds_drawing is not None and
+                       s._bonds_drawing.primitive_batch is not None]
+        atri = max((lod.atom_sphere_triangles(count) for count in atom_counts),
+                   default=None)
+        btri = max((lod.bond_cylinder_triangles(count) // 2 for count in bond_counts),
+                   default=None)
 
         STYLE_ROUND = 1
         rside = max([s.ribbon_xs_mgr.params[STYLE_ROUND]['sides'] for s in structs],
                     default = None)
-        from chimerax.atomic import structure_graphics_updater
-        gu = structure_graphics_updater(self.session)
-        lod = gu.level_of_detail
         rdiv = max([lod.ribbon_divisions(s.num_residues) for s in structs],
                    default = None)
         if atri:

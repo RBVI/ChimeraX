@@ -25,6 +25,8 @@
 # The following are intentionally exported
 __all__ = [
     'Drawing', 'Pick',
+    'PrimitiveBatch', 'SpherePrimitiveBatch', 'CylinderPrimitiveBatch',
+    'ExportGeometryContext', 'ExportMesh',
     'Camera', 'MonoCamera', 'OrthographicCamera',
     'StereoCamera', 'SplitStereoCamera',
     'Mono360Camera', 'Stereo360Camera', 'DomeCamera',
@@ -39,6 +41,8 @@ import chimerax.arrays
 from .drawing import Drawing, Pick, PickedTriangle, PickedTriangles
 from .drawing import text_image_rgba, qimage_to_numpy
 from .drawing import concatenate_geometry
+from .primitive import PrimitiveBatch, SpherePrimitiveBatch, CylinderPrimitiveBatch
+from .primitive import ExportGeometryContext, ExportMesh
 
 from .camera import Camera, MonoCamera, OrthographicCamera, StereoCamera, SplitStereoCamera
 from .camera360 import Mono360Camera, Stereo360Camera, DomeCamera

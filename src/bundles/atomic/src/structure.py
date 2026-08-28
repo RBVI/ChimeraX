@@ -607,8 +607,6 @@ class Structure(Model, StructureData):
             changes = self._ALL_CHANGE
             self._atoms_drawing = p = AtomsDrawing('atoms')
             self.add_drawing(p)
-            # Set impostor quad geometry (2 triangles per atom instance)
-            p._set_impostor_quad_geometry()
 
         if changes & (self._ADDDEL_CHANGE | self._DISPLAY_CHANGE):
             changes |= self._ALL_CHANGE
@@ -619,20 +617,10 @@ class Structure(Model, StructureData):
 
         atoms = p.visible_atoms
 
-        if changes & self._SHAPE_CHANGE:
-            # Set instanced sphere center position and radius
-            n = len(atoms)
-            from numpy import empty, float32, multiply
-            xyzr = empty((n, 4), float32)
-            xyzr[:, :3] = atoms.coords
-            xyzr[:, 3] = self._atom_display_radii(atoms)
-
-            from chimerax.geometry import Places
-            p.positions = Places(shift_and_scale=xyzr)
-
-        if changes & self._COLOR_CHANGE:
-            # Set atom colors
-            p.colors = atoms.colors
+        if changes & (self._SHAPE_CHANGE | self._COLOR_CHANGE):
+            from chimerax.graphics import SpherePrimitiveBatch
+            p.set_primitive_batch(SpherePrimitiveBatch(
+                atoms.coords, self._atom_display_radii(atoms), atoms.colors))
 
         if changes & self._SELECT_CHANGE:
             # Set selected
@@ -650,8 +638,6 @@ class Structure(Model, StructureData):
             changes = self._ALL_CHANGE
             self._bonds_drawing = p = BondsDrawing('bonds', PickedBond, PickedBonds)
             self.add_drawing(p)
-            # Set impostor quad geometry (2 triangles per bond instance)
-            p._set_impostor_quad_geometry()
 
         if changes & (self._ADDDEL_CHANGE | self._DISPLAY_CHANGE):
             changes |= self._ALL_CHANGE
@@ -662,35 +648,17 @@ class Structure(Model, StructureData):
 
         bonds = p.visible_bonds
 
-        if changes & self._SHAPE_CHANGE or changes & self._COLOR_CHANGE:
-            # Full-bond placements: N matrices (not 2N half-bond matrices)
+        if changes & (self._SHAPE_CHANGE | self._COLOR_CHANGE):
             ba1, ba2 = bonds.atoms
             xyz1, xyz2 = ba1.coords, ba2.coords
             radii = bonds.radii
-
-            n = len(xyz1)
-            from numpy import empty, float32
-            matrices = empty((n, 4, 4), float32)
-
-            from chimerax.geometry import cylinder_rotations
-            cylinder_rotations(xyz1, xyz2, radii, matrices)
-            # Set translation to bond midpoint
-            matrices[:, 3, :3] = 0.5 * (xyz1 + xyz2)
-
-            # Pack atom2 color into bottom row of each matrix (row 3)
-            # OpenGL array layout: matrices[instance, column, row]
-            c1, c2 = ba1.colors, ba2.colors  # Nx4 RGBA uint8
-            matrices[:, 0, 3] = c2[:, 0] / 255.0
-            matrices[:, 1, 3] = c2[:, 1] / 255.0
-            matrices[:, 2, 3] = c2[:, 2] / 255.0
-            matrices[:, 3, 3] = c2[:, 3] / 255.0
-
-            from chimerax.geometry import Places
-            p.positions = Places(opengl_array=matrices)
-            p.colors = c1  # atom1 colors as primary instance color
+            p.set_primitive_batch(_halfbond_primitive_batch(
+                xyz1, xyz2, radii, bonds.half_colors))
 
         if changes & self._SELECT_CHANGE:
-            p.highlighted_positions = bonds.selected if bonds.num_selected > 0 else None
+            pg = p.primitive_batch
+            p.highlighted_positions = (pg.primitive_mask(bonds.selected)
+                                       if bonds.num_selected > 0 and pg is not None else None)
 
     def _get_autochain(self):
         return self._auto_chain_trace
@@ -749,7 +717,8 @@ class Structure(Model, StructureData):
     display = property(_get_display, _set_display)
 
     def _update_level_of_detail(self, total_atoms):
-        # LOD not needed — AtomsDrawing and BondsDrawing use impostor quads
+        # Analytic display geometry has no tessellation to update.  Export
+        # geometry consults this structure's current LevelOfDetail on demand.
         pass
 
     def _update_position(self, trig_name, updated_model):
@@ -1278,21 +1247,6 @@ class AtomsDrawing(Drawing):
         self.visible_atoms = None
         super().__init__(name)
 
-    def _set_impostor_quad_geometry(self):
-        '''Set unit quad geometry for impostor sphere rendering.'''
-        from numpy import array, float32, int32
-        vertices = array([[-1,-1,0], [1,-1,0], [1,1,0], [-1,1,0]], float32)
-        normals = array([[0,0,1], [0,0,1], [0,0,1], [0,0,1]], float32)
-        triangles = array([[0,1,2], [0,2,3]], int32)
-        self.set_geometry(vertices, normals, triangles)
-
-    def _shader_options(self, transparent_only=False, opaque_only=False):
-        sopt = super()._shader_options(transparent_only, opaque_only)
-        from chimerax.graphics.opengl import Render
-        sopt |= Render.SHADER_IMPOSTOR_SPHERE
-        sopt &= ~Render.SHADER_LIGHTING_NORMALS
-        return sopt
-
     def bounds(self):
         cpb = self._cached_position_bounds	# Attribute of Drawing.
         if cpb is not None:
@@ -1323,12 +1277,12 @@ class AtomsDrawing(Drawing):
         if not self.display or self.visible_atoms is None or (exclude and exclude(self)):
             return None
 
-        if len(self.visible_atoms) < len(self.positions):
+        pg = self.primitive_batch
+        if pg is None or len(self.visible_atoms) < pg.primitive_count:
             # Some atoms were deleted since the last time the graphics was drawn.
             return None
 
-        xyzr = self.positions.shift_and_scale_array()
-        coords, radii = xyzr[:,:3], xyzr[:,3]
+        coords, radii = pg.centers, pg.radii
 
         # Check for atom sphere intercept
         from chimerax import geometry
@@ -1336,7 +1290,7 @@ class AtomsDrawing(Drawing):
         if fmin is None:
             return None
 
-        atom = self.visible_atoms[anum]
+        atom = self.visible_atoms[pg.picking_ids[anum]]
 
         # Create pick object
         s = PickedAtom(atom, fmin)
@@ -1350,35 +1304,20 @@ class AtomsDrawing(Drawing):
         if self.visible_atoms is None:
             return []
 
-        xyz = self.positions.shift_and_scale_array()[:,:3]
+        pg = self.primitive_batch
+        if pg is None:
+            return []
+        xyz = pg.centers
         from chimerax import geometry
         pmask = geometry.points_within_planes(xyz, planes)
         if pmask.sum() == 0:
             return []
-        atoms = self.visible_atoms.filter(pmask)
+        from numpy import zeros
+        source_mask = zeros(len(self.visible_atoms), bool)
+        source_mask[pg.picking_ids[pmask]] = True
+        atoms = self.visible_atoms.filter(source_mask)
         p = PickedAtoms(atoms)
         return [p]
-
-    def x3d_needs(self, x3d_scene):
-        from chimerax.core import x3d
-        x3d_scene.need(x3d.Components.Grouping, 1)  # Group, Transform
-        x3d_scene.need(x3d.Components.Shape, 1)  # Appearance, Material, Shape
-        x3d_scene.need(x3d.Components.Geometry3D, 1)  # Sphere
-
-    def custom_x3d(self, stream, x3d_scene, indent, place):
-        from numpy import empty, float32
-        if self.empty_drawing():
-            return
-        xyzr = self.positions.shift_and_scale_array()
-        coords, radii = xyzr[:, :3], xyzr[:, 3]
-        tab = ' ' * indent
-        for xyz, r, c in zip(coords, radii, self.colors):
-            print('%s<Transform translation="%g %g %g">' % (tab, xyz[0], xyz[1], xyz[2]), file=stream)
-            print('%s <Shape>' % tab, file=stream)
-            self.reuse_appearance(stream, x3d_scene, indent + 2, c)
-            print('%s  <Sphere radius="%g"/>' % (tab, r), file=stream)
-            print('%s </Shape>' % tab, file=stream)
-            print('%s</Transform>' % tab, file=stream)
 
 class BondsDrawing(Drawing):
     # Used for both bonds and pseudoonds.
@@ -1398,34 +1337,6 @@ class BondsDrawing(Drawing):
         self._pick_class = pick_class
         self._picks_class = picks_class
         super().__init__(name)
-        self.impostor_dashes = 0  # 0 = solid, >0 = dashed pseudobond
-
-    def _set_impostor_quad_geometry(self):
-        '''Set unit quad geometry for impostor cylinder rendering.'''
-        from numpy import array, float32, int32
-        vertices = array([[-1,-1,0], [1,-1,0], [1,1,0], [-1,1,0]], float32)
-        normals = array([[0,0,1], [0,0,1], [0,0,1], [0,0,1]], float32)
-        triangles = array([[0,1,2], [0,2,3]], int32)
-        self.set_geometry(vertices, normals, triangles)
-        self._use_impostor_cylinder = True
-
-    def _shader_options(self, transparent_only=False, opaque_only=False):
-        sopt = super()._shader_options(transparent_only, opaque_only)
-        if getattr(self, '_use_impostor_cylinder', False):
-            from chimerax.graphics.opengl import Render
-            sopt |= Render.SHADER_IMPOSTOR_CYLINDER | Render.SHADER_INSTANCING
-            sopt &= ~(Render.SHADER_LIGHTING_NORMALS | Render.SHADER_SHIFT_AND_SCALE)
-        return sopt
-
-    def _force_instancing(self):
-        '''Impostor cylinders always need instancing for the placement matrix.'''
-        return getattr(self, '_use_impostor_cylinder', False)
-
-    def set_shader_options(self, renderer):
-        super().set_shader_options(renderer)
-        p = renderer.current_shader_program
-        if p is not None and p.capabilities & renderer.SHADER_IMPOSTOR_CYLINDER:
-            p.set_integer("impostor_dashes", self.impostor_dashes)
 
     def bounds(self):
         cpb = self._cached_position_bounds	# Attribute of Drawing.
@@ -1474,35 +1385,6 @@ class BondsDrawing(Drawing):
         bonds = self.visible_bonds.filter(pmask)
         p = PickedBonds(bonds)
         return [p]
-
-    def x3d_needs(self, x3d_scene):
-        from chimerax.core import x3d
-        x3d_scene.need(x3d.Components.Grouping, 1)  # Group, Transform
-        x3d_scene.need(x3d.Components.Shape, 1)  # Appearance, Material, Shape
-        x3d_scene.need(x3d.Components.Geometry3D, 1)  # Cylinder
-
-    def custom_x3d(self, stream, x3d_scene, indent, place):
-        # TODO: handle dashed bonds
-        from numpy import empty, float32
-        bonds = self.visible_bonds
-        if bonds is None:
-            return
-        ba1, ba2 = bonds.atoms
-        cyl_info = _halfbond_cylinder_x3d(ba1.effective_coords, ba2.effective_coords, bonds.radii)
-        tab = ' ' * indent
-        for ci, c in zip(cyl_info, self.colors):
-            h = ci[0]
-            r = ci[1]
-            rot = ci[2:6]
-            xyz = ci[6:9]
-            print('%s<Transform translation="%g %g %g" rotation="%g %g %g %g">' % (tab, xyz[0], xyz[1], xyz[2], rot[0], rot[1], rot[2], rot[3]), file=stream)
-            print('%s <Shape>' % tab, file=stream)
-            self.reuse_appearance(stream, x3d_scene, indent + 2, c)
-            print('%s  <Cylinder height="%g" radius="%g" bottom="false" top="false"/>' % (tab, h, r), file=stream)
-            print('%s </Shape>' % tab, file=stream)
-            print('%s</Transform>' % tab, file=stream)
-
-
 
 class AtomicStructure(Structure):
     """
@@ -2633,9 +2515,10 @@ def _bonds_planes_pick(drawing, planes):
     if drawing is None or not drawing.display:
         return None
 
-    hb_xyz = drawing.positions.array()[:,:,3]	# Half-bond centers
-    n = len(hb_xyz)//2
-    xyz = 0.5*(hb_xyz[:n] + hb_xyz[n:])	# Bond centers
+    pg = drawing.primitive_batch
+    if pg is None or pg.source_centers is None:
+        return None
+    xyz = pg.source_centers
     from chimerax import geometry
     pmask = geometry.points_within_planes(xyz, planes)
     return pmask
@@ -2786,53 +2669,22 @@ def _bond_cylinder_placements(axyz0, axyz1, radii):
   return pl
 
 # -----------------------------------------------------------------------------
-# Return 4x4 matrices taking two prototype cylinders to each bond location.
+# Compact two-color bond geometry.  Each half is a uniform-color analytic
+# cylinder, which keeps the fragment shader free of color-selection branches.
 #
-def _halfbond_cylinder_placements(axyz0, axyz1, radii, parray = None):
-
-  n = len(axyz0)
-  if parray is None or len(parray) != 2*n:
-      from numpy import empty, float32
-      p = empty((2*n,4,4), float32)
-  else:
-      p = parray
-
-  from chimerax.geometry import half_cylinder_rotations
-  half_cylinder_rotations(axyz0, axyz1, radii, p)
-
-  from chimerax.geometry import Places
-  pl = Places(opengl_array = p)
-
-  return pl
-
-# -----------------------------------------------------------------------------
-# Return height, radius, rotation, and translation for each halfbond cylinder.
-# Each row is [height, radius, *rotationAxis, rotationAngle, *translation]
-#
-def _halfbond_cylinder_x3d(axyz0, axyz1, radii):
-
-  n = len(axyz0)
-  from numpy import empty, float32
-  ci = empty((2 * n, 9), float32)
-
-  from chimerax.geometry import cylinder_rotations_x3d
-  cylinder_rotations_x3d(axyz0, axyz1, radii, ci[:n])
-  ci[n:, :] = ci[:n, :]
-
-  # Translations
-  ci[:n, 6:9] = 0.75 * axyz0 + 0.25 * axyz1
-  ci[n:, 6:9] = 0.25 * axyz0 + 0.75 * axyz1
-
-  return ci
-
-# -----------------------------------------------------------------------------
-# Display mask for 2 cylinders representing each bond.
-#
-def _shown_bond_cylinders(bonds):
-    sb = bonds.showns
-    import numpy
-    sb2 = numpy.concatenate((sb,sb))
-    return sb2
+def _halfbond_primitive_batch(axyz0, axyz1, radii, half_colors):
+  from numpy import arange, concatenate, int32
+  midpoint = 0.5 * (axyz0 + axyz1)
+  starts = concatenate((axyz0, midpoint))
+  ends = concatenate((midpoint, axyz1))
+  primitive_radii = concatenate((radii, radii))
+  count = len(radii)
+  picking_ids = concatenate((arange(count, dtype=int32),
+                             arange(count, dtype=int32)))
+  from chimerax.graphics import CylinderPrimitiveBatch
+  return CylinderPrimitiveBatch(starts, ends, primitive_radii, half_colors,
+                                caps=False, picking_ids=picking_ids,
+                                source_centers=midpoint)
 
 # -----------------------------------------------------------------------------
 # Bond is selected if both atoms are selected.

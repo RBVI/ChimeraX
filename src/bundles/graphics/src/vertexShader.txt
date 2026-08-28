@@ -113,6 +113,7 @@ layout(location = 4) in vec4 instance_shift_and_scale;
 #ifdef USE_IMPOSTOR_SPHERE
 out vec3 impostor_center;   // sphere center in eye space
 out float impostor_radius;  // sphere radius
+flat out vec3 impostor_scene_offset;
 #endif
 
 #ifdef USE_IMPOSTOR_CYLINDER
@@ -120,10 +121,12 @@ out vec3 impostor_cyl_center;      // cylinder center in eye space
 out vec3 impostor_cyl_axis;        // cylinder axis direction (normalized) in eye space
 out float impostor_cyl_radius;     // cylinder radius
 out float impostor_cyl_half_length; // half the cylinder length
-out vec4 impostor_cyl_color2;      // second atom color (packed in matrix bottom row)
+flat out int impostor_cyl_caps;    // bit 0: start cap, bit 1: end cap
+flat out vec3 impostor_scene_offset;
+layout(location = 5) in vec4 instance_cylinder_end;
 #endif
 
-#if defined(USE_INSTANCING) || defined(USE_IMPOSTOR_CYLINDER)
+#ifdef USE_INSTANCING
 layout(location = 5) in mat4 instance_placement;
 #endif
 
@@ -149,47 +152,103 @@ void main(void)
 {
 #ifdef USE_IMPOSTOR_SPHERE
   // Impostor sphere: expand unit quad into camera-facing billboard
-  vec3 center_eye = (model_view_matrix * vec4(instance_shift_and_scale.xyz, 1)).xyz;
-  float radius = instance_shift_and_scale.w;
-  // position.xy are quad corners (-1 to 1), expand by radius with margin
-  vec4 veye = vec4(center_eye + vec3(position.xy * radius * 1.05, 0.0), 1.0);
+  #ifdef USE_STEREO_360
+    vec4 sphere_center_scene = model_matrix * vec4(instance_shift_and_scale.xyz, 1);
+    vec3 sphere_eye_axis = normalize(cross(
+      sphere_center_scene.xyz - camera_origin_and_shift.xyz, camera_vertical.xyz));
+    impostor_scene_offset = camera_origin_and_shift.w * sphere_eye_axis;
+    vec3 center_eye = (view_matrix * vec4(
+      sphere_center_scene.xyz - impostor_scene_offset, 1)).xyz;
+    #ifdef USE_LIGHTING
+      vshadow = (model_view_matrix * vec4(instance_shift_and_scale.xyz, 1)).xyz;
+    #endif
+  #else
+    impostor_scene_offset = vec3(0);
+    vec3 center_eye = (model_view_matrix * vec4(instance_shift_and_scale.xyz, 1)).xyz;
+  #endif
+  #ifdef USE_STEREO_360
+    float radius = instance_shift_and_scale.w * length((model_matrix * vec4(1, 0, 0, 0)).xyz);
+  #else
+    float radius = instance_shift_and_scale.w * length((model_view_matrix * vec4(1, 0, 0, 0)).xyz);
+  #endif
+  bool sphere_ortho = (projection_matrix[3][3] != 0.0);
+  vec4 veye;
+  if (sphere_ortho) {
+    veye = vec4(center_eye + vec3(position.xy * radius * 1.005, 0.0), 1.0);
+  } else {
+    // Smallest axis-aligned rectangle enclosing the perspective projection of
+    // the sphere.  Unlike a symmetric billboard, its bounds shift off-axis.
+    float depth = -center_eye.z;
+    float tangent_denom = depth * depth - radius * radius;
+    if (tangent_denom > radius * radius * 1e-6) {
+      vec2 tangent_root = sqrt(max(
+        vec2(tangent_denom) + center_eye.xy * center_eye.xy, vec2(0.0)));
+      vec2 slope_min = (center_eye.xy * depth - radius * tangent_root) /
+                       tangent_denom;
+      vec2 slope_max = (center_eye.xy * depth + radius * tangent_root) /
+                       tangent_denom;
+      vec2 slope_mid = 0.5 * (slope_min + slope_max);
+      vec2 slope_half = 0.5025 * (slope_max - slope_min);
+      vec2 slope = slope_mid + position.xy * slope_half;
+      veye = vec4(slope * depth, center_eye.z, 1.0);
+    } else {
+      // A sphere crossing the eye plane can have an unbounded projection.
+      float proxy_depth = max(abs(depth), radius);
+      veye = vec4(center_eye.xy + position.xy * proxy_depth * 1e4,
+                  center_eye.z, 1.0);
+    }
+  }
   impostor_center = center_eye;
   impostor_radius = radius;
 
   #ifdef USE_CLIP_PLANES
-    vec4 vscene_c = model_matrix * vec4(instance_shift_and_scale.xyz, 1);
     for (int i = 0 ; i < num_clip_planes ; ++i)
-      gl_ClipDistance[i] = dot(vscene_c, clip_planes[i]);
+      gl_ClipDistance[i] = 1.0; // Analytic surface clipping is done per fragment.
   #endif
 
 #elif defined(USE_IMPOSTOR_CYLINDER)
-  // Impostor cylinder: full bond as single instance.
-  // Extract color2 from matrix bottom row before using it for transforms.
-  impostor_cyl_color2 = vec4(instance_placement[0][3], instance_placement[1][3],
-                             instance_placement[2][3], instance_placement[3][3]);
-  // Clean the bottom row for correct affine transforms
-  mat4 cyl_mat = instance_placement;
-  cyl_mat[0][3] = 0.0; cyl_mat[1][3] = 0.0; cyl_mat[2][3] = 0.0; cyl_mat[3][3] = 1.0;
-
-  // Extract cylinder endpoints (unit cylinder, z from -0.5 to +0.5)
-  vec3 p0_eye = (model_view_matrix * cyl_mat * vec4(0, 0, -0.5, 1)).xyz;
-  vec3 p1_eye = (model_view_matrix * cyl_mat * vec4(0, 0, 0.5, 1)).xyz;
+  // Endpoints and radius are direct instance attributes.  Keeping these
+  // semantic avoids a 4x4 placement matrix and leaves matrices affine.
+  #ifdef USE_STEREO_360
+    vec4 p0_scene = model_matrix * vec4(instance_shift_and_scale.xyz, 1);
+    vec4 p1_scene = model_matrix * vec4(instance_cylinder_end.xyz, 1);
+    vec3 cylinder_scene_center = 0.5 * (p0_scene.xyz + p1_scene.xyz);
+    vec3 cylinder_eye_axis = normalize(cross(
+      cylinder_scene_center - camera_origin_and_shift.xyz, camera_vertical.xyz));
+    vec3 stereo_offset = camera_origin_and_shift.w * cylinder_eye_axis;
+    impostor_scene_offset = stereo_offset;
+    vec3 p0_eye = (view_matrix * vec4(p0_scene.xyz - stereo_offset, 1)).xyz;
+    vec3 p1_eye = (view_matrix * vec4(p1_scene.xyz - stereo_offset, 1)).xyz;
+    #ifdef USE_LIGHTING
+      vshadow = (model_view_matrix * vec4(
+        0.5 * (instance_shift_and_scale.xyz + instance_cylinder_end.xyz), 1)).xyz;
+    #endif
+  #else
+    impostor_scene_offset = vec3(0);
+    vec3 p0_eye = (model_view_matrix * vec4(instance_shift_and_scale.xyz, 1)).xyz;
+    vec3 p1_eye = (model_view_matrix * vec4(instance_cylinder_end.xyz, 1)).xyz;
+  #endif
   vec3 cyl_axis_eye = p1_eye - p0_eye;
   float cyl_len = length(cyl_axis_eye);
-  vec3 cyl_dir = cyl_axis_eye / cyl_len;
-  float cyl_radius = length((model_view_matrix * cyl_mat * vec4(1, 0, 0, 0)).xyz);
+  vec3 cyl_dir = cyl_axis_eye / max(cyl_len, 1e-7);
+  #ifdef USE_STEREO_360
+    float cyl_radius = instance_shift_and_scale.w * length((model_matrix * vec4(1, 0, 0, 0)).xyz);
+  #else
+    float cyl_radius = instance_shift_and_scale.w * length((model_view_matrix * vec4(1, 0, 0, 0)).xyz);
+  #endif
   vec3 cyl_center = (p0_eye + p1_eye) * 0.5;
   float cyl_half_len = cyl_len * 0.5;
 
   // Build billboard: expand in both perpendicular directions to cover
   // the cylinder from any viewing angle. The quad is positioned in
   // screen space to always enclose the cylinder projection.
-  vec3 cyl_view_dir = normalize(cyl_center);
+  vec3 cyl_view_dir = length(cyl_center) > 1e-7 ? normalize(cyl_center) : vec3(0, 0, -1);
   vec3 cyl_cross = cross(cyl_dir, cyl_view_dir);
   float cyl_cross_len = length(cyl_cross);
+  vec3 cyl_fallback = abs(cyl_dir.y) < 0.9 ? vec3(0, 1, 0) : vec3(1, 0, 0);
   vec3 cyl_right = cyl_cross_len > 0.001
     ? cyl_cross / cyl_cross_len
-    : normalize(cross(cyl_dir, vec3(0, 1, 0)));
+    : normalize(cross(cyl_dir, cyl_fallback));
   // Screen up direction perpendicular to both right and view
   vec3 cyl_up = cross(cyl_view_dir, cyl_right);
 
@@ -199,23 +258,32 @@ void main(void)
   vec3 axis_screen_dir = axis_screen_len > 0.001 ? axis_screen / axis_screen_len : cyl_up;
   vec3 axis_screen_perp = cross(cyl_view_dir, axis_screen_dir);
 
-  // Expand quad in screen space: along projected axis and perpendicular to it
-  float extent_along = cyl_half_len + cyl_radius;
-  float extent_perp = cyl_radius * 1.1;
+  // Orthographic support of the cylinder in these two screen directions,
+  // enlarged by the worst possible perspective magnification of its bounding
+  // sphere.  This remains conservative when an endpoint approaches the eye.
+  float cyl_bound_radius = sqrt(cyl_half_len * cyl_half_len +
+                                cyl_radius * cyl_radius);
+  bool cyl_ortho = (projection_matrix[3][3] != 0.0);
+  float nearest_depth = max(abs(cyl_center.z) - cyl_bound_radius,
+                            cyl_bound_radius * 0.01);
+  float cyl_perspective_scale = cyl_ortho ? 1.001 :
+    max(1.001, abs(cyl_center.z) / nearest_depth);
+  float extent_along = (cyl_half_len * axis_screen_len + cyl_radius) *
+                       cyl_perspective_scale;
+  float extent_perp = cyl_radius * cyl_perspective_scale;
   vec3 cyl_offset = axis_screen_dir * position.y * extent_along
-                   + axis_screen_perp * position.x * extent_perp
-                   + cyl_view_dir * position.x * cyl_radius;  // depth offset for viewing angle
+                   + axis_screen_perp * position.x * extent_perp;
   vec4 veye = vec4(cyl_center + cyl_offset, 1.0);
 
   impostor_cyl_center = cyl_center;
   impostor_cyl_axis = cyl_dir;
   impostor_cyl_radius = cyl_radius;
   impostor_cyl_half_length = cyl_half_len;
+  impostor_cyl_caps = int(instance_cylinder_end.w + 0.5);
 
   #ifdef USE_CLIP_PLANES
-    vec4 vscene_c = model_matrix * cyl_mat * vec4(0, 0, 0, 1);
     for (int i = 0 ; i < num_clip_planes ; ++i)
-      gl_ClipDistance[i] = dot(vscene_c, clip_planes[i]);
+      gl_ClipDistance[i] = 1.0; // Analytic surface clipping is done per fragment.
   #endif
 
 #else // not USE_IMPOSTOR_SPHERE or USE_IMPOSTOR_CYLINDER
@@ -301,6 +369,13 @@ void main(void)
 #endif
 
   gl_Position = projection_matrix * veye;
+  #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
+    // Keep the proxy alive when its center plane crosses the near plane.  The
+    // fragment shader writes the analytic surface depth, so moving only the
+    // proxy's clip-space depth does not change the rendered surface.
+    if (gl_Position.w > 0.0 && gl_Position.z < -gl_Position.w)
+      gl_Position.z = -gl_Position.w;
+  #endif
 }
 
 #endif

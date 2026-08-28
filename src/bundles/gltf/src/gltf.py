@@ -440,6 +440,9 @@ def write_gltf(session, filename = None, models = None,
     if models is None:
         models = session.models.list()
 
+    from chimerax.graphics import ExportGeometryContext
+    export_context = ExportGeometryContext(
+        session, batch_vertex_limit=(2**16 if short_vertex_indices else 250000))
     drawings = all_visible_drawings(models)
 
     buffers = Buffers()
@@ -448,7 +451,7 @@ def write_gltf(session, filename = None, models = None,
                           flat_lighting, backface_culling)
     nodes, meshes = nodes_and_meshes(drawings, buffers, materials,
                                      short_vertex_indices, prune_vertex_colors,
-                                     instancing)
+                                     instancing, export_context)
 
     if center_each_node:
         center_nodes_and_meshes(nodes, meshes, buffers)
@@ -714,7 +717,7 @@ def any_triangles_shown(d, drawings, ts):
        return ts[d]
     if not d.display:
         ts[d] = False
-    elif d.num_masked_triangles > 0:
+    elif d.has_export_geometry():
         ts[d] = True
     else:
         for c in d.child_drawings():
@@ -729,13 +732,14 @@ def any_triangles_shown(d, drawings, ts):
 #
 def nodes_and_meshes(drawings, buffers, materials,
                      short_vertex_indices = False, prune_vertex_colors = True,
-                     leaf_instancing = False):
+                     leaf_instancing = False, export_context = None):
 
     # Create tree of nodes with children and matrices set.
     nodes, drawing_nodes = node_tree(drawings, leaf_instancing)
 
     # Create meshes for nodes.
-    meshes = Meshes(buffers, materials, short_vertex_indices, prune_vertex_colors, leaf_instancing)
+    meshes = Meshes(buffers, materials, short_vertex_indices, prune_vertex_colors,
+                    leaf_instancing, export_context)
     for drawing, dnodes in drawing_nodes.items():
         if meshes.has_mesh(drawing):
             for node in dnodes:
@@ -787,7 +791,10 @@ def create_node(drawing, drawing_set, nodes, drawing_nodes, leaf_instancing):
         if not positions.is_identity():
             dn['matrix'] = gltf_transform(positions[0])
     elif leaf_instancing or children:
-        ic = drawing.get_colors(displayed_only = True)
+        if drawing.primitive_batch is not None:
+            ic = [(255, 255, 255, 255)] * len(positions)
+        else:
+            ic = drawing.get_colors(displayed_only = True)
         inodes = [{'name': '%s %d' % (drawing.name, i+1),
                    'matrix': gltf_transform(p),
                    'single_color': ic[i]}
@@ -860,26 +867,26 @@ def left_shift_matrix(matrix, shift):
 #
 class Meshes:
     def __init__(self, buffers, materials, short_vertex_indices = False,
-                 prune_vertex_colors = True, leaf_instancing = False):
+                 prune_vertex_colors = True, leaf_instancing = False,
+                 export_context = None):
         self._buffers = buffers
         self._materials = materials
         self._short_vertex_indices = short_vertex_indices
         self._prune_vertex_colors = prune_vertex_colors
         self._leaf_instancing = leaf_instancing
+        self._export_context = export_context
         self._meshes = {}	# Map Drawing to Mesh.
         self._mesh_specs = []	# List of all mesh specifications
 
     def has_mesh(self, drawing):
-        if drawing.vertices is None or drawing.triangles is None or len(drawing.triangles) == 0:
-            return False
-        return True
+        return drawing.has_export_geometry()
     
     def mesh_index(self, drawing, instance_color):
         mesh = self._meshes.get(drawing)
         if mesh is None:
             mesh = Mesh(drawing, self._buffers, self._materials,
                         self._short_vertex_indices, self._prune_vertex_colors,
-                        self._leaf_instancing)
+                        self._leaf_instancing, self._export_context)
             self._meshes[drawing] = mesh
         mi = len(self._mesh_specs)
         spec = mesh.specification(instance_color)
@@ -895,18 +902,20 @@ class Meshes:
 class Mesh:
     def __init__(self, drawing, buffers, materials,
                  short_vertex_indices = False, prune_vertex_colors = True,
-                 leaf_instancing = False):
+                 leaf_instancing = False, export_context = None):
         self._drawing = drawing
         self._buffers = buffers
         self._materials = materials
         self._short_vertex_indices = short_vertex_indices
         self._prune_vertex_colors = prune_vertex_colors
         self._leaf_instancing = leaf_instancing
+        self._export_context = export_context
         
         self._geom_buffers = None
         self._texture_images = []
         self._converted_vertex_to_texture_colors = False
-        self._has_vertex_colors = (drawing.vertex_colors is not None)
+        self._has_vertex_colors = (drawing.vertex_colors is not None or
+                                   drawing.primitive_batch is not None)
 
     # -----------------------------------------------------------------------------
     #
@@ -964,14 +973,32 @@ class Mesh:
             return geom_bufs
         
         d = self._drawing
-        va, na, vc, tc = (d.vertices, d.normals, d.vertex_colors, d.texture_coordinates)
+        if d.primitive_batch is not None:
+            geom = [(m.vertices, m.normals, m.vertex_colors,
+                     m.texture_coordinates, m.triangles)
+                    for m in d.export_geometry(self._export_context)]
+            if not self._leaf_instancing:
+                positions = d.get_positions(displayed_only=True)
+                if len(positions) > 1 and not positions.is_identity():
+                    geom = [combine_instance_geometry(va, na, vc, tc, ta,
+                                                      positions, None)
+                            for va, na, vc, tc, ta in geom]
+            if self._short_vertex_indices:
+                geom = limit_vertex_count(geom)
+            self._geom_buffers = geom_bufs = [
+                self._make_buffers(pva, pna, pvc, ptc, pta)
+                for pva, pna, pvc, ptc, pta in geom]
+            return geom_bufs
 
         # Get triangles, lines or points
         if d.display_style == d.Solid:
-            ta = d.masked_triangles
-            if len(ta) < len(d.triangles):
-                va, na, vc, tc, ta = remove_unused_vertices(va, na, vc, tc, ta)
+            mesh = next(d.export_geometry(self._export_context))
+            va, na, vc, tc, ta = (mesh.vertices, mesh.normals,
+                                   mesh.vertex_colors, mesh.texture_coordinates,
+                                   mesh.triangles)
         else:
+            va, na, vc, tc = (d.vertices, d.normals, d.vertex_colors,
+                              d.texture_coordinates)
             ta = d._draw_shape.elements	# Lines or points
             
         # Collect textures
@@ -1251,9 +1278,9 @@ def single_vertex_color(n, color):
 #
 def limit_vertex_count(geom, vmax = 2**16):
     lgeom = []
-    for va,na,vc,ta in geom:
+    for va,na,vc,tc,ta in geom:
         if len(va) <= vmax:
-            lgeom.append((va,na,vc,ta))
+            lgeom.append((va,na,vc,tc,ta))
         else:
             vi = []
             vmap = {}
@@ -1270,10 +1297,11 @@ def limit_vertex_count(geom, vmax = 2**16):
                     sva = va[vi]
                     sna = None if na is None else na[vi]
                     svc = None if vc is None else vc[vi]
+                    stc = None if tc is None else tc[vi]
                     from numpy import array
                     sta = array([vmap[v] for tv in ta[ti0:ti+1] for v in tv])
                     sta = sta.reshape((len(sta)//esize,esize))
-                    lgeom.append((sva,sna,svc,sta))
+                    lgeom.append((sva,sna,svc,stc,sta))
                     vi = []
                     vmap = {}
                     ti0 = ti+1
@@ -1521,4 +1549,3 @@ class Textures:
                 'images': images,
                 'samplers': samplers,
         }
-

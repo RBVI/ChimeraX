@@ -298,12 +298,14 @@ def write_stl(session, filename, models):
             
     # Collect geometry, not including children, handle instancing
     geom = []
+    from chimerax.graphics import ExportGeometryContext
+    export_context = ExportGeometryContext(session)
     for d in drawings:
-        va, ta = d.vertices, d.masked_triangles
-        if va is not None and ta is not None and d.display and d.parents_displayed:
+        if d.has_export_geometry() and d.display and d.parents_displayed:
             pos = d.get_scene_positions(displayed_only = True)
             if len(pos) > 0:
-                geom.append((va, ta, pos))
+                for mesh in d.export_geometry(export_context):
+                    geom.append((mesh.vertices, mesh.triangles, pos))
     from chimerax.surface import combine_geometry_vtp
     va, ta = combine_geometry_vtp(geom)
     from .stl_cpp import stl_pack

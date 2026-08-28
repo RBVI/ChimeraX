@@ -206,7 +206,6 @@ class PseudobondGroup(PseudobondGroupData, Model):
         if d is None:
             from .structure import BondsDrawing, PickedPseudobond, PickedPseudobonds
             d = self._pbond_drawing = BondsDrawing('pbonds', PickedPseudobond, PickedPseudobonds)
-            d._set_impostor_quad_geometry()
             self.add_drawing(d)
             d._visible_atoms = None
             changes = self._ALL_CHANGE
@@ -226,7 +225,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
         pbonds = d.visible_bonds
         bond_atoms = d._visible_atoms
 
-        if changes & self._SHAPE_CHANGE or changes & self._COLOR_CHANGE:
+        if changes & (self._SHAPE_CHANGE | self._COLOR_CHANGE):
             ba1, ba2 = bond_atoms
             if self._global_group:
                 to_pbg = self.scene_position.inverse()
@@ -234,33 +233,19 @@ class PseudobondGroup(PseudobondGroupData, Model):
             else:
                 axyz0, axyz1 = ba1.pb_coords, ba2.pb_coords
 
-            from numpy import empty, float32, asarray
+            from numpy import float32, asarray
             axyz0 = asarray(axyz0, dtype=float32)
             axyz1 = asarray(axyz1, dtype=float32)
             radii = asarray(pbonds.radii, dtype=float32)
-            n = len(axyz0)
-
-            matrices = empty((n, 4, 4), float32)
-            from chimerax.geometry import cylinder_rotations
-            cylinder_rotations(axyz0, axyz1, radii, matrices)
-            matrices[:, 3, :3] = 0.5 * (axyz0 + axyz1)
-
-            # Half-bond colors: first N = atom1 side, second N = atom2 side
-            hc = pbonds.half_colors  # 2N x 4
-            c1, c2 = hc[:n], hc[n:]
-            # Pack color2 in bottom row of matrix
-            matrices[:, 0, 3] = c2[:, 0] / 255.0
-            matrices[:, 1, 3] = c2[:, 1] / 255.0
-            matrices[:, 2, 3] = c2[:, 2] / 255.0
-            matrices[:, 3, 3] = c2[:, 3] / 255.0
-
-            from chimerax.geometry import Places
-            d.positions = Places(opengl_array=matrices)
-            d.colors = c1  # atom1 side color as primary
-            d.impostor_dashes = self._dashes
+            d.set_primitive_batch(_pseudobond_primitive_batch(
+                axyz0, axyz1, radii, pbonds.half_colors,
+                self._dashes, self._cylinder_sides))
+            d._current_cylinder_sides = self._cylinder_sides
 
         if changes & self._SELECT_CHANGE:
-            d.highlighted_positions = pbonds.selected if pbonds.num_selected > 0 else None
+            pg = d.primitive_batch
+            d.highlighted_positions = (pg.primitive_mask(pbonds.selected)
+                                       if pbonds.num_selected > 0 and pg is not None else None)
 
     def update_cylinder_sides(self):
         d = self._pbond_drawing
@@ -269,21 +254,9 @@ class PseudobondGroup(PseudobondGroupData, Model):
         sides = self._cylinder_sides
         if sides == getattr(d, '_current_cylinder_sides', None):
             return False
-        va, na, ta = _pseudobond_geometry(self._dashes//2, sides)
-        d.set_geometry(va, na, ta)
         d._current_cylinder_sides = sides
         self._graphics_changed |= self._SHAPE_CHANGE
         return True
-
-    def _update_positions(self, pbonds, bond_atoms):
-        ba1, ba2 = bond_atoms
-        if self._global_group:
-            to_pbg = self.scene_position.inverse()
-            axyz0, axyz1 = to_pbg*ba1.pb_scene_coords, to_pbg*ba2.pb_scene_coords
-        else:
-            axyz0, axyz1 = ba1.pb_coords, ba2.pb_coords
-        from . import structure as s
-        return s._halfbond_cylinder_placements(axyz0, axyz1, pbonds.radii)
 
     def _shown_pbonds(self, pbonds):
         # Check if models containing end-point have displayed structures.
@@ -520,8 +493,60 @@ def hidden_structures(structures):
     hs = array([(s not in vis) for s in structures], bool)
     return hs
 
-# -----------------------------------------------------------------------------
+# Expand dash intervals into compact capped cylinders.  This trades a small
+# amount of instance data for removal of dash loops and edge-cap work from every
+# covered fragment.
 #
-def _pseudobond_geometry(segments = 9, sides = 10):
-    from chimerax import surface
-    return surface.dashed_cylinder_geometry(segments, height = 0.5, nc = sides)
+def _pseudobond_primitive_batch(xyz0, xyz1, radii, half_colors, dashes, sides):
+    from numpy import array, float32, int32, uint8
+    count = len(xyz0)
+    color0, color1 = half_colors[:count], half_colors[count:]
+    starts, ends, primitive_radii, colors, caps, picking_ids = [], [], [], [], [], []
+
+    if dashes > 0:
+        # Match the former fragment-shader phase exactly:
+        # fract(fraction * dashes + .75) <= .5.
+        intervals = [((dash - .75) / dashes, (dash - .25) / dashes)
+                     for dash in range(1, dashes + 1)]
+    else:
+        intervals = [(0.0, 1.0)]
+
+    for bond_index, (p0, p1, radius, c0, c1) in enumerate(
+            zip(xyz0, xyz1, radii, color0, color1)):
+        axis = p1 - p0
+        for f0, f1 in intervals:
+            pieces = ((f0, 0.5, c0, True, False),
+                      (0.5, f1, c1, False, True)) if f0 < 0.5 < f1 else (
+                         (f0, f1, c0 if f1 <= 0.5 else c1, True, True),)
+            for a, b, color, start_cap, end_cap in pieces:
+                if b - a <= 1e-7:
+                    continue
+                starts.append(p0 + a * axis)
+                ends.append(p0 + b * axis)
+                primitive_radii.append(radius)
+                colors.append(color)
+                # Undashed pseudobonds remain capped, matching their previous
+                # exported and rendered geometry.  A color split has no cap at
+                # its internal boundary.
+                caps.append((start_cap, end_cap))
+                picking_ids.append(bond_index)
+
+    if starts:
+        starts = array(starts, float32)
+        ends = array(ends, float32)
+        primitive_radii = array(primitive_radii, float32)
+        colors = array(colors, uint8)
+        caps = array(caps, bool)
+        picking_ids = array(picking_ids, int32)
+    else:
+        starts = ends = array([], float32).reshape((0, 3))
+        primitive_radii = array([], float32)
+        colors = array([], uint8).reshape((0, 4))
+        caps = array([], bool).reshape((0, 2))
+        picking_ids = array([], int32)
+
+    from chimerax.graphics import CylinderPrimitiveBatch
+    return CylinderPrimitiveBatch(starts, ends, primitive_radii, colors, caps,
+                                  picking_ids,
+                                  source_centers=0.5 * (xyz0 + xyz1),
+                                  sides=sides)

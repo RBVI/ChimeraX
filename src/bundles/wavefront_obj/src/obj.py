@@ -336,17 +336,25 @@ def write_obj(session, filename, models, obj_to_unity = True, single_object = Fa
             
     # Collect geometry, not including children, handle instancing
     geom = []
+    from chimerax.graphics import ExportGeometryContext
+    export_context = ExportGeometryContext(session)
     for d in drawings:
-        va, na, tca, ta = d.vertices, d.normals, d.texture_coordinates, d.masked_triangles
-        if va is not None and ta is not None and d.display and d.parents_displayed:
+        if d.has_export_geometry() and d.display and d.parents_displayed:
             pos = d.get_scene_positions(displayed_only = True)
             if len(pos) > 0:
-                geom.append((full_name(d), va, na, tca, ta, pos))
+                for mesh in d.export_geometry(export_context):
+                    vertex_colors = mesh.vertex_colors
+                    if vertex_colors is None:
+                        from numpy import empty, uint8
+                        vertex_colors = empty((len(mesh.vertices), 4), uint8)
+                        vertex_colors[:] = d.color
+                    geom.append((full_name(d), mesh.vertices, mesh.normals,
+                                 mesh.texture_coordinates, vertex_colors,
+                                 mesh.triangles, pos))
 
     if single_object:
-        from chimerax.surface import combine_geometry_xvntctp
-        va, na, tca, ta = combine_geometry_xvntctp(geom)
-        geom = [(None, va, na, tca, ta, None)]
+        va, na, tca, vca, ta = _combine_obj_geometry(geom)
+        geom = [(None, va, na, tca, vca, ta, None)]
 
     # Write 80 character comment.
     from chimerax import app_dirs as ad
@@ -359,8 +367,9 @@ def write_obj(session, filename, models, obj_to_unity = True, single_object = Fa
     file.write(created_by)
 
     voffset = 0
-    for name, va, na, tca, ta, pos in geom:
-        vcount = write_object(file, name, va, na, tca, ta, voffset, pos, obj_to_unity)
+    for name, va, na, tca, vca, ta, pos in geom:
+        vcount = write_object(file, name, va, na, tca, vca, ta,
+                              voffset, pos, obj_to_unity)
         voffset += vcount
 
     file.close()
@@ -372,7 +381,7 @@ def full_name(drawing):
 
 # -----------------------------------------------------------------------------
 #
-def write_object(file, name, va, na, tca, ta, voffset, pos, obj_to_unity):
+def write_object(file, name, va, na, tca, vca, ta, voffset, pos, obj_to_unity):
 
     # Write object name
     if name is not None:
@@ -381,11 +390,18 @@ def write_object(file, name, va, na, tca, ta, voffset, pos, obj_to_unity):
 
     if pos is not None and not pos.is_identity():
         # Expand out positions including instancing.
-        from chimerax.surface import combine_geometry_xvntctp
-        va, na, tca, ta = combine_geometry_xvntctp([(name, va, na, tca, ta, pos)])
+        va, na, tca, vca, ta = _combine_obj_geometry(
+            [(name, va, na, tca, vca, ta, pos)])
 
-    # Write vertices
-    file.write('\n'.join(('v %.5g %.5g %.5g' % tuple(xyz)) for xyz in va))
+    # RGB fields after XYZ are a widely supported OBJ vertex-color extension.
+    if vca is None:
+        vertex_lines = ('v %.5g %.5g %.5g' % tuple(xyz) for xyz in va)
+    else:
+        vertex_lines = ('v %.5g %.5g %.5g %.5g %.5g %.5g' %
+                        (xyz[0], xyz[1], xyz[2],
+                         color[0] / 255, color[1] / 255, color[2] / 255)
+                        for xyz, color in zip(va, vca))
+    file.write('\n'.join(vertex_lines))
     file.write('\n')
 
     # Write texture coordinates
@@ -416,3 +432,29 @@ def write_object(file, name, va, na, tca, ta, voffset, pos, obj_to_unity):
     file.write('\n')
 
     return len(va)
+
+# -----------------------------------------------------------------------------
+#
+def _combine_obj_geometry(geometry):
+    """Expand placements and combine OBJ arrays, including vertex colors."""
+    expanded = []
+    from numpy import concatenate, tile
+    from chimerax.surface import combine_geometry_xvntctp
+    for name, va, na, tca, vca, ta, positions in geometry:
+        if positions is not None and not positions.is_identity():
+            va, na, tca, ta = combine_geometry_xvntctp(
+                [(name, va, na, tca, ta, positions)])
+            if vca is not None:
+                vca = tile(vca, (len(positions), 1))
+        expanded.append((va, na, tca, vca, ta))
+
+    vertices = concatenate([g[0] for g in expanded])
+    normals = None if any(g[1] is None for g in expanded) else concatenate([g[1] for g in expanded])
+    texcoords = None if any(g[2] is None for g in expanded) else concatenate([g[2] for g in expanded])
+    colors = None if any(g[3] is None for g in expanded) else concatenate([g[3] for g in expanded])
+    triangles = []
+    vertex_offset = 0
+    for va, na, tca, vca, ta in expanded:
+        triangles.append(ta + vertex_offset)
+        vertex_offset += len(va)
+    return vertices, normals, texcoords, colors, concatenate(triangles)
