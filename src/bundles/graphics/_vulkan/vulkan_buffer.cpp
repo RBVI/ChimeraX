@@ -81,6 +81,7 @@ PyObject* vulkan_create_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
     bwa->allocator = ctx->allocator;
     bwa->ctx = ctx;
     bwa->persistently_mapped = false;
+    ctx->live_buffers.insert(bwa);
     VK_TRACE("create_buffer done bwa=%p", (void*)bwa);
 
     return PyLong_FromSsize_t(reinterpret_cast<Py_ssize_t>(bwa));
@@ -142,6 +143,7 @@ PyObject* vulkan_create_mapped_buffer(PyObject* self, PyObject* args, PyObject* 
     bwa->allocator = ctx->allocator;
     bwa->ctx = ctx;
     bwa->persistently_mapped = true;
+    ctx->live_buffers.insert(bwa);
 
     return Py_BuildValue("nn",
         reinterpret_cast<Py_ssize_t>(bwa),
@@ -245,6 +247,9 @@ PyObject* vulkan_destroy_buffer(PyObject* self, PyObject* args, PyObject* kwds) 
         return NULL;
 
     BufferWithAllocator* bwa = reinterpret_cast<BufferWithAllocator*>(buf_ptr);
+
+    if (!bwa || bwa->ctx->live_buffers.erase(bwa) == 0)
+        Py_RETURN_NONE;
 
     // Queue for destruction once any in-flight frame that could reference
     // this buffer has retired. deferred_delete_slot routes to the slot

@@ -270,6 +270,7 @@ PyObject* vulkan_create_texture(PyObject* self, PyObject* args, PyObject* kwds) 
     tex->device = ctx->device;
     tex->allocator = ctx->allocator;
     tex->ctx = ctx;
+    ctx->live_textures.insert(tex);
 
     return PyLong_FromSsize_t(reinterpret_cast<Py_ssize_t>(tex));
 }
@@ -418,10 +419,28 @@ PyObject* vulkan_destroy_texture(PyObject* self, PyObject* args, PyObject* kwds)
     TextureWithDevice* tex = reinterpret_cast<TextureWithDevice*>(tex_ptr);
     VK_TRACE("destroy_texture %p", (void*)tex);
 
+    if (!tex || tex->ctx->live_textures.erase(tex) == 0)
+        Py_RETURN_NONE;
+
     // Defer destruction until any in-flight frame that could reference
     // this texture has finished. deferred_delete_slot picks the right
     // queue depending on whether we're inside or outside frame recording.
     tex->ctx->pending_deletes[deferred_delete_slot(tex->ctx)].textures.push_back(tex);
 
     Py_RETURN_NONE;
+}
+
+extern "C"
+PyObject* vulkan_texture_format(PyObject* self, PyObject* args, PyObject* kwds) {
+    Py_ssize_t tex_ptr;
+    static const char* kwlist[] = {"texture", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds,
+            const_cast<char*>("n"), (char**)kwlist, &tex_ptr))
+        return NULL;
+    VulkanTexture* tex = reinterpret_cast<VulkanTexture*>(tex_ptr);
+    if (!tex) {
+        PyErr_SetString(PyExc_ValueError, "Vulkan texture handle is 0");
+        return NULL;
+    }
+    return PyLong_FromLong(static_cast<long>(tex->format));
 }

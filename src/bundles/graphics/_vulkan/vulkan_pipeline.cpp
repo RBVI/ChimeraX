@@ -37,19 +37,21 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
                               // (Mesh display style), 2 = point list (Dot).
     int oit_mode = 0;         // 0 = normal, 1 = OIT accumulation (2 color
                               // attachments, special blend, uses oit_render_pass).
+    int use_active_render_pass = 0; // create against the currently active
+                                    // offscreen/color-only render pass.
     static const char* kwlist[] = {"context", "vert_source", "frag_source",
                                    "has_depth", "constants",
                                    "depth_only", "color_write",
                                    "instance_colors", "face_culling",
                                    "blend_op_max", "blend_premult",
                                    "depth_write", "topology",
-                                   "oit_mode", NULL};
+                                   "oit_mode", "use_active_render_pass", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("nssiO|iiiiiiiii"), (char**)kwlist,
+            const_cast<char*>("nssiO|iiiiiiiiii"), (char**)kwlist,
             &ctx_ptr, &vert_source, &frag_source, &has_depth,
             &constants, &depth_only, &color_write, &instance_colors,
             &face_culling, &blend_op_max, &blend_premult, &depth_write,
-            &topology, &oit_mode))
+            &topology, &oit_mode, &use_active_render_pass))
         return NULL;
 
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
@@ -249,13 +251,13 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     rasterization.rasterizerDiscardEnable = VK_FALSE;
     rasterization.polygonMode = VK_POLYGON_MODE_FILL;
     rasterization.cullMode = face_culling ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_NONE;
-    // The GL->Vulkan conversion negates clip-space Y in the projection
-    // matrix (vulkan.py set_projection_matrix), which mirrors triangle
-    // orientation in framebuffer space: geometry authored with OpenGL's
-    // CCW-front convention rasterizes clockwise here. With CCW front faces
-    // back-face culling would cull exactly the wrong side (the volume
-    // raycast box rendered its far faces instead of near faces).
-    rasterization.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    // ChimeraX geometry uses OpenGL's CCW-front convention.  The projection
+    // matrix negates clip-space Y, but Vulkan's positive-height viewport also
+    // maps NDC Y into its downward framebuffer axis.  Those two orientation
+    // reversals cancel, so front-facing triangles remain CCW.  Declaring them
+    // clockwise makes gl_FrontFacing false on outward sphere faces; mesh.frag
+    // then flips their normals and lights the hemisphere opposite the light.
+    rasterization.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterization.depthBiasEnable = VK_FALSE;
     rasterization.lineWidth = 1.0f;
 
@@ -364,9 +366,21 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     pipeline_info.pColorBlendState = &color_blend;
     pipeline_info.pDynamicState = &dynamic_state;
     pipeline_info.layout = ctx->shared_pipeline_layout;
-    pipeline_info.renderPass = depth_only ? ctx->depth_only_render_pass
-                             : oit_mode ? ctx->oit_render_pass
-                                        : ctx->main_render_pass;
+    VkRenderPass target_render_pass = ctx->main_render_pass;
+    if (depth_only)
+        target_render_pass = ctx->depth_only_render_pass;
+    else if (oit_mode)
+        target_render_pass = ctx->oit_render_pass;
+    else if (use_active_render_pass && !ctx->render_pass_stack.empty())
+        target_render_pass = ctx->render_pass_stack.back().render_pass;
+    if (target_render_pass == VK_NULL_HANDLE) {
+        vkDestroyShaderModule(ctx->device, vert_module, nullptr);
+        vkDestroyShaderModule(ctx->device, frag_module, nullptr);
+        PyErr_SetString(PyExc_RuntimeError,
+                        "No active Vulkan render pass for pipeline creation");
+        return NULL;
+    }
+    pipeline_info.renderPass = target_render_pass;
     pipeline_info.subpass = 0;
 
     VkPipeline pipeline;
@@ -388,6 +402,7 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     VulkanPipeline* vk_pipeline = new VulkanPipeline();
     vk_pipeline->pipeline = pipeline;
     vk_pipeline->layout = ctx->shared_pipeline_layout;
+    ctx->live_pipelines.insert(vk_pipeline);
 
     return PyLong_FromSsize_t(reinterpret_cast<Py_ssize_t>(vk_pipeline));
 }

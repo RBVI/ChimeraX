@@ -148,6 +148,12 @@ void destroy_offscreen(VulkanContext* ctx, OffscreenFramebuffer* fb) {
 
 }  // namespace
 
+void destroy_offscreen_resource_internal(VulkanContext* ctx,
+                                         OffscreenFramebuffer* framebuffer)
+{
+    destroy_offscreen(ctx, framebuffer);
+}
+
 extern "C"
 PyObject* vulkan_create_offscreen_framebuffer(PyObject* self, PyObject* args, PyObject* kwds) {
     Py_ssize_t ctx_ptr;
@@ -215,6 +221,7 @@ PyObject* vulkan_create_offscreen_framebuffer(PyObject* self, PyObject* args, Py
         return NULL;
     }
 
+    ctx->live_offscreens.insert(fb);
     return PyLong_FromSsize_t(reinterpret_cast<Py_ssize_t>(fb));
 }
 
@@ -229,6 +236,8 @@ PyObject* vulkan_destroy_offscreen_framebuffer(PyObject* self, PyObject* args, P
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
     OffscreenFramebuffer* fb = reinterpret_cast<OffscreenFramebuffer*>(fb_ptr);
     if (!fb) Py_RETURN_NONE;
+    if (ctx->live_offscreens.erase(fb) == 0)
+        Py_RETURN_NONE;
 
     // Make sure the GPU isn't still referencing this framebuffer before we
     // tear it down. Image capture is a one-shot off the hot path, so the
