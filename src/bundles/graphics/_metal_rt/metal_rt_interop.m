@@ -67,14 +67,28 @@ PyObject* metal_rt_create_surface(PyObject* self, PyObject* args, PyObject* kwds
 // ---------------------------------------------------------------------------
 extern "C"
 PyObject* metal_rt_resize_surface(PyObject* self, PyObject* args, PyObject* kwds) {
-    if (s_surface_view && s_surface_layer) {
-        CGFloat scale = s_surface_view.window.backingScaleFactor;
-        NSRect bounds = s_surface_view.bounds;
-        s_surface_layer.frame = bounds;
-        s_surface_layer.contentsScale = scale;
+    Py_ssize_t window_handle = 0;
+    static const char* kwlist[] = {"window_handle", nullptr};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds,
+            const_cast<char*>("|n"), (char**)kwlist, &window_handle))
+        return NULL;
+
+    NSView* view = window_handle
+        ? reinterpret_cast<NSView*>(window_handle) : s_surface_view;
+    CAMetalLayer* layer = nil;
+    if (view && [view.layer isKindOfClass:[CAMetalLayer class]])
+        layer = (CAMetalLayer*)view.layer;
+    if (!layer && view == s_surface_view)
+        layer = s_surface_layer;
+
+    if (view && layer) {
+        CGFloat scale = view.window.backingScaleFactor;
+        NSRect bounds = view.bounds;
+        layer.frame = bounds;
+        layer.contentsScale = scale;
         // Explicitly set drawableSize so MoltenVK reports the correct
         // currentExtent in VkSurfaceCapabilitiesKHR immediately.
-        s_surface_layer.drawableSize = CGSizeMake(
+        layer.drawableSize = CGSizeMake(
             bounds.size.width * scale, bounds.size.height * scale);
     }
     Py_RETURN_NONE;

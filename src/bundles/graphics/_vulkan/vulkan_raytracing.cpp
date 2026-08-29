@@ -50,42 +50,43 @@ struct VkRtAccelStructure {
     uint32_t            triangle_count;
 };
 
-// Cached compute pipeline state for RTAO. Compiled once per process by
-// vulkan_compile_rtao and reused on every dispatch. The descriptor sets
-// are allocated up front (one per frame-in-flight slot) so each dispatch
-// just rewrites the current frame's set — the begin_frame fence wait
-// already guarantees the GPU is done with that slot's previous use.
-struct VkRtaoPipeline {
-    VkDescriptorSetLayout set_layout;
-    VkPipelineLayout      pipeline_layout;
-    VkPipeline            pipeline;
-    VkDescriptorPool      descriptor_pool;
-    VkDescriptorSet       sets[MAX_FRAMES_IN_FLIGHT];
-    VkSampler             sampler;
-};
+// Short aliases keep the pipeline code readable while the actual state is
+// owned by the current VulkanContext (and therefore by its VkDevice).
+#define s_rtao          (ctx->rtao_pipeline)
+#define s_rtao_compiled (ctx->rtao_pipeline.compiled)
+#define s_pt            (ctx->pathtracer_pipeline)
+#define s_pt_compiled   (ctx->pathtracer_pipeline.compiled)
 
-static VkRtaoPipeline s_rtao = {};
-static bool           s_rtao_compiled = false;
+static void destroy_rtao_pipeline_state(VulkanContext* ctx)
+{
+    VkRtaoPipelineState& state = ctx->rtao_pipeline;
+    if (state.pipeline) vkDestroyPipeline(ctx->device, state.pipeline, nullptr);
+    if (state.sampler) vkDestroySampler(ctx->device, state.sampler, nullptr);
+    if (state.descriptor_pool)
+        vkDestroyDescriptorPool(ctx->device, state.descriptor_pool, nullptr);
+    if (state.pipeline_layout)
+        vkDestroyPipelineLayout(ctx->device, state.pipeline_layout, nullptr);
+    if (state.set_layout)
+        vkDestroyDescriptorSetLayout(ctx->device, state.set_layout, nullptr);
+    state = {};
+}
 
-// Cached path-tracer pipeline state — same lifetime model as RTAO. The
-// path tracer needs more bindings (sphere/cylinder colors, RGBA output)
-// so its descriptor set layout is independent.
-struct VkPathTracerPipeline {
-    VkDescriptorSetLayout set_layout;
-    VkPipelineLayout      pipeline_layout;
-    VkPipeline            pipeline;
-    VkDescriptorPool      descriptor_pool;
-    VkDescriptorSet       sets[MAX_FRAMES_IN_FLIGHT];
-    VkSampler             sampler;
-    // Dummy 1-element storage buffers used when a dispatch passes 0 for
-    // the cylinder geometry / color buffer pointers. Vulkan descriptors
-    // must be valid even if the shader path doesn't touch them.
-    VkBuffer              dummy_buffer;
-    VmaAllocation         dummy_buffer_alloc;
-};
-
-static VkPathTracerPipeline s_pt = {};
-static bool                 s_pt_compiled = false;
+static void destroy_pt_pipeline_state(VulkanContext* ctx)
+{
+    VkPathTracerPipelineState& state = ctx->pathtracer_pipeline;
+    if (state.pipeline) vkDestroyPipeline(ctx->device, state.pipeline, nullptr);
+    if (state.sampler) vkDestroySampler(ctx->device, state.sampler, nullptr);
+    if (state.descriptor_pool)
+        vkDestroyDescriptorPool(ctx->device, state.descriptor_pool, nullptr);
+    if (state.pipeline_layout)
+        vkDestroyPipelineLayout(ctx->device, state.pipeline_layout, nullptr);
+    if (state.set_layout)
+        vkDestroyDescriptorSetLayout(ctx->device, state.set_layout, nullptr);
+    if (state.dummy_buffer)
+        vmaDestroyBuffer(ctx->allocator, state.dummy_buffer,
+                         state.dummy_buffer_alloc);
+    state = {};
+}
 
 // ---------------------------------------------------------------------------
 //  Small helpers
@@ -550,6 +551,7 @@ PyObject* vulkan_build_sphere_accel(PyObject* self, PyObject* args, PyObject* kw
         return NULL;
     }
     VK_TRACE("RT build_sphere_accel done rt=%p tlas=%p", (void*)rt, (void*)rt->tlas);
+    ctx->live_accel_structs.insert(rt);
 
     // Return (rt_handle, sphere_buffer_handle) to mirror the Metal API. The
     // sphere-buffer pointer is informational for the Python side; the C++
@@ -682,6 +684,7 @@ PyObject* vulkan_build_mixed_accel(PyObject* self, PyObject* args, PyObject* kwd
         return NULL;
     }
 
+    ctx->live_accel_structs.insert(rt);
     // Mirror the Metal API: (rt_handle, sphere_buffer, cylinder_buffer).
     return Py_BuildValue("nnn",
         reinterpret_cast<Py_ssize_t>(rt),
@@ -873,6 +876,7 @@ PyObject* vulkan_build_scene_accel(PyObject* self, PyObject* args, PyObject* kwd
         return NULL;
     }
 
+    ctx->live_accel_structs.insert(rt);
     return Py_BuildValue("nnnn",
         reinterpret_cast<Py_ssize_t>(rt),
         reinterpret_cast<Py_ssize_t>(rt->sphere_buffer),
@@ -886,6 +890,28 @@ PyObject* vulkan_build_scene_accel(PyObject* self, PyObject* args, PyObject* kwd
 //  which returns it as a separate handle); the buffer is freed via the rt
 //  struct it belongs to.
 // ---------------------------------------------------------------------------
+static void destroy_accel_struct_internal(VulkanContext* ctx,
+                                          VkRtAccelStructure* rt)
+{
+    if (rt->tlas != VK_NULL_HANDLE)
+        ctx->pfn_destroy_as(ctx->device, rt->tlas, nullptr);
+    if (rt->tlas_buffer != VK_NULL_HANDLE)
+        vmaDestroyBuffer(ctx->allocator, rt->tlas_buffer, rt->tlas_buffer_alloc);
+    if (rt->instance_buffer != VK_NULL_HANDLE)
+        vmaDestroyBuffer(ctx->allocator, rt->instance_buffer, rt->instance_buffer_alloc);
+    if (rt->blas != VK_NULL_HANDLE)
+        ctx->pfn_destroy_as(ctx->device, rt->blas, nullptr);
+    if (rt->blas_buffer != VK_NULL_HANDLE)
+        vmaDestroyBuffer(ctx->allocator, rt->blas_buffer, rt->blas_buffer_alloc);
+    if (rt->sphere_buffer != VK_NULL_HANDLE)
+        vmaDestroyBuffer(ctx->allocator, rt->sphere_buffer, rt->sphere_buffer_alloc);
+    if (rt->cylinder_buffer != VK_NULL_HANDLE)
+        vmaDestroyBuffer(ctx->allocator, rt->cylinder_buffer, rt->cylinder_buffer_alloc);
+    if (rt->triangle_buffer != VK_NULL_HANDLE)
+        vmaDestroyBuffer(ctx->allocator, rt->triangle_buffer, rt->triangle_buffer_alloc);
+    delete rt;
+}
+
 extern "C"
 PyObject* vulkan_destroy_accel_struct(PyObject* self, PyObject* args, PyObject* kwds)
 {
@@ -905,23 +931,9 @@ PyObject* vulkan_destroy_accel_struct(PyObject* self, PyObject* args, PyObject* 
     // since RTAO dispatches in the previous frame may still reference it.
     vkDeviceWaitIdle(ctx->device);
 
-    if (rt->tlas != VK_NULL_HANDLE)
-        ctx->pfn_destroy_as(ctx->device, rt->tlas, nullptr);
-    if (rt->tlas_buffer != VK_NULL_HANDLE)
-        vmaDestroyBuffer(ctx->allocator, rt->tlas_buffer, rt->tlas_buffer_alloc);
-    if (rt->instance_buffer != VK_NULL_HANDLE)
-        vmaDestroyBuffer(ctx->allocator, rt->instance_buffer, rt->instance_buffer_alloc);
-    if (rt->blas != VK_NULL_HANDLE)
-        ctx->pfn_destroy_as(ctx->device, rt->blas, nullptr);
-    if (rt->blas_buffer != VK_NULL_HANDLE)
-        vmaDestroyBuffer(ctx->allocator, rt->blas_buffer, rt->blas_buffer_alloc);
-    if (rt->sphere_buffer != VK_NULL_HANDLE)
-        vmaDestroyBuffer(ctx->allocator, rt->sphere_buffer, rt->sphere_buffer_alloc);
-    if (rt->cylinder_buffer != VK_NULL_HANDLE)
-        vmaDestroyBuffer(ctx->allocator, rt->cylinder_buffer, rt->cylinder_buffer_alloc);
-    if (rt->triangle_buffer != VK_NULL_HANDLE)
-        vmaDestroyBuffer(ctx->allocator, rt->triangle_buffer, rt->triangle_buffer_alloc);
-    delete rt;
+    if (ctx->live_accel_structs.erase(rt) == 0)
+        Py_RETURN_NONE;
+    destroy_accel_struct_internal(ctx, rt);
 
     Py_RETURN_NONE;
 }
@@ -1021,7 +1033,7 @@ PyObject* vulkan_compile_rtao(PyObject* self, PyObject* args, PyObject* kwds)
         return NULL;
     }
     if (!create_rtao_descriptor_pool(ctx)) {
-        vkDestroyDescriptorSetLayout(ctx->device, s_rtao.set_layout, nullptr);
+        destroy_rtao_pipeline_state(ctx);
         PyErr_SetString(PyExc_RuntimeError, "RTAO descriptor pool failed");
         return NULL;
     }
@@ -1032,8 +1044,7 @@ PyObject* vulkan_compile_rtao(PyObject* self, PyObject* args, PyObject* kwds)
     pli.pSetLayouts = &s_rtao.set_layout;
     if (vkCreatePipelineLayout(ctx->device, &pli, nullptr,
                                &s_rtao.pipeline_layout) != VK_SUCCESS) {
-        vkDestroyDescriptorPool(ctx->device, s_rtao.descriptor_pool, nullptr);
-        vkDestroyDescriptorSetLayout(ctx->device, s_rtao.set_layout, nullptr);
+        destroy_rtao_pipeline_state(ctx);
         PyErr_SetString(PyExc_RuntimeError, "RTAO pipeline layout failed");
         return NULL;
     }
@@ -1059,9 +1070,7 @@ PyObject* vulkan_compile_rtao(PyObject* self, PyObject* args, PyObject* kwds)
         shaderc_result_release(res);
         shaderc_compile_options_release(opts);
         shaderc_compiler_release(compiler);
-        vkDestroyPipelineLayout(ctx->device, s_rtao.pipeline_layout, nullptr);
-        vkDestroyDescriptorPool(ctx->device, s_rtao.descriptor_pool, nullptr);
-        vkDestroyDescriptorSetLayout(ctx->device, s_rtao.set_layout, nullptr);
+        destroy_rtao_pipeline_state(ctx);
         return NULL;
     }
 
@@ -1072,9 +1081,7 @@ PyObject* vulkan_compile_rtao(PyObject* self, PyObject* args, PyObject* kwds)
     shaderc_compile_options_release(opts);
     shaderc_compiler_release(compiler);
     if (mod == VK_NULL_HANDLE) {
-        vkDestroyPipelineLayout(ctx->device, s_rtao.pipeline_layout, nullptr);
-        vkDestroyDescriptorPool(ctx->device, s_rtao.descriptor_pool, nullptr);
-        vkDestroyDescriptorSetLayout(ctx->device, s_rtao.set_layout, nullptr);
+        destroy_rtao_pipeline_state(ctx);
         PyErr_SetString(PyExc_RuntimeError, "RTAO shader module creation failed");
         return NULL;
     }
@@ -1092,9 +1099,7 @@ PyObject* vulkan_compile_rtao(PyObject* self, PyObject* args, PyObject* kwds)
                                            1, &cpi, nullptr, &s_rtao.pipeline);
     vkDestroyShaderModule(ctx->device, mod, nullptr);
     if (vr != VK_SUCCESS) {
-        vkDestroyPipelineLayout(ctx->device, s_rtao.pipeline_layout, nullptr);
-        vkDestroyDescriptorPool(ctx->device, s_rtao.descriptor_pool, nullptr);
-        vkDestroyDescriptorSetLayout(ctx->device, s_rtao.set_layout, nullptr);
+        destroy_rtao_pipeline_state(ctx);
         PyErr_SetString(PyExc_RuntimeError, "RTAO compute pipeline creation failed");
         return NULL;
     }
@@ -1110,7 +1115,11 @@ PyObject* vulkan_compile_rtao(PyObject* self, PyObject* args, PyObject* kwds)
     si.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     si.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     si.maxLod = 0.0f;
-    vkCreateSampler(ctx->device, &si, nullptr, &s_rtao.sampler);
+    if (vkCreateSampler(ctx->device, &si, nullptr, &s_rtao.sampler) != VK_SUCCESS) {
+        destroy_rtao_pipeline_state(ctx);
+        PyErr_SetString(PyExc_RuntimeError, "RTAO sampler creation failed");
+        return NULL;
+    }
 
     s_rtao_compiled = true;
     VK_TRACE("  compile_rtao OK pipeline=%p", (void*)s_rtao.pipeline);
@@ -1194,6 +1203,7 @@ PyObject* vulkan_dispatch_rtao(PyObject* self, PyObject* args, PyObject* kwds)
             &accum_tex_ptr, &uniforms_buf))
         return NULL;
 
+    VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
     if (!s_rtao_compiled) {
         PyBuffer_Release(&uniforms_buf);
         PyErr_SetString(PyExc_RuntimeError, "RTAO pipeline not compiled");
@@ -1201,7 +1211,6 @@ PyObject* vulkan_dispatch_rtao(PyObject* self, PyObject* args, PyObject* kwds)
     }
     (void)sb_ptr;  // sphere_buffer is reached via the AS struct.
 
-    VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
     VkRtAccelStructure* rt = reinterpret_cast<VkRtAccelStructure*>(as_ptr);
     VulkanTexture* ao_tex = reinterpret_cast<VulkanTexture*>(ao_tex_ptr);
     VulkanTexture* prev_tex = reinterpret_cast<VulkanTexture*>(prev_tex_ptr);
@@ -1479,7 +1488,7 @@ PyObject* vulkan_compile_pathtracer(PyObject* self, PyObject* args, PyObject* kw
         return NULL;
     }
     if (!create_pt_descriptor_pool(ctx)) {
-        vkDestroyDescriptorSetLayout(ctx->device, s_pt.set_layout, nullptr);
+        destroy_pt_pipeline_state(ctx);
         PyErr_SetString(PyExc_RuntimeError, "PT descriptor pool failed");
         return NULL;
     }
@@ -1490,8 +1499,7 @@ PyObject* vulkan_compile_pathtracer(PyObject* self, PyObject* args, PyObject* kw
     pli.pSetLayouts = &s_pt.set_layout;
     if (vkCreatePipelineLayout(ctx->device, &pli, nullptr,
                                &s_pt.pipeline_layout) != VK_SUCCESS) {
-        vkDestroyDescriptorPool(ctx->device, s_pt.descriptor_pool, nullptr);
-        vkDestroyDescriptorSetLayout(ctx->device, s_pt.set_layout, nullptr);
+        destroy_pt_pipeline_state(ctx);
         PyErr_SetString(PyExc_RuntimeError, "PT pipeline layout failed");
         return NULL;
     }
@@ -1515,9 +1523,7 @@ PyObject* vulkan_compile_pathtracer(PyObject* self, PyObject* args, PyObject* kw
         shaderc_result_release(res);
         shaderc_compile_options_release(opts);
         shaderc_compiler_release(compiler);
-        vkDestroyPipelineLayout(ctx->device, s_pt.pipeline_layout, nullptr);
-        vkDestroyDescriptorPool(ctx->device, s_pt.descriptor_pool, nullptr);
-        vkDestroyDescriptorSetLayout(ctx->device, s_pt.set_layout, nullptr);
+        destroy_pt_pipeline_state(ctx);
         return NULL;
     }
 
@@ -1528,9 +1534,7 @@ PyObject* vulkan_compile_pathtracer(PyObject* self, PyObject* args, PyObject* kw
     shaderc_compile_options_release(opts);
     shaderc_compiler_release(compiler);
     if (mod == VK_NULL_HANDLE) {
-        vkDestroyPipelineLayout(ctx->device, s_pt.pipeline_layout, nullptr);
-        vkDestroyDescriptorPool(ctx->device, s_pt.descriptor_pool, nullptr);
-        vkDestroyDescriptorSetLayout(ctx->device, s_pt.set_layout, nullptr);
+        destroy_pt_pipeline_state(ctx);
         PyErr_SetString(PyExc_RuntimeError, "PT shader module creation failed");
         return NULL;
     }
@@ -1546,9 +1550,7 @@ PyObject* vulkan_compile_pathtracer(PyObject* self, PyObject* args, PyObject* kw
                                            1, &cpi, nullptr, &s_pt.pipeline);
     vkDestroyShaderModule(ctx->device, mod, nullptr);
     if (vr != VK_SUCCESS) {
-        vkDestroyPipelineLayout(ctx->device, s_pt.pipeline_layout, nullptr);
-        vkDestroyDescriptorPool(ctx->device, s_pt.descriptor_pool, nullptr);
-        vkDestroyDescriptorSetLayout(ctx->device, s_pt.set_layout, nullptr);
+        destroy_pt_pipeline_state(ctx);
         PyErr_SetString(PyExc_RuntimeError, "PT compute pipeline creation failed");
         return NULL;
     }
@@ -1562,16 +1564,25 @@ PyObject* vulkan_compile_pathtracer(PyObject* self, PyObject* args, PyObject* kw
     si.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     si.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     si.maxLod = 0.0f;
-    vkCreateSampler(ctx->device, &si, nullptr, &s_pt.sampler);
+    if (vkCreateSampler(ctx->device, &si, nullptr, &s_pt.sampler) != VK_SUCCESS) {
+        destroy_pt_pipeline_state(ctx);
+        PyErr_SetString(PyExc_RuntimeError, "PT sampler creation failed");
+        return NULL;
+    }
 
     // Dummy zeroed storage buffer used as a fallback for cylinder + cyl
     // color bindings when a dispatch passes 0. Big enough for one entry
     // (32 bytes covers either a Cylinder or a uint with padding).
     {
         uint8_t zeros[32] = {};
-        create_host_buffer(ctx, zeros, sizeof(zeros),
-                           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                           &s_pt.dummy_buffer, &s_pt.dummy_buffer_alloc);
+        if (!create_host_buffer(ctx, zeros, sizeof(zeros),
+                                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                                &s_pt.dummy_buffer, &s_pt.dummy_buffer_alloc)) {
+            destroy_pt_pipeline_state(ctx);
+            PyErr_SetString(PyExc_RuntimeError,
+                            "PT dummy buffer creation failed");
+            return NULL;
+        }
     }
 
     s_pt_compiled = true;
@@ -1606,6 +1617,7 @@ PyObject* vulkan_dispatch_pathtracer(PyObject* self, PyObject* args, PyObject* k
             &vol_density_tex_ptr, &vol_colormap_tex_ptr, &uniforms_buf))
         return NULL;
 
+    VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
     if (!s_pt_compiled) {
         PyBuffer_Release(&uniforms_buf);
         PyErr_SetString(PyExc_RuntimeError, "Path tracer pipeline not compiled");
@@ -1613,7 +1625,6 @@ PyObject* vulkan_dispatch_pathtracer(PyObject* self, PyObject* args, PyObject* k
     }
     (void)sb_ptr;
 
-    VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
     VkRtAccelStructure* rt = reinterpret_cast<VkRtAccelStructure*>(as_ptr);
     VulkanTexture* color_tex = reinterpret_cast<VulkanTexture*>(color_tex_ptr);
     VulkanTexture* prev_tex  = reinterpret_cast<VulkanTexture*>(prev_tex_ptr);
@@ -1758,3 +1769,21 @@ PyObject* vulkan_dispatch_pathtracer(PyObject* self, PyObject* args, PyObject* k
     ctx->pending_deletes[deferred_delete_slot(ctx)].buffers.push_back(ubo);
     Py_RETURN_NONE;
 }
+
+// Context teardown entry point.  The caller has already waited for the device
+// to become idle, so all RT device children can be released immediately.
+void destroy_raytracing_resources(VulkanContext* ctx)
+{
+    for (void* handle : ctx->live_accel_structs)
+        destroy_accel_struct_internal(ctx,
+            reinterpret_cast<VkRtAccelStructure*>(handle));
+    ctx->live_accel_structs.clear();
+
+    destroy_rtao_pipeline_state(ctx);
+    destroy_pt_pipeline_state(ctx);
+}
+
+#undef s_rtao
+#undef s_rtao_compiled
+#undef s_pt
+#undef s_pt_compiled

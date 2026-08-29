@@ -399,10 +399,12 @@ class TransparentPass(RenderPass):
             if not drawings:
                 return
 
-        # Use OIT if the renderer supports it.  Volume raycasting
+        # Use OIT if the renderer supports and enables it.  Volume raycasting
         # drawings use VK_BLEND_OP_MAX which is incompatible with
         # WBOIT, so they go through the standard transparency path.
-        if hasattr(r, 'begin_oit_pass'):
+        use_oit = (hasattr(r, 'begin_oit_pass') and
+                   getattr(r, 'order_independent_transparency', True))
+        if use_oit:
             from .drawing import _draw_multiple, Drawing
 
             oit_drawings = [d for d in drawings if not _is_volume(d)]

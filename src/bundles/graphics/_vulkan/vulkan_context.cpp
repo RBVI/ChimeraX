@@ -16,6 +16,7 @@
 
 #include <cstring>
 #include <algorithm>
+#include <utility>
 
 #if defined(_WIN32)
   #include <windows.h>
@@ -386,6 +387,107 @@ void cleanup_swapchain(VulkanContext* ctx)
     }
 }
 
+// Move the active presentation objects out of the context without
+// destroying them.  This is only called between frames, after Python has
+// ended any render pass/command buffer targeting the current window.
+static void take_window_swapchain(VulkanContext* ctx,
+                                  WindowSwapchainState& state)
+{
+    state.surface = ctx->surface;
+    state.owns_surface = ctx->owns_surface;
+    state.swapchain = ctx->swapchain;
+    state.swapchain_format = ctx->swapchain_format;
+    state.swapchain_extent = ctx->swapchain_extent;
+    state.swapchain_images.swap(ctx->swapchain_images);
+    state.swapchain_image_views.swap(ctx->swapchain_image_views);
+    state.render_finished_per_image.swap(ctx->render_finished_per_image);
+    state.swapchain_image_used.swap(ctx->swapchain_image_used);
+    state.depth_image = ctx->depth_image;
+    state.main_render_pass = ctx->main_render_pass;
+    state.depth_only_render_pass = ctx->depth_only_render_pass;
+    state.swapchain_framebuffers.swap(ctx->swapchain_framebuffers);
+    state.width = ctx->width;
+    state.height = ctx->height;
+
+    ctx->surface = VK_NULL_HANDLE;
+    ctx->owns_surface = false;
+    ctx->swapchain = VK_NULL_HANDLE;
+    ctx->swapchain_format = VK_FORMAT_UNDEFINED;
+    ctx->swapchain_extent = {};
+    ctx->depth_image = {};
+    ctx->main_render_pass = VK_NULL_HANDLE;
+    ctx->depth_only_render_pass = VK_NULL_HANDLE;
+    ctx->width = 0;
+    ctx->height = 0;
+}
+
+static void restore_window_swapchain(VulkanContext* ctx,
+                                     WindowSwapchainState& state)
+{
+    ctx->surface = state.surface;
+    ctx->owns_surface = state.owns_surface;
+    ctx->swapchain = state.swapchain;
+    ctx->swapchain_format = state.swapchain_format;
+    ctx->swapchain_extent = state.swapchain_extent;
+    ctx->swapchain_images.swap(state.swapchain_images);
+    ctx->swapchain_image_views.swap(state.swapchain_image_views);
+    ctx->render_finished_per_image.swap(state.render_finished_per_image);
+    ctx->swapchain_image_used.swap(state.swapchain_image_used);
+    ctx->depth_image = state.depth_image;
+    ctx->main_render_pass = state.main_render_pass;
+    ctx->depth_only_render_pass = state.depth_only_render_pass;
+    ctx->swapchain_framebuffers.swap(state.swapchain_framebuffers);
+    ctx->width = state.width;
+    ctx->height = state.height;
+
+    state.surface = VK_NULL_HANDLE;
+    state.owns_surface = false;
+    state.swapchain = VK_NULL_HANDLE;
+    state.depth_image = {};
+    state.main_render_pass = VK_NULL_HANDLE;
+    state.depth_only_render_pass = VK_NULL_HANDLE;
+}
+
+static void destroy_window_swapchain(VulkanContext* ctx,
+                                     WindowSwapchainState& state)
+{
+    for (VkFramebuffer fb : state.swapchain_framebuffers)
+        vkDestroyFramebuffer(ctx->device, fb, nullptr);
+    if (state.main_render_pass != VK_NULL_HANDLE)
+        vkDestroyRenderPass(ctx->device, state.main_render_pass, nullptr);
+    if (state.depth_only_render_pass != VK_NULL_HANDLE)
+        vkDestroyRenderPass(ctx->device, state.depth_only_render_pass, nullptr);
+
+    if (state.depth_image.image_view != VK_NULL_HANDLE)
+        vkDestroyImageView(ctx->device, state.depth_image.image_view, nullptr);
+    if (state.depth_image.sampler != VK_NULL_HANDLE)
+        vkDestroySampler(ctx->device, state.depth_image.sampler, nullptr);
+    if (state.depth_image.image != VK_NULL_HANDLE)
+        vmaDestroyImage(ctx->allocator, state.depth_image.image,
+                        state.depth_image.allocation);
+
+    for (VkImageView view : state.swapchain_image_views)
+        vkDestroyImageView(ctx->device, view, nullptr);
+    for (VkSemaphore semaphore : state.render_finished_per_image) {
+        if (semaphore != VK_NULL_HANDLE)
+            vkDestroySemaphore(ctx->device, semaphore, nullptr);
+    }
+    if (state.swapchain != VK_NULL_HANDLE)
+        vkDestroySwapchainKHR(ctx->device, state.swapchain, nullptr);
+    if (state.owns_surface && state.surface != VK_NULL_HANDLE)
+        vkDestroySurfaceKHR(ctx->instance, state.surface, nullptr);
+}
+
+static bool recreate_active_swapchain(VulkanContext* ctx,
+                                      uint32_t width, uint32_t height)
+{
+    vkDeviceWaitIdle(ctx->device);
+    flush_all_pending_deletes(ctx);
+    destroy_oit_resources_internal(ctx);
+    cleanup_swapchain(ctx);
+    return create_swapchain(ctx, width, height);
+}
+
 // ---------------------------------------------------------------------------
 
 void create_swapchain_framebuffers(VulkanContext* ctx)
@@ -609,7 +711,7 @@ static bool build_vulkan_instance(vkb::Instance& out_inst) {
 extern "C"
 PyObject* vulkan_create_instance(PyObject* self, PyObject* args, PyObject* kwds)
 {
-    vkb::Instance vkb_inst;
+    vkb::Instance vkb_inst{};
     if (!build_vulkan_instance(vkb_inst))
         return NULL;
     return PyLong_FromSsize_t(reinterpret_cast<Py_ssize_t>(vkb_inst.instance));
@@ -621,14 +723,23 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
     Py_ssize_t window_handle;
     Py_ssize_t instance_handle = 0;  // Optional pre-created VkInstance (macOS)
     Py_ssize_t surface_handle = 0;   // Optional pre-created VkSurfaceKHR (macOS)
-    static const char* kwlist[] = {"window_handle", "instance", "surface", nullptr};
+    int owns_instance_arg = -1;
+    int owns_surface_arg = -1;
+    static const char* kwlist[] = {"window_handle", "instance", "surface",
+                                   "owns_instance", "owns_surface", nullptr};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("n|nn"), (char**)kwlist,
-            &window_handle, &instance_handle, &surface_handle))
+            const_cast<char*>("n|nnii"), (char**)kwlist,
+            &window_handle, &instance_handle, &surface_handle,
+            &owns_instance_arg, &owns_surface_arg))
         return NULL;
 
+    const bool owns_instance = owns_instance_arg >= 0
+        ? owns_instance_arg != 0 : instance_handle == 0;
+    const bool owns_surface = owns_surface_arg >= 0
+        ? owns_surface_arg != 0 : surface_handle == 0;
+
     // ---- Instance ----
-    vkb::Instance vkb_inst;
+    vkb::Instance vkb_inst{};
     if (instance_handle) {
         // Wrap a pre-created instance for vk-bootstrap's device selection.
         // The instance was created by vulkan_create_instance above.
@@ -654,20 +765,28 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
         surf_info.hinstance = GetModuleHandle(nullptr);
         surf_info.hwnd = reinterpret_cast<HWND>(window_handle);
         if (vkCreateWin32SurfaceKHR(vkb_inst.instance, &surf_info, nullptr, &surface) != VK_SUCCESS) {
-            vkb::destroy_instance(vkb_inst);
+            if (owns_instance)
+                vkb::destroy_instance(vkb_inst);
             PyErr_SetString(PyExc_RuntimeError, "vkCreateWin32SurfaceKHR failed");
             return NULL;
         }
     }
 #else
     else {
-        if (!instance_handle)
+        if (owns_instance)
             vkb::destroy_instance(vkb_inst);
         PyErr_SetString(PyExc_RuntimeError,
                         "No pre-created surface and no platform surface creator");
         return NULL;
     }
 #endif
+
+    auto destroy_owned_surface_and_instance = [&]() {
+        if (owns_surface && surface != VK_NULL_HANDLE)
+            vkDestroySurfaceKHR(vkb_inst.instance, surface, nullptr);
+        if (owns_instance)
+            vkb::destroy_instance(vkb_inst);
+    };
 
     // ---- Physical device ----
     vkb::PhysicalDeviceSelector selector{vkb_inst};
@@ -686,7 +805,7 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
             .select();
 
         if (!phys_ret) {
-            vkb::destroy_instance(vkb_inst);
+            destroy_owned_surface_and_instance();
             PyErr_Format(PyExc_RuntimeError,
                          "Failed to select Vulkan physical device: %s",
                          phys_ret.error().message().c_str());
@@ -751,7 +870,7 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
 
     auto dev_ret = dev_builder.build();
     if (!dev_ret) {
-        vkb::destroy_instance(vkb_inst);
+        destroy_owned_surface_and_instance();
         PyErr_Format(PyExc_RuntimeError,
                      "Failed to create Vulkan logical device: %s",
                      dev_ret.error().message().c_str());
@@ -767,9 +886,9 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
 
     ctx->instance = vkb_inst.instance;
     ctx->surface = surface;
-    // A surface passed in from Python (macOS) belongs to the caller; the
-    // Win32 surface created above is ours and must be destroyed at teardown.
-    ctx->owns_surface = (surface_handle == 0);
+    ctx->owns_instance = owns_instance;
+    ctx->owns_surface = owns_surface;
+    ctx->current_window_handle = static_cast<std::uintptr_t>(window_handle);
     ctx->physical_device = vkb_phys.physical_device;
     ctx->device = vkb_dev.device;
 
@@ -778,7 +897,7 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
     if (!gq || !pq) {
         delete ctx;
         vkb::destroy_device(vkb_dev);
-        vkb::destroy_instance(vkb_inst);
+        destroy_owned_surface_and_instance();
         PyErr_SetString(PyExc_RuntimeError, "Failed to get Vulkan queues");
         return NULL;
     }
@@ -851,7 +970,8 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
 #endif
 
 #ifndef NDEBUG
-    ctx->debug_messenger = vkb_inst.debug_messenger;
+    ctx->debug_messenger = owns_instance
+        ? vkb_inst.debug_messenger : VK_NULL_HANDLE;
 #endif
 
     // ---- VMA allocator ----
@@ -871,7 +991,7 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
         if (vr != VK_SUCCESS) {
             delete ctx;
             vkb::destroy_device(vkb_dev);
-            vkb::destroy_instance(vkb_inst);
+            destroy_owned_surface_and_instance();
             PyErr_SetString(PyExc_RuntimeError, "Failed to create VMA allocator");
             return NULL;
         }
@@ -883,7 +1003,7 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
         vmaDestroyAllocator(ctx->allocator);
         delete ctx;
         vkb::destroy_device(vkb_dev);
-        vkb::destroy_instance(vkb_inst);
+        destroy_owned_surface_and_instance();
         PyErr_SetString(PyExc_RuntimeError, "Failed to create initial swapchain");
         return NULL;
     }
@@ -995,6 +1115,45 @@ PyObject* vulkan_destroy_context(PyObject* self, PyObject* args, PyObject* kwds)
     // is fully idle.
     flush_all_pending_deletes(ctx);
 
+    // Release every device child that may still be represented by a stale
+    // Python integer handle.  Pipelines must precede their layouts/render
+    // passes; buffers and images must precede the VMA allocator.
+    destroy_raytracing_resources(ctx);
+    for (VulkanPipeline* pipeline : ctx->live_pipelines) {
+        if (pipeline->pipeline != VK_NULL_HANDLE)
+            vkDestroyPipeline(ctx->device, pipeline->pipeline, nullptr);
+        delete pipeline;
+    }
+    ctx->live_pipelines.clear();
+
+    for (TextureWithDevice* tex : ctx->live_textures) {
+        if (tex->sampler != VK_NULL_HANDLE)
+            vkDestroySampler(tex->device, tex->sampler, nullptr);
+        if (tex->image_view != VK_NULL_HANDLE)
+            vkDestroyImageView(tex->device, tex->image_view, nullptr);
+        if (tex->image != VK_NULL_HANDLE)
+            vmaDestroyImage(tex->allocator, tex->image, tex->allocation);
+        delete tex;
+    }
+    ctx->live_textures.clear();
+
+    for (BufferWithAllocator* buffer : ctx->live_buffers) {
+        if (buffer->base.buffer != VK_NULL_HANDLE)
+            vmaDestroyBuffer(buffer->allocator, buffer->base.buffer,
+                             buffer->base.allocation);
+        delete buffer;
+    }
+    ctx->live_buffers.clear();
+
+    // OIT owns views into the current depth target and must be gone before
+    // cleanup_swapchain destroys that target.
+    destroy_oit_resources_internal(ctx);
+
+    for (OffscreenFramebuffer* framebuffer : ctx->live_offscreens)
+        destroy_offscreen_resource_internal(ctx, framebuffer);
+    ctx->live_offscreens.clear();
+    ctx->active_offscreen = nullptr;
+
     // Dummy descriptors used by flush_descriptors fill-ins.
     destroy_dummy_resources(ctx);
 
@@ -1024,6 +1183,16 @@ PyObject* vulkan_destroy_context(PyObject* self, PyObject* args, PyObject* kwds)
 
     // Swapchain and associated resources
     cleanup_swapchain(ctx);
+    if (ctx->owns_surface && ctx->surface != VK_NULL_HANDLE)
+        vkDestroySurfaceKHR(ctx->instance, ctx->surface, nullptr);
+    ctx->surface = VK_NULL_HANDLE;
+    ctx->owns_surface = false;
+
+    // Inactive windows retain their own swapchain/depth/render-pass objects.
+    // They must all be gone before the allocator, device, or instance.
+    for (auto& entry : ctx->window_swapchains)
+        destroy_window_swapchain(ctx, entry.second);
+    ctx->window_swapchains.clear();
 
     // Non-owning wrapper handed out by vulkan_get_depth_texture; its
     // image/view/sampler belong to depth_image and are gone already.
@@ -1032,11 +1201,6 @@ PyObject* vulkan_destroy_context(PyObject* self, PyObject* args, PyObject* kwds)
 
     // VMA allocator
     vmaDestroyAllocator(ctx->allocator);
-
-    // A surface passed in by the caller (Python/Qt side) is theirs to
-    // destroy; the Win32 surface created in create_context is ours.
-    if (ctx->owns_surface && ctx->surface != VK_NULL_HANDLE)
-        vkDestroySurfaceKHR(ctx->instance, ctx->surface, nullptr);
 
     VkInstance instance = ctx->instance;
 #ifndef NDEBUG
@@ -1052,9 +1216,203 @@ PyObject* vulkan_destroy_context(PyObject* self, PyObject* args, PyObject* kwds)
         destroy_fn(instance, messenger, nullptr);
 #endif
 
-    vkDestroyInstance(instance, nullptr);
+    if (ctx->owns_instance)
+        vkDestroyInstance(instance, nullptr);
 
     delete ctx;
+    Py_RETURN_NONE;
+}
+
+// ---------------------------------------------------------------------------
+
+extern "C"
+PyObject* vulkan_set_surface_for_window(PyObject* self, PyObject* args,
+                                        PyObject* kwds)
+{
+    Py_ssize_t ctx_ptr, window_handle;
+    Py_ssize_t surface_handle = 0;
+    int owns_surface_arg = -1;
+    int width = 0, height = 0;
+    static const char* kwlist[] = {"context", "window_handle", "surface",
+                                   "owns_surface", "width", "height", nullptr};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds,
+            const_cast<char*>("nn|niii"), (char**)kwlist,
+            &ctx_ptr, &window_handle, &surface_handle, &owns_surface_arg,
+            &width, &height))
+        return NULL;
+
+    VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
+    const std::uintptr_t target_window =
+        static_cast<std::uintptr_t>(window_handle);
+    const uint32_t target_width = width > 0
+        ? static_cast<uint32_t>(width) : 0;
+    const uint32_t target_height = height > 0
+        ? static_cast<uint32_t>(height) : 0;
+
+    if (ctx->in_frame) {
+        PyErr_SetString(PyExc_RuntimeError,
+                        "Cannot switch Vulkan surfaces during a frame");
+        return NULL;
+    }
+
+    if (target_window == ctx->current_window_handle) {
+        if (target_width && target_height &&
+                (target_width != ctx->width || target_height != ctx->height)) {
+            VkFormat old_format = ctx->swapchain_format;
+            if (!recreate_active_swapchain(ctx, target_width, target_height)) {
+                PyErr_SetString(PyExc_RuntimeError,
+                                "Failed to resize target window swapchain");
+                return NULL;
+            }
+            return PyBool_FromLong(old_format != ctx->swapchain_format);
+        }
+        Py_RETURN_FALSE;
+    }
+
+    auto cached = ctx->window_swapchains.find(target_window);
+    const bool target_is_cached = cached != ctx->window_swapchains.end();
+    VkSurfaceKHR new_surface = reinterpret_cast<VkSurfaceKHR>(surface_handle);
+    bool owns_new_surface = owns_surface_arg >= 0
+        ? owns_surface_arg != 0 : surface_handle == 0;
+
+#if defined(_WIN32)
+    if (!target_is_cached && new_surface == VK_NULL_HANDLE) {
+        VkWin32SurfaceCreateInfoKHR info{};
+        info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+        info.hinstance = GetModuleHandle(nullptr);
+        info.hwnd = reinterpret_cast<HWND>(window_handle);
+        if (vkCreateWin32SurfaceKHR(ctx->instance, &info, nullptr,
+                                   &new_surface) != VK_SUCCESS) {
+            PyErr_SetString(PyExc_RuntimeError,
+                            "vkCreateWin32SurfaceKHR failed for target window");
+            return NULL;
+        }
+        owns_new_surface = true;
+    }
+#else
+    (void)window_handle;
+    if (!target_is_cached && new_surface == VK_NULL_HANDLE) {
+        PyErr_SetString(PyExc_ValueError,
+                        "A platform VkSurfaceKHR is required for this window");
+        return NULL;
+    }
+#endif
+
+    if (!target_is_cached) {
+        VkBool32 supported = VK_FALSE;
+        vkGetPhysicalDeviceSurfaceSupportKHR(
+            ctx->physical_device, ctx->present_family, new_surface, &supported);
+        if (!supported) {
+            if (owns_new_surface && new_surface != VK_NULL_HANDLE)
+                vkDestroySurfaceKHR(ctx->instance, new_surface, nullptr);
+            PyErr_SetString(PyExc_RuntimeError,
+                            "Vulkan present queue does not support target surface");
+            return NULL;
+        }
+    }
+
+    // OIT is disabled for Vulkan's deterministic transparency path.  If a
+    // caller explicitly created it, retire it once before changing depth
+    // targets; ordinary window switches remain wait-free.
+    if (ctx->oit_render_pass != VK_NULL_HANDLE) {
+        vkDeviceWaitIdle(ctx->device);
+        flush_all_pending_deletes(ctx);
+        destroy_oit_resources_internal(ctx);
+    }
+
+    const std::uintptr_t previous_window = ctx->current_window_handle;
+    const VkFormat previous_format = ctx->swapchain_format;
+    auto saved = ctx->window_swapchains.emplace(
+        previous_window, WindowSwapchainState{});
+    if (!saved.second) {
+        if (!target_is_cached && owns_new_surface && new_surface != VK_NULL_HANDLE)
+            vkDestroySurfaceKHR(ctx->instance, new_surface, nullptr);
+        PyErr_SetString(PyExc_RuntimeError,
+                        "Active Vulkan window already exists in surface cache");
+        return NULL;
+    }
+    take_window_swapchain(ctx, saved.first->second);
+
+    if (target_is_cached) {
+        // emplace above may have rehashed the unordered_map, so resolve the
+        // target again instead of retaining an invalidated iterator.
+        auto target_state = ctx->window_swapchains.find(target_window);
+        restore_window_swapchain(ctx, target_state->second);
+        ctx->window_swapchains.erase(target_state);
+    } else {
+        ctx->surface = new_surface;
+        ctx->owns_surface = owns_new_surface;
+        const uint32_t new_width = target_width ? target_width : 1;
+        const uint32_t new_height = target_height ? target_height : 1;
+        if (!create_swapchain(ctx, new_width, new_height)) {
+            if (ctx->owns_surface && ctx->surface != VK_NULL_HANDLE)
+                vkDestroySurfaceKHR(ctx->instance, ctx->surface, nullptr);
+            ctx->surface = VK_NULL_HANDLE;
+            ctx->owns_surface = false;
+            restore_window_swapchain(ctx, saved.first->second);
+            ctx->window_swapchains.erase(saved.first);
+            ctx->current_window_handle = previous_window;
+            PyErr_SetString(PyExc_RuntimeError,
+                            "Failed to create swapchain for target window");
+            return NULL;
+        }
+    }
+    ctx->current_window_handle = target_window;
+
+    if (target_is_cached && target_width && target_height &&
+            (ctx->swapchain == VK_NULL_HANDLE ||
+             target_width != ctx->width || target_height != ctx->height)) {
+        if (!recreate_active_swapchain(ctx, target_width, target_height)) {
+            // Keep Python/native window selection coherent on failure. The
+            // target surface remains reusable (with no swapchain), while the
+            // previously active window is restored before the exception is
+            // returned to Python.
+            WindowSwapchainState failed_target{};
+            take_window_swapchain(ctx, failed_target);
+            auto previous_state = ctx->window_swapchains.find(previous_window);
+            restore_window_swapchain(ctx, previous_state->second);
+            ctx->window_swapchains.erase(previous_state);
+            ctx->window_swapchains.emplace(
+                target_window, std::move(failed_target));
+            ctx->current_window_handle = previous_window;
+            PyErr_SetString(PyExc_RuntimeError,
+                            "Failed to resize cached target swapchain");
+            return NULL;
+        }
+    }
+
+    return PyBool_FromLong(previous_format != ctx->swapchain_format);
+}
+
+// ---------------------------------------------------------------------------
+
+extern "C"
+PyObject* vulkan_release_window(PyObject* self, PyObject* args,
+                                PyObject* kwds)
+{
+    Py_ssize_t ctx_ptr, window_handle;
+    static const char* kwlist[] = {"context", "window_handle", nullptr};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds,
+            const_cast<char*>("nn"), (char**)kwlist,
+            &ctx_ptr, &window_handle))
+        return NULL;
+
+    VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
+    const std::uintptr_t window = static_cast<std::uintptr_t>(window_handle);
+    if (window == ctx->current_window_handle) {
+        PyErr_SetString(PyExc_RuntimeError,
+                        "Cannot release the active Vulkan window");
+        return NULL;
+    }
+
+    auto found = ctx->window_swapchains.find(window);
+    if (found == ctx->window_swapchains.end())
+        Py_RETURN_NONE;
+
+    vkDeviceWaitIdle(ctx->device);
+    flush_all_pending_deletes(ctx);
+    destroy_window_swapchain(ctx, found->second);
+    ctx->window_swapchains.erase(found);
     Py_RETURN_NONE;
 }
 
@@ -1072,16 +1430,18 @@ PyObject* vulkan_resize_drawable(PyObject* self, PyObject* args, PyObject* kwds)
 
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
 
-    vkDeviceWaitIdle(ctx->device);
-    // Deferred-deleted framebuffers reference the swapchain/depth image
-    // views as attachments; they must be destroyed BEFORE cleanup_swapchain
-    // tears those views down, or their later deferred destruction is a
-    // use-after-free inside the driver (SIGBUS on MoltenVK at resize).
-    flush_all_pending_deletes(ctx);
-    cleanup_swapchain(ctx);
+    // Minimized/hidden Qt windows can transiently report an empty drawable.
+    // Keep the existing swapchain until a real size arrives instead of
+    // passing wrapped negative/zero dimensions into Vulkan.
+    if (width <= 0 || height <= 0)
+        Py_RETURN_NONE;
 
-    if (!create_swapchain(ctx, static_cast<uint32_t>(width),
-                          static_cast<uint32_t>(height))) {
+    if (static_cast<uint32_t>(width) == ctx->width &&
+            static_cast<uint32_t>(height) == ctx->height)
+        Py_RETURN_NONE;
+
+    if (!recreate_active_swapchain(ctx, static_cast<uint32_t>(width),
+                                   static_cast<uint32_t>(height))) {
         PyErr_SetString(PyExc_RuntimeError, "Failed to recreate swapchain");
         return NULL;
     }
@@ -1215,12 +1575,21 @@ PyObject* vulkan_begin_frame(PyObject* self, PyObject* args, PyObject* kwds)
 
     FrameData& frame = ctx->frames[ctx->current_frame];
 
-    // Wait for this frame's previous work to finish. Release the GIL —
-    // this can block for a full frame and no Python state is touched.
+    // Do not block Qt's GUI thread waiting for a frame slot.  This context
+    // is shared by the main and auxiliary native windows, and a delayed
+    // child-window presentation must not prevent the main event loop from
+    // committing the very drawable it is waiting for.  Python treats False
+    // as a skipped frame and retries on a later event-loop turn.
     VK_TRACE("  waitForFences");
-    Py_BEGIN_ALLOW_THREADS
-    vkWaitForFences(ctx->device, 1, &frame.in_flight_fence, VK_TRUE, UINT64_MAX);
-    Py_END_ALLOW_THREADS
+    VkResult fence_status = vkGetFenceStatus(
+        ctx->device, frame.in_flight_fence);
+    if (fence_status == VK_NOT_READY)
+        Py_RETURN_FALSE;
+    if (fence_status != VK_SUCCESS) {
+        PyErr_SetString(PyExc_RuntimeError,
+                        "Failed to query Vulkan frame fence");
+        return NULL;
+    }
 
     // Now safe to actually free anything queued during the previous use of
     // this frame slot — the GPU just finished executing those commands.
@@ -1244,9 +1613,15 @@ PyObject* vulkan_begin_frame(PyObject* self, PyObject* args, PyObject* kwds)
 
         VK_TRACE("  acquireNextImage");
         VkResult result;
+        // A Qt child window may be exposed before its platform drawable is
+        // ready, especially while a dock is opening on macOS. Acquisition is
+        // deliberately non-blocking: Qt/Core Animation may need another
+        // event-loop turn to make the drawable available, and Python will
+        // retry the skipped frame on the next update.
+        constexpr uint64_t acquire_timeout_ns = 0;
         Py_BEGIN_ALLOW_THREADS
         result = vkAcquireNextImageKHR(
-            ctx->device, ctx->swapchain, UINT64_MAX,
+            ctx->device, ctx->swapchain, acquire_timeout_ns,
             frame.image_available, VK_NULL_HANDLE,
             &ctx->current_image_index);
         Py_END_ALLOW_THREADS
@@ -1266,10 +1641,13 @@ PyObject* vulkan_begin_frame(PyObject* self, PyObject* args, PyObject* kwds)
             }
             // Retry acquisition with the new swapchain.
             result = vkAcquireNextImageKHR(
-                ctx->device, ctx->swapchain, UINT64_MAX,
+                ctx->device, ctx->swapchain, acquire_timeout_ns,
                 frame.image_available, VK_NULL_HANDLE,
                 &ctx->current_image_index);
         }
+
+        if (result == VK_TIMEOUT || result == VK_NOT_READY)
+            Py_RETURN_FALSE;
 
         if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
             PyErr_SetString(PyExc_RuntimeError, "Failed to acquire swapchain image");
@@ -1312,7 +1690,7 @@ PyObject* vulkan_begin_frame(PyObject* self, PyObject* args, PyObject* kwds)
 
     VK_TRACE("  begin_frame done");
 
-    Py_RETURN_NONE;
+    Py_RETURN_TRUE;
 }
 
 // ---------------------------------------------------------------------------
@@ -1439,7 +1817,7 @@ PyObject* vulkan_end_frame(PyObject* self, PyObject* args, PyObject* kwds)
     ctx->in_frame = false;
     ctx->current_frame = (ctx->current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         vkDeviceWaitIdle(ctx->device);
         // See vulkan_resize_drawable: deferred deletes must drain before
         // the views their framebuffers reference are destroyed.
@@ -1452,7 +1830,7 @@ PyObject* vulkan_end_frame(PyObject* self, PyObject* args, PyObject* kwds)
                             "Failed to recreate swapchain after present");
             return NULL;
         }
-    } else if (result != VK_SUCCESS) {
+    } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         PyErr_SetString(PyExc_RuntimeError, "Failed to present swapchain image");
         return NULL;
     }

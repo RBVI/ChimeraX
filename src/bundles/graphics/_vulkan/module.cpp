@@ -10,6 +10,8 @@ static struct PyMethodDef vulkan_methods[] =
     {"create_instance", (PyCFunction)vulkan_create_instance, METH_VARARGS|METH_KEYWORDS, NULL},
     {"create_context", (PyCFunction)vulkan_create_context, METH_VARARGS|METH_KEYWORDS, NULL},
     {"destroy_context", (PyCFunction)vulkan_destroy_context, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"set_surface_for_window", (PyCFunction)vulkan_set_surface_for_window, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"release_window", (PyCFunction)vulkan_release_window, METH_VARARGS|METH_KEYWORDS, NULL},
     {"resize_drawable", (PyCFunction)vulkan_resize_drawable, METH_VARARGS|METH_KEYWORDS, NULL},
     {"device_name", (PyCFunction)vulkan_device_name, METH_VARARGS|METH_KEYWORDS, NULL},
     {"max_3d_texture_size", (PyCFunction)vulkan_max_3d_texture_size, METH_VARARGS|METH_KEYWORDS, NULL},
@@ -39,6 +41,7 @@ static struct PyMethodDef vulkan_methods[] =
     {"create_texture", (PyCFunction)vulkan_create_texture, METH_VARARGS|METH_KEYWORDS, NULL},
     {"update_texture", (PyCFunction)vulkan_update_texture, METH_VARARGS|METH_KEYWORDS, NULL},
     {"destroy_texture", (PyCFunction)vulkan_destroy_texture, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"texture_format", (PyCFunction)vulkan_texture_format, METH_VARARGS|METH_KEYWORDS, NULL},
 
     // Draw commands
     {"set_vertex_buffer", (PyCFunction)vulkan_set_vertex_buffer, METH_VARARGS|METH_KEYWORDS, NULL},

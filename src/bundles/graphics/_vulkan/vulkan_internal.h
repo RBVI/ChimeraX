@@ -24,7 +24,9 @@
 
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
+#include <cstdint>
 
 #include <cstdio>
 #include <cstdarg>
@@ -132,6 +134,28 @@ struct VulkanTexture {
     VkImageLayout current_layout;
 };
 
+// All objects whose lifetime is tied to one presentation surface.  The
+// active record lives in VulkanContext's traditional fields so the render
+// code stays simple; inactive records live in window_swapchains and are
+// moved back into those fields when that QWindow is selected again.
+struct WindowSwapchainState {
+    VkSurfaceKHR              surface;
+    bool                      owns_surface;
+    VkSwapchainKHR            swapchain;
+    VkFormat                  swapchain_format;
+    VkExtent2D                swapchain_extent;
+    std::vector<VkImage>      swapchain_images;
+    std::vector<VkImageView>  swapchain_image_views;
+    std::vector<VkSemaphore>  render_finished_per_image;
+    std::vector<uint8_t>      swapchain_image_used;
+    VulkanTexture             depth_image;
+    VkRenderPass              main_render_pass;
+    VkRenderPass              depth_only_render_pass;
+    std::vector<VkFramebuffer> swapchain_framebuffers;
+    uint32_t                  width;
+    uint32_t                  height;
+};
+
 // Device-aware texture wrapper used by vulkan_texture.cpp.
 struct TextureWithDevice : VulkanTexture {
     VkDevice       device;
@@ -155,6 +179,31 @@ struct PendingDeletes {
 struct VulkanPipeline {
     VkPipeline       pipeline;
     VkPipelineLayout layout;
+};
+
+// Ray-tracing compute pipelines are device children and therefore must be
+// owned by a context, not by process-global statics.  Keeping the complete
+// state here also makes simultaneous/recreated contexts independent.
+struct VkRtaoPipelineState {
+    VkDescriptorSetLayout set_layout;
+    VkPipelineLayout      pipeline_layout;
+    VkPipeline            pipeline;
+    VkDescriptorPool      descriptor_pool;
+    VkDescriptorSet       sets[MAX_FRAMES_IN_FLIGHT];
+    VkSampler             sampler;
+    bool                  compiled;
+};
+
+struct VkPathTracerPipelineState {
+    VkDescriptorSetLayout set_layout;
+    VkPipelineLayout      pipeline_layout;
+    VkPipeline            pipeline;
+    VkDescriptorPool      descriptor_pool;
+    VkDescriptorSet       sets[MAX_FRAMES_IN_FLIGHT];
+    VkSampler             sampler;
+    VkBuffer              dummy_buffer;
+    VmaAllocation         dummy_buffer_alloc;
+    bool                  compiled;
 };
 
 // ---------------------------------------------------------------------------
@@ -203,9 +252,16 @@ struct VulkanContext {
     uint32_t         graphics_family;
     uint32_t         present_family;
     VkSurfaceKHR     surface;
+    bool             owns_instance;
     bool             owns_surface;   // true when create_context made the surface
-                                     // (Win32 path) and must destroy it
+                                     // or ownership was explicitly transferred
     VmaAllocator     allocator;
+
+    // Stable per-QWindow presentation state.  Switching windows moves the
+    // active fields below into/out of this cache; it never recreates or
+    // shows a Qt window and does not wait for the whole device.
+    std::uintptr_t current_window_handle;
+    std::unordered_map<std::uintptr_t, WindowSwapchainState> window_swapchains;
 
     // Swapchain
     VkSwapchainKHR           swapchain;
@@ -341,6 +397,18 @@ struct VulkanContext {
 
     // Pipeline cache for faster pipeline creation
     VkPipelineCache pipeline_cache;
+
+    // Native wrappers handed to Python.  Python may keep them alive beyond
+    // renderer teardown, so the context retains a registry and destroys any
+    // stragglers before the allocator/device and shared pipeline layout.
+    std::unordered_set<BufferWithAllocator*> live_buffers;
+    std::unordered_set<TextureWithDevice*>   live_textures;
+    std::unordered_set<VulkanPipeline*>      live_pipelines;
+    std::unordered_set<OffscreenFramebuffer*> live_offscreens;
+
+    VkRtaoPipelineState       rtao_pipeline;
+    VkPathTracerPipelineState pathtracer_pipeline;
+    std::unordered_set<void*> live_accel_structs;
 
     // Currently bound state (for deferred binding)
     VulkanBuffer*   bound_vertex_buffers[16];  // indexed by binding
@@ -519,6 +587,10 @@ void transition_image_layout(VkCommandBuffer cmd, VkImage image,
                              VkImageAspectFlags aspect);
 void create_dummy_resources(VulkanContext* ctx);
 void destroy_dummy_resources(VulkanContext* ctx);
+void destroy_oit_resources_internal(VulkanContext* ctx);
+void destroy_raytracing_resources(VulkanContext* ctx);
+void destroy_offscreen_resource_internal(VulkanContext* ctx,
+                                         OffscreenFramebuffer* framebuffer);
 // Fill `info` with the dummy view+sampler appropriate for set-1 binding `i`.
 void dummy_image_info_for_binding(VulkanContext* ctx, uint32_t binding,
                                   VkDescriptorImageInfo& info);

@@ -18,6 +18,8 @@ extern "C" {
 PyObject* vulkan_create_instance(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_destroy_context(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_set_surface_for_window(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_release_window(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_resize_drawable(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_device_name(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_max_3d_texture_size(PyObject* self, PyObject* args, PyObject* kwds);
@@ -46,6 +48,7 @@ PyObject* vulkan_destroy_buffer(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_create_texture(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_update_texture(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_destroy_texture(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_texture_format(PyObject* self, PyObject* args, PyObject* kwds);
 
 // Draw commands
 PyObject* vulkan_set_vertex_buffer(PyObject* self, PyObject* args, PyObject* kwds);

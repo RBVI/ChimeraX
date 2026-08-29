@@ -185,6 +185,11 @@ void destroy_oit(VulkanContext* ctx) {
 
 }  // namespace
 
+void destroy_oit_resources_internal(VulkanContext* ctx)
+{
+    destroy_oit(ctx);
+}
+
 // ---------------------------------------------------------------------------
 //  Public API
 // ---------------------------------------------------------------------------
