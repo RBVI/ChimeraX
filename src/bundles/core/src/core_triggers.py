@@ -39,6 +39,8 @@ COMMAND_STARTED = "command started"
 END_RESTORE_SESSION = "end restore session"
 END_SAVE_SESSION = "end save session"
 FRAME_DRAWN = "frame drawn"
+GRAPHICS_BACKEND_CHANGED = "graphics backend changed"
+GRAPHICS_BACKEND_CHANGING = "graphics backend changing"
 GRAPHICS_UPDATE = "graphics update"
 LIGHTING_CHANGED = "lighting changed"
 NEW_FRAME = "new frame"
@@ -54,6 +56,8 @@ trigger_info = {
     END_RESTORE_SESSION: False,
     END_SAVE_SESSION: False,
     FRAME_DRAWN: True,
+    GRAPHICS_BACKEND_CHANGED: False,
+    GRAPHICS_BACKEND_CHANGING: False,
     GRAPHICS_UPDATE: True,
     LIGHTING_CHANGED: False,
     NEW_FRAME: True,
