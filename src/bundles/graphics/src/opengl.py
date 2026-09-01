@@ -549,16 +549,17 @@ class Render:
         return self._opengl_context
 
     def make_current(self):
-        status = self._opengl_context.make_current()
-        e = self.check_for_opengl_errors()
-        if e:
-            from sys import platform
-            if platform != 'darwin':
-                # Don't warn on Mac since Qt 6.10.2 always generates this error.  ChimeraX tickets #20306, #19881.
-                msg = f'Error after making OpenGL context current: {e}\nThis is a Qt window toolkit bug discussed at https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/19881#comment:5'
-                import sys
-                sys.stderr.write(msg)
-        return status
+        success = self._opengl_context.make_current()
+        if success:
+            e = self.check_for_opengl_errors()
+            if e:
+                from sys import platform
+                if platform != 'darwin':
+                    # Don't warn on Mac since Qt 6.10.2 always generates this error.  ChimeraX tickets #20306, #19881.
+                    msg = f'Error after making OpenGL context current: {e}\nThis is a Qt window toolkit bug discussed at https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/19881#comment:5'
+                    import sys
+                    sys.stderr.write(msg)
+        return success
 
     def done_current(self):
         self._opengl_context.done_current()
