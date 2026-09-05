@@ -1323,8 +1323,19 @@ class MSACacheFiles:
 
         # Find template alignment files
         for seq, id in seq_ids.items():
-            template_path = join(template_directory, 'template_cache', id + '.npz')
-            if exists(template_path):
+            template_cache = join(template_directory, 'template_cache')
+            template_path = join(template_cache, id + '.npz')
+            have_template = exists(template_path)
+            if not have_template and exists(template_cache):
+                # Starting OpenFold 0.5 template cache file name changed to
+                # seq-<seqhash>.aln-<alnseqhash>.npz.
+                from os import listdir
+                for filename in listdir(template_cache):
+                    if filename.startswith(f'seq-{id}.aln-') and filename.endswith('.npz'):
+                        template_path = join(template_cache, filename)
+                        have_template = True
+                        break
+            if have_template:
                 msa_paths[seq]['templates'] = _posix_path(template_path)
                 import numpy
                 with numpy.load(template_path) as data:
