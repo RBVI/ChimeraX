@@ -967,7 +967,7 @@ class OpenFoldRun:
     def _prediction_failed_message(self, exit_code, stdout, stderr):
 
         msg = None
-        if self._prediction_ran_out_of_memory(stdout):
+        if self._prediction_ran_out_of_memory(stdout, stderr):
             msg = ('The OpenFold prediction ran out of memory.  The memory use depends on the'
                    ' number of protein and nucleic acid residues plus the number of ligand'
                    ' atoms.  You can reduce the size of your molecular assembly to stay'
@@ -1028,8 +1028,10 @@ class OpenFoldRun:
             self._process.kill()
             self._user_terminated = True
 
-    def _prediction_ran_out_of_memory(self, stdout):
-        return len(self._prediction_cif_files()) == 0 and 'ran out of memory' in stdout
+    def _prediction_ran_out_of_memory(self, stdout, stderr):
+        return (len(self._prediction_cif_files()) == 0 and
+                ('ran out of memory' in stdout or
+                 'out of memory' in stderr or 'OOM for query_id' in stderr))
 
     def _mmcif_path(self, prediction_name, sample=1, seed=42):
         from os.path import join
