@@ -27,7 +27,7 @@ gui = [
   "maturin", # required to build pynmrstar
   "puccinialin", # required to build pynmrstar
   "pynmrstar==3.5.1",
-  "openvr==1.26.701",
+  "openvr==2.12.1401",
   "PyOpenGL==3.1.10",
   "PyOpenGL-accelerate==3.1.10",
   "PySide6==6.11.2",
