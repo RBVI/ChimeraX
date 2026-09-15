@@ -389,10 +389,22 @@ class UI(QApplication):
                 # So remember file and startup script will open it when ready.
                 self._files_to_open.append(event.file())
             else:
-                try:
-                    _open_dropped_file(self.session, event.file())
-                except Exception as e:
-                    self.session.logger.warning('Failed opening file %s:\n%s' % (event.file(), str(e)))
+                # it seems that modern versions of MacOS prepend the current directory to the
+                # QFileOpenEvent's file() value for files opening from the command line, so check
+                # for that
+                import os
+                cwd = os.getcwd() + os.sep
+                in_bad_drop_events = False
+                if event.file().startswith(cwd):
+                    rem = event.file()[len(cwd):]
+                    if rem in self._bad_drop_events:
+                        self._bad_drop_events.remove(rem)
+                        in_bad_drop_events = True
+                if not in_bad_drop_events:
+                    try:
+                        _open_dropped_file(self.session, event.file())
+                    except Exception as e:
+                        self.session.logger.warning('Failed opening file %s:\n%s' % (event.file(), str(e)))
             return True
         return QApplication.event(self, event)
 
