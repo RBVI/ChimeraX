@@ -15,7 +15,8 @@ EXIT_SUCCESS = "SUCCESS"
 
 DEFAULT_PATTERN = "chimovie_%s-*"
 import os.path
-DEFAULT_OUTFILE = os.path.expanduser("~/Desktop/movie.mp4")
+from chimerax.core import desktop_path
+DEFAULT_OUTFILE = os.path.join(desktop_path(), "movie.mp4")
 
 RESET_CLEAR = 'clear'
 RESET_KEEP = 'keep'

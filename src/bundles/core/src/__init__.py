@@ -113,6 +113,16 @@ def get_lib() -> str:
 def get_include() -> str:
     return os.path.join(_path_to_src(), "include")
 
+def desktop_path() -> str:
+    from os.path import expanduser, exists, isdir
+    path = expanduser('~/Desktop')
+    from sys import platform
+    if platform == 'win32' and not exists(path):
+        od_path = expanduser('~/OneDrive/Desktop')
+        import os
+        if isdir(od_path) and os.access(od_path, os.W_OK):
+            path = od_path
+    return path
 
 from .toolshed import BundleAPI
 

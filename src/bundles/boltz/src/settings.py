@@ -26,9 +26,10 @@
 #
 from chimerax.core.settings import Settings
 
+from chimerax.core import desktop_path
 class _BoltzSettings(Settings):
     EXPLICIT_SAVE = {
-        'boltz_results_location': '~/Desktop/boltz_[name]',
+        'boltz_results_location': f'{desktop_path()}/boltz_[name]',
         'boltz_install_location': '',
         'boltz2_install_location': '',
         'boltz22_install_location': '',

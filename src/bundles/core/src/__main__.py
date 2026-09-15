@@ -735,8 +735,9 @@ def init(argv, event_loop=True):
             or os.getcwd().endswith("\\ProgramData\\ChimeraX")
         )
     ):
+        from chimerax.core import desktop_path
         try:
-            os.chdir(os.path.expanduser("~/Desktop"))
+            os.chdir(desktop_path())
         except Exception:
             pass
 

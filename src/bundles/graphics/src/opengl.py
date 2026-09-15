@@ -362,8 +362,8 @@ def _initialize_pyopengl(log_opengl_calls = False, offscreen = False):
     if log_opengl_calls:
         # Log all OpenGL calls
         import logging
-        from os.path import expanduser
-        logging.basicConfig(level=logging.DEBUG, filename=expanduser('~/Desktop/cx.log'))
+        from chimerax.core import desktop_path
+        logging.basicConfig(level=logging.DEBUG, filename=f'{desktop_path()}/cx.log')
         logging.info('started logging')
         import OpenGL
         OpenGL.FULL_LOGGING = True
