@@ -341,6 +341,11 @@ Data lists/menus
     Used for choosing one or more models, structures, chains, etc.  Basic classes (:py:class:`~chimerax.ui.widgets.item_chooser.ModelListWidget`
     *et al*.) described in :py:mod:`chimerax.ui.widgets.item_chooser`, and atomic-model specific classes in :py:mod:`chimerax.atomic.widgets`.  Can be extended to volumes
     and other data types by using the :py:attr:`class_filter` contructor keyword.
+    These widgets leverage ChimeraX's "trigger" mechanism to keep themselves up to date.
+    Triggers are "fired" when important data changes occur (*e.g.* models closed, atom colors changed)
+    so that interfaces and data structures can keep themselves current.
+    If your code might need to react directly to such changes, then further information can be found
+    in the documentation for the :py:mod:`chimerax.core.triggerset` module.
 
 Remember-able options
     The :ref:`chimera.ui.options <option_widgets>` module provides interface widgets for specifiying numbers,
