@@ -101,7 +101,7 @@ wheel = [
   "psutil==7.2.2",
   "pybind11==3.0.4",
   "pycollada==0.8",
-  "pyopenxr==1.1.5301",
+  "pyopenxr==1.1.4902",
   "python-dateutil==2.9.0.post0",
   "requests==2.34.2",
   # Macs download scipy wheels directly, adjust the names in prereqs/pips accordingly
