@@ -45,8 +45,6 @@ Modules
 
     modules/core/commands/commands.rst
 
-    modules/core/data_events.rst
-
     modules/core/objects.rst
 
     modules/core/session.rst
