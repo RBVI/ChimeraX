@@ -2534,6 +2534,12 @@ class ToolWindow(StatusLogger):
         if self.tool_instance.tool_name == "Help Viewer":
             return
 
+        # *Some* HtmlToolInstances let Shift (maybe others) escape, which switches focus to the
+        # command line [#20934], so don't forward from them
+        from .htmltool import HtmlToolInstance
+        if isinstance(self.tool_instance, HtmlToolInstance):
+            return
+
         if isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox, QAbstractSpinBox)):
             return
 
