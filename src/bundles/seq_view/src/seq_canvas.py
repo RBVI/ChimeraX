@@ -509,6 +509,18 @@ class SeqCanvas:
                         return rgba
         return SeqBlock.normal_text_rgba
 
+    def _cf_custom(self, line, position):
+        consensus_chars = self._consensus_chars(position, self._custom_cache, self._custom_categories)
+        res = line[position].upper()
+        if res in self._custom_colorings:
+            for rgba, needed in self._custom_colorings[res]:
+                if not needed:
+                    return rgba
+                for n in needed:
+                    if n in consensus_chars:
+                        return rgba
+        return SeqBlock.normal_text_rgba
+
     def _cf_ribbon(self, line, position):
         if line not in self.alignment.match_maps:
             return SeqBlock.normal_text_rgba
@@ -548,8 +560,11 @@ class SeqCanvas:
                         self.update_balloons(aseq)
 
     def clustal_consensus_chars(self, offset):
+        return self._consensus_chars(offset, self._clustalx_cache, self._clustal_categories)
+
+    def _consensus_chars(self, offset, cache, categories):
         try:
-            consensus_chars = self._clustalx_cache[offset]
+            consensus_chars = cache[offset]
             return consensus_chars
         except KeyError:
             pass
@@ -560,14 +575,14 @@ class SeqCanvas:
         consensus_chars = {}
         num_seqs = len(self.alignment.seqs)
 
-        for members, threshold, result in self._clustal_categories:
+        for members, threshold, result in categories:
             sum = 0
             for c in members:
                 sum += chars.get(c, 0)
             if sum / num_seqs >= threshold:
                 consensus_chars[result] = True
 
-        self._clustalx_cache[offset] = consensus_chars
+        cache[offset] = consensus_chars
         return consensus_chars
 
     @property
@@ -834,8 +849,10 @@ class SeqCanvas:
         self.line_width = self.line_width_from_settings()
         self.numbering_widths = self.find_numbering_widths(self.line_width)
         self._clustalx_cache = {}
+        self._custom_cache = {}
         from .clustalX import clustal_info
         self._clustal_categories, self._clustal_colorings = clustal_info()
+        self._custom_coloring_filename = None
         self._update_seq_colorings()
         """TODO
         self.showNumberings = [self.sv.leftNumberingVar.get(),
@@ -1143,12 +1160,14 @@ class SeqCanvas:
                 self.lead_block.rerule()
             elif note_name == self.alignment.NOTE_SEQ_CONTENTS:
                 self._clustalx_cache = {}
+                self._custom_cache = {}
                 self.refresh(note_data)
             elif note_name == self.alignment.NOTE_SEQ_NAME:
                 self._update_label(note_data[0])
             elif note_name == self.alignment.NOTE_REALIGNMENT:
                 # headers are notified before us, so they should be "ready to go"
                 self._clustalx_cache = {}
+                self._custom_cache = {}
                 self.sv.region_manager.clear_regions()
                 self._reformat()
             if note_name not in (self.alignment.NOTE_HDR_SHOWN, self.alignment.NOTE_HDR_VALUES,
@@ -1603,7 +1622,12 @@ class SeqCanvas:
                 except AttributeError:
                     pass
         else:
-            color_func = self._cf_ribbon if res_coloring == RC_RIBBON else self._cf_clustalx
+            color_func = self._cf_ribbon if res_coloring == RC_RIBBON else (
+                self._cf_clustalx if res_coloring == RC_CLUSTALX else self._cf_custom)
+            if color_func == self._cf_custom and self._custom_coloring_filename != res_coloring:
+                from .clustalX import clustal_info
+                self._custom_categories, self._custom_colorings = clustal_info(res_coloring)
+                self._custom_coloring_filename = res_coloring
             for seq in self.alignment.seqs:
                 seq.position_color = lambda pos, line=seq, cf=color_func: cf(line, pos)
 

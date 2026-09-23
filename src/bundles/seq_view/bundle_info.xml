@@ -1,4 +1,4 @@
-<BundleInfo name="ChimeraX-SeqView" version="2.20"
+<BundleInfo name="ChimeraX-SeqView" version="2.21"
 	    package="chimerax.seq_view"
 	    supercedes="ChimeraX-SEQ-VIEW"
   	    minSessionVersion="1" maxSessionVersion="1">
@@ -13,6 +13,10 @@
   <Categories>
     <Category name="Sequence"/>
   </Categories>
+
+  <DataFiles>
+    <DataFile>kdHydrophob.par</DataFile>
+  </DataFiles>
 
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.3dev2021"/>
