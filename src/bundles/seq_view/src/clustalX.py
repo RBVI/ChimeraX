@@ -52,117 +52,88 @@ def clustal_info(file_name=None):
     if file_name is None:
         return _clustal_categories, _clustal_colorings
 
-    raise NotImplementedError("Color schemes from files not yet implemented")
-    from prefs import RC_HYDROPHOBICITY
+    from .settings import RC_HYDROPHOBICITY
     if file_name == RC_HYDROPHOBICITY:
         import os.path
-        file_name = os.path.join(os.path.dirname(__file__),
-                            "kdHydrophob.par")
-    colorInfo = {}
-    for colorName in [ "RED", "BLUE", "GREEN", "CYAN",
-                    "PINK", "MAGENTA", "YELLOW", "ORANGE"]:
-        colorInfo[colorName] = eval("_clustal%s"
-                        % colorName.capitalize())
-    from OpenSave import osOpen
-    from chimera import UserError
-    f = osOpen(file_name)
+        file_name = os.path.join(os.path.dirname(__file__), "kdHydrophob.par")
+    color_info = {}
+    for color_name in [ "RED", "BLUE", "GREEN", "CYAN", "PINK", "MAGENTA", "YELLOW", "ORANGE"]:
+        color_info[color_name] = eval("_clustal_%s" % color_name.lower())
+    from chimerax.core.errors import UserError
     section = None
-    colorSeen = False
+    color_seen = False
     categories = []
     colorings = {}
-    for line in f:
-        line = line.strip()
-        if line.startswith("@"):
-            section = line[1:].lower()
-            continue
-        if not line:
-            continue
-        if section == "rgbindex":
-            try:
-                name, sr, sg, sb = line.split()
-            except ValueError:
-                raise UserError("Line in @rgbindex section of"
-                    " %s is not color name followed by"
-                    " red, green and blue values: '%s'"
-                    % (file_name, line))
-            try:
-                r, g, b = [float(x) for x in [sr, sg, sb]]
-            except ValueError:
-                raise UserError("Line in @rgbindex section of"
-                    " %s has non-floating-point"
-                    " red, green or blue value: '%s'"
-                    % (file_name, line))
-            if r>1 or g>1 or b>1 or r<0 or g<0 or b<0:
-                raise UserError("Line in @rgbindex section of"
-                    " %s has red, green or blue value"
-                    " not in the range 0-1: '%s'"
-                    % (file_name, line))
-            colorInfo[name] = (r, g, b)
-        elif section == "consensus":
-            try:
-                symbol, eq, percent, composition = line.split()
-            except ValueError:
-                raise UserError("Line in @consensus section of"
-                    " %s is not of the form 'symbol = "
-                    " percentage%% res-list: '%s'"
-                    % (file_name, line))
-            if eq != '=':
-                raise UserError("Line in @consensus section of"
-                    " %s doesn't have '=' as second"
-                    " component: '%s'" % (file_name, line))
-            if percent[-1] != '%':
-                raise UserError("Line in @consensus section of"
-                    " %s doesn't have '%' as last character"
-                    " of third component: '%s'"
-                    % (file_name, line))
-            try:
-                percentage = float(percent[:-1])
-            except ValueError:
-                raise UserError("Line in @consensus section of"
-                    " %s doesn't have a number before the"
-                    " '%' of third component: '%s'"
-                    % (file_name, line))
-            if percentage < 0 or percentage > 100:
-                raise UserError("Line in @consensus section of"
-                    " %s has a percentage not in the range"
-                    " 0-100: '%s'" % (file_name, line))
-            composition = composition.replace(":", "")
-            categories.append((composition, percentage/100.0,
-                                symbol))
-        elif section == "color":
-            colorSeen = True
-            fields = line.split()
-            if len(fields) not in [3,5]:
-                raise UserError("Line in @color section of"
-                    " %s not of the form AA = color"
-                    " [if consensus-list]: '%s'"
-                    % (file_name, line))
-            aa, eq, color = fields[:3]
-            if len(aa) > 1 or not aa.islower():
-                raise UserError("Line in @color section of"
-                    " %s uses amino-acid code that is not"
-                    " a single lowercase character: '%s'"
-                    % (file_name, line))
-            if eq != '=':
-                raise UserError("Line in @color section of"
-                    " %s doesn't have '=' as second"
-                    " component: '%s'" % (file_name, line))
-            if color not in colorInfo:
-                raise UserError("Line in @color section of"
-                    " %s uses an unknown color:"
-                    " '%s'" % (file_name, line))
-            if len(fields) == 3:
-                colorings.setdefault(aa.upper(), []).append(
-                        (colorInfo[color], None))
+    from chimerax.io import open_input
+    with open_input(file_name, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith("@"):
+                section = line[1:].lower()
                 continue
-            if fields[3] != 'if':
-                raise UserError("Line in @color section of"
-                    " %s doesn't have 'if' as fourth"
-                    " component: '%s'" % (file_name, line))
-            colorings.setdefault(aa.upper(), []).append(
-                (colorInfo[color], fields[-1].replace(":", "")))
-    f.close()
-    if not colorSeen:
+            if not line:
+                continue
+            if section == "rgbindex":
+                try:
+                    name, sr, sg, sb = line.split()
+                except ValueError:
+                    raise UserError("Line in @rgbindex section of %s is not color name followed by"
+                        " red, green and blue values: '%s'" % (file_name, line))
+                try:
+                    r, g, b = [float(x) for x in [sr, sg, sb]]
+                except ValueError:
+                    raise UserError("Line in @rgbindex section of %s has non-floating-point"
+                        " red, green or blue value: '%s'" % (file_name, line))
+                if r>1 or g>1 or b>1 or r<0 or g<0 or b<0:
+                    raise UserError("Line in @rgbindex section of %s has red, green or blue value"
+                        " not in the range 0-1: '%s'" % (file_name, line))
+                color_info[name] = (r, g, b)
+            elif section == "consensus":
+                try:
+                    symbol, eq, percent, composition = line.split()
+                except ValueError:
+                    raise UserError("Line in @consensus section of %s is not of the form 'symbol = "
+                        " percentage%% res-list: '%s'" % (file_name, line))
+                if eq != '=':
+                    raise UserError("Line in @consensus section of %s doesn't have '=' as second"
+                        " component: '%s'" % (file_name, line))
+                if percent[-1] != '%':
+                    raise UserError("Line in @consensus section of %s doesn't have '%' as last character"
+                        " of third component: '%s'" % (file_name, line))
+                try:
+                    percentage = float(percent[:-1])
+                except ValueError:
+                    raise UserError("Line in @consensus section of %s doesn't have a number before the"
+                        " '%' of third component: '%s'" % (file_name, line))
+                if percentage < 0 or percentage > 100:
+                    raise UserError("Line in @consensus section of %s has a percentage not in the range"
+                        " 0-100: '%s'" % (file_name, line))
+                composition = composition.replace(":", "")
+                categories.append((composition, percentage/100.0, symbol))
+            elif section == "color":
+                color_seen = True
+                fields = line.split()
+                if len(fields) not in [3,5]:
+                    raise UserError("Line in @color section of %s not of the form AA = color"
+                        " [if consensus-list]: '%s'" % (file_name, line))
+                aa, eq, color = fields[:3]
+                if len(aa) > 1 or not aa.islower():
+                    raise UserError("Line in @color section of %s uses amino-acid code that is not"
+                        " a single lowercase character: '%s'" % (file_name, line))
+                if eq != '=':
+                    raise UserError("Line in @color section of %s doesn't have '=' as second"
+                        " component: '%s'" % (file_name, line))
+                if color not in color_info:
+                    raise UserError("Line in @color section of %s uses an unknown color:"
+                        " '%s'" % (file_name, line))
+                if len(fields) == 3:
+                    colorings.setdefault(aa.upper(), []).append((color_info[color], None))
+                    continue
+                if fields[3] != 'if':
+                    raise UserError("Line in @color section of %s doesn't have 'if' as fourth"
+                        " component: '%s'" % (file_name, line))
+                colorings.setdefault(aa.upper(), []).append((color_info[color], fields[-1].replace(":", "")))
+    if not color_seen:
         raise UserError("'%s' has missing or empty @color section" % file_name)
     return categories, colorings
 
