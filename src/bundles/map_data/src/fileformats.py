@@ -90,7 +90,8 @@ file_formats = [
   MapFileFormat('SPIDER volume data', 'spider', ['spider'], ['spi','vol']),
   MapFileFormat('TOM toolbox EM density map', 'tom_em', ['tom_em'], ['em']),
   MapFileFormat('UHBD grid, binary', 'uhbd', ['uhbd'], ['grd']),
-  ]
+  MapFileFormat('LAMMPS grid3d', 'lammps', ['lammps'], ['grid3d']),
+]
   
 # -----------------------------------------------------------------------------
 # The electrostatics file types are opened using a surface colormapping tool
@@ -181,7 +182,7 @@ def open_file(path, file_type = None, **kw):
 # -----------------------------------------------------------------------------
 #
 def file_type_from_suffix(path):
-    
+
   for ff in file_formats:
     for suffix in ff.suffixes:
       if has_suffix(path, suffix):
