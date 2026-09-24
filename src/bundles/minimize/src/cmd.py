@@ -259,7 +259,10 @@ def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_ste
                 else:
                     # If template is a modified (e.g. deprotonated amide in /A:463 of 6OF8)
                     # the the "gaff_type" might actually be an AMBER type, so apply mapping
-                    gaff_type = amber_to_gaff.get(cx_atom.gaff_type, cx_atom.gaff_type)
+                    if prefix:
+                        gaff_type = prefix + cx_atom.gaff_type
+                    else:
+                        gaff_type = amber_to_gaff.get(cx_atom.gaff_type, cx_atom.gaff_type)
 
                 #if adjust_gaff_type:
                 #    gaff_type = 'DNA-' + gaff_type
@@ -275,6 +278,26 @@ def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_ste
         omm_res.name = template.name
 
         forcefield.registerResidueTemplate(template)
+    system = forcefield.createSystem(top, nonbondedCutoff=1*nanometer, constraints=HBonds)
+    integrator = make_integrator()
+    from chimerax.atomic import Atoms
+    cx_atoms = Atoms(reordered_atoms)
+    session.logger.status("Starting minimization")
+    # maxIterations doesn't truly constrain maximum iterations as you would expect
+    # (see https://github.com/openmm/openmm/issues/4983), so it is handled in the reporter instead
+    class Reporter(MinimizationReporter):
+        step = 0
+        report_interval = 100
+
+        def __init__(self, atoms):
+            self.atoms = atoms
+            super().__init__()
+
+        def report(self, iteration, xyz, gradient, *args):
+            self.step += 1
+            if self.step % self.report_interval == 0:
+                session.logger.status("step %d: energy %.1f" % (self.step, args[0]["system energy"]),
+                    log=log_energy)
     system = forcefield.createSystem(top, nonbondedCutoff=1*nanometer, constraints=HBonds)
     for fi in fixed_indices:
         system.setParticleMass(fi, 0.0)
