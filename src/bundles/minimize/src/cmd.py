@@ -257,11 +257,14 @@ def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_ste
                     gaff_type = "tip3pfb_standard-" + cx_atom.element.name + (str(cx_atom.charge)
                         if abs(cx_atom.charge) > 1 else "") + ('+' if cx_atom.charge > 0 else '-')
                 else:
-                    # If template is a modified (e.g. deprotonated amide in /A:463 of 6OF8)
-                    # the the "gaff_type" might actually be an AMBER type, so apply mapping
                     if prefix:
-                        gaff_type = prefix + cx_atom.gaff_type
+                        if cx_atom.gaff_type.lower() == cx_atom.gaff_type:
+                            gaff_type = cx_atom.gaff_type
+                        else:
+                            gaff_type = prefix + cx_atom.gaff_type
                     else:
+                        # If template is a modified (e.g. deprotonated amide in /A:463 of 6OF8)
+                        # the the "gaff_type" might actually be an AMBER type, so apply mapping
                         gaff_type = amber_to_gaff.get(cx_atom.gaff_type, cx_atom.gaff_type)
 
                 #if adjust_gaff_type:
