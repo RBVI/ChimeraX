@@ -225,8 +225,12 @@ def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_ste
     # if more type conversions need to be added, consult https://ambermd.org/antechamber/gaff.html
     # for GAFF types, and Chimera.app/Contents/Resources/bin/amber18/dat/leap/parm/parm14ipq.dat
     # for AMBER types
-    amber_to_gaff = { 'N': 'n', 'CX': 'c3', 'C': 'c', 'O': 'o', '2C': 'c3', 'H': 'hn', 'H1': 'hc',
-        'HC': 'hc' }
+    amber_to_gaff = {
+        'C': 'c', 'CT': 'c3', 'CX': 'c3', '2C': 'c3', '3C': 'c3',
+        'H': 'hn', 'HC': 'hc', 'HO': 'ho', 'H1': 'hc',
+        'N': 'n',
+        'O': 'o', 'OH': 'oh',
+    }
     while True:
         templates, no_tmpl_omm_residues = forcefield.generateTemplatesForUnmatchedResidues(top)
         if not templates:
@@ -281,26 +285,6 @@ def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_ste
         omm_res.name = template.name
 
         forcefield.registerResidueTemplate(template)
-    system = forcefield.createSystem(top, nonbondedCutoff=1*nanometer, constraints=HBonds)
-    integrator = make_integrator()
-    from chimerax.atomic import Atoms
-    cx_atoms = Atoms(reordered_atoms)
-    session.logger.status("Starting minimization")
-    # maxIterations doesn't truly constrain maximum iterations as you would expect
-    # (see https://github.com/openmm/openmm/issues/4983), so it is handled in the reporter instead
-    class Reporter(MinimizationReporter):
-        step = 0
-        report_interval = 100
-
-        def __init__(self, atoms):
-            self.atoms = atoms
-            super().__init__()
-
-        def report(self, iteration, xyz, gradient, *args):
-            self.step += 1
-            if self.step % self.report_interval == 0:
-                session.logger.status("step %d: energy %.1f" % (self.step, args[0]["system energy"]),
-                    log=log_energy)
     system = forcefield.createSystem(top, nonbondedCutoff=1*nanometer, constraints=HBonds)
     for fi in fixed_indices:
         system.setParticleMass(fi, 0.0)
