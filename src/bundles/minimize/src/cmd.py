@@ -220,7 +220,7 @@ def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_ste
         top.addBond(atoms[b.atoms[0]], atoms[b.atoms[1]])
 
     import os
-    forcefield = ForceField('amber14-all.xml', 'amber14/tip3pfb.xml')
+    forcefield = ForceField('amber19-all.xml', 'amber19/tip3pfb.xml')
     forcefield.loadFile(os.path.join(os.path.dirname(__file__), 'gaff-2.2.20.xml'))
     # if more type conversions need to be added, consult https://ambermd.org/antechamber/gaff.html
     # for GAFF types, and Chimera.app/Contents/Resources/bin/amber18/dat/leap/parm/parm14ipq.dat
