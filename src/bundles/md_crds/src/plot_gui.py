@@ -447,8 +447,9 @@ class PlotDialog:
             else:
                 raise ValueError("Unknown kind of atom for 'exclude': %s" % kind)
         from .util import analysis_atoms
-        return analysis_atoms(sel_atoms, arg_values['solution'], arg_values['hydrogens'],
-            arg_values['ligands'], arg_values['metals'])
+        return analysis_atoms(sel_atoms, arg_values.get('solution', False),
+            arg_values.get('hydrogens', False), arg_values.get('ligands', False),
+            arg_values.get('metals', False))
 
     def _tab_setup(self, provider_name):
         ui_name = self.mgr.ui_name(provider_name)
