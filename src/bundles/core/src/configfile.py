@@ -242,6 +242,7 @@ then it looked for the old value and migrates it.
 If the old value isn't present, then the new default value is used.
 """
 from .errors import UserError
+import numpy
 
 only_use_defaults = False   # if True, do not read nor write configuration data
 
@@ -478,7 +479,8 @@ class Value:
         can be either a function that takes a value
         and returns a string representation of the value, or a cli
         :py:class:`~chimerax.core.commands.cli.Annotation`.
-        Defaults to :py:func:`repr`.
+        Defaults to a variation of :py:func:`repr` that also
+        accepts generic numpy singletons.
 
     """
 
@@ -490,7 +492,7 @@ class Value:
         else:
             self.from_str = from_str
         if to_str is None:
-            self.to_str = repr
+            self.to_str = lambda x: str(x) if isinstance(x, numpy.generic) else repr(x)
         else:
             self.to_str = to_str
 
