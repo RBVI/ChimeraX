@@ -57,10 +57,17 @@ jobs:
       - name: Set up Homebrew
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@e99025eb970cfa124b8284a35463d87426917478
-      - run: |
-          brew install python@3.10
-          python3.10 -m pip install lief dmgbuild
-          patch --ignore-whitespace -d /usr/local/lib/python3.10/site-packages/dmgbuild -N -p0 < ./utils/build/macos/dmgbuild.patch
+      # Packaging tools use a separate Python from the one bundled with ChimeraX.
+      - name: Set up packaging Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+          architecture: x64
+      - name: Install packaging tools
+        run: |
+          python3.13 -m pip install lief dmgbuild
+          DMGBUILD_DIR=$(python3.13 -c 'import pathlib, dmgbuild; print(pathlib.Path(dmgbuild.__file__).parent)')
+          patch --ignore-whitespace -d "$DMGBUILD_DIR" -N -p0 < ./utils/build/macos/dmgbuild.patch
       # Temporarily force this to succeed. The container's Python conflicts with homebrew's,
       # but we don't really use it anyway.
       - run: ${PWD}/utils/set_up_macos.sh || true
@@ -206,7 +213,7 @@ jobs:
         shell: bash
         run: |
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          python3.10 utils/build/macos/notarize.py sign \
+          python3.13 utils/build/macos/notarize.py sign \
           -a $CHIMERAX_APP_NAME \
           -d ChimeraX.dmg \
           -T $MAC_SIGNING_TEAM_ID \
@@ -221,14 +228,14 @@ jobs:
       - name: Make the DMG
         shell: bash
         run: |
-          python3.10 -m dmgbuild -s ./utils/build/macos/dmgbuildsettings.json --detach-retries 30 "ChimeraX Installer" ChimeraX.dmg
+          python3.13 -m dmgbuild -s ./utils/build/macos/dmgbuildsettings.json --detach-retries 30 "ChimeraX Installer" ChimeraX.dmg
 
       - name: Notarize the DMG
         uses: nick-fields/retry@v4
         with:
           max_attempts: 1000
           timeout_minutes: 60
-          command: python3.10 utils/build/macos/notarize.py notarize -a $CHIMERAX_APP_NAME -d ChimeraX.dmg -T $MAC_SIGNING_TEAM_ID -s $MAC_SIGNING_TEAM_ID -p $MAC_SIGNING_APP_PW -P $MAC_SIGNING_PROVIDER -i $MAC_SIGNING_EMAIL -k $RUNNER_TEMP/app-signing.keychain-db -K $MAC_SIGNING_KEYCHAIN_PW -v -v -v
+          command: python3.13 utils/build/macos/notarize.py notarize -a $CHIMERAX_APP_NAME -d ChimeraX.dmg -T $MAC_SIGNING_TEAM_ID -s $MAC_SIGNING_TEAM_ID -p $MAC_SIGNING_APP_PW -P $MAC_SIGNING_PROVIDER -i $MAC_SIGNING_EMAIL -k $RUNNER_TEMP/app-signing.keychain-db -K $MAC_SIGNING_KEYCHAIN_PW -v -v -v
 
       - name: Check Gatekeeper status (informational only)
         run: syspolicy_check distribution ChimeraX.dmg || true
