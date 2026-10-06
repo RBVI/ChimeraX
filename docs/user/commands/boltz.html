@@ -100,8 +100,11 @@ On Linux or Windows, if Nvidia graphics is detected, Torch 2.7.1 with CUDA 12.8 
     <pre>
       <i>directory</i>/bin/python -m pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128  # On Linux or Windows with Nvidia GPU only.
       <i>directory</i>/bin/python -m pip install boltz
-      <i>directory</i>/bin/python <i>chimerax/site-packages/boltz/</i>download_weights_and_ccd.py
-    </pre>
+      <i>directory</i>/bin/python <i>chimerax/site-packages/boltz/</i>download_weights_and_ccd.py</pre>
+
+<p>
+  ChimeraX does not support Boltz on Intel Macs or on Windows 10.  Boltz needs a newer version of torch than is available for Intel Mac, and Windows 10 prevents creating chemical component dictionary files like AUX.pkl, PRN.pkl because AUX and PRN were historically special devices in MSDOS.
+</p>
 
 <a name="predict"></a>
 <p class="nav">
