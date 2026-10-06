@@ -78,9 +78,10 @@ See also:
 <b>branch</b>&nbsp;&nbsp;<i>branch-name</i>
 </blockquote>
 <p>
-The <b>openfold install</b> command creates a Python virtual environment 
-to install the <a href="https://github.com/RBVI/openfold-3"
-target="_blank">ChimeraX OpenFold fork Github</a>.
+The <b>openfold install</b> command creates a standalone OpenFOld 3 installation in a new directory
+installing Python from the <a href="https://github.com/astral-sh/python-build-standalone">Astral project<a>
+and OpenFold from the <a href="https://github.com/RBVI/openfold-3"
+target="_blank">ChimeraX OpenFold fork Github repository</a>.
 If no directory is specified, then ~/openfold3 in the user's home directory
 is used. The directory will be created, or if it already exists must be empty.
 The OpenFold network parameters are downloaded to ~/.openfold3.
@@ -92,17 +93,11 @@ It uses git branch <b>chimerax_openfold</b> of this fork unless the
 <b>branch</b> option is specified, in which case it installs the 
 specified branch.
 </p><p>
-The ChimeraX Python executable is used to create the virtual environment.
-If the ChimeraX installation is moved or deleted, OpenFold will need to be 
-reinstalled. It will also stop working if the openfold directory itself
-is moved since the executable refers to the install location to find python.
-(Otherwise, the installation need only be done once per computer.)
-</p><p>
-The following commands are used to make the virtual environment and install 
-OpenFold. On Windows, if Nvidia graphics is detected, a version of torch 
-with CUDA 12.6 support is installed before openfold.
+After creating the installation directory, and downloading and upacking a prebuilt Python from Astral
+into the directory the following commands are used to install OpenFold.
+On Windows, if Nvidia graphics is detected, a version of torch with CUDA 12.6 support is installed before boltz.
 </p>
-    <pre>      python -m venv <i>directory</i>
+    <pre>
       <i>directory</i>/bin/python -m pip install torch --index-url https://download.pytorch.org/whl/cu126  # On Windows with Nvidia GPU only.
       <i>directory</i>/bin/python -m pip install openfold
       <i>directory</i>/bin/python <i>chimerax/site-packages/openfold/</i>download_weights.py
