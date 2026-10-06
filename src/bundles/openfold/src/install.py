@@ -157,7 +157,7 @@ class InstallOpenFold:
     # ------------------------------------------------------------------------------
     #
     def _install_openfold(self):
-        if self._need_cuda_torch_on_windows():
+        if self._need_cuda_torch():
             # The standard PyPi torch is cpu only, so get cuda-enabled torch from pytorch.org.
             self._pip_install_cuda_torch()
         else:
@@ -165,7 +165,7 @@ class InstallOpenFold:
 
     # ------------------------------------------------------------------------------
     #
-    def _need_cuda_torch_on_windows(self):
+    def _need_cuda_torch(self):
         return have_nvidia_driver()
 
     # ------------------------------------------------------------------------------
