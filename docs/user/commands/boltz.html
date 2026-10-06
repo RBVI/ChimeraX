@@ -74,8 +74,9 @@ See also:
 <b>branch</b>&nbsp;&nbsp;<i>branch-name</i>
 </blockquote>
 <p>
-The <b>boltz install</b> command creates a Python virtual environment 
-to install <a href="https://pypi.org/project/boltz/">Boltz from PyPi</a>.
+The <b>boltz install</b> command creates a standalone Boltz installation
+in a new directory installing Python from the <a href="https://github.com/astral-sh/python-build-standalone">Astral project<a>
+and <a href="https://pypi.org/project/boltz/">Boltz from PyPi</a>.
 If no directory is specified, then ~/boltz2 in the user's home directory
 is used. The directory will be created, or if it already exists must be empty.
 The Boltz network parameters and <a href="https://www.wwpdb.org/data/ccd" target="_blank">Chemical Component Dictionary</a> are downloaded
@@ -92,18 +93,12 @@ It uses git branch <b>chimerax_boltz22</b> of this fork unless the
 <b>branch</b> option is specified, in which case it installs the
 specified branch.
 </p><p>
-The ChimeraX Python executable is used to create the virtual environment.
-If the ChimeraX installation is moved or deleted, Boltz will need to be 
-reinstalled. It will also stop working if the boltz directory itself is moved,
-since the executable refers to the install location to find python.
-(Otherwise, the installation need only be done once per computer.)
-</p><p>
-The following commands are used to make the virtual environment and install 
-Boltz. On Windows, if Nvidia graphics is detected, a version of torch 
-with CUDA 12.6 support is installed before boltz.
+After creating the installation directory, and downloading and upacking a prebuilt Python from Astral
+into the directory the following commands are used to install Boltz.
+On Linux or Windows, if Nvidia graphics is detected, Torch 2.7.1 with CUDA 12.8 support is installed before Boltz.
 </p>
-    <pre>      python -m venv <i>directory</i>
-      <i>directory</i>/bin/python -m pip install torch --index-url https://download.pytorch.org/whl/cu126  # On Windows with Nvidia GPU only.
+    <pre>
+      <i>directory</i>/bin/python -m pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128  # On Linux or Windows with Nvidia GPU only.
       <i>directory</i>/bin/python -m pip install boltz
       <i>directory</i>/bin/python <i>chimerax/site-packages/boltz/</i>download_weights_and_ccd.py
     </pre>
