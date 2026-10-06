@@ -50,6 +50,23 @@ def chain_save_name(chain):
     return structure_save_name(chain.structure) + '/' + chain.chain_id.replace(' ', '_')
 
 def save_template(session, pdb_file_name, template, ATOM_res_names):
+    # Since PDB handles at most 2-character chain IDs (and that with a hack), map >2-character
+    # chain IDs to shorter ones (and map them back after writing the PDB)
+    okay_existing_cids = set()
+    cid_remapping = {}
+    for chain in template.chains:
+        if len(chain.chain_id) < 3:
+            okay_existing_cids.add(chain.chain_id)
+    from chimerax.atomic import next_chain_id
+    last_chain_id = None
+    for chain in template.chains:
+        if len(chain.chain_id) > 2:
+            next_cid = next_chain_id(last_chain_id)
+            while next_cid in okay_existing_cids:
+                next_cid = next_chain_id(next_id)
+            cid_remapping[next_cid] = chain.chain_id
+            chain.chain_id = next_cid
+            last_chain_id = next_cid
     # Modeller has a bug such that if the non-polymeric residue following the end of a chain
     # has an 'N' atom, it will connect that residue to the chain despite the presence of a TER
     # card [#16987].  Try to work around the problem by reordering the non-polymeric residues
@@ -89,8 +106,16 @@ def save_template(session, pdb_file_name, template, ATOM_res_names):
         template.reorder_residues(order)
     from chimerax.pdb import save_pdb
     save_pdb(session, pdb_file_name, models=[template], polymeric_res_names=ATOM_res_names)
+    for chain in template.chains:
+        if chain.chain_id in cid_remapping:
+            chain.chain_id = cid_remapping[chain.chain_id]
+    # Now add in the un-remapped chain IDs, so that it is easier to use it as the return value
+    for cid in okay_existing_cids:
+        cid_remapping[cid] = cid
     if do_reordering:
         template.reorder_residues(initial_order)
+    # Return a mapping from template CID to PDB CID
+    return {v:k for k,v in cid_remapping.items()}
 
 def regularized_seq(aseq, chain, mmap):
     rseq = modeller_copy(aseq)
