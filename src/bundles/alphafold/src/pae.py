@@ -1215,7 +1215,7 @@ def per_residue_pae(r, pae_source = None):
     ptype = r.polymer_type
     if pae_source == 'boltz' and ptype in (r.PT_PROTEIN, r.PT_NUCLEIC):
         return True  # Boltz as per-residue PAE even for modified residues.
-    if ptype == r.PT_PROTEIN and r.name == r.standard_aa_name:
+    if ptype == r.PT_PROTEIN and (r.name == r.standard_aa_name or r.name == 'UNK'):
         return True
     if ptype == r.PT_NUCLEIC and r.name in ('A','C','G','U','DA','DC','DG','DT'):
         return True

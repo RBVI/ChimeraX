@@ -444,13 +444,13 @@ def surface_cap(session, enable = None, offset = None, subdivision = None, mesh 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, ObjectsArg
     from chimerax.core.commands import FloatArg, IntArg, ColorArg, BoolArg, NoArg, create_alias
-    from chimerax.core.commands import SurfacesArg, EmptyArg, EnumOf, Or
+    from chimerax.core.commands import SurfacesArg, EmptyArg, EnumOf, Or, PositiveFloatArg
     from chimerax.atomic import AtomsArg
     surface_desc = CmdDesc(
         optional = [('atoms', AtomsArg)],
         keyword = [('enclose', AtomsArg),
                    ('include', AtomsArg),
-                   ('probe_radius', FloatArg),
+                   ('probe_radius', PositiveFloatArg),
                    ('grid_spacing', FloatArg),
                    ('resolution', FloatArg),
                    ('level', FloatArg),

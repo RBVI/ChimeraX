@@ -140,7 +140,7 @@ def find_license_file(pkg):
         for t in top_levels:
             try:
                 m = importlib.import_module(t)
-            except (ImportError, ValueError, NotImplementedError):
+            except (ImportError, ValueError, NotImplementedError, OSError):
                 continue
             if not hasattr(m, '__path__'):
                 continue

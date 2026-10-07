@@ -206,8 +206,25 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
         }
         input_file_map = []
 
-        # form the sequences to be written out as a PIR
+        # save structure file
+        import os
         from .common import opal_safe_file_name, structure_save_name, save_template
+        struct_dir = os.path.join(temp_dir.name, "template_struc")
+        if not os.path.exists(struct_dir):
+            try:
+                os.mkdir(struct_dir, mode=0o755)
+            except FileExistsError:
+                pass
+        from chimerax.pdb import save_pdb, standard_polymeric_res_names as std_res_names
+        base_name = structure_save_name(s) + '.pdb'
+        pdb_file_name = os.path.join(struct_dir, base_name)
+        input_file_map.append((base_name, "text_file", pdb_file_name))
+        ATOM_res_names = s.in_seq_hets
+        ATOM_res_names.update(std_res_names)
+        cid_map = save_template(session, pdb_file_name, s, ATOM_res_names)
+        delattr(s, 'in_seq_hets')
+
+        # form the sequences to be written out as a PIR
         from chimerax.atomic import Sequence
         pir_target = Sequence(name=opal_safe_file_name(seq.name))
         pir_target.description = "sequence:%s:.:.:.:.::::" % pir_target.name
@@ -222,11 +239,10 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
             if last_chain is not None:
                 break
         pir_template.description = "structure:%s:FIRST:%s:LAST:%s::::" % (
-            pir_template.name, residues[0].chain_id, last_chain.chain_id)
+            pir_template.name, cid_map[residues[0].chain_id], cid_map[last_chain.chain_id])
         pir_template.characters = ''.join(template_chars)
         pir_seqs.append(pir_template)
 
-        import os
         pir_file = os.path.join(temp_dir.name, "alignment.ali")
         aln = session.alignments.new_alignment(pir_seqs, False, auto_associate=False, create_headers=False)
         aln.save(pir_file, format_name="pir")
@@ -242,22 +258,6 @@ def model(session, targets, *, adjacent_flexible=1, block=True, chains=None, exe
 
         config_name = os.path.basename(config_path)
         input_file_map.append((config_name, "text_file", config_path))
-
-        # save structure file
-        struct_dir = os.path.join(temp_dir.name, "template_struc")
-        if not os.path.exists(struct_dir):
-            try:
-                os.mkdir(struct_dir, mode=0o755)
-            except FileExistsError:
-                pass
-        from chimerax.pdb import save_pdb, standard_polymeric_res_names as std_res_names
-        base_name = structure_save_name(s) + '.pdb'
-        pdb_file_name = os.path.join(struct_dir, base_name)
-        input_file_map.append((base_name, "text_file", pdb_file_name))
-        ATOM_res_names = s.in_seq_hets
-        ATOM_res_names.update(std_res_names)
-        save_template(session, pdb_file_name, s, ATOM_res_names)
-        delattr(s, 'in_seq_hets')
 
         from chimerax.atomic import Chains
         match_chains = Chains(match_chains)

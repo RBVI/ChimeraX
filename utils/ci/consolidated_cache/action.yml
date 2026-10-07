@@ -176,13 +176,28 @@ runs:
           prereqs/ffmpeg/ffmpeg-6.1.1-DarwinIntel64.exe
         key: ${{ runner.os }}-${{ inputs.architecture }}-ffmpeg
 
+    # Single source of truth for the segger archive name is the segger bundle
+    # Makefile. Parse SEGGER_SRC so cache paths and fetch URLs stay in sync.
+    - name: Resolve pinned segger source archive from the build config
+      id: segger
+      shell: bash
+      run: |
+        mk=src/bundles/segger/Makefile
+        segger_src="$(awk '$1 == "SEGGER_SRC" { print $3; exit }' "$mk")"
+        if [ -z "$segger_src" ]; then
+          echo "Could not parse SEGGER_SRC from $mk" >&2
+          exit 1
+        fi
+        echo "source=$segger_src" >> "$GITHUB_OUTPUT"
+        echo "Resolved segger source archive $segger_src from $mk"
+
     - name: Restore cached seggerx dependency sources
       id: cache-seggerx
       uses: actions/cache@v6
       with:
         path: |
-          src/bundles/segger/seggerx_2024_08_12.tar.gz
-        key: seggerx-source-zip-file
+          src/bundles/segger/${{ steps.segger.outputs.source }}
+        key: seggerx-source-zip-file-${{ steps.segger.outputs.source }}
 
     - name: Restore cached looking_glass dependency sources
       id: cache-holoplaycore
@@ -218,8 +233,10 @@ runs:
       shell: bash
       if: ${{ steps.cache-seggerx.outputs.cache-hit != 'true' }}
       run: |
-        curl --silent --show-error --fail --insecure -O https://cxtoolshed.rbvi.ucsf.edu/prereqs/segger/seggerx_2024_08_12.tar.gz -O -J
-        mv seggerx* src/bundles/segger/
+        SEGGER_SRC=${{ steps.segger.outputs.source }}
+        curl --silent --show-error --fail --insecure --location -o "${SEGGER_SRC}" \
+          "https://cxtoolshed.rbvi.ucsf.edu/prereqs/segger/${SEGGER_SRC}"
+        mv "${SEGGER_SRC}" src/bundles/segger/
 
     - name: Fetch ffmpeg
       shell: bash

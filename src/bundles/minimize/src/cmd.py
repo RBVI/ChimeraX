@@ -220,13 +220,17 @@ def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_ste
         top.addBond(atoms[b.atoms[0]], atoms[b.atoms[1]])
 
     import os
-    forcefield = ForceField('amber14-all.xml', 'amber14/tip3pfb.xml')
+    forcefield = ForceField('amber19-all.xml', 'amber19/tip3pfb.xml')
     forcefield.loadFile(os.path.join(os.path.dirname(__file__), 'gaff-2.2.20.xml'))
     # if more type conversions need to be added, consult https://ambermd.org/antechamber/gaff.html
     # for GAFF types, and Chimera.app/Contents/Resources/bin/amber18/dat/leap/parm/parm14ipq.dat
     # for AMBER types
-    amber_to_gaff = { 'N': 'n', 'CX': 'c3', 'C': 'c', 'O': 'o', '2C': 'c3', 'H': 'hn', 'H1': 'hc',
-        'HC': 'hc' }
+    amber_to_gaff = {
+        'C': 'c', 'CT': 'c3', 'CX': 'c3', '2C': 'c3', '3C': 'c3',
+        'H': 'hn', 'HC': 'hc', 'HO': 'ho', 'H1': 'hc',
+        'N': 'n',
+        'O': 'o', 'OH': 'oh',
+    }
     while True:
         templates, no_tmpl_omm_residues = forcefield.generateTemplatesForUnmatchedResidues(top)
         if not templates:
@@ -257,9 +261,15 @@ def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_ste
                     gaff_type = "tip3pfb_standard-" + cx_atom.element.name + (str(cx_atom.charge)
                         if abs(cx_atom.charge) > 1 else "") + ('+' if cx_atom.charge > 0 else '-')
                 else:
-                    # If template is a modified (e.g. deprotonated amide in /A:463 of 6OF8)
-                    # the the "gaff_type" might actually be an AMBER type, so apply mapping
-                    gaff_type = amber_to_gaff.get(cx_atom.gaff_type, cx_atom.gaff_type)
+                    if prefix:
+                        if cx_atom.gaff_type.lower() == cx_atom.gaff_type:
+                            gaff_type = cx_atom.gaff_type
+                        else:
+                            gaff_type = prefix + cx_atom.gaff_type
+                    else:
+                        # If template is a modified (e.g. deprotonated amide in /A:463 of 6OF8)
+                        # the the "gaff_type" might actually be an AMBER type, so apply mapping
+                        gaff_type = amber_to_gaff.get(cx_atom.gaff_type, cx_atom.gaff_type)
 
                 #if adjust_gaff_type:
                 #    gaff_type = 'DNA-' + gaff_type

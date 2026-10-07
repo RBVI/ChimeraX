@@ -834,9 +834,9 @@ class Sequence(State):
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger('rename')
-        f = c_function('set_sequence_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
         if seq_pointer:
             set_c_pointer(self, seq_pointer)
+            f = c_function('set_sequence_py_instance', args = (ctypes.c_void_p, ctypes.py_object))
             f(self._c_pointer, self)
             return # name/characters already exists; don't set
         seq_pointer = c_function('sequence_new',
