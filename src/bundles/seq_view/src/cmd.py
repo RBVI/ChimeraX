@@ -25,7 +25,7 @@
 from chimerax.core.commands import register
 from chimerax.core.commands.cli import RegisteredCommandInfo
 from chimerax.core.commands import CmdDesc
-from chimerax.core.commands import OpenFileNameArg, BoolArg, StringArg
+from chimerax.core.commands import OpenFileNameArg, BoolArg, StringArg, Or, EnumOf
 
 registry = RegisteredCommandInfo()
 
@@ -35,9 +35,10 @@ registry = RegisteredCommandInfo()
 def lcs_shim(session, file_name, *, make_default=False):
     _sv.load_color_scheme(file_name, make_default=make_default)
 
+from .settings import builtin_residue_colorings
 register("loadColorScheme",
     CmdDesc(
-        required=[('file_name', OpenFileNameArg)],
+        required=[('file_name', Or(EnumOf(builtin_residue_colorings), OpenFileNameArg))],
         keyword=[('make_default', BoolArg)],
         synopsis='Load residue-letter color scheme'),
     lcs_shim, registry=registry)

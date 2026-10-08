@@ -28,14 +28,14 @@ ALIGNMENT_PREFIX = "alignment_"
 from chimerax.ui.options import Option, BooleanOption, IntOption, \
     OptionalRGBAOption, OptionalRGBAPairOption, FontOption, SymbolicEnumOption
 
-RC_DEFAULT = "default"
+RC_DEFAULT = "contrasting"
 RC_CLUSTALX = "Clustal X"
 RC_HYDROPHOBICITY = "Kyte-Doolittle hydrophobicity"
 RC_RIBBON = "ribbon"
 RC_CUSTOM_SCHEMES = "custom_coloring_schemes"
 non_file_residue_colorings = [RC_DEFAULT, RC_CLUSTALX, RC_RIBBON]
 builtin_residue_colorings = non_file_residue_colorings + [RC_HYDROPHOBICITY]
-RC_BALLOON = "How to color %s residue letters.  'default' means black if your\n" \
+RC_BALLOON = "How to color %s residue letters.  'contrasting' means black if your\n" \
             "desktop uses a light color theme and white for a dark desktop theme."
 
 class ResidueColoringOption(SymbolicEnumOption):
