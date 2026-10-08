@@ -739,19 +739,20 @@ class SequenceViewer(ToolInstance):
         settings_action.triggered.connect(self.show_settings)
         menu.addAction(settings_action)
 
-    def load_color_scheme(self, path, *, make_default=False):
-        from .settings import RC_CUSTOM_SCHEMES
-        existing_schemes = getattr(self.settings, RC_CUSTOM_SCHEMES)
+    def load_color_scheme(self, scheme, *, make_default=False):
+        from .settings import RC_CUSTOM_SCHEMES, builtin_residue_colorings
+        if scheme not in builtin_residue_colorings:
+            existing_custom_schemes = getattr(self.settings, RC_CUSTOM_SCHEMES)
 
-        if path not in existing_schemes:
-            # verify the file is okay...
-            from .clustalX import clustal_info
-            categories, colorings = clustal_info(path)
+            if scheme not in existing_custom_schemes:
+                # verify the file is okay...
+                from .clustalX import clustal_info
+                categories, colorings = clustal_info(scheme)
 
-            # file seems okay
-            setattr(self.settings, RC_CUSTOM_SCHEMES, existing_schemes + [path])
+                # file seems okay
+                setattr(self.settings, RC_CUSTOM_SCHEMES, existing_schemes + [scheme])
 
-        self.seq_canvas.set_letter_coloring(path, make_default)
+        self.seq_canvas.set_letter_coloring(scheme, make_default)
 
     def load_scf_file(self, path, color_structures=None):
         """color_structures=None means use user's preference setting"""
