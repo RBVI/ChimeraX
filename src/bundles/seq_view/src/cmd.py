@@ -24,16 +24,26 @@
 
 from chimerax.core.commands import register
 from chimerax.core.commands.cli import RegisteredCommandInfo
+from chimerax.core.commands import CmdDesc
+from chimerax.core.commands import OpenFileNameArg, BoolArg, StringArg
 
 registry = RegisteredCommandInfo()
 
 # all the commands use the trick that the run() function
 # temporarily puts a copy of the seq_view instance into
 # the global namespace as '_sv'
-def scf_shim(session, file_name, color_structures=True):
+def lcs_shim(session, file_name, *, make_default=False):
+    _sv.load_color_scheme(file_name, make_default=make_default)
+
+register("loadColorScheme",
+    CmdDesc(
+        required=[('file_name', OpenFileNameArg)],
+        keyword=[('make_default', BoolArg)],
+        synopsis='Load residue-letter color scheme'),
+    lcs_shim, registry=registry)
+
+def scf_shim(session, file_name, *, color_structures=True):
     _sv.load_scf_file(file_name, color_structures=color_structures)
-from chimerax.core.commands import CmdDesc
-from chimerax.core.commands import OpenFileNameArg, BoolArg
 
 class OpenScfFileNameArg(OpenFileNameArg):
     name_filter = "SCF files (*.scf *.seqsel)"
