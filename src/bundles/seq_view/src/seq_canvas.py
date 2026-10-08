@@ -1255,6 +1255,12 @@ class SeqCanvas:
             kw = { 'view_names': ['sequence names', 'sequences'] }
         SaveQGraphicsDialog(self.sv.session, view_info, depiction_name="alignment", **kw).exec()
 
+    def set_letter_coloring(self, coloring, make_default):
+        self.sv.settings.letter_color_scheme = coloring
+        if make_default:
+            self.sv.settings.save('letter_color_scheme')
+        self._reformat()
+
     def show_header(self, header):
         self.lead_block.show_header(header)
         self.sv.region_manager.redraw_regions()
