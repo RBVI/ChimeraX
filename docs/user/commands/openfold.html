@@ -122,12 +122,13 @@ On Linux or Windows, if Nvidia graphics is detected, Torch 2.7.1 with CUDA 12.8 
 [&nbsp;<b>precision</b>&nbsp;&nbsp;32-true&nbsp;|&nbsp;16-true&nbsp;|&nbsp;bf16-true&nbsp;|&nbsp;bf16-mixed&nbsp;]
 [&nbsp;<b>samples</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>seeds</b>&nbsp;&nbsp;<i>seed-list</i>&nbsp;]
-[&nbsp;<b>useMsaCache</b>&nbsp;&nbsp;<b>true</b>&nbsp;&nbsp;false&nbsp;]
-[&nbsp;<b>msaOnly</b>&nbsp;&nbsp;true&nbsp;&nbsp;<b>false</b>&nbsp;]
-[&nbsp;<b>open</b>&nbsp;&nbsp;<b>true</b>&nbsp;&nbsp;false&nbsp;]
+[&nbsp;<b>useMsaCache</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
+[&nbsp;<b>msaOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>zipArchive</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>open</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>installLocation</b>&nbsp;&nbsp;<i>directory</i>&nbsp;]
 [&nbsp;<b>wait</b>&nbsp;&nbsp;<b>true</b>&nbsp;&nbsp;false&nbsp;]
-[&nbsp;<b>useServer</b>&nbsp;&nbsp;true&nbsp;&nbsp;<b>false</b>&nbsp;[&nbsp;<b>serverHost</b>&nbsp;&nbsp;<i>server-hostname</i>&nbsp;][&nbsp;<b>serverPort</b>&nbsp;&nbsp;<i>port-number</i>&nbsp;]]
+[&nbsp;<b>useServer</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;[&nbsp;<b>serverHost</b>&nbsp;&nbsp;<i>server-hostname</i>&nbsp;][&nbsp;<b>serverPort</b>&nbsp;&nbsp;<i>port-number</i>&nbsp;]]
 </blockquote>
 <p>
 <b>Biopolymer chains</b>.<br>
@@ -243,12 +244,12 @@ to match ones from the same organisms, the cached alignments can only be reused
 for assemblies with the exact same set of proteins.
 Alignments computed for individual proteins from multiple different runs
 cannot be used for an assembly of those proteins.
-</li><li><b>msaOnly</b> true|<b>false</b>
+</li><li><b>msaOnly</b> true | <b>false</b>
 <br>
-&ndash; whether to just calculate and cache the multiple sequence alignment 
-using the Colabfold server. This allows computing the MSA separately from the 
-structure. It can be useful to precompute and cache MSAs when running 
-structure predictions on a cluster that does not have internet access.
+&ndash; whether to just calculate and cache the multiple sequence alignment and templates using the Colabfold server.  This allows computing the MSA and templates separately from the structure.  It can be useful to precompute MSAs and templates when running structure predictions on a cluster which does not have internet access.  The MSAs and templates are placed in the run directory and the created json input file uses them.
+</li><li><b>zipArchive</b> true | <b>false</b>
+<br>
+&ndash; whether to make a zip archive from the run directory.  This is most often useful in combination with the msaOnly option to create input files necessary to run on another computer.
 </li><li><b>open</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 &ndash; whether to open the predicted structures when the prediction finishes
