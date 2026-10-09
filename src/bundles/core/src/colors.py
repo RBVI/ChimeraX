@@ -138,7 +138,7 @@ class Color(State):
             if limit:
                 clip(self.rgba, 0, 1, out=self.rgba)
         elif isinstance(rgba, Color):
-            self.rgba = rgba.rgba[:]    # copy
+            self.rgba = rgba.rgba.copy()
             if limit:
                 clip(self.rgba, 0, 1, out=self.rgba)
         elif isinstance(rgba, str):

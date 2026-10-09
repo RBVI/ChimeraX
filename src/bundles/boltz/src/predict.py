@@ -1070,6 +1070,9 @@ class BoltzRun:
                        ' The next time a Boltz prediction is run it will download the neural'
                        ' network weights and chemical components (5 Gbytes). That may take'
                        ' minutes to hours depending on your internet connection speed.')
+            elif 'tarfile.ReadError: file could not be opened successfully' in stderr:
+                msg = ('Boltz failed because the Colabfold MSA server returned an error.'
+                       ' Usually the MSA server works if the prediction is run again.')
             else:
                 if self._user_terminated:
                     msg = 'Prediction terminated by user'

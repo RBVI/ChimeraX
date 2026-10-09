@@ -26,9 +26,10 @@
 #
 from chimerax.core.settings import Settings
 
+from chimerax.core import desktop_path
 class _OpenFoldSettings(Settings):
     EXPLICIT_SAVE = {
-        'openfold_results_location': '~/Desktop/openfold/[name]',
+        'openfold_results_location': f'{desktop_path()}/openfold/[name]',
         'openfold_install_location': '',
         'device': 'default',	# default, cpu, or gpu
         'samples': 1,		# Number of predicted structures

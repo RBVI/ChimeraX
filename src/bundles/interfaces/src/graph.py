@@ -506,7 +506,7 @@ class Graph(Plot):
         return item
     
     def clicked_item(self, matplotlib_event):
-        if self._node_artist is None:
+        if self._node_artist is None or len(self._node_objects) == 0:
             return None
         e = matplotlib_event
         c,d = self._node_artist.contains(e)

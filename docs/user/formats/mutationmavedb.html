@@ -1,0 +1,108 @@
+<html lang="en"><!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
+
+<title>MaveDB</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
+
+<h3>Multiplexed Assays of Variant Effect Database</h3>
+
+<p>
+ChimeraX can fetch or open local files containing deep mutational scanning data
+from <a href="https://www.mavedb.org">MaveDB</a>, the Multiplexed Assays of Variant Effect Database,
+for visualization and analysis with the
+<a href="../tools/mutationscores.html"><b>Mutation Scores</b></a> tool and/or
+<a href="../commands/mutationscores.html"><b>mutationscores</b></a> command.
+</p>
+
+<p>
+  Data can be fetched using the MaveDB experiment set identifier, for example to open alpha-synuclein data
+  entry with identifier 45, use ChimeraX command
+</p>
+
+<pre>
+  open 45 from mavedb</pre>
+
+<p>
+  <a href="mutationcsv.html">Comma-separated values files (.csv) containing mutational scan data</a>
+  can also be downloaded from MaveDB
+  and opened in ChimeraX with the File / Open... menu or ChimeraX command
+</p>
+
+<pre>
+  open ~/Downloads/urn_mavedb_00001222-a-2_scores.csv</pre>
+
+<p>
+Opening a mutation scores data automatically shows the
+<a href="../tools/mutationscores.html"><b>Mutation Scores</b></a> tool allowing display of heatmaps, scatterplots,
+histograms, and coloring atomic structures.
+</p>
+
+<h3>Issues when viewing MaveDB data</h3> 
+
+<p>
+  The MaveDB database contains diverse data, only some of which can be visualized in ChimeraX.
+  Here are some of the current limitations.
+</p>
+
+<ol>
+  <li style="margin-bottom: 10px;"><b>Protein coding sequences</b>.
+    MaveDB contains mutational scans for protein coding DNA sequences and
+    also non-coding sequences such as enhancers or promoters.  ChimeraX currently only reads <i>protein variant</i>
+    <a href="https://hgvs-nomenclature.org/stable/recommendations/general/">HGVS</a> notation.
+    Opening entries for non-protein coding
+    sequences will give an error message saying that data is not supported.
+
+  <li style="margin-bottom: 10px;"><b>Nucleic acid variants</b>.
+    Some MaveDB entries for proteins specify the sequence variants only using
+    DNA HGVS notation.  This has advantages because specifying variants with protein HGVS notation cannot distinguish
+    between alternate DNA codons that result in the same amino acid mutation.  ChimeraX does not currently read
+    the nucleic acid HGVS so cannot display these MaveDB entries.  We hope to support this in the future.
+    One difficulty is the MaveDB entries do not always include the DNA sequence, necessary for converting
+    DNA variants to protein variants.  Instead they provide a <a href="https://hgvs-nomenclature.org/stable/background/refseq/">reference sequence identifier</a> (e.g. NM_004006.3) and it will be necessary for ChimeraX to be able
+    to query other databases to obtain those sequences.
+
+  <li style="margin-bottom: 10px;"><b>Synonymous mutations</b>.
+    Synonymous mutations are non-wildtype DNA codons that code for the same
+    wildtype amino acid.  While these don't change the protein sequence they can effect protein expression levels
+    and hence activity assay scores.
+    Some MaveDB entries include protein and DNA HGVS notations but the protein descriptors don't include the
+    synonymous mutations while the DNA descriptors do include them.  ChimeraX expects to see protein HGVS that
+    includes synonymous mutations (e.g. p.(Ala123Ala) or p.(Ala123=)).  Some MaveDB entries
+    contain protein variants p.= meaning no change to amino acid sequence, while the DNA variant will indicate
+    the synonymous change.  Since ChimeraX only currently reads the protein variant notation it does not know
+    which residue has the synonymous mutation.  Opening such data files may produce a warning, but also in cases
+    produces no warning, for instance when the DNA variant indicates a synonymous and a non-synonymous mutant
+    and the protein notation indicates only the non-synonymous mutation, ChimeraX will incorrectly conclude
+    this is a single position mutant.
+
+  <li style="margin-bottom: 10px;"><b>Long score names</b>.
+    MaveDB entries often have multiple assays that are given identifiers
+    a-1, a-2, ..., b-1, b-2, .... Since these identifiers convey no information about what was assayed
+    ChimeraX instead displays the database score titles to name the different assays.  These titles
+    can be long (e.g. "Deep Mutational Scanning of alpha-Synuclein based on Toxicity in Yeast Treated with Brefeldin A")
+    which make them harder to see in the ChimeraX visualization control panels where limited screen space
+    is available to show the names.  Unfortunately MaveDB does not currently have short descriptive names
+    for the different assays of an entry.  We plan to allow renaming the scores in ChimeraX to work around this
+    problem.
+</ol>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / July 2026</address>
+
+</body></html>

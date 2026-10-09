@@ -98,6 +98,7 @@ class UI(QApplication):
         self._fatal_error_log_file = None
         self._force_float_count = 0
         self.session = session
+        self.color_scheme = None
 
         from .settings import UI_Settings
         self.settings = UI_Settings(session, "ui")
@@ -125,25 +126,8 @@ class UI(QApplication):
         from Qt.QtCore import Qt
         if sys.platform == 'win32':
             self.setStyle('Fusion')
-        self.fixed_color_scheme = color_scheme
-        if color_scheme is None:
-            if self.styleHints().colorScheme() == Qt.ColorScheme.Dark:
-                color_scheme = 'dark'
-            else:
-                color_scheme = 'light'
-            self.styleHints().colorSchemeChanged.connect(self._update_color_scheme)
-        elif color_scheme == 'dark':
-            self.styleHints().setColorScheme(Qt.ColorScheme.Dark)
-            if self.styleHints().colorScheme() != Qt.ColorScheme.Dark:
-                self.session.logger.warning("Unable to set dark mode")
-                color_scheme = 'light'
-        else:
-            self.styleHints().setColorScheme(Qt.ColorScheme.Light)
-        from sys import platform
-        if platform == 'linux':
-            self._set_linux_palette(color_scheme)
-        self.color_scheme = color_scheme
-        set_default_color_scheme(self.color_scheme)
+        self.set_color_scheme(color_scheme, first_time=True)
+        self.styleHints().colorSchemeChanged.connect(self._update_color_scheme)
 
         self._keystroke_sinks = []
         self._key_callbacks = {}	# Maps Qt key number to callback func(session, key_num).
@@ -224,7 +208,7 @@ class UI(QApplication):
                 self._set_linux_palette(new_scheme)
             sbar = self.main_window._status_bar
             sbar.set_colors()
-            msg = f"Desktop color scheme is {new_scheme}"
+            msg = f'Window color scheme is now "{new_scheme}"'
             self.session.logger.status(msg)
             print(msg)  # cause log to redraw with new color scheme
             if hasattr(self.main_window, 'fh'):
@@ -234,6 +218,31 @@ class UI(QApplication):
                 # HTML widgets need to wait
                 self.thread_safe(fh.update_html, post_event=True)
             self.thread_safe(self.triggers.activate_trigger, 'color scheme changed', None, post_event=True)
+
+    def set_color_scheme(self, color_scheme, first_time=False):
+        if color_scheme == "system":
+            color_scheme = None
+        if color_scheme is None:
+            self.color_scheme = None
+            self.styleHints().setColorScheme(Qt.ColorScheme.Unknown)
+            if self.styleHints().colorScheme() == Qt.ColorScheme.Dark:
+                color_scheme = 'dark'
+            else:
+                color_scheme = 'light'
+        else:
+            if color_scheme == 'light':
+                self.styleHints().setColorScheme(Qt.ColorScheme.Light)
+            else:
+                self.styleHints().setColorScheme(Qt.ColorScheme.Dark)
+                if self.styleHints().colorScheme() != Qt.ColorScheme.Dark:
+                    self.session.logger.warning("Unable to set dark mode")
+                    color_scheme = 'light'
+        from sys import platform
+        if platform == 'linux':
+            self._set_linux_palette(color_scheme)
+        self.color_scheme = color_scheme
+        set_default_color_scheme(self.color_scheme)
+
 
     def _screen_added(self):
         self._block_redraw_during_screen_change()
@@ -290,6 +299,7 @@ class UI(QApplication):
                     'Path override failed for key base::DIR_APP_DICTIONARIES',  # Qt 6.6.3
                     'Already setting window visible!', # Qt 6.6.3
                     'Compositor returned null texture', # Qt 6.6.3
+                    'GBM is not supported', # Qt 6.10.2
                     )):
                 return	# Supress Qt warnings
             if 'QWindowsWindow::setDarkBorderToWindow' in msg_string:
@@ -379,10 +389,22 @@ class UI(QApplication):
                 # So remember file and startup script will open it when ready.
                 self._files_to_open.append(event.file())
             else:
-                try:
-                    _open_dropped_file(self.session, event.file())
-                except Exception as e:
-                    self.session.logger.warning('Failed opening file %s:\n%s' % (event.file(), str(e)))
+                # it seems that modern versions of MacOS prepend the current directory to the
+                # QFileOpenEvent's file() value for files opening from the command line, so check
+                # for that
+                import os
+                cwd = os.getcwd() + os.sep
+                in_bad_drop_events = False
+                if event.file().startswith(cwd):
+                    rem = event.file()[len(cwd):]
+                    if rem in self._bad_drop_events:
+                        self._bad_drop_events.remove(rem)
+                        in_bad_drop_events = True
+                if not in_bad_drop_events:
+                    try:
+                        _open_dropped_file(self.session, event.file())
+                    except Exception as e:
+                        self.session.logger.warning('Failed opening file %s:\n%s' % (event.file(), str(e)))
             return True
         return QApplication.event(self, event)
 
@@ -2510,6 +2532,12 @@ class ToolWindow(StatusLogger):
         # for the Python Shell retaining focus.
         from Qt.QtWidgets import QLineEdit, QComboBox, QAbstractSpinBox
         if self.tool_instance.tool_name == "Help Viewer":
+            return
+
+        # *Some* HtmlToolInstances let Shift (maybe others) escape, which switches focus to the
+        # command line [#20934], so don't forward from them
+        from .htmltool import HtmlToolInstance
+        if isinstance(self.tool_instance, HtmlToolInstance):
             return
 
         if isinstance(self.ui_area.focusWidget(), (QLineEdit, QComboBox, QAbstractSpinBox)):

@@ -85,7 +85,7 @@ class DistanceMatrix:
         mm = m[1:,1:]
 
         # Embed into lower dimension
-        evals, evecs = linalg.eig(mm)
+        evals, evecs = linalg.eigh(mm)
         L = numpy.zeros_like(mm)
         from chimerax.core.errors import LimitationError
         try:

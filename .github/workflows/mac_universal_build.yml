@@ -72,16 +72,16 @@ jobs:
       - name: Put the URLs of the ChimeraXes in GitHub's environment
         if: ${{ inputs.release_type != 'production' }}
         run: |
-          export CHIMERAX_AMD64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=macosx&build_type=${{ inputs.release_type }}&architecture=x86_64"
-          export CHIMERAX_ARM64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=mac_arm64&build_type=${{ inputs.release_type }}&architecture=arm64"
+          export CHIMERAX_AMD64_URL="https://rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=macosx&build_type=${{ inputs.release_type }}&architecture=x86_64"
+          export CHIMERAX_ARM64_URL="https://rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=mac_arm64&build_type=${{ inputs.release_type }}&architecture=arm64"
           echo "CHIMERAX_AMD64_URL=$CHIMERAX_AMD64_URL" >> $GITHUB_ENV
           echo "CHIMERAX_ARM64_URL=$CHIMERAX_ARM64_URL" >> $GITHUB_ENV
 
       - name: Put the URLs of the ChimeraXes in GitHub's environment (production)
         if: ${{ inputs.release_type == 'production' }}
         run: |
-          export CHIMERAX_AMD64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=macosx&build_type=${{ inputs.release_type }}&architecture=x86_64&version=$BUILD_VERSION"
-          export CHIMERAX_ARM64_URL="https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=mac_arm64&build_type=${{ inputs.release_type }}&architecture=arm64&version=$BUILD_VERSION"
+          export CHIMERAX_AMD64_URL="https://rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=macosx&build_type=${{ inputs.release_type }}&architecture=x86_64&version=$BUILD_VERSION"
+          export CHIMERAX_ARM64_URL="https://rbvi.ucsf.edu/chimerax/cgi-bin/get_cx_action.py?platform=mac_arm64&build_type=${{ inputs.release_type }}&architecture=arm64&version=$BUILD_VERSION"
           echo "CHIMERAX_AMD64_URL=$CHIMERAX_AMD64_URL" >> $GITHUB_ENV
           echo "CHIMERAX_ARM64_URL=$CHIMERAX_ARM64_URL" >> $GITHUB_ENV
 
@@ -291,7 +291,7 @@ jobs:
           # GitHub Actions couldn't contact Plato.
           max_attempts: 1000
           timeout_minutes: 60
-          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$COMMIT_HASH" -F "date=$COMMIT_DATE" -F "platform=mac_universal" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/ChimeraX.dmg" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "commit=$COMMIT_HASH" -F "date=$COMMIT_DATE" -F "platform=mac_universal" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/ChimeraX.dmg" https://rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
       - name: Put release version in the environment
         if: ${{ inputs.release_type == 'candidate' || inputs.release_type == 'production' }}
         run: |
@@ -305,7 +305,7 @@ jobs:
           # GitHub Actions couldn't contact Plato.
           max_attempts: 1000
           timeout_minutes: 60
-          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "version=$BUILD_VERSION" -F "commit=$COMMIT_HASH" -F "date=$COMMIT_DATE" -F "platform=mac_universal" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/ChimeraX.dmg" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "version=$BUILD_VERSION" -F "commit=$COMMIT_HASH" -F "date=$COMMIT_DATE" -F "platform=mac_universal" -F "build_type=${{ inputs.release_type }}" -F "file=@$GITHUB_WORKSPACE/ChimeraX.dmg" https://rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
       - name: Upload ChimeraX (Production)
         if: ${{ inputs.release_type == 'production' }}
         uses: nick-fields/retry@v4
@@ -314,4 +314,4 @@ jobs:
           # GitHub Actions couldn't contact Plato.
           max_attempts: 1000
           timeout_minutes: 60
-          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "version=$BUILD_VERSION" -F "commit=$COMMIT_HASH" -F "date=$COMMIT_DATE" -F "platform=mac_universal" -F "build_type=production" -F "file=@$GITHUB_WORKSPACE/ChimeraX.dmg" https://preview.rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py
+          command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "version=$BUILD_VERSION" -F "commit=$COMMIT_HASH" -F "date=$COMMIT_DATE" -F "platform=mac_universal" -F "build_type=production" -F "file=@$GITHUB_WORKSPACE/ChimeraX.dmg" https://rbvi.ucsf.edu/chimerax/cgi-bin/upload_build.py

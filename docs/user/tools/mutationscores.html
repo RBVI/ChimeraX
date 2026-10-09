@@ -76,6 +76,10 @@ structure</b></a>.
 [<a href="#top">back to top: Mutation Scores</a>]
 </p>
 <h3>Mutation Scores Dialog</h3>
+<table class="clRight">
+<tbody><tr><td><img border="1" src="mutationscores.png" alt="mutation scores" width="450px">
+</td></tr>
+</tbody></table>
 <p>
 Opening a 
 <a href="../formats/mutationcsv.html">mutation scores file</a>
@@ -99,6 +103,13 @@ are chosen) as a <a href="#scatterplot">scatterplot</a>
 &ndash; plot the first score as a <a href="#histogram">histogram</a>
 </li><li><b>Color structure</b>
 &ndash; show the <a href="#coloring">Mutation Structure Coloring</a> dialog
+</li><li><b>AlphaFold structure</b>
+&ndash; fetch an AlphaFold Database predicted structure using the <a href="../commands/mutationscores.html#alphafold">mutationscores alphafold</a> command
+</li><li><b>Associate structures</b>
+&ndash; show panel to <a href="#associate">associate atomic structures</a> with mutation data
+to allow coloring structures
+</li><li><b>Save .csv</b>
+&ndash; <a href="#save">Save selected scores</a> to a .csv file
 </li><li><b>Close data</b>
 &ndash; close the mutation set
 </li><li><b>Help</b> &ndash; show documentation in the
@@ -137,13 +148,26 @@ to use; currently, a single heatmap cannot include scores from more than one
 </li><li><b>Score names</b> &ndash; which scores to include, entered directly
 as a comma-separated list of score names, or by clicking <b>Choose</b>
 and using the checkboxes in the resulting dialog
-</li><li><b>Amino acid order</b>
+</li>
+<li><b>Amino acid order</b> (default <b>on</b>)
 &ndash; top-to-bottom order of amino acid types along the vertical axis,
 entered as an uppercase string of amino acid 1-letter codes 
 (the default <b>HRKDEFWYNQILCSTVMAGP</b> groups chemically similar types);
 all 20 standard types may be included, or a subset to limit the plot to
-only those types
-</li><li><b>Group by</b> &ndash; if more than one kind of score is included,
+only those types.  If the checkbutton is off then no amino acid rows are shown.
+</li>
+<li><b>Deletions, insertions, stop codons</b> (default <b>off</b>)
+&ndash; comma-separated list of modifications such as <i>del1</i>, <i>del2</i>, <i>del3</i>
+for 1, 2 or 3 consecutive residue deletions, <i>insG</i>, <i>insGS</i>, <i>insGSA</i>
+for insertions of glycine (G) or glycine-serine (GS) or glycine-serine-alanine (GSA), and <i>stop</i>
+for residues that are replaced by stop codons.  Each name will get a new row in the heatmap.
+Scores for one or more consecutive deletions are mapped to the first deleted residue
+and scores for insertions of one or more amino acids are mapped to the immediately
+proceeding residue in the heatmap.  The <b>All</b> button lists the 10 most commonly
+occuring modifications in the mutation data.  Modifications are only shown in
+the heatmap if the checkbutton is enabled.
+</li>
+<li><b>Group by</b> &ndash; if more than one kind of score is included,
 group vertically by <b>amino acid</b> type or by <b>score name</b> (default)
 with black horizontal lines between the different scores
 </li><li><b>Label every residue</b> (default <b>off</b>)
@@ -382,7 +406,9 @@ The <b>Mutation Structure Coloring</b> dialog can be shown by:
 in the <a href="#dialog"><b>Mutation Scores</b></a> tool
 </li><li>choosing <b>Show structure coloring panel</b>
 from the <a href="#scatterplot">scatterplot context menu</a>.
-</li></ul>
+</li>
+</ul>
+
 <p>
 In this dialog, clicking <b>Color structures</b> colors any
 <a href="#associated">associated structures</a>
@@ -395,7 +421,11 @@ An <a href="../attributes.html">attribute</a> named <b>mutation_score</b>
 is assigned to the <a href="#associated">associated structure</a> residues.
 If the coloring is subsequently <a href="#previous-colorings">named/saved</a>,
 the attribute name is changed to match the name of the score.
-</p><p>
+</p>
+
+<h3>Defining residue scores for coloring</h3>
+
+<p>
 <table class="clRight">
 <tbody><tr><td><img border="1" src="ranges.png" alt="define ranges dialog" 
 width="400px">
@@ -410,7 +440,9 @@ a <b>filter mutations</b> setting of <b>all</b> mutations
 shown in the <a href="#scatterplot">scatterplot</a>), or <b>define ranges...</b>
 to choose only specific ranges of one or more scores
 in the <b>Mutation Score Ranges</b> dialog.
-</p><p>
+</p>
+
+<p>
 For example, in the image of the <b>Mutation Score Ranges</b> dialog on the 
 right, only mutations with <b>dox</b> and <b>mtx</b> greater than 2 standard 
 deviations from the mean would be included. A name for the range set 
@@ -423,9 +455,12 @@ would be included instead. Both <b>low</b> and <b>high</b> can be checked
 for the same score to limit it at both extremes; in that case, the
 threshold values should be adjusted from the defaults so that the lower
 limit is below the upper limit.
-</p><p>
+</p>
+
+<p>
 The single value per position can be computed as one of:
 </p>
+
 <ul>
 <li><b>mean</b> &ndash; average of values
 </li><li><b>count</b> &ndash; how many different mutations are being used
@@ -435,7 +470,20 @@ The single value per position can be computed as one of:
 </li><li><b>max</b>
 </li><li><b>median</b>
 </li><li><b>stddev</b> &ndash; standard deviation
-</li></ul>
+</li>
+</ul>
+
+<p>
+The <b>filter mutations</b> menu may also include entries for modifications such as
+<b>del1</b>, <b>del2</b>, <b>del3</b>
+for 1, 2 or 3 consecutive residue deletions, <b>insG</b>, <b>insGS</b>, <b>insGSA</b>
+for insertions of glycine (G) or glycine-serine (GS) or glycine-serine-alanine (GSA), and <b>stop</b>
+for residues that are replaced by stop codons.  Choosing one of these types of modifications
+uses only scores for that type of sequence variant in the structure coloring.
+</p>
+
+<h3>Specifying color palettes and score thresholds</h3>
+
 <p>
 Choices of <b>palette</b> for coloring by mutation scores include:
 </p>
@@ -466,7 +514,11 @@ for four-color palettes</li>
 Clicking <b>Adjust colors</b> shows the
 <a href="render.html"><b>Render by Attribute</b></a> tool
 for interactively moving the thresholds and/or changing their colors.
-</p><p>
+</p>
+
+<h3>Naming structure colorings</h3>
+
+<p>
 <a name="previous-colorings"></a>
 Clicking <b>Name</b> saves the current <b>coloring</b> settings to
 the specified name. Subsequently clicking
@@ -484,6 +536,70 @@ to a comma-separated values file with fields:
 residue number, residue type, score1-name, score2-name, ...
 </li><li><b>Delete</b> one or more chosen colorings
 </ul>
+
+<a name="associate"></a>
+<p class="nav">
+[<a href="#top">back to top: Mutation Scores</a>]
+</p>
+<h3>Associate Structures</h3>
+
+<table class="clRight">
+<tbody><tr><td><img border="1" src="mut_assoc_structures.png" 
+alt="mutation structure association dialog" width="450px">
+</td></tr>
+</tbody></table>
+
+<p>
+The <b>Associate Structures with Mutation Data</b> dialog allows associating or
+unassociating atomic structures with mutation data.
+The dialog table lists all open structure chains.  Select lines of the
+table and click the Associate or Unassociate button to set associated structures
+that will be used for coloring by mutation data.
+</p>
+
+<p>
+Structure chains that exactly match the sequence of mutation data are automatically associated when
+a structure is opened.  Structures where the sequence is not identical are associated
+by computing an alignment using the <b>alignSequences true</b> option of the
+<a href="../commands/mutationscores.html#structure">mutationscores structure</a> command.
+The number of sequence positions in the structure that match or do not match the mutation data
+are reported in the table when an association is made.
+</p>
+
+<table class="clRight">
+<tbody><tr><td><img border="1" src="mut_seqalign.png" 
+alt="mutation structure sequence alignment" width="450px">
+</td></tr>
+</tbody></table>
+
+<p>
+The <b>Show Alignment</b> button shows sequence alignments for the selected table rows for
+associated structures.  A sequence alignment is shown with the first sequence being the mutation data
+wild type sequence, and the second sequence being that of the atomic structure.  Positions highlighted
+in red show mismatches.  Positions highlighted in yellow are locations with no mutation data (one letter
+code X).
+Click on any red position in the alignment to select all the mismatched
+residues in the structure.  Or drag a box around any sequence position or region to select the
+corresponding residues in the structure.  Sequence regions with a black outline indicate residues
+not present in the atomic structure.
+</p>
+
+<a name="save"></a>
+<p class="nav">
+[<a href="#top">back to top: Mutation Scores</a>]
+</p>
+<h3>Save Mutation Scores</h3>
+
+<p>
+The <b>Save .csv</b> button on the Mutation Scores panel saves the scores selected from
+the panel list in a comma-separated-values file.  A file browser will be displayed to choose the
+location for saving the file.  Scores from multiple mutation sets can
+be saved to a single file provided the wild-type sequences match and the score names are unique.
+If a mutation set line is selected all scores from that set are saved, and if individual
+score lines in the panel are selected but not the mutation set line then just those selected
+scores are saved.  Scores can also be saved using the
+<a href="../commands/save.html#mutations">save command</a>.
+</p>
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 

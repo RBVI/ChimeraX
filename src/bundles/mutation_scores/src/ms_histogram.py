@@ -63,9 +63,11 @@ class MutationHistogram(Graph):
         # Add score and mutation set menus.
         from chimerax.ui.widgets import EntriesRow
         menus = EntriesRow(parent, ' Score', ('score1', 'score2'), 'Mutations', ('set1', 'set2'))
-        self._score_menu, self._mutation_set_menu = menus.values
+        self._score_menu, self._mutation_set_menu = sm, msm = menus.values
+        sm.shorten_text('middle', 200)
+        msm.shorten_text('middle', 200)
         self._mutation_set_menu_label = menus.labels[1]
-        for m in menus.values:
+        for m in (sm, msm):
             menu = m.widget.menu()
             menu.aboutToShow.connect(lambda menu=menu: self._menu_about_to_show(menu))
             menu.triggered.connect(self._menu_selection_changed)
@@ -120,8 +122,9 @@ class MutationHistogram(Graph):
         self._mutation_set_menu.value = self.mutation_set_name = mset.name
         self._set_mutation_set_menu_visibility()
 
-        values = [value for res_num, from_aa, to_aa, value in score_values.all_values()]
-        syn_values = [value for res_num, from_aa, to_aa, value in score_values.all_values() if to_aa == from_aa]
+        values = [value for variant, value in score_values.all_values()]
+        syn_values = [value for variant, value in score_values.all_values()
+                      if variant.to_aa == variant.from_aa]
 
         self._set_values(values, title=mset.name, x_label=score_name, bins=bins, yscale=scale,
                          smooth_curve=curve, smooth_width=smooth_width, smooth_bins=smooth_bins,
@@ -177,8 +180,8 @@ class MutationHistogram(Graph):
             return
         score_name = self._score_menu.value
         score_values = mset.score_values(score_name)
-        res_nums = set([res_num for res_num, from_aa, to_aa, value in score_values.all_values()
-                        if value >= xmin and value <= xmax])
+        res_nums = set([variant.residue_number for variant, value in score_values.all_values()
+                        if variant.residue_number is not None and value >= xmin and value <= xmax])
         res, rnums = mset.associated_residues(res_nums)
 
         if len(res) > 0:
@@ -331,10 +334,13 @@ def gaussian_histogram(values, sdev = None, pad = 5, bins = 256):
     x = 0.5 * (bin_edges[1:] + bin_edges[:-1])
     return x, y
 
-def _find_mutation_histogram(session, mutation_set_name):
+def _find_mutation_histogram(session, mutation_set_name, show = True):
     hists = [tool for tool in session.tools.list()
              if isinstance(tool, MutationHistogram) and (mutation_set_name is None or tool.mutation_set_name == mutation_set_name)]
-    return hists[-1] if hists else None
+    h = hists[-1] if hists else None
+    if show and h:
+        h.display(True)
+    return h
 
 def register_command(logger):
     from chimerax.core.commands import CmdDesc, register, StringArg, BoolArg, FloatArg, IntArg, EnumOf

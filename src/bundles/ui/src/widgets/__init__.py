@@ -24,7 +24,7 @@ from .composite import EntriesRow, CollapsiblePanel, ModelMenu
 from .disclosure import DisclosureArea
 from .histogram import MarkedHistogram
 from .item_chooser import ModelListWidget, ModelMenuButton, ItemListWidget, ItemMenuButton
-from .item_table import ItemTable
+from .item_table import ItemTable, get_csv_info
 from .job_dialog import LongJobDialog
 from .palette_chooser import PaletteChooser
 from .slider import Slider, LogSlider, FloatSlider

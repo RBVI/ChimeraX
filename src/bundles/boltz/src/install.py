@@ -24,6 +24,8 @@
 
 def boltz_install(session, directory = None, download_model_weights_and_ccd = True,
                   branch = 'chimerax_boltz22', wait = None):
+    _check_if_operating_system_supported()
+
     if directory is None:
         from os.path import expanduser
         directory = expanduser('~/boltz22')
@@ -36,11 +38,6 @@ def boltz_install(session, directory = None, download_model_weights_and_ccd = Tr
             from chimerax.core.errors import UserError
             raise UserError(f'You must install Boltz into a new or empty directory.  The directory {directory} already exists and is not empty.')
 
-    import platform
-    if platform.system() == 'Darwin' and platform.machine() == 'x86_64':
-        from chimerax.core.errors import UserError
-        raise UserError('Boltz requires newer Torch versions that are not available on Intel Macs.')
-
     if wait is None:
         wait = False if session.ui.is_gui else True
 
@@ -48,6 +45,34 @@ def boltz_install(session, directory = None, download_model_weights_and_ccd = Tr
                       branch = branch, wait = wait)
     return ib
             
+# ------------------------------------------------------------------------------
+#
+def _check_if_operating_system_supported():
+    import platform
+    if platform.system() == 'Darwin' and platform.machine() == 'x86_64':
+        from chimerax.core.errors import UserError
+        raise UserError('Boltz cannot be installed on Intel Macs.  Boltz requires newer Torch versions that are not available on Intel Macs.')
+
+    if _is_windows_10_or_older():
+        from chimerax.core.errors import UserError
+        raise UserError('Boltz cannot be installed on Windows 10 or older versions of Windows.  Boltz attempts to write chemical component files such as AUX.pkl and PRN.pkl which cannot be created on Windows 10 because AUX and PRN were reserved special devices in MSDOS in the 1980s.  Windows 11 allows creating the needed files.')
+
+# ------------------------------------------------------------------------------
+#
+def _is_windows_10_or_older():
+    from sys import platform
+    if platform == 'win32':
+        import winreg
+        registry_path = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+        try:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, registry_path, 0, winreg.KEY_READ) as key:
+                build_number = int(winreg.QueryValueEx(key, "CurrentBuild")[0])
+                if build_number < 22000:
+                    return True
+        except Exception:
+            pass
+    return False
+
 # ------------------------------------------------------------------------------
 #
 class InstallBoltz:
@@ -157,7 +182,7 @@ class InstallBoltz:
     # ------------------------------------------------------------------------------
     #
     def _install_boltz(self):
-        if self._need_cuda_torch_on_windows():
+        if self._need_cuda_torch():
             # The standard PyPi torch is cpu only, so get cuda-enabled torch from pytorch.org.
             self._pip_install_cuda_torch()
         else:
@@ -165,7 +190,7 @@ class InstallBoltz:
 
     # ------------------------------------------------------------------------------
     #
-    def _need_cuda_torch_on_windows(self):
+    def _need_cuda_torch(self):
         return have_nvidia_driver()
 
     # ------------------------------------------------------------------------------

@@ -444,7 +444,8 @@ class OrthoView(Model):
     def save_box_volume(self):
         v = self._create_box_volume()
         from chimerax.shortcuts.shortcuts import unused_file_name
-        path = unused_file_name('~/Desktop', 'particle', '.mrc')
+        from chimerax.core import desktop_path
+        path = unused_file_name(desktop_path(), 'particle', '.mrc')
         from chimerax.core.commands import run
         run(self.session, f'save {path} model #{v.id_string}')
 

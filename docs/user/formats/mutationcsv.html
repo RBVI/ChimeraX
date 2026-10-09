@@ -20,6 +20,7 @@ or derivations thereof.
 <img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
 
 <h3>Mutation Scores Format</h3>
+
 <p>
 ChimeraX can read the results of deep mutational scanning
 from a <b><i>mutation scores file</i></b>
@@ -27,9 +28,11 @@ from a <b><i>mutation scores file</i></b>
 for visualization and analysis with the
 <a href="../tools/mutationscores.html"><b>Mutation Scores</b></a> tool and/or
 <a href="../commands/mutationscores.html"><b>mutationscores</b></a> command.
-For example, .csv files downloaded from
+For example, .csv files downloaded or <a href="../commands/mutationscores.html#sources">fetched</a> from
 <a href="https://www.mavedb.org/" target="_blank">MaveDB</a> can be opened.
-</p><p>
+</p>
+
+<p>
 Deep mutational scanning generally involves mutating each position in a
 protein to all 20 standard amino acids and evaluating the large number
 of mutants with various high-throughput assays.
@@ -37,43 +40,41 @@ The assay scores are tabulated in the file as comma-separated values.
 The first line of the file gives the names of the columns, and subsequent 
 lines give the values, for example:
 </p>
+
 <pre>variants,wildtype,position,mutation,type,surface,surface_se,abundance,abundance_se,dox,dox_se,mtx,mtx_se,sn38,sn38_se
 p.(V6A),V,6,A,missense,0.052806582,0.311071605,0.095010571,0.391069124,-0.549746993,0.43742939,0.253708238,0.317841138,-0.373043663,0.444088911
 p.(V6C),V,6,C,missense,0.132574054,0.300261964,0.129538083,0.371928707,-0.012776432,0.376829305,-0.005007274,0.220479589,0.447843883,0.270068523
 [...]
 </pre>
+
 <p>
 The name of the column describing the mutation should be
 <b>hgvs</b>, <b>hgvs_pro</b>, or <b>variants</b>,
-and the column entries should use either
-amino acid 3-letter codes with the first letter capitalized (as
+and the column entries use protein
+<a href="https://hgvs-nomenclature.org/stable/recommendations/general/">HGVS syntax</a>
+with either amino acid 3-letter codes with the first letter capitalized (as
 <a href="https://hgvs-nomenclature.org/stable/recommendations/protein/substitution/" target="_blank">recommended</a>
 by the <a href="https://hgvs-nomenclature.org/stable/" 
 target="_blank">Human Genome Variation Society</a>) 
 or capitalized 1-letter codes.
 For example, a mutation of tyrosine 392 to alanine could be given as:
 </p>
+
 <blockquote>
 p.(Tyr392Ala)
 <br>&ndash; or &ndash;<br>
 p.(Y392A)
 </blockquote>
+
 <p>
-Rows describing deletions, insertions and multi-residue mutations are ignored.
-</p><p>
+Rows describing deletions, insertions, stop codons and multi-residue mutations are can also be specified.
+ChimeraX does not currently offer ways to visualize multi-residue mutations except for one or more consecutive
+residue deletions or insertions of multiple residues at one position.
+</p>
+
+<p>
 Opening a mutation scores file automatically shows the
 <a href="../tools/mutationscores.html"><b>Mutation Scores</b></a> tool.
-</p><p>
-By default, mutation scores are automatically associated with each
-open structure chain that has exactly the same sequence and residue
-numbering (as in the mutation data) the first time some analysis action
-is performed, such as interacting with a plot.
-However, specific structure chains to associate can be designated with the
-<a href="../commands/open.html#chains"><b>chains</b></a> option of the
-<a href="../commands/open.html"><b>open</b></a> command
-at the time of opening the mutation data, or later (after opening the data) 
-with <a href="../commands/mutationscores.html#structure"><b>mutationscores
-structure</b></a>.
 </p>
 
 <hr>

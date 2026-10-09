@@ -23,7 +23,7 @@
 # === UCSF ChimeraX Copyright ===
 
 def measure_sasa(session, atoms = None, probe_radius = 1.4, sum = None,
-                 set_attribute = True):
+                 set_attribute = True, precision = 5):
     '''
     Compute solvent accessible surface area.
 
@@ -52,14 +52,16 @@ def measure_sasa(session, atoms = None, probe_radius = 1.4, sum = None,
     # Report results
     area = areas.sum()
     aname = f'{atoms.spec} ({len(atoms)} atoms)' if hasattr(atoms, 'spec') else f'{len(atoms)} atoms'
-    msg = 'Solvent accessible area for %s = %.5g' % (aname, area)
+    avalue = f'%.{precision}g' % area
+    msg = f'Solvent accessible area for {aname} = {avalue}'
     log = session.logger
     log.info(msg)
     if sum is not None:
         a = areas[atoms.mask(sum)]
         sarea = a.sum()
         sname = f'{sum.spec} ({len(sum)} atoms)' if hasattr(sum, 'spec') else f'{len(sum)} atoms'
-        msg = ('Solvent accessible area for %s of %s = %.5g' % (sname, aname, sarea))
+        savalue = f'%.{precision}g' % sarea
+        msg = f'Solvent accessible area for {sname} of {aname} = {savalue}'
         log.info(msg)
     log.status(msg)
 
@@ -80,12 +82,13 @@ def set_area_attributes(atoms, areas):
         Residue.register_attr(session, "area", "Measure SASA", attr_type=float)
     
 def register_command(logger):
-    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg
+    from chimerax.core.commands import CmdDesc, register, FloatArg, BoolArg, IntArg
     from chimerax.atomic import AtomsArg
     _sasa_desc = CmdDesc(
         optional = [('atoms', AtomsArg)],
         keyword = [('probe_radius', FloatArg),
                    ('sum', AtomsArg),
-                   ('set_attribute', BoolArg)],
+                   ('set_attribute', BoolArg),
+                   ('precision', IntArg)],
         synopsis = 'compute solvent accessible surface area')
     register('measure sasa', _sasa_desc, measure_sasa, logger=logger)

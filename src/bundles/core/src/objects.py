@@ -226,11 +226,17 @@ class Objects:
         return u
 
     @staticmethod
-    def intersect(left, right):
-        u = Objects(models = (left._models & right._models),
-                    atoms = (right.atoms & left.atoms),
-                    bonds = (right.bonds & left.bonds),
-                    pseudobonds = (right.pseudobonds & left.pseudobonds))
+    def intersect(left, right, *, ordered=False):
+        if ordered:
+            u = Objects(models = (left._models & right._models),
+                        atoms = left.atoms.ordered_intersect(right.atoms),
+                        bonds = left.bonds.ordered_intersect(right.bonds),
+                        pseudobonds = left.pseudobonds.ordered_intersect(right.pseudobonds))
+        else:
+            u = Objects(models = (left._models & right._models),
+                        atoms = (right.atoms & left.atoms),
+                        bonds = (right.bonds & left.bonds),
+                        pseudobonds = (right.pseudobonds & left.pseudobonds))
         lmi, rmi = left.model_instances, right.model_instances
         from numpy import logical_and
         for m in lmi.keys():

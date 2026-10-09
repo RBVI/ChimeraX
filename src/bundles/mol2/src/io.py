@@ -190,7 +190,8 @@ def write_mol2(session, file_name, *, models=None, atoms=None, status=None, anch
             else:
                 structures = [m for m in models if isinstance(m, Structure)]
         else:
-            raise ValueError("Cannot specify both 'models' and 'atoms' keywords")
+            from chimerax.core.errors import UserError
+            raise UserError("Cannot specify both 'models' and 'atoms' keywords")
 
     if isinstance(structures, Atoms):
         class Jumbo:

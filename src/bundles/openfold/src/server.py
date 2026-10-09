@@ -278,6 +278,10 @@ def predict_on_server(run_dir, host = None, port = 30173):
     except ConnectionRefusedError:
         from chimerax.core.errors import UserError
         raise UserError(f'Could not connect to {host}:{port}, connection refused')
+    except Exception as e:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Could not send job to {host}:{port}. {str(e)}')
+        
     if msg.startswith(b'Job id: '):
         job_id = msg[8:].decode('utf-8')
         print(f'Server {host}:{port} queued job {job_id}')

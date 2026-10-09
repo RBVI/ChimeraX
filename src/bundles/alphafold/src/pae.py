@@ -1041,7 +1041,7 @@ class AlphaFoldPAE:
         if self._row_residues_or_atoms is not None:
             if s.num_atoms != self._num_atoms or s.num_residues != self._num_residues:
                 # If user deletes some residues or atoms remove them from row list.
-                self._row_residues_or_atoms = tuple((None if ra.deleted else ra)
+                self._row_residues_or_atoms = tuple((None if ra is None or ra.deleted else ra)
                                                     for ra in self._row_residues_or_atoms)
                 self._num_atoms = s.num_atoms
                 self._num_residues = s.num_residues
@@ -1111,7 +1111,7 @@ class AlphaFoldPAE:
     #
     def residues_or_atoms_deleted(self):
         for ra in self.row_residues_or_atoms():
-            if ra.deleted:
+            if ra is None or ra.deleted:
                 return True
         return False
     
@@ -1215,7 +1215,7 @@ def per_residue_pae(r, pae_source = None):
     ptype = r.polymer_type
     if pae_source == 'boltz' and ptype in (r.PT_PROTEIN, r.PT_NUCLEIC):
         return True  # Boltz as per-residue PAE even for modified residues.
-    if ptype == r.PT_PROTEIN and r.name == r.standard_aa_name:
+    if ptype == r.PT_PROTEIN and (r.name == r.standard_aa_name or r.name == 'UNK'):
         return True
     if ptype == r.PT_NUCLEIC and r.name in ('A','C','G','U','DA','DC','DG','DT'):
         return True
@@ -1316,6 +1316,8 @@ def read_numpy_pae_matrix(path):
     if path.endswith('.npz'):
         if 'pae' in pae:
             pae = pae['pae']
+            if pae.dtype == numpy.float16:
+                pae = pae.astype(numpy.float32)	# OpenFold version 0.5 writes float16 PAE values
         else:
             from chimerax.core.errors import UserError
             raise UserError(f'This file does not include PAE data.\n\n{path}\n\nBoltz structure prediction run outside ChimeraX may not output a PAE .npz file unless you request it.  For example, when running the boltz executable you need to include the --write_full_pae option.')

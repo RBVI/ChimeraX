@@ -8,6 +8,8 @@ import pkgutil
 import importlib
 import chimerax
 
+import sys
+sys.path.append('.')
 from import_excludes import IMPORT_EXCLUDES
 
 blacklist = IMPORT_EXCLUDES

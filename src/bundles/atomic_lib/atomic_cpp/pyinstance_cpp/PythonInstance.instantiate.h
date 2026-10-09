@@ -39,6 +39,7 @@ namespace pyinstance {
 
 template <class C> std::string PythonInstance<C>::_buffer;
 template <class C> PyObject* PythonInstance<C>::_py_class = nullptr;
+template <class C> bool PythonInstance<C>::destroyed_from_python = false;
 
 template <class C>
 double PythonInstance<C>::get_py_float_attr(std::string& attr_name, bool create) const
@@ -87,12 +88,16 @@ PythonInstance<C>::~PythonInstance() {
     auto i = _pyinstance_object_map.find(static_cast<const void*>(derived));
     if (i == _pyinstance_object_map.end())
         return;
-    PyObject* py_inst = (*i).second;
-    if (!PyObject_GC_IsFinalized(py_inst)) {
-        AcquireGIL gil; // Py_DECREF can cause code to run
-        PyObject_DelAttrString(py_inst, "_c_pointer");
-        PyObject_DelAttrString(py_inst, "_c_pointer_ref");
-        Py_DECREF(py_inst);
+    if (destroyed_from_python)
+        destroyed_from_python = false;
+    else {
+        PyObject* py_inst = (*i).second;
+        if (!PyObject_GC_IsFinalized(py_inst)) {
+            AcquireGIL gil; // Py_DECREF can cause code to run
+            PyObject_DelAttrString(py_inst, "_c_pointer");
+            PyObject_DelAttrString(py_inst, "_c_pointer_ref");
+            Py_DECREF(py_inst);
+        }
     }
     _pyinstance_object_map.erase(i);
 }

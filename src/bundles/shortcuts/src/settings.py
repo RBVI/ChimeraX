@@ -27,9 +27,10 @@ def settings(session):
     global _settings
     if _settings is None:
         from chimerax.core.settings import Settings
+        from chimerax.core import desktop_path
         class _ShortcutSettings(Settings):
             AUTO_SAVE = {
-                'snapshot_directory': '~/Desktop',
+                'snapshot_directory': desktop_path(),
             }
         _settings = _ShortcutSettings(session, 'shortcuts')
     return _settings

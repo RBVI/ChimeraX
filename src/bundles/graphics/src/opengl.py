@@ -362,8 +362,8 @@ def _initialize_pyopengl(log_opengl_calls = False, offscreen = False):
     if log_opengl_calls:
         # Log all OpenGL calls
         import logging
-        from os.path import expanduser
-        logging.basicConfig(level=logging.DEBUG, filename=expanduser('~/Desktop/cx.log'))
+        from chimerax.core import desktop_path
+        logging.basicConfig(level=logging.DEBUG, filename=f'{desktop_path()}/cx.log')
         logging.info('started logging')
         import OpenGL
         OpenGL.FULL_LOGGING = True
@@ -549,16 +549,17 @@ class Render:
         return self._opengl_context
 
     def make_current(self):
-        status = self._opengl_context.make_current()
-        e = self.check_for_opengl_errors()
-        if e:
-            from sys import platform
-            if platform != 'darwin':
-                # Don't warn on Mac since Qt 6.10.2 always generates this error.  ChimeraX tickets #20306, #19881.
-                msg = f'Error after making OpenGL context current: {e}\nThis is a Qt window toolkit bug discussed at https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/19881#comment:5'
-                import sys
-                sys.stderr.write(msg)
-        return status
+        success = self._opengl_context.make_current()
+        if success:
+            e = self.check_for_opengl_errors()
+            if e:
+                from sys import platform
+                if platform != 'darwin':
+                    # Don't warn on Mac since Qt 6.10.2 always generates this error.  ChimeraX tickets #20306, #19881.
+                    msg = f'Error after making OpenGL context current: {e}\nThis is a Qt window toolkit bug discussed at https://www.rbvi.ucsf.edu/trac/ChimeraX/ticket/19881#comment:5'
+                    import sys
+                    sys.stderr.write(msg)
+        return success
 
     def done_current(self):
         self._opengl_context.done_current()
@@ -1337,7 +1338,7 @@ class Render:
         GL.glColorMask(GL.GL_TRUE, GL.GL_TRUE, GL.GL_TRUE, GL.GL_TRUE)
         GL.glDepthFunc(GL.GL_LEQUAL)
         GL.glEnable(GL.GL_BLEND)
-        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+        GL.glBlendFuncSeparate(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA, GL.GL_ONE, GL.GL_ONE_MINUS_SRC_ALPHA)
         draw()
         GL.glDepthFunc(GL.GL_LESS)
 

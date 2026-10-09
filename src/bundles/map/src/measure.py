@@ -119,6 +119,8 @@ def cmd_measure_map_values(session, map, atoms, attribute = 'mapvalue', show_too
 #
 def measure_map_values(session, map, atoms, attribute = 'mapvalue'):
 
+    _check_for_valid_attribute_name(attribute)
+    
     # Get atom positions in volume coordinate system.
     points = atoms.scene_coords
     map.position.inverse().transform_points(points, in_place = True)
@@ -160,6 +162,21 @@ def measure_map_values(session, map, atoms, attribute = 'mapvalue'):
 
     return values, outside
 
+# -----------------------------------------------------------------------------
+#
+def _check_for_valid_attribute_name(attribute):
+    valid = True
+    from string import digits, ascii_lowercase, ascii_uppercase
+    allowed_characters = ascii_lowercase + ascii_uppercase + digits + '_'
+    for c in attribute:
+        if c not in allowed_characters:
+            valid = False
+    if attribute[0] in digits:
+        valid = False
+    if not valid:
+        from chimerax.core.errors import UserError
+        raise UserError(f'Invalid attribute name "{attribute}".  Attribute names can only contain alpha-numeric characters and underscore (_) and must not start with a digit.')
+    
 # -----------------------------------------------------------------------------
 #
 def register_measure_mapvalues_command(logger):

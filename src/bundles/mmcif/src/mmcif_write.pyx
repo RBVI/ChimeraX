@@ -333,6 +333,7 @@ def _translate_PDB_metadata(tables, metadata):
         else:
             cell_fields.append((name, val_str))
         start_index += field_width
+    cell_fields.append(("formula_units_Z", "?"))  # always in files from PDB
 
     new_tables = []
     for table_name, table_fields in [('cell', cell_fields), ('symmetry', symmetry_fields)]:

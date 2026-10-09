@@ -111,7 +111,22 @@ class ProfileGridsTool(ToolInstance):
             alignment_menu.addAction(viewer.title())
         alignment_menu.triggered.connect(
             lambda action, f=self.grid_canvas.alignment_from_cells: f(action.text().lower()))
+        subalign_menu = cell_menu.addMenu("Save Subalignment")
+        fmts = [fmt for fmt in self.session.save_command.save_data_formats if fmt.category == "Sequence"]
+        fmts.sort(key=lambda fmt: fmt.synopsis.casefold())
+        for fmt in fmts:
+            action = QAction(fmt.synopsis, subalign_menu)
+            action.triggered.connect(lambda *args, fmt=fmt, f=self.grid_canvas.save_from_cells: f(fmt))
+            subalign_menu.addAction(action)
         cell_menu.setEnabled(bool(self.grid_canvas.chosen_cells))
+
+        file_menu = menu.addMenu("File")
+        action = QAction("Save CSV or TSV File...", file_menu)
+        action.triggered.connect(lambda: self.grid_canvas.save_csv_file())
+        file_menu.addAction(action)
+        action = QAction("Save Image...", file_menu)
+        action.triggered.connect(lambda: self.grid_canvas.save_image())
+        file_menu.addAction(action)
 
         action = QAction("Find Cell Pattern...", cell_menu)
         action.triggered.connect(lambda *args, f=self.grid_canvas.find_cell_pattern: f())
@@ -127,10 +142,6 @@ class ProfileGridsTool(ToolInstance):
         hdr_seq_menu.aboutToShow.connect(lambda *, s=self, m=hdr_seq_menu:
             s._menu_of_seqs(m, "", s.alignment.seqs,
             lambda seq, *, aln=s.alignment: aln.add_fixed_header(seq.name, seq.characters)))
-
-        action = QAction("Save Image...", menu)
-        action.triggered.connect(lambda: self.grid_canvas.save_image())
-        menu.addAction(action)
 
         action = QAction("Scroll To Show New Selection If Needed", menu)
         action.setCheckable(True)

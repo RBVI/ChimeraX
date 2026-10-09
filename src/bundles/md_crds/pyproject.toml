@@ -1,10 +1,10 @@
 [build-system]
-requires = ["ChimeraX-BundleBuilder>=1.4.1", "ChimeraX-Core ~=1.0"]
+requires = ["ChimeraX-BundleBuilder>=1.4.1", "ChimeraX-Core ~=1.0", "ChimeraX-Arrays ~=1.0"]
 build-backend = "chimerax.bundle_builder.cx_pep517"
 
 [project]
 name = "ChimeraX-MDcrds"
-version = "2.19.2"
+version = "2.20.1"
 license = { text = "Free for non-commercial use" }
 authors = [{ name = "UCSF RBVI", email = "chimerax@cgl.ucsf.edu" }]
 description = "Molecular dynamics support"

@@ -25,10 +25,11 @@
 # Define a new mutation score or residue score computed from existing mutation scores.
 def mutation_scores_define(session, score_name = None, from_score_name = None, mutation_set = None,
                            subtract_fit = None, aa = None, to_aa = None, synonymous = False,
+                           modifications = None,
                            above = None, below = None, ranges = None, combine = None,
                            set_attribute = True):
 
-    from .ms_data import mutation_scores, ScoreValues
+    from .ms_data import mutation_scores, ScoreValues, Variant
     scores = mutation_scores(session, mutation_set)
 
     if score_name is None:
@@ -41,25 +42,33 @@ def mutation_scores_define(session, score_name = None, from_score_name = None, m
         from chimerax.core.errors import UserError
         raise UserError('Missing fromScoreName argument')
 
-    from_score_values = scores.score_values(from_score_name)
+    from_score_values = scores.score_values(from_score_name, include_modifications = (modifications is not None))
 
     from_aa = aa
-    if subtract_fit or from_aa or to_aa or synonymous or above is not None or below is not None or ranges:
+    if subtract_fit or from_aa or to_aa or synonymous or modifications or above is not None or below is not None or ranges:
         values = from_score_values.all_values()
         if subtract_fit:
             sub_score_values = scores.score_values(subtract_fit)
             from .ms_data import subtract_fit_values
             values = subtract_fit_values(values, sub_score_values.all_values())
         if from_aa is not None:
-            values = [(rnum, faa, taa, value) for rnum, faa, taa, value in values if faa in from_aa]
+            values = [(variant, value) for variant,value in values if variant.from_aa in from_aa]
         if to_aa is not None:
-            values = [(rnum, faa, taa, value) for rnum, faa, taa, value in values if taa in to_aa]
+            values = [(variant, value) for variant,value in values if variant.to_aa in to_aa]
         if synonymous:
-            values = [(rnum, faa, taa, value) for rnum, faa, taa, value in values if taa == faa]
+            values = [(variant, value) for variant,value in values if variant.is_synonymous]
+        if modifications:
+            mods = set(mod.strip() for mod in modifications.split(','))
+            if to_aa is not None or synonymous:
+                mod_values = [(variant, value) for variant,value in from_score_values.all_values()
+                              if variant.change in mods]
+                values.extend(mod_values)
+            else:
+                values = [(variant, value) for variant,value in values if variant.change in mods]
         if above is not None:
-            values = [(rnum, faa, taa, value) for rnum, faa, taa, value in values if value >= above]
+            values = [(variant, value) for variant,value in values if value >= above]
         if below is not None:
-            values = [(rnum, faa, taa, value) for rnum, faa, taa, value in values if value <= below]
+            values = [(variant, value) for variant,value in values if value <= below]
         if ranges is not None:
             values = _range_filter(values, ranges, scores)
         if len(values) == 0:
@@ -72,7 +81,7 @@ def mutation_scores_define(session, score_name = None, from_score_name = None, m
 
     if combine is None:
         scores.set_computed_values(score_name, svalues)
-        values = [value for res_num, from_aa, to_aa, value in svalues.all_values()]
+        values = [value for variant, value in svalues.all_values()]
         range = f'having range {"%.3g"%min(values)} to {"%.3g"%max(values)}' if len(values) > 0 else ''
         session.logger.info(f'Defined score {score_name} {range} for {svalues.count()} mutations')
         return svalues
@@ -83,10 +92,12 @@ def mutation_scores_define(session, score_name = None, from_score_name = None, m
     for res_num, aa_type in svalues.residue_numbers_and_types():
         value = _combine_scores(svalues, res_num, operation=combine)
         if value is not None:
-            res_values.append((res_num, aa_type, taa, value))
+            hgvs_pro = f'p.{aa_type}{res_num}{taa if taa else aa_type}'
+            variant = Variant(hgvs_pro)
+            res_values.append((variant, value))
     rvalues = ScoreValues(res_values, per_residue = True)
     scores.set_computed_values(score_name, rvalues)
-    values = [value for res_num, from_aa, to_aa, value in rvalues.all_values()]
+    values = [value for variant, value in rvalues.all_values()]
     range = f'having range {"%.3g"%min(values)} to {"%.3g"%max(values)}' if len(values) > 0 else ''
     session.logger.info(f'Defined score {score_name} {range} for {rvalues.count()} residues using {svalues.count()} mutations')
 
@@ -130,18 +141,15 @@ def _range_filter(values, ranges, scores):
         if sv is None:
             from chimerax.core.errors import UserError
             raise UserError(f'Ranges variable "{score_name}" is not a mutation score')
-        if sv.per_residue:
-            vtable = {(rnum, from_aa):value for rnum, from_aa, to_aa, value in sv.all_values()}
-        else:
-            vtable = {(rnum, from_aa, to_aa):value for rnum, from_aa, to_aa, value in sv.all_values()}
+        vtable = {variant:value for variant, value in sv.all_values()}
         svalues.append((score_name, sv.per_residue, vtable))
 
     rvalues = []
-    for rnum, from_aa, to_aa, value in values:
+    for variant, value in values:
         var_values = {}
         missing = False
         for score_name, per_residue, mvalues in svalues:
-            v = mvalues.get((rnum, from_aa)) if per_residue else mvalues.get((rnum, from_aa, to_aa))
+            v = mvalues.get(variant.residue_variant() if per_residue else variant)
             if v is None:
                 missing = True
                 break
@@ -150,7 +158,7 @@ def _range_filter(values, ranges, scores):
         if not missing:
             vars = var_values.copy()
             if eval(co, {}, var_values):
-                rvalues.append((rnum, from_aa, to_aa, value))
+                rvalues.append((variant, value))
 
     return rvalues
 
@@ -158,7 +166,7 @@ def _range_filter(values, ranges, scores):
 _combine_operations = ('sum', 'sum_absolute', 'mean', 'stddev', 'count', 'max', 'min', 'median')
     
 def _combine_scores(score_values, residue_number, operation):
-    values = [value for from_aa, to_aa, value in score_values.mutation_values(residue_number)]
+    values = [value for variant, value in score_values.mutation_values(residue_number)]
     if len(values) == 0:
         return None
     elif operation == 'sum':
@@ -202,6 +210,7 @@ def register_command(logger):
                    ('aa', StringArg),
                    ('to_aa', StringArg),
                    ('synonymous', BoolArg),
+                   ('modifications', StringArg),
                    ('above', FloatArg),
                    ('below', FloatArg),
                    ('ranges', StringArg),

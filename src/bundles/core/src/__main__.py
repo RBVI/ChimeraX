@@ -286,7 +286,7 @@ def _parse_chimerax_args(argv, arguments, usage):
         elif opt == "--disable-qt":
             opts.disable_qt = True
         elif opt == "--color-scheme":
-            if optarg not in ("light", "dark"):
+            if optarg not in ("system", "light", "dark"):
                 print(f"{argv[0]}: unknown color scheme", file=sys.stderr)
                 raise SystemExit(os.EX_USAGE)
             opts.color_scheme = optarg
@@ -526,20 +526,23 @@ def _set_app_dirs(version):
     # this must happen before pip is imported so that "--user" installs
     # will go in the right place.
     import site
+    import sysconfig
 
     if not is_root:
         site.USER_BASE = ad.user_data_dir
-        lib = "lib"
-        python = "python"
-        if sys.platform == "win32":
-            lib = ""
-            python = f"Python{sys.version_info.major}{sys.version_info.minor}"
-        if sys.platform == "linux":
-            python = f"python{sys.version_info.major}.{sys.version_info.minor}"
-        site.USER_SITE = os.path.join(site.USER_BASE, lib, python, "site-packages")
+        # Derive USER_SITE from the interpreter's own "user" install scheme
+        # rather than hand-building the path.  pip runs in a subprocess (with
+        # PYTHONUSERBASE set to user_data_dir) and computes its "--user"
+        # target from this same scheme, so deriving it here guarantees the
+        # toolshed scans the directory pip actually installs into.  A
+        # hand-built path silently diverges whenever the prereq Python
+        # changes layout (e.g. the framework -> python-build-standalone move,
+        # which switched macOS from lib/python to lib/pythonX.Y).
+        scheme = sysconfig.get_preferred_scheme("user")
+        site.USER_SITE = sysconfig.get_path(
+            "platlib", scheme, vars={"userbase": site.USER_BASE}
+        )
     else:
-        import sysconfig
-
         site.USER_SITE = sysconfig.get_paths()["platlib"]
     site.ENABLE_USER_SITE = True
 
@@ -715,7 +718,10 @@ def init(argv, event_loop=True):
     # sets up logging
     if opts.gui:
         from chimerax.ui import gui
-        sess.ui = gui.UI(sess, color_scheme=opts.color_scheme)
+        color_scheme = opts.color_scheme
+        if color_scheme is None:
+            color_scheme = core_settings.settings.color_scheme
+        sess.ui = gui.UI(sess, color_scheme=color_scheme)
  
     # Set ui options
     sess.ui.stereo = opts.stereo
@@ -729,8 +735,9 @@ def init(argv, event_loop=True):
             or os.getcwd().endswith("\\ProgramData\\ChimeraX")
         )
     ):
+        from chimerax.core import desktop_path
         try:
-            os.chdir(os.path.expanduser("~/Desktop"))
+            os.chdir(desktop_path())
         except Exception:
             pass
 

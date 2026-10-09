@@ -53,10 +53,12 @@ class MutationScoresList(ToolInstance):
         lw.itemClicked.connect(self._list_item_clicked)
         layout.addWidget(lw)
         self._update_list()
+
+        triggers = session.triggers
         from . import ms_data
-        ms_data.create_mutation_set_add_remove_triggers(session.triggers,
-                                                        self._mutation_set_added,
-                                                        self._mutation_set_removed)
+        ms_data.create_mutation_set_triggers(triggers)
+        triggers.add_handler('mutation set added', self._mutation_set_added)
+        triggers.add_handler('mutation set removed', self._mutation_set_removed)
 
         from chimerax.ui.widgets import EntriesRow
         br = EntriesRow(parent,
@@ -64,10 +66,17 @@ class MutationScoresList(ToolInstance):
                         ('Scatterplot', self._show_scatterplot),
                         ('Histogram', self._show_histogram),
                         ('Color structure', self._show_color_structure),
-                         ('Close data', self._close_data),
-                         ('Help', self._show_help),
+                        ('Alphafold structure', self._fetch_alphafold_structure),
                         spacing = 5)
         layout.addWidget(br.frame)
+
+        br2 = EntriesRow(parent,
+                         ('Associate structures', self._associate_structures),
+                         ('Save .csv', self._save_csv),
+                         ('Close data', self._close_data),
+                         ('Help', self._show_help),
+                         spacing = 5)
+        layout.addWidget(br2.frame)
                 
         tw.manage(placement="side")
     
@@ -152,28 +161,40 @@ class MutationScoresList(ToolInstance):
         mset, score_names = self._selected_score_names()
         if mset is None:
             return
-        mset_option = f'mutationSet {mset.name}' if len(self._open_mutation_sets) > 1 else ''
-        scores_option = f'scores {",".join(score_names)}' if score_names else ''
+        mset_option = self._mset_option(mset.name)
+        from chimerax.core.commands import quote_if_necessary
+        scores_option = f'scores {quote_if_necessary(",".join(score_names))}' if score_names else ''
         self._run_command(f'mutationscores heatmap {scores_option} {mset_option}')
+
+    def _mset_option(self, mset_name, include_keyword = True):
+        if len(self._open_mutation_sets) > 1:
+            from chimerax.core.commands import quote_if_necessary
+            name = quote_if_necessary(mset_name)
+            mset_option = f'mutationSet {name}' if include_keyword else name
+        else:
+            mset_option = ''
+        return mset_option
 
     def _show_scatterplot(self):
         mset, score_names = self._selected_score_names()
         if mset is None:
             return
         if len(mset.score_names()) < 2:
-            from chimerax.core.users import UserError
+            from chimerax.core.errors import UserError
             raise UserError(f'Mutation set {mset.name} does not have 2 scores for a scatter plot')
         x_score_name, y_score_name = score_names[:2] if len(score_names) >= 2 else mset.score_names()[:2]
-        mset_option = f'mutationSet {mset.name}' if len(self._open_mutation_sets) > 1 else ''
-        self._run_command(f'mutationscores scatterplot {x_score_name} {y_score_name} {mset_option}')
+        mset_option = self._mset_option(mset.name)
+        from chimerax.core.commands import quote_if_necessary
+        self._run_command(f'mutationscores scatterplot {quote_if_necessary(x_score_name)} {quote_if_necessary(y_score_name)} {mset_option}')
     
     def _show_histogram(self):
         mset, score_names = self._selected_score_names()
         if mset is None:
             return
         score_name = score_names[0] if score_names else mset.score_names()[0]
-        mset_option = f'mutationSet {mset.name}' if len(self._open_mutation_sets) > 1 else ''
-        self._run_command(f'mutationscores histogram {score_name} {mset_option}')
+        mset_option = self._mset_option(mset.name)
+        from chimerax.core.commands import quote_if_necessary
+        self._run_command(f'mutationscores histogram {quote_if_necessary(score_name)} {mset_option}')
     
     def _show_color_structure(self):
         from .ms_color_history import show_structure_coloring_gui
@@ -185,6 +206,70 @@ class MutationScoresList(ToolInstance):
         if score_names:
             coloring_gui.set_coloring_score(score_names[0])
     
+    def _fetch_alphafold_structure(self):
+        mset, score_names = self._selected_score_names()
+        if mset is None:
+            return
+        mset_option = self._mset_option(mset.name, include_keyword = False)
+        self._run_command(f'mutationscores alphafold {mset_option}')
+    
+    def _associate_structures(self):
+        from .ms_associate import show_associate_structure_panel
+        asp = show_associate_structure_panel(self.session)
+        msets = self._selected_mutation_sets()
+        if msets:
+            asp.set_mutation_set(msets[0])
+
+    def _save_csv(self):
+        mset_names = []
+        score_names = []
+        mset_to_score_names = self._selected_mutation_scores()
+        if len(mset_to_score_names) == 0:
+            from chimerax.core.errors import UserError
+            raise UserError('There are not mutation scores to save')
+
+        # Classify unique and non-unique score names for making save command options.
+        score_name_unique = {}
+        from .ms_data import mutation_all_scores
+        all_msets = mutation_all_scores(self.session)
+        for mset in all_msets:
+            for score_name in mset.score_names():
+                score_name_unique[score_name] = (score_name not in score_name_unique)
+
+        # Compute mutation sets and score names to use in save command
+        for mset, mset_score_names in mset_to_score_names.items():
+            if len(mset_score_names) == 0 or set(mset.score_names()) == set(mset_score_names):
+                mset_names.append(mset.name)
+            else:
+                score_names.extend([score_name if score_name_unique.get(score_name) else f'{mset.name}:{score_name}'
+                                    for score_name in mset_score_names])
+
+        # Create save command options specifying mutation sets and score names.
+        options = []
+        if mset_names:
+            from .ms_csv_file import csv_join
+            mset_names_csv = csv_join(mset_names)
+            options.append(f'mutationSets {mset_names_csv}')
+        if score_names:
+            from .ms_csv_file import csv_join
+            score_names_csv = csv_join(score_names)
+            options.append(f'scoreNames {score_names_csv}')
+
+        # Show file browser to specify .csv file path
+        mset_paths = [mset.path for mset in mset_to_score_names.keys() if mset.path]
+        from os.path import dirname
+        suggested_path = dirname(mset_paths[0]) if mset_paths else ''
+        from Qt.QtWidgets import QFileDialog
+        path, ftype  = QFileDialog.getSaveFileName(self.tool_window.ui_area,
+                                                   'Save Mutation Scores .csv',
+                                                   suggested_path,
+                                                   'Mutation scores (*.csv)')
+        if not path:
+            return 	# Cancelled
+        
+        # Run save command to create .csv file.
+        self._run_command(f'save {path} {" ".join(options)}')
+        
     def _close_data(self):
         msets = self._selected_mutation_sets()
         from .ms_data import mutation_scores_close

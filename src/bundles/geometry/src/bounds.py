@@ -55,7 +55,7 @@ class Bounds:
 
     def width(self):
         "Supported API. Maximum of size of box x,y,z axes."
-        return (self.xyz_max - self.xyz_min).max()
+        return float((self.xyz_max - self.xyz_min).max())
 
     def radius(self):
         "Supported API. Radius of sphere containing bounding box."

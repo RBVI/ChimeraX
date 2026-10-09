@@ -170,7 +170,8 @@ class SeqCanvas:
             (self.sv.prefs[FONT_NAME], self.sv.prefs[FONT_SIZE]))
         """
         from Qt.QtGui import QFont, QFontMetrics
-        self.font = QFont("Helvetica")
+        self.font = QFont(self.get_prefixed_setting("font"))
+        self.font.setPointSize(self.get_prefixed_setting("font_size"))
         self.emphasis_font = QFont(self.font)
         self.emphasis_font.setBold(True)
         self.font_metrics = QFontMetrics(self.font)
@@ -442,6 +443,10 @@ class SeqCanvas:
     def assoc_mod(self, aseq):
         '''alignment sequence has gained or lost associated structure'''
         self.lead_block.assoc_mod(aseq)
+        from .settings import RC_DEFAULT
+        res_coloring = self.get_prefixed_setting("letter_color_scheme")
+        if res_coloring != RC_DEFAULT:
+            self.refresh(aseq)
 
     def bbox_list(self, line1, line2, pos1, pos2, cover_gaps=True):
         '''return coords that bound given lines and positions'''
@@ -491,6 +496,37 @@ class SeqCanvas:
         self._recomputeScrollers(e.width, e.height)
 
     """
+
+    def _cf_clustalx(self, line, position):
+        consensus_chars = self.clustal_consensus_chars(position)
+        res = line[position].upper()
+        if res in self._clustal_colorings:
+            for rgba, needed in self._clustal_colorings[res]:
+                if not needed:
+                    return rgba
+                for n in needed:
+                    if n in consensus_chars:
+                        return rgba
+        return SeqBlock.normal_text_rgba
+
+    def _cf_ribbon(self, line, position):
+        if line not in self.alignment.match_maps:
+            return SeqBlock.normal_text_rgba
+        ungapped = line.gapped_to_ungapped(position)
+        if ungapped is None:
+            return SeqBlock.normal_text_rgba
+        rgba8s = []
+        for match_map in self.alignment.match_maps[line].values():
+            try:
+                r = match_map[ungapped]
+            except KeyError:
+                continue
+            rgba8s.append(r.ribbon_color)
+        if not rgba8s:
+            return SeqBlock.normal_text_rgba
+        import numpy
+        return numpy.array(rgba8s).mean(0) / 255.0
+
     def _changes_cb(self, trig_name, changes):
         reasons = changes.residue_reasons()
         if 'number changed' in reasons or 'insertion_code changed' in reasons:
@@ -510,6 +546,29 @@ class SeqCanvas:
                         self.refresh(aseq, update_attrs=False)
                     else:
                         self.update_balloons(aseq)
+
+    def clustal_consensus_chars(self, offset):
+        try:
+            consensus_chars = self._clustalx_cache[offset]
+            return consensus_chars
+        except KeyError:
+            pass
+        chars = {}
+        for seq in self.alignment.seqs:
+            char = seq[offset].lower()
+            chars[char] = chars.get(char, 0) + 1
+        consensus_chars = {}
+        num_seqs = len(self.alignment.seqs)
+
+        for members, threshold, result in self._clustal_categories:
+            sum = 0
+            for c in members:
+                sum += chars.get(c, 0)
+            if sum / num_seqs >= threshold:
+                consensus_chars[result] = True
+
+        self._clustalx_cache[offset] = consensus_chars
+        return consensus_chars
 
     @property
     def consensus_capitalize_threshold(self):
@@ -695,6 +754,10 @@ class SeqCanvas:
                     "  %d" % (numbering_start + offset)))
         return [lwidth, rwidth]
 
+    def get_prefixed_setting(self, attr_name):
+        prefix = SINGLE_PREFIX if len(self.alignment.seqs) == 1 else ""
+        return getattr(self.sv.settings, prefix + attr_name)
+
     """
     def headerDisplayOrder(self):
         return self.lead_block.lines[:-len(self.alignment.seqs)]
@@ -770,6 +833,10 @@ class SeqCanvas:
         self._show_ruler = self.sv.settings.alignment_show_ruler_at_startup and len(self.alignment.seqs) > 1
         self.line_width = self.line_width_from_settings()
         self.numbering_widths = self.find_numbering_widths(self.line_width)
+        self._clustalx_cache = {}
+        from .clustalX import clustal_info
+        self._clustal_categories, self._clustal_colorings = clustal_info()
+        self._update_seq_colorings()
         """TODO
         self.showNumberings = [self.sv.leftNumberingVar.get(),
                     self.sv.rightNumberingVar.get()]
@@ -795,10 +862,7 @@ class SeqCanvas:
         self._update_scene_rects()
 
     def letter_gaps(self):
-        column_sep_attr_name = "column_separation"
-        if len(self.alignment.seqs) == 1:
-            column_sep_attr_name = SINGLE_PREFIX + column_sep_attr_name
-        return [getattr(self.sv.settings, column_sep_attr_name), 1]
+        return [self.get_prefixed_setting("column_separation"), 1]
 
     def _line_width_fits(self, pixels, num_characters):
         lnw, rnw = self.find_numbering_widths(num_characters)
@@ -816,7 +880,7 @@ class SeqCanvas:
                 prefix = SINGLE_PREFIX
             else:
                 prefix = ""
-            lwm = getattr(self.sv.settings, prefix + "line_width_multiple")
+            lwm = self.get_prefixed_setting("line_width_multiple")
             lw = lwm
             try_lw = lw + lwm
             win_width = self.main_view.viewport().size().width()
@@ -1021,6 +1085,22 @@ class SeqCanvas:
             activeNode = self.activeNode()
         """
         self.lead_block.destroy()
+        pt_size = self.get_prefixed_setting("font_size")
+        font_name = self.get_prefixed_setting("font")
+        from Qt.QtGui import QFontMetrics, QFont
+        if font_name != self.font.family():
+            self.font = QFont(font_name)
+            self.font.setPointSize(pt_size)
+            self.emphasis_font = QFont(self.font)
+            self.emphasis_font.setBold(True)
+            self.font_metrics = QFontMetrics(self.font)
+            self.emphasis_font_metrics = QFontMetrics(self.emphasis_font)
+        elif pt_size != self.font.pointSize():
+            self.font.setPointSize(pt_size)
+            self.emphasis_font.setPointSize(pt_size)
+            self.font_metrics = QFontMetrics(self.font)
+            self.emphasis_font_metrics = QFontMetrics(self.emphasis_font)
+        self._update_seq_colorings()
         initial_headers = [hd for hd in self.alignment.headers if hd.shown]
         self.label_width = _find_label_width(self.alignment.seqs + initial_headers,
             self.sv.settings, self.font_metrics, self.emphasis_font_metrics, SeqBlock.label_pad)
@@ -1062,11 +1142,13 @@ class SeqCanvas:
             if note_name == self.alignment.NOTE_REF_SEQ:
                 self.lead_block.rerule()
             elif note_name == self.alignment.NOTE_SEQ_CONTENTS:
+                self._clustalx_cache = {}
                 self.refresh(note_data)
             elif note_name == self.alignment.NOTE_SEQ_NAME:
                 self._update_label(note_data[0])
             elif note_name == self.alignment.NOTE_REALIGNMENT:
                 # headers are notified before us, so they should be "ready to go"
+                self._clustalx_cache = {}
                 self.sv.region_manager.clear_regions()
                 self._reformat()
             if note_name not in (self.alignment.NOTE_HDR_SHOWN, self.alignment.NOTE_HDR_VALUES,
@@ -1510,6 +1592,22 @@ class SeqCanvas:
             lbr = self.label_scene.itemsBoundingRect()
             mr = self.main_scene.sceneRect()
             self.label_scene.setSceneRect(lbr.x(), mr.y(), lbr.width(), mr.height())
+    
+    def _update_seq_colorings(self):
+        from .settings import RC_CLUSTALX, RC_DEFAULT, RC_RIBBON
+        res_coloring = self.get_prefixed_setting("letter_color_scheme")
+        if res_coloring == RC_DEFAULT:
+            for seq in self.alignment.seqs:
+                try:
+                    delattr(seq, "position_color")
+                except AttributeError:
+                    pass
+        else:
+            color_func = self._cf_ribbon if res_coloring == RC_RIBBON else self._cf_clustalx
+            for seq in self.alignment.seqs:
+                seq.position_color = lambda pos, line=seq, cf=color_func: cf(line, pos)
+
+from .region_browser import get_rgba, rgba_to_qcolor
 
 class SeqBlock:
     from Qt.QtCore import Qt
@@ -1517,6 +1615,8 @@ class SeqBlock:
     label_pad = 3
     from Qt.QtGui import QPen
     qt_no_pen = QPen(Qt.NoPen)
+    normal_label_rgba = normal_text_rgba = Color(scheme_color("CanvasText", expand=True)).rgba
+    normal_label_color = normal_text_color = rgba_to_qcolor(normal_text_rgba)
 
     def __init__(self, label_scene, main_scene, prev_block, font, emphasis_font, font_metrics,
             emphasis_font_metrics, seq_offset, headers, alignment, line_width, label_bindings,
@@ -1576,8 +1676,6 @@ class SeqBlock:
             self._brushes = prev_block._brushes
             self.multi_assoc_brush = prev_block.multi_assoc_brush
             self.multi_assoc_pen = prev_block.multi_assoc_pen
-            self.normal_text_color = prev_block.normal_text_color
-            self.normal_label_color = prev_block.normal_label_color
             self.header_label_color = prev_block.header_label_color
         else:
             self.top_y = 0
@@ -1606,9 +1704,6 @@ class SeqBlock:
                 sys.setrecursionlimit(4 * int(100 + seq_len / line_width))
             from chimerax.atomic import get_triggers
             self.handler = get_triggers().add_handler('changes', self._changes_cb)
-            from .region_browser import get_rgba, rgba_to_qcolor
-            self.normal_label_color = self.normal_text_color = rgba_to_qcolor(
-                Color(scheme_color("CanvasText", expand=True)).rgba)
             self.header_label_color = rgba_to_qcolor(Color(scheme_color("LinkText", expand=True)).rgba)
         self.bottom_y = self.top_y
 
@@ -1883,12 +1978,6 @@ class SeqBlock:
                 return lambda l, o: rgba_to_qcolor(get_rgba(l.position_color(o)))
             from Qt.QtCore import Qt
             return lambda l, o, color=self.normal_text_color: color
-    """TODO
-        try:
-            return line.color_func
-        except AttributeError:
-            return lambda l, o: 'black'
-    """
 
     def _colorize_label(self, aseq):
         label_text = self.label_texts[aseq]

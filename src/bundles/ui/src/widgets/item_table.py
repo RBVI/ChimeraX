@@ -37,10 +37,7 @@ class QCxTableModel(QAbstractTableModel):
             if isinstance(val, bool):
                 return None
             if col.display_format in ItemTable.color_formats:
-                if self._item_table._allow_user_sorting:
-                    sorted_index = self._item_table.model().mapFromSource(index)
-                else:
-                    sorted_index = index
+                sorted_index = self._item_table.model().mapFromSource(index)
                 widget = self._item_table.indexWidget(sorted_index)
                 if not widget:
                     has_alpha = col.display_format == ItemTable.COL_FORMAT_TRANSPARENT_COLOR
@@ -51,10 +48,7 @@ class QCxTableModel(QAbstractTableModel):
                 widget.color = val
                 return None
             if col.is_html:
-                if self._item_table._allow_user_sorting:
-                    sorted_index = self._item_table.model().mapFromSource(index)
-                else:
-                    sorted_index = index
+                sorted_index = self._item_table.model().mapFromSource(index)
                 widget = self._item_table.indexWidget(sorted_index)
                 if not widget:
                     widget = QLabel()
@@ -242,7 +236,8 @@ class QCxTableModel(QAbstractTableModel):
     def _title_text(self, col):
         if not col.title_display or col.icon is not None:
             return None
-        if self._item_table._auto_multiline_headers:
+        if (col.multiline_header is None and self._item_table._auto_multiline_headers) \
+        or col.multiline_header:
             title = self._make_multiline(col.title)
         else:
             title = col.title
@@ -295,7 +290,8 @@ class ItemTable(QTableView):
                 table adds columns whose 'data_set' attribute is a string (since it will be run as command).
             color_column_width: Columns containing color buttons will be this wide.  Some tables for
                 practical or esthetic reasons may prefer a narrower value (e.g. 16).
-            allow_user_sorting: controls whether the user can rearrange columns by dragging the headers
+            allow_user_column_ordering: controls whether the user can rearrange columns by dragging the
+                headers
 
         Notes:
             For a menu the value of column_control_info should be:
@@ -377,7 +373,7 @@ class ItemTable(QTableView):
     def add_column(self, title, data_fetch, *, format="%s", data_set=None, display=None, title_display=True,
             justification="center", balloon=None, font=None, refresh=True, color=None,
             header_justification=None, icon=None, editable=False, validator=None, sort_func=None,
-            show_tooltips=False, data_color=None, is_html=False):
+            show_tooltips=False, data_color=None, is_html=False, multiline_header=None):
         """ Add a column who's header text is 'title'.  It is allowable to add a column with the
             same title multiple times.  The duplicative additions will be ignored.
 
@@ -458,6 +454,9 @@ class ItemTable(QTableView):
 
             Set 'is_html' to True if you need HTML formatting.  This uses a QLabel for each cell in the
             column so is somewhat higher overhead, so only use it when actually needed if possible.
+
+            'multiline_header' controls whether this column allows multiline headers or not.  If the 
+            value is None then the table default (as specified in the table constructor) is used.
         """
         titles = [c.title for c in self._columns]
         if title in titles:
@@ -483,7 +482,7 @@ class ItemTable(QTableView):
 
         c = _ItemColumn(title, data_fetch, format, data_set, title_display, justification, font, color,
             header_justification, balloon, icon, self._session, editable, validator, sort_func,
-            show_tooltips, data_color, is_html)
+            show_tooltips, data_color, is_html, multiline_header)
 
         c.display = display
         if self._column_control_info:
@@ -607,13 +606,11 @@ class ItemTable(QTableView):
     def launch(self, *, select_mode=QAbstractItemView.SelectionMode.ExtendedSelection, session_info=None,
             suppress_resize=False):
         self._table_model = QCxTableModel(self)
+        sort_model = NumSortingProxyModel()
+        sort_model.setSourceModel(self._table_model)
+        self.setModel(sort_model)
         if self._allow_user_sorting:
-            sort_model = NumSortingProxyModel()
-            sort_model.setSourceModel(self._table_model)
-            self.setModel(sort_model)
             self.setSortingEnabled(True)
-        else:
-            self.setModel(self._table_model)
         if self._allow_user_column_ordering:
             self.horizontalHeader().setSectionsMovable(True)
         self.setSelectionBehavior(self.SelectRows)
@@ -647,15 +644,14 @@ class ItemTable(QTableView):
     def process_session_info(self, session_info):
         # normally called by launch(), but sometimes you have already launched the table, so...
         version, selected, column_display, highlighted, sort_info, *version_args = session_info
-        if self._allow_user_sorting and sort_info is not None:
+        if sort_info is not None:
             col_num, order = sort_info
             self.sortByColumn(col_num, qt_enum_from_int(Qt.SortOrder, order))
         sel_model = self.selectionModel()
         scroll_to = None
         for i in selected:
             index = self._table_model.index(i,0)
-            if self._allow_user_sorting:
-                index = self.model().mapFromSource(index)
+            index = self.model().mapFromSource(index)
             sel_model.select(index, sel_model.Rows | sel_model.Select)
             scroll_to = index
         self.highlight([self._data[i] for i in highlighted])
@@ -670,42 +666,28 @@ class ItemTable(QTableView):
     def scroll_to(self, datum):
         """ Scroll the table to ensure that the given data item is visible """
         index = self._table_model.index(self._data.index(datum), 0)
-        if self._allow_user_sorting:
-            index = self.model().mapFromSource(index)
+        index = self.model().mapFromSource(index)
         self.scrollTo(index, self.PositionAtCenter)
 
     @property
     def selected(self):
-        if self._allow_user_sorting:
-            return [self._data[self.model().mapToSource(i).row()]
-                for i in self.selectionModel().selectedRows()]
-        return [self._data[i.row()] for i in self.selectionModel().selectedRows()]
+        return [self._data[self.model().mapToSource(i).row()] for i in self.selectionModel().selectedRows()]
 
     @selected.setter
     def selected(self, items):
         sel_model = self.selectionModel()
         data_rows = [self._data.index(item) for item in items]
-        if self._allow_user_sorting:
-            model_indices = [self.model().mapFromSource(self._table_model.index(row, 0))
-                for row in data_rows]
-        else:
-            model_indices = [self.model().index(row, 0) for row in data_rows]
+        model_indices = [self.model().mapFromSource(self._table_model.index(row, 0)) for row in data_rows]
         sel_model.clear()
         for index in model_indices:
             sel_model.select(index, sel_model.Select | sel_model.Rows)
 
     def session_info(self):
         version = 2
-        if self._allow_user_sorting:
-            selected = set([self.model().mapToSource(i).row() for i in self.selectionModel().selectedRows()])
-        else:
-            selected = set([i.row() for i in self.selectedIndexes()])
+        selected = set([self.model().mapToSource(i).row() for i in self.selectionModel().selectedRows()])
         column_display = { c.title: c.display for c in self._columns }
         highlighted = [i for i, d in enumerate(self.data) if d in self._highlighted]
-        if self._allow_user_sorting:
-            sort_info = (self.model().sortColumn(), qt_enum_as_int(self.model().sortOrder()))
-        else:
-            sort_info = None
+        sort_info = (self.model().sortColumn(), qt_enum_as_int(self.model().sortOrder()))
         if self._allow_user_column_ordering:
             header_info = self.horizontalHeader().saveState().data()
         else:
@@ -718,16 +700,12 @@ class ItemTable(QTableView):
         return super().sizeHintForColumn(col_index)
 
     def sort_by(self, column, order):
-        if not self._allow_user_sorting:
-            raise ValueError("Table was not configured to allow sorting")
         self.sortByColumn(self._columns.index(column), order)
 
     @property
     def sorted_data(self):
-        if self._allow_user_sorting:
-            return [self._data[self.model().mapToSource(self.model().index(i,0)).row()]
-                for i in range(len(self._data))]
-        return self._data
+        return [self._data[self.model().mapToSource(self.model().index(i,0)).row()]
+            for i in range(len(self._data))]
 
     def update_cell(self, col_info, datum):
         if isinstance(col_info, str):
@@ -777,37 +755,11 @@ class ItemTable(QTableView):
             'header_vals' should be a list of strings and 'row_func' should be a function that takes
             a data item as its only argument and returns a list of strings.
         """
-        all_separators = ['\t', ',']
-        if separator is None:
-            separators = all_separators
-        else:
-            separators = [separator]
+        kw = {}
+        if separator:
+            kw['separators'] = [separator]
         if file is None:
-            class SepInfo:
-                def __init__(self, sep):
-                    if sep not in all_separators:
-                        raise ValueError("Unsupported separator: %s" % repr(separator))
-                    self.sep = sep
-                    self.text = "comma" if sep == ',' else "tab"
-                    self.suffix = ".csv" if sep == ',' else ".tsv"
-                    self.filter =  "%s-separated value (*%s)" % (self.text.capitalize(), self.suffix)
-            separator = '.'
-            filter_suffix = ".csv"
-            title_adjective = "CSV"
-            filter_adjective = "Comma-separated"
-            sep_infos = [SepInfo(sep) for sep in separators]
-            sep_infos.sort(key=lambda si: si.text)
-            filter_to_sep = { si.filter: si.sep for si in sep_infos }
-            kw = {
-                'parent': self,
-                'caption': "Save %sSeparated File" % " or ".join(
-                    [si.text.capitalize() + '-' for si in sep_infos]),
-                'filter': ";;".join([si.filter for si in sep_infos])
-            }
-            file, filter = QFileDialog.getSaveFileName(**kw)
-            if not file:
-                return
-            separator = filter_to_sep[filter]
+            file, separator = get_csv_info(self, **kw)
         from chimerax.io import open_output
         with open_output(file, encoding="utf-8") as f:
             if header_vals is None:
@@ -877,12 +829,8 @@ class ItemTable(QTableView):
                 col += 1
 
     def _relay_selection_change(self, selected, deselected):
-        if self._allow_user_sorting:
-            sel_data, desel_data = [list(set(self._data[self.model().mapToSource(i).row()]
-                for i in x.indexes())) for x in (selected, deselected)]
-        else:
-            sel_data, desel_data = [list(set(self._data[i.row()] for i in x.indexes()))
-                for x in (selected, deselected)]
+        sel_data, desel_data = [list(set(self._data[self.model().mapToSource(i).row()]
+            for i in x.indexes())) for x in (selected, deselected)]
         self.selection_changed.emit(sel_data, desel_data)
 
     def _set_default(self):
@@ -919,7 +867,7 @@ class ItemTable(QTableView):
 class _ItemColumn:
     def __init__(self, title, data_fetch, display_format, data_set, title_display, justification, font,
             header_color, header_justification, balloon, icon, session, editable, validator, sort_func,
-            show_tooltips, data_color, is_html):
+            show_tooltips, data_color, is_html, multiline_header):
         # set all args to corresponding 'self' attributes...
         import inspect
         args, varargs, keywords, locals = inspect.getargvalues(inspect.currentframe())
@@ -1003,3 +951,33 @@ class _ItemColumn:
         if data_color:
             changed.append(Qt.ForegroundRole)
         return changed
+
+all_csv_separators = ['\t', ',']
+def get_csv_info(parent, *, separators=all_csv_separators):
+    class SepInfo:
+        def __init__(self, sep):
+            if sep not in all_csv_separators:
+                raise ValueError("Unsupported separator: %s" % repr(separator))
+            self.sep = sep
+            self.text = "comma" if sep == ',' else "tab"
+            self.suffix = ".csv" if sep == ',' else ".tsv"
+            self.filter =  "%s-separated value (*%s)" % (self.text.capitalize(), self.suffix)
+    separator = '.'
+    filter_suffix = ".csv"
+    title_adjective = "CSV"
+    filter_adjective = "Comma-separated"
+    sep_infos = [SepInfo(sep) for sep in separators]
+    sep_infos.sort(key=lambda si: si.text)
+    filter_to_sep = { si.filter: si.sep for si in sep_infos }
+    kw = {
+        'parent': parent,
+        'caption': "Save %sSeparated File" % " or ".join(
+            [si.text.capitalize() + '-' for si in sep_infos]),
+        'filter': ";;".join([si.filter for si in sep_infos])
+    }
+    file, filter = QFileDialog.getSaveFileName(**kw)
+    if not file:
+        from chimerax.core.errors import CancelOperation
+        raise CancelOperation("CSV/TSV file output cancelled")
+    separator = filter_to_sep[filter]
+    return file, separator

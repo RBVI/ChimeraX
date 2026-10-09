@@ -53,6 +53,8 @@ class _MutationScoresAPI(BundleAPI):
         ms_color_history.register_command(logger)
         from . import ms_heatmap
         ms_heatmap.register_command(logger)
+        from . import ms_alphafold
+        ms_alphafold.register_command(logger)
 
     @staticmethod
     def run_provider(session, name, mgr):
@@ -139,6 +141,36 @@ class _MutationScoresAPI(BundleAPI):
                                 'identifier': StringArg}
                 return AlphaMissenseInfo()
 
+            elif name == 'mavedb':
+                from chimerax.open_command import FetcherInfo
+                class MaveDBInfo(FetcherInfo):
+                    def fetch(self, session, experiment_set_id, format_name, ignore_cache, **kw):
+                        from .mavedb_fetch import fetch_mavedb
+                        mset, msg = fetch_mavedb(session, experiment_set_id, ignore_cache = ignore_cache, **kw)
+                        return [], msg
+                return MaveDBInfo()
+
+        elif mgr == session.save_command:
+            if name == 'Mutation scores':
+                from chimerax.save_command import SaverInfo
+                class MutationScoresInfo(SaverInfo):
+                    def save(self, session, path, mutation_sets=None, score_names=None,
+                             sort=True, value_format='%.5g', merge_duplicates=True):
+                        from .ms_csv_file import save_mutation_scores_csv
+                        save_mutation_scores_csv(session, path, mutation_sets=mutation_sets,
+                                                 score_names=score_names, sort=sort,
+                                                 value_format=value_format,
+                                                 merge_duplicates=merge_duplicates)
+                    @property
+                    def save_args(self):
+                        from chimerax.core.commands import StringArg, BoolArg
+                        return { 'mutation_sets': StringArg,
+                                 'score_names': StringArg,
+                                 'sort': BoolArg,
+                                 'value_format': StringArg,
+                                 'merge_duplicates': BoolArg }
+                return MutationScoresInfo()
+
     # Map class name to class for session restore
     @staticmethod
     def get_class(class_name):
@@ -148,6 +180,9 @@ class _MutationScoresAPI(BundleAPI):
         elif class_name == 'MutationScores':
             from .ms_data import MutationScores
             return MutationScores
+        elif class_name == 'Variant':
+            from .ms_data import Variant
+            return Variant
         elif class_name == 'ScoreValues':
             from .ms_data import ScoreValues
             return ScoreValues

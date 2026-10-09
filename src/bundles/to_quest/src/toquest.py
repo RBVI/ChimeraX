@@ -374,8 +374,9 @@ class ToQuest(ToolInstance):
             return
         
         # Save current scene.
-        from os.path import expanduser, sep
-        path = expanduser(f'~/Desktop/{self._scene_filename}').replace(sep, '/')
+        from os.path import join, sep
+        from chimerax.core import desktop_path
+        path = join(desktop_path(), self._scene_filename).replace(sep, '/')
         from chimerax.core.commands import run
         run(self.session, f'save {path}')
 

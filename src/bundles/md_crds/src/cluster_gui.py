@@ -24,11 +24,11 @@ class ClusterLauncher:
     def __init__(self, launcher_window, structure):
         self.tool_window = tw = launcher_window
         tw.help = "help:user/commands/coordset.html#clustering"
-        def cleanup(lcd=self):
-            inst = lcd.tool_window.tool_instance
+        def cleanup(self=self):
+            inst = self.tool_window.tool_instance
             from .gui import _remove_tool_window
             _remove_tool_window(inst, "cluster launcher")
-            delattr(lcd.tool_window, 'cleanup')
+            delattr(self.tool_window, 'cleanup')
         tw.cleanup = cleanup
         self.session = structure.session
         self.structure = structure
@@ -155,13 +155,13 @@ class ClusterResults:
     def __init__(self, results_window, structure, clusterings):
         self.tool_window = tw = results_window
         tw.help = "help:user/commands/coordset.html#clusterdialog"
-        def cleanup(lcd=self):
-            for handler in lcd.handlers:
+        def cleanup(self=self):
+            for handler in self.handlers:
                 handler.remove()
-            lcd.handlers.clear()
-            inst = lcd.tool_window.tool_instance
+            self.handlers.clear()
+            inst = self.tool_window.tool_instance
             _md_tool_windows[inst]["cluster results"].remove(self)
-            delattr(lcd.tool_window, 'cleanup')
+            delattr(self.tool_window, 'cleanup')
         tw.cleanup = cleanup
         self.session = structure.session
         self.structure = structure

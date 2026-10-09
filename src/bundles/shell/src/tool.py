@@ -18,6 +18,10 @@ import sys, asyncio
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
+# suppress warning about debugger and frozen modules
+import os
+os.environ['PYDEVD_DISABLE_FILE_VALIDATION'] = '1'
+
 class ShellUI(ToolInstance):
 
     # shell tool does not participate in sessions

@@ -87,7 +87,6 @@ endif
 	$(MAKE) -C prereqs/pips install
 	$(MAKE) -C prereqs/Python app-install
 	$(MAKE) -C prereqs/pips app-install
-	$(MAKE) -C prereqs/PyQt app-install
 	$(MAKE) -C prereqs/ambertools app-install
 	$(MAKE) -C src/bundles install
 	$(MAKE) -C src/apps/ChimeraX install
@@ -96,7 +95,7 @@ test src.test: testimports
 	$(MAKE) -C src test
 
 testimports:
-	$(APP_EXE) --exit --nogui --silent utils/cxtestimports.py
+	cd utils > /dev/null && $(APP_EXE) --exit --nogui --silent cxtestimports.py
 
 ifdef FLATPAK_DIST
 SCRIPT_COVERAGE_ARGS := $(if $(USE_COVERAGE),-c -s -f,)

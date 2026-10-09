@@ -76,8 +76,6 @@ Notifications
 .. toctree::
     :maxdepth: 1
 
-    modules/core/data_events.rst
-
     modules/core/logger.rst
 
     modules/core/tasks.rst

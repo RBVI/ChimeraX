@@ -283,6 +283,15 @@ StructureSeq::push_front(Residue* r)
 }
 
 void
+StructureSeq::python_destroyed()
+{
+    if (!is_chain()) {
+        destroyed_from_python = true;
+        delete this;
+    }
+}
+
+void
 StructureSeq::remove_residue(Residue* r) {
     std::set<Residue*> residues;
     residues.insert(r);

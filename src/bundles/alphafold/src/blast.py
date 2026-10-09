@@ -36,12 +36,12 @@ def alphafold_search(session, sequence, cutoff=1.0e-3, max_sequences=100,
     seq_name = (getattr(sequence, 'uniprot_name', None)
                 or getattr(sequence, 'uniprot_accession', None))
     if version is None:
-        from .database import default_database_version
-        version = default_database_version(session)
+        version = '4'
     from chimerax.blastprotein import BlastProteinJob
-    BlastProteinJob(session, sequence.ungapped(), chain_spec, database='alphafold',
-                    version=version, cutoff=cutoff, matrix=matrix, max_seqs=max_sequences,
-                    sequence_name = seq_name)
+    job = BlastProteinJob(session, sequence.ungapped(), chain_spec, database='alphafold',
+                          version=version, cutoff=cutoff, matrix=matrix, max_seqs=max_sequences,
+                          sequence_name = seq_name)
+    job.start()
     
 # -----------------------------------------------------------------------------
 #

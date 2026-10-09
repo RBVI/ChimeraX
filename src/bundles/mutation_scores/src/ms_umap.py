@@ -37,13 +37,14 @@ def mutation_scores_umap(session, score_name = None, mutation_set = None):
     res_names = []
     colors = []
     from numpy import zeros, float32, array
-    for res_num in score_values.residue_numbers():
+    for res_num, from_aa in score_values.residue_numbers_and_types():
         values = score_values.mutation_values(res_num)
         if len(values) == 20:
             count += 1
             va = zeros((20,), float32)
-            for from_aa, to_aa, value in values:
-                va[aa_index[to_aa]] = value
+            for variant, value in values:
+                if variant.to_aa is not None:
+                    va[aa_index[variant.to_aa]] = value
             rscores.append(va)
             res_names.append(f'{from_aa}{res_num}')
             colors.append(aa_colors[aa_index[from_aa]])

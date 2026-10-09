@@ -563,11 +563,12 @@ class BoltzPredictionGUI(ToolInstance):
             return
         options = []
         name = self._prediction_name.value
+        from chimerax.core.commands import quote_if_necessary, quote_path_if_necessary
         if name:
-            options.append(f'name {name}')
+            options.append(f'name {quote_if_necessary(name)}')
         dir = self._results_directory.value
         if dir != self.default_results_directory():
-            options.append(f'resultsDirectory {dir}')
+            options.append(f'resultsDirectory {quote_path_if_necessary(dir)}')
         if not self._use_msa_cache.value:
             options.append('useMsaCache false')
         if self._device.value != 'default':
@@ -590,7 +591,6 @@ class BoltzPredictionGUI(ToolInstance):
         from .settings import _boltz_settings
         settings = _boltz_settings(self.session)
         if self._install_directory.value != settings.boltz22_install_location:
-            from chimerax.core.commands import quote_path_if_necessary
             options.append(f'installLocation {quote_path_if_necessary(self._install_directory.value)}')
         self._run_prediction(options = ' '.join(options))
 

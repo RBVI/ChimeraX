@@ -160,6 +160,7 @@ pl = {
     "LSBackgroundOnly": False,
     "NSCameraUsageDescription": "The ChimeraX webcam command needs permission to use the camera.",
     "NSMicrophoneUsageDescription": "The ChimeraX webcam command needs permission to use the microphone.",
+    "UIDesignRequiresCompatibility": True,  # Restores older better GUI appearance in macOS 26.x, ticket #20829
 }
 
 target = "10.4"

@@ -67,21 +67,26 @@ class GraphicsWindow(QWindow):
         from chimerax.graphics import remember_current_opengl_context, restore_current_opengl_context
         cc = remember_current_opengl_context()
         try:
-            mc = r.make_current()
+            success = r.make_current()
+            if not success:
+                msg = 'Could not activate the OpenGL graphics context.  This is usually a problem with the system graphics driver, and the only way to remedy it is to update the graphics driver. ChimeraX will probably not function correctly with the current graphics driver.'
+                log.error(msg)
         except (OpenGLVersionError, OpenGLError) as e:
-            mc = False
+            success = False
             log.error(str(e))
             self.session.update_loop.block_redraw()	# Avoid further opengl errors
-        if mc:
+        if success:
             e = r.check_for_opengl_errors()
             if e:
                 msg = 'There was an OpenGL graphics error while starting up.  This is usually a problem with the system graphics driver, and the only way to remedy it is to update the graphics driver. ChimeraX will probably not function correctly with the current graphics driver.'
                 msg += '\n\n\t"%s"' % e
                 log.error(msg)
+                success = False
 
             self._check_for_bad_intel_driver()
 
         restore_current_opengl_context(cc)
+        return success
 
     def _check_for_bad_intel_driver(self):
         import sys

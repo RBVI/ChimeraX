@@ -434,6 +434,21 @@ ExtractMolecule::ExtractMolecule(PyObject* logger, const StringVector& generic_c
                 parse_generic_category();
             });
     }
+    // from 12/12/2023 PDB News item, https://www2.rcsb.org/news/656f4404d78e004e766a96c6:
+    // "wwPDB has reserved a set of CCD IDs: 01 - 99, DRG, INH, LIG that will never be used in the PDB."
+    missing_residue_templates.insert("DRG");
+    missing_residue_templates.insert("INH");
+    missing_residue_templates.insert("LIG");
+    for (char ones = '1'; ones <= '9'; ++ones) {
+        char resname[3] = { '0', ones, 0 };
+        missing_residue_templates.insert(resname);
+    }
+    for (char tens = '1'; tens <= '9'; ++tens) {
+        for (char ones = '0'; ones <= '9'; ++ones) {
+            char resname[3] = { tens, ones, 0 };
+            missing_residue_templates.insert(resname);
+        }
+    }
 }
 
 ExtractMolecule::~ExtractMolecule()
@@ -525,11 +540,6 @@ ExtractMolecule::find_template_residue(const ResName& name, bool start, bool sto
                 return tr;
         }
         return nullptr;
-    }
-    // treat UN[LX][_0-9].* as UN[LX]
-    if (name.size() > 3 && name[0] == 'U' && name[1] == 'N' && (name[2] == 'L' || name[2] == 'X')) {
-        if (name[3] == '_' || std::isdigit(static_cast<unsigned char>(name[3])))
-            return find_template_residue(name.substr(0, 3), start, stop);
     }
     auto tr = mmcif::find_template_residue(name, start, stop);
     if (tr == nullptr) {

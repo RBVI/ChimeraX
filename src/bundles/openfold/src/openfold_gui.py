@@ -526,27 +526,32 @@ class OpenFoldPredictionGUI(ToolInstance):
             return
         options = []
         name = self._prediction_name.value
+        from chimerax.core.commands import quote_if_necessary, quote_path_if_necessary
         if name:
-            options.append(f'name {name}')
+            options.append(f'name {quote_if_necessary(name)}')
         dir = self._results_directory.value
         if dir != self.default_results_directory():
-            options.append(f'resultsDirectory {dir}')
+            options.append(f'resultsDirectory {quote_path_if_necessary(dir)}')
         if not self._use_msa_cache.value:
             options.append('useMsaCache false')
         if self._device.value != 'default':
             options.append(f'device {self._device.value}')
         if self._use_server.value:
-            options.append('useServer true')
             host, port = self._server_host.value, self._server_port.value
             if host.strip():
+                options.append('useServer true')
                 options.append(f'serverHost {host}')
-            options.append(f'serverPort {port}')
+                options.append(f'serverPort {port}')
+            else:
+                # No host specified.
+                # Do MSA and template search and create zip file for user to run on cluster.
+                options.append('msaOnly true')
+                options.append('zipArchive true')
         if self._samples.value != 1:
             options.append(f'samples {self._samples.value}')
         from .settings import _openfold_settings
         settings = _openfold_settings(self.session)
         if self._install_directory.value != settings.openfold_install_location:
-            from chimerax.core.commands import quote_path_if_necessary
             options.append(f'installLocation {quote_path_if_necessary(self._install_directory.value)}')
         self._run_prediction(options = ' '.join(options))
 

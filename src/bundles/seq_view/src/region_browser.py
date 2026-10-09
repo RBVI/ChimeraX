@@ -2190,5 +2190,5 @@ def get_rgba(color_info):
     return color_info
 
 def rgba_to_qcolor(rgba):
-    from Qt.QtGui import QBrush, QPen, QColor
+    from Qt.QtGui import QColor
     return QColor(*[int(255*chan + 0.5) for chan in rgba])

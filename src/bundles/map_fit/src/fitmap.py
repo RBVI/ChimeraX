@@ -859,7 +859,7 @@ def asymmetric_unit_points(points, refpt, symmetries):
         srefpt = sym * refpt
         diff = points - srefpt
         ds = sum(diff*diff, axis = 1)
-        minimum(dsmin, ds, dsmin) 
+        minimum(dsmin, ds, out = dsmin)
     indices = nonzero(d == dsmin)[0]
         
     return indices

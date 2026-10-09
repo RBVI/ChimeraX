@@ -34,6 +34,13 @@ PATCHES += openmm_metadata.patch
 endif
 endif
 
+# maturin's PEP517 backend (used to build pynmrstar's sdist, which has no cp314
+# wheel) shells out to the `maturin` console script by bare name. With
+# --no-build-isolation there is no ephemeral build venv whose bin is on PATH, so
+# we must prepend the directory pip installed the script into ourselves. On a
+# macOS framework build that is Versions/$(PYTHON_VERSION)/bin, not Contents/bin.
+APP_SCRIPT_DIR = $(shell $(APP_PYTHON_EXE) -c "import sysconfig; print(sysconfig.get_path('scripts'))")
+
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 
 ifeq ($(OS),Windows)
@@ -82,11 +89,15 @@ endif
 	# isolated, ephemeral environments with it, and we have to install it.
 	# puccinialin (which bootstraps a Rust toolchain when none is present) must
 	# also already be in the environment before pynmrstar builds.
+	# On Darwin Intel, we also need cffi
 	$(APP_PIP_INSTALL) maturin puccinialin
+ifeq ($(OSARCH),DarwinIntel64)
+	$(APP_PIP_INSTALL) cffi
+endif
 ifeq ($(OS),Darwin)
 	$(APP_PIP_INSTALL) ./$(SCIPY_WHEEL)
 endif
-	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
+	PATH="$(APP_SCRIPT_DIR):$$PATH" CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifdef USE_PYSIDE6
 	$(APP_PIP_INSTALL) $(shell grep PySide6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 	$(APP_PIP_INSTALL) $(shell grep shiboken6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
@@ -109,8 +120,8 @@ endif
 ifeq ($(OSARCH),Linux)
 	$(APP_PIP) uninstall -y nvidia-nvjitlink-cu12
 endif
-	$(APP_PIP) uninstall maturin puccinialin
 endif
+	$(APP_PIP) uninstall -y maturin puccinialin
 
 app_requirements.txt: ../../pyproject.toml
 	$(APP_PYTHON_BIN) make_requirements.py
