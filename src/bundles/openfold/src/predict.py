@@ -1287,13 +1287,18 @@ def _torch_has_cuda(session):
     if platform == 'win32':
         lib_path = 'Lib/site-packages/torch/lib/torch_cuda.dll'
     elif platform == 'linux':
-        from sys import version_info as v
-        lib_path = f'lib/python{v.major}.{v.minor}/site-packages/torch/lib/libtorch_cuda.so'
+        lib_path = 'lib/python*/site-packages/torch/lib/libtorch_cuda.so'
     from .settings import _openfold_settings
     settings = _openfold_settings(session)
     openfold_install = settings.openfold_install_location
     from os.path import join, exists
     torch_cuda_lib = join(openfold_install, lib_path)
+    if '*' in torch_cuda_lib:
+        from glob import glob
+        paths = glob(torch_cuda_lib)
+        if len(paths) != 1:
+            return false
+        torch_cuda_lib = paths[0]
     return exists(torch_cuda_lib)
 
 # ------------------------------------------------------------------------------
