@@ -37,6 +37,66 @@ class _PhenixBundle(BundleAPI):
         cmd.register_command(logger)
 
     @staticmethod
+    def run_provider(session, name, mgr, **kw):
+        from chimerax.open_command import OpenerInfo
+        class MDInfo(OpenerInfo):
+            def open(self, session, data, file_name, *, structure_model=None, **kw):
+                if structure_model is None:
+                    from chimerax.core.errors import UserError, CancelOperation
+                    from chimerax.atomic import Structure
+                    structures = [s for s in session.models if isinstance(s, Structure)]
+                    if len(structures) == 0:
+                        raise UserError("No atomic models open to read the probe dots into!")
+                    elif len(structures) == 1:
+                        structure_model = structures[0]
+                    else:
+                        if session.ui.is_gui and not session.in_script:
+                            from Qt.QtWidgets import QVBoxLayout, QHBoxLayout, QLabel, QDialog, \
+                                QDialogButtonBox as qbbox
+                            class GetStructureDialog(QDialog):
+                                def __init__(self, session):
+                                    super().__init__()
+                                    self.setWindowTitle("Choose Structure for Probe Dots")
+                                    self.setSizeGripEnabled(True)
+                                    from chimerax.atomic.widgets import StructureMenuButton
+                                    layout = QVBoxLayout()
+                                    chooser_layout = QHBoxLayout()
+                                    from Qt.QtCore import Qt
+                                    chooser_layout.addWidget(QLabel("Structure:"),
+                                        alignment=Qt.AlignRight)
+                                    self.structure_button = StructureMenuButton(session)
+                                    chooser_layout.addWidget(self.structure_button,
+                                        alignment=Qt.AlignLeft)
+                                    layout.addLayout(chooser_layout)
+
+                                    bbox = qbbox(qbbox.Ok | qbbox.Cancel)
+                                    bbox.accepted.connect(self.accept)
+                                    bbox.rejected.connect(self.reject)
+                                    layout.addWidget(bbox)
+                                    self.setLayout(layout)
+
+                                @property
+                                def model(self):
+                                    return self.structure_button.value
+
+                            dlg = GetStructureDialog(session)
+                            okayed = dlg.exec()
+                            if not okayed or dlg.model is None:
+                                raise CancelOperation("No atomic structure specified")
+                            structure_model = dlg.model
+                        else:
+                            raise UserError("Must specify an atomic model to read the probe dots into")
+                from .validation import read_probe_dots
+                read_probe_dots(session, data, file_name, structure_model, **kw)
+                return [], "Added probe dots to %s" % structure_model
+
+            @property
+            def open_args(self):
+                from chimerax.atomic import StructureArg
+                return { 'structure_model': StructureArg }
+        return MDInfo()
+
+    @staticmethod
     def start_tool(session, tool_name):
         if tool_name == 'Water Placement':
             from .tool import LaunchDouseTool

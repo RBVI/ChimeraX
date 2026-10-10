@@ -30,6 +30,15 @@
     <Dependency name="ChimeraX-UI" version="~=1.39"/>
   </Dependencies>
 
+  <Providers manager="data formats">
+    <Provider name="Richardson Probe contact dots" nicknames="probe" category="Structure Analysis"
+	    suffixes=".probe" encoding="utf-8" reference_url="http://kinemage.biochem.duke.edu/software/probe/"/>
+  </Providers>
+
+  <Providers manager="open command">
+    <Provider name="Richardson Probe contact dots" />
+  </Providers>
+
   <Classifiers>
     <PythonClassifier>Development Status :: 2 - Pre-Alpha</PythonClassifier>
     <PythonClassifier>License :: Free for non-commercial use</PythonClassifier>
