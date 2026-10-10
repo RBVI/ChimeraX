@@ -31,7 +31,7 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
                   samples = 1, recycles = 3, seed = None,
                   affinity = None, steering = False,
                   msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
-                  open = True, install_location = None, wait = None):
+                  zip_archive = False, open = True, install_location = None, wait = None):
 
     if install_location is not None:
         from .settings import _boltz_settings
@@ -84,7 +84,7 @@ def boltz_predict(session, sequences = [], ligands = None, exclude_ligands = 'HO
                   device = device, use_server = use_server, server_host = server_host, server_port = server_port,
                   use_kernels = kernels, precision = precision, cuda_bfloat16 = float16,
                   msa_only = msa_only, use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
-                  open = open, wait = wait)
+                  zip_archive = zip_archive, open = open, wait = wait)
 
     msa_run = _msa_run(session, name, molecular_components, msa_cache_dir, wait) if for_each_ligand else None
     if msa_run is None:
@@ -383,11 +383,12 @@ class BoltzPrediction:
         return msa_cache_files
 
     def _copy_msa_files(self, msa_files, msa_directory, msa_relative_to_path):
-        # Copy MSA files to run directory so they are sent to server.
+        # Copy MSA files to run directory so they can be sent to server.
+        from os.path import join, basename, exists, relpath
         from shutil import copy2
         for path in set(msa_files.values()):
-            copy2(path, msa_directory)
-        from os.path import join, basename, relpath
+            if not exists(join(msa_directory, basename(path))):
+                copy2(path, msa_directory)
         copied_msa_files = {seq:join(msa_directory, basename(msa_path)) for seq, msa_path in msa_files.items()}
         if msa_relative_to_path:
             copied_msa_files = {seq:relpath(msa_path, msa_relative_to_path)
@@ -507,7 +508,7 @@ class BoltzRun:
                  device = 'default', use_server = False, server_host = None, server_port = None,
                  use_kernels = None, precision = None, cuda_bfloat16 = False,
                  msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/BoltzMSA',
-                 open = True, wait = False):
+                 zip_archive = False, open = True, wait = False):
 
         self._session = session
         self._predictions = [structures] if isinstance(structures, BoltzPrediction) else structures
@@ -529,6 +530,7 @@ class BoltzRun:
         self._use_steering_potentials = use_steering_potentials
         self._seed = seed		# Random seed for computation
         self._open = open		# Whether to open predictions when boltz finishes.
+        self._zip_archive = zip_archive	# Whether to zip the results
 
         from os.path import abspath, isabs
         run_dir = abspath(run_directory) if run_directory and not isabs(run_directory) else run_directory
@@ -558,9 +560,19 @@ class BoltzRun:
 
     def start(self, finished_callback = None):
         self._finished_callback = finished_callback
+        self._run_directory = self._unique_run_directory()
         self._write_yaml_input_files()
         self._write_ligands_file()
+        if self._msa_only and not self._use_msa_server:
+            self._msa_finished()
+            return
         self._run_boltz()
+
+    def _msa_finished(self):
+        self._session.logger.status(f'Wrote Boltz input files to {self._run_directory}', log=True)
+        if self._zip_archive:
+            self._make_job_zip_file()
+        self._prediction_finished(success = True)
 
     @property
     def _settings(self):
@@ -569,15 +581,13 @@ class BoltzRun:
         return settings
 
     def _write_yaml_input_files(self):
-        # Create yaml before making directory so directory is not created if yaml creation fails.
-        self._run_directory = dir = self._unique_run_directory()
-
+        dir = self._run_directory
         if self.name is None:
             from os.path import basename
             self.name = basename(dir)
 
         msa_cache_dir = self._msa_cache_dir if self._use_msa_cache else None
-        msa_directory = msa_relative_to_path = (self._run_directory if self._use_server else None)
+        msa_directory = msa_relative_to_path = (self._run_directory if self._use_server or self._msa_only else None)
         yaml = [(p.yaml_filename(self.name), p.yaml_input(msa_cache_dir, msa_directory, msa_relative_to_path))
                 for p in self._predictions]
         for i, (filename, yaml_text) in enumerate(yaml):
@@ -658,7 +668,13 @@ class BoltzRun:
 
     def _run_boltz(self):
         self._running = True
-        msg = f'sending to server {self._server_host}' if self._use_server else 'starting Boltz'
+        if self._use_server:
+            if self._msa_only:
+                msg = 'computing MSAs and templates'
+            else:
+                msg = f'sending to server {self._server_host}'
+        else:
+            msg = 'starting Boltz'
         self._set_stage(msg)
 
         self._log_prediction_info()
@@ -702,6 +718,16 @@ class BoltzRun:
             self._check_process_completion()
         else:
             self._session.triggers.add_handler('new frame', self._check_process_completion)
+
+    def _make_job_zip_file(self):
+        run_dir = self._run_directory
+        zip_path = run_dir + '.zip'
+        from .server import make_zip_file_from_directory
+        make_zip_file_from_directory(run_dir, zip_path)
+        self._prediction_finished(success = True)
+        results = '' if self._msa_only else 'and results '
+        msg = f'Created zip file of Boltz input file and MSAs {results}at {zip_path}'
+        self._session.logger.info(msg)
 
     def _run_on_server(self):
         '''This blocks until the prediction is finished.'''
@@ -839,7 +865,11 @@ class BoltzRun:
         mol_descrip = pred[0]._assembly_description() if len(pred) == 1 else f'{len(pred)} ligands'
         device = self.device
         log = self._session.logger
-        log.info(f'Running Boltz prediction of {mol_descrip} on {device}')
+        if self._msa_only:
+            msg = f'Running MSA and template search for {mol_descrip}'
+        else:
+            msg = f'Running Boltz prediction of {mol_descrip} on {device}'
+        log.info(msg)
 
         if self._use_msa_server:
             msa_method = 'Using multiple sequence alignment server https://api.colabfold.com'
@@ -957,7 +987,11 @@ class BoltzRun:
             self._session.logger.error(msg)
             success = False
         else:
+            if self._use_msa_cache:
+                for p in self._predictions:
+                    p._add_to_msa_cache(self._msa_directory, self._msa_cache_dir)
             if self._msa_only:
+                self._write_yaml_input_files()	# Rewrite input files to include MSAs.
                 self._report_runtime()
             elif len(self._predictions) > 1:
                 self._report_multi_prediction_results()
@@ -976,10 +1010,9 @@ class BoltzRun:
                         models.extend(p.open_predictions(self._session, self._predictions_directory,
                                                          num_samples = self._samples))
                     self._opened_predictions = models
+            if self._zip_archive:
+                self._make_job_zip_file()
             success = True
-
-        for p in self._predictions:
-            p._add_to_msa_cache(self._msa_directory, self._msa_cache_dir)
 
         self._prediction_finished(success)
 
@@ -1017,7 +1050,10 @@ class BoltzRun:
             parts.append(f'affinity inference {"%.0f" % ait} sec')
 
         timings = ', '.join(parts)
-        msg = f'Boltz prediction completed in {"%.0f" % total} seconds ({timings})'
+        if self._msa_only:
+            msg = f'Boltz MSA search completed in {"%.0f" % total} seconds'
+        else:
+            msg = f'Boltz prediction completed in {"%.0f" % total} seconds ({timings})'
         self._session.logger.info(msg)
 
         if self._use_msa_server and wait_t >= 60:
@@ -1101,8 +1137,10 @@ class BoltzRun:
 
     def terminate(self):
         if self._running:
-            self._process.kill()
+            if self._process is not None:
+                self._process.kill()
             self._user_terminated = True
+            self._prediction_finished(success = False)
 
     def _prediction_ran_out_of_memory(self, stdout):
         from os.path import join, exists
@@ -1667,6 +1705,7 @@ def register_boltz_predict_command(logger):
                    ('seed', IntArg),
                    ('use_msa_cache', BoolArg),
                    ('msa_only', BoolArg),
+                   ('zip_archive', BoolArg),
                    ('open', BoolArg),
                    ('install_location', SaveFolderNameArg),
                    ('wait', BoolArg)],

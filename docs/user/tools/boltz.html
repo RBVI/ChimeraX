@@ -218,8 +218,11 @@ A user can quit from ChimeraX while the server job is
 still running, then retrieve the results later
 (after restarting ChimeraX) using the 
 <a href="#history"><b>Boltz History</b></a>. 
-</li><li><b>Boltz install location</b> &ndash; the folder containing
-a virtual Python environment in which Boltz is installed
+If the host name is left blank then a zip file will be created with Boltz
+input files including MSAs and a yaml input that uses the MSA
+(see the <a href="../commands/boltz.html#predict">msaOnly and zipArchive options</a> of the boltz predict command).
+This can be copied to run on a cluster that does not have internet access.
+</li><li><b>Boltz install location</b> &ndash; the folder where Boltz is installed
 </li></ul>
 <p>
 Clicking <b>Save default options</b> saves the current option settings as

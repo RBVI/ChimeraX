@@ -574,11 +574,16 @@ class BoltzPredictionGUI(ToolInstance):
         if self._device.value != 'default':
             options.append(f'device {self._device.value}')
         if self._use_server.value:
-            options.append('useServer true')
             host, port = self._server_host.value, self._server_port.value
             if host.strip():
+                options.append('useServer true')
                 options.append(f'serverHost {host}')
-            options.append(f'serverPort {port}')
+                options.append(f'serverPort {port}')
+            else:
+                # No host specified.
+                # Do MSA and template search and create zip file for user to run on cluster.
+                options.append('msaOnly true')
+                options.append('zipArchive true')
         lig = self._affinity_ligand_value()
         if lig:
             options.append(f'affinity {lig}')
