@@ -657,7 +657,7 @@ class OpenFoldRun:
         run_dir = self._run_directory
         zip_path = run_dir + '.zip'
         from .server import make_zip_file_from_directory
-        make_zip_file_from_directory(run_dir, zip_path)
+        make_zip_file_from_directory(run_dir, zip_path, include_top_dir = True)
         self._prediction_finished(success = True)
         results = '' if self._msa_only else 'and results '
         msg = f'Created zip file of OpenFold input file, MSAs and templates {results}at {zip_path}'

@@ -94,9 +94,12 @@ def write_zip_file(runs_directory, zip_data):
     job_id = basename(zip_path).removeprefix('openfold_job_').removesuffix('.zip')
     return zip_path, job_id
 
-def make_zip_file_from_directory(folder_path, zip_path):
+def make_zip_file_from_directory(folder_path, zip_path, include_top_dir = False):
     # Get the root directory length for relative paths
     root_len = len(folder_path) + 1
+    if include_top_dir:
+        from os.path import dirname
+        root_len = len(dirname(folder_path)) + 1
     from os.path import join
     import zipfile, os
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
