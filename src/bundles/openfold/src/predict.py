@@ -657,11 +657,10 @@ class OpenFoldRun:
         run_dir = self._run_directory
         zip_path = run_dir + '.zip'
         from .server import make_zip_file_from_directory
-        make_zip_file_from_directory(run_dir, zip_path)
+        make_zip_file_from_directory(run_dir, zip_path, include_top_dir = True)
         self._prediction_finished(success = True)
-        msg = f'Created zip file of OpenFold input file, MSAs and templates at {zip_path}'
-        if not self._msa_only:
-            msg += ' and results'
+        results = '' if self._msa_only else 'and results '
+        msg = f'Created zip file of OpenFold input file, MSAs and templates {results}at {zip_path}'
         self._session.logger.info(msg)
 
     def _run_on_server(self):
@@ -1288,13 +1287,18 @@ def _torch_has_cuda(session):
     if platform == 'win32':
         lib_path = 'Lib/site-packages/torch/lib/torch_cuda.dll'
     elif platform == 'linux':
-        from sys import version_info as v
-        lib_path = f'lib/python{v.major}.{v.minor}/site-packages/torch/lib/libtorch_cuda.so'
+        lib_path = 'lib/python*/site-packages/torch/lib/libtorch_cuda.so'
     from .settings import _openfold_settings
     settings = _openfold_settings(session)
     openfold_install = settings.openfold_install_location
     from os.path import join, exists
     torch_cuda_lib = join(openfold_install, lib_path)
+    if '*' in torch_cuda_lib:
+        from glob import glob
+        paths = glob(torch_cuda_lib)
+        if len(paths) != 1:
+            return false
+        torch_cuda_lib = paths[0]
     return exists(torch_cuda_lib)
 
 # ------------------------------------------------------------------------------
