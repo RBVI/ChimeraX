@@ -187,7 +187,7 @@ def _for_each_ligand(name_and_smiles, used_chain_ids, log):
         
 # ------------------------------------------------------------------------------
 #
-def _each_ligand_predictions(for_each_ligand, molecular_components, align_to):
+def _each_ligand_predictions(for_each_ligand, molecular_components, align_to = None):
     predictions = []
     for ligand in for_each_ligand:
         components = molecular_components + [ligand]
@@ -302,6 +302,58 @@ template_preprocessor_settings:
 '''
         return input, msa_path_yaml
 
+    def alphafold3_json(self):
+        self._make_unique_uppercase_chain_ids()
+
+        components = []
+        for mc in self._molecular_components:
+            if mc.type in ('protein', 'dna', 'rna'):
+                component = {mc.type: { 'id': mc.chain_ids, 'sequence': mc.sequence_string}}
+                components.append(component)
+
+        # Create json for ligands
+        for mc in self._molecular_components:
+            if mc.type == 'ligand':
+                component = {'ligand': {"id": mc.chain_ids}}
+                if mc.ccd_code:
+                    component['ligand']['ccd_codes'] = [mc.ccd_code]
+                elif mc.smiles_string:
+                    smiles = mc.smiles_string.replace('\\', '\\\\')  # Escape backslashes
+                    component['ligand']['smiles'] = smiles
+                components.append(component)
+
+        input = {
+            'name': self.name,
+            'sequences': components,
+            'modelSeeds': [42],
+            'dialect': 'alphafold3',
+            'version': 4
+        }
+
+        return input
+
+    def _make_unique_uppercase_chain_ids(self):
+        ids = set()
+        for mc in self._molecular_components:
+            for id in mc.chain_ids:
+                ids.add(id)
+
+        for mc in self._molecular_components:
+            cids = []
+            for id in mc.chain_ids:
+                upper_id = id.upper()
+                if upper_id != id and upper_id in ids:
+                    suffix = 1
+                    while f'{upper_id}{suffix}' in ids:
+                        suffix += 1
+                    new_id = f'{upper_id}{suffix}'
+                    cids.append(new_id)
+                    ids.add(new_id)
+                else:
+                    cids.append(upper_id)
+            if cids != mc.chain_ids:
+                mc.chain_ids = cids
+                    
     def _msa_cache_files(self, msa_cache_directory):
         if msa_cache_directory:
             protein_seqs = [mc.sequence_string for mc in self._molecular_components if mc.type == 'protein']
@@ -1564,6 +1616,50 @@ class ReadOutputThread:
 
 # ------------------------------------------------------------------------------
 #
+def af3input(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
+             protein = [], dna = [], rna = [],
+             ligand_ccd = [], ligand_smiles = [], for_each_smiles_ligand = [],
+             file = None):
+
+    polymer_components, modeled_chains, unmodeled_chains = _polymer_components(sequences, protein, dna, rna)
+    used_chain_ids = set(sum((pc.chain_ids for pc in polymer_components), []))
+    ligand_components, covalent_ligands = _ligand_components(ligands, exclude_ligands.split(','),
+                                                             ligand_ccd, ligand_smiles, used_chain_ids)
+    molecular_components = polymer_components + ligand_components
+
+    if len(molecular_components) == 0 and len(for_each_smiles_ligand) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('No molecules specified for AlphaFold 3 input file')
+   
+    # Warn about unmodeled compnents
+    if unmodeled_chains:
+        msg = f'Chains {", ".join(unmodeled_chains)} not modeled because not protein/DNA/RNA'
+        session.logger.warning(msg)
+    if covalent_ligands:
+        session.logger.info(f'Predicting covalent ligands not yet supported: {covalent_ligands}')
+
+    for_each_ligand = _for_each_ligand(for_each_smiles_ligand, used_chain_ids, session.logger)
+    if for_each_ligand is None:
+        from os.path import basename, splitext
+        name = splitext(basename(file))[0]
+        p = OpenFoldPrediction(name, molecular_components)
+        predictions = [p]
+    else:
+        predictions = _each_ligand_predictions(for_each_ligand, molecular_components)
+
+    # Write JSON files
+    import json
+    from os.path import splitext
+    file_base, file_suffix = splitext(file)
+    for p in predictions:
+        data = p.alphafold3_json()
+        json_text = json.dumps(data, indent=2)
+        path = file if len(predictions) == 1 else f'{file_base}_{p.name}{file_suffix}'
+        with open(file, 'w') as f:
+            f.write(json_text)
+
+# ------------------------------------------------------------------------------
+#
 from chimerax.core.commands import Annotation, AnnotationError, next_token
 class LigandsArg(Annotation):
     name = 'ligands'
@@ -1619,7 +1715,7 @@ class RepeatSequencesArg(Annotation):
 # ------------------------------------------------------------------------------
 #
 def register_openfold_predict_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, SaveFolderNameArg, BoolArg, EnumOf, IntArg, IntsArg, OpenFolderNameArg
+    from chimerax.core.commands import CmdDesc, register, StringArg, SaveFolderNameArg, BoolArg, EnumOf, IntArg, IntsArg, OpenFolderNameArg, SaveFileNameArg
     from chimerax.atomic import SequencesArg, ResiduesArg, ChainArg
 
     desc = CmdDesc(
@@ -1660,3 +1756,20 @@ def register_openfold_predict_command(logger):
     )
     register('openfold ligandtable', desc, openfold_ligand_table, logger=logger)
 
+    desc = CmdDesc(
+        optional = [('sequences', SequencesArg)],
+        keyword = [('ligands', ResiduesArg),
+                   ('exclude_ligands', StringArg),
+                   ('protein', RepeatSequencesArg),
+                   ('dna', RepeatSequencesArg),
+                   ('rna', RepeatSequencesArg),
+                   ('ligand_ccd', LigandsArg),
+                   ('ligand_smiles', LigandsArg),
+                   ('for_each_smiles_ligand', NamedLigandsArg),
+                   ('file', SaveFileNameArg),
+                   ],
+        required_arguments = ['file'],
+        synopsis = 'Write an AlphaFold 3 JSON input file',
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold.html'
+    )
+    register('af3input', desc, af3input, logger=logger)
