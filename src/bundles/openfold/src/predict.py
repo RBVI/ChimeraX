@@ -333,20 +333,25 @@ template_preprocessor_settings:
         return input
 
     def _make_unique_uppercase_chain_ids(self):
+        '''AlphaFold 3 requires chain ids to be upper case letters.'''
         ids = set()
         for mc in self._molecular_components:
             for id in mc.chain_ids:
                 ids.add(id)
 
+        from string import ascii_uppercase
+        suffixes = 'L' + ascii_uppercase	# "LABC...Z"  Try L first as a hint that original was lowercase.
         for mc in self._molecular_components:
             cids = []
             for id in mc.chain_ids:
                 upper_id = id.upper()
                 if upper_id != id and upper_id in ids:
-                    suffix = 1
-                    while f'{upper_id}{suffix}' in ids:
-                        suffix += 1
+                    for suffix in suffixes:
+                        if f'{upper_id}{suffix}' not in ids:
+                            break
                     new_id = f'{upper_id}{suffix}'
+                    if new_id in ids:
+                        raise RuntimeError(f'Could not replace {id} with uppercase {upper_id} with A,B,C... suffix to produce a unique all uppercase chain id as required by AlphaFold 3')
                     cids.append(new_id)
                     ids.add(new_id)
                 else:
