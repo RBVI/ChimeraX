@@ -1599,6 +1599,9 @@ class AtomicStructure(Structure):
                     display_atoms = display_atoms.filter(display_atoms.idatm_types != "HC")
                 display_atoms.displays = True
                 ribbonable.ribbon_displays = True
+            # glycan depictions need to not make a separate model and also offer a "glycan" selector;
+            # until those changes occur, withdrawing intial glycan depiction
+            '''
             # make glycan depictions if applicable
             # look for inter-residue bonds that aren't in chains
             bonds = self.bonds
@@ -1621,6 +1624,7 @@ class AtomicStructure(Structure):
                 if do_log:
                     self.session.logger.info('You can remove SNFG depictions with the command'
                         ' <a href="cxcmd:snfg hide">snfg hide</a>', is_html=True)
+            '''
         elif style == "medium polymer":
             lighting = {'preset': 'full'}
             if self.num_atoms >= MULTI_SHADOW_THRESHOLD:
