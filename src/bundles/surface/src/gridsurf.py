@@ -70,7 +70,7 @@ def ses_surface_geometry(xyz, radii, probe_radius = 1.4, grid_spacing = 0.5, sas
     sphere_surface_distance(ijk, ri, max_index_range, matrix)
 
     # Get the SAS surface as a contour surface of the distance map
-    from chimerax.map import contour_surface
+    from chimerax.map._flying_edges import contour_surface
     level = 0
     sas_va, sas_ta, sas_na = contour_surface(matrix, level, cap_faces = False,
                                              calculate_normals = True)
