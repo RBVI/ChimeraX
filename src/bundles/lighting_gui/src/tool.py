@@ -34,7 +34,7 @@ from enum import StrEnum
 
 import numpy as np
 from Qt.QtCore import Qt
-from Qt.QtGui import QWindow, QSurface
+from Qt.QtGui import QWindow
 from Qt.QtWidgets import (
     QHBoxLayout,
     QWidget,
@@ -46,6 +46,7 @@ from Qt.QtWidgets import (
     QTabWidget,
     QSizePolicy,
     QPushButton,
+    QStackedWidget,
 )
 
 from chimerax.core.tools import ToolInstance
@@ -242,21 +243,32 @@ class LightingGUI(ToolInstance):
         self.tab_widget.addTab(shininess_tab, "Shininess")
         self.tab_widget.addTab(depth_cue_tab, "Depth Cue")
 
-        # Right side: preview sphere with light direction arrows
-        self.preview_widget = LightingPreviewWidget(parent, session, self)
+        # Right side: the native preview window is always created under its
+        # final clipping parent.  The stack stays in the layout while the
+        # backend-specific QWindow is replaced.
+        self._preview_area = QStackedWidget(parent)
+        self._backend_switching = False
+        self.preview_widget = self._create_preview()
 
         main_layout.addWidget(self.tab_widget, 0)  # Fixed width controls
-        main_layout.addWidget(self.preview_widget.widget, 1)  # Expandable preview
+        main_layout.addWidget(self._preview_area, 1)  # Expandable preview
 
         # Sync UI with current state
         self._sync_from_session()
         self._detect_preset()
 
         # Listen for lighting/material command changes
-        from chimerax.core.core_triggers import LIGHTING_CHANGED
+        from chimerax.core.core_triggers import (
+            GRAPHICS_BACKEND_CHANGED, GRAPHICS_BACKEND_CHANGING,
+            LIGHTING_CHANGED,
+        )
         self._lighting_handler = session.triggers.add_handler(
             LIGHTING_CHANGED, self._on_lighting_changed
         )
+        self._backend_changing_handler = session.triggers.add_handler(
+            GRAPHICS_BACKEND_CHANGING, self._backend_changing)
+        self._backend_changed_handler = session.triggers.add_handler(
+            GRAPHICS_BACKEND_CHANGED, self._backend_changed)
 
         self.tool_window.manage()
 
@@ -438,6 +450,8 @@ class LightingGUI(ToolInstance):
         main_lp = self.session.main_view.lighting
         main_mat = self.session.main_view.material
         preview = self.preview_widget
+        if preview is None:
+            return
 
         # Copy lighting parameters
         lp = preview.view.lighting
@@ -619,14 +633,46 @@ class LightingGUI(ToolInstance):
         run(self.session, f"lighting depthCueColor {color[0]},{color[1]},{color[2]}")
 
     def delete(self):
-        from chimerax.core.core_triggers import LIGHTING_CHANGED
         self.session.triggers.remove_handler(self._lighting_handler)
-        self.preview_widget.close()
+        self.session.triggers.remove_handler(self._backend_changing_handler)
+        self.session.triggers.remove_handler(self._backend_changed_handler)
+        self._retire_preview()
         super().delete()
+
+    def _create_preview(self):
+        preview = LightingPreviewWidget(
+            self._preview_area, self.session, self)
+        self._preview_area.addWidget(preview.widget)
+        self._preview_area.setCurrentWidget(preview.widget)
+        return preview
+
+    def _retire_preview(self):
+        preview = self.preview_widget
+        self.preview_widget = None
+        if preview is None:
+            return
+        widget = preview.widget
+        self._preview_area.removeWidget(widget)
+        preview.close()
+        widget.setParent(None)
+        widget.deleteLater()
+
+    def _backend_changing(self, *_):
+        if self._backend_switching:
+            return
+        self._backend_switching = True
+        self._retire_preview()
+
+    def _backend_changed(self, *_):
+        if not self._backend_switching:
+            return
+        self.preview_widget = self._create_preview()
+        self._backend_switching = False
+        self._sync_preview()
 
 
 class LightingPreviewWidget(QWindow):
-    """OpenGL widget displaying a sphere with current lighting for preview."""
+    """Auxiliary graphics window displaying the current lighting preview."""
 
     # Colors for light arrows (RGBA 0-255)
     KEY_LIGHT_COLOR = (255, 200, 50, 255)  # Yellow/gold for key
@@ -636,15 +682,9 @@ class LightingPreviewWidget(QWindow):
         QWindow.__init__(self)
         self.session = session
         self.lighting_gui = lighting_gui
-        self.widget = QWidget.createWindowContainer(self, parent)
-        self.widget.setMinimumSize(360, 360)
-        import os, sys
-        use_metal = (sys.platform == 'darwin' and
-                     os.environ.get('CHIMERAX_GRAPHICS_BACKEND', '').lower() == 'metal')
-        if use_metal:
-            self.setSurfaceType(QSurface.SurfaceType.MetalSurface)
-        else:
-            self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
+        self.main_view = session.main_view
+        self._needs_render = True
+        self._closed = False
 
         # Create sphere drawing
         self.sphere = SphereDrawing()
@@ -657,28 +697,20 @@ class LightingPreviewWidget(QWindow):
         self.sphere.add_drawing(self.key_arrow)
         self.sphere.add_drawing(self.fill_arrow)
 
-        # Create view with sphere.
-        # For Metal, create a separate context for the preview window so
-        # rendering doesn't interfere with the main window's layer.
+        # Create a renderer sharing the current main graphics context.  The
+        # helper configures this QWindow's native surface before embedding it.
         self.view = View(drawing=self.sphere, window_size=(360, 360))
-        self._own_context = None
-        import os, sys as _sys
-        use_metal = (_sys.platform == 'darwin' and
-                     os.environ.get('CHIMERAX_GRAPHICS_BACKEND', '').lower() == 'metal')
-        if use_metal:
-            from chimerax.graphics.metal import MetalContext
-            self._own_context = MetalContext(self, session.ui.primaryScreen())
-            self.view.initialize_rendering(self._own_context)
-        else:
-            self.view.initialize_rendering(session.main_view.render.opengl_context)
+        from chimerax.graphics.auxiliary import create_render_endpoint
+        self.widget, self.render_endpoint = create_render_endpoint(
+            self, parent, self.view, self.main_view.render_endpoint.device
+        )
+        self.widget.setMinimumSize(360, 360)
         self.view.background_color = (40, 40, 40, 255)
         # Zoom out enough to show sphere (radius 1) plus arrows with comfortable margin
         self.view.camera.position = Place(origin=(0, 0, 6))
 
         # Initialize arrow directions
         self.update_arrow_directions()
-
-        self.main_view = session.main_view
 
         # Mouse dragging state
         self._dragging = None  # 'key' or 'fill' or None
@@ -691,12 +723,6 @@ class LightingPreviewWidget(QWindow):
             nsview_pointer = int(self.winId())
             _mac_util.enable_multitouch(nsview_pointer)
 
-        # Show the window
-        self.show()
-
-        # Track whether we need to render
-        self._needs_render = True
-
     def update_arrow_directions(self):
         """Update arrow positions from current lighting."""
         lp = self.session.main_view.lighting
@@ -704,18 +730,19 @@ class LightingPreviewWidget(QWindow):
         self.fill_arrow.direction = lp.fill_light_direction
 
     def close(self):
+        if self._closed:
+            return
+        self._closed = True
+        from chimerax.graphics.auxiliary import release_window
+        release_window(self, self.view, self.main_view)
         self.sphere.delete()
         self.view.delete()
-        if self._own_context is not None:
-            self._own_context.delete()
-            self._own_context = None
         QWindow.destroy(self)
 
     def exposeEvent(self, event):
         """Render when window is exposed."""
         if self.isExposed() and not self.session.update_loop.blocked():
-            self._needs_render = False
-            self._do_render()
+            self.render()
 
     def resizeEvent(self, event):
         size = event.size()
@@ -807,13 +834,7 @@ class LightingPreviewWidget(QWindow):
         # Update arrows and sync GUI
         self.update_arrow_directions()
         self.view.update_lighting = True
-        if self._own_context is None:
-            # OpenGL: shared context, render synchronously.
-            self.render()
-        else:
-            # Metal: defer preview render to avoid GPU contention
-            # with the main window. Just request an update.
-            self._needs_render = True
+        self.render()
         self.lighting_gui._sync_from_session()
 
     def mouseReleaseEvent(self, event):
@@ -872,6 +893,8 @@ class LightingPreviewWidget(QWindow):
 
     def render(self):
         """Request a render of the preview."""
+        if self._closed:
+            return
         self._needs_render = True
         self.requestUpdate()
 
@@ -894,22 +917,17 @@ class LightingPreviewWidget(QWindow):
         if self.view is None or self.view.render is None:
             return
 
-        if self._own_context is not None:
-            # Metal: own context, no switching needed.
-            try:
-                self.view.draw()
-            except Exception:
-                pass
-            return
-
         ww, wh = self.main_view.window_size
         if ww <= 0 or wh <= 0:
             return
-        mvwin = self.view.render.use_shared_context(self)
         try:
-            self.view.draw()
-        except Exception:
-            pass
-        finally:
-            self.main_view.render.use_shared_context(mvwin)
-        self.view.render.done_current()
+            from chimerax.graphics.auxiliary import draw_on_window
+            draw_on_window(
+                self, self.view, self.main_view, self.view.draw)
+        except Exception as error:
+            from chimerax.graphics.vulkan import VulkanDrawableUnavailable
+            if isinstance(error, VulkanDrawableUnavailable):
+                from Qt.QtCore import QTimer
+                QTimer.singleShot(16, self.render)
+            else:
+                raise

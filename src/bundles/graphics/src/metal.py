@@ -22,6 +22,8 @@ class MetalContext:
     Equivalent to OpenGLContext in the OpenGL backend.
     """
 
+    backend_name = "metal"
+
     def __init__(self, graphics_window, screen, use_stereo=False):
         from chimerax.graphics import _metal
 
@@ -141,11 +143,17 @@ class MetalBuffer:
 class MetalTexture:
     """Wraps a Metal texture."""
 
-    def __init__(self):
-        self.dimension = 2
-        self.size = (0, 0)
-        self.is_cubemap = False
-        self.linear_interpolation = True
+    def __init__(
+        self, data=None, dimension=2, cube_map=False,
+        linear_interpolation=True, clamp_to_edge=False, render=None,
+    ):
+        self.data = data
+        self.dimension = dimension
+        self.size = None
+        self.is_cubemap = cube_map
+        self.linear_interpolation = linear_interpolation
+        self.clamp_to_edge = clamp_to_edge
+        self._render = render
         self._handle = None
 
     def initialize_rgba(self, size):

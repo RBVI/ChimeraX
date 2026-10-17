@@ -115,6 +115,7 @@ class LookingGlassCamera(Camera):
         self._quilt_tile_size = (w//c, h//r)
         self._shader = None			# Shader for rendering quilt to window
         self._framebuffer = None		# For rendering into quilt texture
+        self._tile_framebuffer = None
         self._texture_drawing = None		# For rendering quilt to window
         self._show_quilt = False
         self._save_quilt_image_path = None
@@ -122,18 +123,24 @@ class LookingGlassCamera(Camera):
     def delete(self):
         self._hpc.hpc_CloseApp()
         self._hpc = None
+        self.release_graphics_resources()
+        self._session = None
 
+    def release_graphics_resources(self):
         fb = self._framebuffer
         if fb:
             fb.delete(make_current = True)
         self._framebuffer = None
+        if self._tile_framebuffer is not None:
+            self._tile_framebuffer.delete()
+            self._tile_framebuffer = None
 
         d = self._texture_drawing
         if d:
+            d.texture = None
             d.delete()
         self._texture_drawing = None
-        
-        self._session = None
+        self._shader = None
 
     def found_device(self):
         return self._device_number < self._hpc.hpc_GetNumDevices()
@@ -236,6 +243,21 @@ class LookingGlassCamera(Camera):
     
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
+        if hasattr(render, '_vulkan'):
+            if (view_num == 0 and self._tile_framebuffer is not None
+                    and self._tile_framebuffer.color_bits != render._context._framebuffer_color_bits):
+                self.release_graphics_resources()
+            if view_num > 0:
+                self._finish_vulkan_tile(view_num - 1, render)
+            if self._tile_framebuffer is None:
+                w, h = self._quilt_tile_size
+                self._tile_framebuffer = render.create_framebuffer('Looking Glass view', w, h)
+                if not self._tile_framebuffer.activate():
+                    self._tile_framebuffer.delete()
+                    self._tile_framebuffer = None
+                    raise RuntimeError('Could not allocate Looking Glass view')
+            render.push_framebuffer(self._tile_framebuffer)
+            return
         if view_num == 0:
             fb = self._quilt_framebuffer(render)
             render.push_framebuffer(fb)
@@ -246,13 +268,52 @@ class LookingGlassCamera(Camera):
         render.set_viewport(x * w, y * h, w, h)
 
     def draw_background(self, view_num, render):
+        if hasattr(render, '_vulkan'):
+            render.draw_background()
+            return
         if render.current_framebuffer() is not self._quilt_framebuffer(render):
             render.draw_background()
     
     def combine_rendered_camera_views(self, render):
+        if hasattr(render, '_vulkan'):
+            self._finish_vulkan_tile(self.number_of_views() - 1, render)
+            fb = self._quilt_framebuffer(render)
+            if self._save_quilt_image_path is not None:
+                render.push_framebuffer(fb)
+                try:
+                    self._save_quilt_image(render)
+                finally:
+                    render.pop_framebuffer()
+            fb.color_texture.prepare_for_sampling()
+            render.draw_background()
+            self._draw_quilt(render)
+            return
         self._save_quilt_image(render)
         render.pop_framebuffer()
         self._draw_quilt(render)
+
+    def _finish_vulkan_tile(self, view_num, render):
+        render.end_frame()
+        render.pop_framebuffer()
+        texture = self._tile_framebuffer.color_texture
+        texture.prepare_for_sampling()
+        render.push_framebuffer(self._quilt_framebuffer(render))
+        try:
+            if view_num == 0:
+                render.draw_background()
+            else:
+                render.begin_frame()
+                render._vulkan.begin_render_pass(
+                    context=render._ctx, clear_r=0, clear_g=0, clear_b=0,
+                    clear_a=1, clear_depth=0, load_color=1, load_depth=1)
+            w, h = self._quilt_tile_size
+            x, y = view_num % self._quilt_columns, view_num // self._quilt_columns
+            # HoloPlay numbers rows from the bottom; Vulkan viewports from the top.
+            render.set_viewport(x*w, self._quilt_size[1] - (y+1)*h, w, h)
+            render.draw_fullscreen_quad(texture._handle, 'pt_blit', 'main', 'main', has_depth=True)
+            render.end_frame()
+        finally:
+            render.pop_framebuffer()
 
     def _save_quilt_image(self, render):
         if self._save_quilt_image_path is None:
@@ -267,6 +328,13 @@ class LookingGlassCamera(Camera):
     def _quilt_framebuffer(self, render):
         fb = self._framebuffer
         if fb is None:
+            if hasattr(render, '_vulkan'):
+                qw, qh = self._quilt_size
+                fb = render.create_framebuffer('Looking Glass quilt', qw, qh)
+                if not fb.activate():
+                    raise RuntimeError('Could not allocate Looking Glass quilt')
+                self._framebuffer = fb
+                return fb
             from chimerax.graphics import Texture, opengl
             t = Texture()
             qw,qh = self._quilt_size
@@ -285,6 +353,19 @@ class LookingGlassCamera(Camera):
         return hpc
     
     def _draw_quilt(self, render):
+        if hasattr(render, '_vulkan'):
+            texture = self._framebuffer.color_texture._handle
+            if self._show_quilt:
+                render.draw_fullscreen_quad(texture, 'pt_blit', 'main', 'main', has_depth=True)
+                return
+            size = (*self._quilt_size, self._quilt_rows, self._quilt_columns)
+            u = self._hpc._shader_uniforms(self._device_number, size)
+            from numpy import array, float32
+            data = array([*u['pitch'], 0, *u['rgb_pitch'], 0, *u['tile'], 0,
+                          *u['texture_region'], *u['adjust_aspect']], dtype=float32)
+            render.draw_fullscreen_quad(texture, 'looking_glass', 'main', 'main',
+                                        uniforms_data=data, has_depth=True)
+            return
         drawing = self._quilt_drawing()
         ds = drawing._draw_shape
         ds.activate_bindings(render)
@@ -344,8 +425,8 @@ class LookingGlassWindow(QWindow):
         # Create fullscreen window on LookingGlass display
         screen = None if quilt else self._looking_glass_screen()
         QWindow.__init__(self, screen = screen)
-        from Qt.QtGui import QSurface
-        self.setSurfaceType(QSurface.OpenGLSurface)
+        from chimerax.graphics.auxiliary import configure_window_surface
+        configure_window_surface(self, session.main_view.render)
 
         if screen:
             from sys import platform
@@ -372,6 +453,25 @@ class LookingGlassWindow(QWindow):
         t = session.triggers
         self._render_handler = t.add_handler('frame drawn', self._frame_drawn)
         self._app_quit_handler = t.add_handler('app quit', self._app_quit)
+        from chimerax.core.core_triggers import GRAPHICS_BACKEND_CHANGING, GRAPHICS_BACKEND_CHANGED
+        self._backend_handlers = [
+            t.add_handler(GRAPHICS_BACKEND_CHANGING, self._backend_changing),
+            t.add_handler(GRAPHICS_BACKEND_CHANGED, self._backend_changed)]
+        self._changing_backend = False
+
+    def _backend_changing(self, *args):
+        self._changing_backend = True
+        self.looking_glass_camera.release_graphics_resources()
+        render = self._session.main_view.render
+        if hasattr(render, 'release_window'):
+            render.release_window(self)
+        self.destroy()
+
+    def _backend_changed(self, *args):
+        from chimerax.graphics.auxiliary import configure_window_surface
+        configure_window_surface(self, self._session.main_view.render)
+        self._changing_backend = False
+        self.show()
         
     def _looking_glass_screen(self):
         screen_name = self.looking_glass_camera.screen_name()
@@ -406,10 +506,15 @@ class LookingGlassWindow(QWindow):
         t = self._session.triggers
         t.remove_handler(self._render_handler)
         t.remove_handler(self._app_quit_handler)
+        for handler in self._backend_handlers:
+            t.remove_handler(handler)
         self._render_handler = None
         self._app_quit_handler = None
         self.looking_glass_camera.delete()
         self.looking_glass_camera = None
+        render = self._session.main_view.render
+        if hasattr(render, 'release_window'):
+            render.release_window(self)
         self.close()	# QWindow method
 
     def _app_quit(self, tname, tdata):
@@ -425,6 +530,8 @@ class LookingGlassWindow(QWindow):
         self._render()
         
     def _render(self):
+        if getattr(self, '_changing_backend', False):
+            return
         camera = self.looking_glass_camera
         if camera is None:
             return   # Window deleted
@@ -433,11 +540,18 @@ class LookingGlassWindow(QWindow):
         mvwin = r.use_shared_context(self)
         camera.position = view.camera.position
         redraw = view.redraw_needed
-        view.draw(camera = camera)
-        view.redraw_needed = redraw  # Restore redraw needed flag since main window needs redraw.
-#        self._save_screen_image(r, view)
-        r.use_shared_context(mvwin)  # Reset opengl window
-        r.done_current()
+        try:
+            from chimerax.graphics.ral import using_graphics_device
+            with using_graphics_device(r.opengl_context.graphics_device):
+                view._draw_with_renderer(camera=camera)
+        finally:
+            view.redraw_needed = redraw
+            try:
+                if hasattr(r, 'end_frame'):
+                    r.end_frame()
+            finally:
+                r.use_shared_context(mvwin)
+                r.done_current()
 
     def _save_screen_image(self, r, view):
         self._save_screen_image_countdown = getattr(self, '_save_screen_image_countdown', 50) - 1

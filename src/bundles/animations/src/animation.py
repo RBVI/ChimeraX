@@ -92,6 +92,10 @@ class Animation(StateManager):
             self.set_length(animation_data['length'])
 
         self._call_for_n_frames = None
+        self._recording_frame_handler = None
+        self._recording_frames = None
+        self._recording_frame_position = 0
+        self._last_recorded_frame_count = 0
 
     def add_keyframe(self, keyframe_name: str, time: int | float | None = None):
         """
@@ -329,24 +333,15 @@ class Animation(StateManager):
 
         start_frame = max(0, min(round(self.fps * start_time), len(self._lerp_steps) - 1))
 
-        # callback function for each frame
-        def frame_cb(session, f):
+        def display_frame(frame_num):
             self._is_playing = True
-            if reverse:
-                frame_num = start_frame - f
-                last_frame = 0
-            else:
-                frame_num = start_frame + f
-                last_frame = len(self._lerp_steps) - 1
-            # get the lerp step for this frame
-            lerp_step = self._lerp_steps[frame_num]
-            scene1, scene2, fraction = lerp_step
+            scene1, scene2, fraction = self._lerp_steps[frame_num]
             self.session.scenes.interpolate_scenes(scene1, scene2, fraction)
-            if frame_num == last_frame:
-                self._is_playing = False
-                self.logger.status(f"Finished playing animation.")
-                self._try_end_recording()
-
+            # Consecutive animation frames can legitimately have identical
+            # scene values (for example, before the first keyframe). They
+            # still need distinct movie captures, so do not rely on scene
+            # interpolation to mark a drawing as changed.
+            self.session.main_view.redraw_needed = True
             # The animation has exactly time * fps frames. That means there is either a 0:00 frame and not a
             # frame for the last time stamp or vice versa. Since we index 0 based, when we play reverse we end on frame
             # 0, get 0 / fps and the time emitted is 0 which is correct. When we play forwards and assume that frame 0
@@ -363,7 +358,56 @@ class Animation(StateManager):
             num_frames_to_play = start_frame + 1  # from start_frame to 0 (inclusive)
         else:
             num_frames_to_play = len(self._lerp_steps) - start_frame  # from start_frame to the end
-        self._call_for_n_frames = CallForNFrames(frame_cb, num_frames_to_play, self.session)
+
+        if self._is_recording:
+            if reverse:
+                frames = range(start_frame, -1, -1)
+            else:
+                frames = range(start_frame, len(self._lerp_steps))
+            self._recording_frames = tuple(frames)
+            self._recording_frame_position = 0
+            self._last_recorded_frame_count = self.session.movie.getFrameCount()
+
+            def advance_after_capture(*_):
+                position = self._recording_frame_position
+                frame_count = self.session.movie.getFrameCount()
+                if frame_count <= self._last_recorded_frame_count:
+                    return
+                self._last_recorded_frame_count = frame_count
+
+                if position >= len(self._recording_frames):
+                    self._finish_recorded_playback()
+                    return
+
+                display_frame(self._recording_frames[position])
+                self._recording_frame_position = position + 1
+
+            self._recording_frame_handler = self.session.triggers.add_handler(
+                "frame drawn", advance_after_capture
+            )
+            display_frame(self._recording_frames[0])
+            self._recording_frame_position = 1
+        else:
+            def frame_cb(session, f):
+                frame_num = start_frame - f if reverse else start_frame + f
+                display_frame(frame_num)
+                if f + 1 == num_frames_to_play:
+                    self._is_playing = False
+                    self.logger.status("Finished playing animation.")
+
+            self._call_for_n_frames = CallForNFrames(
+                frame_cb, num_frames_to_play, self.session
+            )
+
+    def _finish_recorded_playback(self):
+        """Finish only after the final displayed frame has been captured."""
+        if self._recording_frame_handler is not None:
+            self.session.triggers.remove_handler(self._recording_frame_handler)
+            self._recording_frame_handler = None
+        self._recording_frames = None
+        self._is_playing = False
+        self.logger.status("Finished playing animation.")
+        self._try_end_recording()
 
     def record(self, record_data=None, encode_data=None, reverse=False):
         """
@@ -389,9 +433,12 @@ class Animation(StateManager):
             run(self.session, "movie reset", log=False)
         # If we want to ever show commands in the log this needs to be converted
         movie_record(self.session, **self._record_data)
+        from .recording import configure_animation_recording
+
+        configure_animation_recording(self.session)
         self._is_recording = True
         activate_trigger(MGR_RECORDING_START, None)
-        self.play(reverse)
+        self.play(reverse=reverse)
 
     def stop_playing(self, stop_recording=False):
         """
@@ -408,6 +455,14 @@ class Animation(StateManager):
             self._call_for_n_frames = None
             self.logger.status(f"Stopped playing animation.")
 
+            if stop_recording:
+                self._try_end_recording()
+        elif self._recording_frame_handler is not None:
+            self.session.triggers.remove_handler(self._recording_frame_handler)
+            self._recording_frame_handler = None
+            self._recording_frames = None
+            self._is_playing = False
+            self.logger.status("Stopped playing animation.")
             if stop_recording:
                 self._try_end_recording()
 

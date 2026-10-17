@@ -57,7 +57,21 @@ layout(std140, set = 0, binding = 0) uniform UniformBlock {
     int  impostor_dashes;           // 0 = solid, >0 = number of dashes
     float shadow_depth;
     int  shadow_count;
+    vec4 depth_texture_params;      // xy = coordinate scale, z = depth scale
+    vec4 depth_texture_projection;  // x = near, y = far/(far-near)
+    vec4 stereo_360_origin_shift;   // xyz = camera origin, w = eye shift
+    vec4 stereo_360_vertical;       // xyz = camera vertical axis
 } u;
+
+// Tangential eye displacement for omnidirectional stereo. All geometry
+// paths use the same scene-space convention, including analytic impostors.
+vec4 stereo_360_position(vec4 scene_position) {
+    vec3 radial = scene_position.xyz - u.stereo_360_origin_shift.xyz;
+    vec3 tangent = cross(radial, u.stereo_360_vertical.xyz);
+    float n = length(tangent);
+    vec3 eye_axis = n > 0.0 ? tangent / n : vec3(1.0, 0.0, 0.0);
+    return vec4(scene_position.xyz - u.stereo_360_origin_shift.w * eye_axis, 1.0);
+}
 
 // Convenience accessors that mirror the Metal struct field names.
 #define depth_cue_color  (u.depth_cue_color_pad.xyz)

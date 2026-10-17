@@ -52,7 +52,13 @@ def camera(session, type=None, field_of_view=None,
     has_arg = False
     if type is not None:
         has_arg = True
-        if (type == 'stereo') != view.render.opengl_context.stereo:
+        context = view.render.opengl_context
+        context_stereo = getattr(context, 'stereo', False)
+        if type == 'stereo' and not hasattr(context, 'enable_stereo'):
+            from chimerax.core.errors import UserError
+            raise UserError('Sequential shutter-glasses stereo requires the OpenGL backend; '
+                            'use camera sbs or camera tb with Vulkan.')
+        if (type == 'stereo') != context_stereo and hasattr(context, 'enable_stereo'):
             # Need to switch stereo mode of OpenGL context.
             if not session.ui.main_window.enable_stereo(type == 'stereo'):
                 from chimerax.core.errors import UserError

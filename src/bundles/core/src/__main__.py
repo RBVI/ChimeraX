@@ -705,6 +705,15 @@ def init(argv, event_loop=True):
             # ChimeraX needs to use XWayland for now
             os.environ["QT_QPA_PLATFORM"] = "xcb"
             os.environ["PYOPENGL_PLATFORM"] = "x11"
+        if sys.platform == "darwin":
+            # Qt's QMetalLayer (used for Vulkan/Metal surface windows) holds
+            # a display lock and toggles presentsWithTransaction around each
+            # Core Animation display cycle. MoltenVK presents outside that
+            # cycle, and the window intermittently stops showing presented
+            # frames (e.g. after the mouse moves from the graphics to the
+            # Log) while rendering continues. Use a plain CAMetalLayer.
+            # Qt reads this once, before the first Metal layer is created.
+            os.environ.setdefault("QT_MTL_NO_TRANSACTION", "1")
         # When Qt 6.10 comes out, try Wayland on WSLg again
         # May need to tell Chromium to use software rendering
         # with QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu", since

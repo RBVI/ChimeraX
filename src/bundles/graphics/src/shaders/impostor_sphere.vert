@@ -40,6 +40,7 @@ layout(constant_id = 14) const bool USE_TRANSPARENT_ONLY = false;
 layout(constant_id = 15) const bool USE_OPAQUE_ONLY = false;
 layout(constant_id = 17) const bool USE_DEPTH_PREPASS = false;
 layout(constant_id = 18) const bool USE_SPHERE_AO = false;
+layout(constant_id = 22) const bool USE_STEREO_360 = false;
 
 // ---------------------------------------------------------------------------
 //  Vertex inputs.
@@ -63,6 +64,9 @@ void main() {
     frag_instance_id = uint(gl_InstanceIndex);
 
     vec3 center_eye = (u.model_view_matrix * vec4(shift_and_scale.xyz, 1.0)).xyz;
+    if (USE_STEREO_360)
+        center_eye = (u.view_matrix * stereo_360_position(
+            u.model_matrix * vec4(shift_and_scale.xyz, 1.0))).xyz;
     float radius = shift_and_scale.w;
 
     // Expand the quad on the front side of the sphere.  Clamp the proxy just

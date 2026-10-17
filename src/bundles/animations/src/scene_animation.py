@@ -456,10 +456,23 @@ class SceneAnimation(StateManager):
 
     def _setup_recording_sync(self):
         """Set up frame capture synchronization for recording"""
-        self._recording_frame_handler = None
-        # Get the current frame count at start of recording
         self._last_frame_count = self.session.movie.getFrameCount()
-        self._frame_wait_start_time = None
+
+        def advance_after_capture(*_):
+            if not self.is_playing or not self.is_recording:
+                return
+            frame_count = self.session.movie.getFrameCount()
+            if frame_count <= self._last_frame_count:
+                return
+            self._last_frame_count = frame_count
+            self._advance_recording_frame()
+
+        # movie_record registered its frame-drawn handler first. Therefore the
+        # movie frame count is updated before this handler decides whether the
+        # timeline may advance.
+        self._recording_frame_handler = self.session.triggers.add_handler(
+            "frame drawn", advance_after_capture
+        )
 
     def _advance_recording_frame(self):
         """Advance one frame during recording, synchronized with frame capture"""
@@ -488,6 +501,9 @@ class SceneAnimation(StateManager):
         # Update current time and preview
         self.current_time = next_time
         self.preview_at_time(next_time)
+        # Held scenes and action-free intervals may leave every interpolated
+        # value unchanged. A recording frame is still required at this time.
+        self.session.main_view.redraw_needed = True
 
         # Count expected frames
         self._expected_frame_count += 1
@@ -495,48 +511,6 @@ class SceneAnimation(StateManager):
         # Emit time change signal for UI updates
         if self.signals:
             self.signals.time_changed.emit(next_time)
-
-        # Wait for the frame to be captured, then advance to next frame
-        self._wait_for_frame_capture()
-
-    def _wait_for_frame_capture(self):
-        """Wait for the current frame to be captured before advancing"""
-        # Record when we started waiting for this frame
-        import time
-
-        self._frame_wait_start_time = time.time()
-        # Set up a single-shot timer to check if frame was captured
-        from Qt.QtCore import QTimer
-
-        QTimer.singleShot(50, self._check_frame_captured)
-
-    def _check_frame_captured(self):
-        """Check if frame was captured and advance to next frame"""
-        if not self.is_playing or not self.is_recording:
-            return
-
-        # Check if a new frame was captured
-        current_frame_count = self.session.movie.getFrameCount()
-        if current_frame_count > self._last_frame_count:
-            # Frame was captured, advance to next
-            self._last_frame_count = current_frame_count
-            self._advance_recording_frame()
-        else:
-            # Check if we've been waiting too long (timeout after 500ms)
-            import time
-
-            if time.time() - self._frame_wait_start_time > 0.5:
-                # Timeout - force a frame capture by manually triggering the movie system
-                # print(f"DEBUG: Frame capture timeout, forcing frame capture (frame {current_frame_count + 1})")
-                self.session.movie.capture_image()
-                # Update our expected count and continue
-                self._last_frame_count = self.session.movie.getFrameCount()
-                self._advance_recording_frame()
-            else:
-                # Frame not captured yet, wait a bit more
-                from Qt.QtCore import QTimer
-
-                QTimer.singleShot(10, self._check_frame_captured)
 
     def stop_playing(self):
         """Stop playback"""
@@ -548,6 +522,10 @@ class SceneAnimation(StateManager):
         if self._call_for_n_frames:
             self._call_for_n_frames.done()
             self._call_for_n_frames = None
+
+        if getattr(self, "_recording_frame_handler", None) is not None:
+            self.session.triggers.remove_handler(self._recording_frame_handler)
+            self._recording_frame_handler = None
 
         self.is_playing = False
 
@@ -622,6 +600,9 @@ class SceneAnimation(StateManager):
 
             # Start recording
             movie_record(self.session, **record_params)
+            from .recording import configure_animation_recording
+
+            configure_animation_recording(self.session)
             self.is_recording = True
             self._record_data = {"output_path": output_path, "framerate": self.fps}
             self._expected_frame_count = 0  # Track expected frames during recording

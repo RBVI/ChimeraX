@@ -39,6 +39,7 @@ layout(constant_id = 5)  const bool USE_CLIP_PLANES = false;
 layout(constant_id = 14) const bool USE_TRANSPARENT_ONLY = false;
 layout(constant_id = 15) const bool USE_OPAQUE_ONLY = false;
 layout(constant_id = 17) const bool USE_DEPTH_PREPASS = false;
+layout(constant_id = 22) const bool USE_STEREO_360 = false;
 
 // ---------------------------------------------------------------------------
 //  Vertex inputs.
@@ -78,6 +79,12 @@ void main() {
     // Cylinder endpoints in eye space (unit cylinder along z, -0.5..+0.5).
     vec3 p0_eye = (u.model_view_matrix * cyl_mat * vec4(0, 0, -0.5, 1)).xyz;
     vec3 p1_eye = (u.model_view_matrix * cyl_mat * vec4(0, 0,  0.5, 1)).xyz;
+    if (USE_STEREO_360) {
+        p0_eye = (u.view_matrix * stereo_360_position(
+            u.model_matrix * cyl_mat * vec4(0, 0, -0.5, 1))).xyz;
+        p1_eye = (u.view_matrix * stereo_360_position(
+            u.model_matrix * cyl_mat * vec4(0, 0, 0.5, 1))).xyz;
+    }
     vec3 cyl_axis_eye = p1_eye - p0_eye;
     float cyl_len = length(cyl_axis_eye);
     vec3 cyl_dir = cyl_axis_eye / cyl_len;

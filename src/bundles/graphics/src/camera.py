@@ -62,6 +62,14 @@ class Camera:
     def delete(self):
         pass
 
+    def release_graphics_resources(self):
+        """Release device objects before replacing the renderer."""
+        pass
+
+    def abort_rendering(self, render):
+        """Release camera-owned frame state after drawing fails."""
+        pass
+
     name = 'unknown'
     '''Name indicating the type of camera, for example, "mono", "stereo", "orthographic".'''
     
@@ -473,15 +481,20 @@ class SplitStereoCamera(Camera):
         self._drawing = {'left':None, 'right':None}	# Drawing of rectangle with cube map texture
         self.layout = layout			# Packing of left/right eye images: top-bottom or side-by-side
 
-    def delete(self):
+    def release_graphics_resources(self):
         for fb in self._framebuffer.values():
             if fb:
                 fb.delete(make_current = True)
-        self._framebuffer = {}
+        self._framebuffer = {'left': None, 'right': None}
 
         for d in self._drawing.values():
-            d.delete()
-        self._drawing = {}
+            if d is not None:
+                d.texture = None  # Framebuffers own their color textures.
+                d.delete()
+        self._drawing = {'left': None, 'right': None}
+
+    def delete(self):
+        self.release_graphics_resources()
 
     def view(self, camera_position, view_num):
         '''
@@ -546,6 +559,8 @@ class SplitStereoCamera(Camera):
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
         if view_num > 0:
+            if hasattr(render, '_vulkan'):
+                render.end_frame()
             render.pop_framebuffer()	        # Pop left eye framebuffer
         if self.swap_eyes:
             eye = 'right' if view_num == 0 else 'left'
@@ -556,7 +571,33 @@ class SplitStereoCamera(Camera):
 
     def combine_rendered_camera_views(self, render):
         '''Render the cube map using a projection.'''
+        from .ral import GraphicsFeature
+        capabilities = getattr(render, "capabilities", None)
+        explicit_offscreen = (
+            capabilities is not None
+            and capabilities.supports(GraphicsFeature.EXPLICIT_PRESENT)
+            and not capabilities.supports(GraphicsFeature.SCENE_RENDERER)
+        )
+        if explicit_offscreen:
+            # Both eyes were recorded in one offscreen-only frame, so no
+            # swapchain image was acquired. Submit that work before starting
+            # the separate screen frame used for composition.
+            render.end_frame()
         render.pop_framebuffer()	        # Pop the right eye framebuffer.
+        # Explicit backends leave camera targets in an attachment/readback
+        # layout. Transition both before restarting the screen pass so their
+        # texture binds do not interrupt that pass.
+        for fb in self._framebuffer.values():
+            texture = getattr(fb, 'color_texture', None) if fb else None
+            prepare = getattr(texture, 'prepare_for_sampling', None)
+            if prepare is not None:
+                prepare()
+        if explicit_offscreen:
+            render.draw_background()
+        else:
+            restart = getattr(render, 'restart_main_pass', None)
+            if restart is not None:
+                restart()
         drawings = [self._eye_drawing(eye) for eye in ('left', 'right')]
         from .drawing import draw_overlays
         draw_overlays(drawings, render)
@@ -569,13 +610,24 @@ class SplitStereoCamera(Camera):
             tw, th = w//2, h
         else:
             tw, th = w, h//2
-        if fb is None or (tw, th) != (fb.width, fb.height):
+        tw, th = max(1, tw), max(1, th)
+        bits = getattr(getattr(render, '_context', None), '_framebuffer_color_bits', 8)
+        if (fb is None or (tw, th) != (fb.width, fb.height)
+                or getattr(fb, '_deleted', False)
+                or getattr(fb, '_render', render) is not render
+                or (hasattr(render, '_vulkan') and getattr(fb, 'color_bits', bits) != bits)):
             if fb:
                 fb.delete()
-            from .opengl import Texture, Framebuffer
-            t = Texture()
-            t.initialize_rgba((tw,th))
-            fb = Framebuffer('stereo camera', render.opengl_context, color_texture = t)
+            if hasattr(render, 'create_framebuffer'):
+                fb = render.create_framebuffer('stereo camera', tw, th)
+                if not fb.activate():
+                    raise RuntimeError('Could not create stereo camera framebuffer')
+            else:
+                from .opengl import Texture, Framebuffer
+                t = Texture()
+                t.initialize_rgba((tw,th))
+                fb = Framebuffer('stereo camera', render.opengl_context,
+                                 color_texture=t)
             self._framebuffer[eye] = fb
             d = self._drawing[eye]
             if d:

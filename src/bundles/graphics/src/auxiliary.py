@@ -14,15 +14,19 @@ by embedded graphics tools.
 """
 
 
-def create_window_container(window, parent, render):
-    """Configure *window* for *render* and embed it under its final parent.
+def configure_window_surface(window, render):
+    """Configure a QWindow's native surface for the active renderer."""
+    device = getattr(render.opengl_context, "graphics_device", None)
+    if device is not None:
+        device.configure_surface(window)
+        set_target_window = getattr(render, "set_target_window", None)
+        if set_target_window is not None:
+            set_target_window(window)
+        return
 
-    Surface type and Vulkan platform state must be established before
-    createWindowContainer() forces creation of the native child window.
-    """
+    # Compatibility for contexts created outside the RAL.
     import sys
     from Qt.QtGui import QSurface
-    from Qt.QtWidgets import QWidget
 
     context = getattr(render, "opengl_context", None)
     if hasattr(context, "_vulkan"):
@@ -39,7 +43,28 @@ def create_window_container(window, parent, render):
     set_target_window = getattr(render, "set_target_window", None)
     if set_target_window is not None:
         set_target_window(window)
+
+
+def create_window_container(window, parent, render):
+    """Configure *window* for *render* and embed it under its final parent.
+
+    Surface type and Vulkan platform state must be established before
+    createWindowContainer() forces creation of the native child window.
+    """
+    from Qt.QtWidgets import QWidget
+
+    configure_window_surface(window, render)
     return QWidget.createWindowContainer(window, parent)
+
+
+def create_render_endpoint(window, parent, view, device):
+    """Attach *view* to *window* on *device* and create its Qt container."""
+
+    endpoint = device.create_endpoint(view, window)
+    from Qt.QtWidgets import QWidget
+
+    widget = QWidget.createWindowContainer(window, parent)
+    return widget, endpoint
 
 
 def draw_on_window(window, view, main_view, draw):
@@ -48,6 +73,11 @@ def draw_on_window(window, view, main_view, draw):
     Returns False when the view belongs to a context that has already been
     replaced.  Context restoration is guaranteed even when drawing raises.
     """
+    endpoint = getattr(view, "render_endpoint", None)
+    if endpoint is not None:
+        endpoint.draw(draw)
+        return True
+
     render = view.render
     main_render = main_view.render
     if (render is None or main_render is None or
@@ -58,10 +88,19 @@ def draw_on_window(window, view, main_view, draw):
     try:
         draw()
     finally:
-        try:
-            main_render.use_shared_context(previous_window)
-        finally:
-            render.done_current()
+        if hasattr(render.opengl_context, "_vulkan"):
+            # A failed draw may still own an acquired Vulkan image/frame.
+            # End it before changing surfaces; the native context rejects a
+            # surface switch while a frame is active.
+            try:
+                render.done_current()
+            finally:
+                main_render.use_shared_context(previous_window)
+        else:
+            try:
+                main_render.use_shared_context(previous_window)
+            finally:
+                render.done_current()
     return True
 
 
@@ -69,6 +108,11 @@ def release_window(window, view, main_view):
     """Release an auxiliary presentation surface before destroying its QWindow."""
     render = view.render
     if render is None:
+        return
+
+    endpoint = getattr(view, "render_endpoint", None)
+    if endpoint is not None:
+        endpoint.device.backend.release_surface(render, window)
         return
 
     context = render.opengl_context

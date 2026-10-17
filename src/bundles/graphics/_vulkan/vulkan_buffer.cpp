@@ -7,9 +7,38 @@
 #include "vulkan_internal.h"
 
 #include <cstring>
+#include <unordered_map>
 
 // BufferWithAllocator is declared in vulkan_internal.h so the
 // deferred-deletion queue can free buffers without a back-reference here.
+
+static Py_ssize_t next_buffer_handle = 1;
+static std::unordered_map<Py_ssize_t, BufferWithAllocator*> buffer_handles;
+static std::unordered_map<BufferWithAllocator*, Py_ssize_t> buffer_handle_ids;
+
+Py_ssize_t register_buffer_handle(BufferWithAllocator* buffer) {
+    const Py_ssize_t handle = next_buffer_handle++;
+    buffer_handles.emplace(handle, buffer);
+    buffer_handle_ids.emplace(buffer, handle);
+    return handle;
+}
+
+BufferWithAllocator* resolve_buffer_handle(Py_ssize_t handle, bool set_error) {
+    auto found = buffer_handles.find(handle);
+    if (found != buffer_handles.end())
+        return found->second;
+    if (set_error)
+        PyErr_SetString(PyExc_ValueError, "Vulkan buffer handle is no longer valid");
+    return nullptr;
+}
+
+void unregister_buffer_handle(BufferWithAllocator* buffer) {
+    auto found = buffer_handle_ids.find(buffer);
+    if (found == buffer_handle_ids.end())
+        return;
+    buffer_handles.erase(found->second);
+    buffer_handle_ids.erase(found);
+}
 
 // ---------------------------------------------------------------------------
 //  Buffer create / update / destroy
@@ -84,7 +113,7 @@ PyObject* vulkan_create_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
     ctx->live_buffers.insert(bwa);
     VK_TRACE("create_buffer done bwa=%p", (void*)bwa);
 
-    return PyLong_FromSsize_t(reinterpret_cast<Py_ssize_t>(bwa));
+    return PyLong_FromSsize_t(register_buffer_handle(bwa));
 }
 
 // ---------------------------------------------------------------------------
@@ -146,7 +175,7 @@ PyObject* vulkan_create_mapped_buffer(PyObject* self, PyObject* args, PyObject* 
     ctx->live_buffers.insert(bwa);
 
     return Py_BuildValue("nn",
-        reinterpret_cast<Py_ssize_t>(bwa),
+        register_buffer_handle(bwa),
         reinterpret_cast<Py_ssize_t>(ai.pMappedData));
 }
 
@@ -159,7 +188,11 @@ PyObject* vulkan_update_buffer(PyObject* self, PyObject* args, PyObject* kwds) {
             const_cast<char*>("ny*"), (char**)kwlist, &buf_ptr, &py_buf))
         return NULL;
 
-    BufferWithAllocator* bwa = reinterpret_cast<BufferWithAllocator*>(buf_ptr);
+    BufferWithAllocator* bwa = resolve_buffer_handle(buf_ptr);
+    if (!bwa) {
+        PyBuffer_Release(&py_buf);
+        return NULL;
+    }
 
     if (py_buf.len <= 0) {
         PyBuffer_Release(&py_buf);
@@ -246,9 +279,11 @@ PyObject* vulkan_destroy_buffer(PyObject* self, PyObject* args, PyObject* kwds) 
             const_cast<char*>("n"), (char**)kwlist, &buf_ptr))
         return NULL;
 
-    BufferWithAllocator* bwa = reinterpret_cast<BufferWithAllocator*>(buf_ptr);
-
-    if (!bwa || bwa->ctx->live_buffers.erase(bwa) == 0)
+    BufferWithAllocator* bwa = resolve_buffer_handle(buf_ptr, false);
+    if (!bwa)
+        Py_RETURN_NONE;
+    unregister_buffer_handle(bwa);
+    if (bwa->ctx->live_buffers.erase(bwa) == 0)
         Py_RETURN_NONE;
 
     // Queue for destruction once any in-flight frame that could reference
@@ -272,7 +307,9 @@ PyObject* vulkan_get_buffer_device_memory(PyObject* self, PyObject* args, PyObje
         PyErr_SetString(PyExc_ValueError, "buffer handle is NULL");
         return NULL;
     }
-    BufferWithAllocator* bwa = reinterpret_cast<BufferWithAllocator*>(buf_ptr);
+    BufferWithAllocator* bwa = resolve_buffer_handle(buf_ptr);
+    if (!bwa)
+        return NULL;
     VmaAllocationInfo alloc_info;
     vmaGetAllocationInfo(bwa->allocator, bwa->base.allocation, &alloc_info);
 
@@ -301,7 +338,10 @@ PyObject* vulkan_set_vertex_buffer(PyObject* self, PyObject* args, PyObject* kwd
         return NULL;
 
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
-    VulkanBuffer* buf = reinterpret_cast<VulkanBuffer*>(buf_ptr);
+    BufferWithAllocator* bwa = resolve_buffer_handle(buf_ptr);
+    if (!bwa)
+        return NULL;
+    VulkanBuffer* buf = &bwa->base;
 
     // Recording into the command buffer is only valid while a frame is
     // being recorded; between end_frame and begin_frame the buffer is not
@@ -328,7 +368,10 @@ PyObject* vulkan_set_descriptor_buffer(PyObject* self, PyObject* args, PyObject*
         return NULL;
 
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
-    VulkanBuffer* buf = reinterpret_cast<VulkanBuffer*>(buf_ptr);
+    BufferWithAllocator* bwa = resolve_buffer_handle(buf_ptr);
+    if (!bwa)
+        return NULL;
+    VulkanBuffer* buf = &bwa->base;
 
     if (index < 0 || index >= static_cast<int>(MAX_UBO_BINDINGS)) {
         PyErr_Format(PyExc_ValueError,
@@ -397,17 +440,35 @@ static bool flush_descriptors(VulkanContext* ctx) {
     {
         VkDescriptorSetAllocateInfo alloc{};
         alloc.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        alloc.descriptorPool = ctx->descriptor_pools[frame];
         alloc.descriptorSetCount = 2;
         alloc.pSetLayouts = layouts;
-        VkResult r = vkAllocateDescriptorSets(ctx->device, &alloc, sets);
-        if (r != VK_SUCCESS) {
-            // Pool exhausted. At the first draw of a frame nothing is bound
-            // yet (the pool was just reset), so proceeding would draw with
-            // no descriptor sets at all — fail loudly instead.
-            PyErr_SetString(PyExc_RuntimeError,
-                            "Vulkan per-frame descriptor pool exhausted");
-            return false;
+
+        auto& pools = ctx->descriptor_pools[frame];
+        uint32_t& pool_index = ctx->descriptor_pool_indices[frame];
+        for (;;) {
+            if (pool_index >= pools.size()) {
+                VkDescriptorPool pool = create_frame_descriptor_pool(ctx);
+                if (pool == VK_NULL_HANDLE) {
+                    PyErr_SetString(PyExc_RuntimeError,
+                                    "Vulkan descriptor pool allocation failed");
+                    return false;
+                }
+                pools.push_back(pool);
+            }
+
+            alloc.descriptorPool = pools[pool_index];
+            VkResult allocation_result = vkAllocateDescriptorSets(
+                ctx->device, &alloc, sets);
+            if (allocation_result == VK_SUCCESS)
+                break;
+            if (allocation_result != VK_ERROR_OUT_OF_POOL_MEMORY &&
+                allocation_result != VK_ERROR_FRAGMENTED_POOL) {
+                PyErr_Format(PyExc_RuntimeError,
+                             "Vulkan descriptor set allocation failed (%d)",
+                             static_cast<int>(allocation_result));
+                return false;
+            }
+            ++pool_index;
         }
     }
 
@@ -514,7 +575,10 @@ PyObject* vulkan_draw_indexed(PyObject* self, PyObject* args, PyObject* kwds) {
         return NULL;
 
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
-    VulkanBuffer* idx_buf = reinterpret_cast<VulkanBuffer*>(index_buf_ptr);
+    BufferWithAllocator* index_bwa = resolve_buffer_handle(index_buf_ptr);
+    if (!index_bwa)
+        return NULL;
+    VulkanBuffer* idx_buf = &index_bwa->base;
     VK_TRACE("draw_indexed prim=%d count=%d offset=%d inst=%d in_pass=%d",
              primitive_type, index_count, index_offset, instance_count, ctx->in_render_pass ? 1 : 0);
 

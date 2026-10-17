@@ -42,10 +42,18 @@ class XR:
 
         self._action_set = None
         self._event_queue = []
+        self._vulkan_render = None
+        self._vulkan_runtime = None
+        self._acquired_images = {}
 
-    def start_session(self):
+    def start_session(self, render=None):
+        self._vulkan_render = render if hasattr(render, '_vulkan') else None
         self._instance = self._create_instance()	# Connect to OpenXR runtime
         self._system_id = self._create_system()		# Choose headset
+        if self._vulkan_render is not None:
+            from .vulkan import OpenXRRuntime, configure_runtime
+            self._vulkan_runtime = runtime = OpenXRRuntime(self._instance, self._system_id)
+            self._vulkan_render = configure_runtime(render, runtime)
         self._session = self._create_session()		# Connect to headset
         self._projection_layer = self._create_projection_layer()
         self.render_size = self._recommended_render_size()
@@ -56,7 +64,9 @@ class XR:
     def _create_instance(self):
         '''Establish connection to OpenXR runtime.'''
         import xr
-        requested_extensions = [xr.KHR_OPENGL_ENABLE_EXTENSION_NAME]
+        requested_extensions = [
+            'XR_KHR_vulkan_enable' if self._vulkan_render is not None
+            else xr.KHR_OPENGL_ENABLE_EXTENSION_NAME]
 
         from . import passthrough
         self._passthrough_supported = passthrough.passthrough_extension_available()
@@ -181,13 +191,17 @@ class XR:
         This requires the OpenGL context to be current because it passes the graphics
         context as an argument when creating the session.
         '''
-        self._get_graphics_requirements()
         import xr
-        gb = xr.GraphicsBindingOpenGLWin32KHR()
-        from OpenGL import WGL
-        gb.h_dc = WGL.wglGetCurrentDC()
-        gb.h_glrc = WGL.wglGetCurrentContext()
-        debug ('WGL dc', gb.h_dc, 'WGL context', gb.h_glrc)
+        if self._vulkan_render is not None:
+            from .vulkan import GraphicsBindingVulkan, device_info
+            gb = GraphicsBindingVulkan(device_info(self._vulkan_render))
+        else:
+            self._get_graphics_requirements()
+            gb = xr.GraphicsBindingOpenGLWin32KHR()
+            from OpenGL import WGL
+            gb.h_dc = WGL.wglGetCurrentDC()
+            gb.h_glrc = WGL.wglGetCurrentContext()
+            debug ('WGL dc', gb.h_dc, 'WGL context', gb.h_glrc)
         self._graphics_binding = gb
         import ctypes
         pp = ctypes.cast(ctypes.pointer(gb), ctypes.c_void_p)
@@ -272,6 +286,8 @@ class XR:
         color_formats.append(GL.GL_RGBA16F)  # Works on SteamVR with Vive Pro (881A)
         # Supported openxr color formats on Oculus Quest 2. 8058, 881B, 8C3A, 8C43
         color_formats.extend([GL.GL_RGBA8, GL.GL_RGB16F, GL.GL_R11F_G11F_B10F, GL.GL_SRGB8_ALPHA8])
+        if self._vulkan_render is not None:
+            color_formats = [43]  # VK_FORMAT_R8G8B8A8_SRGB; raw gamma-preserving copy.
         import xr
         swapchain_formats = xr.enumerate_swapchain_formats(self._session)
         for color_format in color_formats:
@@ -280,10 +296,13 @@ class XR:
         if color_format not in swapchain_formats:
             format_nums = ['%0X' % fmt for fmt in swapchain_formats]
             raise ValueError(f'Color format {color_format} not in supported formats {format_nums}')
+        self._swapchain_format = color_format
+        usage = xr.SwapchainUsageFlags.SAMPLED_BIT | xr.SwapchainUsageFlags.COLOR_ATTACHMENT_BIT
+        if self._vulkan_render is not None:
+            usage |= xr.SwapchainUsageFlags.TRANSFER_DST_BIT
         w,h = self.render_size
         scinfo = xr.SwapchainCreateInfo(
-            usage_flags = (xr.SwapchainUsageFlags.SAMPLED_BIT |
-                           xr.SwapchainUsageFlags.COLOR_ATTACHMENT_BIT),
+            usage_flags = usage,
             #usage_flags = xr.SWAPCHAIN_USAGE_TRANSFER_DST_BIT,
             format = color_format,
             sample_count = 1,
@@ -297,9 +316,13 @@ class XR:
                       xr.create_swapchain(self._session, scinfo)]
 
         # Keep the buffer alive by moving it into the list of buffers.
+        image_type = xr.SwapchainImageOpenGLKHR
+        if self._vulkan_render is not None:
+            from .vulkan import SwapchainImageVulkan
+            image_type = SwapchainImageVulkan
         self._swapchain_image_buffer = [
             xr.enumerate_swapchain_images(swapchain=swapchain,
-                                          element_type=xr.SwapchainImageOpenGLKHR)
+                                          element_type=image_type)
             for swapchain in swapchains]
 
         for sc, plv in zip(swapchains, self._projection_layer_views):
@@ -317,6 +340,20 @@ class XR:
         if len(self._swapchains) == 0:
             self._swapchains = self._create_swapchains()
         w,h = self.render_size
+        if self._vulkan_render is not None:
+            framebuffers = []
+            try:
+                for eye in ('left', 'right'):
+                    fb = self._vulkan_render.create_framebuffer(
+                        f'VR {eye} eye', w, h, alpha=True, color_bits=8)
+                    framebuffers.append(fb)
+                    if not fb.activate():
+                        raise RuntimeError('Could not allocate OpenXR eye target')
+            except Exception:
+                for fb in framebuffers:
+                    fb.delete()
+                raise
+            return framebuffers
         from chimerax.graphics.opengl import Texture, Framebuffer
         framebuffers = []
         for sc, eye in zip(self._swapchains, ('left','right')):
@@ -335,7 +372,8 @@ class XR:
 
     def _delete_framebuffers(self):
         for fb in self._framebuffers:
-            fb.color_texture.id = None  # Avoid deleting the swapchain texture.
+            if self._vulkan_render is None:
+                fb.color_texture.id = None  # Avoid deleting the swapchain texture.
             fb.delete(make_current = True)
         self._framebuffers.clear()
 
@@ -351,8 +389,11 @@ class XR:
                                                      acquire_info=xr.SwapchainImageAcquireInfo())
         xr.wait_swapchain_image(swapchain=swapchain,
                                 wait_info=xr.SwapchainImageWaitInfo(xr.INFINITE_DURATION))
+        self._acquired_images[ei] = swapchain_index
         fb = self._framebuffers[ei]
         render.push_framebuffer(fb)
+        if self._vulkan_render is not None:
+            return
         images = xr.enumerate_swapchain_images(swapchain, xr.SwapchainImageOpenGLKHR)
         tex_id = images[swapchain_index].image
         fb.color_texture.id = tex_id
@@ -365,11 +406,21 @@ class XR:
     def release_opengl_render_target(self, render, eye):
         if not self._frame_started:
             return
-        render.pop_framebuffer()
         ei = 0 if eye == 'left' else 1
         swapchain = self._swapchains[ei]
         import xr
-        xr.release_swapchain_image(swapchain, xr.SwapchainImageReleaseInfo())
+        try:
+            if self._vulkan_render is not None:
+                render.end_frame()
+                index = self._acquired_images[ei]
+                image = self._swapchain_image_buffer[ei][index].image
+                render._vulkan.copy_framebuffer_to_image(
+                    context=render._ctx, framebuffer=self._framebuffers[ei]._handle,
+                    image=image, format=self._swapchain_format)
+        finally:
+            render.pop_framebuffer()
+            xr.release_swapchain_image(swapchain, xr.SwapchainImageReleaseInfo())
+            self._acquired_images.pop(ei, None)
 
     def start_frame(self):
         self._frame_started = False
@@ -476,11 +527,21 @@ class XR:
                 
         return False
 
-    def _end_xr_frame(self):
+    def abort_frame(self):
+        """Return runtime-owned images and discard an incomplete stereo frame."""
+        import xr
+        for eye in list(self._acquired_images):
+            xr.release_swapchain_image(self._swapchains[eye], xr.SwapchainImageReleaseInfo())
+            del self._acquired_images[eye]
+        if self._frame_started:
+            self._frame_started = False
+            self._end_xr_frame(discard=True)
+
+    def _end_xr_frame(self, discard=False):
         layers = []
         import xr
         blend_mode = xr.EnvironmentBlendMode.OPAQUE
-        if self._frame_state.should_render and hasattr(self, '_eye_view_states'):
+        if not discard and self._frame_state.should_render and hasattr(self, '_eye_view_states'):
             for eye_index in range(2):
                 layer_view = self._projection_layer_views[eye_index]
                 eye_view = self._eye_view_states[eye_index]
@@ -737,6 +798,12 @@ class XR:
         
     def shutdown(self):
         import xr
+        if self._vulkan_render is not None:
+            window = self._vulkan_render.opengl_context.window
+            if getattr(window, '_vulkan_runtime', None) is self._vulkan_runtime:
+                window._vulkan_runtime = None
+            self._vulkan_render.end_frame()
+        self.abort_frame()
         for hs in self._hand_space.values():
             xr.destroy_space(hs)
         self._hand_space.clear()

@@ -3231,7 +3231,7 @@ class RenderingOptions:
     self.smoothing_factor = .3
     self.square_mesh = True
     self.cap_faces = True
-    self.surface_algorithm = 'marchingCubes'  # 'flyingEdges' or 'marchingCubes'
+    self.surface_algorithm = 'flyingEdges'  # 'flyingEdges' or 'marchingCubes'
     self.surface_algorithms = ('flyingEdges', 'marchingCubes')  # Read-only list of allowed values
     self.orthoplanes_shown = (False, False, False)
     self.orthoplane_positions = (0,0,0) # image rendering

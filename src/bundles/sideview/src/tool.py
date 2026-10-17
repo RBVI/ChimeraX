@@ -17,7 +17,7 @@
 # ToolUI classes may also override
 #   "delete" - called to clean up before instance is deleted
 #
-from Qt.QtGui import QWindow, QSurface
+from Qt.QtGui import QWindow
 from chimerax.core.tools import ToolInstance
 from chimerax.geometry import Place
 from chimerax.graphics import View, Camera, Drawing
@@ -73,10 +73,12 @@ class SideViewCanvas(QWindow):
 
     def __init__(self, parent, view, session, panel, side=RIGHT_SIDE):
         QWindow.__init__(self)
-        from Qt.QtWidgets import QWidget
 
-        self.widget = QWidget.createWindowContainer(self, parent)
-        self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
+        # createWindowContainer() can synchronously deliver resize/expose
+        # events. Establish all callback state, and mark this renderer as an
+        # auxiliary-window renderer, before allowing Qt to create the native
+        # child. Otherwise an early sideview resize is mistaken for a resize
+        # of the active main Vulkan swapchain.
         self.view = view
         self.session = session
         self.panel = panel
@@ -84,6 +86,14 @@ class SideViewCanvas(QWindow):
         self.side = side
         # self.side = self.TOP_SIDE  # DEBUG
         self.moving = self.ON_NOTHING
+        self._rendering = True
+        self._render_pending = False
+        self._closed = False
+
+        from chimerax.graphics.auxiliary import create_render_endpoint
+        self.widget, self.render_endpoint = create_render_endpoint(
+            self, parent, view, self.main_view.render_endpoint.device
+        )
 
         self.locations = loc = _PixelLocations()
         loc.eye = 0, 0, 0  # x, y coordinates of eye
@@ -102,20 +112,46 @@ class SideViewCanvas(QWindow):
         from Qt.QtCore import QSize
 
         self.widget.setMinimumSize(QSize(20, 20))
+        self._rendering = False
 
     def close(self):
+        self._closed = True
+        self._render_pending = False
         self.session.triggers.remove_handler(self.handler)
+        from chimerax.graphics.auxiliary import release_window
+        release_window(self, self.view, self.main_view)
         self.view.remove_overlays([self.applique])
-        self.applique.delete()
         self.applique = None
         # self.setParent(None)
         QWindow.destroy(self)
 
     def _redraw(self, *_):
-        self.render()
+        if self.isExposed():
+            self._schedule_render()
 
     def exposeEvent(self, event):  # noqa
         if self.isExposed() and not self.session.update_loop.blocked():
+            self._schedule_render()
+
+    def _schedule_render(self):
+        """Draw after Qt has committed this native child window.
+
+        The frame-drawn trigger runs inside the main window's redraw.  A
+        synchronous Vulkan acquire for a newly docked CAMetalLayer can wait
+        for the very event-loop turn that is still dispatching that trigger.
+        Coalescing through a zero timer lets Qt finish its layout/expose work
+        first and also prevents several exposure events from drawing the same
+        side frame repeatedly.
+        """
+        if self._closed or self._rendering or self._render_pending:
+            return
+        self._render_pending = True
+        from Qt.QtCore import QTimer
+        QTimer.singleShot(0, self._run_scheduled_render)
+
+    def _run_scheduled_render(self):
+        self._render_pending = False
+        if not self._closed:
             self.render()
 
     def resizeEvent(self, event):  # noqa
@@ -130,6 +166,32 @@ class SideViewCanvas(QWindow):
         self.view.resize(width, height)
 
     def render(self):
+        if self._rendering or not self.isExposed():
+            return
+        # A backend transition replaces this canvas. Never let a stale
+        # auxiliary renderer make its old OpenGL/Vulkan context current.
+        main_render = self.main_view.render
+        if (main_render is None or self.view.render is None or
+                self.view.render.opengl_context is not
+                main_render.opengl_context):
+            return
+        self._rendering = True
+        try:
+            try:
+                self._render_view()
+            except Exception as error:
+                from chimerax.graphics.vulkan import VulkanDrawableUnavailable
+                if isinstance(error, VulkanDrawableUnavailable):
+                    # Rendering is driven by expose events and the main
+                    # view's frame-drawn trigger. Do not turn a missed
+                    # drawable into an independent animation loop.
+                    pass
+                else:
+                    raise
+        finally:
+            self._rendering = False
+
+    def _render_view(self):
         ww, wh = self.main_view.window_size
         if ww <= 0 or wh <= 0:
             return
@@ -143,8 +205,9 @@ class SideViewCanvas(QWindow):
         from numpy import array, float32, uint8, int32
 
         # self.view.set_background_color((.3, .3, .3, 1))  # DEBUG
-        mvwin = self.view.render.use_shared_context(self)
-        try:
+        from chimerax.graphics.auxiliary import draw_on_window
+
+        def draw():
             # TODO: This stuff should be in graphics/opengl.py
             # from OpenGL.GL.GREMEDY import string_marker
             # has_string_marker = string_marker.glInitStringMarkerGREMEDY()
@@ -311,10 +374,7 @@ class SideViewCanvas(QWindow):
             # if has_string_marker:
             #     text = b"End SideView"
             #     string_marker.glStringMarkerGREMEDY(len(text), text)
-        finally:
-            # Target opengl context back to main graphics window.
-            self.main_view.render.use_shared_context(mvwin)
-        self.view.render.done_current()
+        draw_on_window(self, self.view, self.main_view, draw)
 
     def mousePressEvent(self, event):  # noqa
         from Qt.QtCore import Qt
@@ -433,15 +493,30 @@ class SideViewUI(ToolInstance):
             QStackedWidget,
         )
 
+        class graphics_area(QStackedWidget):
+            def sizeHint(self):  # noqa
+                from Qt.QtCore import QSize
+
+                return QSize(200, 200)
+
+        # A window container owns a native child.  Give it its final clipping
+        # parent before createWindowContainer() creates that child; reparenting
+        # a CAMetalLayer-backed window from the whole tool panel into this
+        # stack can leave the old, oversized native clipping region behind.
+        ga = graphics_area(parent)
+        self._graphics_area = ga
+
         self.view = v = View(session.models.scene_root_model, window_size=(0, 0))
-        v.initialize_rendering(session.main_view.render.opengl_context)
         # TODO: from chimerax.graphics.camera import OrthographicCamera
         v.camera = OrthoCamera()
         if self.display_name.startswith("Top"):
             side = SideViewCanvas.TOP_SIDE
         else:
             side = SideViewCanvas.RIGHT_SIDE
-        self.opengl_canvas = SideViewCanvas(parent, v, session, self, side=side)
+        self._side = side
+        self._canvas_parent = ga
+        self._backend_switching = False
+        self.opengl_canvas = SideViewCanvas(ga, v, session, self, side=side)
         clip = QLabel(parent)
         clip.setText("clip:")
         self.clip_near = QCheckBox(parent)
@@ -463,27 +538,67 @@ class SideViewUI(ToolInstance):
         button_layout.addWidget(self.clip_far)
         button_layout.addStretch(1)
 
-        class graphics_area(QStackedWidget):
-            def sizeHint(self):  # noqa
-                from Qt.QtCore import QSize
-
-                return QSize(200, 200)
-
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-        ga = graphics_area(parent)
         ga.addWidget(self.opengl_canvas.widget)
         layout.addWidget(ga, 1)
         layout.addLayout(button_layout)
         parent.setLayout(layout)
         self.tool_window.manage(placement="side")
 
+        from chimerax.core.core_triggers import (
+            GRAPHICS_BACKEND_CHANGED, GRAPHICS_BACKEND_CHANGING,
+        )
+        self._backend_changing_handler = session.triggers.add_handler(
+            GRAPHICS_BACKEND_CHANGING, self._backend_changing)
+        self._backend_changed_handler = session.triggers.add_handler(
+            GRAPHICS_BACKEND_CHANGED, self._backend_changed)
+
     def delete(self):
-        self.opengl_canvas.close()
-        self.view.delete()
-        self.view = None
+        self.session.triggers.remove_handler(self._backend_changing_handler)
+        self.session.triggers.remove_handler(self._backend_changed_handler)
+        self._retire_canvas()
         ToolInstance.delete(self)
+
+    def _retire_canvas(self):
+        """Release the auxiliary window while its graphics context is valid."""
+        canvas = self.opengl_canvas
+        self.opengl_canvas = None
+        if canvas is not None:
+            canvas._rendering = True
+            widget = canvas.widget
+            self._graphics_area.removeWidget(widget)
+            canvas.close()
+            widget.setParent(None)
+            widget.deleteLater()
+        view = self.view
+        self.view = None
+        if view is not None:
+            view.delete()
+
+    def _backend_changing(self, *_):
+        """Retire the old side renderer before the main context is deleted."""
+        if self._backend_switching:
+            return
+        self._backend_switching = True
+        self._retire_canvas()
+
+    def _backend_changed(self, *_):
+        """Create a native side window matching the new main backend."""
+        if not self._backend_switching:
+            return
+        session = self.session
+        view = View(session.models.scene_root_model, window_size=(0, 0))
+        view.camera = OrthoCamera()
+        canvas = SideViewCanvas(
+            self._canvas_parent, view, session, self, side=self._side)
+        self.view = view
+        self.opengl_canvas = canvas
+        self._graphics_area.addWidget(canvas.widget)
+        self._graphics_area.setCurrentWidget(canvas.widget)
+        self._backend_switching = False
+        view.redraw_needed = True
 
     def on_near(self, event):
         session = self._session()

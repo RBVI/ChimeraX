@@ -25,6 +25,8 @@ class VulkanContext:
     Equivalent to OpenGLContext in the OpenGL backend.
     """
 
+    backend_name = "vulkan"
+
     def __init__(self, graphics_window, screen, use_stereo=False):
         from chimerax.graphics import _vulkan
 
@@ -33,19 +35,29 @@ class VulkanContext:
         self._vulkan = _vulkan
         self._instance = None
         self._qt_vulkan_instance = None
+        runtime = getattr(graphics_window, '_vulkan_runtime', None)
+        runtime_args = {} if runtime is None else {'runtime': runtime}
+        extensions = [] if runtime is None else runtime.instance_extensions()
 
         if sys.platform == "darwin":
             # NSView* for the CAMetalLayer-backed surface.
             window_handle = int(graphics_window.winId())
+            pixel_scale = graphics_window.devicePixelRatio()
+            surface_width = max(1, round(graphics_window.width() * pixel_scale))
+            surface_height = max(1, round(graphics_window.height() * pixel_scale))
             from chimerax.graphics import _metal_rt
-            instance = _vulkan.create_instance()
+            instance = (_vulkan.create_instance(extensions=extensions)
+                        if extensions else _vulkan.create_instance())
             self._instance = instance
             surface = _metal_rt.create_surface(
-                instance=instance, window_handle=window_handle
+                instance=instance, window_handle=window_handle,
+                width=surface_width, height=surface_height,
             )
             self._ctx = _vulkan.create_context(
                 window_handle=window_handle, instance=instance, surface=surface,
                 owns_instance=1, owns_surface=1,
+                width=surface_width, height=surface_height,
+                **runtime_args,
             )
             initial_surface = (surface, True)
         elif sys.platform.startswith("linux"):
@@ -56,6 +68,9 @@ class VulkanContext:
             from Qt.QtCore import QVersionNumber
             qvi = QVulkanInstance()
             qvi.setApiVersion(QVersionNumber(1, 2, 0))
+            if extensions:
+                from Qt.QtCore import QByteArray
+                qvi.setExtensions([QByteArray(e.encode('ascii')) for e in extensions])
             if not qvi.create():
                 raise RuntimeError("Qt could not create a Vulkan instance")
             # Associate the instance before winId() forces native window
@@ -72,12 +87,20 @@ class VulkanContext:
             self._ctx = _vulkan.create_context(
                 window_handle=window_handle, instance=instance, surface=surface,
                 owns_instance=0, owns_surface=0,
+                **runtime_args,
             )
             initial_surface = (surface, False)
         else:
             # HWND on Windows.
             window_handle = int(graphics_window.winId())
-            self._ctx = _vulkan.create_context(window_handle=window_handle)
+            if runtime is None:
+                self._ctx = _vulkan.create_context(window_handle=window_handle)
+            else:
+                instance = _vulkan.create_instance(extensions=extensions)
+                self._instance = instance
+                self._ctx = _vulkan.create_context(
+                    window_handle=window_handle, instance=instance,
+                    owns_instance=1, owns_surface=1, **runtime_args)
             initial_surface = (0, True)
         # Creating platform surfaces is not idempotent on macOS and can
         # replace the CAMetalLayer. Keep one stable surface per QWindow.
@@ -97,6 +120,14 @@ class VulkanContext:
         self._framebuffers = WeakSet()
         self._textures = WeakSet()
         self._framebuffer_color_bits = 8
+        # The first renderer is the main View. Auxiliary Views share this
+        # context but must not become the default owner merely because their
+        # Python renderer was constructed most recently.
+        self._primary_render = None
+        # Vulkan has no quad-buffered presentation mode corresponding to an
+        # OpenGL stereo context.  Expose the compatibility attribute used by
+        # the camera command so non-stereo camera changes remain available.
+        self.stereo = False
 
     def make_current(self, window=None):
         """Vulkan doesn't need make_current -- context is always available."""
@@ -112,7 +143,7 @@ class VulkanContext:
     def pixel_scale(self):
         return self.window.devicePixelRatio()
 
-    def delete(self):
+    def delete(self, make_current=False):
         if self._ctx is not None:
             self._vulkan.destroy_context(context=self._ctx)
             self._ctx = None
@@ -136,8 +167,12 @@ class VulkanContext:
             return cached
         if sys.platform == "darwin":
             from chimerax.graphics import _metal_rt
+            pixel_scale = window.devicePixelRatio()
+            surface_width = max(1, round(window.width() * pixel_scale))
+            surface_height = max(1, round(window.height() * pixel_scale))
             surface = (_metal_rt.create_surface(
-                instance=self._instance, window_handle=window_handle), True)
+                instance=self._instance, window_handle=window_handle,
+                width=surface_width, height=surface_height), True)
         elif sys.platform.startswith("linux"):
             self.prepare_window(window)
             surface = int(self._qt_vulkan_instance.surfaceForWindow(window))
@@ -173,6 +208,7 @@ class VulkanShader:
         self._pipeline_depth_only = None
         self._pipeline_depth_prepass = None
         self._pipeline_render_target = None
+        self._pipeline_blending = None
         self._uniforms = {}  # name -> value, flushed before draw
         self.check_uniforms = False
 
@@ -244,15 +280,20 @@ class VulkanFramebuffer:
     cheaply (matches OpenGL's Framebuffer.activate -> bool semantics).
     """
 
-    def __init__(self, name, render, width, height, alpha=False):
+    def __init__(self, name, render, width, height, alpha=False, color_bits=8):
         self.name = name
         self.width = width
         self.height = height
         self.alpha = alpha
+        self.color_bits = color_bits
         self.viewport = (0, 0, width, height)
         self._render = render
         self._handle = None      # OffscreenFramebuffer* (C side)
         self._deleted = False
+        self.color = True
+        self.depth = True
+        self.color_texture = None
+        self.depth_texture = None
         render._context._framebuffers.add(self)
 
     def activate(self):
@@ -268,13 +309,32 @@ class VulkanFramebuffer:
                 width=int(self.width),
                 height=int(self.height),
                 alpha=1 if self.alpha else 0,
+                color_bits=int(self.color_bits),
             )
         except Exception:
             self._handle = None
             return False
+        if self._handle is not None and self.color_texture is None:
+            handle = m.get_offscreen_texture(
+                context=ctx, framebuffer=self._handle, prepare=False)
+            texture = VulkanTexture(render=self._render)
+            texture._handle = handle
+            texture.id = handle
+            texture._external = True
+            texture._format_code = (
+                _FORMAT_RGBA16F if self.color_bits == 16 else _FORMAT_RGBA8)
+            texture._components = 4
+            texture.size = (self.width, self.height)
+            texture._framebuffer = self
+            self.color_texture = texture
         return self._handle is not None
 
-    def delete(self):
+    def delete(self, make_current=False):
+        if self.color_texture is not None:
+            self._render._release_exported_texture(self.color_texture._handle)
+            self.color_texture._handle = None
+            self.color_texture.id = None
+            self.color_texture = None
         if self._handle is not None:
             try:
                 self._render._vulkan.destroy_offscreen_framebuffer(
@@ -285,17 +345,23 @@ class VulkanFramebuffer:
             self._handle = None
         self._deleted = True
 
+    def read_image(self, *, raw=False):
+        """Return this target's pixels using the renderer's GL-compatible Y order."""
+        if self._handle is None:
+            return None
+        self._render.end_frame()
+        dtype = np.float16 if self.color_bits == 16 else np.uint8
+        rgba = np.zeros((self.height, self.width, 4), dtype=dtype)
+        self._render._vulkan.read_framebuffer(
+            context=self._render._ctx, framebuffer=self._handle, data=rgba)
+        if self.color_bits == 16 and not raw:
+            rgba = np.rint(np.clip(rgba.astype(np.float32), 0, 1) * 255).astype(np.uint8)
+        return rgba[::-1, :, :]
 
-# Module-level reference to the active VulkanRender. Set by VulkanRender's
-# constructor; consulted by VulkanTexture so plain `Texture(...)` calls
-# from backend-agnostic Python code (e.g. chimerax.map.image3d) can find a
-# VkDevice without an explicit handle.
-_active_vulkan_render = None
 
-# More than one VulkanRender can share a VulkanContext (the sideview is the
-# first such user).  Keep weak references so deleting an auxiliary renderer
-# cannot make backend-agnostic Texture construction fall back to OpenGL while
-# the main Vulkan renderer is still alive.
+# More than one VulkanRender can share a VulkanContext. Keep weak references
+# only to select another primary endpoint when one closes; texture ownership
+# is supplied explicitly by the RAL device.
 from weakref import WeakSet as _WeakSet
 _vulkan_renders = _WeakSet()
 del _WeakSet
@@ -303,11 +369,6 @@ del _WeakSet
 import os as _os
 _VK_DRAW_DEBUG = bool(_os.environ.get("CHIMERAX_VK_DRAW_DEBUG"))
 del _os
-
-
-def _set_active_vulkan_render(render):
-    global _active_vulkan_render
-    _active_vulkan_render = render
 
 
 # Keys in a per-drawing buffer cache that hold GPU buffer handles created
@@ -363,6 +424,7 @@ _FORMAT_R16_UNORM   = 5
 _FORMAT_R16_SFLOAT  = 6
 _FORMAT_R16_SNORM   = 7
 _FORMAT_R8_SNORM    = 8
+_FORMAT_RGBA16F     = 9
 
 
 def _expand_to_rgba8(arr):
@@ -439,6 +501,7 @@ class VulkanTexture:
         cube_map=False,
         linear_interpolation=True,
         clamp_to_edge=False,
+        render=None,
     ):
         self.data = data
         self.dimension = dimension
@@ -449,7 +512,8 @@ class VulkanTexture:
         self._handle = None         # opaque pointer to TextureWithDevice
         self._format_code = None    # one of _FORMAT_* above
         self._components = None
-        self._render = _active_vulkan_render
+        self._external = False      # owning framebuffer destroys this handle
+        self._render = render
         if self._render is not None:
             self._render._context._textures.add(self)
         # Compatibility with code that probes Texture.id:
@@ -459,10 +523,6 @@ class VulkanTexture:
     # Internal helpers
     # ------------------------------------------------------------------
     def _ensure_render(self):
-        if self._render is None:
-            self._render = _active_vulkan_render
-            if self._render is not None:
-                self._render._context._textures.add(self)
         return self._render
 
     def _size_xyz(self, size):
@@ -570,6 +630,17 @@ class VulkanTexture:
             self._upload(d)
         if self._handle is None:
             return
+        r = self._ensure_render()
+        if r is None:
+            return
+        framebuffer = getattr(self, "_framebuffer", None)
+        if self._external and framebuffer is not None:
+            # Rendering leaves sampled camera targets in transfer-source
+            # layout so they remain readable. Move the image to shader-read
+            # layout immediately before compositing it.
+            self._handle = r._vulkan.get_offscreen_texture(
+                context=r._ctx, framebuffer=framebuffer._handle)
+            self.id = self._handle
         # Default binding based on dimension matches the mesh shader's set 1
         # layout (see mesh.frag): tex2d=0, tex3d=1, texcube=2,
         # shadow=3, multishadow=4, ambient_tex3d=5, colormap_tex=6.
@@ -582,12 +653,20 @@ class VulkanTexture:
                 unit = 1
             else:
                 unit = 0
-        r = self._ensure_render()
-        if r is None:
-            return
         r._vulkan.set_fragment_texture(
             context=r._ctx, texture=self._handle, index=int(unit)
         )
+
+    def prepare_for_sampling(self):
+        """Transition a framebuffer-owned texture before compositing it."""
+        if not self._external or self._handle is None:
+            return
+        framebuffer = getattr(self, "_framebuffer", None)
+        r = self._ensure_render()
+        if framebuffer is not None and r is not None:
+            self._handle = r._vulkan.get_offscreen_texture(
+                context=r._ctx, framebuffer=framebuffer._handle)
+            self.id = self._handle
 
     def unbind_texture(self, tex_unit=None, texture_unit=None):
         # Vulkan descriptor sets are rebound per-draw via flush_descriptors,
@@ -612,17 +691,71 @@ class VulkanTexture:
         }
         return norms.get(self._format_code, 1.0)
 
+    def read_texture_data(self, numpy_data_type=None):
+        """Return texture pixels in the same array layout used for upload."""
+        if self._handle is None:
+            if self.data is not None:
+                return np.asarray(self.data).copy()
+            return None
+        if self._external:
+            framebuffer = getattr(self, "_framebuffer", None)
+            data = None if framebuffer is None else framebuffer.read_image(raw=True)[::-1]
+            return (data.astype(numpy_data_type) if data is not None
+                    and numpy_data_type is not None else data)
+        dtype_channels = {
+            _FORMAT_RGBA8: (np.uint8, 4),
+            _FORMAT_R8: (np.uint8, 1),
+            _FORMAT_R8_SNORM: (np.int8, 1),
+            _FORMAT_R16_UNORM: (np.uint16, 1),
+            _FORMAT_R16_SFLOAT: (np.float16, 1),
+            _FORMAT_R16_SNORM: (np.int16, 1),
+            _FORMAT_R32F: (np.float32, 1),
+            _FORMAT_RGBA16F: (np.float16, 4),
+            _FORMAT_DEPTH32F: (np.float32, 1),
+        }
+        format_info = dtype_channels.get(self._format_code)
+        if format_info is None:
+            raise ValueError("Vulkan texture format cannot be read back")
+        dtype, channels = format_info
+        shape = tuple(reversed(self._size_xyz(self.size)[:self.dimension]))
+        if channels > 1:
+            shape += (channels,)
+        data = np.empty(shape, dtype=dtype)
+        self._render._vulkan.read_texture(texture=self._handle, data=data)
+        if numpy_data_type is not None and data.dtype != numpy_data_type:
+            data = data.astype(numpy_data_type)
+        return data
+
     def delete_texture(self):
         if self._handle is None:
+            return
+        if self._external:
+            self._handle = None
+            self.id = None
             return
         r = self._ensure_render()
         if r is None:
             self._handle = None
             self.id = None
             return
+        # A MetalRT export is cached by this native wrapper address.  Remove
+        # it before the Vulkan wrapper is queued for deletion; malloc may
+        # later reuse the address for a different image, and returning the
+        # old exported MTLTexture for that new image crashes setTexture().
+        r._release_exported_texture(self._handle)
         r._vulkan.destroy_texture(texture=self._handle)
         self._handle = None
         self.id = None
+
+
+def _define_after_version(source, name):
+    """Insert ``#define name`` after the GLSL ``#version`` line."""
+    lines = source.split("\n")
+    for i, line in enumerate(lines):
+        if line.lstrip().startswith("#version"):
+            lines.insert(i + 1, f"#define {name}")
+            return "\n".join(lines)
+    return f"#define {name}\n" + source
 
 
 class VulkanRender:
@@ -633,30 +766,25 @@ class VulkanRender:
     Drawing and View call methods on this object to render the scene.
     """
 
+    _shader_source_cache = {}
+
     def __init__(self, vulkan_context):
         self._context = vulkan_context
         self._vulkan = vulkan_context._vulkan
         self._ctx = vulkan_context._ctx
         self._target_window = vulkan_context.window
+        self._deleted = False
         # Compatibility: Drawing._draw_geometry accesses renderer.opengl_context
         self.opengl_context = vulkan_context
 
-        # Register as the active Vulkan render so plain `Texture(...)` calls
-        # from backend-agnostic code find a VkDevice.  Also point
-        # `chimerax.graphics.Texture` at VulkanTexture so volume code that
-        # does `from chimerax.graphics import Texture` picks it up.
+        # Register this endpoint with its context. Backend-neutral textures
+        # receive their renderer explicitly from the RAL texture factory.
         _vulkan_renders.add(self)
-        _set_active_vulkan_render(self)
-        try:
-            import chimerax.graphics as _g
-            _g.set_texture_class(VulkanTexture)
-        except (ImportError, AttributeError):
-            # set_texture_class may not exist if running against an older
-            # graphics package; that's fine — set_active_vulkan_render is
-            # still the primary mechanism.
-            pass
+        if vulkan_context._primary_render is None:
+            vulkan_context._primary_render = self
         self._width = 800
         self._height = 600
+        self._swapchain_generation = None
         self._in_frame = False
         self._drawing_buffers = {}  # id(drawing) -> {name -> buffer_handle}
         self._pipeline_cache = {}  # (shader_name, constants_tuple, depth_only) -> pipeline_handle
@@ -687,6 +815,7 @@ class VulkanRender:
         # Depth test toggle for overlay / on-top drawing (2D labels, color
         # keys). Baked into the pipeline like the other depth state.
         self._depth_test_enabled = True
+        self._blending_enabled = True
         # Clip planes set by clipping.py (scene-space vec4 per plane),
         # packed into the Uniforms UBO by _build_uniforms.
         self._clip_planes = []
@@ -698,6 +827,14 @@ class VulkanRender:
         # dict would hand stale handles to a renderer created after a
         # context teardown (use-after-free on the first postprocess draw).
         self._postprocess_pipelines = {}
+        # Vulkan -> Metal RT exports are keyed by native wrapper address.
+        # Keep the caches per renderer so one Vulkan context can never reuse
+        # another renderer's exported objects.
+        self._exported_textures = {}
+        self._exported_texture_images = {}
+        self._exported_buffers = {}
+        self._scene_depth_copy = None
+        self._scene_depth_copy_size = None
 
         # Capability system (same constants as OpenGL backend)
         from .renderer import (
@@ -721,6 +858,8 @@ class VulkanRender:
         self.current_view_matrix = None
         self.current_model_view_matrix = None
         self.current_model_matrix = None
+        self.ambient_texture_transform = None
+        self.frame_number = 0
 
         # Shader cache
         self.current_shader_program = None
@@ -732,6 +871,7 @@ class VulkanRender:
 
         # Framebuffer stack
         self._framebuffer_stack = []
+        self._default_framebuffer = _StubFramebuffer(self)
 
         # Lighting (reuse existing Lighting class for parameters)
         from .opengl import Lighting, Material
@@ -749,12 +889,15 @@ class VulkanRender:
         self.silhouette = _StubSilhouette()
         self._silhouette_impl = VulkanSilhouette(self)
         self.outline = VulkanOutline(self)
-        self.offscreen = _StubOffscreen()
+        self.offscreen = VulkanOffscreen()
         self.blend = _StubBlend()
 
         self.model_color = (1, 1, 1, 1)
         self._background_color = (0, 0, 0, 1)
         self._near_far_clip = (0, 1)
+        self.depth_texture_unit = 7
+        self._depth_texture_scale = (1.0, 1.0, 1.0)
+        self._stereo_360_params = ((0, 0, 0), (0, 1, 0), 0.0)
 
         # Set capability constants as class attributes for Drawing access
         # (Drawing._shader_options references Render.SHADER_LIGHTING etc.)
@@ -766,6 +909,19 @@ class VulkanRender:
 
     def delete(self):
         """Clean up renderer resources."""
+        if self._deleted:
+            return
+        self._deleted = True
+        # Device.close() is the final native owner.  A late Python endpoint
+        # must only detach its bookkeeping after that owner has gone; calling
+        # any native cleanup function with the old integer context would pass
+        # a dead VkDevice to the Vulkan loader.
+        if self._context._ctx is None:
+            self._drawing_buffers.clear()
+            self._pipeline_cache.clear()
+            self._postprocess_pipelines.clear()
+            _vulkan_renders.discard(self)
+            return
         if self._in_frame:
             self.end_frame()
         self._destroy_rt_accel_struct()
@@ -773,6 +929,10 @@ class VulkanRender:
             self.outline.delete()
         if getattr(self, "_silhouette_impl", None) is not None:
             self._silhouette_impl.delete()
+        self.offscreen.delete()
+        if self._scene_depth_copy is not None:
+            self.destroy_texture(self._scene_depth_copy)
+            self._scene_depth_copy = None
         for framebuffer in tuple(self._context._framebuffers):
             if getattr(framebuffer, "_render", None) is self:
                 framebuffer.delete()
@@ -810,27 +970,21 @@ class VulkanRender:
         for attr in ("_pt_dummy_density", "_pt_dummy_colormap"):
             handle = getattr(self, attr, None)
             if handle is not None:
-                self._vulkan.destroy_texture(texture=handle)
+                self.destroy_texture(handle)
             setattr(self, attr, None)
 
-        self._vulkan.destroy_oit_resources(context=self._ctx)
+        self._release_exported_textures()
+        # OIT images/render passes belong to VulkanContext, not to one
+        # renderer endpoint. VulkanContext.delete() destroys them once after
+        # every endpoint has detached.
         self._pipeline_cache.clear()
         self._postprocess_pipelines.clear()
-        # Restore module-level state we hijacked in __init__ so the next
-        # backend (e.g. switching back to OpenGL at runtime) doesn't keep
-        # constructing VulkanTextures bound to this dead render.
-        global _active_vulkan_render
         _vulkan_renders.discard(self)
-        if _active_vulkan_render is self:
-            _active_vulkan_render = next(iter(_vulkan_renders), None)
-        try:
-            import chimerax.graphics as _g
-            from chimerax.graphics import opengl as _opengl
-            if (_active_vulkan_render is None
-                    and getattr(_g, "Texture", None) is VulkanTexture):
-                _g.set_texture_class(_opengl.Texture)
-        except (ImportError, AttributeError):
-            pass
+        if self._context._primary_render is self:
+            self._context._primary_render = next(
+                (r for r in _vulkan_renders if r._context is self._context),
+                None,
+            )
 
     # -------------------------------------------------------------------
     # Context management
@@ -840,7 +994,6 @@ class VulkanRender:
         # Clean up any dangling frame from a previous failed draw
         if self._in_frame:
             self.end_frame()
-        _set_active_vulkan_render(self)
         return self._context.make_current()
 
     def set_target_window(self, window):
@@ -875,15 +1028,17 @@ class VulkanRender:
         # swapchain on behalf of an inactive sideview.
         if target is not self._context.window:
             return
-        # Invalidate Metal RT texture/buffer export caches — the Vulkan
-        # textures are about to be destroyed and recreated.
-        self._exported_textures = None
+        # The swapchain/depth textures are about to be destroyed and their
+        # native wrapper addresses may be recycled.  Release MetalRT exports
+        # before any recycled address can hit the cache.
+        self._release_exported_textures()
         # On macOS, sync the CAMetalLayer's bounds before swapchain
         # recreation so MoltenVK sees the correct drawableSize.
         if sys.platform == "darwin":
             try:
                 from chimerax.graphics import _metal_rt
-                _metal_rt.resize_surface(window_handle=int(target.winId()))
+                _metal_rt.resize_surface(window_handle=int(target.winId()),
+                                         width=self._width, height=self._height)
             except ImportError:
                 pass
         self._context._vulkan.resize_drawable(
@@ -892,7 +1047,7 @@ class VulkanRender:
         self.set_viewport(0, 0, self._width, self._height)
 
     def opengl_version(self):
-        return (0, 0)  # Not OpenGL
+        return "Vulkan"
 
     def opengl_version_number(self):
         return 0
@@ -902,6 +1057,12 @@ class VulkanRender:
 
     def opengl_renderer(self):
         return self._context._device_name
+
+    def opengl_info(self):
+        return "Graphics API: Vulkan\nVulkan device: %s" % self._context._device_name
+
+    def opengl_profile(self):
+        return "Vulkan"
 
     @property
     def recording_opengl(self):
@@ -960,17 +1121,25 @@ class VulkanRender:
     # -- Framebuffer stack (stub) ---------------------------------------------
 
     def default_framebuffer(self):
-        return None  # TODO: Vulkan framebuffer
+        fb = self._default_framebuffer
+        fb.width = self._width
+        fb.height = self._height
+        fb.viewport = (0, 0, self._width, self._height)
+        return fb
 
     def current_framebuffer(self):
-        return _StubFramebuffer(self)
+        return (self._framebuffer_stack[-1] if self._framebuffer_stack
+                else self.default_framebuffer())
 
-    def create_framebuffer(self, name, width, height, alpha=False):
+    def create_framebuffer(self, name, width, height, alpha=False, color_bits=None):
         """Factory for an offscreen render target. Mirrors
         opengl.Framebuffer's constructor signature so view.image_rgba can
         ask the active renderer for an image-capture target without
         depending on backend specifics."""
-        return VulkanFramebuffer(name, self, width, height, alpha=alpha)
+        if color_bits is None:
+            color_bits = self._context._framebuffer_color_bits
+        return VulkanFramebuffer(
+            name, self, width, height, alpha=alpha, color_bits=color_bits)
 
     def push_framebuffer(self, fb):
         self._framebuffer_stack.append(fb)
@@ -1025,26 +1194,18 @@ class VulkanRender:
             if isinstance(f, VulkanFramebuffer) and f._handle is not None:
                 active = f
                 break
-        if active is None or active.width != w or active.height != h:
+        if active is None:
+            self._vulkan.read_screen(context=self._ctx, data=rgba)
+            return rgba[::-1, :, :]
+        if active.width != w or active.height != h:
             return rgba
 
-        try:
-            # C side writes (h, w, 4) row-major top-down.
-            self._vulkan.read_framebuffer(
-                context=self._ctx, framebuffer=active._handle, data=rgba,
-            )
-        except Exception as e:
-            import sys
-            print(f"Vulkan frame_buffer_image error: {e}",
-                  file=sys.stderr, flush=True)
-            return rgba
-
-        # OpenGL convention is row 0 = bottom; view.image() flips again
-        # for PIL. Match that so callers don't see an upside-down image.
-        return rgba[::-1, :, :]
+        rgba[:] = active.read_image()
+        return rgba
 
     def set_offscreen_color_bits(self, bits):
-        pass
+        self._context._framebuffer_color_bits = bits
+        self.offscreen.color_bits = bits
 
     # -- Depth texture factory (used by render passes) -----------------------
 
@@ -1069,8 +1230,7 @@ class VulkanRender:
 
     def destroy_depth_texture(self, texture):
         """Destroy a depth texture created by create_depth_texture."""
-        if texture is not None:
-            self._vulkan.destroy_texture(texture=texture)
+        self.destroy_texture(texture)
 
     def enable_shader_shadows(self, enable):
         self.enable_shader_capability(self.SHADER_SHADOW, enable)
@@ -1104,7 +1264,7 @@ class VulkanRender:
         self._face_culling_enabled = bool(enable)
 
     def enable_blending(self, enable):
-        pass
+        self._blending_enabled = bool(enable)
 
     def blend_alpha(self, alpha_factor=True):
         # alpha_factor=False switches src factor from SRC_ALPHA to ONE
@@ -1138,6 +1298,7 @@ class VulkanRender:
             draw_depth()
         finally:
             self.draw_depth_only(False)
+        self.enable_blending(True)
         draw()
 
     def finish_rendering(self):
@@ -1146,6 +1307,29 @@ class VulkanRender:
         # fences at end_frame/begin_frame; there is nothing pending to
         # drain here, so timing measures the CPU side of the frame.
         pass
+
+    def finish(self):
+        self.finish_rendering()
+
+    def flush(self):
+        # Queue submission is owned by end_frame; submitting an incomplete
+        # render graph here would break the frame's semaphore bookkeeping.
+        return None
+
+    def flush_shader_cache(self):
+        # Native pipelines remain owned by the context and are released with
+        # it.  Dropping these lookup tables forces fresh compilation without
+        # invalidating handles that may still be in flight.
+        self._pipeline_cache.clear()
+        self._postprocess_pipelines.clear()
+        self._shader_source_cache.clear()
+        for shader in self._context.shader_programs.values():
+            shader._pipeline = None
+            shader._pipeline_render_target = None
+        self._test_pipeline = None
+        self._test_pipeline_render_target = None
+        self.current_shader_program = None
+        self._context.current_shader_program = None
 
     # ------------------------------------------------------------------
     # OIT (Weighted Blended Order-Independent Transparency)
@@ -1234,6 +1418,11 @@ class VulkanRender:
         self._raycast_bbox_max = max_corner
         self._raycast_bbox_min = min_corner
 
+    def set_depth_texture_parameters(self, tex_coord_xscale,
+                                     tex_coord_yscale, zscale):
+        self._depth_texture_scale = (
+            float(tex_coord_xscale), float(tex_coord_yscale), float(zscale))
+
     @property
     def current_viewport(self):
         return (0, 0, self._width, self._height)
@@ -1252,13 +1441,16 @@ class VulkanRender:
         return 16384
 
     def framebuffer_rgba_bits(self):
-        return (8, 8, 8, 8)
+        bits = self._context._framebuffer_color_bits
+        return (bits, bits, bits, bits)
 
     def framebuffer_depth_bits(self):
         return 32
 
     def wait_for_vsync(self, wait):
-        pass
+        # Swapchains use FIFO presentation, which is always synchronized.
+        # Report success only when that is the requested state.
+        return bool(wait)
 
     def use_shared_context(self, window):
         """Switch Vulkan rendering to a different QWindow.
@@ -1283,7 +1475,8 @@ class VulkanRender:
         if sys.platform == "darwin":
             try:
                 from chimerax.graphics import _metal_rt
-                _metal_rt.resize_surface(window_handle=window_handle)
+                _metal_rt.resize_surface(window_handle=window_handle,
+                                         width=width, height=height)
             except ImportError:
                 pass
         try:
@@ -1384,6 +1577,7 @@ class VulkanRender:
                 SHADER_CLIP_PLANES,
                 SHADER_IMPOSTOR_SPHERE,
                 SHADER_IMPOSTOR_CYLINDER,
+                SHADER_STEREO_360,
             )
 
             d = ~(
@@ -1395,6 +1589,8 @@ class VulkanRender:
                 | SHADER_IMPOSTOR_SPHERE
                 | SHADER_IMPOSTOR_CYLINDER
             )
+            if not self._depth_only_rendering:
+                d &= ~SHADER_STEREO_360
         else:
             d = 0
         self.disable_capabilities = d
@@ -1453,6 +1649,7 @@ class VulkanRender:
                     "Vulkan drawable is temporarily unavailable"
                 )
             self._in_frame = True
+            self._sync_swapchain_state()
             # Buffer handles may be recycled across frames (deferred
             # deletion + malloc reuse), so clear the export cache.
             self._exported_buffers = None
@@ -1462,11 +1659,28 @@ class VulkanRender:
         if self._in_frame:
             try:
                 self._vulkan.end_frame(context=self._ctx)
-            except Exception as e:
-                import sys
+            finally:
+                self._in_frame = False
+            self._sync_swapchain_state()
 
-                print(f"Vulkan end_frame error: {e}", file=sys.stderr)
-            self._in_frame = False
+    def _sync_swapchain_state(self):
+        """Adopt a swapchain the native side recreated on its own.
+
+        begin_frame and end_frame recreate the window swapchain when it is
+        out of date, when MoltenVK reports the layer size changed
+        (suboptimal), or after a failed frame.  The images Metal textures
+        were exported from are then gone, and the new extent may differ from
+        the size Python last set."""
+        generation, width, height = self._vulkan.swapchain_state(
+            context=self._ctx)
+        if generation == self._swapchain_generation:
+            return
+        self._swapchain_generation = generation
+        self._release_exported_textures()
+        if width and height and (width, height) != (self._width, self._height):
+            self._width, self._height = width, height
+            if not self._framebuffer_stack:
+                self.set_viewport(0, 0, width, height)
 
     def draw_background(self, depth=True):
         try:
@@ -1483,11 +1697,13 @@ class VulkanRender:
         except VulkanDrawableUnavailable:
             self._in_frame = False
             raise
-        except Exception as e:
-            import sys
-
-            print(f"Vulkan draw_background error: {e}", file=sys.stderr)
-            self._in_frame = False
+        except Exception:
+            if self._in_frame:
+                try:
+                    self._vulkan.end_frame(context=self._ctx)
+                finally:
+                    self._in_frame = False
+            raise
 
     def _draw_test_triangle(self):
         """Render a hardcoded triangle to verify the Vulkan pipeline."""
@@ -1592,7 +1808,8 @@ void main() {
             self.model_color = color
 
     def set_frame_number(self, frame=None):
-        pass
+        if frame is not None:
+            self.frame_number = frame
 
     # -------------------------------------------------------------------
     # Viewport and framebuffer
@@ -1729,7 +1946,7 @@ void main() {
         )
 
     def set_ambient_texture_transform(self, transform):
-        pass
+        self.ambient_texture_transform = transform
 
     # -------------------------------------------------------------------
     # Draw commands
@@ -1744,16 +1961,8 @@ void main() {
         Called from Drawing._draw_geometry when the renderer is Vulkan.
         """
         if not self._in_frame:
-            import sys
-
             return
-        try:
-            self._draw_drawing_impl(drawing, capabilities, highlighted_only)
-        except Exception as e:
-            import sys, traceback
-
-            print(f"Vulkan draw_drawing error: {e}", file=sys.stderr)
-            traceback.print_exc(file=sys.stderr)
+        self._draw_drawing_impl(drawing, capabilities, highlighted_only)
 
     def _draw_drawing_impl(self, drawing, capabilities, highlighted_only=False):
         vertices = drawing.vertices
@@ -1885,6 +2094,7 @@ void main() {
             or getattr(shader, "_pipeline_face_culling", True) != self._face_culling_enabled
             or getattr(shader, "_pipeline_blend_op_max", False) != self._blend_op_max
             or getattr(shader, "_pipeline_blend_premult", False) != self._blend_premult
+            or getattr(shader, "_pipeline_blending", True) != self._blending_enabled
             or getattr(shader, "_pipeline_depth_write", True) != self._depth_write_enabled
             or getattr(shader, "_pipeline_depth_test", True) != self._depth_test_enabled
             or getattr(shader, "_pipeline_topology", 0) != topology
@@ -2436,7 +2646,9 @@ void main() {
             parts.append(mat4(self.shadow._shadow_view_transform))
         else:
             parts.append(np.eye(4, dtype=np.float32))
-        parts.append(np.eye(4, dtype=np.float32))  # ambient_tex3d_transform
+        atf = self.ambient_texture_transform
+        parts.append(mat4(atf) if atf is not None
+                     else np.eye(4, dtype=np.float32))
 
         # color (float4) -- use drawing's single color if available
         colors = drawing.colors
@@ -2480,6 +2692,17 @@ void main() {
                 )
             )
         parts.append(tail)
+        sx, sy, sz = self._depth_texture_scale
+        parts.append(np.array([sx, sy, sz, 0], dtype=np.float32))
+        denom = far - near
+        projection_scale = far / denom if denom != 0 else 0
+        parts.append(np.array(
+            [near, projection_scale, 0, 0], dtype=np.float32))
+        stereo_origin, stereo_vertical, stereo_shift = self._stereo_360_params
+        parts.append(np.array(
+            [*stereo_origin, stereo_shift], dtype=np.float32))
+        parts.append(np.array(
+            [*stereo_vertical, 0], dtype=np.float32))
 
         # Concatenate all parts as raw bytes
         data = np.concatenate([p.reshape(-1) for p in parts]).astype(np.float32)
@@ -2513,9 +2736,12 @@ void main() {
             SHADER_SHIFT_AND_SCALE,
             SHADER_TEXTURE_CUBEMAP,
             SHADER_ALL_WHITE,
+            SHADER_ALPHA_DEPTH,
+            SHADER_DEPTH_TEXTURE,
+            SHADER_STEREO_360,
         )
 
-        constants = [0] * 20
+        constants = [0] * 23
         constants[0] = 1 if (caps & SHADER_LIGHTING) else 0
         constants[1] = 1 if (caps & SHADER_VERTEX_COLORS) else 0
         constants[2] = 1 if (caps & SHADER_SHADOW) else 0
@@ -2536,6 +2762,9 @@ void main() {
         constants[17] = 1 if self._depth_prepass_rendering else 0
         constants[18] = 1 if self._sphere_ao_active else 0
         constants[19] = 1 if self._oit_rendering else 0
+        constants[20] = 1 if (caps & SHADER_ALPHA_DEPTH) else 0
+        constants[21] = 1 if (caps & SHADER_DEPTH_TEXTURE) else 0
+        constants[22] = 1 if (caps & SHADER_STEREO_360) else 0
 
         # Cache key includes shader name, constants, depth-only/prepass
         # flags, and the cull/blend/depth-write state baked into the pipeline.
@@ -2545,6 +2774,7 @@ void main() {
         face_culling = self._face_culling_enabled
         blend_op_max = self._blend_op_max
         blend_premult = self._blend_premult
+        blending = self._blending_enabled
         oit_mode = self._oit_rendering
         depth_write = False if oit_mode else self._depth_write_enabled
         # Depth-only (shadow) passes are meaningless without the depth
@@ -2554,7 +2784,7 @@ void main() {
         color_only_target = isinstance(render_target, tuple)
         cache_key = (shader_name, const_key, depth_only, depth_prepass,
                      face_culling, blend_op_max, blend_premult, depth_write,
-                     depth_test, topology, oit_mode, render_target)
+                     depth_test, topology, oit_mode, blending, render_target)
         if cache_key in self._pipeline_cache:
             shader._pipeline = self._pipeline_cache[cache_key]
             shader._pipeline_depth_only = depth_only
@@ -2562,6 +2792,7 @@ void main() {
             shader._pipeline_face_culling = face_culling
             shader._pipeline_blend_op_max = blend_op_max
             shader._pipeline_blend_premult = blend_premult
+            shader._pipeline_blending = blending
             shader._pipeline_depth_write = depth_write
             shader._pipeline_depth_test = depth_test
             shader._pipeline_topology = topology
@@ -2570,21 +2801,37 @@ void main() {
         try:
             import os, sys
 
-            shader_dir = os.path.join(os.path.dirname(__file__), "shaders")
-            common_path = os.path.join(shader_dir, "common.glsl")
-            vert_path = os.path.join(shader_dir, f"{shader_name}.vert")
-            frag_path = os.path.join(shader_dir, f"{shader_name}.frag")
+            # Mesh fragments only write gl_FragDepth in the alpha-depth and
+            # depth-texture variants; any depth write in a compiled shader
+            # disables early depth rejection, so the ordinary mesh variant is
+            # compiled without one (see shaders/mesh.frag).
+            custom_depth = shader_name == "mesh" and bool(
+                constants[20] or constants[21])
+            source_key = (shader_name, custom_depth)
+            sources = self._shader_source_cache.get(source_key)
+            if sources is None:
+                shader_dir = os.path.join(os.path.dirname(__file__), "shaders")
+                common_path = os.path.join(shader_dir, "common.glsl")
+                vert_path = os.path.join(shader_dir, f"{shader_name}.vert")
+                frag_path = os.path.join(shader_dir, f"{shader_name}.frag")
 
-            with open(common_path, encoding='utf-8') as f:
-                common_src = f.read()
-            with open(vert_path, encoding='utf-8') as f:
-                vert_src = f.read()
-            with open(frag_path, encoding='utf-8') as f:
-                frag_src = f.read()
+                with open(common_path, encoding='utf-8') as f:
+                    common_src = f.read()
+                with open(vert_path, encoding='utf-8') as f:
+                    vert_src = f.read()
+                with open(frag_path, encoding='utf-8') as f:
+                    frag_src = f.read()
 
-            # Inline common.glsl into both shader stages
-            vert_src = vert_src.replace('#include "common.glsl"', common_src)
-            frag_src = frag_src.replace('#include "common.glsl"', common_src)
+                # Inline common.glsl into both shader stages once per process.
+                vert_src = vert_src.replace(
+                    '#include "common.glsl"', common_src)
+                frag_src = frag_src.replace(
+                    '#include "common.glsl"', common_src)
+                if custom_depth:
+                    frag_src = _define_after_version(frag_src, "CUSTOM_FRAG_DEPTH")
+                sources = (vert_src, frag_src)
+                self._shader_source_cache[source_key] = sources
+            vert_src, frag_src = sources
 
             # Mesh shader uses per-vertex colors (e.g. ribbons); the
             # impostor shaders use per-instance colors (one per atom/bond).
@@ -2607,6 +2854,7 @@ void main() {
                 topology=int(topology),
                 oit_mode=1 if oit_mode else 0,
                 use_active_render_pass=1 if render_target != "main" else 0,
+                blending=1 if blending else 0,
             )
             if depth_prepass:
                 try:
@@ -2627,16 +2875,12 @@ void main() {
             shader._pipeline_face_culling = face_culling
             shader._pipeline_blend_op_max = blend_op_max
             shader._pipeline_blend_premult = blend_premult
+            shader._pipeline_blending = blending
             shader._pipeline_depth_write = depth_write
             shader._pipeline_depth_test = depth_test
             shader._pipeline_topology = topology
             shader._pipeline_render_target = render_target
         except Exception as e:
-            import sys
-
-            print(
-                f"Vulkan {shader_name} pipeline error: {e}", file=sys.stderr, flush=True
-            )
             self._pipeline_cache[cache_key] = None
             shader._pipeline = None
             shader._pipeline_depth_only = depth_only
@@ -2645,10 +2889,14 @@ void main() {
             shader._pipeline_face_culling = face_culling
             shader._pipeline_blend_op_max = blend_op_max
             shader._pipeline_blend_premult = blend_premult
+            shader._pipeline_blending = blending
             shader._pipeline_depth_write = depth_write
             shader._pipeline_depth_test = depth_test
             shader._pipeline_topology = topology
             shader._pipeline_render_target = render_target
+            raise RuntimeError(
+                f"Vulkan {shader_name} pipeline creation failed: {e}"
+            ) from e
 
     def _pipeline_render_target(self):
         """Compatibility class of the render pass currently being drawn."""
@@ -2658,7 +2906,7 @@ void main() {
             return ("color", self._color_pass_target)
         for framebuffer in reversed(self._framebuffer_stack):
             if isinstance(framebuffer, VulkanFramebuffer):
-                return "offscreen"
+                return "offscreen%d" % framebuffer.color_bits
         return "main"
 
     # -------------------------------------------------------------------
@@ -2669,7 +2917,11 @@ void main() {
         pass
 
     def set_stereo_360_params(self, origin, vertical, shift):
-        pass
+        self._stereo_360_params = (
+            tuple(float(v) for v in origin),
+            tuple(float(v) for v in vertical),
+            float(shift),
+        )
 
     # -------------------------------------------------------------------
     # Post-processing (fullscreen quad)
@@ -2735,7 +2987,7 @@ void main() {
                 vert_source=vert_source,
                 frag_source=frag_source,
                 has_depth=1 if has_depth and not color_only_target else 0,
-                constants=[0] * 20,
+                constants=[0] * 23,
                 depth_only=0,
                 face_culling=0,
                 use_active_render_pass=1 if render_target != "main" else 0,
@@ -2819,6 +3071,15 @@ void main() {
         uniforms_data=None, has_depth=False,
     ):
         """Fullscreen quad with two input textures (indices 0 and 1)."""
+        self.draw_fullscreen_quad_textures(
+            (texture0, texture1), shader_file, vertex_func, fragment_func,
+            uniforms_data, has_depth)
+
+    def draw_fullscreen_quad_textures(
+        self, textures, shader_file, vertex_func, fragment_func,
+        uniforms_data=None, has_depth=False,
+    ):
+        """Fullscreen quad sampling textures at consecutive bindings."""
         m = self._vulkan
         ctx = self._ctx
 
@@ -2838,8 +3099,8 @@ void main() {
         self._bind_dummy_vertex_buffers()
         m.set_vertex_buffer(context=ctx, buffer=self._quad_vbuf, index=10, offset=0)
         m.set_vertex_buffer(context=ctx, buffer=self._quad_tcbuf, index=11, offset=0)
-        m.set_fragment_texture(context=ctx, texture=texture0, index=0)
-        m.set_fragment_texture(context=ctx, texture=texture1, index=1)
+        for index, texture in enumerate(textures):
+            m.set_fragment_texture(context=ctx, texture=texture, index=index)
 
         ubuf = None
         if uniforms_data is not None:
@@ -2861,8 +3122,27 @@ void main() {
         self._set_current_depth_state()
 
     def get_scene_depth_texture(self):
-        """Return a handle to the scene depth buffer for sampling."""
-        return self._vulkan.get_depth_texture(context=self._ctx)
+        """Copy scene depth into a texture with a legal sampling layout.
+
+        The live attachment remains available for subsequent depth-tested
+        passes. The copy also avoids exporting a mutable attachment wrapper.
+        """
+        # Size from the native depth source, not render_size(): the
+        # swapchain extent comes from the CAMetalLayer drawableSize and can
+        # differ from the Qt window size scaled by devicePixelRatio.
+        size = self._vulkan.depth_texture_size(context=self._ctx)
+        if size is None:
+            return None
+        size = tuple(size)
+        if self._scene_depth_copy is None or self._scene_depth_copy_size != size:
+            self.destroy_texture(self._scene_depth_copy)
+            self._scene_depth_copy = self._vulkan.create_texture(
+                context=self._ctx, width=size[0], height=size[1],
+                format=_FORMAT_DEPTH32F, linear_filter=0, depth_compare=0)
+            self._scene_depth_copy_size = size
+        self._vulkan.copy_depth_texture(
+            context=self._ctx, texture=self._scene_depth_copy)
+        return self._scene_depth_copy
 
     def create_color_texture(self, width, height):
         """Create an RGBA8 texture usable as a color attachment AND a
@@ -2896,6 +3176,7 @@ void main() {
     def destroy_texture(self, texture):
         """Backend-agnostic wrapper used by RenderPass cleanup."""
         if texture is not None:
+            self._release_exported_texture(texture)
             self._vulkan.destroy_texture(texture=texture)
 
     def create_data_buffer(self, data):
@@ -3147,7 +3428,7 @@ void main() {
             return
         self._ensure_rtao_pipeline()
 
-        w, h = self._width, self._height
+        w, h = self.render_size()
         uniforms = np.zeros(40, dtype=np.float32)
         uniforms[0:16] = np.asarray(inv_projection, dtype=np.float32).reshape(-1)
         uniforms[16:32] = np.asarray(inv_view, dtype=np.float32).reshape(-1)
@@ -3178,8 +3459,8 @@ void main() {
         if self._rt_backend is self._metal_rt_module:
             # Submit pending Vulkan work and signal the timeline semaphore
             # so the Metal RT dispatch can wait on it GPU-side.
+            depth_tex = self.get_scene_depth_texture()
             self._vulkan.flush_gpu(context=self._ctx)
-            depth_tex = self._vulkan.get_depth_texture(context=self._ctx)
             self._rt_backend.dispatch_rtao(
                 context=self._rt_ctx,
                 accel_struct=self._rtao_accel_struct,
@@ -3317,7 +3598,7 @@ void main() {
             return
         self._ensure_pt_pipeline()
 
-        w, h = self._width, self._height
+        w, h = self.render_size()
         uniforms = np.zeros(76, dtype=np.float32)
         uniforms[0:16] = np.asarray(inv_projection, dtype=np.float32).reshape(-1)
         uniforms[16:32] = np.asarray(inv_view, dtype=np.float32).reshape(-1)
@@ -3517,13 +3798,48 @@ void main() {
         """
         if self._exported_textures is None:
             self._exported_textures = {}
+        identity = self._vulkan.texture_identity(texture=vk_tex_handle)
         if vk_tex_handle in self._exported_textures:
-            return self._exported_textures[vk_tex_handle]
+            if self._exported_texture_images.get(vk_tex_handle) == identity:
+                return self._exported_textures[vk_tex_handle]
+            self._release_exported_texture(vk_tex_handle)
         rt_tex = self._metal_rt_module.export_texture(
             context=self._metal_rt_ctx, texture=vk_tex_handle
         )
         self._exported_textures[vk_tex_handle] = rt_tex
+        self._exported_texture_images[vk_tex_handle] = identity
         return rt_tex
+
+    def _release_exported_texture(self, vk_tex_handle):
+        """Forget and release one Vulkan -> Metal texture export.
+
+        Native Vulkan wrapper addresses are allocator-owned and can be reused
+        after deferred destruction.  The cache must therefore stop mapping an
+        address before its wrapper is destroyed.  Metal command buffers retain
+        resources referenced by already-encoded commands, so releasing this
+        small CPU-side export wrapper does not shorten an in-flight dispatch's
+        resource lifetime.
+        """
+        cache = self._exported_textures
+        if not cache:
+            return
+        rt_tex = cache.pop(vk_tex_handle, None)
+        self._exported_texture_images.pop(vk_tex_handle, None)
+        if rt_tex is not None and self._metal_rt_module is not None:
+            self._metal_rt_module.release_texture(texture=rt_tex)
+
+    def _release_exported_textures(self):
+        """Release every cached Vulkan -> Metal texture export."""
+        self._exported_texture_images.clear()
+        cache = self._exported_textures
+        if not cache:
+            self._exported_textures = {}
+            return
+        self._exported_textures = {}
+        module = self._metal_rt_module
+        if module is not None:
+            for rt_tex in cache.values():
+                module.release_texture(texture=rt_tex)
 
     def max_3d_texture_size(self):
         """Largest 3D texture dimension supported by the device."""
@@ -3752,9 +4068,8 @@ class VulkanSilhouette:
         p = self.params
         r = render
         w, h = r.render_size()
-        # The depth copy mirrors the swapchain-sized scene depth buffer;
-        # skip during offscreen captures of a different size.
-        if w <= 0 or h <= 0 or (w, h) != (r._width, r._height):
+        # The native copy follows the active target (swapchain or offscreen).
+        if w <= 0 or h <= 0:
             return
         if self._depth_copy is None or self._depth_size != (w, h):
             if self._depth_copy is not None:
@@ -3803,6 +4118,7 @@ class VulkanOutline:
         self._render = render
         self._mask_texture = None
         self._mask_size = None
+        self._mask_format = None
         self._saved_state = None
 
     def delete(self):
@@ -3810,6 +4126,7 @@ class VulkanOutline:
             self._render._vulkan.destroy_texture(texture=self._mask_texture)
             self._mask_texture = None
             self._mask_size = None
+            self._mask_format = None
 
     def set_outline_mask(self):
         # OpenGL copies the scene depth into the mask framebuffer here;
@@ -3819,23 +4136,27 @@ class VulkanOutline:
     def start_rendering_outline(self):
         r = self._render
         w, h = r.render_size()
-        # The mask pass shares the swapchain-sized scene depth buffer, so
-        # it can't run while an offscreen capture target of a different
-        # size is active. Skip outlines in captures rather than failing.
-        if (w, h) != (r._width, r._height) or w <= 0 or h <= 0:
+        if w <= 0 or h <= 0:
             self._saved_state = None
             return
-        if self._mask_texture is None or self._mask_size != (w, h):
+        target = r.current_framebuffer()
+        if isinstance(target, VulkanFramebuffer):
+            mask_format = 9 if target.color_bits == 16 else 0
+        else:
+            mask_format = 10
+        if (self._mask_texture is None or self._mask_size != (w, h)
+                or self._mask_format != mask_format):
             if self._mask_texture is not None:
                 r._vulkan.destroy_texture(texture=self._mask_texture)
-            # Format 10 = swapchain format: the scene pipelines drawing
-            # the mask are baked against the main render pass, and
-            # render-pass compatibility requires matching color formats.
+            # Match the active target's color format: scene pipelines are
+            # render-pass-compatible only with the format they were built
+            # against (swapchain, RGBA8 offscreen, or RGBA16F offscreen).
             self._mask_texture = r._vulkan.create_texture(
                 context=r._ctx, width=w, height=h,
-                format=10, linear_filter=0, depth_compare=0,
+                format=mask_format, linear_filter=0, depth_compare=0,
             )
             self._mask_size = (w, h)
+            self._mask_format = mask_format
 
         r._vulkan.begin_mask_pass(
             context=r._ctx, color_texture=self._mask_texture,
@@ -3888,14 +4209,55 @@ class VulkanOutline:
         )
 
 
-class _StubOffscreen:
-    enabled = False
+class VulkanOffscreen:
+    """High-precision scene target composited into the presentation target."""
 
-    def start(self, r):
-        pass
+    def __init__(self):
+        self.enabled = False
+        self.color_bits = 8
+        self._framebuffer = None
 
-    def finish(self, r):
-        pass
+    def delete(self):
+        if self._framebuffer is not None:
+            self._framebuffer.delete()
+            self._framebuffer = None
+
+    def start(self, render):
+        width, height = render.render_size()
+        framebuffer = self._framebuffer
+        if (framebuffer is not None and
+                ((framebuffer.width, framebuffer.height) != (width, height) or
+                 framebuffer.color_bits != self.color_bits)):
+            framebuffer.delete()
+            framebuffer = None
+        if framebuffer is None:
+            framebuffer = render.create_framebuffer(
+                "high precision scene", width, height,
+                alpha=True, color_bits=self.color_bits)
+            if not framebuffer.activate():
+                raise RuntimeError("Could not create high-precision Vulkan target")
+            self._framebuffer = framebuffer
+        render.push_framebuffer(framebuffer)
+
+    def finish(self, render):
+        framebuffer = render.current_framebuffer()
+        texture = framebuffer.color_texture
+        stack = render._framebuffer_stack
+        underlying = (stack[-2] if len(stack) >= 2
+                      else render.default_framebuffer())
+        screen_target = underlying is render.default_framebuffer()
+        if screen_target:
+            # This frame began with the high-precision target active, so it
+            # deliberately acquired no swapchain image. Submit it before
+            # beginning the distinct presentation frame used for resolve.
+            render.end_frame()
+        texture.prepare_for_sampling()
+        render.pop_framebuffer()
+        # Clear the underlying swapchain/camera target, then resolve the
+        # floating-point scene color through the normal fullscreen sampler.
+        render.draw_background()
+        render.draw_fullscreen_quad(
+            texture._handle, "pt_blit", "main", "main")
 
 
 class _StubBlend:
@@ -3907,6 +4269,7 @@ class _StubFramebuffer:
 
     def __init__(self, render):
         self._render = render
+        self.name = "default"
         self.width = 800
         self.height = 600
         self.viewport = (0, 0, 800, 600)
@@ -3918,6 +4281,9 @@ class _StubFramebuffer:
 
     def activate(self):
         return True
+
+    def delete(self, make_current=False):
+        return None
 
     def copy_from_framebuffer(self, fb, color=True, depth=True):
         pass

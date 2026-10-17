@@ -58,6 +58,7 @@ class OpenGLContext:
 
     required_opengl_version = (4, 1)
     required_opengl_core_profile = True
+    backend_name = "opengl"
 
     def __init__(self, graphics_window, screen, use_stereo=False):
         _initialize_pyopengl()  # Set global GL module.
@@ -2443,6 +2444,12 @@ class Framebuffer:
         return fbo
 
     def _create_fbo(self, color_buf, depth_buf):
+        native_texture = getattr(color_buf, "native_texture", None)
+        if native_texture is not None:
+            color_buf = native_texture()
+        native_texture = getattr(depth_buf, "native_texture", None)
+        if native_texture is not None:
+            depth_buf = native_texture()
         fbo = GL.glGenFramebuffers(1)
         self._opengl_context._framebuffers.add(self)
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, fbo)
@@ -2505,6 +2512,9 @@ class Framebuffer:
         """
         Has side effect that framebuffer is bound.
         """
+        native_texture = getattr(color_texture, "native_texture", None)
+        if native_texture is not None:
+            color_texture = native_texture()
         level = 0
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.framebuffer_id)
         if color_texture.dimension == 2:
@@ -2534,6 +2544,9 @@ class Framebuffer:
         self.viewport = (0, 0, w, h)
 
     def attach_depth_texture(self, depth_texture):
+        native_texture = getattr(depth_texture, "native_texture", None)
+        if native_texture is not None:
+            depth_texture = native_texture()
         tid = 0 if depth_texture is None else depth_texture.id
         level = 0
         GL.glFramebufferTexture2D(

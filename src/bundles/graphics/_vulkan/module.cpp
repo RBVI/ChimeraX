@@ -40,8 +40,10 @@ static struct PyMethodDef vulkan_methods[] =
     // Textures
     {"create_texture", (PyCFunction)vulkan_create_texture, METH_VARARGS|METH_KEYWORDS, NULL},
     {"update_texture", (PyCFunction)vulkan_update_texture, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"read_texture", (PyCFunction)vulkan_read_texture, METH_VARARGS|METH_KEYWORDS, NULL},
     {"destroy_texture", (PyCFunction)vulkan_destroy_texture, METH_VARARGS|METH_KEYWORDS, NULL},
     {"texture_format", (PyCFunction)vulkan_texture_format, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"texture_identity", (PyCFunction)vulkan_texture_identity, METH_VARARGS|METH_KEYWORDS, NULL},
 
     // Draw commands
     {"set_vertex_buffer", (PyCFunction)vulkan_set_vertex_buffer, METH_VARARGS|METH_KEYWORDS, NULL},
@@ -59,10 +61,16 @@ static struct PyMethodDef vulkan_methods[] =
     {"destroy_offscreen_framebuffer", (PyCFunction)vulkan_destroy_offscreen_framebuffer, METH_VARARGS|METH_KEYWORDS, NULL},
     {"set_active_offscreen", (PyCFunction)vulkan_set_active_offscreen, METH_VARARGS|METH_KEYWORDS, NULL},
     {"read_framebuffer", (PyCFunction)vulkan_read_framebuffer, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"read_screen", (PyCFunction)vulkan_read_screen, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"get_offscreen_texture", (PyCFunction)vulkan_get_offscreen_texture, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"copy_framebuffer_to_image", (PyCFunction)vulkan_copy_framebuffer_to_image, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"device_info", (PyCFunction)vulkan_device_info, METH_VARARGS|METH_KEYWORDS, NULL},
 
     // Query
     {"get_depth_texture", (PyCFunction)vulkan_get_depth_texture, METH_VARARGS|METH_KEYWORDS, NULL},
     {"copy_depth_texture", (PyCFunction)vulkan_copy_depth_texture, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"depth_texture_size", (PyCFunction)vulkan_depth_texture_size, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"swapchain_state", (PyCFunction)vulkan_swapchain_state, METH_VARARGS|METH_KEYWORDS, NULL},
     {"supports_ray_tracing", (PyCFunction)vulkan_supports_ray_tracing, METH_VARARGS|METH_KEYWORDS, NULL},
     {"flush_gpu", (PyCFunction)vulkan_flush_gpu, METH_VARARGS|METH_KEYWORDS, NULL},
     {"supports_metal_objects", (PyCFunction)vulkan_supports_metal_objects, METH_VARARGS|METH_KEYWORDS, NULL},

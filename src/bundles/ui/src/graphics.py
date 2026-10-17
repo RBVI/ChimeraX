@@ -90,6 +90,8 @@ class GraphicsWindow(QWindow):
         backend = os.environ.get("CHIMERAX_GRAPHICS_BACKEND", "").lower()
         if backend == "vulkan":
             oc = self._create_context("vulkan")
+        elif backend == "wgpu":
+            oc = self._create_context("wgpu")
         elif sys.platform == "darwin" and backend == "metal":
             oc = self._create_context("metal")
         elif opengl_context is None:
@@ -105,9 +107,20 @@ class GraphicsWindow(QWindow):
 
                 raise UserError(str(e))
             oc = opengl_context
+            from chimerax.graphics.ral import (
+                GraphicsDevice,
+                backend_registry,
+            )
+
+            device = GraphicsDevice(
+                backend_registry.get("opengl"), opengl_context
+            )
+            opengl_context.graphics_device = device
+            self.graphics_device = device
 
         self.opengl_context = oc
         self.view.initialize_rendering(oc)
+        self.render_endpoint = self.view.render_endpoint
 
         self.popup = Popup(self)  # For display of atom spec balloons
 
@@ -116,65 +129,152 @@ class GraphicsWindow(QWindow):
         appropriate QSurface.SurfaceType on this QWindow first. Returns the
         new context object; does not assign it.'''
         import sys
-        ui = self._ui
-        if backend == "vulkan":
-            # MoltenVK renders through CAMetalLayer, so use MetalSurface on
-            # macOS rather than VulkanSurface.
-            if sys.platform == "darwin":
-                _ensure_moltenvk_icd()
-                self.setSurfaceType(QSurface.SurfaceType.MetalSurface)
-            else:
-                self.setSurfaceType(QSurface.SurfaceType.VulkanSurface)
-            from chimerax.graphics.vulkan import VulkanContext
-            return VulkanContext(self, ui.primaryScreen())
-        if backend == "metal":
-            self.setSurfaceType(QSurface.SurfaceType.MetalSurface)
-            from chimerax.graphics.metal import MetalContext
-            return MetalContext(self, ui.primaryScreen())
-        if backend == "opengl":
-            self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
-            from chimerax.graphics import OpenGLContext
-            return OpenGLContext(self, ui.primaryScreen(), use_stereo=self._stereo)
-        from chimerax.core.errors import UserError
-        raise UserError(f"Unknown graphics backend: {backend!r}")
 
-    def switch_backend(self, backend):
+        if backend == "vulkan" and sys.platform == "darwin":
+            _ensure_moltenvk_icd()
+        from chimerax.graphics.ral import GraphicsDevice
+
+        try:
+            device = GraphicsDevice.create(
+                backend, self, self._ui, stereo=self._stereo
+            )
+        except ValueError as error:
+            from chimerax.core.errors import UserError
+
+            raise UserError(str(error)) from error
+        self.graphics_device = device
+        return device.context
+
+    def _release_graphics_backend(self):
+        '''Release the current endpoint and device, preserving scene data.'''
+        self.view.release_graphics_context()
+        device = getattr(self, "graphics_device", None)
+        if device is not None:
+            try:
+                device.close()
+            except Exception:
+                pass
+        else:
+            context = getattr(self, "opengl_context", None)
+            if context is not None and hasattr(context, "delete"):
+                try:
+                    context.delete()
+                except Exception:
+                    pass
+        self.graphics_device = None
+        self.opengl_context = None
+        self.render_endpoint = None
+
+    def _recreate_native_window(self, backend, make_visible=False):
+        '''Recreate the platform window before selecting a new surface type.
+
+        In particular, Qt must create the macOS NSView as a Metal surface;
+        changing an already-created OpenGL window to Metal leaves Vulkan with
+        a surface for which MoltenVK cannot create a swapchain.
+        '''
+        self.destroy()
+        self._exposed = False
+        if hasattr(self, "_chimerax_vulkan_instance"):
+            self._chimerax_vulkan_instance = None
+        # Configure the QWindow before anything (including show() or winId())
+        # can recreate its platform window.  On macOS Qt does not reliably
+        # install the CAMetalLayer for an unexposed embedded QWindow, so expose
+        # it before MoltenVK asks for the initial swapchain.
+        from chimerax.graphics.ral import backend_registry
+        backend_registry.get(backend).configure_surface(self, None)
+        import sys
+        if sys.platform == "darwin" and make_visible:
+            self.show()
+        # Touch delivery is enabled on the native view (see
+        # MultitouchTrackpad.set_graphics_window), and destroy() replaced
+        # that view, so trackpad gestures stop working unless re-enabled.
+        # Before the first show, the Show event handler does this instead.
+        if getattr(self, "_first_show", False):
+            self.session.ui.mouse_modes.trackpad.set_graphics_window(self)
+
+    def _install_graphics_backend(self, backend):
+        '''Create and attach one backend to this window.'''
+        context = self._create_context(backend)
+        self.opengl_context = context
+        self.view.initialize_rendering(context)
+        self.render_endpoint = self.view.render_endpoint
+
+    def switch_backend(self, backend, *, force=False, vulkan_runtime=None):
         '''Swap the active graphics backend in place. The scene is preserved;
         per-context GPU resources are released and re-uploaded on next draw.
-        Allowed values: "opengl", "vulkan".'''
-        import sys
+        Allowed values: "opengl", "vulkan", "wgpu".'''
         backend = backend.lower()
-        if backend not in ("opengl", "vulkan"):
+        if backend not in ("opengl", "vulkan", "wgpu"):
             from chimerax.core.errors import UserError
             raise UserError(
-                f"graphics backend must be opengl or vulkan, got {backend!r}"
+                f"graphics backend must be opengl, vulkan, or wgpu, got {backend!r}"
             )
+        endpoint = getattr(self, "render_endpoint", None)
+        if endpoint is not None:
+            old_backend = endpoint.backend_name
+        else:
+            context = getattr(self, "opengl_context", None)
+            old_backend = getattr(context, "backend_name", "opengl")
+        if backend == old_backend and not force:
+            return
+        old_runtime = getattr(self, '_vulkan_runtime', None)
+
         ul = self.session.update_loop
         ul.block_redraw()
         try:
-            self.view.release_graphics_context()
-            old = self.opengl_context
-            if old is not None and hasattr(old, "delete"):
+            from chimerax.core.core_triggers import (
+                GRAPHICS_BACKEND_CHANGED, GRAPHICS_BACKEND_CHANGING,
+            )
+            # Auxiliary native windows must release resources while the old
+            # context is still alive, then rebuild against the new context.
+            self.session.triggers.activate_trigger(
+                GRAPHICS_BACKEND_CHANGING, {"backend": backend})
+            was_visible = self.isVisible()
+            self._release_graphics_backend()
+            # Releasing an active headset also destroys its runtime session.
+            old_runtime = getattr(self, '_vulkan_runtime', None)
+            self._vulkan_runtime = vulkan_runtime if force else None
+
+            # Surface type is a platform-window creation property.  Reusing
+            # the QWindow object keeps createWindowContainer and input wiring
+            # intact, while destroy() makes Qt build a fresh native child with
+            # the target backend's OpenGL/Vulkan/Metal surface type.
+            self._recreate_native_window(backend, make_visible=was_visible)
+            try:
+                self._install_graphics_backend(backend)
+            except Exception as switch_error:
+                # A backend probe must not strand the application without a
+                # renderer.  Recreate the previous backend and notify clients
+                # that released auxiliary endpoints during CHANGING.
+                self._release_graphics_backend()
+                self._vulkan_runtime = old_runtime
+                self._recreate_native_window(
+                    old_backend, make_visible=was_visible)
                 try:
-                    old.delete()
-                except Exception:
-                    pass
-            self.opengl_context = None
+                    self._install_graphics_backend(old_backend)
+                except Exception as rollback_error:
+                    self._release_graphics_backend()
+                    raise RuntimeError(
+                        f"Could not switch graphics backend to {backend!r}; "
+                        f"restoring {old_backend!r} also failed: "
+                        f"{rollback_error}"
+                    ) from switch_error
+                self.session.triggers.activate_trigger(
+                    GRAPHICS_BACKEND_CHANGED, {"backend": old_backend})
+                if was_visible:
+                    self.show()
+                raise
 
-            # On Windows the native window's pixel format is fixed at create
-            # time, so the HWND must be recycled when changing surface type.
-            # macOS and X11/Wayland keep the same winId across setSurfaceType.
-            if sys.platform == "win32":
-                self.destroy()
-                self.create()
+            self.session.triggers.activate_trigger(
+                GRAPHICS_BACKEND_CHANGED, {"backend": backend})
+            if was_visible:
                 self.show()
-
-            oc = self._create_context(backend)
-            self.opengl_context = oc
-            self.view.initialize_rendering(oc)
         finally:
             ul.unblock_redraw()
-        ul.update_graphics_now()
+        # initialize_rendering() marks the view dirty.  Let the normal update
+        # timer draw the first backend frame so this command does not block on
+        # full scene upload and cold pipeline creation.
+        self.view.redraw_needed = True
 
     def event(self, event):
         # QWindow does not have drag and drop methods to handle file dropped on app
@@ -192,6 +292,9 @@ class GraphicsWindow(QWindow):
     def _check_opengl(self):
         r = self.view.render
         log = self.session.logger
+        if getattr(r, "backend_name", "opengl") == "wgpu":
+            log.info("WGPU graphics area: %s" % r.adapter_summary)
+            return
         from chimerax.graphics import OpenGLVersionError, OpenGLError
         from chimerax.graphics import (
             remember_current_opengl_context,
@@ -305,7 +408,23 @@ class GraphicsWindow(QWindow):
         return self.isExposed()
 
     def exposeEvent(self, event):
-        self.view.redraw_needed = True
+        exposed = self.isExposed()
+        newly_exposed = exposed and not getattr(self, "_exposed", False)
+        self._exposed = exposed
+        if newly_exposed or not self._layer_keeps_contents():
+            self.view.redraw_needed = True
+
+    def _layer_keeps_contents(self):
+        # On macOS, MoltenVK marks the CAMetalLayer as needing display on
+        # every present, so Qt sends an Expose after every Vulkan frame.
+        # Redrawing for each one rendered continuously even when nothing
+        # changed.  A Metal layer keeps its last frame, so only a newly
+        # exposed window needs a redraw; resizes request their own.
+        import sys
+        if sys.platform != "darwin":
+            return False
+        endpoint = getattr(self, "render_endpoint", None)
+        return endpoint is not None and endpoint.backend_name != "opengl"
 
 
 from Qt.QtWidgets import QLabel

@@ -18,6 +18,11 @@
 #include <algorithm>
 #include <utility>
 
+// Driver pipeline data remains valid when ChimeraX recreates a device on the
+// same adapter during an in-process backend switch.  Vulkan validates the
+// embedded vendor/device UUID; if it is incompatible we fall back to empty.
+static std::vector<uint8_t> process_pipeline_cache;
+
 #if defined(_WIN32)
   #include <windows.h>
   #include <vulkan/vulkan_win32.h>
@@ -60,6 +65,11 @@ void transition_image_layout(VkCommandBuffer cmd, VkImage image,
     } else if (old_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
         barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
         src_stage = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    } else if (old_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL) {
+        barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT |
+                                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+        src_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+                    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
     } else if (old_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
         barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
         src_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
@@ -69,6 +79,10 @@ void transition_image_layout(VkCommandBuffer cmd, VkImage image,
     } else if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         src_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    } else if (old_layout == VK_IMAGE_LAYOUT_GENERAL) {
+        barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT |
+                                VK_ACCESS_SHADER_WRITE_BIT;
+        src_stage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
     }
 
     if (new_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
@@ -78,6 +92,11 @@ void transition_image_layout(VkCommandBuffer cmd, VkImage image,
         barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
                                 VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
         dst_stage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    } else if (new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL) {
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT |
+                                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+        dst_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+                    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
     } else if (new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
         barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
         dst_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
@@ -87,6 +106,10 @@ void transition_image_layout(VkCommandBuffer cmd, VkImage image,
     } else if (new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
         barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         dst_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    } else if (new_layout == VK_IMAGE_LAYOUT_GENERAL) {
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT |
+                                VK_ACCESS_SHADER_WRITE_BIT;
+        dst_stage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
     } else if (new_layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
         barrier.dstAccessMask = 0;
         dst_stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
@@ -140,6 +163,73 @@ void create_depth_resources(VulkanContext* ctx)
     ctx->depth_image.height = ctx->swapchain_extent.height;
     ctx->depth_image.current_layout = VK_IMAGE_LAYOUT_UNDEFINED;
     ctx->depth_image.sampler = VK_NULL_HANDLE;
+}
+
+// The depth-only (shadow map) render pass has no swapchain attachments.
+// Offscreen image capture can render shadow maps before the window has a
+// drawable, while the swapchain (and create_main_render_pass) is deferred,
+// so create it on demand rather than only along with the swapchain.
+bool ensure_depth_only_render_pass(VulkanContext* ctx)
+{
+    if (ctx->depth_only_render_pass != VK_NULL_HANDLE)
+        return true;
+    VkAttachmentDescription depth_att{};
+    depth_att.format = VK_FORMAT_D32_SFLOAT;
+    depth_att.samples = VK_SAMPLE_COUNT_1_BIT;
+    depth_att.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depth_att.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    depth_att.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    depth_att.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depth_att.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    // Transition to shader-read at the end of the pass so subsequent
+    // draws can sample the depth texture as a shadow map without an
+    // explicit barrier.
+    depth_att.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+    VkAttachmentReference depth_ref{};
+    depth_ref.attachment = 0;
+    depth_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 0;
+    subpass.pColorAttachments = nullptr;
+    subpass.pDepthStencilAttachment = &depth_ref;
+
+    VkSubpassDependency dependencies[2] = {};
+    // Wait for any previous depth use to finish before this pass writes.
+    // FRAGMENT_SHADER is included so re-rendering a shadow map orders the
+    // prior lighting pass's *reads* of it before the clear (WAR hazard);
+    // the fragment-test stages alone don't cover sampled reads.
+    dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependencies[0].dstSubpass = 0;
+    dependencies[0].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+                                   VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT |
+                                   VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    dependencies[0].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependencies[0].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
+                                    VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    // Make depth writes visible to subsequent fragment-shader reads
+    // (i.e. when the rendered shadow map is sampled in the lighting pass).
+    dependencies[1].srcSubpass = 0;
+    dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+    dependencies[1].srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+    dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+    VkRenderPassCreateInfo rp_info{};
+    rp_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    rp_info.attachmentCount = 1;
+    rp_info.pAttachments = &depth_att;
+    rp_info.subpassCount = 1;
+    rp_info.pSubpasses = &subpass;
+    rp_info.dependencyCount = 2;
+    rp_info.pDependencies = dependencies;
+
+    return vkCreateRenderPass(ctx->device, &rp_info, nullptr,
+                              &ctx->depth_only_render_pass) == VK_SUCCESS;
 }
 
 // ---------------------------------------------------------------------------
@@ -207,71 +297,16 @@ void create_main_render_pass(VulkanContext* ctx)
         vkCreateRenderPass(ctx->device, &rp_info, nullptr, &ctx->main_render_pass);
     }
 
-    // ---- Depth-only render pass ----
-    {
-        VkAttachmentDescription depth_att{};
-        depth_att.format = VK_FORMAT_D32_SFLOAT;
-        depth_att.samples = VK_SAMPLE_COUNT_1_BIT;
-        depth_att.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depth_att.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        depth_att.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        depth_att.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depth_att.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        // Transition to shader-read at the end of the pass so subsequent
-        // draws can sample the depth texture as a shadow map without an
-        // explicit barrier.
-        depth_att.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-        VkAttachmentReference depth_ref{};
-        depth_ref.attachment = 0;
-        depth_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        VkSubpassDescription subpass{};
-        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = 0;
-        subpass.pColorAttachments = nullptr;
-        subpass.pDepthStencilAttachment = &depth_ref;
-
-        VkSubpassDependency dependencies[2] = {};
-        // Wait for any previous depth use to finish before this pass writes.
-        // FRAGMENT_SHADER is included so re-rendering a shadow map orders the
-        // prior lighting pass's *reads* of it before the clear (WAR hazard);
-        // the fragment-test stages alone don't cover sampled reads.
-        dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependencies[0].dstSubpass = 0;
-        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
-                                       VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT |
-                                       VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependencies[0].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-                                        VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        // Make depth writes visible to subsequent fragment-shader reads
-        // (i.e. when the rendered shadow map is sampled in the lighting pass).
-        dependencies[1].srcSubpass = 0;
-        dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-        dependencies[1].srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-        dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-        VkRenderPassCreateInfo rp_info{};
-        rp_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        rp_info.attachmentCount = 1;
-        rp_info.pAttachments = &depth_att;
-        rp_info.subpassCount = 1;
-        rp_info.pSubpasses = &subpass;
-        rp_info.dependencyCount = 2;
-        rp_info.pDependencies = dependencies;
-
-        vkCreateRenderPass(ctx->device, &rp_info, nullptr, &ctx->depth_only_render_pass);
-    }
+    ensure_depth_only_render_pass(ctx);
 }
 
 // ---------------------------------------------------------------------------
 
-bool create_swapchain(VulkanContext* ctx, uint32_t width, uint32_t height)
+bool create_swapchain(VulkanContext* ctx, uint32_t width, uint32_t height,
+                      std::string* error_message)
 {
+    if (error_message)
+        error_message->clear();
     vkb::SwapchainBuilder builder{ctx->physical_device, ctx->device, ctx->surface};
 
 #if defined(__APPLE__)
@@ -293,16 +328,44 @@ bool create_swapchain(VulkanContext* ctx, uint32_t width, uint32_t height)
         .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
         .set_desired_extent(width, height)
         .set_desired_min_image_count(2)
+        .add_image_usage_flags(VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
         .build();
 
     if (!swap_ret) {
+        if (error_message) {
+            *error_message = swap_ret.error().message();
+            VkResult result = swap_ret.vk_result();
+            if (result != VK_SUCCESS) {
+                *error_message += " (VkResult ";
+                *error_message += std::to_string(static_cast<int>(result));
+                *error_message += ")";
+            }
+        }
         return false;
     }
 
     vkb::Swapchain vkb_swap = swap_ret.value();
+    ctx->swapchain_generation++;
     ctx->swapchain = vkb_swap.swapchain;
     ctx->swapchain_format = vkb_swap.image_format;
     ctx->swapchain_extent = vkb_swap.extent;
+
+    // A newly exposed Qt/Metal child window can legitimately have no
+    // drawable yet.  MoltenVK represents that transient state with a
+    // successful 0x0 swapchain.  Keep the device and surface alive, discard
+    // the unusable swapchain, and let resize_drawable/begin_frame retry after
+    // Core Animation supplies a drawable.  This is not a backend failure.
+    if (ctx->swapchain_extent.width == 0 ||
+            ctx->swapchain_extent.height == 0) {
+        vkDestroySwapchainKHR(ctx->device, ctx->swapchain, nullptr);
+        ctx->swapchain = VK_NULL_HANDLE;
+        ctx->swapchain_extent = {};
+        ctx->width = width;
+        ctx->height = height;
+        VK_TRACE("swapchain deferred: platform drawable is 0x0");
+        return true;
+    }
+
     ctx->swapchain_images = vkb_swap.get_images().value();
     ctx->swapchain_image_views = vkb_swap.get_image_views().value();
 
@@ -322,6 +385,46 @@ bool create_swapchain(VulkanContext* ctx, uint32_t width, uint32_t height)
     // Fresh images have never been rendered to; a load_color pass on one
     // must clear instead of loading undefined contents.
     ctx->swapchain_image_used.assign(ctx->swapchain_images.size(), 0);
+    ctx->last_presented_image_index = UINT32_MAX;
+
+    // Keep one readback buffer per swapchain image.  end_frame records the
+    // copy while ChimeraX still owns the acquired image; read_screen only
+    // maps the buffer after that submission completes.
+    {
+        const VkDeviceSize bytes =
+            (VkDeviceSize)ctx->swapchain_extent.width *
+            (VkDeviceSize)ctx->swapchain_extent.height * 4;
+        ctx->screen_readback_buffers.assign(
+            ctx->swapchain_images.size(), VK_NULL_HANDLE);
+        ctx->screen_readback_allocations.assign(
+            ctx->swapchain_images.size(), VK_NULL_HANDLE);
+        for (size_t i = 0; i < ctx->swapchain_images.size(); ++i) {
+            VkBufferCreateInfo bi{};
+            bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+            bi.size = bytes;
+            bi.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+            bi.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            VmaAllocationCreateInfo ai{};
+            ai.usage = VMA_MEMORY_USAGE_AUTO;
+            ai.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+            VkResult readback_result = vmaCreateBuffer(
+                ctx->allocator, &bi, &ai,
+                &ctx->screen_readback_buffers[i],
+                &ctx->screen_readback_allocations[i], nullptr);
+            if (readback_result != VK_SUCCESS) {
+                if (error_message) {
+                    *error_message =
+                        "failed to allocate swapchain readback buffer (" +
+                        std::to_string(ctx->swapchain_extent.width) + "x" +
+                        std::to_string(ctx->swapchain_extent.height) +
+                        ", " + std::to_string(bytes) + " bytes, VkResult " +
+                        std::to_string(static_cast<int>(readback_result)) + ")";
+                }
+                cleanup_swapchain(ctx);
+                return false;
+            }
+        }
+    }
 
     ctx->width = ctx->swapchain_extent.width;
     ctx->height = ctx->swapchain_extent.height;
@@ -340,6 +443,15 @@ bool create_swapchain(VulkanContext* ctx, uint32_t width, uint32_t height)
 
 void cleanup_swapchain(VulkanContext* ctx)
 {
+    for (size_t i = 0; i < ctx->screen_readback_buffers.size(); ++i) {
+        if (ctx->screen_readback_buffers[i] != VK_NULL_HANDLE)
+            vmaDestroyBuffer(ctx->allocator, ctx->screen_readback_buffers[i],
+                             ctx->screen_readback_allocations[i]);
+    }
+    ctx->screen_readback_buffers.clear();
+    ctx->screen_readback_allocations.clear();
+    ctx->last_presented_image_index = UINT32_MAX;
+
     for (auto fb : ctx->swapchain_framebuffers) {
         vkDestroyFramebuffer(ctx->device, fb, nullptr);
     }
@@ -402,6 +514,9 @@ static void take_window_swapchain(VulkanContext* ctx,
     state.swapchain_image_views.swap(ctx->swapchain_image_views);
     state.render_finished_per_image.swap(ctx->render_finished_per_image);
     state.swapchain_image_used.swap(ctx->swapchain_image_used);
+    state.screen_readback_buffers.swap(ctx->screen_readback_buffers);
+    state.screen_readback_allocations.swap(ctx->screen_readback_allocations);
+    state.last_presented_image_index = ctx->last_presented_image_index;
     state.depth_image = ctx->depth_image;
     state.main_render_pass = ctx->main_render_pass;
     state.depth_only_render_pass = ctx->depth_only_render_pass;
@@ -417,6 +532,7 @@ static void take_window_swapchain(VulkanContext* ctx,
     ctx->depth_image = {};
     ctx->main_render_pass = VK_NULL_HANDLE;
     ctx->depth_only_render_pass = VK_NULL_HANDLE;
+    ctx->last_presented_image_index = UINT32_MAX;
     ctx->width = 0;
     ctx->height = 0;
 }
@@ -433,6 +549,9 @@ static void restore_window_swapchain(VulkanContext* ctx,
     ctx->swapchain_image_views.swap(state.swapchain_image_views);
     ctx->render_finished_per_image.swap(state.render_finished_per_image);
     ctx->swapchain_image_used.swap(state.swapchain_image_used);
+    ctx->screen_readback_buffers.swap(state.screen_readback_buffers);
+    ctx->screen_readback_allocations.swap(state.screen_readback_allocations);
+    ctx->last_presented_image_index = state.last_presented_image_index;
     ctx->depth_image = state.depth_image;
     ctx->main_render_pass = state.main_render_pass;
     ctx->depth_only_render_pass = state.depth_only_render_pass;
@@ -446,6 +565,7 @@ static void restore_window_swapchain(VulkanContext* ctx,
     state.depth_image = {};
     state.main_render_pass = VK_NULL_HANDLE;
     state.depth_only_render_pass = VK_NULL_HANDLE;
+    state.last_presented_image_index = UINT32_MAX;
 }
 
 static void destroy_window_swapchain(VulkanContext* ctx,
@@ -471,6 +591,11 @@ static void destroy_window_swapchain(VulkanContext* ctx,
     for (VkSemaphore semaphore : state.render_finished_per_image) {
         if (semaphore != VK_NULL_HANDLE)
             vkDestroySemaphore(ctx->device, semaphore, nullptr);
+    }
+    for (size_t i = 0; i < state.screen_readback_buffers.size(); ++i) {
+        if (state.screen_readback_buffers[i] != VK_NULL_HANDLE)
+            vmaDestroyBuffer(ctx->allocator, state.screen_readback_buffers[i],
+                             state.screen_readback_allocations[i]);
     }
     if (state.swapchain != VK_NULL_HANDLE)
         vkDestroySwapchainKHR(ctx->device, state.swapchain, nullptr);
@@ -515,6 +640,41 @@ void create_swapchain_framebuffers(VulkanContext* ctx)
 }
 
 // ---------------------------------------------------------------------------
+
+VkDescriptorPool create_frame_descriptor_pool(VulkanContext* ctx)
+{
+    uint32_t ubo_count = 0;
+    uint32_t ssbo_count = 0;
+    for (uint32_t i = 0; i < MAX_UBO_BINDINGS; ++i) {
+        if (set0_descriptor_type(i) == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+            ssbo_count++;
+        else
+            ubo_count++;
+    }
+
+    // Each descriptor flush allocates one set-0 buffer set and one set-1
+    // texture set.  Additional blocks are allocated on demand rather than
+    // imposing a scene-complexity limit on a frame.
+    constexpr uint32_t FLUSHES_PER_POOL = 1024;
+    VkDescriptorPoolSize pool_sizes[] = {
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, ubo_count * FLUSHES_PER_POOL },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, ssbo_count * FLUSHES_PER_POOL },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          MAX_TEXTURE_BINDINGS * FLUSHES_PER_POOL },
+    };
+
+    VkDescriptorPoolCreateInfo pool_info{};
+    pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    pool_info.flags = 0;
+    pool_info.maxSets = 2 * FLUSHES_PER_POOL;
+    pool_info.poolSizeCount = 3;
+    pool_info.pPoolSizes = pool_sizes;
+
+    VkDescriptorPool pool = VK_NULL_HANDLE;
+    if (vkCreateDescriptorPool(ctx->device, &pool_info, nullptr, &pool) != VK_SUCCESS)
+        return VK_NULL_HANDLE;
+    return pool;
+}
 
 void create_descriptor_infrastructure(VulkanContext* ctx)
 {
@@ -579,42 +739,14 @@ void create_descriptor_infrastructure(VulkanContext* ctx)
     }
 
     // ---- Per-frame descriptor pools ----
-    // Each frame in flight gets its own pool, sized to hold many descriptor
-    // sets. flush_descriptors allocates fresh sets every call so previously
-    // recorded bindings stay valid; the pool is reset at the start of each
-    // frame. Sizes are generous to handle deeply-tiled passes (multishadow).
+    // Start each frame with one block. flush_descriptors grows the frame's
+    // chain when a complex multishadow scene needs more descriptors.
     {
-        // Count UBO vs SSBO bindings based on the layout helper.
-        uint32_t ubo_count = 0;
-        uint32_t ssbo_count = 0;
-        for (uint32_t i = 0; i < MAX_UBO_BINDINGS; ++i) {
-            if (set0_descriptor_type(i) == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
-                ssbo_count++;
-            else
-                ubo_count++;
-        }
-
-        constexpr uint32_t MAX_SETS_PER_FRAME = 2048;  // 2 sets × ~1024 flushes
-
-        VkDescriptorPoolSize pool_sizes[] = {
-            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-              ubo_count * (MAX_SETS_PER_FRAME / 2) },
-            { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-              ssbo_count * (MAX_SETS_PER_FRAME / 2) },
-            { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-              MAX_TEXTURE_BINDINGS * (MAX_SETS_PER_FRAME / 2) },
-        };
-
-        VkDescriptorPoolCreateInfo pool_info{};
-        pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        pool_info.flags = 0;  // pool reset rather than per-set free
-        pool_info.maxSets = MAX_SETS_PER_FRAME;
-        pool_info.poolSizeCount = 3;
-        pool_info.pPoolSizes = pool_sizes;
-
         for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-            vkCreateDescriptorPool(ctx->device, &pool_info, nullptr,
-                                   &ctx->descriptor_pools[i]);
+            VkDescriptorPool pool = create_frame_descriptor_pool(ctx);
+            if (pool != VK_NULL_HANDLE)
+                ctx->descriptor_pools[i].push_back(pool);
+            ctx->descriptor_pool_indices[i] = 0;
         }
     }
 
@@ -622,7 +754,18 @@ void create_descriptor_infrastructure(VulkanContext* ctx)
     {
         VkPipelineCacheCreateInfo cache_info{};
         cache_info.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-        vkCreatePipelineCache(ctx->device, &cache_info, nullptr, &ctx->pipeline_cache);
+        if (!process_pipeline_cache.empty()) {
+            cache_info.initialDataSize = process_pipeline_cache.size();
+            cache_info.pInitialData = process_pipeline_cache.data();
+        }
+        VkResult result = vkCreatePipelineCache(
+            ctx->device, &cache_info, nullptr, &ctx->pipeline_cache);
+        if (result != VK_SUCCESS && cache_info.initialDataSize != 0) {
+            cache_info.initialDataSize = 0;
+            cache_info.pInitialData = nullptr;
+            vkCreatePipelineCache(
+                ctx->device, &cache_info, nullptr, &ctx->pipeline_cache);
+        }
     }
 }
 
@@ -656,7 +799,21 @@ void end_active_render_pass(VulkanContext* ctx)
 
 // Helper: build a VkInstance with the right extensions for the platform.
 // Returns a vkb::Instance or sets a Python error.
-static bool build_vulkan_instance(vkb::Instance& out_inst) {
+static bool extension_names(PyObject* sequence, std::vector<std::string>& names) {
+    if (!sequence || sequence == Py_None) return true;
+    PyObject* fast = PySequence_Fast(sequence, "extensions must be a sequence of names");
+    if (!fast) return false;
+    for (Py_ssize_t i = 0; i < PySequence_Fast_GET_SIZE(fast); ++i) {
+        const char* name = PyUnicode_AsUTF8(PySequence_Fast_GET_ITEM(fast, i));
+        if (!name) { Py_DECREF(fast); return false; }
+        names.emplace_back(name);
+    }
+    Py_DECREF(fast);
+    return true;
+}
+
+static bool build_vulkan_instance(vkb::Instance& out_inst,
+                                  const std::vector<std::string>& extensions = {}) {
     // Pass vkGetInstanceProcAddr directly so vk-bootstrap doesn't try to
     // dlopen("libvulkan.dylib") by bare name — that fails on macOS when
     // the library isn't on a standard search path.
@@ -664,6 +821,8 @@ static bool build_vulkan_instance(vkb::Instance& out_inst) {
     inst_builder.set_app_name("ChimeraX")
                 .require_api_version(1, 2, 0)
                 .enable_extension(VK_KHR_SURFACE_EXTENSION_NAME);
+    for (const auto& extension : extensions)
+        inst_builder.enable_extension(extension.c_str());
 
 #if defined(_WIN32)
     inst_builder.enable_extension(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
@@ -711,8 +870,14 @@ static bool build_vulkan_instance(vkb::Instance& out_inst) {
 extern "C"
 PyObject* vulkan_create_instance(PyObject* self, PyObject* args, PyObject* kwds)
 {
+    PyObject* requested = Py_None;
+    static const char* kwlist[] = {"extensions", nullptr};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", (char**)kwlist, &requested))
+        return NULL;
+    std::vector<std::string> extensions;
+    if (!extension_names(requested, extensions)) return NULL;
     vkb::Instance vkb_inst{};
-    if (!build_vulkan_instance(vkb_inst))
+    if (!build_vulkan_instance(vkb_inst, extensions))
         return NULL;
     return PyLong_FromSsize_t(reinterpret_cast<Py_ssize_t>(vkb_inst.instance));
 }
@@ -725,12 +890,17 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
     Py_ssize_t surface_handle = 0;   // Optional pre-created VkSurfaceKHR (macOS)
     int owns_instance_arg = -1;
     int owns_surface_arg = -1;
+    int initial_width = 1;
+    int initial_height = 1;
+    PyObject* runtime = Py_None;
     static const char* kwlist[] = {"window_handle", "instance", "surface",
-                                   "owns_instance", "owns_surface", nullptr};
+                                   "owns_instance", "owns_surface",
+                                   "width", "height", "runtime", nullptr};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("n|nnii"), (char**)kwlist,
+            const_cast<char*>("n|nniiiiO"), (char**)kwlist,
             &window_handle, &instance_handle, &surface_handle,
-            &owns_instance_arg, &owns_surface_arg))
+            &owns_instance_arg, &owns_surface_arg,
+            &initial_width, &initial_height, &runtime))
         return NULL;
 
     const bool owns_instance = owns_instance_arg >= 0
@@ -744,6 +914,9 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
         // Wrap a pre-created instance for vk-bootstrap's device selection.
         // The instance was created by vulkan_create_instance above.
         vkb_inst.instance = reinterpret_cast<VkInstance>(instance_handle);
+        vkb_inst.instance_version = VK_API_VERSION_1_2;
+        vkb_inst.api_version = VK_API_VERSION_1_2;
+        vkb_inst.fp_vkGetDeviceProcAddr = vkGetDeviceProcAddr;
         // vkb_inst.fp_vkGetInstanceProcAddr is needed by the device selector.
         // vk-bootstrap populates it from vkGetInstanceProcAddr.
         vkb_inst.fp_vkGetInstanceProcAddr = vkGetInstanceProcAddr;
@@ -815,6 +988,50 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
 
     vkb::PhysicalDevice vkb_phys = phys_ret.value();
 
+    // Headsets can be attached to a different adapter than the desktop.
+    // The runtime supplies the required adapter and extension set before
+    // logical device creation; never silently submit another device's image.
+    std::vector<std::string> runtime_extensions;
+    if (runtime != Py_None) {
+        PyObject* selected = PyObject_CallMethod(runtime, "physical_device", "n",
+            reinterpret_cast<Py_ssize_t>(vkb_inst.instance));
+        if (!selected) { destroy_owned_surface_and_instance(); return NULL; }
+        Py_ssize_t required = PyLong_AsSsize_t(selected);
+        Py_DECREF(selected);
+        if (PyErr_Occurred()) { destroy_owned_surface_and_instance(); return NULL; }
+        if (required && reinterpret_cast<Py_ssize_t>(vkb_phys.physical_device) != required) {
+            auto candidates = vkb::PhysicalDeviceSelector{vkb_inst}.set_surface(surface).select_devices();
+            bool found = false;
+            if (candidates) {
+                for (auto& candidate : candidates.value()) {
+                    if (reinterpret_cast<Py_ssize_t>(candidate.physical_device) == required) {
+                        vkb_phys = candidate;
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (!found) {
+                destroy_owned_surface_and_instance();
+                PyErr_SetString(PyExc_RuntimeError, "The headset Vulkan adapter cannot present to this window");
+                return NULL;
+            }
+        }
+        PyObject* extensions = PyObject_CallMethod(runtime, "device_extensions", "n",
+            reinterpret_cast<Py_ssize_t>(vkb_phys.physical_device));
+        if (!extensions) { destroy_owned_surface_and_instance(); return NULL; }
+        bool valid = extension_names(extensions, runtime_extensions);
+        Py_DECREF(extensions);
+        if (!valid) { destroy_owned_surface_and_instance(); return NULL; }
+        std::vector<const char*> names;
+        for (const auto& name : runtime_extensions) names.push_back(name.c_str());
+        if (!vkb_phys.enable_extensions_if_present(names)) {
+            destroy_owned_surface_and_instance();
+            PyErr_SetString(PyExc_RuntimeError, "The GPU lacks Vulkan extensions required by the headset runtime");
+            return NULL;
+        }
+    }
+
 #ifdef __APPLE__
     // MoltenVK devices advertise the portability subset extension; accept it
     // so vk-bootstrap doesn't reject the device.
@@ -882,7 +1099,7 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
     // Value-initialization zeroes POD members and default-constructs the
     // std::vector/std::string members. Do NOT memset over this — that would
     // corrupt the constructed containers and trip heap corruption later.
-    VulkanContext* ctx = new VulkanContext();
+    VulkanContext* ctx = new VulkanContext{};
 
     ctx->instance = vkb_inst.instance;
     ctx->surface = surface;
@@ -998,13 +1215,24 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
     }
 
     // ---- Swapchain ----
-    // Use a small default size; the caller will resize immediately.
-    if (!create_swapchain(ctx, 1, 1)) {
+    // Use the platform window's actual drawable size when available.  A
+    // newly recreated embedded QWindow can temporarily report 0x0 through
+    // its NSView even though Qt still knows its logical geometry.
+    std::string swapchain_error;
+    const uint32_t swapchain_width =
+        static_cast<uint32_t>(std::max(initial_width, 1));
+    const uint32_t swapchain_height =
+        static_cast<uint32_t>(std::max(initial_height, 1));
+    if (!create_swapchain(ctx, swapchain_width, swapchain_height,
+                          &swapchain_error)) {
         vmaDestroyAllocator(ctx->allocator);
         delete ctx;
         vkb::destroy_device(vkb_dev);
         destroy_owned_surface_and_instance();
-        PyErr_SetString(PyExc_RuntimeError, "Failed to create initial swapchain");
+        PyErr_Format(PyExc_RuntimeError,
+                     "Failed to create initial swapchain: %s",
+                     swapchain_error.empty()
+                         ? "unknown Vulkan error" : swapchain_error.c_str());
         return NULL;
     }
 
@@ -1138,6 +1366,7 @@ PyObject* vulkan_destroy_context(PyObject* self, PyObject* args, PyObject* kwds)
     ctx->live_textures.clear();
 
     for (BufferWithAllocator* buffer : ctx->live_buffers) {
+        unregister_buffer_handle(buffer);
         if (buffer->base.buffer != VK_NULL_HANDLE)
             vmaDestroyBuffer(buffer->allocator, buffer->base.buffer,
                              buffer->base.allocation);
@@ -1158,12 +1387,24 @@ PyObject* vulkan_destroy_context(PyObject* self, PyObject* args, PyObject* kwds)
     destroy_dummy_resources(ctx);
 
     // Descriptor infrastructure
-    if (ctx->pipeline_cache != VK_NULL_HANDLE)
+    if (ctx->pipeline_cache != VK_NULL_HANDLE) {
+        size_t cache_size = 0;
+        if (vkGetPipelineCacheData(
+                ctx->device, ctx->pipeline_cache, &cache_size, nullptr) ==
+                VK_SUCCESS && cache_size > 0) {
+            std::vector<uint8_t> cache_data(cache_size);
+            if (vkGetPipelineCacheData(
+                    ctx->device, ctx->pipeline_cache, &cache_size,
+                    cache_data.data()) == VK_SUCCESS) {
+                cache_data.resize(cache_size);
+                process_pipeline_cache = std::move(cache_data);
+            }
+        }
         vkDestroyPipelineCache(ctx->device, ctx->pipeline_cache, nullptr);
-    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
-        if (ctx->descriptor_pools[i] != VK_NULL_HANDLE)
-            vkDestroyDescriptorPool(ctx->device, ctx->descriptor_pools[i], nullptr);
     }
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        for (VkDescriptorPool pool : ctx->descriptor_pools[i])
+            vkDestroyDescriptorPool(ctx->device, pool, nullptr);
     if (ctx->shared_pipeline_layout != VK_NULL_HANDLE)
         vkDestroyPipelineLayout(ctx->device, ctx->shared_pipeline_layout, nullptr);
     if (ctx->descriptor_set_layout_textures != VK_NULL_HANDLE)
@@ -1452,6 +1693,20 @@ PyObject* vulkan_resize_drawable(PyObject* self, PyObject* args, PyObject* kwds)
 // ---------------------------------------------------------------------------
 
 extern "C"
+PyObject* vulkan_device_info(PyObject* self, PyObject* args, PyObject* kwds)
+{
+    VulkanContext* ctx = get_vulkan_context(args, kwds);
+    if (!ctx) return NULL;
+    return Py_BuildValue("{s:n,s:n,s:n,s:n,s:I,s:I,s:I}",
+        "instance", reinterpret_cast<Py_ssize_t>(ctx->instance),
+        "physical_device", reinterpret_cast<Py_ssize_t>(ctx->physical_device),
+        "device", reinterpret_cast<Py_ssize_t>(ctx->device),
+        "queue", reinterpret_cast<Py_ssize_t>(ctx->graphics_queue),
+        "queue_family_index", ctx->graphics_family,
+        "queue_index", 0u, "api_version", VK_API_VERSION_1_2);
+}
+
+extern "C"
 PyObject* vulkan_device_name(PyObject* self, PyObject* args, PyObject* kwds)
 {
     VulkanContext* ctx = get_vulkan_context(args, kwds);
@@ -1487,6 +1742,59 @@ PyObject* vulkan_supports_metal_objects(PyObject* self, PyObject* args, PyObject
 }
 
 // ---------------------------------------------------------------------------
+//  Leave the context ready for the next begin_frame after flush_gpu or
+//  end_frame fails part-way through a frame.  Without this the frame slot's
+//  fence could stay unsignaled forever and every later begin_frame on that
+//  slot would skip, freezing the display.
+// ---------------------------------------------------------------------------
+static void abandon_frame(VulkanContext* ctx, bool fence_was_reset)
+{
+    FrameData& frame = ctx->frames[ctx->current_frame];
+    // flush_gpu submits run without the frame fence; let them finish before
+    // this slot's command buffers and deferred deletes are reused.
+    vkQueueWaitIdle(ctx->graphics_queue);
+    frame.interim_submit_pending = false;
+    if (fence_was_reset) {
+        // The submit that would have signaled the fence failed.
+        vkDestroyFence(ctx->device, frame.in_flight_fence, nullptr);
+        VkFenceCreateInfo fence_info{};
+        fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        vkCreateFence(ctx->device, &fence_info, nullptr, &frame.in_flight_fence);
+    }
+    if (ctx->frame_uses_swapchain)
+        ctx->swapchain_abandoned = true;
+    ctx->image_acquired_unconsumed = false;
+    ctx->in_frame = false;
+}
+
+// Rebuild the swapchain and acquire semaphores after abandon_frame left an
+// acquired image unpresented.  Destroying the swapchain releases the image;
+// fresh semaphores replace any left with a pending acquire signal.
+static bool recover_abandoned_swapchain(VulkanContext* ctx)
+{
+    VK_TRACE("  recovering swapchain after abandoned frame");
+    if (ctx->swapchain != VK_NULL_HANDLE) {
+        if (!recreate_active_swapchain(ctx, ctx->swapchain_extent.width,
+                                       ctx->swapchain_extent.height))
+            return false;
+    } else {
+        // begin_frame creates the missing swapchain after this returns.
+        vkDeviceWaitIdle(ctx->device);
+    }
+    VkSemaphoreCreateInfo sem_info{};
+    sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        vkDestroySemaphore(ctx->device, ctx->frames[i].image_available, nullptr);
+        vkCreateSemaphore(ctx->device, &sem_info, nullptr,
+                          &ctx->frames[i].image_available);
+    }
+    ctx->last_presented_image_index = UINT32_MAX;
+    ctx->swapchain_abandoned = false;
+    return true;
+}
+
+// ---------------------------------------------------------------------------
 //  Submit the current command buffer and wait for GPU completion.
 //  Used before Metal RT dispatch so the depth buffer is ready.
 // ---------------------------------------------------------------------------
@@ -1503,7 +1811,14 @@ PyObject* vulkan_flush_gpu(PyObject* self, PyObject* args, PyObject* kwds)
     // End any active render pass (queues owned pass objects for deletion).
     end_active_render_pass(ctx);
 
-    vkEndCommandBuffer(frame.command_buffer);
+    VkResult end_result = vkEndCommandBuffer(frame.command_buffer);
+    if (end_result != VK_SUCCESS) {
+        abandon_frame(ctx, false);
+        PyErr_Format(PyExc_RuntimeError,
+                     "Failed to end Vulkan flush command buffer (VkResult %d)",
+                     static_cast<int>(end_result));
+        return NULL;
+    }
 
     VkSubmitInfo submit{};
     submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1513,14 +1828,30 @@ PyObject* vulkan_flush_gpu(PyObject* self, PyObject* args, PyObject* kwds)
     // This may be the frame's first submit, in which case it (not
     // end_frame's submit) must wait on the swapchain acquire semaphore —
     // the commands recorded so far already target the acquired image.
-    VkPipelineStageFlags acquire_wait_stage =
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    VkSemaphore wait_semaphores[2];
+    VkPipelineStageFlags wait_stages[2];
+    uint64_t wait_values[2] = {0, 0};
+    uint32_t wait_count = 0;
     if (ctx->image_acquired_unconsumed) {
-        submit.waitSemaphoreCount = 1;
-        submit.pWaitSemaphores = &frame.image_available;
-        submit.pWaitDstStageMask = &acquire_wait_stage;
+        wait_semaphores[wait_count] = frame.image_available;
+        wait_stages[wait_count] = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        wait_values[wait_count] = 0;  // binary semaphore, value ignored
+        wait_count++;
         ctx->image_acquired_unconsumed = false;
     }
+
+    // A multi-view camera can path trace more than once in one logical
+    // frame.  The next Vulkan work must wait for the preceding Metal RT
+    // dispatch before it can reuse the shared output textures.
+    if (ctx->rt_sync_pending && ctx->rt_timeline_semaphore != VK_NULL_HANDLE) {
+        wait_semaphores[wait_count] = ctx->rt_timeline_semaphore;
+        wait_stages[wait_count] = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+        wait_values[wait_count] = ctx->rt_sync_value;
+        wait_count++;
+    }
+    submit.waitSemaphoreCount = wait_count;
+    submit.pWaitSemaphores = wait_count ? wait_semaphores : nullptr;
+    submit.pWaitDstStageMask = wait_count ? wait_stages : nullptr;
 
     // If we have a timeline semaphore for Metal RT sync, signal it so
     // the Metal dispatch can wait on the GPU without a CPU stall.
@@ -1538,17 +1869,57 @@ PyObject* vulkan_flush_gpu(PyObject* self, PyObject* args, PyObject* kwds)
         submit.pSignalSemaphores = &ctx->rt_timeline_semaphore;
     }
 
-    vkQueueSubmit(ctx->graphics_queue, 1, &submit, VK_NULL_HANDLE);
+    timeline_submit.waitSemaphoreValueCount = wait_count;
+    timeline_submit.pWaitSemaphoreValues = wait_count ? wait_values : nullptr;
+
+    VkResult submit_result =
+        vkQueueSubmit(ctx->graphics_queue, 1, &submit, VK_NULL_HANDLE);
+    if (submit_result != VK_SUCCESS) {
+        abandon_frame(ctx, false);
+        PyErr_Format(PyExc_RuntimeError,
+                     "Failed to flush Vulkan command buffer (VkResult %d)",
+                     static_cast<int>(submit_result));
+        return NULL;
+    }
+    ctx->rt_sync_pending = false;
 
     // Swap to the post-RT command buffer for subsequent Vulkan work in this
-    // frame. The submitted buffer is now pending on the GPU; same-queue
-    // ordering guarantees it completes before end_frame's fenced submit,
-    // so begin_frame's fence wait covers both.
+    // frame. On the first flush the alternate buffer is unused. On a second
+    // flush, rotating again would return to the first buffer while it is
+    // still executing, so wait for the queued work before resetting it.
     std::swap(frame.command_buffer, frame.post_rt_command_buffer);
-    vkResetCommandBuffer(frame.command_buffer, 0);
+    if (frame.interim_submit_pending) {
+        VkResult wait_result = vkQueueWaitIdle(ctx->graphics_queue);
+        if (wait_result != VK_SUCCESS) {
+            abandon_frame(ctx, false);
+            PyErr_Format(PyExc_RuntimeError,
+                         "Failed waiting to reuse Vulkan command buffer (VkResult %d)",
+                         static_cast<int>(wait_result));
+            return NULL;
+        }
+        frame.interim_submit_pending = false;
+    } else {
+        frame.interim_submit_pending = true;
+    }
+    VkResult reset_result = vkResetCommandBuffer(frame.command_buffer, 0);
+    if (reset_result != VK_SUCCESS) {
+        abandon_frame(ctx, false);
+        PyErr_Format(PyExc_RuntimeError,
+                     "Failed to reset Vulkan command buffer (VkResult %d)",
+                     static_cast<int>(reset_result));
+        return NULL;
+    }
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    vkBeginCommandBuffer(frame.command_buffer, &begin_info);
+    begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    VkResult begin_result = vkBeginCommandBuffer(frame.command_buffer, &begin_info);
+    if (begin_result != VK_SUCCESS) {
+        abandon_frame(ctx, false);
+        PyErr_Format(PyExc_RuntimeError,
+                     "Failed to begin Vulkan command buffer (VkResult %d)",
+                     static_cast<int>(begin_result));
+        return NULL;
+    }
 
     // Re-apply dynamic state on the fresh command buffer.
     if (ctx->has_viewport) {
@@ -1574,6 +1945,7 @@ PyObject* vulkan_begin_frame(PyObject* self, PyObject* args, PyObject* kwds)
              (void*)ctx->swapchain);
 
     FrameData& frame = ctx->frames[ctx->current_frame];
+    frame.interim_submit_pending = false;
 
     // Do not block Qt's GUI thread waiting for a frame slot.  This context
     // is shared by the main and auxiliary native windows, and a delayed
@@ -1583,11 +1955,14 @@ PyObject* vulkan_begin_frame(PyObject* self, PyObject* args, PyObject* kwds)
     VK_TRACE("  waitForFences");
     VkResult fence_status = vkGetFenceStatus(
         ctx->device, frame.in_flight_fence);
-    if (fence_status == VK_NOT_READY)
+    if (fence_status == VK_NOT_READY) {
+        VK_TRACE("  frame fence not ready; skipping frame");
         Py_RETURN_FALSE;
+    }
     if (fence_status != VK_SUCCESS) {
-        PyErr_SetString(PyExc_RuntimeError,
-                        "Failed to query Vulkan frame fence");
+        PyErr_Format(PyExc_RuntimeError,
+                     "Failed to query Vulkan frame fence (VkResult %d)",
+                     static_cast<int>(fence_status));
         return NULL;
     }
 
@@ -1595,11 +1970,22 @@ PyObject* vulkan_begin_frame(PyObject* self, PyObject* args, PyObject* kwds)
     // this frame slot — the GPU just finished executing those commands.
     flush_pending_deletes(ctx, ctx->pending_deletes[ctx->current_frame]);
 
+    // Snapshot the target mode for the entire submission. active_offscreen
+    // may change while commands are recorded, but end_frame must consume and
+    // present an image if this begin_frame acquired one.
+    ctx->frame_uses_swapchain = (ctx->active_offscreen == nullptr);
+
     // Skip swapchain image acquisition when rendering offscreen for image
     // capture — there's no swapchain image to acquire and end_frame won't
     // present. The frame still uses the per-frame command buffer + fence so
     // synchronisation with deferred deletes stays correct.
-    if (ctx->active_offscreen == nullptr) {
+    if (ctx->frame_uses_swapchain) {
+        if (ctx->swapchain_abandoned && !recover_abandoned_swapchain(ctx)) {
+            PyErr_SetString(PyExc_RuntimeError,
+                            "Failed to recreate swapchain after a failed frame");
+            return NULL;
+        }
+
         // A previous resize or recreate may have failed and left the
         // context without a swapchain; acquiring from VK_NULL_HANDLE
         // would crash, so retry creation here.
@@ -1609,6 +1995,8 @@ PyObject* vulkan_begin_frame(PyObject* self, PyObject* args, PyObject* kwds)
                                 "Swapchain unavailable and recreation failed");
                 return NULL;
             }
+            if (ctx->swapchain == VK_NULL_HANDLE)
+                Py_RETURN_FALSE;
         }
 
         VK_TRACE("  acquireNextImage");
@@ -1646,8 +2034,12 @@ PyObject* vulkan_begin_frame(PyObject* self, PyObject* args, PyObject* kwds)
                 &ctx->current_image_index);
         }
 
-        if (result == VK_TIMEOUT || result == VK_NOT_READY)
+        if (result == VK_TIMEOUT || result == VK_NOT_READY) {
+            VK_TRACE("  no swapchain image available; skipping frame");
             Py_RETURN_FALSE;
+        }
+        if (result == VK_SUBOPTIMAL_KHR)
+            ctx->swapchain_suboptimal = true;
 
         if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
             PyErr_SetString(PyExc_RuntimeError, "Failed to acquire swapchain image");
@@ -1658,14 +2050,15 @@ PyObject* vulkan_begin_frame(PyObject* self, PyObject* args, PyObject* kwds)
         ctx->image_acquired_unconsumed = true;
     }
 
-    VK_TRACE("  resetFences");
-    vkResetFences(ctx->device, 1, &frame.in_flight_fence);
+    // The frame fence is reset in end_frame just before the submit that
+    // signals it, so a frame that fails before submitting leaves it signaled.
 
-    // Reset this frame's descriptor pool so flush_descriptors can hand out
-    // fresh sets for every draw without invalidating bindings recorded
-    // earlier in the cmd buffer.
+    // Reset every block grown for this frame slot. The fence wait above
+    // guarantees no command buffer still references their descriptor sets.
     VK_TRACE("  resetDescriptorPool");
-    vkResetDescriptorPool(ctx->device, ctx->descriptor_pools[ctx->current_frame], 0);
+    for (VkDescriptorPool pool : ctx->descriptor_pools[ctx->current_frame])
+        vkResetDescriptorPool(ctx->device, pool, 0);
+    ctx->descriptor_pool_indices[ctx->current_frame] = 0;
 
     // Reset both command buffers — post_rt may have been used by flush_gpu.
     VK_TRACE("  resetCommandBuffer");
@@ -1700,6 +2093,7 @@ PyObject* vulkan_end_frame(PyObject* self, PyObject* args, PyObject* kwds)
 {
     VulkanContext* ctx = get_vulkan_context(args, kwds);
     if (!ctx) return NULL;
+    if (!ctx->in_frame) Py_RETURN_NONE;
     VK_TRACE("end_frame");
 
     FrameData& frame = ctx->frames[ctx->current_frame];
@@ -1707,13 +2101,47 @@ PyObject* vulkan_end_frame(PyObject* self, PyObject* args, PyObject* kwds)
     // End any active render pass (queues owned pass objects for deletion).
     end_active_render_pass(ctx);
 
-    vkEndCommandBuffer(frame.command_buffer);
+    // Snapshot the acquired image before giving it to the presentation
+    // engine.  Once vkQueuePresentKHR succeeds, directly transitioning or
+    // copying that image would violate swapchain ownership.
+    if (ctx->frame_uses_swapchain &&
+        ctx->current_image_index < ctx->swapchain_image_used.size() &&
+        ctx->swapchain_image_used[ctx->current_image_index] &&
+        ctx->current_image_index < ctx->screen_readback_buffers.size()) {
+        VkCommandBuffer command = frame.command_buffer;
+        VkImage image = ctx->swapchain_images[ctx->current_image_index];
+        transition_image_layout(command, image,
+                                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                VK_IMAGE_ASPECT_COLOR_BIT);
+        VkBufferImageCopy region{};
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.layerCount = 1;
+        region.imageExtent = {ctx->swapchain_extent.width,
+                              ctx->swapchain_extent.height, 1};
+        vkCmdCopyImageToBuffer(
+            command, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            ctx->screen_readback_buffers[ctx->current_image_index], 1, &region);
+        transition_image_layout(command, image,
+                                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                                VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+
+    VkResult end_result = vkEndCommandBuffer(frame.command_buffer);
+    if (end_result != VK_SUCCESS) {
+        abandon_frame(ctx, false);
+        PyErr_Format(PyExc_RuntimeError,
+                     "Failed to end Vulkan frame command buffer (VkResult %d)",
+                     static_cast<int>(end_result));
+        return NULL;
+    }
 
     // Submit the command buffer. When rendering offscreen for image
     // capture there's no swapchain image to wait on or present, so skip
     // the image-available semaphore and the present call. The fence is
     // still signalled so begin_frame's wait keeps frame slots in sync.
-    bool offscreen = (ctx->active_offscreen != nullptr);
+    bool offscreen = !ctx->frame_uses_swapchain;
 
     // flush_gpu may already have consumed the acquire semaphore as the
     // frame's first submit; waiting on a binary semaphore twice is invalid.
@@ -1728,6 +2156,7 @@ PyObject* vulkan_end_frame(PyObject* self, PyObject* args, PyObject* kwds)
     VkSemaphore render_finished_sem = VK_NULL_HANDLE;
     if (!offscreen) {
         if (ctx->current_image_index >= ctx->render_finished_per_image.size()) {
+            abandon_frame(ctx, false);
             PyErr_SetString(PyExc_RuntimeError,
                             "Swapchain image index out of range in end_frame");
             return NULL;
@@ -1783,17 +2212,36 @@ PyObject* vulkan_end_frame(PyObject* self, PyObject* args, PyObject* kwds)
         ctx->rt_sync_pending = false;
     }
 
-    vkQueueSubmit(ctx->graphics_queue, 1, &submit_info, frame.in_flight_fence);
+    VK_TRACE("  resetFences");
+    vkResetFences(ctx->device, 1, &frame.in_flight_fence);
+    VkResult submit_result = vkQueueSubmit(
+        ctx->graphics_queue, 1, &submit_info, frame.in_flight_fence);
+    if (submit_result != VK_SUCCESS) {
+        abandon_frame(ctx, true);
+        PyErr_Format(PyExc_RuntimeError,
+                     "Failed to submit Vulkan frame (VkResult %d)",
+                     static_cast<int>(submit_result));
+        return NULL;
+    }
     ctx->image_acquired_unconsumed = false;
 
     if (offscreen) {
         // Wait for the offscreen draw to complete so vulkan_read_framebuffer
         // can safely copy out of the color image.
+        VkResult wait_result;
         Py_BEGIN_ALLOW_THREADS
-        vkWaitForFences(ctx->device, 1, &frame.in_flight_fence, VK_TRUE, UINT64_MAX);
+        wait_result = vkWaitForFences(
+            ctx->device, 1, &frame.in_flight_fence, VK_TRUE, UINT64_MAX);
         Py_END_ALLOW_THREADS
         ctx->in_frame = false;
         ctx->current_frame = (ctx->current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
+        if (wait_result != VK_SUCCESS) {
+            PyErr_Format(PyExc_RuntimeError,
+                         "Failed waiting for Vulkan offscreen frame "
+                         "(VkResult %d)",
+                         static_cast<int>(wait_result));
+            return NULL;
+        }
         Py_RETURN_NONE;
     }
 
@@ -1816,6 +2264,39 @@ PyObject* vulkan_end_frame(PyObject* self, PyObject* args, PyObject* kwds)
     // begin_frame waits on the right fence.
     ctx->in_frame = false;
     ctx->current_frame = (ctx->current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
+    VK_TRACE("  present -> %d image_index=%u extent=%ux%u",
+             (int)result, ctx->current_image_index,
+             ctx->swapchain_extent.width, ctx->swapchain_extent.height);
+
+    bool suboptimal = ctx->swapchain_suboptimal || result == VK_SUBOPTIMAL_KHR;
+    ctx->swapchain_suboptimal = false;
+    if (suboptimal && result != VK_ERROR_OUT_OF_DATE_KHR) {
+        // MoltenVK returns SUBOPTIMAL while the CAMetalLayer's natural size
+        // differs from the swapchain extent.  Its drawables are then never
+        // shown at the right size, so the window appears frozen while frames
+        // keep rendering.  Recreate at the surface's current extent, but only
+        // when that extent is defined and different; otherwise recreation
+        // would not clear the condition and would stall every frame.
+        VkSurfaceCapabilitiesKHR caps{};
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+            ctx->physical_device, ctx->surface, &caps);
+        VkExtent2D current = caps.currentExtent;
+        VK_TRACE("  swapchain suboptimal: surface=%ux%u swapchain=%ux%u",
+                 current.width, current.height,
+                 ctx->swapchain_extent.width, ctx->swapchain_extent.height);
+        if (current.width != UINT32_MAX && current.width > 0 &&
+                current.height > 0 &&
+                (current.width != ctx->swapchain_extent.width ||
+                 current.height != ctx->swapchain_extent.height)) {
+            ctx->last_presented_image_index = UINT32_MAX;
+            if (!recreate_active_swapchain(ctx, current.width, current.height)) {
+                PyErr_SetString(PyExc_RuntimeError,
+                                "Failed to recreate suboptimal swapchain");
+                return NULL;
+            }
+            Py_RETURN_NONE;
+        }
+    }
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         vkDeviceWaitIdle(ctx->device);
@@ -1833,6 +2314,8 @@ PyObject* vulkan_end_frame(PyObject* self, PyObject* args, PyObject* kwds)
     } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         PyErr_SetString(PyExc_RuntimeError, "Failed to present swapchain image");
         return NULL;
+    } else {
+        ctx->last_presented_image_index = ctx->current_image_index;
     }
 
     Py_RETURN_NONE;
@@ -1879,16 +2362,16 @@ PyObject* vulkan_begin_render_pass(PyObject* self, PyObject* args, PyObject* kwd
         bool depth_load = (load_depth || !clear_depth);
 
         VkAttachmentDescription attachments[2] = {};
-        attachments[0].format = VK_FORMAT_R8G8B8A8_UNORM;  // offscreen color format
+        attachments[0].format = off->color_format;
         attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
         attachments[0].loadOp = load_color ? VK_ATTACHMENT_LOAD_OP_LOAD
                                            : VK_ATTACHMENT_LOAD_OP_CLEAR;
         attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        // Every offscreen pass ends in TRANSFER_SRC_OPTIMAL (for readback),
-        // so that's also where a loaded image starts.
-        attachments[0].initialLayout = load_color ? VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL
+        // A camera target may have been sampled after its previous render.
+        // Start a load pass from the layout actually tracked by the target.
+        attachments[0].initialLayout = load_color ? off->color_layout
                                                   : VK_IMAGE_LAYOUT_UNDEFINED;
         attachments[0].finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 
@@ -1922,11 +2405,15 @@ PyObject* vulkan_begin_render_pass(PyObject* self, PyObject* args, PyObject* kwd
         dependency.dstSubpass = 0;
         dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
                                   VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
-                                  VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+                                  VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT |
+                                  VK_PIPELINE_STAGE_TRANSFER_BIT |
+                                  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
                                   VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-                                   VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+                                   VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+                                   VK_ACCESS_TRANSFER_READ_BIT |
+                                   VK_ACCESS_SHADER_READ_BIT;
         dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
                                    VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
                                    VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
@@ -1964,6 +2451,7 @@ PyObject* vulkan_begin_render_pass(PyObject* self, PyObject* args, PyObject* kwd
         vkCmdBeginRenderPass(frame.command_buffer, &rp_begin, VK_SUBPASS_CONTENTS_INLINE);
         ctx->in_render_pass = true;
         off->color_layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;  // finalLayout
+        off->color_texture.current_layout = off->color_layout;
 
         RenderPassState state;
         state.render_pass = render_pass;
@@ -1972,6 +2460,16 @@ PyObject* vulkan_begin_render_pass(PyObject* self, PyObject* args, PyObject* kwd
         state.owns_framebuffer = false;
         ctx->render_pass_stack.push_back(state);
         Py_RETURN_NONE;
+    }
+
+    // The window path renders into the image begin_frame acquired.  A frame
+    // that began with an offscreen target active acquired none, so
+    // current_image_index still names an image the presentation engine owns.
+    if (!ctx->frame_uses_swapchain) {
+        PyErr_SetString(PyExc_RuntimeError,
+                        "Cannot render to the window in a Vulkan frame that "
+                        "began offscreen (offscreen framebuffer popped mid-frame)");
+        return NULL;
     }
 
     // End any previously active render pass.
@@ -2137,6 +2635,11 @@ PyObject* vulkan_begin_depth_pass(PyObject* self, PyObject* args, PyObject* kwds
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
     VulkanTexture* tex = reinterpret_cast<VulkanTexture*>(tex_ptr);
     VK_TRACE("begin_depth_pass tex=%p %dx%d", (void*)tex, width, height);
+    if (!ensure_depth_only_render_pass(ctx)) {
+        PyErr_SetString(PyExc_RuntimeError,
+                        "Failed to create depth-only render pass");
+        return NULL;
+    }
     reset_descriptor_bindings(ctx);
     FrameData& frame = ctx->frames[ctx->current_frame];
 
@@ -2418,14 +2921,19 @@ PyObject* vulkan_begin_mask_pass(PyObject* self, PyObject* args, PyObject* kwds)
     VK_TRACE("begin_mask_pass tex=%p %dx%d", (void*)tex, width, height);
     if (!ctx->in_frame) Py_RETURN_NONE;
 
-    // The mask shares the scene depth image; sizes must agree or the
-    // framebuffer would be invalid.
-    if (static_cast<uint32_t>(width) != ctx->swapchain_extent.width ||
-        static_cast<uint32_t>(height) != ctx->swapchain_extent.height) {
+    OffscreenFramebuffer* off = ctx->active_offscreen;
+    const uint32_t target_width = off ? off->width : ctx->swapchain_extent.width;
+    const uint32_t target_height = off ? off->height : ctx->swapchain_extent.height;
+    VkImageView depth_view = off ? off->depth_view : ctx->depth_image.image_view;
+
+    // The mask shares the active target's scene depth image; sizes must
+    // agree or the framebuffer would be invalid.
+    if (static_cast<uint32_t>(width) != target_width ||
+        static_cast<uint32_t>(height) != target_height) {
         PyErr_Format(PyExc_RuntimeError,
                      "Mask size %dx%d does not match render target %ux%u",
                      width, height,
-                     ctx->swapchain_extent.width, ctx->swapchain_extent.height);
+                     target_width, target_height);
         return NULL;
     }
 
@@ -2455,7 +2963,9 @@ PyObject* vulkan_begin_mask_pass(PyObject* self, PyObject* args, PyObject* kwds)
     attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     {
-        VkImageLayout actual = ctx->depth_image.current_layout;
+        VkImageLayout actual = off
+            ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+            : ctx->depth_image.current_layout;
         attachments[1].initialLayout = (actual != VK_IMAGE_LAYOUT_UNDEFINED)
             ? actual
             : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -2510,7 +3020,7 @@ PyObject* vulkan_begin_mask_pass(PyObject* self, PyObject* args, PyObject* kwds)
         return NULL;
     }
 
-    VkImageView fb_attachments[2] = { tex->image_view, ctx->depth_image.image_view };
+    VkImageView fb_attachments[2] = { tex->image_view, depth_view };
     VkFramebufferCreateInfo fb_info{};
     fb_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     fb_info.renderPass = render_pass;
@@ -2643,9 +3153,18 @@ PyObject* vulkan_copy_depth_texture(PyObject* self, PyObject* args, PyObject* kw
     VulkanTexture* tex = reinterpret_cast<VulkanTexture*>(tex_ptr);
     if (!ctx->in_frame) Py_RETURN_NONE;
 
-    if (tex->width != ctx->depth_image.width ||
-        tex->height != ctx->depth_image.height ||
-        tex->format != ctx->depth_image.format) {
+    OffscreenFramebuffer* off = ctx->active_offscreen;
+    VkImage source_image = off ? off->depth_image : ctx->depth_image.image;
+    VkFormat source_format = VK_FORMAT_D32_SFLOAT;
+    uint32_t source_width = off ? off->width : ctx->depth_image.width;
+    uint32_t source_height = off ? off->height : ctx->depth_image.height;
+    VkImageLayout source_layout = off
+        ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        : ctx->depth_image.current_layout;
+
+    if (tex->width != source_width ||
+        tex->height != source_height ||
+        tex->format != source_format) {
         PyErr_SetString(PyExc_RuntimeError,
                         "Depth copy texture does not match scene depth buffer");
         return NULL;
@@ -2654,8 +3173,7 @@ PyObject* vulkan_copy_depth_texture(PyObject* self, PyObject* args, PyObject* kw
     end_active_render_pass(ctx);
     VkCommandBuffer cmd = ctx->frames[ctx->current_frame].command_buffer;
 
-    VkImageLayout depth_layout = ctx->depth_image.current_layout;
-    transition_image_layout(cmd, ctx->depth_image.image, depth_layout,
+    transition_image_layout(cmd, source_image, source_layout,
                             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                             VK_IMAGE_ASPECT_DEPTH_BIT);
     transition_image_layout(cmd, tex->image, tex->current_layout,
@@ -2667,17 +3185,19 @@ PyObject* vulkan_copy_depth_texture(PyObject* self, PyObject* args, PyObject* kw
     region.srcSubresource.layerCount = 1;
     region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
     region.dstSubresource.layerCount = 1;
-    region.extent = { ctx->depth_image.width, ctx->depth_image.height, 1 };
+    region.extent = { source_width, source_height, 1 };
     vkCmdCopyImage(cmd,
-                   ctx->depth_image.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   source_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                    tex->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                    1, &region);
 
-    transition_image_layout(cmd, ctx->depth_image.image,
+    transition_image_layout(cmd, source_image,
                             VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                             VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                             VK_IMAGE_ASPECT_DEPTH_BIT);
-    ctx->depth_image.current_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    if (!off)
+        ctx->depth_image.current_layout =
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     transition_image_layout(cmd, tex->image,
                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -2689,13 +3209,51 @@ PyObject* vulkan_copy_depth_texture(PyObject* self, PyObject* args, PyObject* kw
 
 // ---------------------------------------------------------------------------
 
+// Size of the depth buffer copy_depth_texture reads from.  Python's window
+// size can differ from the swapchain extent MoltenVK selects from the
+// CAMetalLayer's drawableSize, so depth copies must be sized from this.
+extern "C"
+PyObject* vulkan_depth_texture_size(PyObject* self, PyObject* args, PyObject* kwds)
+{
+    VulkanContext* ctx = get_vulkan_context(args, kwds);
+    if (!ctx) return NULL;
+
+    OffscreenFramebuffer* off = ctx->active_offscreen;
+    VkImage depth_image = off ? off->depth_image : ctx->depth_image.image;
+    if (depth_image == VK_NULL_HANDLE)
+        Py_RETURN_NONE;
+    uint32_t width = off ? off->width : ctx->depth_image.width;
+    uint32_t height = off ? off->height : ctx->depth_image.height;
+    return Py_BuildValue("(II)", width, height);
+}
+
+// ---------------------------------------------------------------------------
+
+// (generation, width, height) of the active window swapchain.  The
+// generation changes whenever the swapchain is recreated, including
+// recreations begin_frame and end_frame start without Python's involvement.
+extern "C"
+PyObject* vulkan_swapchain_state(PyObject* self, PyObject* args, PyObject* kwds)
+{
+    VulkanContext* ctx = get_vulkan_context(args, kwds);
+    if (!ctx) return NULL;
+    return Py_BuildValue("(KII)",
+                         static_cast<unsigned long long>(ctx->swapchain_generation),
+                         ctx->swapchain_extent.width,
+                         ctx->swapchain_extent.height);
+}
+
+// ---------------------------------------------------------------------------
+
 extern "C"
 PyObject* vulkan_get_depth_texture(PyObject* self, PyObject* args, PyObject* kwds)
 {
     VulkanContext* ctx = get_vulkan_context(args, kwds);
     if (!ctx) return NULL;
 
-    if (ctx->depth_image.image == VK_NULL_HANDLE) {
+    OffscreenFramebuffer* off = ctx->active_offscreen;
+    VkImage depth_image = off ? off->depth_image : ctx->depth_image.image;
+    if (depth_image == VK_NULL_HANDLE) {
         Py_RETURN_NONE;
     }
 
@@ -2709,13 +3267,17 @@ PyObject* vulkan_get_depth_texture(PyObject* self, PyObject* args, PyObject* kwd
         tex = new VulkanTexture();
         ctx->depth_texture_wrapper = tex;
     }
-    tex->image = ctx->depth_image.image;
+    tex->image = depth_image;
     tex->allocation = VK_NULL_HANDLE;  // not owned by this wrapper
-    tex->image_view = ctx->depth_image.image_view;
+    tex->image_view = off ? off->depth_view : ctx->depth_image.image_view;
     tex->format = VK_FORMAT_D32_SFLOAT;
-    tex->width = ctx->depth_image.width;
-    tex->height = ctx->depth_image.height;
-    tex->current_layout = ctx->depth_image.current_layout;
+    tex->width = off ? off->width : ctx->depth_image.width;
+    tex->height = off ? off->height : ctx->depth_image.height;
+    tex->depth = 1;
+    tex->dimension = 2;
+    tex->current_layout = off
+        ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        : ctx->depth_image.current_layout;
 
     // Create a sampler with nearest filtering for raw depth reads.
     if (ctx->depth_image.sampler == VK_NULL_HANDLE) {

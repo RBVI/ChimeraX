@@ -31,14 +31,35 @@
 #include <cstdio>
 #include <cstdarg>
 
-// Trace helper used during Vulkan backend bring-up. Writes to vulkan_trace.log
-// in the current working directory and to stderr, flushing on every line so
-// we can read the last call before a hard crash.
+#include <cstdlib>
+#include <cstring>
+
+// Trace logging for debugging the Vulkan backend, off unless the
+// CHIMERAX_VULKAN_TRACE environment variable is set when the first trace
+// point runs.  "1" writes to vulkan_trace.log in the current directory;
+// any other value (except "0") is used as the log file path.  Lines also go
+// to stderr, flushed one at a time so the last call before a hard crash is
+// visible.
+struct VkTraceState {
+    bool enabled;
+    FILE* file;
+};
+
+inline VkTraceState& vk_trace_state() {
+    static VkTraceState state = [] {
+        VkTraceState s{false, nullptr};
+        const char* value = getenv("CHIMERAX_VULKAN_TRACE");
+        if (value && *value && strcmp(value, "0") != 0) {
+            s.enabled = true;
+            s.file = fopen(strcmp(value, "1") == 0 ? "vulkan_trace.log" : value, "w");
+        }
+        return s;
+    }();
+    return state;
+}
+
 inline void vk_trace(const char* fmt, ...) {
-    static FILE* f = nullptr;
-    if (!f) {
-        f = fopen("vulkan_trace.log", "w");
-    }
+    FILE* f = vk_trace_state().file;
     va_list ap;
     va_start(ap, fmt);
     if (f) {
@@ -54,14 +75,10 @@ inline void vk_trace(const char* fmt, ...) {
     fflush(stderr);
     va_end(ap);
 }
-// Compile out trace logging in release builds (NDEBUG defined). The
-// no-op form still consumes its arguments inside sizeof so the
-// compiler typechecks the call sites; nothing is actually emitted.
-#ifdef NDEBUG
-#  define VK_TRACE(...) ((void)sizeof(0, ##__VA_ARGS__))
-#else
-#  define VK_TRACE(...) vk_trace(__VA_ARGS__)
-#endif
+
+// Arguments are only evaluated when tracing is enabled.
+#define VK_TRACE(...) \
+    do { if (vk_trace_state().enabled) vk_trace(__VA_ARGS__); } while (0)
 
 // Maximum frames in flight for double-buffering.
 static constexpr uint32_t MAX_FRAMES_IN_FLIGHT = 2;
@@ -89,6 +106,10 @@ struct FrameData {
     VkSemaphore     image_available;
     VkSemaphore     render_finished;
     VkFence         in_flight_fence;
+    // True after one of this frame's two command buffers has been submitted
+    // without the frame fence.  A second flush must wait before rotating back
+    // to and resetting that still-in-flight buffer.
+    bool            interim_submit_pending;
 };
 
 // Forward declarations so wrappers can carry a back-pointer to the context
@@ -117,6 +138,16 @@ struct BufferWithAllocator {
     // underlying VkBuffer out from under it.
     bool            persistently_mapped;
 };
+
+// Python sees monotonically increasing opaque buffer IDs, never wrapper
+// addresses.  A deferred delete can free BufferWithAllocator while stale
+// Python owners still retain the integer; resolving through this registry
+// makes those late calls harmless and prevents allocator address reuse from
+// aliasing an unrelated new buffer.
+Py_ssize_t register_buffer_handle(BufferWithAllocator* buffer);
+BufferWithAllocator* resolve_buffer_handle(Py_ssize_t handle,
+                                           bool set_error = true);
+void unregister_buffer_handle(BufferWithAllocator* buffer);
 
 // ---------------------------------------------------------------------------
 //  Vulkan texture wrapper (VkImage + VkImageView + VkSampler).
@@ -148,6 +179,9 @@ struct WindowSwapchainState {
     std::vector<VkImageView>  swapchain_image_views;
     std::vector<VkSemaphore>  render_finished_per_image;
     std::vector<uint8_t>      swapchain_image_used;
+    std::vector<VkBuffer>     screen_readback_buffers;
+    std::vector<VmaAllocation> screen_readback_allocations;
+    uint32_t                  last_presented_image_index;
     VulkanTexture             depth_image;
     VkRenderPass              main_render_pass;
     VkRenderPass              depth_only_render_pass;
@@ -166,11 +200,15 @@ struct TextureWithDevice : VulkanTexture {
 // Per-frame deferred-deletion queue. Populated as objects are released
 // during recording, drained at begin_frame after the corresponding fence
 // has signalled (i.e. the GPU is finished with that frame's commands).
+struct OffscreenFramebuffer;
+void destroy_offscreen_resource_internal(VulkanContext* ctx,
+                                         OffscreenFramebuffer* framebuffer);
 struct PendingDeletes {
     std::vector<VkFramebuffer>          framebuffers;
     std::vector<VkRenderPass>           render_passes;
     std::vector<BufferWithAllocator*>   buffers;
     std::vector<TextureWithDevice*>     textures;
+    std::vector<OffscreenFramebuffer*>  offscreens;
 };
 
 // ---------------------------------------------------------------------------
@@ -235,8 +273,10 @@ struct OffscreenFramebuffer {
     VkRenderPass  render_pass;
     uint32_t      width;
     uint32_t      height;
+    VkFormat      color_format;
     bool          alpha;          // false -> opaque output (alpha forced to 1)
     VkImageLayout color_layout;   // tracked across begin/end + readback
+    VulkanTexture color_texture;  // non-owning sampleable color wrapper
 };
 
 // ---------------------------------------------------------------------------
@@ -267,6 +307,11 @@ struct VulkanContext {
     VkSwapchainKHR           swapchain;
     VkFormat                 swapchain_format;
     VkExtent2D               swapchain_extent;
+    // Incremented by every create_swapchain, including recreations the
+    // native side starts on its own (out-of-date, suboptimal, recovery after
+    // a failed frame), so Python can resync its size and release texture
+    // exports of the destroyed images.  See vulkan_swapchain_state.
+    uint64_t                 swapchain_generation;
     std::vector<VkImage>     swapchain_images;
     std::vector<VkImageView> swapchain_image_views;
     // One render-finished semaphore per swapchain image. The semaphore
@@ -284,6 +329,14 @@ struct VulkanContext {
     // image must clear instead of load — the image's actual layout is
     // UNDEFINED and its contents are garbage until first use.
     std::vector<uint8_t> swapchain_image_used;
+
+    // A host-visible snapshot is copied from each rendered swapchain image
+    // before presentation.  Reading a swapchain image after presentation is
+    // invalid until it is acquired again, so consumers such as motion blur
+    // read these per-image buffers instead.
+    std::vector<VkBuffer> screen_readback_buffers;
+    std::vector<VmaAllocation> screen_readback_allocations;
+    uint32_t last_presented_image_index;
 
     // Depth buffer (for the main render pass)
     VulkanTexture depth_image;
@@ -327,14 +380,31 @@ struct VulkanContext {
     // to the acquired swapchain image can race the presentation engine.
     bool          image_acquired_unconsumed;
 
+    // Set when vkAcquireNextImageKHR returns VK_SUBOPTIMAL_KHR.  MoltenVK
+    // reports this when the CAMetalLayer's size no longer matches the
+    // swapchain; end_frame recreates the swapchain after presenting.
+    bool          swapchain_suboptimal;
+
+    // Set when a frame that acquired a swapchain image fails before it is
+    // presented.  The image stays owned by the application and the frame's
+    // image_available semaphore keeps a pending signal, so begin_frame
+    // rebuilds the swapchain and acquire semaphores before acquiring again.
+    bool          swapchain_abandoned;
+
+    // Snapshot of the target mode selected by begin_frame.  active_offscreen
+    // can change while a command buffer is being recorded (for example when
+    // a camera target is pushed), but submission must still consume and
+    // present any swapchain image acquired at frame start.
+    bool          frame_uses_swapchain;
+
     // Active render pass stack (for nested begin_pass/end_pass)
     std::vector<RenderPassState> render_pass_stack;
 
     // While non-null, the next frame renders to this offscreen target
     // instead of the swapchain. Set by vulkan_set_active_offscreen,
-    // cleared by passing 0. begin_frame/begin_render_pass/end_frame each
-    // branch on this so the existing swapchain path is unaffected when
-    // there's no active capture.
+    // cleared by passing 0. begin_frame and begin_render_pass branch on this;
+    // end_frame uses frame_uses_swapchain, captured by begin_frame, so a
+    // mid-frame target change cannot strand an acquired image semaphore.
     OffscreenFramebuffer* active_offscreen;
 
     // Dummy resources written to descriptor-set bindings the shader
@@ -382,12 +452,14 @@ struct VulkanContext {
     VkDescriptorSetLayout descriptor_set_layout_textures;
     VkPipelineLayout      shared_pipeline_layout;
 
-    // One descriptor pool per frame in flight. flush_descriptors allocates
-    // a fresh pair of sets out of the current frame's pool every time it
-    // runs; the pool is reset at the start of each frame. This avoids
-    // updating a descriptor set that was already bound to the in-flight
-    // command buffer (Vulkan disallows that without UPDATE_AFTER_BIND).
-    VkDescriptorPool descriptor_pools[MAX_FRAMES_IN_FLIGHT];
+    // Growable descriptor-pool chains, one chain per frame in flight.
+    // flush_descriptors allocates a fresh pair of sets for every resource
+    // state recorded into the command buffer.  Multishadow rendering can
+    // multiply a large surface model into thousands of draws, so a fixed
+    // per-frame pool is not sufficient.  Every pool in a frame's chain is
+    // reset after that frame's fence signals.
+    std::vector<VkDescriptorPool> descriptor_pools[MAX_FRAMES_IN_FLIGHT];
+    uint32_t descriptor_pool_indices[MAX_FRAMES_IN_FLIGHT];
 
     // Per-frame deferred-deletion queues for resources released during
     // recording (framebuffers from end_render_pass, buffers/textures from
@@ -553,6 +625,9 @@ inline void flush_pending_deletes(VulkanContext* ctx, PendingDeletes& pd) {
         delete tex;
     }
     pd.textures.clear();
+    for (OffscreenFramebuffer* fb : pd.offscreens)
+        destroy_offscreen_resource_internal(ctx, fb);
+    pd.offscreens.clear();
 }
 
 // Drain EVERY per-frame deletion queue. Only valid right after
@@ -563,6 +638,15 @@ inline void flush_pending_deletes(VulkanContext* ctx, PendingDeletes& pd) {
 // after those views were destroyed is a use-after-free inside the driver
 // (observed as a SIGBUS in MoltenVK on window resize).
 inline void flush_all_pending_deletes(VulkanContext* ctx) {
+    // Teardown can encounter older temporary framebuffers in a different
+    // slot than their retired camera attachments. Drop all those references
+    // before draining any slot's images and views.
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        auto& pd = ctx->pending_deletes[i];
+        for (VkFramebuffer fb : pd.framebuffers)
+            vkDestroyFramebuffer(ctx->device, fb, nullptr);
+        pd.framebuffers.clear();
+    }
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
         flush_pending_deletes(ctx, ctx->pending_deletes[i]);
 }
@@ -570,7 +654,8 @@ inline void flush_all_pending_deletes(VulkanContext* ctx) {
 // ---------------------------------------------------------------------------
 //  Forward declarations for internal helpers (defined in vulkan_context.cpp).
 // ---------------------------------------------------------------------------
-bool create_swapchain(VulkanContext* ctx, uint32_t width, uint32_t height);
+bool create_swapchain(VulkanContext* ctx, uint32_t width, uint32_t height,
+                      std::string* error_message = nullptr);
 void cleanup_swapchain(VulkanContext* ctx);
 // End the active render pass (if any) and queue every owned per-pass
 // VkRenderPass/VkFramebuffer left on render_pass_stack for deferred
@@ -579,8 +664,10 @@ void cleanup_swapchain(VulkanContext* ctx);
 void end_active_render_pass(VulkanContext* ctx);
 void create_depth_resources(VulkanContext* ctx);
 void create_main_render_pass(VulkanContext* ctx);
+bool ensure_depth_only_render_pass(VulkanContext* ctx);
 void create_swapchain_framebuffers(VulkanContext* ctx);
 void create_descriptor_infrastructure(VulkanContext* ctx);
+VkDescriptorPool create_frame_descriptor_pool(VulkanContext* ctx);
 VkShaderModule create_shader_module(VulkanContext* ctx, const uint32_t* code, size_t size);
 void transition_image_layout(VkCommandBuffer cmd, VkImage image,
                              VkImageLayout old_layout, VkImageLayout new_layout,

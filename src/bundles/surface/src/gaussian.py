@@ -39,7 +39,7 @@ def gaussian_surface(xyz, weights, resolution, level = None, grid_spacing = None
         mxyz, outside = interpolate_volume_data(xyz, grid.xyz_to_ijk_transform, m)
         level = 0.5*min(mxyz)
 
-    from chimerax.map import contour_surface
+    from chimerax.map._flying_edges import contour_surface
     va, ta, na = contour_surface(m, level, cap_faces = True, calculate_normals = True)
 
     # Convert ijk to xyz

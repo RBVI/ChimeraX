@@ -521,6 +521,15 @@ class SteamVRCamera(Camera, StateManager):
         self._compositor = c = openvr.VRCompositor()
         if c is None:
             raise RuntimeError("Unable to create compositor") 
+        if hasattr(self.render, '_vulkan'):
+            from .vulkan import OpenVRRuntime, configure_runtime
+            try:
+                configure_runtime(self.render, OpenVRRuntime(vrs, c))
+            except Exception:
+                openvr.shutdown()
+                self._vr_system = None
+                self._compositor = None
+                raise
 
         # Compute projection and eye matrices, units in meters
 
@@ -752,6 +761,8 @@ class SteamVRCamera(Camera, StateManager):
         openvr.shutdown()
         self._vr_system = None
         self._compositor = None
+        if hasattr(self.render, '_vulkan'):
+            self.render.opengl_context.window._vulkan_runtime = None
         self._delete_framebuffers()
 
         # Notify other tools that VR has stopped
@@ -975,6 +986,10 @@ class SteamVRCamera(Camera, StateManager):
 
     def _submit_eye_image(self, side, texture, render):
         '''Side is "left" or "right".'''
+        if hasattr(render, '_vulkan'):
+            # Offscreen end_frame waits for the rendering fence and leaves
+            # the image in TRANSFER_SRC_OPTIMAL as OpenVR requires.
+            render.end_frame()
         import openvr
         eye = openvr.Eye_Left if side == 'left' else openvr.Eye_Right
         # Caution: compositor.submit() changes the OpenGL read framebuffer binding to 0.
@@ -1000,12 +1015,15 @@ class SteamVRCamera(Camera, StateManager):
         if self.number_of_views() == 2:
             rtex = render.current_framebuffer().openvr_texture
             self._submit_eye_image('right', rtex, render)
-
+        elif hasattr(render, '_vulkan'):
+            render.end_frame()
         render.pop_framebuffer()
         
         if self.mirror:
             # Render right eye to ChimeraX window.
             drawing = self._desktop_drawing()
+            from .vulkan import prepare_mirror
+            prepare_mirror(render, drawing)
             from chimerax.graphics.drawing import draw_overlays
             draw_overlays([drawing], render)
 
@@ -1023,6 +1041,14 @@ class SteamVRCamera(Camera, StateManager):
             self._delete_framebuffers()
             from chimerax.graphics import Texture, opengl
             for eye in ('left', 'right'):
+                if hasattr(render, '_vulkan'):
+                    fb = render.create_framebuffer('VR %s eye' % eye, tw, th, color_bits=8)
+                    if not fb.activate():
+                        raise RuntimeError('Could not allocate SteamVR eye target')
+                    fbs.append(fb)
+                    from .vulkan import openvr_texture
+                    fb.openvr_texture = openvr_texture(render, fb)
+                    continue
                 t = Texture()
                 t.initialize_rgba((tw,th))
                 fb = opengl.Framebuffer('VR %s eye' % eye, render.opengl_context, color_texture = t)
@@ -1058,6 +1084,15 @@ class SteamVRCamera(Camera, StateManager):
 
     def do_swap_buffers(self):
         return self.mirror
+
+    def abort_rendering(self, render):
+        self._frame_started = False
+        if self._room_camera is not None:
+            self._room_camera.finish_rendering(render)
+
+    def release_graphics_resources(self):
+        if self._vr_system is not None:
+            stop_vr(self._session)
 
     def hand_controllers(self):
         return self._hand_controllers
@@ -1334,10 +1369,17 @@ class RoomCamera:
         fb = self._framebuffer
         if fb is None or fb.width != tw or fb.height != th:
             self._delete_framebuffer(render)
-            from chimerax.graphics import Texture, opengl
-            t = Texture()
-            t.initialize_rgba((tw,th))
-            fb = opengl.Framebuffer('VR desktop', render.opengl_context, color_texture = t)
+            if hasattr(render, '_vulkan'):
+                fb = render.create_framebuffer('VR desktop', tw, th, alpha=True)
+                if not fb.activate():
+                    fb.delete()
+                    raise RuntimeError('Could not allocate VR desktop target')
+                t = fb.color_texture
+            else:
+                from chimerax.graphics import Texture, opengl
+                t = Texture()
+                t.initialize_rgba((tw,th))
+                fb = opengl.Framebuffer('VR desktop', render.opengl_context, color_texture = t)
             self._framebuffer = fb
             cm = self._camera_model
             if cm:

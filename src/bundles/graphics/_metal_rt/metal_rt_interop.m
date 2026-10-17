@@ -16,9 +16,45 @@
 // Global RT context — one per process (matches the single-window model).
 static MetalRTContext* s_rt_ctx = nullptr;
 
-// Stashed references for the surface layer so we can resize it.
-static NSView* s_surface_view = nil;
-static CAMetalLayer* s_surface_layer = nil;
+// Qt owns the layer tree for a QWindow.  In particular, recent Qt versions
+// may wrap the QMetalLayer used by a MetalSurface in a private container
+// layer.  Replacing the QNSView's root layer breaks Qt's display callbacks
+// (and crashes when several embedded MetalSurface windows are exposed), so
+// find the CAMetalLayer Qt already installed instead.
+static CAMetalLayer* metal_layer_for_layer(CALayer* layer) {
+    if (!layer)
+        return nil;
+    if ([layer isKindOfClass:[CAMetalLayer class]])
+        return (CAMetalLayer*)layer;
+    for (CALayer* sublayer in layer.sublayers) {
+        if (CAMetalLayer* metal_layer = metal_layer_for_layer(sublayer))
+            return metal_layer;
+    }
+    return nil;
+}
+
+static CAMetalLayer* metal_layer_for_view(NSView* view) {
+    return view ? metal_layer_for_layer(view.layer) : nil;
+}
+
+static void resize_metal_layer(NSView* view, CAMetalLayer* layer,
+                               int pixel_width, int pixel_height) {
+    if (!view || !layer)
+        return;
+    CGFloat scale = view.window.backingScaleFactor;
+    if (scale <= 0)
+        scale = NSScreen.mainScreen.backingScaleFactor;
+    NSRect bounds = view.bounds;
+    layer.contentsScale = scale;
+    // Qt owns the layer's frame.  Only set the drawable size MoltenVK uses
+    // for VkSurfaceCapabilitiesKHR; changing the frame here fights Qt's
+    // container-layer layout during docking and resize events.
+    CGFloat width = pixel_width > 0
+        ? (CGFloat)pixel_width : bounds.size.width * scale;
+    CGFloat height = pixel_height > 0
+        ? (CGFloat)pixel_height : bounds.size.height * scale;
+    layer.drawableSize = CGSizeMake(MAX(width, 1), MAX(height, 1));
+}
 
 // ---------------------------------------------------------------------------
 //  Create a VkSurfaceKHR from an NSView* via CAMetalLayer.
@@ -27,24 +63,29 @@ extern "C"
 PyObject* metal_rt_create_surface(PyObject* self, PyObject* args, PyObject* kwds) {
     Py_ssize_t instance_handle;
     Py_ssize_t window_handle;
-    static const char* kwlist[] = {"instance", "window_handle", nullptr};
+    int pixel_width = 0, pixel_height = 0;
+    static const char* kwlist[] = {
+        "instance", "window_handle", "width", "height", nullptr};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("nn"), (char**)kwlist,
-            &instance_handle, &window_handle))
+            const_cast<char*>("nn|ii"), (char**)kwlist,
+            &instance_handle, &window_handle, &pixel_width, &pixel_height))
         return NULL;
 
     VkInstance instance = reinterpret_cast<VkInstance>(instance_handle);
     NSView* view = reinterpret_cast<NSView*>(window_handle);
 
-    [view setWantsLayer:YES];
-    CAMetalLayer* metal_layer = [CAMetalLayer layer];
-    metal_layer.contentsScale = view.window.backingScaleFactor;
-    metal_layer.frame = view.bounds;
-    [view setLayer:metal_layer];
-
-    // Stash for resize_surface.
-    s_surface_view = view;
-    s_surface_layer = metal_layer;
+    CAMetalLayer* metal_layer = metal_layer_for_view(view);
+    if (!metal_layer) {
+        // GraphicsWindow historically creates its QWidget container before
+        // selecting a backend, so its already-created QNSView has no Qt
+        // Metal content layer.  Keep that single-window compatibility path;
+        // auxiliary windows are configured as MetalSurface before creation
+        // and must retain Qt's layer tree.
+        [view setWantsLayer:YES];
+        metal_layer = [CAMetalLayer layer];
+        [view setLayer:metal_layer];
+    }
+    resize_metal_layer(view, metal_layer, pixel_width, pixel_height);
 
     VkMetalSurfaceCreateInfoEXT surf_info{};
     surf_info.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
@@ -61,36 +102,32 @@ PyObject* metal_rt_create_surface(PyObject* self, PyObject* args, PyObject* kwds
 }
 
 // ---------------------------------------------------------------------------
-//  Update the CAMetalLayer's bounds to match the current view size.
+//  Update the CAMetalLayer's drawable size to match the current view size.
 //  Must be called before swapchain recreation so MoltenVK sees the
 //  correct drawableSize in VkSurfaceCapabilitiesKHR.
 // ---------------------------------------------------------------------------
 extern "C"
 PyObject* metal_rt_resize_surface(PyObject* self, PyObject* args, PyObject* kwds) {
-    Py_ssize_t window_handle = 0;
-    static const char* kwlist[] = {"window_handle", nullptr};
+    Py_ssize_t window_handle;
+    int pixel_width = 0, pixel_height = 0;
+    static const char* kwlist[] = {"window_handle", "width", "height", nullptr};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("|n"), (char**)kwlist, &window_handle))
+            const_cast<char*>("n|ii"), (char**)kwlist,
+            &window_handle, &pixel_width, &pixel_height))
         return NULL;
 
-    NSView* view = window_handle
-        ? reinterpret_cast<NSView*>(window_handle) : s_surface_view;
-    CAMetalLayer* layer = nil;
-    if (view && [view.layer isKindOfClass:[CAMetalLayer class]])
-        layer = (CAMetalLayer*)view.layer;
-    if (!layer && view == s_surface_view)
-        layer = s_surface_layer;
-
-    if (view && layer) {
-        CGFloat scale = view.window.backingScaleFactor;
-        NSRect bounds = view.bounds;
-        layer.frame = bounds;
-        layer.contentsScale = scale;
-        // Explicitly set drawableSize so MoltenVK reports the correct
-        // currentExtent in VkSurfaceCapabilitiesKHR immediately.
-        layer.drawableSize = CGSizeMake(
-            bounds.size.width * scale, bounds.size.height * scale);
+    NSView* view = reinterpret_cast<NSView*>(window_handle);
+    CAMetalLayer* layer = metal_layer_for_view(view);
+    if (!layer) {
+        PyErr_SetString(
+            PyExc_RuntimeError,
+            "Qt MetalSurface window has no CAMetalLayer to resize");
+        return NULL;
     }
+    // Callers pass the pixel size they will request from Vulkan so the
+    // swapchain extent (taken from drawableSize) matches the renderer's
+    // size.  NSView bounds can lag Qt's size during resize events.
+    resize_metal_layer(view, layer, pixel_width, pixel_height);
     Py_RETURN_NONE;
 }
 

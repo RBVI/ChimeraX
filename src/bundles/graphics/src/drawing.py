@@ -807,6 +807,26 @@ class Drawing:
                        transparent_only=False, opaque_only=False):
         ''' Draw the geometry.'''
 
+        from .ral import (
+            current_graphics_device,
+            graphics_device_for_renderer,
+            using_graphics_device,
+        )
+
+        device = graphics_device_for_renderer(renderer)
+        if current_graphics_device(required=False) is device:
+            return self._draw_geometry_on_device(
+                renderer, highlighted_only, transparent_only, opaque_only
+            )
+        with using_graphics_device(device):
+            return self._draw_geometry_on_device(
+                renderer, highlighted_only, transparent_only, opaque_only
+            )
+
+    def _draw_geometry_on_device(self, renderer, highlighted_only=False,
+                                 transparent_only=False, opaque_only=False):
+        '''Draw geometry while its renderer's RAL device is active.'''
+
         if self.vertices is None:
             return
 
@@ -825,7 +845,7 @@ class Drawing:
                 dcolors = getattr(self, "_colors", None)
                 parent = getattr(self, "parent", None)
                 pname = getattr(parent, "name", None) if parent is not None else None
-                backend = "vulkan" if hasattr(renderer, "draw_drawing") else "opengl"
+                backend = getattr(renderer, "backend_name", "opengl")
                 print(
                     f"[cyl-draw {backend}] drawing={self.name!r} parent={pname!r} "
                     f"verts={len(self.vertices)} tris={len(self.triangles)} "
@@ -838,8 +858,17 @@ class Drawing:
                     file=sys.stderr,
                 )
 
-        # Check if renderer supports direct drawing (Metal path)
-        if hasattr(renderer, 'draw_drawing'):
+        # Explicit backends consume a complete Drawing directly.  OpenGL uses
+        # its established buffer/binding path below.
+        from .ral import GraphicsFeature
+        capabilities = getattr(renderer, "capabilities", None)
+        if (capabilities is not None and
+                capabilities.supports(GraphicsFeature.DIRECT_DRAWING)):
+            # Keep the owning graphics context available to backend-neutral
+            # consumers such as texture export and resource cleanup.  The
+            # name is historical; Vulkan/Metal contexts implement the same
+            # make_current/done_current compatibility surface.
+            self._opengl_context = renderer.opengl_context
             renderer.draw_drawing(self, sopt, highlighted_only)
             return
 
@@ -1269,9 +1298,32 @@ class Drawing:
         / delete_texture methods would crash. The GPU driver reclaims the
         underlying objects when the context is destroyed.
         '''
+        from .ral import Texture as LogicalTexture
+
+        # The map bundle's zero-copy contour path stores its geometry arrays
+        # as NumPy views directly onto persistently mapped Vulkan buffers.
+        # Preserve CPU-owned copies before GraphicsDevice.close() unmaps and
+        # destroys those buffers, then discard the backend-specific handles.
+        # The next backend can upload the ordinary arrays through the RAL.
+        if getattr(self, '_vk_buffers', None):
+            from numpy import array
+            for attr in ('_vertices', '_normals', '_triangles'):
+                values = getattr(self, attr, None)
+                if values is not None:
+                    setattr(self, attr, array(values, copy=True, order='C'))
+            self._vk_buffers = None
+
         def _orphan_tex(tex):
-            if tex is not None and hasattr(tex, 'id'):
+            if tex is None:
+                return False
+            if isinstance(tex, LogicalTexture):
+                # The CPU texture is backend-neutral. Its outgoing native
+                # object belongs to the device cache and is released with
+                # that device; keep the logical texture on the Drawing.
+                return True
+            if hasattr(tex, 'id'):
                 tex.id = None
+            return False
         def _orphan_buffer(b):
             # opengl.Buffer.__del__ raises if _deleted_buffer is False, so flag
             # the buffer as released and drop the GL handle without touching the
@@ -1300,14 +1352,15 @@ class Drawing:
         _orphan_draw_shape(self._draw_highlight)
         self._draw_shape = None
         self._draw_highlight = None
-        _orphan_tex(self.texture)
-        self.texture = None
+        if not _orphan_tex(self.texture):
+            self.texture = None
         if self.multitexture:
             for t in self.multitexture:
                 _orphan_tex(t)
-        self.multitexture = None
-        _orphan_tex(self.colormap)
-        self.colormap = None
+            if not all(isinstance(t, LogicalTexture) for t in self.multitexture):
+                self.multitexture = None
+        if not _orphan_tex(self.colormap):
+            self.colormap = None
         self._opengl_context = None
         self._attribute_changes.update(self._effects_buffers)
         self.redraw_needed(shape_changed=True)
@@ -1797,7 +1850,10 @@ def draw_overlay_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
 def draw_xor_rectangle(renderer, x1, y1, x2, y2, color, drawing = None):
     '''Draw rectangle outline on front buffer using xor mode.'''
 
-    if not hasattr(renderer, 'draw_front_buffer'):
+    from .ral import GraphicsFeature
+    capabilities = getattr(renderer, "capabilities", None)
+    if (capabilities is not None and not
+            capabilities.supports(GraphicsFeature.FRONT_BUFFER_XOR)):
         # Front-buffer XOR rendering is an OpenGL-specific technique; the
         # Metal/Vulkan renderers have no front buffer to draw into.
         # View.draw_xor_rectangle routes those renderers to the overlay
@@ -2281,8 +2337,12 @@ def rgba_drawing(drawing, rgba, pos=(-1, -1), size=(2, 2), opaque = True,
     Make a drawing that is a single rectangle with a texture to show an
     RGBA image on it.
     '''
-    from . import opengl
-    t = opengl.Texture(rgba, clamp_to_edge = clamp_to_edge)
+    # Resolve Texture at call time so auxiliary drawings use the active
+    # graphics backend.  Hard-coding opengl.Texture leaves Vulkan's texture
+    # descriptor unchanged, causing the quad to sample whichever 2D texture
+    # the preceding draw bound (for example, an orthoplane slice).
+    from . import Texture
+    t = Texture(rgba, clamp_to_edge = clamp_to_edge)
     d = _texture_drawing(t, pos, size, drawing)
     d.opaque_texture = opaque
     return d

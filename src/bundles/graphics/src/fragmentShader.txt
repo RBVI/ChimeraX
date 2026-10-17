@@ -482,7 +482,7 @@ void main (void)
       float dash_pos = cyl_frac * float(impostor_dashes) + 0.75;
       float dash_frac = fract(dash_pos);
       if (dash_frac > 0.5) {
-        // Wall hit is in a gap — try dash edge caps
+        // Wall hit is in a gap - try dash edge caps
         // Find nearest dash edges (transitions at fract = 0.0 and 0.5)
         bool dash_cap_hit = false;
         float edge_offsets[2] = float[](0.5 - dash_frac, 1.0 - dash_frac);

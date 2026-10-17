@@ -337,17 +337,12 @@ def graphics_restart(session):
 
 
 def graphics_backend(session, backend=None):
-    '''Switch between OpenGL and Vulkan rendering backends at runtime, or
+    '''Switch between OpenGL, Vulkan, and WGPU rendering backends at runtime, or
     report the currently active backend if called with no argument.'''
     gw = session.ui.main_window.graphics_window
     if backend is None:
-        oc = gw.opengl_context
-        if hasattr(oc, "_vulkan"):
-            name = "vulkan"
-        elif hasattr(oc, "_metal"):
-            name = "metal"
-        else:
-            name = "opengl"
+        endpoint = getattr(gw, "render_endpoint", None)
+        name = endpoint.backend_name if endpoint is not None else "none"
         session.logger.info(f"Current graphics backend: {name}")
         return
     gw.switch_backend(backend)
@@ -441,8 +436,8 @@ def register_command(logger):
     register("graphics driver", desc, graphics_driver, logger=logger)
 
     desc = CmdDesc(
-        optional=[("backend", EnumOf(["opengl", "vulkan"]))],
-        synopsis="Switch the graphics backend (OpenGL or Vulkan) in place",
+        optional=[("backend", EnumOf(["opengl", "vulkan", "wgpu"]))],
+        synopsis="Switch the graphics backend (OpenGL, Vulkan, or WGPU) in place",
     )
     register("graphics backend", desc, graphics_backend, logger=logger)
 
