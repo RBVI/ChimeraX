@@ -1,10 +1,9 @@
 # Vulkan renderer parity status
 
-These changes have been reviewed in source. They have **not** been built,
-run through the automated tests, or validated on a headset/display. The
-repository's `AGENTS.md` forbids compilation, build, and test commands during
-agent work. This document is an acceptance checklist, not a claim that full
-OpenGL parity has been demonstrated.
+The source review found gaps in stereo presentation, headless rendering,
+OpenXR format negotiation, GPU volume blending, and low-level renderer
+methods. The paths listed below still need runtime and hardware acceptance
+checks.
 
 ## Implemented in this change
 
@@ -49,26 +48,31 @@ impostors, transparent surfaces, volumes, clipping, labels, and highlights.
 | OpenXR | Use a real runtime to check required-extension negotiation, GPU selection, both eyes, gamma, controller poses, room-camera display, mirror, stop/restart, backend switching, and rendering-error cleanup. |
 | SteamVR | Check both eye submissions, image orientation, gamma, controllers, mirror/room camera, runtime restart, resizing, and device teardown. |
 | Looking Glass | Compare a saved quilt and the calibrated physical display against OpenGL. Verify row order, view order, RGB subpixels, unused quilt borders, and backend switching with the display window open. |
+| Presentation | Toggle `graphics rate waitForVsync` on each platform. Confirm that the active present mode changes when supported, and check desktop mirrors on devices that only offer FIFO. |
 
 Regression tests are in `graphics/tests/test_vulkan_camera_targets.py`,
 `graphics/tests/test_multiview_pathtrace.py`, `vive/tests/test_vulkan_runtime.py`,
 and `looking_glass/tests/test_vulkan_quilt.py`.
 
-## Remaining parity limits
+## OpenGL parity gaps
 
 - Hardware shutter-glasses stereo still requires the OpenGL stereo context.
-  Vulkan side-by-side output is not a substitute for synchronized sequential
-  stereo; that needs a platform/display-specific presentation implementation.
-- Vulkan presentation still uses FIFO. VR desktop mirroring can consequently
-  be limited by desktop refresh, and the existing VR setup may disable mirroring
-  when disabling vsync is unavailable.
-- Multi-view cameras currently use raster rendering when path tracing or RTAO
-  is enabled. Independent per-view progressive histories and dispatch resources
-  are still needed before enabling those effects for stereo/cube views.
-- OpenXR currently accepts an RGBA8 sRGB swapchain. A runtime offering only
-  other formats needs an additional format-conversion path.
-- Offscreen image capture uses the existing window-backed Vulkan device; a
-  headless device/surface initialization path is not implemented here.
+  Synchronized sequential stereo needs platform-specific presentation support.
+- OpenGL has an OSMesa headless context. Vulkan can capture offscreen images
+  using the window-backed device, but has no headless initialization path.
+- OpenXR with Vulkan requires an RGBA8 sRGB swapchain. The OpenGL path
+  negotiates among several formats.
+- Volume image blending runs on the CPU under Vulkan, including when
+  `blendOnGpu` is requested. The OpenGL path supports GPU blending.
+- Some low-level renderer methods, including depth-range changes and direct
+  indexed drawing, remain stubs. The main scene path issues native draws
+  through `VulkanRender.draw_drawing`.
 
-Full feature parity remains open until these limits are addressed and the
-hardware acceptance checks pass.
+## Other Vulkan limits
+
+- Disabling vsync requests Mailbox, then Immediate. On a FIFO-only surface,
+  desktop mirroring can still be limited by the refresh rate, and VR setup
+  may disable the mirror.
+- Multi-view cameras fall back to raster rendering when path tracing or RTAO
+  is enabled. These effects need independent per-view histories and dispatch
+  resources before they can run for stereo or cube views.
