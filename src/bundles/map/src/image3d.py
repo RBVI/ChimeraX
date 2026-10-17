@@ -88,6 +88,73 @@ class Image3d(Model):
                     return
             self.message_cb(text)
 
+    def materialize_volume_drawing(self):
+        """Return the current volume as renderer-neutral drawing data."""
+
+        if not self.display:
+            return None
+        self._update_blend_groups()
+        blended = self._blend_image
+        if blended is not None:
+            if self is blended.master_image:
+                return blended.materialize_volume_drawing()
+            return None
+        drawing = self._add_volume_raycast_drawing()
+        if drawing._update_region:
+            drawing.update_region()
+            drawing._update_region = False
+        drawing._update_coloring()
+        ro = self._rendering_options
+        drawing.raycast_lighting = self._p_mode == "rays"
+        drawing.ray_step = float(ro.ray_step)
+        drawing.maximum_intensity_projection = bool(
+            ro.maximum_intensity_projection
+        )
+        drawing.alpha_correction = drawing.raycast_lighting
+        drawing.linear_interpolation = bool(ro.linear_interpolation)
+
+        from numpy import array, float32
+        from .volume import clamp_ijk
+
+        image_mode = "full region" if self._p_mode == "rays" else ro.image_mode
+        orthoplane_ijk = list(
+            clamp_ijk(ro.orthoplane_positions, self._region[0], self._region[1])
+        )
+        orthoplanes_shown = tuple(bool(s) for s in ro.orthoplanes_shown)
+        if image_mode == "full region" and self._single_plane:
+            for axis in (2, 1, 0):
+                if self._region_size[axis] == 1:
+                    break
+            orthoplane_ijk[axis] = self._region[0][axis]
+            orthoplanes_shown = tuple(a == axis for a in range(3))
+            image_mode = "orthoplanes"
+        drawing.image_mode = image_mode
+        drawing.orthoplanes_shown = orthoplanes_shown
+        ijk = array((orthoplane_ijk,), float32)
+        xyz = self._ijk_to_xyz * ijk
+        drawing.orthoplane_positions = tuple(
+            float(v) for v in (drawing.vertex_to_texture * xyz)[0]
+        )
+
+        texture_basis = array(
+            ((0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1)), float32
+        )
+        xyz_basis = drawing.vertex_to_texture.inverse() * texture_basis
+        plane_values = xyz_basis @ array(ro.tilted_slab_axis, float32)
+        p0 = float(plane_values[0])
+        drawing.tilted_slab_plane = (
+            float(plane_values[1] - p0),
+            float(plane_values[2] - p0),
+            float(plane_values[3] - p0),
+            p0,
+        )
+        slab_min = ro.tilted_slab_offset - 0.5 * ro.tilted_slab_spacing
+        drawing.tilted_slab_range = (
+            float(slab_min),
+            float(slab_min + ro.tilted_slab_spacing * ro.tilted_slab_plane_count),
+        )
+        return drawing
+
     # ---------------------------------------------------------------------------
     #
     def set_region(self, region):
@@ -290,7 +357,14 @@ class Image3d(Model):
 
     @property
     def _use_gpu_blending(self):
-        return self._rendering_options.blend_on_gpu
+        if not self._rendering_options.blend_on_gpu:
+            return False
+        render = self._session.main_view.render
+        blend = getattr(render, 'blend', None)
+        # Explicit backends without texture-blend compute support preserve
+        # the option's visual result through the established CPU path.
+        return (callable(getattr(blend, 'start_blending', None)) and
+                callable(getattr(blend, 'finish_blending', None)))
 
     # ---------------------------------------------------------------------------
     #
@@ -1108,9 +1182,12 @@ class VolumeRaycastDrawing(Drawing):
         self._update_colors = True
         self._axis = None
         self._image_render = image_render
+        self.volume_data = None
+        self.colormap_data = None
         ir = image_render
         self._corners = _box_corners(ir._region, ir._ijk_to_xyz)  # in volume coords
         self._vertex_to_texcoord = _xyz_to_texcoord(ir._texture_region, ir._ijk_to_xyz)
+        self.vertex_to_texture = self._vertex_to_texcoord
 
         self.color = ir._modulation_color
         self.use_lighting = True
@@ -1131,10 +1208,19 @@ class VolumeRaycastDrawing(Drawing):
 
         ir = self._image_render
         if ir._rendering_options.colormap_on_gpu:
+            # The density texture is independent of colormap changes, so the
+            # ordinary update path leaves it alone.  Backend replacement is
+            # the exception: Drawing cleared it and it must be uploaded too.
+            if self.texture is None:
+                self._fill_textures()
             self._update_colormap_texture()
         else:
             self._fill_textures()
         self._update_colors = False
+
+    def graphics_context_changed(self):
+        """Recreate density and colormap textures on the next draw."""
+        self._update_colors = True
 
     def _make_box(self, vertices, triangles):
         from numpy import array
@@ -1144,6 +1230,7 @@ class VolumeRaycastDrawing(Drawing):
     def _update_colormap_texture(self):
         ir = self._image_render
         cmap, cmap_range = ir._color_table(self._axis)
+        self.colormap_data = cmap
         t = self.colormap
         if t is None:
             from chimerax.graphics import Texture
@@ -1168,11 +1255,12 @@ class VolumeRaycastDrawing(Drawing):
         t = self.texture
         if t is None:
             self.texture = t = self._texture_3d()
-        if isinstance(self._image_render, BlendedImage):
-            self._fill_texture_blend(t)
-        else:
-            td = self._texture_3d_data()
-            t.reload_texture(td, now=True)
+        td = self._texture_3d_data()
+        self.volume_data = td
+        self.colormap_data = None
+        # Upload is lazy. OpenGL and Vulkan materialize their native texture
+        # on bind; WGPU consumes this same contiguous NumPy array directly.
+        t.reload_texture(td)
 
     def _texture_3d(self):
         # Create texture but do not fill in texture data values.
@@ -1180,10 +1268,7 @@ class VolumeRaycastDrawing(Drawing):
         lo = ir._rendering_options.linear_interpolation
         from chimerax.graphics import Texture
 
-        t = Texture(dimension=3, linear_interpolation=lo)
-        if isinstance(ir, BlendedImage):
-            t.initialize_rgba(ir._region_size)
-        return t
+        return Texture(dimension=3, linear_interpolation=lo)
 
     def _texture_3d_data(self):
         z_axis = 2
@@ -1200,32 +1285,6 @@ class VolumeRaycastDrawing(Drawing):
         for i in range(1, sz):
             td[i, :] = ir._color_plane(k0 + i * kstep, z_axis, color_3d=True)
         return td
-
-    def _fill_texture_blend(self, texture):
-        # Blend textures on GPU
-
-        # First make sure all source image textures are up to date.
-        ir = self._image_render
-        for si in ir.images:
-            si._texture_3d_planes()._update_coloring()
-
-        # Blend in each source texture to produce blended texture.
-        b = ir._session.main_view.render.blend
-        b.start_blending(self.texture)
-        for si in ir.images:
-            vap = si._planes_3d
-            modulation_color = [c / 255 for c in si._modulation_color]
-            if si._use_gpu_colormap:
-                b.blend3d(
-                    vap.texture,
-                    modulation_color,
-                    self.texture,
-                    vap.colormap,
-                    vap.colormap_range,
-                )
-            else:
-                b.blend3d(vap.texture, modulation_color, self.texture)
-        b.finish_blending()
 
     def set_shader_options(self, renderer):
         from chimerax.geometry import point_bounds
@@ -1306,10 +1365,20 @@ class PlanesDrawing(Drawing):
 
         ir = self._image_render
         if ir._rendering_options.colormap_on_gpu:
+            # Texture3dPlanes loses its density texture during a backend
+            # change. Texture2dPlanes has already repopulated multitexture in
+            # update_region(), so only refill when neither representation is
+            # present.
+            if self.texture is None and not self.multitexture:
+                self._fill_textures()
             self._update_colormap_texture()
         else:
             self._fill_textures()
         self._update_colors = False
+
+    def graphics_context_changed(self):
+        """Recreate backend-specific plane textures on the next draw."""
+        self._update_colors = True
 
     # ---------------------------------------------------------------------------
     #
@@ -1352,6 +1421,15 @@ class Texture2dPlanes(PlanesDrawing):
     def update_region(self):
         planes = self._set_planes(self._axis)
         self._update_textures(planes)
+
+    def graphics_context_changed(self):
+        # Drawing.release_graphics_resources() clears multitexture, but this
+        # class also keeps the same old-context Texture objects in _textures.
+        # Drop those references and rebuild both the plane list and textures
+        # lazily; no GPU deletion is valid after the old renderer is gone.
+        self._textures.clear()
+        self._update_region = True
+        self._update_colors = True
 
     def _set_planes(self, axis):
         ro = self._image_render._rendering_options
@@ -1653,7 +1731,8 @@ class Texture3dPlanes(PlanesDrawing):
         if t is None:
             self.texture = t = self._texture_3d()
 
-        if isinstance(self._image_render, BlendedImage):
+        if (isinstance(self._image_render, BlendedImage) and
+                self._image_render._use_gpu_blending):
             self._fill_texture_blend(t)
         else:
             td = self._texture_3d_data()
@@ -1817,6 +1896,10 @@ class BlendedImage(Image3d):
         self._update_position()
         Image3d.draw(self, renderer, draw_pass)
 
+    def materialize_volume_drawing(self):
+        self._update_position()
+        return Image3d.materialize_volume_drawing(self)
+
     def _update_position(self):
         p = self.images[0].scene_position
         if p != self.position:
@@ -1848,7 +1931,7 @@ class BlendedImage(Image3d):
             else:
                 if cmode == "rgba8":
                     blend_rgba(dp, p)
-                if cmode == "rgb8":
+                elif cmode == "rgb8":
                     blend_rgb_to_rgba(dp, p)
                 elif cmode == "la8":
                     blend_la_to_rgba(dp, ir._mod_rgba, p)
