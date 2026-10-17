@@ -19,16 +19,17 @@
 
 namespace {
 
-constexpr VkFormat kColorFormat = VK_FORMAT_R8G8B8A8_UNORM;
+constexpr VkFormat kColorFormat8 = VK_FORMAT_R8G8B8A8_UNORM;
+constexpr VkFormat kColorFormat16 = VK_FORMAT_R16G16B16A16_SFLOAT;
 constexpr VkFormat kDepthFormat = VK_FORMAT_D32_SFLOAT;
 
 // Build the render pass that the offscreen framebuffer's draws use.
 // The color attachment ends in TRANSFER_SRC_OPTIMAL so the readback copy
 // can happen without an extra layout transition.
-VkRenderPass create_offscreen_render_pass(VkDevice device) {
+VkRenderPass create_offscreen_render_pass(VkDevice device, VkFormat color_format) {
     VkAttachmentDescription attachments[2] = {};
 
-    attachments[0].format = kColorFormat;
+    attachments[0].format = color_format;
     attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
     attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -143,6 +144,8 @@ void destroy_offscreen(VulkanContext* ctx, OffscreenFramebuffer* fb) {
         vkDestroyImageView(ctx->device, fb->depth_view, nullptr);
     if (fb->depth_image != VK_NULL_HANDLE)
         vmaDestroyImage(ctx->allocator, fb->depth_image, fb->depth_alloc);
+    if (fb->color_texture.sampler != VK_NULL_HANDLE)
+        vkDestroySampler(ctx->device, fb->color_texture.sampler, nullptr);
     delete fb;
 }
 
@@ -159,10 +162,12 @@ PyObject* vulkan_create_offscreen_framebuffer(PyObject* self, PyObject* args, Py
     Py_ssize_t ctx_ptr;
     int width, height;
     int alpha = 0;
-    static const char* kwlist[] = {"context", "width", "height", "alpha", nullptr};
+    int color_bits = 8;
+    static const char* kwlist[] = {"context", "width", "height", "alpha",
+                                   "color_bits", nullptr};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("nii|i"), (char**)kwlist,
-            &ctx_ptr, &width, &height, &alpha))
+            const_cast<char*>("nii|ii"), (char**)kwlist,
+            &ctx_ptr, &width, &height, &alpha, &color_bits))
         return NULL;
 
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
@@ -176,10 +181,12 @@ PyObject* vulkan_create_offscreen_framebuffer(PyObject* self, PyObject* args, Py
     OffscreenFramebuffer* fb = new OffscreenFramebuffer{};
     fb->width = (uint32_t)width;
     fb->height = (uint32_t)height;
+    fb->color_format = color_bits == 16 ? kColorFormat16 : kColorFormat8;
     fb->alpha = (alpha != 0);
     fb->color_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+    fb->color_texture = {};
 
-    if (!create_image(ctx, fb->width, fb->height, kColorFormat,
+    if (!create_image(ctx, fb->width, fb->height, fb->color_format,
                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT |
                           VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                           VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -191,7 +198,9 @@ PyObject* vulkan_create_offscreen_framebuffer(PyObject* self, PyObject* args, Py
     }
 
     if (!create_image(ctx, fb->width, fb->height, kDepthFormat,
-                      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
+                          VK_IMAGE_USAGE_SAMPLED_BIT |
+                          VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                       VK_IMAGE_ASPECT_DEPTH_BIT,
                       &fb->depth_image, &fb->depth_alloc, &fb->depth_view)) {
         destroy_offscreen(ctx, fb);
@@ -199,7 +208,7 @@ PyObject* vulkan_create_offscreen_framebuffer(PyObject* self, PyObject* args, Py
         return NULL;
     }
 
-    fb->render_pass = create_offscreen_render_pass(ctx->device);
+    fb->render_pass = create_offscreen_render_pass(ctx->device, fb->color_format);
     if (fb->render_pass == VK_NULL_HANDLE) {
         destroy_offscreen(ctx, fb);
         PyErr_SetString(PyExc_RuntimeError, "Failed to create offscreen render pass");
@@ -221,8 +230,104 @@ PyObject* vulkan_create_offscreen_framebuffer(PyObject* self, PyObject* args, Py
         return NULL;
     }
 
+    VkSamplerCreateInfo sampler_info{};
+    sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    sampler_info.magFilter = VK_FILTER_LINEAR;
+    sampler_info.minFilter = VK_FILTER_LINEAR;
+    sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    sampler_info.maxLod = 1.0f;
+    if (vkCreateSampler(ctx->device, &sampler_info, nullptr,
+                        &fb->color_texture.sampler) != VK_SUCCESS) {
+        destroy_offscreen(ctx, fb);
+        PyErr_SetString(PyExc_RuntimeError,
+                        "Failed to create offscreen color sampler");
+        return NULL;
+    }
+    fb->color_texture.image = fb->color_image;
+    fb->color_texture.image_view = fb->color_view;
+    fb->color_texture.allocation = VK_NULL_HANDLE;
+    fb->color_texture.format = fb->color_format;
+    fb->color_texture.width = fb->width;
+    fb->color_texture.height = fb->height;
+    fb->color_texture.depth = 1;
+    fb->color_texture.dimension = 2;
+    fb->color_texture.current_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+
     ctx->live_offscreens.insert(fb);
     return PyLong_FromSsize_t(reinterpret_cast<Py_ssize_t>(fb));
+}
+
+extern "C"
+PyObject* vulkan_get_offscreen_texture(PyObject* self, PyObject* args,
+                                        PyObject* kwds) {
+    Py_ssize_t ctx_ptr, fb_ptr;
+    int prepare = 1;
+    static const char* kwlist[] = {"context", "framebuffer", "prepare", nullptr};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds,
+            const_cast<char*>("nn|p"), (char**)kwlist, &ctx_ptr, &fb_ptr, &prepare))
+        return NULL;
+    VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
+    OffscreenFramebuffer* fb = reinterpret_cast<OffscreenFramebuffer*>(fb_ptr);
+    if (!fb) {
+        PyErr_SetString(PyExc_ValueError, "framebuffer is null");
+        return NULL;
+    }
+    if (prepare && fb->color_layout != VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+        const bool record_in_frame = ctx->in_frame;
+        VkCommandBuffer command = VK_NULL_HANDLE;
+        if (record_in_frame) {
+            end_active_render_pass(ctx);
+            command = ctx->frames[ctx->current_frame].command_buffer;
+        } else {
+            VkCommandBufferAllocateInfo ai{};
+            ai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+            ai.commandPool = ctx->command_pool;
+            ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            ai.commandBufferCount = 1;
+            VkResult result = vkAllocateCommandBuffers(ctx->device, &ai, &command);
+            if (result != VK_SUCCESS) {
+                PyErr_SetString(PyExc_RuntimeError, "Could not allocate camera texture transition");
+                return NULL;
+            }
+            VkCommandBufferBeginInfo bi{};
+            bi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+            result = vkBeginCommandBuffer(command, &bi);
+            if (result != VK_SUCCESS) {
+                vkFreeCommandBuffers(ctx->device, ctx->command_pool, 1, &command);
+                PyErr_SetString(PyExc_RuntimeError, "Could not begin camera texture transition");
+                return NULL;
+            }
+        }
+        transition_image_layout(command, fb->color_image, fb->color_layout,
+                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                VK_IMAGE_ASPECT_COLOR_BIT);
+        if (!record_in_frame) {
+            VkResult result = vkEndCommandBuffer(command);
+            VkSubmitInfo submit{};
+            submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submit.commandBufferCount = 1;
+            submit.pCommandBuffers = &command;
+            if (result == VK_SUCCESS)
+                result = vkQueueSubmit(ctx->graphics_queue, 1, &submit, VK_NULL_HANDLE);
+            if (result == VK_SUCCESS) {
+                Py_BEGIN_ALLOW_THREADS
+                result = vkQueueWaitIdle(ctx->graphics_queue);
+                Py_END_ALLOW_THREADS
+            }
+            vkFreeCommandBuffers(ctx->device, ctx->command_pool, 1, &command);
+            if (result != VK_SUCCESS) {
+                PyErr_SetString(PyExc_RuntimeError, "Could not submit camera texture transition");
+                return NULL;
+            }
+        }
+        fb->color_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        fb->color_texture.current_layout = fb->color_layout;
+    }
+    return PyLong_FromSsize_t(
+        reinterpret_cast<Py_ssize_t>(&fb->color_texture));
 }
 
 extern "C"
@@ -239,16 +344,12 @@ PyObject* vulkan_destroy_offscreen_framebuffer(PyObject* self, PyObject* args, P
     if (ctx->live_offscreens.erase(fb) == 0)
         Py_RETURN_NONE;
 
-    // Make sure the GPU isn't still referencing this framebuffer before we
-    // tear it down. Image capture is a one-shot off the hot path, so the
-    // device-wide wait here is fine. Drain deferred deletes too: per-pass
-    // framebuffers recorded during the capture (offscreen load/clear
-    // variants, OIT) reference this target's color/depth views.
-    vkDeviceWaitIdle(ctx->device);
-    flush_all_pending_deletes(ctx);
+    // A device-idle wait does not protect commands still being recorded.
+    // Retire the attachments after this frame's temporary framebuffers,
+    // when its fence guarantees that both recorded and submitted uses ended.
     if (ctx->active_offscreen == fb)
         ctx->active_offscreen = nullptr;
-    destroy_offscreen(ctx, fb);
+    ctx->pending_deletes[deferred_delete_slot(ctx)].offscreens.push_back(fb);
     Py_RETURN_NONE;
 }
 
@@ -286,8 +387,8 @@ PyObject* vulkan_read_framebuffer(PyObject* self, PyObject* args, PyObject* kwds
         PyErr_SetString(PyExc_ValueError, "framebuffer is null");
         return NULL;
     }
-
-    Py_ssize_t needed = (Py_ssize_t)fb->width * (Py_ssize_t)fb->height * 4;
+    const int pixel_bytes = fb->color_format == kColorFormat16 ? 8 : 4;
+    Py_ssize_t needed = (Py_ssize_t)fb->width * (Py_ssize_t)fb->height * pixel_bytes;
     if (pybuf.len < needed) {
         PyBuffer_Release(&pybuf);
         PyErr_Format(PyExc_ValueError,
@@ -340,6 +441,7 @@ PyObject* vulkan_read_framebuffer(PyObject* self, PyObject* args, PyObject* kwds
                                 VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                                 VK_IMAGE_ASPECT_COLOR_BIT);
         fb->color_layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        fb->color_texture.current_layout = fb->color_layout;
     }
 
     VkBufferImageCopy region{};
@@ -366,23 +468,169 @@ PyObject* vulkan_read_framebuffer(PyObject* self, PyObject* args, PyObject* kwds
     vkQueueWaitIdle(ctx->graphics_queue);
 
     // HOST_ACCESS_RANDOM steers VMA toward cached memory, which may be
-    // non-coherent; invalidate so the CPU reads the GPU's writes rather
-    // than stale cache lines. No-op on coherent memory.
-    vmaInvalidateAllocation(ctx->allocator, stagingAlloc, 0, VK_WHOLE_SIZE);
-
-    // Map (already mapped via VMA flag) and copy out.
-    if (sinfo.pMappedData) {
-        memcpy(pybuf.buf, sinfo.pMappedData, needed);
-    } else {
-        void* mapped = nullptr;
-        vmaMapMemory(ctx->allocator, stagingAlloc, &mapped);
-        memcpy(pybuf.buf, mapped, needed);
-        vmaUnmapMemory(ctx->allocator, stagingAlloc);
+    // non-coherent. Memory must be mapped before invalidation.
+    void* mapped = sinfo.pMappedData;
+    const bool mapped_here = mapped == nullptr;
+    if (mapped_here &&
+        vmaMapMemory(ctx->allocator, stagingAlloc, &mapped) != VK_SUCCESS) {
+        vkFreeCommandBuffers(ctx->device, ctx->command_pool, 1, &cmd);
+        vmaDestroyBuffer(ctx->allocator, staging, stagingAlloc);
+        PyBuffer_Release(&pybuf);
+        PyErr_SetString(PyExc_RuntimeError,
+                        "Failed to map framebuffer readback buffer");
+        return NULL;
     }
+    vmaInvalidateAllocation(ctx->allocator, stagingAlloc, 0, VK_WHOLE_SIZE);
+    memcpy(pybuf.buf, mapped, needed);
+    if (mapped_here)
+        vmaUnmapMemory(ctx->allocator, stagingAlloc);
 
     vkFreeCommandBuffers(ctx->device, ctx->command_pool, 1, &cmd);
     vmaDestroyBuffer(ctx->allocator, staging, stagingAlloc);
     PyBuffer_Release(&pybuf);
 
+    Py_RETURN_NONE;
+}
+
+// Read the snapshot copied immediately before the most recent presentation.
+// OpenXR owns its swapchain images. Copy an owned, completed eye target into
+// the acquired image, leaving it in the layout required by xrReleaseSwapchainImage.
+extern "C"
+PyObject* vulkan_copy_framebuffer_to_image(PyObject* self, PyObject* args, PyObject* kwds) {
+    Py_ssize_t ctx_ptr, fb_ptr;
+    unsigned long long image_handle;
+    int format;
+    static const char* kwlist[] = {"context", "framebuffer", "image", "format", nullptr};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "nnKi", (char**)kwlist,
+                                     &ctx_ptr, &fb_ptr, &image_handle, &format))
+        return NULL;
+    VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
+    OffscreenFramebuffer* fb = reinterpret_cast<OffscreenFramebuffer*>(fb_ptr);
+    if (!fb || !ctx->live_offscreens.count(fb) || !image_handle || ctx->in_frame) {
+        PyErr_SetString(PyExc_ValueError, "Complete the eye frame before copying to OpenXR");
+        return NULL;
+    }
+    // A raw compatible-format copy preserves ChimeraX's gamma-encoded
+    // colors. Vulkan rendering directly into an sRGB target would encode
+    // them twice; the XR compositor performs the required sRGB decode.
+    if (fb->color_format != VK_FORMAT_R8G8B8A8_UNORM ||
+            format != VK_FORMAT_R8G8B8A8_SRGB) {
+        PyErr_SetString(PyExc_ValueError, "OpenXR eye copy requires RGBA8 to sRGB RGBA8");
+        return NULL;
+    }
+    VkCommandBufferAllocateInfo ai{};
+    ai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    ai.commandPool = ctx->command_pool;
+    ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    ai.commandBufferCount = 1;
+    VkCommandBuffer command;
+    VkResult result = vkAllocateCommandBuffers(ctx->device, &ai, &command);
+    if (result != VK_SUCCESS) {
+        PyErr_SetString(PyExc_RuntimeError, "Could not allocate OpenXR copy commands");
+        return NULL;
+    }
+    VkCommandBufferBeginInfo bi{};
+    bi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    bi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    result = vkBeginCommandBuffer(command, &bi);
+    if (result == VK_SUCCESS) {
+        VkImage image = (VkImage)(uintptr_t)image_handle;
+        transition_image_layout(command, fb->color_image, fb->color_layout,
+            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+        transition_image_layout(command, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+        VkImageCopy region{};
+        region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.srcSubresource.layerCount = 1;
+        region.dstSubresource = region.srcSubresource;
+        region.extent = {fb->width, fb->height, 1};
+        vkCmdCopyImage(command, fb->color_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                       image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+        transition_image_layout(command, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+        result = vkEndCommandBuffer(command);
+    }
+    if (result == VK_SUCCESS) {
+        VkSubmitInfo submit{};
+        submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit.commandBufferCount = 1;
+        submit.pCommandBuffers = &command;
+        result = vkQueueSubmit(ctx->graphics_queue, 1, &submit, VK_NULL_HANDLE);
+        if (result == VK_SUCCESS) {
+            Py_BEGIN_ALLOW_THREADS
+            result = vkQueueWaitIdle(ctx->graphics_queue);
+            Py_END_ALLOW_THREADS
+        }
+    }
+    vkFreeCommandBuffers(ctx->device, ctx->command_pool, 1, &command);
+    if (result != VK_SUCCESS) {
+        PyErr_Format(PyExc_RuntimeError, "OpenXR eye copy failed (VkResult %d)", (int)result);
+        return NULL;
+    }
+    fb->color_layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    fb->color_texture.current_layout = fb->color_layout;
+    Py_RETURN_NONE;
+}
+
+// Read the snapshot copied immediately before the most recent presentation.
+// A presented swapchain image is owned by the presentation engine and cannot
+// legally be transitioned for a direct copy until it is acquired again.
+extern "C"
+PyObject* vulkan_read_screen(PyObject* self, PyObject* args, PyObject* kwds) {
+    Py_ssize_t ctx_ptr;
+    Py_buffer pybuf;
+    static const char* kwlist[] = {"context", "data", nullptr};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds,
+            const_cast<char*>("nw*"), (char**)kwlist, &ctx_ptr, &pybuf))
+        return NULL;
+
+    VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
+    const uint32_t index = ctx->last_presented_image_index;
+    const uint32_t width = ctx->swapchain_extent.width;
+    const uint32_t height = ctx->swapchain_extent.height;
+    const Py_ssize_t needed =
+        (Py_ssize_t)width * (Py_ssize_t)height * 4;
+    if (index >= ctx->screen_readback_buffers.size() ||
+        index >= ctx->screen_readback_allocations.size() ||
+        index >= ctx->swapchain_image_used.size() ||
+        !ctx->swapchain_image_used[index] || pybuf.len < needed) {
+        PyBuffer_Release(&pybuf);
+        PyErr_SetString(PyExc_ValueError, "No readable Vulkan screen image");
+        return NULL;
+    }
+
+    // Finish the copy recorded by end_frame.  The current frame, if one is
+    // being recorded, has not been submitted and therefore cannot deadlock
+    // this wait.
+    vkQueueWaitIdle(ctx->graphics_queue);
+    VmaAllocation allocation = ctx->screen_readback_allocations[index];
+    void* mapped = nullptr;
+    if (vmaMapMemory(ctx->allocator, allocation, &mapped) != VK_SUCCESS) {
+        PyBuffer_Release(&pybuf);
+        PyErr_SetString(PyExc_RuntimeError,
+                        "Failed to map Vulkan screen snapshot");
+        return NULL;
+    }
+    vmaInvalidateAllocation(ctx->allocator, allocation, 0, VK_WHOLE_SIZE);
+    // Preserve the renderer API's RGBA contract.  The preferred and fallback
+    // swapchain formats are BGRA8, but handle an implementation-selected
+    // RGBA8 format as well.
+    const unsigned char* source = static_cast<const unsigned char*>(mapped);
+    unsigned char* destination = static_cast<unsigned char*>(pybuf.buf);
+    const bool bgra =
+        ctx->swapchain_format == VK_FORMAT_B8G8R8A8_UNORM ||
+        ctx->swapchain_format == VK_FORMAT_B8G8R8A8_SRGB;
+    if (bgra) {
+        for (Py_ssize_t p = 0; p < needed; p += 4) {
+            destination[p] = source[p + 2];
+            destination[p + 1] = source[p + 1];
+            destination[p + 2] = source[p];
+            destination[p + 3] = source[p + 3];
+        }
+    } else {
+        memcpy(destination, source, needed);
+    }
+    vmaUnmapMemory(ctx->allocator, allocation);
+    PyBuffer_Release(&pybuf);
     Py_RETURN_NONE;
 }

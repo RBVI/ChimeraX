@@ -28,6 +28,16 @@ View
 """
 
 
+def _draw_until_rendering_complete(draw, renderer, *, wait_for_rendering=False):
+    """Draw once, or until a progressive renderer has finished the image."""
+    draw()
+    while (
+        wait_for_rendering
+        and not getattr(renderer, "_pathtrace_accumulation_complete", True)
+    ):
+        draw()
+
+
 class View:
     """
     A View is the graphics windows that shows 3-dimensional drawings.
@@ -39,6 +49,7 @@ class View:
         self.drawing = drawing
         self.window_size = window_size  # pixels
         self._render = None
+        self._render_endpoint = None
         self._opengl_initialized = False
 
         self.set_default_parameters()
@@ -101,10 +112,14 @@ class View:
         self._center_of_rotation_method = "front center"
 
     def delete(self):
-        r = self._render
-        if r:
-            r.delete()
-            self._render = None
+        endpoint = self._render_endpoint
+        if endpoint is not None:
+            endpoint.close()
+        else:
+            r = self._render
+            if r:
+                r.delete()
+                self._render = None
 
     def release_graphics_context(self):
         '''
@@ -116,6 +131,7 @@ class View:
         '''
         r = self._render
         rg = getattr(self, "_render_graph", None)
+        self.camera.release_graphics_resources()
         if rg is not None:
             # Resource pool textures were allocated against the outgoing
             # backend; delete them while the old context is still alive so
@@ -138,12 +154,19 @@ class View:
             # _draw_scene rebuilds the graph only when the attribute is
             # missing (hasattr check), so delete rather than nil.
             del self._render_graph
-        if r is not None:
+        endpoint = self._render_endpoint
+        if endpoint is not None:
+            try:
+                endpoint.close()
+            except Exception:
+                pass
+        elif r is not None:
             try:
                 r.delete()
             except Exception:
                 pass
-        self._render = None
+            self._render = None
+        self._render_endpoint = None
         self._opengl_initialized = False
         # Force the next Render to (re)create its lighting UBO; without this
         # activate_lighting() binds a None buffer id.
@@ -155,24 +178,43 @@ class View:
     def render(self):
         return self._render
 
+    @property
+    def render_endpoint(self):
+        return self._render_endpoint
+
+    def attach_render_endpoint(self, endpoint):
+        """Attach one RAL endpoint to this view."""
+
+        if self._render is not None and self._render is not endpoint.renderer:
+            raise ValueError("Graphics renderer is already set")
+        self._render_endpoint = endpoint
+        self._render = r = endpoint.renderer
+        r.lighting = self._lighting
+        r.material = self._material
+        r.silhouette = self._silhouette
+        self.camera.set_special_render_modes(r)
+        pscale = endpoint.device.context.pixel_scale()
+        self.silhouette.thickness = pscale
+        self.highlight_thickness = pscale
+        self._opengl_initialized = False
+        self.redraw_needed = True
+
     def initialize_rendering(self, graphics_context):
         r = self._render
         if r is None:
-            # Select renderer based on context type
-            if hasattr(graphics_context, "_vulkan"):
-                from .vulkan import VulkanRender
+            from .ral import GraphicsDevice, backend_registry
 
-                self._render = r = VulkanRender(graphics_context)
-            else:
-                from .opengl import Render
-
-                self._render = r = Render(graphics_context)
-            r.lighting = self._lighting
-            r.material = self._material
-            r.silhouette = self._silhouette
-            pscale = graphics_context.pixel_scale()
-            self.silhouette.thickness = pscale
-            self.highlight_thickness = pscale
+            device = getattr(graphics_context, "graphics_device", None)
+            if device is None:
+                backend_name = getattr(graphics_context, "backend_name", "opengl")
+                backend = backend_registry.get(backend_name)
+                device = GraphicsDevice(backend, graphics_context)
+                graphics_context.graphics_device = device
+                graphics_context.backend_name = backend.name
+            window = getattr(graphics_context, "window", None)
+            if window is None:
+                raise ValueError("Graphics context has no presentation window")
+            device.create_endpoint(self, window)
         elif hasattr(r, "opengl_context") and graphics_context is r.opengl_context:
             # OpenGL context switched between stereo and mono mode
             self._opengl_initialized = False
@@ -184,7 +226,8 @@ class View:
             raise RuntimeError("running without graphics")
         if not self._render.make_current():
             return False
-        self._initialize_opengl()
+        if not hasattr(self._render, "draw_view"):
+            self._initialize_opengl()
         return True
 
     def _initialize_opengl(self):
@@ -216,9 +259,29 @@ class View:
     def draw(
         self, camera=None, drawings=None, check_for_changes=True, swap_buffers=True
     ):
+        endpoint = self._render_endpoint
+        if endpoint is not None:
+            from .ral import using_graphics_device
+
+            with using_graphics_device(endpoint.device):
+                return self._draw_with_renderer(
+                    camera, drawings, check_for_changes, swap_buffers
+                )
+        return self._draw_with_renderer(
+            camera, drawings, check_for_changes, swap_buffers
+        )
+
+    def _draw_with_renderer(
+        self, camera=None, drawings=None, check_for_changes=True, swap_buffers=True
+    ):
         """
         Draw the scene.
         """
+        draw_view = getattr(self._render, "draw_view", None)
+        if draw_view is not None:
+            return draw_view(
+                self, camera, drawings, check_for_changes, swap_buffers
+            )
         if not self._use_opengl():
             return  # OpenGL not available
 
@@ -246,6 +309,8 @@ class View:
             r.update_lighting_parameters()
         r.activate_lighting()
 
+        completed = False
+        target_depth = len(getattr(r, '_framebuffer_stack', ()))
         try:
             self._draw_scene(camera, drawings)
 
@@ -274,10 +339,19 @@ class View:
 
             if use_calllist:
                 gllist.call_opengl_list(self, trace=True)
+            completed = True
         finally:
             # Finish the active renderer frame even on exception
-            if hasattr(r, "end_frame"):
-                r.end_frame()
+            try:
+                if hasattr(r, "end_frame"):
+                    r.end_frame()
+            finally:
+                if not completed:
+                    try:
+                        camera.abort_rendering(r)
+                    finally:
+                        while len(getattr(r, '_framebuffer_stack', ())) > target_depth:
+                            r.pop_framebuffer()
 
         if swap_buffers:
             if camera.do_swap_buffers():
@@ -288,6 +362,10 @@ class View:
 
     def _draw_scene(self, camera, drawings):
         r = self._render
+        # Progressive passes set this back to false when another refinement
+        # draw is needed. Starting at true makes empty scenes and renderers
+        # without progressive passes complete immediately.
+        r._pathtrace_accumulation_complete = True
         self.clip_planes.enable_clip_plane_graphics(r, camera.position)
         mdraw = [self.drawing] if drawings is None else drawings
         (opaque, transparent, highlight, on_top) = self._drawings_by_pass(mdraw)
@@ -372,6 +450,9 @@ class View:
         cp = self.clip_planes
         dm = self._drawing_manager
         draw = self.redraw_needed or c.redraw_needed or cp.changed or dm.redraw_needed
+        # Scene-compiling backends consume this after clear_changes() has
+        # reset the Drawing manager during the update-loop preflight.
+        self._drawing_changed = dm.redraw_needed
         self._cam_only_change = c.redraw_needed and not (
             self.redraw_needed or cp.changed or dm.redraw_needed or self.update_lighting
         )
@@ -408,7 +489,14 @@ class View:
         if not self._use_opengl():
             return  # OpenGL not available
         r = self._render
-        if not hasattr(r, "draw_front_buffer"):
+        from .ral import GraphicsFeature
+        capabilities = getattr(r, "capabilities", None)
+        front_buffer = (
+            capabilities.supports(GraphicsFeature.FRONT_BUFFER_XOR)
+            if capabilities is not None
+            else hasattr(r, "draw_front_buffer")
+        )
+        if not front_buffer:
             # No front buffer to XOR into (explicit renderers).
             # Callers XOR their color with the background expecting
             # framebuffer XOR compositing, so XOR with the background
@@ -563,12 +651,19 @@ class View:
         transparent_background=False,
         camera=None,
         drawings=None,
+        wait_for_rendering=False,
     ):
         """Capture an image of the current scene. A PIL image is returned."""
 
-        rgba = self.image_rgba(width=width, height=height, supersample=supersample,
-                               transparent_background=transparent_background,
-                               camera=camera, drawings=drawings)
+        rgba = self.image_rgba(
+            width=width,
+            height=height,
+            supersample=supersample,
+            transparent_background=transparent_background,
+            camera=camera,
+            drawings=drawings,
+            wait_for_rendering=wait_for_rendering,
+        )
         return image_from_rgba(rgba, transparent_background)
 
     def image_rgba(
@@ -579,9 +674,12 @@ class View:
         transparent_background=False,
         camera=None,
         drawings=None,
+        wait_for_rendering=False,
     ):
         """
         Capture an image of the current scene.
+        If *wait_for_rendering* is true, progressive render passes are allowed
+        to reach their configured completion point before pixels are read.
         A numpy uint8 rgba array is returned.
         """
 
@@ -626,30 +724,40 @@ class View:
         # to adjust sizes of rendered objects with sizes in pixels to preserve
         # the on-screen sizes.  This is used for 2d label sizing.
         r.image_save = True
-            
-        if supersample is None or supersample == 1:
-            self.draw(c, drawings, swap_buffers = False)
-            rgba = r.frame_buffer_image(w, h)
-        else:
-            from numpy import zeros, float32, uint8
 
-            srgba = zeros((h, w, 4), float32)
-            n = supersample
-            s = 1.0 / n
-            s0 = -0.5 + 0.5 * s
-            for i in range(n):
-                for j in range(n):
-                    c.set_fixed_pixel_shift((s0 + i * s, s0 + j * s))
-                    self.draw(c, drawings, swap_buffers=False)
-                    srgba += r.frame_buffer_image(w, h)
-            c.set_fixed_pixel_shift((0, 0))
-            srgba /= n * n
-            # third index 0, 1, 2, 3 is r, g, b, a
-            rgba = srgba.astype(uint8)
-        r.pop_framebuffer()
-        fb.delete()
+        def draw_image():
+            self.draw(c, drawings, swap_buffers=False)
 
-        delattr(r, "image_save")
+        try:
+            if supersample is None or supersample == 1:
+                _draw_until_rendering_complete(
+                    draw_image, r, wait_for_rendering=wait_for_rendering
+                )
+                rgba = r.frame_buffer_image(w, h)
+            else:
+                from numpy import zeros, float32, uint8
+
+                srgba = zeros((h, w, 4), float32)
+                n = supersample
+                s = 1.0 / n
+                s0 = -0.5 + 0.5 * s
+                for i in range(n):
+                    for j in range(n):
+                        c.set_fixed_pixel_shift((s0 + i * s, s0 + j * s))
+                        _draw_until_rendering_complete(
+                            draw_image, r, wait_for_rendering=wait_for_rendering
+                        )
+                        srgba += r.frame_buffer_image(w, h)
+                c.set_fixed_pixel_shift((0, 0))
+                srgba /= n * n
+                # third index 0, 1, 2, 3 is r, g, b, a
+                rgba = srgba.astype(uint8)
+        finally:
+            if supersample is not None:
+                c.set_fixed_pixel_shift((0, 0))
+            r.pop_framebuffer()
+            fb.delete()
+            delattr(r, "image_save")
 
         return rgba
 

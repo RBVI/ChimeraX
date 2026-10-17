@@ -49,6 +49,8 @@ layout(constant_id = 15) const bool USE_OPAQUE_ONLY = false;
 layout(constant_id = 16) const bool USE_TEXTURE_3D_AMBIENT = false;
 layout(constant_id = 17) const bool USE_DEPTH_PREPASS = false;
 layout(constant_id = 19) const bool USE_OIT = false;
+layout(constant_id = 20) const bool USE_ALPHA_DEPTH = false;
+layout(constant_id = 21) const bool USE_DEPTH_TEXTURE = false;
 
 // ---------------------------------------------------------------------------
 //  Inputs from vertex shader.
@@ -92,6 +94,7 @@ layout(set = 1, binding = 3) uniform sampler2DShadow shadow_map;
 layout(set = 1, binding = 4) uniform sampler2DShadow multishadow_map;
 layout(set = 1, binding = 5) uniform sampler3D      ambient_tex3d;
 layout(set = 1, binding = 6) uniform sampler1D      colormap_tex;
+layout(set = 1, binding = 7) uniform sampler2D      depth_tex2d;
 
 // Poisson disk for shadow PCF (16 taps).
 const vec2 poisson[16] = vec2[16](
@@ -106,6 +109,17 @@ const vec2 poisson[16] = vec2[16](
 );
 
 void main() {
+    // Any gl_FragDepth write in the compiled shader disables early depth
+    // rejection, so hidden surface fragments get fully lit before the depth
+    // test discards them.  Only the alpha-depth and depth-texture variants
+    // need custom depth; vulkan.py compiles them from this source with
+    // CUSTOM_FRAG_DEPTH defined.  Every path in that build must write
+    // gl_FragDepth or its depth is undefined (observed as ribbons passing
+    // in front of opaque atom impostors), so default to rasterized depth.
+#ifdef CUSTOM_FRAG_DEPTH
+    gl_FragDepth = gl_FragCoord.z;
+#endif
+
     // Clip-plane discard.
     if (USE_CLIP_PLANES) {
         for (int i = 0; i < u.num_clip_planes; ++i) {
@@ -148,6 +162,22 @@ void main() {
     if (USE_OPAQUE_ONLY && fcolor.a < 0.99)
         discard;
 
+#ifdef CUSTOM_FRAG_DEPTH
+    if (USE_DEPTH_TEXTURE) {
+        vec2 scale = u.depth_texture_params.xy;
+        vec2 depth_uv = vec2(0.5) + scale * (frag_tex_coord_2d - vec2(0.5));
+        float zt = texture(depth_tex2d, depth_uv).r;
+        if (zt == 0.0)
+            zt = 1.0;
+        float znear = u.depth_texture_projection.x;
+        float zs = max(znear, zt * u.depth_texture_params.z);
+        gl_FragDepth = min(0.99999,
+            u.depth_texture_projection.y * (zs - znear) / zs);
+    }
+    if (USE_ALPHA_DEPTH)
+        gl_FragDepth = 0.99999 * fcolor.a;
+#endif
+
     // ---- Lighting ---------------------------------------------------------
     vec3 Ifrag;
     if (USE_LIGHTING) {
@@ -156,6 +186,11 @@ void main() {
         float key_factor, fill_factor, specular_factor;
 
         if (USE_LIGHTING_NORMALS) {
+            // Match OpenGL's two-sided lighting: the triangle winding chooses
+            // the side, not the interpolated normal.  Near a silhouette a
+            // smooth vertex normal can point away from the eye on a
+            // front-facing triangle; faceforward() would incorrectly flip
+            // those fragments and create a lighting seam within the face.
             N1 = normalize(frag_N) * (gl_FrontFacing ? 1.0 : -1.0);
             v1 = normalize(frag_v);
             key_factor = max(-dot(N1, lighting.key_light_direction.xyz), 0.0);

@@ -220,6 +220,8 @@ class OffscreenStartPass(RenderPass):
         return ctx.offscreen is not None
 
     def execute(self, ctx):
+        if ctx.view_num == 0 and getattr(ctx, "offscreen_started", False):
+            return
         ctx.offscreen.start(ctx.renderer)
 
 
@@ -498,6 +500,7 @@ class RTAOPass(RenderPass):
             hasattr(r, "supports_ray_tracing")
             and r.supports_ray_tracing()
             and getattr(r.lighting, "rtao", 0) > 0
+            and ctx.camera.number_of_views() == 1
         )
 
     def execute(self, ctx):
@@ -656,6 +659,11 @@ class PathTracePass(RenderPass):
             hasattr(r, "supports_ray_tracing")
             and r.supports_ray_tracing()
             and r.lighting.pathtrace
+            # Progressive accumulation currently owns one history for the
+            # whole pass. Multi-view cameras need an independent history and
+            # output set for every eye/cube face; sharing it corrupts GPU
+            # synchronization and can lose the Vulkan device.
+            and ctx.camera.number_of_views() == 1
         )
 
     def execute(self, ctx):
@@ -856,7 +864,14 @@ class PathTracePass(RenderPass):
         r.draw_pt_blit(denoise_tex if denoise_tex is not None else color_tex)
 
         # Keep accumulating.
-        max_accum = int(lp.pt_max_accum)
+        configured_accum = max(int(lp.pt_max_accum), 1)
+        recording_accum = getattr(
+            r, "_pathtrace_recording_max_accum", configured_accum
+        )
+        max_accum = min(configured_accum, max(int(recording_accum), 1))
+        r._pathtrace_accumulation_count = self._accum_count
+        r._pathtrace_accumulation_target = max_accum
+        r._pathtrace_accumulation_complete = self._accum_count >= max_accum
         if self._accum_count < max_accum:
             ctx.view._drawing_manager.redraw_needed = True
 
@@ -1070,6 +1085,7 @@ class PathTracePass(RenderPass):
             # when it changes.
             import numpy as np
             colormap_handle = None
+            colormap_key = None
             cmap_off, cmap_inv = 0.0, 1.0
             cmap_data, crange = vol._image_render._color_table(vol._axis)
             if cmap_data is not None:
@@ -1077,6 +1093,7 @@ class PathTracePass(RenderPass):
                 if arr.ndim == 2:                       # (N, C) -> (1, N, C)
                     arr = arr.reshape(1, arr.shape[0], arr.shape[1])
                 key = (arr.shape, arr.dtype.str, arr.tobytes())
+                colormap_key = key
                 if self._pt_cmap_key != key:
                     from chimerax.graphics import Texture
                     if self._pt_colormap_tex is not None:
@@ -1118,7 +1135,7 @@ class PathTracePass(RenderPass):
         container = getattr(vol, "parent", None)
         suppress = frozenset(id(x) for x in (vol, container) if x is not None)
         vol_key = (suppress, bbox_min, bbox_max, region_min, region_max,
-                   colormap_handle is not None,
+                   colormap_key,
                    round(cmap_off, 6), round(cmap_inv, 6),
                    float(lp.pt_volume_density), float(lp.pt_volume_g))
         return vol_kwargs, vol_key

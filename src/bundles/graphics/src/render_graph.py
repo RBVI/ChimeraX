@@ -62,7 +62,7 @@ class PassContext:
         'highlight_drawings', 'on_top_drawings',
         'shadow_enabled', 'multishadow_enabled',
         # Subsystem state detected once, used by multiple passes.
-        'offscreen', 'silhouette',
+        'offscreen', 'offscreen_started', 'silhouette',
         # Persistent resource pool (lives on the RenderGraph).
         'resources',
     )
@@ -86,6 +86,7 @@ class PassContext:
 
         # Resolved once per frame in RenderGraph.execute().
         self.offscreen = None
+        self.offscreen_started = False
         self.silhouette = None
 
         # Set by RenderGraph.execute() — reference to graph.resources.
@@ -156,7 +157,36 @@ class RenderGraph:
     def execute(self, ctx):
         """Run all passes for one frame."""
         ctx.resources = self.resources
+
+        camera = ctx.camera
+        r = ctx.renderer
+
+        # A Vulkan submission's presentation mode is fixed at begin_frame.
+        # Select every camera's first target before shadows can open it.
+        first_target_prepared = getattr(r, "backend_name", None) == "vulkan"
+        if first_target_prepared:
+            camera.set_render_target(0, r)
+            # Room-camera and other framebuffer textures must transition
+            # before a render pass starts; a transition during texture bind
+            # would end the pass in the middle of drawing the scene.
+            textures = {}
+            for drawings in (ctx.opaque_drawings, ctx.transparent_drawings,
+                             ctx.highlight_drawings, ctx.on_top_drawings):
+                for drawing in drawings:
+                    texture = getattr(drawing, 'texture', None)
+                    if getattr(texture, '_external', False):
+                        textures[id(texture)] = texture
+            for texture in textures.values():
+                texture.prepare_for_sampling()
+
+        # Resolve optional render targets after selecting cube face zero.
+        # In particular, this prevents the high-precision scene target from
+        # being mistaken for a screen target and nested around a cube face.
         self._resolve_subsystems(ctx)
+        ctx.offscreen_started = False
+        if first_target_prepared and ctx.offscreen is not None and not ctx.no_drawings:
+            ctx.offscreen.start(r)
+            ctx.offscreen_started = True
 
         # Pre-view passes (shadow maps).
         for p in self._pre_view_passes:
@@ -164,11 +194,10 @@ class RenderGraph:
                 p.execute(ctx)
 
         # Per-view passes.
-        camera = ctx.camera
-        r = ctx.renderer
         for vnum in range(camera.number_of_views()):
             ctx.view_num = vnum
-            camera.set_render_target(vnum, r)
+            if not (first_target_prepared and vnum == 0):
+                camera.set_render_target(vnum, r)
 
             if ctx.no_drawings:
                 camera.draw_background(vnum, r)
@@ -190,7 +219,7 @@ class RenderGraph:
             offscreen = None
         ctx.offscreen = offscreen
 
-        if hasattr(r, '_texture_window'):
+        if getattr(r, "backend_name", "opengl") == "opengl":
             # OpenGL: the view's Silhouette object both holds the
             # parameters and implements the drawing.
             silhouette = ctx.view.silhouette

@@ -22,12 +22,28 @@ class CubeMapCamera(Camera):
         self._cube_face_size = cube_face_size	# Pixels
         self._view_rotations = _cube_map_face_views()   # Camera views for cube faces
         self._drawing = None	# CubeMapProjectionDrawing of that renders cube map texture
+        self._vulkan_framebuffers = None
+        self._vulkan_drawing = None
 
     def delete(self):
         fb = self._framebuffer
         if fb:
             fb.delete(make_current = True)
             self._framebuffer = None
+        if self._vulkan_framebuffers:
+            for vfb in self._vulkan_framebuffers:
+                vfb.delete()
+            self._vulkan_framebuffers = None
+        if self._vulkan_drawing:
+            self._vulkan_drawing.delete()
+            self._vulkan_drawing = None
+
+    def release_graphics_resources(self):
+        self.delete()
+        if self._drawing is not None:
+            self._drawing.texture = None
+            self._drawing.delete()
+            self._drawing = None
             
     def view(self, camera_position, view_num):
         '''
@@ -63,6 +79,10 @@ class CubeMapCamera(Camera):
 
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
+        if hasattr(render, '_vulkan'):
+            self._set_vulkan_face_target(view_num, render, 6)
+            _adjust_light_directions(render, self._view_rotations[view_num])
+            return
         fb = self._cube_face_framebuffer(render.opengl_context)
         if view_num == 0:
             render.push_framebuffer(fb)
@@ -72,6 +92,11 @@ class CubeMapCamera(Camera):
     def combine_rendered_camera_views(self, render):
         '''Render the cube map using a projection.'''
         _adjust_light_directions(render)	# Restore light directions
+        if hasattr(render, '_vulkan'):
+            render.end_frame()  # Submit the final cube face.
+            render.pop_framebuffer()
+            self._project_vulkan_targets(render)
+            return
         render.pop_framebuffer()	        # Pop the cube face framebuffer.
         cubemap = self._cube_face_framebuffer(render.opengl_context).color_texture
         proj = self._projection_drawing(render.render_size())
@@ -92,6 +117,86 @@ class CubeMapCamera(Camera):
         if fb is None:
             self._framebuffer = fb = _cube_map_framebuffer(opengl_context, self._cube_face_size)
         return fb
+
+    def _vulkan_cube_face_framebuffers(self, render, count):
+        framebuffers = self._vulkan_framebuffers
+        size = self._cube_face_size
+        bits = getattr(getattr(render, '_context', None), '_framebuffer_color_bits', 8)
+        if (framebuffers is None or len(framebuffers) != count or
+                any((fb.width, fb.height) != (size, size)
+                    or getattr(fb, '_deleted', False)
+                    or getattr(fb, '_render', render) is not render
+                    or getattr(fb, 'color_bits', bits) != bits
+                    for fb in framebuffers)):
+            if framebuffers:
+                for fb in framebuffers:
+                    fb.delete()
+            framebuffers = []
+            try:
+                for face in range(count):
+                    fb = render.create_framebuffer(
+                        'cube face %d' % face, size, size, alpha=False)
+                    framebuffers.append(fb)
+                    if not fb.activate():
+                        raise RuntimeError('Could not create Vulkan cube-face framebuffer')
+            except Exception:
+                for fb in framebuffers:
+                    fb.delete()
+                self._vulkan_framebuffers = None
+                raise
+            self._vulkan_framebuffers = framebuffers
+        return framebuffers
+
+    def _set_vulkan_face_target(self, view_num, render, count):
+        """Finish one Vulkan submission before starting the next cube face."""
+        framebuffers = self._vulkan_cube_face_framebuffers(render, count)
+        if view_num > 0:
+            # A cube face is a complete offscreen image.  Submitting each face
+            # independently prevents render/RT resources from six or twelve
+            # view matrices sharing one Vulkan frame and one fence.
+            render.end_frame()
+            render.pop_framebuffer()
+        render.push_framebuffer(framebuffers[view_num])
+
+    def _project_vulkan_targets(self, render, layout=None):
+        """Project directly from GPU face images, including 16-bit targets."""
+        textures = [fb.color_texture for fb in self._vulkan_framebuffers]
+        for texture in textures:
+            texture.prepare_for_sampling()
+        render.draw_background()
+        width, height = render.render_size()
+        if layout == 'top-bottom':
+            split = max(1, height // 2)
+            viewports = [(0, 0, width, split), (0, split, width, height - split)]
+        elif layout == 'side-by-side':
+            split = max(1, width // 2)
+            viewports = [(0, 0, split, height), (split, 0, width - split, height)]
+        else:
+            viewports = [(0, 0, width, height)]
+        from numpy import array, float32
+        try:
+            for eye, (x, y, w, h) in enumerate(viewports):
+                if w <= 0 or h <= 0:
+                    continue
+                render.set_viewport(x, y, w, h)
+                parameters = array([
+                    float(isinstance(self, DomeCamera)), max(1, w / h),
+                    max(1, h / w), 0, *render._background_color], dtype=float32)
+                render.draw_fullscreen_quad_textures(
+                    [t._handle for t in textures[6*eye:6*eye+6]],
+                    'cube_project', 'main', 'main', parameters, has_depth=True)
+        finally:
+            render.full_viewport()
+
+    def _draw_vulkan_projection(self, rgba, render):
+        from .drawing import rgba_drawing, draw_overlays
+        drawing = self._vulkan_drawing
+        if drawing is None:
+            from . import Drawing
+            self._vulkan_drawing = drawing = Drawing('Vulkan cube projection')
+        rgba_drawing(drawing, rgba, (-1, -1), (2, 2))
+        drawing.opaque_texture = True
+        draw_overlays([drawing], render)
 
     def view_width(self, point):
         return view_width_360(point, self.position.origin())
@@ -138,6 +243,86 @@ def _equirectangular_direction(x, y):
     ct, st = cos(theta), sin(theta)
     cp, sp = cos(phi), sin(phi)
     return (st*sp,cp,-ct*sp)
+
+
+def _project_vulkan_cube_faces(faces, width, height, camera,
+                               background=(0, 0, 0, 1)):
+    """Project six ordinary Vulkan face targets into a display image."""
+    import numpy as np
+    width, height = max(1, int(width)), max(1, int(height))
+    x = np.linspace(-1.0, 1.0, width, dtype=np.float32)[None, :]
+    y = np.linspace(-1.0, 1.0, height, dtype=np.float32)[:, None]
+    valid = np.ones((height, width), dtype=bool)
+
+    if isinstance(camera, DomeCamera):
+        lx = np.broadcast_to(
+            x * (width / height if width > height else 1), (height, width))
+        ly = np.broadcast_to(
+            y * (height / width if height > width else 1), (height, width))
+        radius = np.sqrt(lx * lx + ly * ly)
+        valid = radius <= 1.0
+        theta = np.arctan2(ly, lx)
+        phi = 0.5 * np.pi * np.minimum(radius, 1.0)
+        sin_phi = np.sin(phi)
+        dx = np.cos(theta) * sin_phi
+        dy = np.sin(theta) * sin_phi
+        dz = -np.cos(phi)
+    else:
+        xx = np.broadcast_to(x, (height, width))
+        yy = np.broadcast_to(y, (height, width))
+        theta = xx * np.pi
+        phi = (1.0 - yy) * (0.5 * np.pi)
+        sin_phi = np.sin(phi)
+        dx = np.sin(theta) * sin_phi
+        dy = np.cos(phi)
+        dz = -np.cos(theta) * sin_phi
+
+    rgba8 = np.array(
+        [max(0, min(255, round(255 * c))) for c in background],
+        dtype=np.uint8)
+    result = np.empty((height, width, 4), dtype=np.uint8)
+    result[:] = rgba8
+
+    ax, ay, az = np.abs(dx), np.abs(dy), np.abs(dz)
+    face_index = np.zeros((height, width), dtype=np.int8)
+    sc = np.zeros((height, width), dtype=np.float32)
+    tc = np.zeros((height, width), dtype=np.float32)
+
+    mx = (ax >= ay) & (ax >= az)
+    mask = mx & (dx >= 0)
+    face_index[mask] = 0
+    sc[mask], tc[mask] = -dz[mask] / ax[mask], -dy[mask] / ax[mask]
+    mask = mx & (dx < 0)
+    face_index[mask] = 1
+    sc[mask], tc[mask] = dz[mask] / ax[mask], -dy[mask] / ax[mask]
+    my = (~mx) & (ay >= az)
+    mask = my & (dy >= 0)
+    face_index[mask] = 2
+    sc[mask], tc[mask] = dx[mask] / ay[mask], dz[mask] / ay[mask]
+    mask = my & (dy < 0)
+    face_index[mask] = 3
+    sc[mask], tc[mask] = dx[mask] / ay[mask], -dz[mask] / ay[mask]
+    mz = ~(mx | my)
+    mask = mz & (dz >= 0)
+    face_index[mask] = 4
+    sc[mask], tc[mask] = dx[mask] / az[mask], -dy[mask] / az[mask]
+    mask = mz & (dz < 0)
+    face_index[mask] = 5
+    sc[mask], tc[mask] = -dx[mask] / az[mask], -dy[mask] / az[mask]
+
+    for face_number, face in enumerate(faces):
+        if face is None:
+            continue
+        mask = valid & (face_index == face_number)
+        if not mask.any():
+            continue
+        fh, fw = face.shape[:2]
+        iu = np.clip(np.rint((sc[mask] + 1) * 0.5 * (fw - 1)),
+                     0, fw - 1).astype(np.intp)
+        iv = np.clip(np.rint((tc[mask] + 1) * 0.5 * (fh - 1)),
+                     0, fh - 1).astype(np.intp)
+        result[mask] = face[iv, iu]
+    return result
     
 class DomeCamera(CubeMapCamera):
     name = 'dome'
@@ -166,7 +351,7 @@ class DomeCamera(CubeMapCamera):
         return (ct*sp, st*sp, -cp)
 
     
-class Stereo360Camera(Camera):
+class Stereo360Camera(CubeMapCamera):
 
     name = 'stereo 360'
 
@@ -178,6 +363,8 @@ class Stereo360Camera(Camera):
         self._cube_face_size = cube_face_size		# Pixels
         self._projection_size = (360,180)		# Grid size for projecting cubemap.
         self._drawing = {'left':None, 'right':None}	# Drawing of rectangle with cube map texture
+        self._vulkan_framebuffers = None
+        self._vulkan_drawing = None
         v = _cube_map_face_views()
         self._view_rotations = v + v		# Camera views for cube faces
         self.layout = layout			# Packing of left/right eye images: top-bottom or side-by-side
@@ -189,8 +376,22 @@ class Stereo360Camera(Camera):
         self._framebuffer = {}
 
         for d in self._drawing.values():
-            d.delete()
+            if d is not None:
+                d.texture = None
+                d.delete()
         self._drawing = {}
+        if self._vulkan_framebuffers:
+            for fb in self._vulkan_framebuffers:
+                fb.delete()
+            self._vulkan_framebuffers = None
+        if self._vulkan_drawing:
+            self._vulkan_drawing.delete()
+            self._vulkan_drawing = None
+
+    def release_graphics_resources(self):
+        self.delete()
+        self._framebuffer = {'left': None, 'right': None}
+        self._drawing = {'left': None, 'right': None}
         
     def view(self, camera_position, view_num):
         '''
@@ -231,6 +432,13 @@ class Stereo360Camera(Camera):
 
     def set_render_target(self, view_num, render):
         '''Set the OpenGL drawing buffer and viewport to render the scene.'''
+        if hasattr(render, '_vulkan'):
+            self._set_vulkan_face_target(view_num, render, 12)
+            if view_num in (0, 6):
+                eye = 'left' if view_num == 0 else 'right'
+                self._set_stereo_360_shader_parameters(render, eye)
+            _adjust_light_directions(render, self._view_rotations[view_num])
+            return
         eye = 'left' if view_num < 6 else 'right'
         fb = self._cube_face_framebuffer(eye, render.opengl_context)
         if view_num == 0:
@@ -252,6 +460,11 @@ class Stereo360Camera(Camera):
     def combine_rendered_camera_views(self, render):
         '''Render the cube map using a projection.'''
         _adjust_light_directions(render)	# Restore light directions
+        if hasattr(render, '_vulkan'):
+            render.end_frame()
+            render.pop_framebuffer()
+            self._project_vulkan_targets(render, self.layout)
+            return
         render.pop_framebuffer()	        # Pop the cube face framebuffer.
         for eye in ('left', 'right'):
             cubemap = self._cube_face_framebuffer(eye, render.opengl_context).color_texture

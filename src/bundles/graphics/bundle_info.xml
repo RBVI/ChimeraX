@@ -3,8 +3,8 @@
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
   <URL>https://www.rbvi.ucsf.edu/chimerax/</URL>
-  <Synopsis>OpenGL graphics rendering</Synopsis>
-  <Description>Render scenes using a camera, view and hierarchy of drawings.</Description>
+  <Synopsis>GPU graphics rendering</Synopsis>
+  <Description>Render scenes through OpenGL, Vulkan, or WGPU using a camera, view and hierarchy of drawings.</Description>
   <DataFiles>
     <DataFile>vertexShader.txt</DataFile>
     <DataFile>fragmentShader.txt</DataFile>

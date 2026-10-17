@@ -3,6 +3,7 @@
  */
 
 #include <Python.h>
+#include <cstring>
 #include "vulkan_internal.h"
 
 // TextureWithDevice is declared in vulkan_internal.h so the
@@ -121,10 +122,11 @@ PyObject* vulkan_create_texture(PyObject* self, PyObject* args, PyObject* kwds) 
     // it can flip the driver to a different (non-sampleable on some sizes)
     // memory layout that quietly breaks NPOT sampling.
     VkImageUsageFlags usage = VK_IMAGE_USAGE_SAMPLED_BIT
-                            | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+                            | VK_IMAGE_USAGE_TRANSFER_DST_BIT
+                            | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     if (is_depth) {
         usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    } else if (dimension == 2 && (format == 0 || format == 10)) {
+    } else if (dimension == 2 && (format == 0 || format == 9 || format == 10)) {
         usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     }
     // Compute-shader writeable target. Caller is responsible for picking a
@@ -243,16 +245,23 @@ PyObject* vulkan_create_texture(PyObject* self, PyObject* args, PyObject* kwds) 
         return NULL;
     }
 
-    // Transition image layout to shader-read-only.
-    VK_TRACE("  begin_one_shot");
-    VkCommandBuffer cmd = begin_one_shot(ctx);
+    // Transition image layout to shader-read-only. When a frame is already
+    // recording but its render pass has not begun, append the transition to
+    // that command buffer. Orthoplane slice creation follows this path and
+    // must not drain the shared graphics queue for every new slice.
+    const bool record_in_frame = ctx->in_frame && !ctx->in_render_pass;
+    VkCommandBuffer cmd = record_in_frame
+        ? ctx->frames[ctx->current_frame].command_buffer
+        : begin_one_shot(ctx);
     VK_TRACE("  transition UNDEFINED->SHADER_READ_ONLY aspect=0x%x", (unsigned)aspect);
     transition_image_layout(cmd, image,
                             VK_IMAGE_LAYOUT_UNDEFINED,
                             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                             aspect);
-    VK_TRACE("  end_one_shot");
-    end_one_shot(ctx, cmd);
+    if (!record_in_frame) {
+        VK_TRACE("  end_one_shot");
+        end_one_shot(ctx, cmd);
+    }
     VK_TRACE("  create_texture done");
 
     // Allocate and fill the texture struct.
@@ -366,9 +375,13 @@ PyObject* vulkan_update_texture(PyObject* self, PyObject* args, PyObject* kwds) 
     vmaFlushAllocation(ctx->allocator, staging_alloc, 0, VK_WHOLE_SIZE);
     PyBuffer_Release(&py_buf);
 
-    // One-shot command buffer: transition to TRANSFER_DST, copy, transition
-    // to SHADER_READ_ONLY.
-    VkCommandBuffer cmd = begin_one_shot(ctx);
+    // Record directly into a frame that has started but has not entered its
+    // render pass. This is the normal interactive-volume path. Other callers
+    // retain the synchronous one-shot fallback.
+    const bool record_in_frame = ctx->in_frame && !ctx->in_render_pass;
+    VkCommandBuffer cmd = record_in_frame
+        ? ctx->frames[ctx->current_frame].command_buffer
+        : begin_one_shot(ctx);
 
     VkImageLayout old_layout = tex->current_layout != VK_IMAGE_LAYOUT_UNDEFINED
         ? tex->current_layout : VK_IMAGE_LAYOUT_UNDEFINED;
@@ -396,11 +409,128 @@ PyObject* vulkan_update_texture(PyObject* self, PyObject* args, PyObject* kwds) 
                             VK_IMAGE_ASPECT_COLOR_BIT);
     tex->current_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-    end_one_shot(ctx, cmd);
+    if (record_in_frame) {
+        // Keep staging alive until this frame's fence signals. It is not a
+        // public/live buffer, so ownership transfers directly to the frame's
+        // deferred-delete queue.
+        BufferWithAllocator* pending = new BufferWithAllocator();
+        pending->base.buffer = staging;
+        pending->base.allocation = staging_alloc;
+        pending->base.size = static_cast<VkDeviceSize>(data_len);
+        pending->allocator = ctx->allocator;
+        pending->ctx = ctx;
+        pending->persistently_mapped = false;
+        ctx->pending_deletes[ctx->current_frame].buffers.push_back(pending);
+    } else {
+        end_one_shot(ctx, cmd);
+        // The one-shot fallback waits for completion, so staging can be
+        // destroyed immediately.
+        vmaDestroyBuffer(ctx->allocator, staging, staging_alloc);
+    }
 
-    // Staging is finished now (end_one_shot waits for queue idle).
+    Py_RETURN_NONE;
+}
+
+// ---------------------------------------------------------------------------
+//  Read texture pixels through a host-visible staging buffer.
+// ---------------------------------------------------------------------------
+
+extern "C"
+PyObject* vulkan_read_texture(PyObject* self, PyObject* args, PyObject* kwds) {
+    Py_ssize_t tex_ptr;
+    Py_buffer py_buf;
+    static const char* kwlist[] = {"texture", "data", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds,
+            const_cast<char*>("nw*"), (char**)kwlist, &tex_ptr, &py_buf))
+        return NULL;
+
+    TextureWithDevice* tex = reinterpret_cast<TextureWithDevice*>(tex_ptr);
+    if (!tex) {
+        PyBuffer_Release(&py_buf);
+        PyErr_SetString(PyExc_ValueError, "Vulkan texture handle is 0");
+        return NULL;
+    }
+    VulkanContext* ctx = tex->ctx;
+    Py_ssize_t texel_size;
+    VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+    switch (tex->format) {
+        case VK_FORMAT_R8G8B8A8_UNORM: texel_size = 4; break;
+        case VK_FORMAT_R8_UNORM:
+        case VK_FORMAT_R8_SNORM: texel_size = 1; break;
+        case VK_FORMAT_R16_UNORM:
+        case VK_FORMAT_R16_SFLOAT:
+        case VK_FORMAT_R16_SNORM: texel_size = 2; break;
+        case VK_FORMAT_R32_SFLOAT: texel_size = 4; break;
+        case VK_FORMAT_R16G16B16A16_SFLOAT: texel_size = 8; break;
+        case VK_FORMAT_D32_SFLOAT:
+            texel_size = 4;
+            aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+            break;
+        default: texel_size = 0; break;
+    }
+    const Py_ssize_t needed =
+        (Py_ssize_t)tex->width * tex->height * tex->depth * texel_size;
+    if (texel_size == 0 || py_buf.len < needed) {
+        PyBuffer_Release(&py_buf);
+        PyErr_SetString(PyExc_ValueError,
+                        "Unsupported texture format or short read buffer");
+        return NULL;
+    }
+
+    VkBufferCreateInfo bi{};
+    bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bi.size = (VkDeviceSize)needed;
+    bi.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    bi.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    VmaAllocationCreateInfo ai{};
+    ai.usage = VMA_MEMORY_USAGE_AUTO;
+    ai.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT |
+               VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    VkBuffer staging = VK_NULL_HANDLE;
+    VmaAllocation staging_alloc = VK_NULL_HANDLE;
+    VmaAllocationInfo staging_info{};
+    if (vmaCreateBuffer(ctx->allocator, &bi, &ai, &staging,
+                        &staging_alloc, &staging_info) != VK_SUCCESS) {
+        PyBuffer_Release(&py_buf);
+        PyErr_SetString(PyExc_RuntimeError,
+                        "Failed to create texture readback buffer");
+        return NULL;
+    }
+
+    VkImageLayout old_layout = tex->current_layout;
+    VkCommandBuffer command = begin_one_shot(ctx);
+    transition_image_layout(command, tex->image, old_layout,
+                            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, aspect);
+    VkBufferImageCopy copy{};
+    copy.imageSubresource.aspectMask = aspect;
+    copy.imageSubresource.layerCount = 1;
+    copy.imageExtent = {tex->width, tex->height, tex->depth};
+    vkCmdCopyImageToBuffer(command, tex->image,
+                           VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                           staging, 1, &copy);
+    transition_image_layout(command, tex->image,
+                            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                            old_layout, aspect);
+    end_one_shot(ctx, command);
+
+    void* mapped = staging_info.pMappedData;
+    bool mapped_here = false;
+    if (!mapped) {
+        if (vmaMapMemory(ctx->allocator, staging_alloc, &mapped) != VK_SUCCESS) {
+            vmaDestroyBuffer(ctx->allocator, staging, staging_alloc);
+            PyBuffer_Release(&py_buf);
+            PyErr_SetString(PyExc_RuntimeError,
+                            "Failed to map texture readback buffer");
+            return NULL;
+        }
+        mapped_here = true;
+    }
+    vmaInvalidateAllocation(ctx->allocator, staging_alloc, 0, VK_WHOLE_SIZE);
+    memcpy(py_buf.buf, mapped, needed);
+    if (mapped_here)
+        vmaUnmapMemory(ctx->allocator, staging_alloc);
     vmaDestroyBuffer(ctx->allocator, staging, staging_alloc);
-
+    PyBuffer_Release(&py_buf);
     Py_RETURN_NONE;
 }
 
@@ -428,6 +558,23 @@ PyObject* vulkan_destroy_texture(PyObject* self, PyObject* args, PyObject* kwds)
     tex->ctx->pending_deletes[deferred_delete_slot(tex->ctx)].textures.push_back(tex);
 
     Py_RETURN_NONE;
+}
+
+extern "C"
+PyObject* vulkan_texture_identity(PyObject* self, PyObject* args, PyObject* kwds) {
+    Py_ssize_t tex_ptr;
+    static const char* kwlist[] = {"texture", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "n", (char**)kwlist, &tex_ptr))
+        return NULL;
+    VulkanTexture* tex = reinterpret_cast<VulkanTexture*>(tex_ptr);
+    if (!tex) {
+        PyErr_SetString(PyExc_ValueError, "Vulkan texture handle is 0");
+        return NULL;
+    }
+    // Non-owning wrappers (notably scene depth) can change their image
+    // without changing their Python handle.
+    return Py_BuildValue("KK", (unsigned long long)(uintptr_t)tex->image,
+                         (unsigned long long)(uintptr_t)tex->image_view);
 }
 
 extern "C"

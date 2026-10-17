@@ -93,11 +93,20 @@ class UpdateLoop:
                     import traceback
                     session.logger.bug(msg + '\n\n' + str(e) + '\n\n' + traceback.format_exc())
                 except Exception as e:
-                    self.block_redraw()
-                    msg = 'An error occurred in drawing the scene. Redrawing graphics is now stopped to avoid a continuous stream of error messages. To restart graphics use the command "graphics restart" after changing the settings that caused the error.'
-                    import traceback
-                    session.logger.bug(msg + '\n\n' + str(e) + '\n\n' + traceback.format_exc())
-                session.triggers.activate_trigger('frame drawn', self)
+                    from chimerax.graphics.vulkan import VulkanDrawableUnavailable
+                    if isinstance(e, VulkanDrawableUnavailable):
+                        # CAMetalLayer can temporarily have no drawable while
+                        # a window is minimized, restored, or being resized.
+                        # View.draw() has already consumed the redraw flags at
+                        # this point, so explicitly retry on the next update.
+                        view.redraw_needed = True
+                    else:
+                        self.block_redraw()
+                        msg = 'An error occurred in drawing the scene. Redrawing graphics is now stopped to avoid a continuous stream of error messages. To restart graphics use the command "graphics restart" after changing the settings that caused the error.'
+                        import traceback
+                        session.logger.bug(msg + '\n\n' + str(e) + '\n\n' + traceback.format_exc())
+                if drew:
+                    session.triggers.activate_trigger('frame drawn', self)
         finally:
             self.unblock_redraw()
 

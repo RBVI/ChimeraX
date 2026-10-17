@@ -8,7 +8,56 @@
 #include <shaderc/shaderc.h>
 
 #include <cstring>
+#include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
+
+// GLSL sources are identical across the many specialization/state variants
+// of a ChimeraX pipeline.  Keep process-wide SPIR-V so recreating a Vulkan
+// device (or merely requesting another variant) does not invoke shaderc again.
+static std::unordered_map<std::string, std::vector<uint32_t>> spirv_cache;
+
+static bool compile_glsl_cached(const char* source, shaderc_shader_kind kind,
+                                const char* source_name,
+                                std::vector<uint32_t>& spirv,
+                                std::string& error)
+{
+    std::string key = std::to_string(static_cast<int>(kind));
+    key.push_back('\0');
+    key.append(source);
+    auto cached = spirv_cache.find(key);
+    if (cached != spirv_cache.end()) {
+        spirv = cached->second;
+        return true;
+    }
+
+    shaderc_compiler_t compiler = shaderc_compiler_initialize();
+    shaderc_compile_options_t options = shaderc_compile_options_initialize();
+    shaderc_compile_options_set_target_env(options, shaderc_target_env_vulkan,
+                                           shaderc_env_version_vulkan_1_0);
+    shaderc_compile_options_set_optimization_level(
+        options, shaderc_optimization_level_performance);
+    shaderc_compilation_result_t result = shaderc_compile_into_spv(
+        compiler, source, strlen(source), kind, source_name, "main", options);
+    if (shaderc_result_get_compilation_status(result) !=
+            shaderc_compilation_status_success) {
+        error = shaderc_result_get_error_message(result);
+        shaderc_result_release(result);
+        shaderc_compile_options_release(options);
+        shaderc_compiler_release(compiler);
+        return false;
+    }
+
+    const size_t byte_count = shaderc_result_get_length(result);
+    spirv.resize(byte_count / sizeof(uint32_t));
+    memcpy(spirv.data(), shaderc_result_get_bytes(result), byte_count);
+    spirv_cache.emplace(std::move(key), spirv);
+    shaderc_result_release(result);
+    shaderc_compile_options_release(options);
+    shaderc_compiler_release(compiler);
+    return true;
+}
 
 // ---------------------------------------------------------------------------
 //  Create a graphics pipeline from GLSL vertex and fragment shader sources.
@@ -39,19 +88,21 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
                               // attachments, special blend, uses oit_render_pass).
     int use_active_render_pass = 0; // create against the currently active
                                     // offscreen/color-only render pass.
+    int blending = 1;
     static const char* kwlist[] = {"context", "vert_source", "frag_source",
                                    "has_depth", "constants",
                                    "depth_only", "color_write",
                                    "instance_colors", "face_culling",
                                    "blend_op_max", "blend_premult",
                                    "depth_write", "topology",
-                                   "oit_mode", "use_active_render_pass", NULL};
+                                   "oit_mode", "use_active_render_pass",
+                                   "blending", NULL};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("nssiO|iiiiiiiiii"), (char**)kwlist,
+            const_cast<char*>("nssiO|iiiiiiiiiii"), (char**)kwlist,
             &ctx_ptr, &vert_source, &frag_source, &has_depth,
             &constants, &depth_only, &color_write, &instance_colors,
             &face_culling, &blend_op_max, &blend_premult, &depth_write,
-            &topology, &oit_mode, &use_active_render_pass))
+            &topology, &oit_mode, &use_active_render_pass, &blending))
         return NULL;
 
     VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
@@ -93,43 +144,20 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     spec_info.pData = spec_data.data();
 
     // ------------------------------------------------------------------
-    //  Compile GLSL to SPIR-V using shaderc.
+    //  Compile GLSL to process-cached SPIR-V using shaderc.
     // ------------------------------------------------------------------
-    shaderc_compiler_t compiler = shaderc_compiler_initialize();
-    shaderc_compile_options_t options = shaderc_compile_options_initialize();
-    shaderc_compile_options_set_target_env(options, shaderc_target_env_vulkan,
-                                          shaderc_env_version_vulkan_1_0);
-    shaderc_compile_options_set_optimization_level(options,
-                                                   shaderc_optimization_level_performance);
-
-    // -- Vertex shader --
-    shaderc_compilation_result_t vert_result = shaderc_compile_into_spv(
-        compiler, vert_source, strlen(vert_source),
-        shaderc_glsl_vertex_shader, "vertex.glsl", "main", options);
-
-    if (shaderc_result_get_compilation_status(vert_result) !=
-        shaderc_compilation_status_success) {
+    std::vector<uint32_t> vert_spirv, frag_spirv;
+    std::string compile_error;
+    if (!compile_glsl_cached(vert_source, shaderc_glsl_vertex_shader,
+                             "vertex.glsl", vert_spirv, compile_error)) {
         PyErr_Format(PyExc_RuntimeError, "Vertex shader compilation failed: %s",
-                     shaderc_result_get_error_message(vert_result));
-        shaderc_result_release(vert_result);
-        shaderc_compile_options_release(options);
-        shaderc_compiler_release(compiler);
+                     compile_error.c_str());
         return NULL;
     }
-
-    // -- Fragment shader --
-    shaderc_compilation_result_t frag_result = shaderc_compile_into_spv(
-        compiler, frag_source, strlen(frag_source),
-        shaderc_glsl_fragment_shader, "fragment.glsl", "main", options);
-
-    if (shaderc_result_get_compilation_status(frag_result) !=
-        shaderc_compilation_status_success) {
+    if (!compile_glsl_cached(frag_source, shaderc_glsl_fragment_shader,
+                             "fragment.glsl", frag_spirv, compile_error)) {
         PyErr_Format(PyExc_RuntimeError, "Fragment shader compilation failed: %s",
-                     shaderc_result_get_error_message(frag_result));
-        shaderc_result_release(frag_result);
-        shaderc_result_release(vert_result);
-        shaderc_compile_options_release(options);
-        shaderc_compiler_release(compiler);
+                     compile_error.c_str());
         return NULL;
     }
 
@@ -137,20 +165,10 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     //  Create VkShaderModules from compiled SPIR-V.
     // ------------------------------------------------------------------
     VkShaderModule vert_module = create_shader_module(
-        ctx,
-        reinterpret_cast<const uint32_t*>(shaderc_result_get_bytes(vert_result)),
-        shaderc_result_get_length(vert_result));
+        ctx, vert_spirv.data(), vert_spirv.size() * sizeof(uint32_t));
 
     VkShaderModule frag_module = create_shader_module(
-        ctx,
-        reinterpret_cast<const uint32_t*>(shaderc_result_get_bytes(frag_result)),
-        shaderc_result_get_length(frag_result));
-
-    // Release shaderc resources now that we have VkShaderModules.
-    shaderc_result_release(vert_result);
-    shaderc_result_release(frag_result);
-    shaderc_compile_options_release(options);
-    shaderc_compiler_release(compiler);
+        ctx, frag_spirv.data(), frag_spirv.size() * sizeof(uint32_t));
 
     if (vert_module == VK_NULL_HANDLE || frag_module == VK_NULL_HANDLE) {
         if (vert_module != VK_NULL_HANDLE)
@@ -254,9 +272,9 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     // ChimeraX geometry uses OpenGL's CCW-front convention.  The projection
     // matrix negates clip-space Y, but Vulkan's positive-height viewport also
     // maps NDC Y into its downward framebuffer axis.  Those two orientation
-    // reversals cancel, so front-facing triangles remain CCW.  Declaring them
-    // clockwise makes gl_FrontFacing false on outward sphere faces; mesh.frag
-    // then flips their normals and lights the hemisphere opposite the light.
+    // reversals cancel, so front-facing triangles remain CCW. Keep this
+    // rasterization convention independent of two-sided shading; changing it
+    // also changes which faces are culled for volumes and other closed meshes.
     rasterization.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterization.depthBiasEnable = VK_FALSE;
     rasterization.lineWidth = 1.0f;
@@ -317,7 +335,7 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
             ? VK_BLEND_FACTOR_ONE
             : VK_BLEND_FACTOR_SRC_ALPHA;
         VkBlendOp blend_op = blend_op_max ? VK_BLEND_OP_MAX : VK_BLEND_OP_ADD;
-        blend_attachments[0].blendEnable = VK_TRUE;
+        blend_attachments[0].blendEnable = blending ? VK_TRUE : VK_FALSE;
         blend_attachments[0].srcColorBlendFactor = src_factor;
         blend_attachments[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         blend_attachments[0].colorBlendOp = blend_op;
@@ -367,8 +385,11 @@ PyObject* vulkan_create_pipeline(PyObject* self, PyObject* args, PyObject* kwds)
     pipeline_info.pDynamicState = &dynamic_state;
     pipeline_info.layout = ctx->shared_pipeline_layout;
     VkRenderPass target_render_pass = ctx->main_render_pass;
-    if (depth_only)
+    if (depth_only) {
+        // May run before the swapchain exists (offscreen capture).
+        ensure_depth_only_render_pass(ctx);
         target_render_pass = ctx->depth_only_render_pass;
+    }
     else if (oit_mode)
         target_render_pass = ctx->oit_render_pass;
     else if (use_active_render_pass && !ctx->render_pass_stack.empty())

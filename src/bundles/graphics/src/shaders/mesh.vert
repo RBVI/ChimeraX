@@ -48,6 +48,7 @@ layout(constant_id = 14) const bool USE_TRANSPARENT_ONLY = false;
 layout(constant_id = 15) const bool USE_OPAQUE_ONLY = false;
 layout(constant_id = 16) const bool USE_TEXTURE_3D_AMBIENT = false;
 layout(constant_id = 17) const bool USE_DEPTH_PREPASS = false;
+layout(constant_id = 22) const bool USE_STEREO_360 = false;
 
 // ---------------------------------------------------------------------------
 //  Vertex inputs -- attribute locations mirror Metal attribute indices.
@@ -97,8 +98,16 @@ void main() {
         }
     }
 
-    // Eye-space position.
-    vec4 veye = u.model_view_matrix * vi;
+    // Eye-space position.  Stereo panoramas shift geometry tangentially
+    // around the camera so every cubemap direction has the correct eye
+    // separation; a fixed translated camera would only be correct for one
+    // face.
+    vec4 veye;
+    if (USE_STEREO_360) {
+        veye = u.view_matrix * stereo_360_position(u.model_matrix * vi);
+    } else {
+        veye = u.model_view_matrix * vi;
+    }
     frag_v = veye.xyz;
 
     // Normal -- transform to eye space.

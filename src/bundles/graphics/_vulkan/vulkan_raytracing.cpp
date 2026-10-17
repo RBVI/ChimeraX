@@ -1257,13 +1257,17 @@ PyObject* vulkan_dispatch_rtao(PyObject* self, PyObject* args, PyObject* kwds)
     sphere_info.offset = 0;
     sphere_info.range = VK_WHOLE_SIZE;
 
-    // Depth texture lives on the context's depth_image; its layout is
-    // DEPTH_STENCIL_ATTACHMENT_OPTIMAL after the main render pass ends.
+    // Use the depth attachment of the active target. High-precision image
+    // rendering and software stereo render into an offscreen target while
+    // the same RTAO pass is active.
+    OffscreenFramebuffer* off = ctx->active_offscreen;
     VulkanTexture depth_tex_view = {};  // shim wrapper for current_layout
-    depth_tex_view.image = ctx->depth_image.image;
-    depth_tex_view.image_view = ctx->depth_image.image_view;
-    depth_tex_view.format = ctx->depth_image.format;
-    depth_tex_view.current_layout = ctx->depth_image.current_layout;
+    depth_tex_view.image = off ? off->depth_image : ctx->depth_image.image;
+    depth_tex_view.image_view = off ? off->depth_view : ctx->depth_image.image_view;
+    depth_tex_view.format = VK_FORMAT_D32_SFLOAT;
+    depth_tex_view.current_layout = off
+        ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        : ctx->depth_image.current_layout;
 
     VkDescriptorImageInfo depth_info{};
     depth_info.sampler = s_rtao.sampler;
@@ -1319,11 +1323,11 @@ PyObject* vulkan_dispatch_rtao(PyObject* self, PyObject* args, PyObject* kwds)
         // that no pass has touched; claiming any other oldLayout would
         // mismatch the image's actual layout. UNDEFINED-as-old is always
         // valid (contents discarded), and the depth is garbage either way.
-        b.oldLayout = ctx->depth_image.current_layout;
+        b.oldLayout = depth_tex_view.current_layout;
         b.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
         b.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         b.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        b.image = ctx->depth_image.image;
+        b.image = depth_tex_view.image;
         b.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
         b.subresourceRange.levelCount = 1;
         b.subresourceRange.layerCount = 1;
@@ -1333,8 +1337,10 @@ PyObject* vulkan_dispatch_rtao(PyObject* self, PyObject* args, PyObject* kwds)
             VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             0, 0, nullptr, 0, nullptr, 1, &b);
-        ctx->depth_image.current_layout =
+        depth_tex_view.current_layout =
             VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+        if (!off)
+            ctx->depth_image.current_layout = depth_tex_view.current_layout;
     }
 
     transition_for_storage(cmd, ao_tex);
@@ -1358,11 +1364,11 @@ PyObject* vulkan_dispatch_rtao(PyObject* self, PyObject* args, PyObject* kwds)
     {
         VkImageMemoryBarrier b{};
         b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        b.oldLayout = ctx->depth_image.current_layout;
+        b.oldLayout = depth_tex_view.current_layout;
         b.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         b.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         b.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        b.image = ctx->depth_image.image;
+        b.image = depth_tex_view.image;
         b.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
         b.subresourceRange.levelCount = 1;
         b.subresourceRange.layerCount = 1;
@@ -1373,8 +1379,10 @@ PyObject* vulkan_dispatch_rtao(PyObject* self, PyObject* args, PyObject* kwds)
             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
             VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
             0, 0, nullptr, 0, nullptr, 1, &b);
-        ctx->depth_image.current_layout =
+        depth_tex_view.current_layout =
             VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        if (!off)
+            ctx->depth_image.current_layout = depth_tex_view.current_layout;
     }
 
     // Defer the uniform buffer until the in-flight frame that uses it
@@ -1634,16 +1642,28 @@ PyObject* vulkan_dispatch_pathtracer(PyObject* self, PyObject* args, PyObject* k
     // is shown), so the descriptor set is always complete.
     VulkanTexture* vol_density_tex  = reinterpret_cast<VulkanTexture*>(vol_density_tex_ptr);
     VulkanTexture* vol_colormap_tex = reinterpret_cast<VulkanTexture*>(vol_colormap_tex_ptr);
-    BufferWithAllocator* color_buf = reinterpret_cast<BufferWithAllocator*>(color_buf_ptr);
+    BufferWithAllocator* color_buf = resolve_buffer_handle(color_buf_ptr);
+    if (!color_buf) {
+        PyBuffer_Release(&uniforms_buf);
+        return NULL;
+    }
     VK_TRACE("RT dispatch_pathtracer rt=%p color=%p (%ux%u, layout=%d) cyl_buf=%lld in_pass=%d",
              (void*)rt, (void*)color_tex, color_tex->width, color_tex->height,
              (int)color_tex->current_layout,
              (long long)cyl_buf_ptr, ctx->in_render_pass ? 1 : 0);
 
     BufferWithAllocator* cyl_color_buf = cyl_color_buf_ptr
-        ? reinterpret_cast<BufferWithAllocator*>(cyl_color_buf_ptr) : nullptr;
+        ? resolve_buffer_handle(cyl_color_buf_ptr) : nullptr;
+    if (cyl_color_buf_ptr && !cyl_color_buf) {
+        PyBuffer_Release(&uniforms_buf);
+        return NULL;
+    }
     BufferWithAllocator* tri_color_buf = tri_color_buf_ptr
-        ? reinterpret_cast<BufferWithAllocator*>(tri_color_buf_ptr) : nullptr;
+        ? resolve_buffer_handle(tri_color_buf_ptr) : nullptr;
+    if (tri_color_buf_ptr && !tri_color_buf) {
+        PyBuffer_Release(&uniforms_buf);
+        return NULL;
+    }
 
     // Per-frame uniform buffer (defer-freed at end of frame).
     BufferWithAllocator* ubo = new BufferWithAllocator();
