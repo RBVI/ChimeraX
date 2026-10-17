@@ -30,6 +30,11 @@ static std::vector<uint8_t> process_pipeline_cache;
   // Safe to include from C++ — CAMetalLayer is typedef'd to void when
   // __OBJC__ is not defined. We only need the extension name macros.
   #include <vulkan/vulkan_metal.h>
+#elif defined(__linux__)
+  // ChimeraX runs Qt on xcb (XWayland under Wayland), so winId() is an
+  // xcb_window_t on Qt's xcb connection.
+  #include <xcb/xcb.h>
+  #include <vulkan/vulkan_xcb.h>
 #endif
 
 // ---------------------------------------------------------------------------
@@ -324,10 +329,21 @@ bool create_swapchain(VulkanContext* ctx, uint32_t width, uint32_t height,
                                 VK_COLOR_SPACE_SRGB_NONLINEAR_KHR});
 #endif
 
+    if (ctx->wait_for_vsync) {
+        builder.set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR);
+    } else {
+        // FIFO is always supported, so it remains the last resort.
+        builder.set_desired_present_mode(VK_PRESENT_MODE_MAILBOX_KHR)
+               .add_fallback_present_mode(VK_PRESENT_MODE_IMMEDIATE_KHR)
+               .add_fallback_present_mode(VK_PRESENT_MODE_FIFO_KHR);
+    }
+
     auto swap_ret = builder
-        .set_desired_present_mode(VK_PRESENT_MODE_FIFO_KHR)
         .set_desired_extent(width, height)
-        .set_desired_min_image_count(2)
+        // Three images: acquisition below never blocks, and with only two
+        // (NVIDIA's FIFO minimum) the next image is often still queued for
+        // display, so every other frame was skipped (~30 fps at a 60 Hz timer).
+        .set_desired_min_image_count(3)
         .add_image_usage_flags(VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
         .build();
 
@@ -349,6 +365,7 @@ bool create_swapchain(VulkanContext* ctx, uint32_t width, uint32_t height,
     ctx->swapchain = vkb_swap.swapchain;
     ctx->swapchain_format = vkb_swap.image_format;
     ctx->swapchain_extent = vkb_swap.extent;
+    ctx->present_mode = vkb_swap.present_mode;
 
     // A newly exposed Qt/Metal child window can legitimately have no
     // drawable yet.  MoltenVK represents that transient state with a
@@ -843,6 +860,8 @@ static bool build_vulkan_instance(vkb::Instance& out_inst,
             sysinfo->is_extension_available("VK_EXT_swapchain_colorspace"))
             inst_builder.enable_extension("VK_EXT_swapchain_colorspace");
     }
+#elif defined(__linux__)
+    inst_builder.enable_extension(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
 #endif
 
 #if !defined(__APPLE__) && !defined(NDEBUG)
@@ -893,14 +912,16 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
     int initial_width = 1;
     int initial_height = 1;
     PyObject* runtime = Py_None;
+    Py_ssize_t xcb_connection = 0;   // Qt's xcb_connection_t* (Linux)
     static const char* kwlist[] = {"window_handle", "instance", "surface",
                                    "owns_instance", "owns_surface",
-                                   "width", "height", "runtime", nullptr};
+                                   "width", "height", "runtime",
+                                   "xcb_connection", nullptr};
     if (!PyArg_ParseTupleAndKeywords(args, kwds,
-            const_cast<char*>("n|nniiiiO"), (char**)kwlist,
+            const_cast<char*>("n|nniiiiOn"), (char**)kwlist,
             &window_handle, &instance_handle, &surface_handle,
             &owns_instance_arg, &owns_surface_arg,
-            &initial_width, &initial_height, &runtime))
+            &initial_width, &initial_height, &runtime, &xcb_connection))
         return NULL;
 
     const bool owns_instance = owns_instance_arg >= 0
@@ -943,6 +964,26 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
             PyErr_SetString(PyExc_RuntimeError, "vkCreateWin32SurfaceKHR failed");
             return NULL;
         }
+    }
+#elif defined(__linux__)
+    else if (xcb_connection) {
+        VkXcbSurfaceCreateInfoKHR surf_info{};
+        surf_info.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+        surf_info.connection = reinterpret_cast<xcb_connection_t*>(xcb_connection);
+        surf_info.window = static_cast<xcb_window_t>(window_handle);
+        if (vkCreateXcbSurfaceKHR(vkb_inst.instance, &surf_info, nullptr, &surface) != VK_SUCCESS) {
+            if (owns_instance)
+                vkb::destroy_instance(vkb_inst);
+            PyErr_SetString(PyExc_RuntimeError, "vkCreateXcbSurfaceKHR failed");
+            return NULL;
+        }
+    }
+    else {
+        if (owns_instance)
+            vkb::destroy_instance(vkb_inst);
+        PyErr_SetString(PyExc_RuntimeError,
+                        "No pre-created surface and no xcb connection");
+        return NULL;
     }
 #else
     else {
@@ -1105,6 +1146,7 @@ PyObject* vulkan_create_context(PyObject* self, PyObject* args, PyObject* kwds)
     ctx->surface = surface;
     ctx->owns_instance = owns_instance;
     ctx->owns_surface = owns_surface;
+    ctx->xcb_connection = reinterpret_cast<void*>(xcb_connection);
     ctx->current_window_handle = static_cast<std::uintptr_t>(window_handle);
     ctx->physical_device = vkb_phys.physical_device;
     ctx->device = vkb_dev.device;
@@ -1530,6 +1572,25 @@ PyObject* vulkan_set_surface_for_window(PyObject* self, PyObject* args,
         }
         owns_new_surface = true;
     }
+#elif defined(__linux__)
+    if (!target_is_cached && new_surface == VK_NULL_HANDLE) {
+        if (!ctx->xcb_connection) {
+            PyErr_SetString(PyExc_ValueError,
+                            "An xcb connection is required for this window");
+            return NULL;
+        }
+        VkXcbSurfaceCreateInfoKHR info{};
+        info.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+        info.connection = static_cast<xcb_connection_t*>(ctx->xcb_connection);
+        info.window = static_cast<xcb_window_t>(window_handle);
+        if (vkCreateXcbSurfaceKHR(ctx->instance, &info, nullptr,
+                                  &new_surface) != VK_SUCCESS) {
+            PyErr_SetString(PyExc_RuntimeError,
+                            "vkCreateXcbSurfaceKHR failed for target window");
+            return NULL;
+        }
+        owns_new_surface = true;
+    }
 #else
     (void)window_handle;
     if (!target_is_cached && new_surface == VK_NULL_HANDLE) {
@@ -1688,6 +1749,46 @@ PyObject* vulkan_resize_drawable(PyObject* self, PyObject* args, PyObject* kwds)
     }
 
     Py_RETURN_NONE;
+}
+
+// ---------------------------------------------------------------------------
+//  Choose vsync-synchronized (FIFO) or uncapped presentation and recreate the
+//  active swapchain.  Returns the resulting present mode name.  Swapchains
+//  cached for inactive windows pick up the setting when next recreated.
+// ---------------------------------------------------------------------------
+extern "C"
+PyObject* vulkan_set_wait_for_vsync(PyObject* self, PyObject* args, PyObject* kwds)
+{
+    Py_ssize_t ctx_ptr;
+    int wait;
+    static const char* kwlist[] = {"context", "wait", nullptr};
+    if (!PyArg_ParseTupleAndKeywords(args, kwds,
+            const_cast<char*>("np"), (char**)kwlist, &ctx_ptr, &wait))
+        return NULL;
+
+    VulkanContext* ctx = reinterpret_cast<VulkanContext*>(ctx_ptr);
+    if (ctx->in_frame) {
+        PyErr_SetString(PyExc_RuntimeError,
+                        "Cannot change Vulkan present mode during a frame");
+        return NULL;
+    }
+    if (ctx->wait_for_vsync != (wait != 0)) {
+        ctx->wait_for_vsync = wait != 0;
+        if (ctx->swapchain != VK_NULL_HANDLE &&
+                !recreate_active_swapchain(ctx, ctx->width, ctx->height)) {
+            PyErr_SetString(PyExc_RuntimeError, "Failed to recreate swapchain");
+            return NULL;
+        }
+    }
+
+    const char* name = "fifo";
+    switch (ctx->present_mode) {
+        case VK_PRESENT_MODE_MAILBOX_KHR:   name = "mailbox"; break;
+        case VK_PRESENT_MODE_IMMEDIATE_KHR: name = "immediate"; break;
+        case VK_PRESENT_MODE_FIFO_RELAXED_KHR: name = "fifo_relaxed"; break;
+        default: break;
+    }
+    return PyUnicode_FromString(name);
 }
 
 // ---------------------------------------------------------------------------

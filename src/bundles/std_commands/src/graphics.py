@@ -63,7 +63,8 @@ def graphics_rate(
     wait_for_vsync : bool
         Whether drawing is synchronized to the display vertical refresh rate,
         typically 60 Hz.  Disabling wait allows frame rates faster than vsync
-        but can exhibit image tearing.  Currently only supported on Windows.
+        but can exhibit image tearing.  Supported with Vulkan, and with
+        OpenGL on Windows by some drivers.
     """
 
     change = False
@@ -79,7 +80,8 @@ def graphics_rate(
         r.make_current()
         if not r.wait_for_vsync(wait_for_vsync):
             session.logger.warning(
-                "Changing wait for vsync is only supported on Windows by some drivers"
+                "Changing wait for vsync is not supported by this graphics "
+                "backend and driver"
             )
         change = True
 

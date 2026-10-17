@@ -67,17 +67,15 @@
     <IncludeDir>_vulkan</IncludeDir>
     <IncludeDir platform="windows">${VULKAN_SDK}/Include</IncludeDir>
     <IncludeDir platform="windows">${VULKAN_SDK}/Include/vma</IncludeDir>
-    <IncludeDir platform="linux">${VULKAN_SDK}/include</IncludeDir>
-    <IncludeDir platform="linux">${VULKAN_SDK}/include/vma</IncludeDir>
     <IncludeDir platform="mac">/opt/homebrew/include</IncludeDir>
     <LibraryDir platform="windows">${VULKAN_SDK}/Lib</LibraryDir>
-    <LibraryDir platform="linux">${VULKAN_SDK}/lib</LibraryDir>
     <LibraryDir platform="mac">/opt/homebrew/opt/vulkan-loader/lib</LibraryDir>
     <LibraryDir platform="mac">/opt/homebrew/opt/shaderc/lib</LibraryDir>
     <Library platform="windows">vulkan-1.lib</Library>
     <Library platform="windows">shaderc_combined.lib</Library>
     <Library platform="linux">vulkan</Library>
-    <Library platform="linux">shaderc_combined</Library>
+    <!-- Distro shaderc_combined.a omits glslang/SPIRV-Tools; use the shared lib. -->
+    <Library platform="linux">shaderc</Library>
     <Library platform="mac">vulkan</Library>
     <Library platform="mac">shaderc_combined</Library>
   </CModule>

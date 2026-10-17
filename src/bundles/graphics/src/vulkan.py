@@ -13,6 +13,19 @@ import numpy as np
 # Vulkan targets all platforms: native on Linux/Windows, MoltenVK on macOS.
 
 
+def _qt_xcb_connection():
+    """Return Qt's xcb_connection_t* as an integer."""
+    from Qt.QtGui import QGuiApplication
+    app = QGuiApplication.instance()
+    native = app.nativeInterface() if app is not None else None
+    connection = getattr(native, "connection", None)
+    if connection is None:
+        platform = app.platformName() if app is not None else None
+        raise RuntimeError(
+            "Vulkan on Linux requires Qt's xcb platform, got %r" % platform)
+    return int(connection())
+
+
 class VulkanDrawableUnavailable(RuntimeError):
     """The native window does not have a presentable image yet."""
 
@@ -34,7 +47,6 @@ class VulkanContext:
         self._screen = screen
         self._vulkan = _vulkan
         self._instance = None
-        self._qt_vulkan_instance = None
         runtime = getattr(graphics_window, '_vulkan_runtime', None)
         runtime_args = {} if runtime is None else {'runtime': runtime}
         extensions = [] if runtime is None else runtime.instance_extensions()
@@ -60,41 +72,17 @@ class VulkanContext:
                 **runtime_args,
             )
             initial_surface = (surface, True)
-        elif sys.platform.startswith("linux"):
-            # Let Qt create the platform surface.  This works for both X11
-            # and Wayland, whose native surface creation requires different
-            # display handles that cannot be recovered from winId() alone.
-            from Qt.QtGui import QVulkanInstance
-            from Qt.QtCore import QVersionNumber
-            qvi = QVulkanInstance()
-            qvi.setApiVersion(QVersionNumber(1, 2, 0))
-            if extensions:
-                from Qt.QtCore import QByteArray
-                qvi.setExtensions([QByteArray(e.encode('ascii')) for e in extensions])
-            if not qvi.create():
-                raise RuntimeError("Qt could not create a Vulkan instance")
-            # Associate the instance before winId() forces native window
-            # creation; this is required by Qt's VulkanSurface lifecycle.
-            graphics_window.setVulkanInstance(qvi)
-            graphics_window._chimerax_vulkan_instance = qvi
-            window_handle = int(graphics_window.winId())
-            surface = int(qvi.surfaceForWindow(graphics_window))
-            instance = int(qvi.vkInstance())
-            if not surface or not instance:
-                raise RuntimeError("Qt could not create a Vulkan window surface")
-            self._qt_vulkan_instance = qvi
-            self._instance = instance
-            self._ctx = _vulkan.create_context(
-                window_handle=window_handle, instance=instance, surface=surface,
-                owns_instance=0, owns_surface=0,
-                **runtime_args,
-            )
-            initial_surface = (surface, False)
         else:
-            # HWND on Windows.
+            # HWND on Windows, xcb_window_t on Linux.  ChimeraX forces Qt's
+            # xcb platform (XWayland under Wayland), and PySide6 does not
+            # wrap QVulkanInstance on Linux, so the surface is created
+            # natively on Qt's own xcb connection.
             window_handle = int(graphics_window.winId())
+            if sys.platform.startswith("linux"):
+                runtime_args['xcb_connection'] = _qt_xcb_connection()
             if runtime is None:
-                self._ctx = _vulkan.create_context(window_handle=window_handle)
+                self._ctx = _vulkan.create_context(
+                    window_handle=window_handle, **runtime_args)
             else:
                 instance = _vulkan.create_instance(extensions=extensions)
                 self._instance = instance
@@ -148,16 +136,10 @@ class VulkanContext:
             self._vulkan.destroy_context(context=self._ctx)
             self._ctx = None
         self._window_surfaces.clear()
-        # Keep a Qt-owned Vulkan instance alive for at least as long as its
-        # QWindow. GraphicsWindow.switch_backend destroys the native window
-        # after this method releases the swapchain/device; only then may this
-        # wrapper (and its QVulkanInstance) be collected.
 
     def prepare_window(self, window):
         """Attach platform Vulkan state before Qt creates a native window."""
-        if sys.platform.startswith("linux"):
-            window.setVulkanInstance(self._qt_vulkan_instance)
-            window._chimerax_vulkan_instance = self._qt_vulkan_instance
+        pass
 
     def surface_for_window(self, window):
         """Return (VkSurfaceKHR, ownership) for another QWindow."""
@@ -173,12 +155,6 @@ class VulkanContext:
             surface = (_metal_rt.create_surface(
                 instance=self._instance, window_handle=window_handle,
                 width=surface_width, height=surface_height), True)
-        elif sys.platform.startswith("linux"):
-            self.prepare_window(window)
-            surface = int(self._qt_vulkan_instance.surfaceForWindow(window))
-            if not surface:
-                raise RuntimeError("Qt could not create a Vulkan window surface")
-            surface = (surface, False)
         else:
             surface = (0, True)
         self._window_surfaces[window_handle] = surface
@@ -1448,9 +1424,12 @@ class VulkanRender:
         return 32
 
     def wait_for_vsync(self, wait):
-        # Swapchains use FIFO presentation, which is always synchronized.
-        # Report success only when that is the requested state.
-        return bool(wait)
+        # Off selects MAILBOX presentation (uncapped, no tearing), falling
+        # back to IMMEDIATE, which may tear; on selects FIFO.
+        self.end_frame()
+        mode = self._vulkan.set_wait_for_vsync(context=self._ctx, wait=bool(wait))
+        self._present_mode = mode
+        return (mode == "fifo") == bool(wait)
 
     def use_shared_context(self, window):
         """Switch Vulkan rendering to a different QWindow.
@@ -1521,7 +1500,7 @@ class VulkanRender:
         self._context.release_window(window)
 
     def swap_interval(self):
-        return 1
+        return 1 if getattr(self, "_present_mode", "fifo") == "fifo" else 0
 
     def set_near_far_clip(self, near_far):
         self._near_far_clip = near_far

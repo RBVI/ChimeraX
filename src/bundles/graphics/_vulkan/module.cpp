@@ -13,6 +13,7 @@ static struct PyMethodDef vulkan_methods[] =
     {"set_surface_for_window", (PyCFunction)vulkan_set_surface_for_window, METH_VARARGS|METH_KEYWORDS, NULL},
     {"release_window", (PyCFunction)vulkan_release_window, METH_VARARGS|METH_KEYWORDS, NULL},
     {"resize_drawable", (PyCFunction)vulkan_resize_drawable, METH_VARARGS|METH_KEYWORDS, NULL},
+    {"set_wait_for_vsync", (PyCFunction)vulkan_set_wait_for_vsync, METH_VARARGS|METH_KEYWORDS, NULL},
     {"device_name", (PyCFunction)vulkan_device_name, METH_VARARGS|METH_KEYWORDS, NULL},
     {"max_3d_texture_size", (PyCFunction)vulkan_max_3d_texture_size, METH_VARARGS|METH_KEYWORDS, NULL},
 

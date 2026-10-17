@@ -726,13 +726,11 @@ class RTAOPass(RenderPass):
         r.restart_main_pass()
         r.draw_rtao_composite(composite_tex)
 
-        # Request another frame while accumulating.  Setting the drawing
-        # manager's flag works because dm.clear_changes() already ran at
-        # the start of this frame, so the flag persists to the next
-        # check_for_drawing_change() call.
+        # Request another frame while accumulating, without marking the
+        # camera as moved or drawings as changed.
         max_accum = max(8192 // num_rays, 1)
         if self._accum_count < max_accum:
-            ctx.view._drawing_manager.redraw_needed = True
+            ctx.view._refinement_redraw_needed = True
 
     @staticmethod
     def _collect_spheres(ctx):
@@ -784,6 +782,8 @@ class PathTracePass(RenderPass):
     _last_lighting_key = None
     _last_geom_key = None
     _last_geom_data = None
+    _geom_cache = None        # _collect_geometry() result reused while unchanged
+    _geom_cache_key = None    # (renderer, view drawing change count)
     _ping = 0
     _color_buffer = None
     _cyl_color_buffer = None
@@ -817,8 +817,30 @@ class PathTracePass(RenderPass):
         if w == 0 or h == 0:
             return
 
-        sphere_data, sphere_colors, cyl_data, cyl_colors, \
-            tri_data, tri_colors = self._collect_geometry(ctx)
+        # Collecting and uploading geometry costs tens of milliseconds for
+        # large structures, so reuse it while no drawing has changed.  A
+        # drawing change after the last check (e.g. "color" then "save" in
+        # a script) leaves the drawing manager flag set.  The render graph
+        # outlives backend switches, so the renderer is part of the key.
+        view = ctx.view
+        cache_key = (r, getattr(view, "_drawing_change_count", 0))
+        reuse = (self._geom_cache is not None
+                 and cache_key == self._geom_cache_key
+                 and not view._drawing_manager.redraw_needed)
+        if self._geom_cache_key is not None and self._geom_cache_key[0] is not r:
+            # Buffers and the acceleration structure belong to the old
+            # renderer; force a rebuild on this one.
+            self._last_geom_data = None
+            self._color_buffer = self._cyl_color_buffer = None
+            self._tri_color_buffer = None
+        if reuse:
+            sphere_data, sphere_colors, cyl_data, cyl_colors, \
+                tri_data, tri_colors = self._geom_cache
+        else:
+            self._geom_cache = self._collect_geometry(ctx)
+            self._geom_cache_key = cache_key
+            sphere_data, sphere_colors, cyl_data, cyl_colors, \
+                tri_data, tri_colors = self._geom_cache
         if sphere_data is None or len(sphere_data) == 0:
             # No atoms. If a density volume is shown, still path trace it: the
             # acceleration structure needs at least one primitive, so inject a
@@ -829,60 +851,10 @@ class PathTracePass(RenderPass):
             sphere_colors = np.zeros((1, 4), dtype=np.uint8)
             cyl_data = cyl_colors = tri_data = tri_colors = None
 
-        geom_key = (len(sphere_data),
-                     len(cyl_data) if cyl_data is not None else 0,
-                     len(tri_data) if tri_data is not None else 0)
-        # Compare content, not just counts: trajectory playback / model
-        # dragging move geometry without changing counts, and tracing
-        # against the stale BVH accumulates wrong images. memcmp-speed.
-        geom_data = (sphere_data, cyl_data, tri_data)
-        changed = (geom_key != self._last_geom_key
-                   or self._last_geom_data is None)
-        if not changed:
-            for a, b in zip(geom_data, self._last_geom_data):
-                if (a is None) != (b is None) or (
-                        a is not None and not np.array_equal(a, b)):
-                    changed = True
-                    break
-        if changed:
-            has_cyls = cyl_data is not None and len(cyl_data) > 0
-            has_tris = tri_data is not None and len(tri_data) > 0
-            if has_cyls or has_tris:
-                r.build_scene_acceleration_structure(
-                    sphere_data,
-                    cyl_data if has_cyls else None,
-                    tri_data if has_tris else None,
-                )
-            else:
-                r.build_sphere_acceleration_structure(sphere_data)
-            self._last_geom_key = geom_key
-            self._last_geom_data = tuple(
-                None if a is None else np.array(a, copy=True)
-                for a in geom_data)
-            self._accum_count = 0
-
-        # Upload sphere colors.
-        color_bytes = np.ascontiguousarray(sphere_colors, dtype=np.uint8)
-        r.destroy_data_buffer(self._color_buffer)
-        self._color_buffer = r.create_data_buffer(color_bytes)
-
-        # Upload cylinder colors.
-        if cyl_colors is not None and len(cyl_colors) > 0:
-            cyl_color_bytes = np.ascontiguousarray(cyl_colors, dtype=np.uint8)
-            r.destroy_data_buffer(self._cyl_color_buffer)
-            self._cyl_color_buffer = r.create_data_buffer(cyl_color_bytes)
-        else:
-            r.destroy_data_buffer(self._cyl_color_buffer)
-            self._cyl_color_buffer = None
-
-        # Upload triangle colors.
-        if tri_colors is not None and len(tri_colors) > 0:
-            tri_color_bytes = np.ascontiguousarray(tri_colors, dtype=np.uint8)
-            r.destroy_data_buffer(self._tri_color_buffer)
-            self._tri_color_buffer = r.create_data_buffer(tri_color_bytes)
-        else:
-            r.destroy_data_buffer(self._tri_color_buffer)
-            self._tri_color_buffer = None
+        if not reuse:
+            self._upload_geometry(
+                r, sphere_data, sphere_colors, cyl_data, cyl_colors,
+                tri_data, tri_colors)
 
         # Ensure RGBA textures for output and ping-pong accumulation.
         res = ctx.resources
@@ -1011,7 +983,66 @@ class PathTracePass(RenderPass):
         r._pathtrace_accumulation_target = max_accum
         r._pathtrace_accumulation_complete = self._accum_count >= max_accum
         if self._accum_count < max_accum:
-            ctx.view._drawing_manager.redraw_needed = True
+            ctx.view._refinement_redraw_needed = True
+
+    def _upload_geometry(self, r, sphere_data, sphere_colors, cyl_data,
+                         cyl_colors, tri_data, tri_colors):
+        import numpy as np
+
+        geom_key = (len(sphere_data),
+                     len(cyl_data) if cyl_data is not None else 0,
+                     len(tri_data) if tri_data is not None else 0)
+        # Compare content, not just counts: trajectory playback / model
+        # dragging move geometry without changing counts, and tracing
+        # against the stale BVH accumulates wrong images. memcmp-speed.
+        geom_data = (sphere_data, cyl_data, tri_data)
+        changed = (geom_key != self._last_geom_key
+                   or self._last_geom_data is None)
+        if not changed:
+            for a, b in zip(geom_data, self._last_geom_data):
+                if (a is None) != (b is None) or (
+                        a is not None and not np.array_equal(a, b)):
+                    changed = True
+                    break
+        if changed:
+            has_cyls = cyl_data is not None and len(cyl_data) > 0
+            has_tris = tri_data is not None and len(tri_data) > 0
+            if has_cyls or has_tris:
+                r.build_scene_acceleration_structure(
+                    sphere_data,
+                    cyl_data if has_cyls else None,
+                    tri_data if has_tris else None,
+                )
+            else:
+                r.build_sphere_acceleration_structure(sphere_data)
+            self._last_geom_key = geom_key
+            self._last_geom_data = tuple(
+                None if a is None else np.array(a, copy=True)
+                for a in geom_data)
+            self._accum_count = 0
+
+        # Upload sphere colors.
+        color_bytes = np.ascontiguousarray(sphere_colors, dtype=np.uint8)
+        r.destroy_data_buffer(self._color_buffer)
+        self._color_buffer = r.create_data_buffer(color_bytes)
+
+        # Upload cylinder colors.
+        if cyl_colors is not None and len(cyl_colors) > 0:
+            cyl_color_bytes = np.ascontiguousarray(cyl_colors, dtype=np.uint8)
+            r.destroy_data_buffer(self._cyl_color_buffer)
+            self._cyl_color_buffer = r.create_data_buffer(cyl_color_bytes)
+        else:
+            r.destroy_data_buffer(self._cyl_color_buffer)
+            self._cyl_color_buffer = None
+
+        # Upload triangle colors.
+        if tri_colors is not None and len(tri_colors) > 0:
+            tri_color_bytes = np.ascontiguousarray(tri_colors, dtype=np.uint8)
+            r.destroy_data_buffer(self._tri_color_buffer)
+            self._tri_color_buffer = r.create_data_buffer(tri_color_bytes)
+        else:
+            r.destroy_data_buffer(self._tri_color_buffer)
+            self._tri_color_buffer = None
 
     @staticmethod
     def _collect_geometry(ctx):
@@ -1075,29 +1106,25 @@ class PathTracePass(RenderPass):
                     # color as floats that encode packed RGBA bytes.
                     n = len(matrices)
                     dashes = getattr(drawing, 'impostor_dashes', 0)
-                    cyl_data = np.zeros((n, 8), dtype=np.float32)
+                    cyl_data = np.empty((n, 8), dtype=np.float32)
 
-                    for i in range(n):
-                        m = matrices[i]
-                        center = m[3, :3].copy()
-                        axis = m[2, :3].copy()
-                        radius = np.linalg.norm(m[0, :3])
+                    center = matrices[:, 3, :3]
+                    half_axis = 0.5 * matrices[:, 2, :3]
+                    p0 = center - half_axis
+                    p1 = center + half_axis
+                    if parent_rot is not None:
+                        p0 = (p0 @ parent_rot.T) + parent_trans
+                        p1 = (p1 @ parent_rot.T) + parent_trans
 
-                        p0 = center - 0.5 * axis
-                        p1 = center + 0.5 * axis
-
-                        if parent_rot is not None:
-                            p0 = (parent_rot @ p0) + parent_trans
-                            p1 = (parent_rot @ p1) + parent_trans
-
-                        cyl_data[i, :3] = p0
-                        # Shrink the bond radius slightly so the cylinder
-                        # surface doesn't protrude past the atom sphere at
-                        # the junction.
-                        cyl_data[i, 3] = radius * 0.995
-                        cyl_data[i, 4:7] = p1
-                        # Pack dash count into the unused .w of p1.
-                        cyl_data[i, 7] = float(dashes)
+                    cyl_data[:, :3] = p0
+                    # Shrink the bond radius slightly so the cylinder
+                    # surface doesn't protrude past the atom sphere at
+                    # the junction.
+                    cyl_data[:, 3] = 0.995 * np.linalg.norm(
+                        matrices[:, 0, :3], axis=1)
+                    cyl_data[:, 4:7] = p1
+                    # Pack dash count into the unused .w of p1.
+                    cyl_data[:, 7] = float(dashes)
 
                     all_cyls.append(cyl_data)
 

@@ -295,6 +295,9 @@ struct VulkanContext {
     bool             owns_instance;
     bool             owns_surface;   // true when create_context made the surface
                                      // or ownership was explicitly transferred
+    // Linux: Qt's xcb_connection_t*, used to create surfaces for further
+    // QWindows.  Borrowed from Qt; never disconnected here.
+    void*            xcb_connection;
     VmaAllocator     allocator;
 
     // Stable per-QWindow presentation state.  Switching windows moves the
@@ -307,6 +310,10 @@ struct VulkanContext {
     VkSwapchainKHR           swapchain;
     VkFormat                 swapchain_format;
     VkExtent2D               swapchain_extent;
+    // Present mode of the active swapchain.  With wait_for_vsync off,
+    // swapchains prefer MAILBOX (uncapped, no tearing), then IMMEDIATE.
+    VkPresentModeKHR         present_mode;
+    bool                     wait_for_vsync = true;
     // Incremented by every create_swapchain, including recreations the
     // native side starts on its own (out-of-date, suboptimal, recovery after
     // a failed frame), so Python can resync its size and release texture

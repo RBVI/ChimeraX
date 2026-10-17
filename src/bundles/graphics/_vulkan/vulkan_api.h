@@ -21,6 +21,7 @@ PyObject* vulkan_destroy_context(PyObject* self, PyObject* args, PyObject* kwds)
 PyObject* vulkan_set_surface_for_window(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_release_window(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_resize_drawable(PyObject* self, PyObject* args, PyObject* kwds);
+PyObject* vulkan_set_wait_for_vsync(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_device_name(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_max_3d_texture_size(PyObject* self, PyObject* args, PyObject* kwds);
 PyObject* vulkan_device_info(PyObject* self, PyObject* args, PyObject* kwds);

@@ -451,10 +451,21 @@ class View:
         c = self.camera
         cp = self.clip_planes
         dm = self._drawing_manager
-        draw = self.redraw_needed or c.redraw_needed or cp.changed or dm.redraw_needed
+        # Set by progressive renderers (path tracing) that need another
+        # refinement frame.  Unlike the camera or drawing manager flags it
+        # does not tell labels the camera moved or caches that shapes changed.
+        refine = getattr(self, "_refinement_redraw_needed", False)
+        self._refinement_redraw_needed = False
+        draw = (self.redraw_needed or c.redraw_needed or cp.changed
+                or dm.redraw_needed or refine)
         # Scene-compiling backends consume this after clear_changes() has
         # reset the Drawing manager during the update-loop preflight.
         self._drawing_changed = dm.redraw_needed
+        if dm.redraw_needed:
+            # Lets passes that cache scene data detect changes across
+            # several draws, e.g. progressive accumulation frames.
+            self._drawing_change_count = getattr(
+                self, "_drawing_change_count", 0) + 1
         self._cam_only_change = c.redraw_needed and not (
             self.redraw_needed or cp.changed or dm.redraw_needed or self.update_lighting
         )
