@@ -647,6 +647,12 @@ class LabelModel(Model):
         Model.delete(self)
         self.label.delete()
 
+    def graphics_context_changed(self):
+        # release_graphics_resources() drops the backend-owned texture.
+        # Rebuild the label image with the newly selected Texture class on
+        # the next draw, even when its size and text have not changed.
+        self.needs_update = True
+
     def draw(self, renderer, draw_pass):
         self._update_graphics(renderer)
         Model.draw(self, renderer, draw_pass)

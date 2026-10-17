@@ -16,7 +16,7 @@ import numpy as np
 
 from Qt import qt_object_is_deleted
 from Qt.QtCore import Qt, QEvent, QSize
-from Qt.QtGui import QContextMenuEvent, QWindow, QSurface, QInputDevice, QImage
+from Qt.QtGui import QContextMenuEvent, QWindow, QInputDevice, QImage
 from Qt.QtWidgets import (
     QComboBox,
     QVBoxLayout,
@@ -218,15 +218,23 @@ class PlaneViewer(QWindow):
         self.manager.register(self)
 
         self.last_mouse_position = None
-
-        self.widget = QWidget.createWindowContainer(self, parent)
-        self.level_label = LevelLabel(self.widget)
-        self.setSurfaceType(QSurface.SurfaceType.OpenGLSurface)
+        self._rendering = False
+        self._needs_render = False
+        self._render_retry_pending = False
+        self._closed = False
+        self._ready_to_render = False
+        self._backend_switching = False
         self.placeholder_drawing = Drawing("placeholder")
         self.view = OrthoplaneView(
             self.placeholder_drawing, window_size=(0, 0), axis=self.axis
         )
-        self.view.initialize_rendering(session.main_view.render.opengl_context)
+        main_endpoint = session.main_view.render_endpoint
+        from chimerax.graphics.auxiliary import create_render_endpoint
+
+        self.widget, self.render_endpoint = create_render_endpoint(
+            self, parent, self.view, main_endpoint.device
+        )
+        self.level_label = LevelLabel(self.widget)
         self.view.camera = OrthoCamera()
         self.field_width_offset = 0
         # Taken from the Mouse Modes code. It's unknown at this point whether there is a
@@ -385,6 +393,10 @@ class PlaneViewer(QWindow):
             self.slider.setValue(1)
 
         self.slider.sliderMoved.connect(self._onSliderMoved)
+        # Guarantee one final demand-driven presentation after a drag. An
+        # intermediate Vulkan acquire may legitimately be unavailable, but
+        # releasing the slider is itself a discrete view change.
+        self.slider.sliderReleased.connect(self._redraw)
         self.slider_moved = False
         self.color_changed = False
         self.scale = 1  # set this to a temporary valid value before the draw
@@ -458,6 +470,15 @@ class PlaneViewer(QWindow):
                 Trigger.ActiveSegmentationChanged, self._on_active_segmentation_changed
             )
         )
+        from chimerax.core.core_triggers import (
+            GRAPHICS_BACKEND_CHANGED, GRAPHICS_BACKEND_CHANGING,
+        )
+        self._backend_changing_handler = session.triggers.add_handler(
+            GRAPHICS_BACKEND_CHANGING, self._backend_changing)
+        self._backend_changed_handler = session.triggers.add_handler(
+            GRAPHICS_BACKEND_CHANGED, self._backend_changed)
+        self._ready_to_render = True
+        self.render()
 
     def _on_active_segmentation_changed(self, _, data):
         self._redraw()
@@ -775,8 +796,7 @@ class PlaneViewer(QWindow):
         if self.guidelines_visible or self.segmentation_tool:
             self.manager.redraw_all()
         else:
-            self.render()
-        self._redraw()
+            self._redraw()
 
     def on_color_changed(self):
         if (
@@ -812,6 +832,9 @@ class PlaneViewer(QWindow):
         self.position_label.setText(text)
 
     def close(self):
+        self._closed = True
+        self._needs_render = False
+        self._render_retry_pending = False
         # TODO: why does this call make it crash?
         # self.setParent(None)
         # TODO: Clean up the Label(s) interface
@@ -829,6 +852,8 @@ class PlaneViewer(QWindow):
         chimerax.segmentations.triggers.remove_handler(
             self.active_segmentation_changed_handler
         )
+        self.session.triggers.remove_handler(self._backend_changing_handler)
+        self.session.triggers.remove_handler(self._backend_changed_handler)
 
         del self.label
 
@@ -839,6 +864,8 @@ class PlaneViewer(QWindow):
         self.view.drawing.delete()
         self.view.remove_overlays([self.color_key], delete=False)
         self.color_key.delete()
+        from chimerax.graphics.auxiliary import release_window
+        release_window(self, self.view, self.main_view)
         self.view.delete()
         self.mouse_move_timer.stop()
         self.volume_viewer_opened_timer.stop()
@@ -873,7 +900,12 @@ class PlaneViewer(QWindow):
     # endregion
 
     def exposeEvent(self, event):
-        if self.isExposed() and not self.session.update_loop.blocked():
+        if not self.isExposed():
+            return
+        if self.session.update_loop.blocked():
+            self._needs_render = True
+            self._defer_pending_render()
+        else:
             self.render()
 
     def resizeEvent(self, event):  # noqa
@@ -881,6 +913,12 @@ class PlaneViewer(QWindow):
         width = size.width()
         height = size.height()
         self.setViewport(width, height)
+        render = self.view.render
+        endpoint = self.view.render_endpoint
+        from chimerax.graphics.ral import GraphicsFeature
+        if (render is not None and endpoint is not None and
+                endpoint.capabilities.supports(GraphicsFeature.EXPLICIT_PRESENT)):
+            self.render()
 
     def setViewport(self, width, height):
         # Don't need make_current, since OpenGL isn't used
@@ -888,6 +926,44 @@ class PlaneViewer(QWindow):
         self.view.resize(width, height)
 
     def render(self):
+        """Request one presentation of the current orthoplane state.
+
+        QWindow coalesces UpdateRequest events, so a burst of slider or resize
+        changes still produces only the draw needed for the newest state.
+        """
+        if self._closed or not self._ready_to_render:
+            return
+        self._needs_render = True
+        render = self.view.render
+        endpoint = self.view.render_endpoint
+        from chimerax.graphics.ral import GraphicsFeature
+        explicit = (endpoint is not None and endpoint.capabilities.supports(
+            GraphicsFeature.EXPLICIT_PRESENT
+        ))
+        if render is None or not explicit:
+            # Preserve the established synchronous OpenGL/Metal behavior.
+            self._do_render()
+            return
+        if self.isExposed():
+            self.requestUpdate()
+
+    def _defer_pending_render(self):
+        """Re-request one failed Vulkan presentation on a later Qt turn."""
+        if self._render_retry_pending or not self._needs_render:
+            return
+        self._render_retry_pending = True
+        QTimer.singleShot(16, self._request_pending_render)
+
+    def _request_pending_render(self):
+        self._render_retry_pending = False
+        if (not self._closed and self._ready_to_render and
+                self._needs_render and self.isExposed()):
+            self.requestUpdate()
+
+    def _do_render(self):
+        if (self._closed or not self._ready_to_render or self._rendering or
+                not self._needs_render or not self.isExposed()):
+            return
         ww, wh = self.main_view.window_size
         width, height = self.view.window_size
         if (
@@ -900,11 +976,29 @@ class PlaneViewer(QWindow):
             or self.view.render is None
         ):
             return
-        mvwin = self.view.render.use_shared_context(self)
-        try:
+        render = self.view.render
+        endpoint = self.view.render_endpoint
+        if endpoint is None:
+            return
+        self._rendering = True
+        from chimerax.graphics.auxiliary import draw_on_window
+
+        def draw():
+            # Acquire the Vulkan frame before updating a moved slice. Texture
+            # uploads can then be recorded ahead of the render pass in this
+            # frame's command buffer instead of synchronously draining the
+            # shared graphics queue. draw_background() sees the frame already
+            # active and only begins its render pass.
+            from chimerax.graphics.ral import GraphicsFeature
+            scene_renderer = endpoint.capabilities.supports(
+                GraphicsFeature.SCENE_RENDERER
+            )
+            if (endpoint.capabilities.supports(GraphicsFeature.EXPLICIT_PRESENT)
+                    and not scene_renderer):
+                render.begin_frame()
             if self.view.drawing is not self.placeholder_drawing:
                 # self.view.background_color = self.main_view.background_color
-                self.scale = mvwin.opengl_context.pixel_scale()
+                self.scale = render.opengl_context.pixel_scale()
                 # We can rely on add_segmentation to set this value except when we're transitioning
                 # from the 3d views back to the 2d view. In that case, we have to do it somewhere
                 # TODO: Idenfity someplace we can do this _once_ and move it out of the render loop
@@ -952,19 +1046,73 @@ class PlaneViewer(QWindow):
                 self.horizontal_slice_overlay.update()
                 self.vertical_slice_overlay.update()
 
-            self.view.prepare_scene_for_drawing()
-            self.view._draw_scene(self.view.camera, [self.view.drawing])
-            self.view.finalize_draw(
-                should_draw_overlays=(self.view.drawing is not self.placeholder_drawing)
-            )
-        except Exception as e:  # noqa
-            # This line is here so you can set a breakpoint on it and figure out what's going wrong
-            # because ChimeraX's interface will not tell you.
-            pass
+            if scene_renderer:
+                self.view.draw(drawings=[self.view.drawing])
+            else:
+                self.view.prepare_scene_for_drawing()
+                self.view._draw_scene(self.view.camera, [self.view.drawing])
+                self.view.finalize_draw(
+                    should_draw_overlays=(
+                        self.view.drawing is not self.placeholder_drawing
+                    )
+                )
+
+        try:
+            if draw_on_window(self, self.view, self.main_view, draw):
+                self._needs_render = False
+        except Exception as error:  # noqa
+            from chimerax.graphics.vulkan import VulkanDrawableUnavailable
+            if isinstance(error, VulkanDrawableUnavailable):
+                # requestUpdate() called from inside an UpdateRequest handler
+                # can be coalesced with the event currently being handled.
+                # Post one later request and stop as soon as it presents.
+                self._defer_pending_render()
+            else:
+                import traceback
+                self._ready_to_render = False
+                self._needs_render = False
+                self.session.logger.bug(
+                    "Orthoplane graphics rendering stopped after an error:\n"
+                    + traceback.format_exc()
+                )
         finally:
-            # Target opengl context back to main graphics window.
-            self.main_view.render.use_shared_context(mvwin)
-        self.view.render.done_current()
+            self._rendering = False
+
+    def _backend_changing(self, *_):
+        if self._backend_switching:
+            return
+        self._backend_switching = True
+        self._ready_to_render = False
+        self._needs_render = False
+        self._render_retry_pending = False
+        from chimerax.graphics.auxiliary import release_window
+        release_window(self, self.view, self.main_view)
+        for overlay in self.view.overlays():
+            overlay.release_graphics_resources()
+        self.view.release_graphics_context()
+        # On macOS the embedded native child must survive a backend switch.
+        # Destroying it leaves createWindowContainer() attached to a dead
+        # NSView; the main window and other auxiliary tools use the same
+        # preserve-on-macOS rule. Other platforms recreate their native
+        # surface so Qt can install the new surface type.
+        if sys.platform != "darwin":
+            QWindow.destroy(self)
+
+    def _backend_changed(self, *_):
+        if not self._backend_switching:
+            return
+        main_endpoint = self.main_view.render_endpoint
+        self.render_endpoint = main_endpoint.device.create_endpoint(
+            self.view, self
+        )
+        if sys.platform != "darwin":
+            self.create()
+        width, height = self.view.window_size
+        self.view.resize(width, height)
+        self._backend_switching = False
+        self._ready_to_render = True
+        self.view.redraw_needed = True
+        QTimer.singleShot(0, self.render)
 
     def toggle_guidelines(self):
         from chimerax.segmentations.settings import get_settings
@@ -1118,9 +1266,20 @@ class PlaneViewer(QWindow):
         return top, bottom, left, right
 
     def event(self, event):
-        if event.type() == QEvent.Type.Enter:
+        event_type = event.type()
+        if event_type == QEvent.Type.UpdateRequest:
+            if self._needs_render:
+                if self.session.update_loop.blocked():
+                    # The main view owns the shared renderer until its draw
+                    # returns. Re-request after this event has left Qt's
+                    # coalescing window.
+                    self._defer_pending_render()
+                else:
+                    self._do_render()
+            return True
+        if event_type == QEvent.Type.Enter:
             self.enterEvent()
-        if event.type() == QEvent.Type.Leave:
+        if event_type == QEvent.Type.Leave:
             self.leaveEvent()
         return QWindow.event(self, event)
 
