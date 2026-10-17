@@ -69,6 +69,8 @@ class Movie:
         self.encoding_thread = None
         self.resetMode = None
         self._image_capture_handler = None
+        self.wait_for_rendering = False
+        self.frame_capture_ready = None
 
 #        from chimera import triggers, COMMAND_ERROR, SCRIPT_ABORT
 #        triggers.addHandler(COMMAND_ERROR, self.haltRecording, None)
@@ -99,6 +101,12 @@ class Movie:
         t = self.session.triggers
         t.remove_handler(self._image_capture_handler)
         self.recording = False
+        self.wait_for_rendering = False
+        capture_gate = self.frame_capture_ready
+        self.frame_capture_ready = None
+        close_gate = getattr(capture_gate, "close", None)
+        if close_gate is not None:
+            close_gate()
 #        self.task.finished()
         self.task = None
         v = self.session.main_view
@@ -152,6 +160,10 @@ class Movie:
 
     def capture_image(self, *_):
 
+        ready = self.frame_capture_ready
+        if ready is not None and not ready():
+            return False
+
         f = self.frame_number + 1 + self.postprocess_frames
         if not self.limit is None and f >= self.limit:
             self.stop_recording()
@@ -168,8 +180,23 @@ class Movie:
         width, height = (None,None) if self.size is None else self.size
 
         v = self.session.main_view
-        rgba = v.image_rgba(width, height, supersample = self.supersample,
-                            transparent_background = self.transparent_background)
+        resolved_display = (
+            self.wait_for_rendering
+            and self.size is None
+            and self.supersample in (None, 1)
+            and not self.transparent_background
+        )
+        if resolved_display:
+            # The frame-drawn trigger runs after the resolved image has been
+            # presented. Read it directly instead of monopolizing the UI
+            # thread with a second full path-trace accumulation offscreen.
+            rgba = v.frame_buffer_rgba()
+        else:
+            rgba = v.image_rgba(
+                width, height, supersample=self.supersample,
+                transparent_background=self.transparent_background,
+                wait_for_rendering=self.wait_for_rendering,
+            )
         from chimerax.graphics import image_from_rgba
         i = image_from_rgba(rgba, self.transparent_background)
         try:
@@ -186,6 +213,8 @@ class Movie:
                 self.save_crossfade_images()
             elif self.postprocess_action == 'duplicate':
                 self.save_duplicate_images()
+
+        return True
 
     def image_path(self, frame):
 

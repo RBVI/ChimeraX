@@ -28,6 +28,7 @@ from chimerax.core.settings import Settings
 class _AnimationsSettings(Settings):
     EXPLICIT_SAVE = {
         "recording_resolution": "display",  # Default to current graphics window size
+        "recording_pathtrace_samples": 64,
         "animation_mode": "scene",  # Default to scene mode ('keyframe' or 'scene')
         "playback_fps": 60,  # Playback frame rate
         # Record one extra second past the end of the timeline so the
@@ -93,6 +94,18 @@ class AnimationsPreferencesDialog:
                     "Custom Resolution",
                 ],
                 values=["display", "1080p", "4k", "custom"],
+            )
+        )
+
+        self.panel.add_option(
+            SymbolicEnumOption(
+                name="Path-tracing samples per movie frame",
+                default=None,
+                attr_name="recording_pathtrace_samples",
+                settings=self.settings,
+                callback=None,
+                labels=["16", "32", "64", "128", "256"],
+                values=[16, 32, 64, 128, 256],
             )
         )
 
