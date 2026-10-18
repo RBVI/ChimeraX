@@ -32,8 +32,31 @@ PATCHES = rvec.patch
 
 all: $(XDRFILE_LIB)
 
+ifeq ($(OS),Darwin)
+# configure takes many seconds to work out what is always true on macOS, so
+# compile the three source files directly, with the definitions from the
+# config.h configure made.  The result has the same code as libtool's.
+XDRFILE_SRCS = xdrfile xdrfile_trr xdrfile_xtc
+XDRFILE_CFLAGS = -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_RPC_XDR_H=1 \
+	-DFLOAT_FORMAT_IEEE754 -Iinclude -O3 -fomit-frame-pointer \
+	-finline-functions -Wall -Wno-unused -std=gnu99 -fexcess-precision=fast
+$(XDRFILE_LIB): $(XDRFILE_LIB_SOURCE)
+	mkdir -p $(XDRFILE_LIB_SOURCE)/src/.libs
+	cd $(XDRFILE_LIB_SOURCE) && for f in $(XDRFILE_SRCS); do \
+		$(CC) $(TARGET_ARCH) $(XDRFILE_CFLAGS) -c src/$$f.c -o src/.libs/$$f.o \
+			|| exit 1 ; \
+	done
+	cd $(XDRFILE_LIB_SOURCE)/src/.libs && \
+		$(CC) $(TARGET_ARCH) $(LDFLAGS) -dynamiclib \
+			-install_name @rpath/libxdrfile.4.dylib \
+			-compatibility_version 5.0.0 -current_version 5.0.0 \
+			-o libxdrfile.4.dylib $(XDRFILE_SRCS:=.o) && \
+		ln -sf libxdrfile.4.dylib libxdrfile.4.0.0.dylib && \
+		ln -sf libxdrfile.4.dylib libxdrfile.dylib
+else
 $(XDRFILE_LIB): $(XDRFILE_LIB_SOURCE)
 	cd $(XDRFILE_LIB_SOURCE) ; $(ENV_CONFIGURE) $(MAKE)
+endif
 
 $(XDRFILE_LIB_SOURCE):
 	tar zxf $(XDRFILE_ARCHIVE) --no-same-owner
@@ -44,8 +67,12 @@ ifneq ($(PATCHES),)
 		fi ; \
 	done
 endif
+ifneq ($(OS),Darwin)
 	cp configure.ac $(XDRFILE_LIB_SOURCE)/configure.ac
-	cd $(XDRFILE_LIB_SOURCE) ; autoconf
+	# Make the shipped automake outputs newer than the replaced configure.ac,
+	# or the first make reruns aclocal/autoconf/automake and then configure
+	cd $(XDRFILE_LIB_SOURCE) ; touch aclocal.m4 ; autoconf ; \
+		touch config.h.in Makefile.in src/Makefile.in src/python/Makefile.in include/Makefile.in
 ifneq ($(filter $(MSYSTEM),MSYS MINGW64),)
 	# Though it says 'mingw32' inspection of the generated static library shows x86_64
 	cd $(XDRFILE_LIB_SOURCE) ; $(ENV_CONFIGURE) ./configure --build=x86_64-w64-mingw32 --enable-shared --with-pic
@@ -55,6 +82,7 @@ ifeq ($(OSARCH),LinuxArm64)
 	cd $(XDRFILE_LIB_SOURCE)/config ; rm config.sub ; cp $(TOP)/utils/build/autotools/config.sub .
 endif
 	cd $(XDRFILE_LIB_SOURCE) ; $(ENV_CONFIGURE) ./configure --enable-shared --with-pic
+endif
 endif
 
 clean:
