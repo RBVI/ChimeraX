@@ -25,6 +25,10 @@
 
   <CLibrary name="molc" usesNumpy="true">
     <SourceFile>atomic_cpp/molc.cpp</SourceFile>
+    <SourceFile>atomic_cpp/molc_bond.cpp</SourceFile>
+    <SourceFile>atomic_cpp/molc_residue.cpp</SourceFile>
+    <SourceFile>atomic_cpp/molc_structure.cpp</SourceFile>
+    <SourceFile>atomic_cpp/molc_init.cpp</SourceFile>
     <Library>atomstruct</Library>
     <Library>element</Library>
     <Library>pyinstance</Library>
