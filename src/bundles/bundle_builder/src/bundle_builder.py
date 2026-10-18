@@ -46,7 +46,12 @@ else:
             self.dwFlags |= _winapi.STARTF_USESHOWWINDOW
 
 
-cpu_count = os.cpu_count()
+from . import _parallel_compile
+
+# Compile each extension's and library's source files in parallel, in
+# addition to the per-extension parallelism of build_ext -j
+_parallel_compile.install()
+cpu_count = _parallel_compile.jobs
 
 
 def _find_openmp_mac():
@@ -105,14 +110,12 @@ class BundleBuilder:
         ) or any(getattr(cl, "uses_openmp", False) for cl in self.c_libraries)
         if sys.platform == "darwin" and uses_openmp:
             self._copy_openmp_lib()
-        # Build C libraries and executables
         import os
 
-        for lib in self.c_libraries:
-            lib.compile(self.logger, self.dependencies, debug=debug)
-        for executable in self.c_executables:
-            executable.compile(self.logger, self.dependencies, debug=debug)
-        setup_args = ["--no-user-cfg", "build", f"-j{cpu_count}"]
+        background = self._background_build(debug)
+        # build_ext comes first so it can compile while the libraries build;
+        # build then skips it
+        setup_args = ["--no-user-cfg", "build_ext", "build", f"-j{cpu_count}"]
         if debug:
             setup_args.append("--debug")
         setup_args.extend(["bdist_wheel"])
@@ -122,7 +125,7 @@ class BundleBuilder:
             setup_args.extend(["--plat-name", self.tag.platform])
             if self.limited_api:
                 setup_args.extend(["--py-limited-api", self.tag.interpreter])
-        dist, built = self._run_setup(setup_args)
+        dist, built = self._run_setup(setup_args, background)
         wheel_dir = os.path.dirname(self.wheel_path)
         wheel = os.path.basename(self.wheel_path)
         wheel_lower = wheel.lower()
@@ -154,15 +157,11 @@ class BundleBuilder:
         ) or any(getattr(cl, "uses_openmp", False) for cl in self.c_libraries)
         if sys.platform == "darwin" and uses_openmp:
             self._copy_openmp_lib()
-        # Build C libraries and executables
         import os
 
-        for lib in self.c_libraries:
-            lib.compile(self.logger, self.dependencies, debug=debug)
-        for executable in self.c_executables:
-            executable.compile(self.logger, self.dependencies, debug=debug)
+        background = self._background_build(debug)
         setup_args = ["build_ext", f"-j{cpu_count}", "--inplace", "editable_wheel"]
-        dist, built = self._run_setup(setup_args)
+        dist, built = self._run_setup(setup_args, background)
         import glob
 
         whl_path = glob.glob(os.path.join(self.path, "dist", "*editable*.whl"))
@@ -893,7 +892,21 @@ class BundleBuilder:
         self.wheel_path = os.path.join(self.path, "dist", wheel)
         self.egg_info = os.path.join(self.path, bundle_wheel_name + ".egg-info")
 
-    def _run_setup(self, cmd):
+    def _background_build(self, debug):
+        # Build C libraries and executables
+        if not self.c_libraries and not self.c_executables:
+            return None
+
+        def build():
+            _parallel_compile.compile_libraries(
+                self.c_libraries, self.logger, self.dependencies, debug=debug
+            )
+            for executable in self.c_executables:
+                executable.compile(self.logger, self.dependencies, debug=debug)
+
+        return _parallel_compile.BackgroundBuild(build)
+
+    def _run_setup(self, cmd, background=None):
         import os
 
         cwd = os.getcwd()
@@ -905,6 +918,15 @@ class BundleBuilder:
             kw = self.setup_arguments.copy()
             kw["package_dir"], kw["packages"] = self._make_package_arguments()
             sys.argv = ["setup.py"] + cmd
+            if background is not None:
+                from setuptools.command.build_ext import build_ext
+
+                cmdclass = dict(kw.get("cmdclass") or {})
+                cmdclass["build_ext"] = background.build_ext_class(
+                    cmdclass.get("build_ext", build_ext)
+                )
+                kw["cmdclass"] = cmdclass
+                background.start()
             with suppress_known_deprecation():
                 dist = setuptools.setup(**kw)
             return dist, True
@@ -919,6 +941,9 @@ class BundleBuilder:
             traceback.print_exc()
             return None, False
         finally:
+            if background is not None:
+                # It builds relative to the bundle directory
+                background.join()
             sys.argv = save
             os.chdir(cwd)
             if MySTARTUPINFO:
@@ -1258,9 +1283,12 @@ class _CLibrary(_CompiledCode):
         self.static = static
 
     def compile(self, logger, dependencies, debug=False):
-        compiler, objs, extra_link_args = self.compile_objects(
-            logger, dependencies, self.static, debug
+        return self.link(
+            self.compile_objects(logger, dependencies, self.static, debug), debug
         )
+
+    def link(self, compiled, debug=False):
+        compiler, objs, extra_link_args = compiled
         output_dir, install_dir = self.install_locations()
         compiler.mkpath(output_dir)
         if sys.platform == "win32":

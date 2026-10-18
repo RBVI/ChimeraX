@@ -87,7 +87,12 @@ from setuptools.build_meta import (
 # Always import this because it changes the behavior of setuptools
 from numpy import get_include as get_numpy_include_dirs  # noqa
 
-cpu_count = os.cpu_count()
+from . import _parallel_compile
+
+# Compile each extension's and library's source files in parallel, in
+# addition to the per-extension parallelism of build_ext -j
+_parallel_compile.install()
+cpu_count = _parallel_compile.jobs
 
 
 def _find_openmp_mac():
@@ -838,7 +843,7 @@ class Bundle:
             add_package(name, folder)
         return package_dir, packages
 
-    def _run_setup(self, cmd):
+    def _run_setup(self, cmd, background=None):
         cwd = os.getcwd()
         save = sys.argv
         try:
@@ -852,12 +857,24 @@ class Bundle:
             # and package data correctly.
             kw["include_package_data"] = False
             sys.argv = ["setup.py"] + cmd
+            if background is not None:
+                from setuptools.command.build_ext import build_ext
+
+                cmdclass = dict(kw.get("cmdclass") or {})
+                cmdclass["build_ext"] = background.build_ext_class(
+                    cmdclass.get("build_ext", build_ext)
+                )
+                kw["cmdclass"] = cmdclass
+                background.start()
             with suppress_known_deprecation():
                 dist = setuptools.setup(**kw)
             return dist, True
         except SystemExit:
             return None, False
         finally:
+            if background is not None:
+                # It builds relative to the bundle directory
+                background.join()
             sys.argv = save
             os.chdir(cwd)
             if MySTARTUPINFO:
@@ -879,12 +896,18 @@ class Bundle:
         )
         if sys.platform == "darwin" and uses_openmp:
             self._copy_openmp_lib()
-        if build_exts:
-            # Build C libraries and executables
-            for lib in self.c_libraries:
-                lib.compile(self.logger, self.dependencies)
-            for executable in self.c_executables:
-                executable.compile(self.logger, self.dependencies)
+        if build_exts and (self.c_libraries or self.c_executables):
+            # Build C libraries and executables, in the background of
+            # _run_setup
+            def build():
+                _parallel_compile.compile_libraries(
+                    self.c_libraries, self.logger, self.dependencies
+                )
+                for executable in self.c_executables:
+                    executable.compile(self.logger, self.dependencies)
+
+            return _parallel_compile.BackgroundBuild(build)
+        return None
 
     def _check_output(self, type_="wheel", report_name=True):
         if type_ == "wheel":
@@ -940,11 +963,13 @@ class Bundle:
         return wheel_name.split("/")[-1]
 
     def build_wheel(self, debug=False, release=False):
-        self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
+        background = self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
         self._check_build_requires()
-        setup_args = ["--no-user-cfg", "build", f"-j{cpu_count}"]
+        # build_ext comes first so it can compile while the libraries build;
+        # build then skips it
+        setup_args = ["--no-user-cfg", "build_ext", "build", f"-j{cpu_count}"]
         setup_args.extend(["bdist_wheel"])
-        dist, built = self._run_setup(setup_args)
+        dist, built = self._run_setup(setup_args, background)
         if not built:
             raise RuntimeError(f"Failed to build wheel for {self.module_name}; see errors above")
         if not self.version:
@@ -982,13 +1007,13 @@ class Bundle:
 
     def build_editable(self, config_settings=None):
         self._remove_libraries()
-        self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
+        background = self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
         self._check_build_requires()
         setup_args = ["build_ext", f"-j{cpu_count}", "--inplace", "editable_wheel"]
         if config_settings:
             if "editable_mode" in config_settings:
                 setup_args.extend(["--mode", config_settings["editable_mode"]])
-        dist, built = self._run_setup(setup_args)
+        dist, built = self._run_setup(setup_args, background)
         if not built:
             raise RuntimeError(f"Failed to build editable wheel for {self.module_name}; see errors above")
         if not self.version:
@@ -1316,9 +1341,12 @@ class _CLibrary(_CompiledCode):
         self.static = attrs.get("static", False)
 
     def compile(self, logger, dependencies, debug=False):
-        compiler, objs, extra_link_args = self.compile_objects(
-            logger, dependencies, self.static, debug
+        return self.link(
+            self.compile_objects(logger, dependencies, self.static, debug), debug
         )
+
+    def link(self, compiled, debug=False):
+        compiler, objs, extra_link_args = compiled
         compiler.mkpath(self.output_dir)
         if self.static:
             if sys.platform == "darwin":
