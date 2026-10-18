@@ -47,6 +47,7 @@ else:
 
 
 from . import _parallel_compile
+from ._entry_points import cached_entry_points
 
 # Compile each extension's and library's source files in parallel, in
 # addition to the per-extension parallelism of build_ext -j
@@ -71,10 +72,15 @@ CHIMERAX1_0_PYTHON_VERSION = Version("3.7")
 
 
 class BundleBuilder:
-    def __init__(self, logger, bundle_path=None, bundle_xml=None):
+    def __init__(
+        self, logger, bundle_path=None, bundle_xml=None, check_build_dependencies=True
+    ):
         import os
 
         self.logger = logger
+        # build_extensions builds only extensions that use no other bundle,
+        # possibly before the build dependencies are installed
+        self.check_build_dependencies = check_build_dependencies
         if bundle_path is None:
             bundle_path = os.getcwd()
         self.path = bundle_path
@@ -91,8 +97,8 @@ class BundleBuilder:
         self._make_paths()
 
     @classmethod
-    def from_path(cls, logger, bundle_path):
-        return cls(logger, bundle_path)
+    def from_path(cls, logger, bundle_path, **kw):
+        return cls(logger, bundle_path, **kw)
 
     def make_wheel(self, debug=False, release=False):
         # The release keyword does nothing and is only here to conform to the API
@@ -141,6 +147,37 @@ class BundleBuilder:
                 print("Distribution is in %s" % wheel_lower_path)
                 self.wheel_path = wheel_lower_path
         return dist
+
+    def build_extensions(self, names, debug=False):
+        """Build only the named extension modules, without a wheel.
+
+        For extensions that use no other bundle: built before the bundle's
+        dependencies are, they are up to date when the wheel is built later,
+        so build_ext skips them then.  They are built without any other
+        bundle's include and library directories, which also means nothing
+        reads the metadata of bundles that may be being installed meanwhile.
+        """
+        modules = [cm for cm in self.c_modules if cm.name in names]
+        unknown = set(names) - {cm.name for cm in modules}
+        if unknown:
+            raise ValueError("no such extension: %s" % ", ".join(sorted(unknown)))
+        self._clear_distutils_cache()
+        ext_mods = [cm.ext_mod(self.logger, self.package, []) for cm in modules]
+        saved = getattr(self, "setup_arguments", None)
+        self.setup_arguments = {"name": self.name, "ext_modules": cythonize(
+            [em for em in ext_mods if em is not None]
+        )}
+        if self.version:
+            self.setup_arguments["version"] = self.version
+        setup_args = ["--no-user-cfg", "build_ext", f"-j{cpu_count}"]
+        if debug:
+            setup_args.append("--debug")
+        try:
+            dist, built = self._run_setup(setup_args)
+        finally:
+            self.setup_arguments = saved
+        if not built:
+            raise RuntimeError("Building extensions failed: %s" % ", ".join(names))
 
     def make_editable_wheel(self, debug=False):
         # HACK: distutils uses a cache to track created directories
@@ -490,7 +527,7 @@ class BundleBuilder:
             except ValueError:
                 raise ValueError("Bad version specifier (see PEP 440): %r" % req_str)
 
-            if e.get("build", False):
+            if e.get("build", False) and self.check_build_dependencies:
                 installed_version = parse(version(req.name))
                 if re.match(r"[Cc]himera[Xx]-[Cc]ore", req.name):
                     # Always accept prereleases for the core for developers building
@@ -629,7 +666,7 @@ class BundleBuilder:
             self.packages.append((pkg_name, pkg_folder))
 
     def _get_classifiers(self, bi):
-        from chimerax.core.commands import quote_if_necessary
+        from .classifiers import quote_if_necessary
 
         self.python_classifiers = [
             "Framework :: ChimeraX",
@@ -927,7 +964,7 @@ class BundleBuilder:
                 )
                 kw["cmdclass"] = cmdclass
                 background.start()
-            with suppress_known_deprecation():
+            with suppress_known_deprecation(), cached_entry_points():
                 dist = setuptools.setup(**kw)
             return dist, True
         except Exception:
@@ -1123,27 +1160,55 @@ class _CompiledCode:
         return (inc_dirs, lib_dirs, self.macros, extra_link_args, libraries, cpp_flags)
 
     def _get_bundle_dirs(self, logger, dep):
-        from chimerax.core import toolshed
+        # Read the dependency's ChimeraX classifiers directly instead of
+        # asking the toolshed, so wheels can be built without starting
+        # ChimeraX.  See chimerax.core.toolshed.installed for the format.
+        import importlib
         import importlib.metadata
+        from importlib.util import find_spec
         from packaging.requirements import Requirement
 
         req = Requirement(dep)
         d = importlib.metadata.distribution(req.name)
         if not req.specifier.contains(d.version, prereleases=True):
             raise RuntimeError("unsatisfied dependency: %s" % dep)
-        ts = toolshed.get_toolshed()
-        bundle = ts.find_bundle(req.name, logger)
-        if not bundle:
+        package_name = None
+        inc_name = lib_name = None
+        for classifier in d.metadata.get_all("Classifier") or []:
+            parts = [v.strip() for v in classifier.split("::")]
+            if len(parts) < 3 or parts[0] != "ChimeraX":
+                continue
+            if parts[1] == "Bundle" and len(parts) == 7:
+                package_name = parts[4]
+            elif parts[1] == "IncludeDir":
+                inc_name = parts[2]
+            elif parts[1] == "LibraryDir":
+                lib_name = parts[2]
+        if not package_name:
             # The requirement is satisfied but is not recognized
             # as a bundle.  Probably just a regular Python package.
             return None, None
-        inc = bundle.include_dir()
-        lib = bundle.library_dir()
+
+        def bundle_path(filename):
+            if not filename:
+                return None
+            try:
+                s = find_spec(package_name)
+            except ModuleNotFoundError:
+                return None
+            if s is None or not s.submodule_search_locations:
+                return None
+            for loc in s.submodule_search_locations:
+                p = os.path.join(loc, filename)
+                if os.path.exists(p):
+                    return p
+            return None
+
+        inc = bundle_path(inc_name)
+        lib = bundle_path(lib_name)
         if not inc:
             try:
-                import importlib
-
-                mod = importlib.import_module(bundle.package_name)
+                mod = importlib.import_module(package_name)
                 inc = mod.get_include()
             # This code does not distinguish between build dependencies and
             # regular dependencies, so must gracefully fail either way
@@ -1151,9 +1216,7 @@ class _CompiledCode:
                 return inc, None
         if not lib:
             try:
-                import importlib
-
-                mod = importlib.import_module(bundle.package_name)
+                mod = importlib.import_module(package_name)
                 lib = mod.get_lib()
             # This code does not distinguish between build dependencies and
             # regular dependencies, so must gracefully fail either way
