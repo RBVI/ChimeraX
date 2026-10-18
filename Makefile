@@ -29,33 +29,88 @@ install:
 endif
 	@echo 'Started install at' `date` on `hostname`
 	$(MAKE) build-dirs
+	# With TREE_CLEAN (see build-from-scratch), the source and documentation
+	# trees are cleaned while the prerequisites install, which never use them
+	$(MAKE) prereqs-install $(if $(TREE_CLEAN),$(TREE_CLEAN_TARGETS))
+	$(MAKE) build-app-dirs
+	$(MAKE) src-install
+	$(MAKE) post-src-install
+	# after the docs, whose imports leave __pycache__ directories behind
+	$(APP_PYTHON_EXE) utils/clean_app.py
+ifdef FLATPAK_DIST
+	-${APP_PYTHON_EXE} -m compileall -d CHIMERAX ${app_libdir}
+	${APP_EXE} --exit --nogui --silent --cmd 'linux flatpak-files edu.ucsf.rbvi.ChimeraX'
+endif
+	@echo 'Finished install at' `date`
+
+TREE_CLEAN_TARGETS = src.tree-clean docs.tree-clean vdocs.tree-clean
+.PHONY: prereqs-install $(TREE_CLEAN_TARGETS)
+prereqs-install:
 ifdef NO_PREBUILT
 	$(MAKE) -C prereqs install
 else
 	$(MAKE) -C prereqs install-prebuilt
 endif
 	$(MAKE) -C prereqs app-install
-	$(MAKE) build-app-dirs
-	$(MAKE) -C src install
-	$(MAKE) -C docs install
-ifndef WIN32
-	# Admin privileges are needed on Windows 10
-	# To enable, follow the instructions at
-	# https://stackoverflow.com/a/65504258/12208118
-	# then you can make -C vdocs by hand if you like
-	$(MAKE) -C vdocs install
-endif
-	$(APP_PYTHON_EXE) utils/clean_app.py
-	$(APP_PYTHON_EXE) -m pip check
+
+$(TREE_CLEAN_TARGETS):
+	-$(MAKE) -C $(basename $@) clean
+
+# While the bundles build, load the app's newly written libraries once, so
+# macOS's first-load signature checks are paid then instead of later in the
+# docs build and ChimeraX runs.  The bundles' own are not written yet.
+.PHONY: src-install src.install warm-libraries warm-bytecode
+src-install: src.install warm-libraries warm-bytecode
+src.install:
+	# post-src-install reloads the toolshed alongside the docs
+	$(MAKE) -C src install DEFER_TOOLSHED_RELOAD=1
+warm-libraries:
 ifeq ($(OS),Darwin)
+	# utility QoS: efficiency cores only, which is fast enough for this
+	-taskpolicy -c utility $(APP_PYTHON_EXE) utils/build/warm_libraries.py \
+		$(APP_PYTHON_LIBRARY_DIR) chimerax > /dev/null 2>&1
+endif
+
+# Likewise compile the bytecode of what the documentation build imports, which
+# it would otherwise compile itself, serially.  (The prerequisites are
+# installed without bytecode, since clean_app removes it all.)  Only speed
+# depends on this list.
+DOCS_IMPORTS = sphinx docutils pygments a11y_pygments sphinxcontrib babel \
+	jinja2 markupsafe bs4 soupsieve snowballstemmer pydata_sphinx_theme \
+	sphinx_autodoc_typehints alabaster imagesize roman_numerals requests \
+	urllib3 idna charset_normalizer certifi numpy PySide6 shiboken6 packaging
+warm-bytecode:
+	# (Some packages include files that are not meant to compile)
+	$(BACKGROUND_PRIORITY) $(APP_PYTHON_EXE) -m compileall -q -j0 \
+		$(wildcard $(addprefix $(APP_PYSITEDIR)/,$(DOCS_IMPORTS))) > /dev/null 2>&1 || true
+
+# Independent steps after the bundles are installed, run in parallel.  (Since
+# src is installed with DEFER_TOOLSHED_RELOAD, the toolshed is reloaded here.)
+POST_SRC_INSTALL = docs.post-install pip-check.post-install \
+	toolshed-reload.post-install
+ifndef WIN32
+# Admin privileges are needed for vdocs on Windows 10
+# To enable, follow the instructions at
+# https://stackoverflow.com/a/65504258/12208118
+# then you can make -C vdocs by hand if you like
+POST_SRC_INSTALL += vdocs.post-install
+endif
+ifeq ($(OS),Darwin)
+POST_SRC_INSTALL += plist.post-install
+endif
+.PHONY: post-src-install $(POST_SRC_INSTALL)
+post-src-install: $(POST_SRC_INSTALL)
+# These run ChimeraX, which needs an up-to-date toolshed
+vdocs.post-install plist.post-install: toolshed-reload.post-install
+toolshed-reload.post-install:
+	$(APP_PYTHON_EXE) -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
+docs.post-install vdocs.post-install:
+	$(MAKE) -C $(subst .post-install,,$@) install
+pip-check.post-install:
+	$(APP_PYTHON_EXE) -m pip check
+plist.post-install:
 	# update Info.plist with data formats provided by bundles
 	$(MAKE) -C src/apps/ChimeraX install-plist
-endif
-ifdef FLATPAK_DIST
-	-${APP_PYTHON_EXE} -m compileall -d CHIMERAX ${app_libdir}
-	${APP_EXE} --exit --nogui --silent --cmd 'linux flatpak-files edu.ucsf.rbvi.ChimeraX'
-endif
-	@echo 'Finished install at' `date`
 
 uv-build: build-dirs
 	uv pip install -r pyproject.toml --all-extras
@@ -218,27 +273,32 @@ else
 	-mkdir -p $(APP_PYSITEDIR)
 endif
 
-distclean: clean
-	-rm -rf build
-	-$(MAKE) -C src clean
-	-$(MAKE) -C docs clean
-	-$(MAKE) -C vdocs clean
+# clean already cleans src (and removes build); the documentation is cleaned
+# after it, as before
+distclean: clean docs.tree-clean vdocs.tree-clean
 	-rm -rf prereqs/prebuilt-*.tar.bz2
+docs.tree-clean vdocs.tree-clean: $(if $(filter distclean,$(MAKECMDGOALS)),clean)
 
 reallyclean:
 	rm -rf $$(git status --short --ignored --porcelain=v1 | sed -e '/^!!/!d' -e 's/^!! //')
 	# for linux:
 	rm -rf .cache .config
 
-clean:
+clean: app-build.clean
+.PHONY: app-build.clean
+app-build.clean:
 	-rm -rf $(APP_FILENAME)
 	-rm -rf $(build_prefix)
 
-build-from-scratch: distclean
+# What distclean does, except that the cleaning of the source and
+# documentation trees is left to install, to do alongside the prerequisites
+build-from-scratch:
+	$(MAKE) app-build.clean prereqs.clean
+	-rm -rf prereqs/prebuilt-*.tar.bz2
 ifdef INSTALL_RBVI
-	$(MAKE) install-rbvi
+	$(MAKE) install-rbvi TREE_CLEAN=1
 else
-	$(MAKE) install
+	$(MAKE) install TREE_CLEAN=1
 endif
 
 # Linux debugging:
