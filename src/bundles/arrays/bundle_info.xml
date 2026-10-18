@@ -17,6 +17,17 @@
   <CLibrary name="arrays" usesNumpy="true">
     <SourceFile>_arrays/pythonarray.cpp</SourceFile>
     <SourceFile>_arrays/rcarray.cpp</SourceFile>
+    <SourceFile>_arrays/rcarray_cast_char.cpp</SourceFile>
+    <SourceFile>_arrays/rcarray_cast_signed_char.cpp</SourceFile>
+    <SourceFile>_arrays/rcarray_cast_unsigned_char.cpp</SourceFile>
+    <SourceFile>_arrays/rcarray_cast_short.cpp</SourceFile>
+    <SourceFile>_arrays/rcarray_cast_unsigned_short.cpp</SourceFile>
+    <SourceFile>_arrays/rcarray_cast_int.cpp</SourceFile>
+    <SourceFile>_arrays/rcarray_cast_unsigned_int.cpp</SourceFile>
+    <SourceFile>_arrays/rcarray_cast_long.cpp</SourceFile>
+    <SourceFile>_arrays/rcarray_cast_unsigned_long.cpp</SourceFile>
+    <SourceFile>_arrays/rcarray_cast_float.cpp</SourceFile>
+    <SourceFile>_arrays/rcarray_cast_double.cpp</SourceFile>
     <SourceFile>_arrays/refcount.cpp</SourceFile>
   </CLibrary>
 

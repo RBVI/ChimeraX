@@ -31,6 +31,7 @@
 
 #define ARRAYS_EXPORT
 #include "rcarray.h"        // use Untyped_Array, Numeric_Array
+#include "rcarray_cast.h"   // use cast_array()
 
 namespace Reference_Counted_Array
 {
@@ -379,17 +380,7 @@ Numeric_Array &Numeric_Array::operator=(const Numeric_Array &a)
 }
 
 // ----------------------------------------------------------------------------
-//
-template <class T>
-void cast_array(Numeric_Array &na, Numeric_Array::Value_Type type)
-{
-  Array<T> a(na.dimension(), na.sizes());
-  call_template_function(a.template set, na.value_type(), (na));
-  Numeric_Array nat(type, a);
-  na = nat;
-}
-
-// ----------------------------------------------------------------------------
+// cast_array<T>() is instantiated in the rcarray_cast_*.cpp files.
 //
 Numeric_Array Numeric_Array::as_type(Value_Type type)
 {
