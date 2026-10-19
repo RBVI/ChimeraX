@@ -1,8 +1,14 @@
+import importlib.metadata
 import os
 import tempfile
+from xml.etree import ElementTree
 
 import pytest
-
+from chimerax.bundle_builder import (
+    BundleBuilder,
+    BundleBuilderTOML,
+    bundle_builder_toml,
+)
 
 # Minimal pyproject.toml content for testing
 MINIMAL_PYPROJECT_TOML = """
@@ -154,3 +160,26 @@ def test_bundle_path_is_absolute(temp_bundle):
         assert os.path.realpath(bundle.path) == os.path.realpath(bundle_dir)
     finally:
         os.chdir(original_cwd)
+
+
+def test_toml_core_build_requirement_accepts_prerelease(temp_bundle, monkeypatch):
+    bundle_dir, _ = temp_bundle
+    bundle = BundleBuilderTOML.from_path(MockLogger(), bundle_dir)
+    bundle.bundle_info["build-system"]["requires"] = ["ChimeraX-Core>=1"]
+    monkeypatch.setattr(bundle_builder_toml, "version", lambda _: "1.1rc1")
+
+    bundle._check_build_requires()
+
+
+def test_xml_core_build_requirement_accepts_prerelease(monkeypatch):
+    xml = ElementTree.fromstring(
+        '<BundleInfo><Dependencies><Dependency name="ChimeraX-Core" '
+        'version=">=1" build="true" /></Dependencies></BundleInfo>'
+    )
+    builder = BundleBuilder.__new__(BundleBuilder)
+    builder._used_elements = set()
+    builder._platform_names = ()
+    monkeypatch.setattr(importlib.metadata, "version", lambda _: "1.1rc1")
+
+    builder._get_dependencies(xml)
+    assert builder.dependencies == ["ChimeraX-Core >=1"]
