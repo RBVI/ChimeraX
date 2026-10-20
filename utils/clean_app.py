@@ -5,12 +5,16 @@
 #
 import sys
 import os
+import platform
 import shutil
+import subprocess
 
 
 def clean_app(chimerax_root):
     """Clean application tree for distribution"""
     remove_pycache(chimerax_root)
+    if sys.platform == "darwin":
+        thin_macos_binaries(chimerax_root, platform.machine())
     # TODO: figure this out
     #   removing scripts makes multiple "make installs" without
     #   a "make clean" inbetween fail and removes scripts that
@@ -27,6 +31,43 @@ def remove_pycache(chimerax_root):
             cache_dirs.append(os.path.join(root, "__pycache__"))
     for d in cache_dirs:
         shutil.rmtree(d)
+
+
+def is_fat_macho(path):
+    """Check for a universal binary's magic number (also used by Java class
+    files, so confirm with lipo)"""
+    with open(path, "rb") as f:
+        return f.read(4) in (b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf")
+
+
+def thin_macos_binaries(chimerax_root, arch):
+    """Remove other architectures from universal binaries
+
+    The Intel and Arm builds are merged into a universal application later,
+    so each build only needs its own architecture.  Wheels like PySide6's
+    are universal2, which roughly doubles their size.
+    """
+    freed = 0
+    for root, dirs, files in os.walk(chimerax_root):
+        for fn in files:
+            path = os.path.join(root, fn)
+            if os.path.islink(path) or not is_fat_macho(path):
+                continue
+            result = subprocess.run(["lipo", "-archs", path],
+                                    capture_output=True, text=True)
+            if result.returncode != 0:
+                continue
+            if arch not in result.stdout.split():
+                print(f"clean_app: no {arch} code in {path}", file=sys.__stderr__)
+                continue
+            size = os.path.getsize(path)
+            thin = path + ".thin"
+            subprocess.run(["lipo", "-thin", arch, path, "-output", thin],
+                           check=True)
+            shutil.copymode(path, thin)
+            os.replace(thin, path)
+            freed += size - os.path.getsize(path)
+    print(f"clean_app: removed {freed / 1e6:.0f} MB of non-{arch} code")
 
 
 def remove_scripts(chimerax_root):
