@@ -22,7 +22,7 @@ CXSERVICES_DEPLOYMENT_VER ?= production
 
 PATCHES = grako.patch
 ifeq ($(OS),Windows)
-ifneq ($(filter $(MSYSTEM),MSYS MINGW64),)
+ifneq ($(filter $(MSYSTEM),MSYS MINGW64 UCRT64),)
 PATCHES += openmm_metadata.patch
 else
 PATCHES += openmm_metadata_cygwin.patch
