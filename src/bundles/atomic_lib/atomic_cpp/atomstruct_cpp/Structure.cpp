@@ -627,8 +627,18 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
             a->set_alt_loc(aloc, false, true);	// Restore original alt loc.
             ca->set_alt_loc(aloc, false, true);
         } else {
-            ca->set_bfactor(a->bfactor());
-            ca->set_occupancy(a->occupancy());
+            // Since atoms didn't exists when coordsets were created,
+            // need to set bfactors/occupanices in all the coordsets [#21089]
+            auto s_active = s->_active_coord_set;
+            auto copy_active = _active_coord_set;
+            for (auto copy_orig_cs: cs_map) {
+                _active_coord_set = copy_orig_cs.first;
+                s->_active_coord_set = copy_orig_cs.second;
+                ca->set_bfactor(a->bfactor());
+                ca->set_occupancy(a->occupancy());
+            }
+            s->_active_coord_set = s_active;
+            _active_coord_set = copy_active;
             if (a->has_aniso_u()) {
                 auto aniso_u = a->aniso_u();
                 ca->set_aniso_u((*aniso_u)[0], (*aniso_u)[1], (*aniso_u)[2], (*aniso_u)[3],
@@ -804,6 +814,10 @@ Structure::_delete_atom(Atom* a)
     a->residue()->remove_atom(a);
     typename Atoms::iterator i = std::find_if(_atoms.begin(), _atoms.end(),
         [&a](Atom* ua) { return ua == a; });
+    for (auto cs: _coord_sets) {
+        cs->_bfactor_map.erase(a);
+        cs->_occupancy_map.erase(a);
+    }
     _atoms.erase(i);
     set_gc_shape();
     set_gc_adddel();
@@ -1024,6 +1038,12 @@ Structure::_delete_atoms(const std::set<Atom*>& atoms, bool compact_coord_sets)
         );
     }
 
+    for (auto cs: _coord_sets) {
+        for (auto a: atoms) {
+            cs->_bfactor_map.erase(a);
+            cs->_occupancy_map.erase(a);
+        }
+    }
     if (compact_coord_sets) {
         unsigned int consecutive_index = 0;
         for (auto a: this->atoms())
