@@ -1854,17 +1854,17 @@ class AtomicStructure(Structure):
         align_data, template_deets, template_segment, scoring_metrics, local_scores = \
             get_mmcif_tables_from_metadata(self, ['ma_alignment', 'ma_template_ref_db_details',
             'ma_template_poly_segment', 'ma_qa_metric', 'ma_qa_metric_local'])
-        if local_scores and scoring_metrics:
+        if local_scores and scoring_metrics and False:
             from chimerax.core.attributes import string_to_attr
             scoring_metric_cache = {}
-            chain_lookup = { chain.chain_id: chain for chain in self.chains }
+            chain_res_lookup = { chain.chain_id: chain.residues for chain in self.chains }
             res_scoring = []
             metric_names = scoring_metrics.mapping('id', 'name')
             non_chain_residues = None
             for chain_id, res_name, seq_id, metric_id, value in local_scores.fields(
                     ['label_asym_id', 'label_comp_id', 'label_seq_id', 'metric_id', 'metric_value']):
                 try:
-                    chain = chain_lookup[chain_id]
+                    chain_res = chain_res_lookup[chain_id]
                 except KeyError:
                     if non_chain_residues is None:
                         non_chain_residues = {}
@@ -1893,7 +1893,7 @@ class AtomicStructure(Structure):
                         break
                 else:
                     try:
-                        res = chain.residues[int(seq_id)-1]
+                        res = chain_res[int(seq_id)-1]
                     except IndexError:
                         session.logger.warning("Bad chain-residue index in mmCIF mm_qa_metric_local_table")
                         break
