@@ -628,7 +628,7 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
             ca->set_alt_loc(aloc, false, true);
         } else {
             // Since atoms didn't exists when coordsets were created,
-            // need to set bfactors/occupanices in all the coordsets [#21089]
+            // need to set bfactors/occupancies in all the coordsets [#21089]
             auto s_active = s->_active_coord_set;
             auto copy_active = _active_coord_set;
             for (auto copy_orig_cs: cs_map) {
