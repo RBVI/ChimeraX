@@ -14,37 +14,9 @@ from setuptools.build_meta import (
     suppress_known_deprecation,
 )  # noqa import not in __all__
 
-# Always import this because it changes the behavior of setuptools
 from numpy import get_include as get_numpy_include_dirs
 
-# The compile process is initiated by setuptools and handled
-# by numpy.distutils, which eventually calls subprocess.
-# On Windows, subprocess invokes CreateProcess.  If a shell
-# is used, subprocess sets the STARTF_USESHOWWINDOW flag
-# to CreateProcess, assuming that "cmd" is going to create
-# a window; otherwise, it does not set the flag and a window
-# gets created for each compile and link process.  The code
-# below is used to make STARTF_USESHOWWINDOW be set by
-# default (written after examining subprocess.py).  The
-# default STARTUPINFO class is replaced before calling
-# setuptools.setup() and reset after it returns.
-#
 import subprocess
-
-try:
-    from subprocess import STARTUPINFO
-except ImportError:
-    MySTARTUPINFO = None
-else:
-    import _winapi
-
-    class MySTARTUPINFO(STARTUPINFO):
-        _original = STARTUPINFO
-
-        def __init__(self, *args, **kw):
-            super().__init__(*args, **kw)
-            self.dwFlags |= _winapi.STARTF_USESHOWWINDOW
-
 
 from . import _parallel_compile
 
@@ -911,9 +883,8 @@ class BundleBuilder:
 
         cwd = os.getcwd()
         save = sys.argv
+        show_console_windows = _parallel_compile.hide_console_windows()
         try:
-            if MySTARTUPINFO:
-                subprocess.STARTUPINFO = MySTARTUPINFO
             os.chdir(self.path)
             kw = self.setup_arguments.copy()
             kw["package_dir"], kw["packages"] = self._make_package_arguments()
@@ -946,8 +917,7 @@ class BundleBuilder:
                 background.join()
             sys.argv = save
             os.chdir(cwd)
-            if MySTARTUPINFO:
-                subprocess.STARTUPINFO = MySTARTUPINFO._original
+            show_console_windows()
 
     #
     # Utility functions dealing with XML tree

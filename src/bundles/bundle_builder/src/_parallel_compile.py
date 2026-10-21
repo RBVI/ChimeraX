@@ -303,6 +303,36 @@ def _install_spawn_prefix(base, prefix):
     base.spawn = spawn
 
 
+def hide_console_windows():
+    """Keep each compiler and linker run from opening a console window.
+
+    On Windows, a console program started by a process without a console gets
+    a window of its own, so "devel build" in ChimeraX, which has none, would
+    flash one up for every compile and link.  subprocess makes the STARTUPINFO
+    for each process from its module's STARTUPINFO class, so until the
+    returned function is called, that class sets STARTF_USESHOWWINDOW; the
+    default wShowWindow, SW_HIDE, then hides the window.
+    """
+    if sys.platform != "win32":
+        return lambda: None
+    import _winapi
+    import subprocess
+
+    original = subprocess.STARTUPINFO
+
+    class HiddenWindowSTARTUPINFO(original):
+        def __init__(self, *args, **kw):
+            super().__init__(*args, **kw)
+            self.dwFlags |= _winapi.STARTF_USESHOWWINDOW
+
+    subprocess.STARTUPINFO = HiddenWindowSTARTUPINFO
+
+    def restore():
+        subprocess.STARTUPINFO = original
+
+    return restore
+
+
 def install():
     """Patch the distutils compilers to compile source files in parallel.
 

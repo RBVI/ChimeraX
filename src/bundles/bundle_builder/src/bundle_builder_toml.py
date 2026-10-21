@@ -83,10 +83,6 @@ from setuptools.build_meta import (
     suppress_known_deprecation,
 )  # noqa import not in __all__
 
-# TODO: Verify
-# Always import this because it changes the behavior of setuptools
-from numpy import get_include as get_numpy_include_dirs  # noqa
-
 from . import _parallel_compile
 
 # Compile each extension's and library's source files in parallel, in
@@ -123,35 +119,7 @@ try:
 except:
     pass
 
-# TODO Fact check
-# The compile process is initiated by setuptools and handled
-# by numpy.distutils, which eventually calls subprocess.
-# On Windows, subprocess invokes CreateProcess.  If a shell
-# is used, subprocess sets the STARTF_USESHOWWINDOW flag
-# to CreateProcess, assuming that "cmd" is going to create
-# a window; otherwise, it does not set the flag and a window
-# gets created for each compile and link process.  The code
-# below is used to make STARTF_USESHOWWINDOW be set by
-# default (written after examining subprocess.py).  The
-# default STARTUPINFO class is replaced before calling
-# setuptools.setup() and reset after it returns.
-
 import subprocess  # noqa
-
-try:
-    from subprocess import STARTUPINFO
-except ImportError:
-    MySTARTUPINFO = None
-else:
-    import _winapi
-
-    class MySTARTUPINFO(STARTUPINFO):
-        _original = STARTUPINFO
-
-        def __init__(self, *args, **kw):
-            super().__init__(*args, **kw)
-            self.dwFlags |= _winapi.STARTF_USESHOWWINDOW
-
 
 from .metadata_templates import metadata_preamble, pure_wheel_platforms  # noqa
 from .classifiers import (  # noqa
@@ -846,9 +814,8 @@ class Bundle:
     def _run_setup(self, cmd, background=None):
         cwd = os.getcwd()
         save = sys.argv
+        show_console_windows = _parallel_compile.hide_console_windows()
         try:
-            if MySTARTUPINFO:
-                subprocess.STARTUPINFO = MySTARTUPINFO
             os.chdir(self.path)
             kw = self.setup_arguments.copy()
             kw["package_dir"], kw["packages"] = self._make_package_arguments()
@@ -877,8 +844,7 @@ class Bundle:
                 background.join()
             sys.argv = save
             os.chdir(cwd)
-            if MySTARTUPINFO:
-                subprocess.STARTUPINFO = MySTARTUPINFO._original  # noqa we don't care this is protected
+            show_console_windows()
 
     def _clear_distutils_dir_and_prep_srcdir(self, build_exts=False):
         # HACK: distutils uses a cache to track created directories
