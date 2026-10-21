@@ -296,7 +296,7 @@ def graphics_silhouettes(session, enable=None, width=None, color=None, depth_jum
 
 
 def graphics_impostors(session, enable=None):
-    """Draw atoms by ray casting instead of triangles.  With no options reports the current setting.
+    """Draw atoms and bonds by ray casting instead of triangles.  With no options reports the current setting.
 
     Parameters
     ----------
@@ -419,7 +419,7 @@ def register_command(logger):
 
     desc = CmdDesc(
         optional=[("enable", BoolArg)],
-        synopsis="draw atoms by ray casting",
+        synopsis="draw atoms and bonds by ray casting",
     )
     register("graphics impostors", desc, graphics_impostors, logger=logger)
 
