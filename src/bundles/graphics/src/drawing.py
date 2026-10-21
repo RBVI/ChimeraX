@@ -823,7 +823,7 @@ class Drawing:
         r = renderer
         impostor = self._impostor_to_draw(r)
         if impostor:
-            shape, height = impostor
+            shape, height, caps, dashes = impostor
             impostor_option = (r.SHADER_IMPOSTOR_SPHERE if shape == 'sphere'
                                else r.SHADER_IMPOSTOR_CYLINDER)
             sopt |= impostor_option
@@ -831,7 +831,8 @@ class Drawing:
         if impostor and not shader.capabilities & impostor_option:
             impostor = None	# Renderer disabled impostors for this pass, draw triangles.
         if impostor and shape == 'cylinder':
-            shader.set_vector3('impostor_cylinder', (height, 0, 0))
+            cap_bits = 3 if caps else 0		# Bit 0 start cap, bit 1 end cap
+            shader.set_vector3('impostor_cylinder', (height, cap_bits, dashes))
         self.set_shader_options(r)
 
         # Set color
@@ -864,7 +865,7 @@ class Drawing:
             # Draw triangles
             mtex = self.multitexture
             if impostor:
-                ds.draw_impostors(6)	# Two triangles
+                ds.draw_impostors(6 * max(1, dashes))	# Two triangles per quad, a quad per dash
             elif mtex:
                 ds.draw_multitexture(self.display_style, mtex, self.multitexture_reverse_order)
             else:
@@ -881,16 +882,18 @@ class Drawing:
         The geometry must be a unit sphere centered at the origin, and
         positions must scale uniformly.
         '''
-        self._impostor = ('sphere', 1)
+        self._impostor = ('sphere', 1, False, 0)
 
-    def set_cylinder_impostor(self, height):
+    def set_cylinder_impostor(self, height, caps = False, dashes = 0):
         '''
-        Draw this drawing by ray casting the open cylinders its triangles
-        approximate, like set_sphere_impostor().  The geometry must be a
-        cylinder of radius 1 along the z axis with the given height centered
-        at the origin, and positions must scale x and y equally.
+        Draw this drawing by ray casting the cylinders its triangles approximate,
+        like set_sphere_impostor().  The geometry must be a cylinder of radius 1
+        along the z axis with the given height centered at the origin, and
+        positions must scale x and y equally.  Caps close the cylinder ends.
+        If dashes is greater than zero the cylinder is drawn as that many dashes,
+        matching chimerax.surface.dashed_cylinder_geometry().
         '''
-        self._impostor = ('cylinder', height)
+        self._impostor = ('cylinder', height, caps, dashes)
 
     def clear_impostor(self):
         '''Draw the triangles instead of a ray cast shape.'''
