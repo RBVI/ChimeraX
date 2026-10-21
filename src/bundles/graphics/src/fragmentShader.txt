@@ -690,6 +690,18 @@ void main (void)
     for (int i = 0 ; i < shadow_count ; ++i)
       {
         mat4 stf = shadow_transforms[i];
+        #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER) || defined(USE_LIGHTING_NORMALS)
+          vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
+          float diffuse = max(-dot(N1,light_direction),0.0);
+  	      // float diffuse = max(-dot(nscene,light_direction),0.0);
+          // A back-facing AO direction has exactly zero weight.  Skip its
+          // shadow-map transform and texture read; this removes about half of
+          // the multishadow samples on a smooth surface with no image change.
+          if (diffuse <= 0.0)
+            continue;
+        #else
+          float diffuse = 0.25;
+        #endif
         #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
           vec3 shadow_tex_coord = (stf*vec4(impostor_hit,1)).stp;
         #elif defined(USE_STEREO_360)
@@ -697,13 +709,6 @@ void main (void)
         #else
           vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
           // vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
-        #endif
-        #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER) || defined(USE_LIGHTING_NORMALS)
-          vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
-          float diffuse = max(-dot(N1,light_direction),0.0);
-  	      // float diffuse = max(-dot(nscene,light_direction),0.0);
-        #else
-          float diffuse = 0.25;
         #endif
         mshadow += diffuse * texture(multishadow_map, shadow_tex_coord);
       }
