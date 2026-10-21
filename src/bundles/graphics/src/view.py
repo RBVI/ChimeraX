@@ -258,7 +258,13 @@ class View:
                     r.allow_equal_depth(True)
             self._start_timing()
             if opaque_drawings:
-                draw_opaque(r, opaque_drawings)
+                depth_cull = r.impostor_depth_cull
+                try:
+                    if multishadow:
+                        depth_cull.begin(r, opaque_drawings)
+                    draw_opaque(r, opaque_drawings)
+                finally:
+                    depth_cull.end()
             if highlight_drawings:
                 r.outline.set_outline_mask()       # copy depth to outline framebuffer
             if transparent_drawings:

@@ -507,6 +507,7 @@ class Render:
 
         # Whether drawings with impostors are drawn by ray casting.
         self.use_impostors = True
+        self.impostor_depth_cull = ImpostorDepthCull()
 
     def delete(self):
         if self._opengl_context._deleted:
@@ -546,6 +547,8 @@ class Render:
 
         self.blend.delete()
         self.blend = None
+
+        self.impostor_depth_cull.delete()
 
     @property
     def opengl_context(self):
@@ -711,6 +714,11 @@ class Render:
         '''
         options |= self.enable_capabilities
         options &= ~self.disable_capabilities
+        if (self.impostor_depth_cull.active and
+            options & (self.SHADER_IMPOSTOR_SPHERE | self.SHADER_IMPOSTOR_CYLINDER) and
+            not options & (self.SHADER_DEPTH_TEXTURE | self.SHADER_ALPHA_DEPTH |
+                           self.SHADER_VOLUME_RAYCASTING)):
+            options |= self.SHADER_IMPOSTOR_DEPTH_CULL
         p = self._opengl_shader(options)
         return p
 
@@ -756,6 +764,8 @@ class Render:
             shader.set_integer("colormap", self._colormap_texture_unit)
         if self.SHADER_DEPTH_TEXTURE & c:
             self._set_depth_texture_shader_variables(shader)
+        if self.SHADER_IMPOSTOR_DEPTH_CULL & c:
+            shader.set_integer('impostor_depth_snapshot', self.impostor_depth_cull.texture_unit)
         if self.SHADER_TEXTURE_CUBEMAP & c:
             shader.set_integer("texcube", 0)
         if self.SHADER_VOLUME_RAYCASTING & c:
@@ -2149,6 +2159,89 @@ class BlendTextures:
         return fb
 
 
+class ImpostorDepthCull:
+    '''
+    Reject hidden impostor fragments before lighting on macOS.
+
+    Impostor fragment shaders write gl_FragDepth, which turns off the early
+    depth test.  Apple OpenGL lacks GL_ARB_conservative_depth to keep it on,
+    so every hidden impostor fragment would be lit, which is slow with
+    ambient shadows.  Instead copy the opaque scene depth from the ambient
+    shadow depth prepass and have impostor shaders discard ray cast surface
+    points behind it before lighting.  The fragment depth is never changed,
+    so the depth test still decides what is visible and the image is
+    unchanged.
+    '''
+    def __init__(self):
+        self.active = False
+        self.texture_unit = 5
+        self._framebuffer = None
+
+    def delete(self):
+        self.active = False
+        fb = self._framebuffer
+        if fb is not None:
+            fb.delete()
+            self._framebuffer = None
+
+    def begin(self, render, drawings):
+        '''
+        Copy the opaque scene depth for drawing the specified opaque drawings.
+        The current framebuffer must already have the opaque scene depth, as
+        drawn by the ambient shadow depth prepass.  Without that prepass the
+        lighting is cheap and an extra depth pass costs more than it saves.
+        '''
+        r = render
+        self.active = False
+        from sys import platform
+        if platform != 'darwin':
+            return
+        if r.recording_opengl:
+            return
+        if not any(d._impostor_to_draw(r) for d in drawings):
+            return
+        # A resolved multisample depth could hide a different visible sample.
+        if GL.glGetIntegerv(GL.GL_SAMPLES) != 0:
+            return
+        if (GL.glGetIntegerv(GL.GL_DEPTH_FUNC) not in (GL.GL_LESS, GL.GL_LEQUAL)
+            or tuple(GL.glGetDoublev(GL.GL_DEPTH_RANGE)) != (0.0, 1.0)
+            or not GL.glIsEnabled(GL.GL_DEPTH_TEST)
+            or not GL.glGetBooleanv(GL.GL_DEPTH_WRITEMASK)
+            or GL.glIsEnabled(GL.GL_STENCIL_TEST)):
+            return
+
+        source = r.current_framebuffer()
+        size = (source.width, source.height)
+        fb = self._framebuffer
+        if fb is not None and (fb.width, fb.height) != size:
+            self.delete()
+            fb = None
+        if fb is None:
+            dt = Texture(linear_interpolation = False)
+            dt.initialize_depth(size, depth_compare_mode = False)
+            self._framebuffer = fb = Framebuffer('impostor depth snapshot', r.opengl_context,
+                                                 depth_texture = dt, color = False)
+        dt = fb.depth_texture
+        dt.unbind_texture(self.texture_unit)
+
+        # A texture copy converts from the source depth format, unlike a
+        # framebuffer blit.
+        source.activate()
+        dt.bind_texture()
+        try:
+            GL.glCopyTexSubImage2D(GL.GL_TEXTURE_2D, 0, 0, 0, 0, 0, size[0], size[1])
+        finally:
+            dt.unbind_texture()
+
+        dt.bind_texture(self.texture_unit)
+        self.active = True
+
+    def end(self):
+        if self.active:
+            self._framebuffer.depth_texture.unbind_texture(self.texture_unit)
+        self.active = False
+
+
 # Options used with Render.shader()
 shader_options = (
     "SHADER_LIGHTING",
@@ -2185,6 +2278,7 @@ shader_options = (
     "SHADER_SHOW_DEPTH_BUFFER",
     "SHADER_IMPOSTOR_SPHERE",
     "SHADER_IMPOSTOR_CYLINDER",
+    "SHADER_IMPOSTOR_DEPTH_CULL",
 )
 for i, sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)
