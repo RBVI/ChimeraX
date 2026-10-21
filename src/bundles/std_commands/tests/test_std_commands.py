@@ -35,6 +35,9 @@ dssp_test_commands = [*open_2tpk, "dssp"]
 graphics_test_commands = [
     *open_2tpk,
     "graphics",
+    "graphics impostors",
+    "graphics impostors false",
+    "graphics impostors true",
     "graphics restart",
     "graphics triangles",
     "lighting",

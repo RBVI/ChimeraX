@@ -142,7 +142,7 @@ void main (void)
 * Shader for rendering scene with lighting.
 */
 
-#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE)
+#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE) || defined(USE_IMPOSTOR_SPHERE)
 in vec3 v;
 #endif
 
@@ -170,6 +170,9 @@ in vec3 vshadow;
 #ifdef USE_SHADOW
 in vec3 shadow_tex_coord;
 uniform sampler2DShadow shadow_map;
+#if defined(USE_IMPOSTOR_SPHERE)
+uniform mat4 shadow_transform;  // needed to recompute shadow coord from hit point
+#endif
 #endif
 
 #ifdef USE_MULTISHADOW
@@ -185,6 +188,32 @@ uniform float shadow_depth;
 #endif
 
 #endif  // end USE_LIGHTING
+
+#ifdef USE_IMPOSTOR_SPHERE
+in vec3 impostor_center;
+in float impostor_radius;
+uniform mat4 projection_matrix;
+#endif
+
+#if (defined(USE_IMPOSTOR_SPHERE)) && defined(USE_CLIP_PLANES)
+uniform mat4 inverse_view_matrix;	// Camera to scene, for clipping ray cast surface
+#endif
+
+#if (defined(USE_IMPOSTOR_SPHERE)) && defined(USE_CLIP_PLANES)
+uniform int num_clip_planes;
+uniform vec4 clip_planes[8];
+#endif
+
+#if defined(USE_IMPOSTOR_SPHERE)
+// Eye z of the camera near plane (NDC z = -1), perspective or orthographic.
+// Surface in front of it is clipped as with triangles; this keeps proxies of
+// primitives crossing the eye plane finite (see near_clipped_box_proxy()).
+float impostor_near_plane_z()
+{
+  mat4 p = projection_matrix;
+  return (p[3][2] + p[3][3]) / (-p[2][3] - p[2][2]);
+}
+#endif
 
 #ifdef USE_DEPTH_CUE
 uniform vec3 depth_cue_color;
@@ -369,6 +398,51 @@ void main (void)
   frag_color.a = frag_color.a + (1.0 - frag_color.a) * background_color.a;
 }
 #else
+
+  #ifdef USE_IMPOSTOR_SPHERE
+    // Ray-sphere intersection for impostor sphere rendering.
+    // Construct ray in eye space from interpolated vertex position v.
+    // projection_matrix[3][3] == 0 for perspective, 1 for orthographic.
+    bool impostor_ortho = (projection_matrix[3][3] != 0.0);
+    vec3 ray_origin = impostor_ortho ? vec3(v.xy, impostor_center.z + impostor_radius * 2.0) : vec3(0.0);
+    vec3 ray_dir = impostor_ortho ? vec3(0.0, 0.0, -1.0) : normalize(v);
+
+    // Ray-sphere intersection: solve |ray_origin + t*ray_dir - center|^2 = radius^2
+    vec3 oc = ray_origin - impostor_center;
+    float b_coeff = dot(oc, ray_dir);
+    float c_coeff = dot(oc, oc) - impostor_radius * impostor_radius;
+    float discriminant = b_coeff * b_coeff - c_coeff;
+    if (discriminant < 0.0)
+      discard;
+    float root = sqrt(discriminant);
+    float t_near = -b_coeff - root;
+    float t_far = -b_coeff + root;
+    float impostor_clip_z = impostor_near_plane_z();
+    float t_hit = (t_near > 0.0 && ray_origin.z + t_near * ray_dir.z <= impostor_clip_z)
+      ? t_near : t_far;
+    if (t_hit <= 0.0 || ray_origin.z + t_hit * ray_dir.z > impostor_clip_z)
+      discard;
+
+    // Intersection point and normal in eye space
+    vec3 impostor_hit = ray_origin + t_hit * ray_dir;
+    vec3 impostor_normal = normalize(impostor_hit - impostor_center);
+    if (dot(impostor_normal, ray_dir) > 0.0)
+      impostor_normal = -impostor_normal;  // Inside of sphere, two-sided lighting as for triangles.
+
+    #ifdef USE_CLIP_PLANES
+      vec3 impostor_hit_scene = (inverse_view_matrix * vec4(impostor_hit, 1)).xyz;
+      for (int i = 0; i < num_clip_planes; ++i)
+        if (dot(vec4(impostor_hit_scene, 1), clip_planes[i]) < 0.0)
+          discard;
+    #endif
+
+    // Write correct depth from intersection point.
+    // Apply depth_range to match rasterizer behavior (needed for outline depth test).
+    vec4 impostor_clip_pos = projection_matrix * vec4(impostor_hit, 1.0);
+    float impostor_ndc_z = impostor_clip_pos.z / impostor_clip_pos.w;
+    gl_FragDepth = gl_DepthRange.diff * 0.5 * impostor_ndc_z + gl_DepthRange.near + gl_DepthRange.diff * 0.5;
+  #endif
+
   #ifdef USE_DEPTH_TEXTURE
     // Adjust depth of each fragment in rendering a texture.
     float xscale = tex_depth_scale.x, yscale = tex_depth_scale.y, dscale = tex_depth_scale.z;
@@ -423,7 +497,16 @@ void main (void)
 
   #ifdef USE_LIGHTING
 
-  #ifdef USE_LIGHTING_NORMALS
+  #if defined(USE_IMPOSTOR_SPHERE)
+    // Normal and lighting factors from ray intersection
+    vec3 N1 = impostor_normal;
+    vec3 v1 = normalize(impostor_hit);
+
+    float key_factor = max(-dot(N1,key_light_direction),0.0);
+    float fill_factor = max(-dot(N1,fill_light_direction),0.0);
+    vec3 R = normalize(reflect(key_light_direction,N1));
+    float specular_factor = pow(max(-dot(R,v1),0.0), key_light_specular_exponent);
+  #elif defined(USE_LIGHTING_NORMALS)
     // Unit normal, with two-sided lighting.
     vec3 N1 = normalize(N) * (gl_FrontFacing ? 1.0 : -1.0);
     // vec3 N1 = normalize(N);  // single-sided lighting
@@ -442,7 +525,12 @@ void main (void)
   #endif
 
   #ifdef USE_SHADOW
-    float shadow = texture(shadow_map, shadow_tex_coord);
+    #if defined(USE_IMPOSTOR_SPHERE)
+    vec3 stc = (shadow_transform * vec4(impostor_hit, 1)).stp;
+    #else
+    vec3 stc = shadow_tex_coord;
+    #endif
+    float shadow = texture(shadow_map, stc);
   #else
     float shadow = 1;
   #endif
@@ -461,13 +549,15 @@ void main (void)
     for (int i = 0 ; i < shadow_count ; ++i)
       {
         mat4 stf = shadow_transforms[i];
-        #ifdef USE_STEREO_360
+        #if defined(USE_IMPOSTOR_SPHERE)
+          vec3 shadow_tex_coord = (stf*vec4(impostor_hit,1)).stp;
+        #elif defined(USE_STEREO_360)
           vec3 shadow_tex_coord = (stf*vec4(vshadow,1)).stp;
         #else
           vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
           // vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
         #endif
-        #ifdef USE_LIGHTING_NORMALS
+        #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_LIGHTING_NORMALS)
           vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
           float diffuse = max(-dot(N1,light_direction),0.0);
   	      // float diffuse = max(-dot(nscene,light_direction),0.0);
@@ -500,7 +590,11 @@ void main (void)
   #endif // end USE_LIGHTING
 
   #ifdef USE_DEPTH_CUE
+    #if defined(USE_IMPOSTOR_SPHERE)
+    float d = -impostor_hit.z;  // Distance from eye to surface.
+    #else
     float d = -v.z;	// Distance from eye to fragment.
+    #endif
     float dim = (depth_cue_range.y - d) / (depth_cue_range.y - depth_cue_range.x);
     Ifrag = mix(depth_cue_color, Ifrag, clamp(dim,0.0,1.0));
   #endif
@@ -508,7 +602,7 @@ void main (void)
     // transparency
     float a = fcolor.a;
   #ifdef USE_LIGHTING
-    #ifdef USE_LIGHTING_NORMALS
+    #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_LIGHTING_NORMALS)
       a = (a >= 1 ? 1.0 : 1.0 - pow(max(1.0-a,0.0), 1.0/max(abs(dot(v1,N1)),0.01)));
     #endif
   #endif

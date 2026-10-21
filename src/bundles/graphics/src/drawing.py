@@ -187,6 +187,8 @@ class Drawing:
         Whether to draw on top of everything else.  Used for text labels.
         '''
 
+        self._impostor = None			# Ray cast shape, see set_sphere_impostor()
+
         # OpenGL drawing
         self._draw_shape = None
         self._draw_highlight = None
@@ -819,7 +821,12 @@ class Drawing:
 
         sopt = self._shader_options(transparent_only, opaque_only)
         r = renderer
+        impostor = self._impostor_to_draw(r)
+        if impostor:
+            sopt |= r.SHADER_IMPOSTOR_SPHERE
         shader = r.shader(sopt)
+        if impostor and not shader.capabilities & r.SHADER_IMPOSTOR_SPHERE:
+            impostor = None	# Renderer disabled impostors for this pass, draw triangles.
         self.set_shader_options(r)
 
         # Set color
@@ -851,13 +858,48 @@ class Drawing:
 
             # Draw triangles
             mtex = self.multitexture
-            if mtex:
+            if impostor:
+                ds.draw_impostors(6)	# Two triangles
+            elif mtex:
                 ds.draw_multitexture(self.display_style, mtex, self.multitexture_reverse_order)
             else:
                 ds.draw(self.display_style)
 
         if t is not None:
             t.unbind_texture()
+
+    def set_sphere_impostor(self):
+        '''
+        Draw this drawing by ray casting the spheres its triangles approximate,
+        instead of rasterizing the triangles.  The triangles are still used
+        for mesh and dot display styles, picking, bounds, export and sessions.
+        The geometry must be a unit sphere centered at the origin, and
+        positions must scale uniformly.
+        '''
+        self._impostor = 'sphere'
+
+    def clear_impostor(self):
+        '''Draw the triangles instead of a ray cast shape.'''
+        self._impostor = None
+
+    def _impostor_to_draw(self, renderer):
+        '''
+        Return the impostor if it can draw this drawing, otherwise None.
+        Appearance that depends on the triangles uses the triangle path.
+        '''
+        imp = self._impostor
+        if (imp is None
+            or not renderer.use_impostors
+            or self.display_style != self.Solid
+            or self._vertex_colors is not None
+            or self._triangle_mask is not None
+            or self._highlighted_triangles_mask is not None
+            or self.texture is not None
+            or self.multitexture
+            or self.ambient_texture is not None
+            or renderer.enable_capabilities & renderer.SHADER_STEREO_360):
+            return None
+        return imp
 
     def _shader_options(self, transparent_only = False, opaque_only = False):
         sopt = self._shader_opt
@@ -910,7 +952,7 @@ class Drawing:
 
     _effects_shader = set(
         ('use_lighting', '_vertex_colors', '_colors', 'texture',
-         'ambient_texture', '_positions',
+         'ambient_texture', '_positions', '_impostor',
          'allow_depth_cue', 'allow_clipping', 'accept_shadow', 'accept_multishadow'))
 
     # Update the contents of vertex, element and instance buffers if associated
@@ -1758,6 +1800,15 @@ class _DrawShape:
         ni = self.instance_count()
         if ni > 0:
             eb.draw_elements(etype, ni)
+
+    def draw_impostors(self, vertices_per_instance):
+
+        # Impostor vertex shaders compute quad corners from the vertex index,
+        # so no vertex or element buffer is used.
+        ni = self.instance_count()
+        if ni > 0:
+            from .opengl import draw_vertex_index_instances
+            draw_vertex_index_instances(vertices_per_instance, ni)
 
     def draw_multitexture(self, display_style, textures, reverse_order):
 
