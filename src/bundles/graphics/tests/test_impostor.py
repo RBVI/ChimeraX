@@ -23,7 +23,7 @@ def _sphere_drawing():
 
 def test_solid_drawing_uses_impostor():
     d = _sphere_drawing()
-    assert d._impostor_to_draw(_Renderer()) == 'sphere'
+    assert d._impostor_to_draw(_Renderer()) == ('sphere', 1)
 
 
 def test_no_impostor_by_default():
@@ -68,6 +68,15 @@ def test_impostor_keeps_triangles():
     d = _sphere_drawing()
     assert d.number_of_triangles() == len(d.triangles)
     assert d.bounds() is not None
+
+
+def test_cylinder_impostor():
+    from chimerax.surface import cylinder_geometry
+    va, na, ta = cylinder_geometry(nc = 10, caps = False, height = 0.5)
+    d = Drawing('cylinders')
+    d.set_geometry(va, na, ta)
+    d.set_cylinder_impostor(0.5)
+    assert d._impostor_to_draw(_Renderer()) == ('cylinder', 0.5)
 
 
 def test_clear_impostor():

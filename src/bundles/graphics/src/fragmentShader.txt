@@ -142,7 +142,7 @@ void main (void)
 * Shader for rendering scene with lighting.
 */
 
-#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE) || defined(USE_IMPOSTOR_SPHERE)
+#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE) || defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
 in vec3 v;
 #endif
 
@@ -170,7 +170,7 @@ in vec3 vshadow;
 #ifdef USE_SHADOW
 in vec3 shadow_tex_coord;
 uniform sampler2DShadow shadow_map;
-#if defined(USE_IMPOSTOR_SPHERE)
+#if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
 uniform mat4 shadow_transform;  // needed to recompute shadow coord from hit point
 #endif
 #endif
@@ -195,16 +195,24 @@ in float impostor_radius;
 uniform mat4 projection_matrix;
 #endif
 
-#if (defined(USE_IMPOSTOR_SPHERE)) && defined(USE_CLIP_PLANES)
+#ifdef USE_IMPOSTOR_CYLINDER
+in vec3 impostor_cyl_center;
+in vec3 impostor_cyl_axis;
+in float impostor_cyl_radius;
+in float impostor_cyl_half_length;
+uniform mat4 projection_matrix;
+#endif
+
+#if (defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)) && defined(USE_CLIP_PLANES)
 uniform mat4 inverse_view_matrix;	// Camera to scene, for clipping ray cast surface
 #endif
 
-#if (defined(USE_IMPOSTOR_SPHERE)) && defined(USE_CLIP_PLANES)
+#if (defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)) && defined(USE_CLIP_PLANES)
 uniform int num_clip_planes;
 uniform vec4 clip_planes[8];
 #endif
 
-#if defined(USE_IMPOSTOR_SPHERE)
+#if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
 // Eye z of the camera near plane (NDC z = -1), perspective or orthographic.
 // Surface in front of it is clipped as with triangles; this keeps proxies of
 // primitives crossing the eye plane finite (see near_clipped_box_proxy()).
@@ -443,6 +451,68 @@ void main (void)
     gl_FragDepth = gl_DepthRange.diff * 0.5 * impostor_ndc_z + gl_DepthRange.near + gl_DepthRange.diff * 0.5;
   #endif
 
+  #ifdef USE_IMPOSTOR_CYLINDER
+    // Ray-cylinder intersection for impostor cylinder rendering.
+    bool cyl_ortho = (projection_matrix[3][3] != 0.0);
+    vec3 cyl_ray_origin = cyl_ortho ? vec3(v.xy, impostor_cyl_center.z + impostor_cyl_half_length + impostor_cyl_radius * 2.0) : vec3(0.0);
+    vec3 cyl_ray_dir = cyl_ortho ? vec3(0.0, 0.0, -1.0) : normalize(v);
+
+    // Project ray onto plane perpendicular to cylinder axis
+    vec3 cyl_delta = cyl_ray_origin - impostor_cyl_center;
+    float cyl_d_dot_a = dot(cyl_ray_dir, impostor_cyl_axis);
+    float cyl_delta_dot_a = dot(cyl_delta, impostor_cyl_axis);
+    vec3 cyl_ray_perp = cyl_ray_dir - cyl_d_dot_a * impostor_cyl_axis;
+    vec3 cyl_delta_perp = cyl_delta - cyl_delta_dot_a * impostor_cyl_axis;
+
+    float cyl_a = dot(cyl_ray_perp, cyl_ray_perp);
+    float cyl_b = dot(cyl_delta_perp, cyl_ray_perp);
+    float cyl_c = dot(cyl_delta_perp, cyl_delta_perp) - impostor_cyl_radius * impostor_cyl_radius;
+    float cyl_disc = cyl_b * cyl_b - cyl_a * cyl_c;
+
+    vec3 impostor_hit;
+    vec3 impostor_normal;
+    bool cyl_hit_found = false;
+    float nearest_cyl_t = 3.402823e38;
+    float impostor_clip_z = impostor_near_plane_z();
+
+    if (cyl_disc >= 0.0 && cyl_a > 1e-8) {
+      float cyl_root = sqrt(cyl_disc);
+      for (int root_index = 0; root_index < 2; ++root_index) {
+        float signed_root = root_index == 0 ? -cyl_root : cyl_root;
+        float cyl_t = (-cyl_b + signed_root) / cyl_a;
+        vec3 cyl_hit_pt = cyl_ray_origin + cyl_t * cyl_ray_dir;
+        float cyl_along = dot(cyl_hit_pt - impostor_cyl_center, impostor_cyl_axis);
+
+        if (cyl_t > 0.0 && cyl_t < nearest_cyl_t &&
+            abs(cyl_along) <= impostor_cyl_half_length &&
+            cyl_hit_pt.z <= impostor_clip_z) {
+          // Hit the finite cylinder wall.
+          nearest_cyl_t = cyl_t;
+          impostor_hit = cyl_hit_pt;
+          impostor_normal = normalize(cyl_hit_pt - impostor_cyl_center -
+                                      cyl_along * impostor_cyl_axis);
+          cyl_hit_found = true;
+        }
+      }
+    }
+
+    if (!cyl_hit_found) discard;
+    if (dot(impostor_normal, cyl_ray_dir) > 0.0)
+      impostor_normal = -impostor_normal;  // Inside of cylinder, two-sided lighting as for triangles.
+
+    #ifdef USE_CLIP_PLANES
+      vec3 impostor_hit_scene = (inverse_view_matrix * vec4(impostor_hit, 1)).xyz;
+      for (int i = 0; i < num_clip_planes; ++i)
+        if (dot(vec4(impostor_hit_scene, 1), clip_planes[i]) < 0.0)
+          discard;
+    #endif
+
+    // Write correct depth
+    vec4 cyl_clip_pos = projection_matrix * vec4(impostor_hit, 1.0);
+    float cyl_ndc_z = cyl_clip_pos.z / cyl_clip_pos.w;
+    gl_FragDepth = gl_DepthRange.diff * 0.5 * cyl_ndc_z + gl_DepthRange.near + gl_DepthRange.diff * 0.5;
+  #endif
+
   #ifdef USE_DEPTH_TEXTURE
     // Adjust depth of each fragment in rendering a texture.
     float xscale = tex_depth_scale.x, yscale = tex_depth_scale.y, dscale = tex_depth_scale.z;
@@ -497,7 +567,7 @@ void main (void)
 
   #ifdef USE_LIGHTING
 
-  #if defined(USE_IMPOSTOR_SPHERE)
+  #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
     // Normal and lighting factors from ray intersection
     vec3 N1 = impostor_normal;
     vec3 v1 = normalize(impostor_hit);
@@ -525,7 +595,7 @@ void main (void)
   #endif
 
   #ifdef USE_SHADOW
-    #if defined(USE_IMPOSTOR_SPHERE)
+    #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
     vec3 stc = (shadow_transform * vec4(impostor_hit, 1)).stp;
     #else
     vec3 stc = shadow_tex_coord;
@@ -549,7 +619,7 @@ void main (void)
     for (int i = 0 ; i < shadow_count ; ++i)
       {
         mat4 stf = shadow_transforms[i];
-        #if defined(USE_IMPOSTOR_SPHERE)
+        #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
           vec3 shadow_tex_coord = (stf*vec4(impostor_hit,1)).stp;
         #elif defined(USE_STEREO_360)
           vec3 shadow_tex_coord = (stf*vec4(vshadow,1)).stp;
@@ -557,7 +627,7 @@ void main (void)
           vec3 shadow_tex_coord = (stf*vec4(v,1)).stp;
           // vec3 shadow_tex_coord = (stf*vec4(vscene,1)).stp;
         #endif
-        #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_LIGHTING_NORMALS)
+        #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER) || defined(USE_LIGHTING_NORMALS)
           vec3 light_direction = shadow_depth * vec3(stf[0][2], stf[1][2], stf[2][2]);
           float diffuse = max(-dot(N1,light_direction),0.0);
   	      // float diffuse = max(-dot(nscene,light_direction),0.0);
@@ -590,7 +660,7 @@ void main (void)
   #endif // end USE_LIGHTING
 
   #ifdef USE_DEPTH_CUE
-    #if defined(USE_IMPOSTOR_SPHERE)
+    #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
     float d = -impostor_hit.z;  // Distance from eye to surface.
     #else
     float d = -v.z;	// Distance from eye to fragment.
@@ -602,7 +672,7 @@ void main (void)
     // transparency
     float a = fcolor.a;
   #ifdef USE_LIGHTING
-    #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_LIGHTING_NORMALS)
+    #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER) || defined(USE_LIGHTING_NORMALS)
       a = (a >= 1 ? 1.0 : 1.0 - pow(max(1.0-a,0.0), 1.0/max(abs(dot(v1,N1)),0.01)));
     #endif
   #endif

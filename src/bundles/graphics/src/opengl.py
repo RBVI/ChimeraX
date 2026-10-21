@@ -688,7 +688,8 @@ class Render:
         if depth_only:
             d = ~(self.SHADER_INSTANCING | self.SHADER_SHIFT_AND_SCALE |
                   self.SHADER_TRANSPARENT_ONLY | self.SHADER_OPAQUE_ONLY |
-                  self.SHADER_CLIP_PLANES | self.SHADER_IMPOSTOR_SPHERE)
+                  self.SHADER_CLIP_PLANES | self.SHADER_IMPOSTOR_SPHERE |
+                  self.SHADER_IMPOSTOR_CYLINDER)
         else:
             d = 0
         self.disable_capabilities = d
@@ -922,7 +923,8 @@ class Render:
     def _clip_uses_model_matrix(self, shader):
         # Impostors clip ray cast surface points per fragment in scene
         # coordinates using the inverse view matrix, so do not use model_matrix.
-        return not shader.capabilities & self.SHADER_IMPOSTOR_SPHERE
+        return not shader.capabilities & (self.SHADER_IMPOSTOR_SPHERE |
+                                          self.SHADER_IMPOSTOR_CYLINDER)
 
     def set_clip_parameters(self, clip_planes = None):
         if clip_planes is not None:
@@ -2182,6 +2184,7 @@ shader_options = (
     "SHADER_VOLUME_RAYCASTING",
     "SHADER_SHOW_DEPTH_BUFFER",
     "SHADER_IMPOSTOR_SPHERE",
+    "SHADER_IMPOSTOR_CYLINDER",
 )
 for i, sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)

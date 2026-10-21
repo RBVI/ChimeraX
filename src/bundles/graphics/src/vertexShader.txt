@@ -58,7 +58,7 @@ uniform mat4 projection_matrix;
 
 layout(location = 0) in vec3 position;
 
-#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE) || defined(USE_IMPOSTOR_SPHERE)
+#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE) || defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
 out vec3 v;
 #endif
 
@@ -115,6 +115,14 @@ out vec3 impostor_center;   // sphere center in eye space
 out float impostor_radius;  // sphere radius
 #endif
 
+#ifdef USE_IMPOSTOR_CYLINDER
+out vec3 impostor_cyl_center;      // cylinder center in eye space
+out vec3 impostor_cyl_axis;        // cylinder axis direction (normalized) in eye space
+out float impostor_cyl_radius;     // cylinder radius
+out float impostor_cyl_half_length; // half the cylinder length
+uniform vec3 impostor_cylinder; // unit height
+#endif
+
 #ifdef USE_INSTANCING
 layout(location = 5) in mat4 instance_placement;
 #endif
@@ -137,7 +145,7 @@ uniform vec4 clip_planes[8]; // Normal in scene coordinates and offset
 out float gl_ClipDistance[8];
 #endif
 
-#if defined(USE_IMPOSTOR_SPHERE)
+#if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
 // Each instance is drawn as two triangles, without vertex buffers.  Quad
 // corners come from the vertex index.
 const vec2 impostor_corners[6] = vec2[6](vec2(-1,-1), vec2(1,-1), vec2(1,1),
@@ -147,7 +155,9 @@ vec2 impostor_corner()
   return impostor_corners[gl_VertexID % 6];
 }
 
-// Perspective slope bounds for a sphere wholly in front of the eye.
+// Perspective slope bounds for a sphere wholly in front of the eye.  These
+// also bound a cylinder end disk, without magnifying the entire bond by the
+// depth of its nearest endpoint.  xy can be expressed in any screen basis.
 void sphere_slope_bounds(vec3 center, float radius,
                          out vec2 lower, out vec2 upper)
 {
@@ -169,7 +179,7 @@ vec4 impostor_viewport_corner()
 
 void main(void)
 {
-#if defined(USE_IMPOSTOR_SPHERE)
+#if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
   // The same affine instance placements used by triangle geometry.
   #ifdef USE_SHIFT_AND_SCALE
     float scale = instance_shift_and_scale.w;
@@ -218,7 +228,73 @@ void main(void)
       gl_ClipDistance[i] = 1.0; // Analytic surface clipping is done per fragment.
   #endif
 
-#else // not USE_IMPOSTOR_SPHERE
+#elif defined(USE_IMPOSTOR_CYLINDER)
+  // Unit cylinder endpoints are transformed by ordinary affine placements.
+  float unit_height = impostor_cylinder.x;
+  vec4 cylinder_start = primitive_placement * vec4(0, 0, -0.5 * unit_height, 1);
+  vec4 cylinder_end = primitive_placement * vec4(0, 0, 0.5 * unit_height, 1);
+  vec3 p0_eye = (model_view_matrix * cylinder_start).xyz;
+  vec3 p1_eye = (model_view_matrix * cylinder_end).xyz;
+  vec3 cyl_axis_eye = p1_eye - p0_eye;
+  float cyl_len = length(cyl_axis_eye);
+  vec3 cyl_dir = cyl_axis_eye / max(cyl_len, 1e-7);
+  float cyl_radius = length((model_view_matrix * primitive_placement[0]).xyz);
+  if (cyl_radius <= 0.0 || cyl_len <= 1e-7) {
+    gl_Position = vec4(2, 2, 2, 1);
+    return;
+  }
+  vec3 cyl_center = (p0_eye + p1_eye) * 0.5;
+  float cyl_half_len = cyl_len * 0.5;
+
+  // Use a screen-aligned plane and orient its rectangle along the projected
+  // bond.  The projection of the capsule is the convex hull of its endpoint
+  // spheres, so their bounds enclose the finite cylinder (including caps).
+  // A single bounding-sphere magnification made close bonds cover huge areas.
+  bool cyl_ortho = (projection_matrix[3][3] != 0.0);
+  vec4 veye;
+  if (cyl_ortho || max(p0_eye.z, p1_eye.z) < -cyl_radius * 1.000001) {
+    vec2 along = cyl_ortho ? p1_eye.xy - p0_eye.xy :
+      p1_eye.xy / -p1_eye.z - p0_eye.xy / -p0_eye.z;
+    float along_length = length(along);
+    along = along_length > 1e-7 ? along / along_length : vec2(0.0, 1.0);
+    vec2 across = vec2(along.y, -along.x);
+    vec2 lower, upper;
+    if (cyl_ortho) {
+      vec2 center = vec2(dot(cyl_center.xy, across), dot(cyl_center.xy, along));
+      vec2 axis = vec2(dot(cyl_dir.xy, across), dot(cyl_dir.xy, along));
+      vec2 extent = cyl_half_len * abs(axis) +
+        cyl_radius * sqrt(max(vec2(1.0) - axis * axis, vec2(0.0)));
+      lower = center - extent;
+      upper = center + extent;
+    } else {
+      vec2 lower0, upper0, lower1, upper1;
+      sphere_slope_bounds(vec3(dot(p0_eye.xy, across), dot(p0_eye.xy, along), p0_eye.z),
+                          cyl_radius, lower0, upper0);
+      sphere_slope_bounds(vec3(dot(p1_eye.xy, across), dot(p1_eye.xy, along), p1_eye.z),
+                          cyl_radius, lower1, upper1);
+      lower = min(lower0, lower1);
+      upper = max(upper0, upper1);
+    }
+    vec2 xy = 0.5 * (lower + upper) + impostor_corner() * 0.5025 * (upper - lower);
+    // Place the quad at the front of the cylinder so the far clip plane
+    // does not remove it while the front of the cylinder is in view.
+    float front_z = max(p0_eye.z, p1_eye.z) + cyl_radius;
+    vec2 eye_xy = (across * xy.x + along * xy.y) * (cyl_ortho ? 1.0 : -front_z);
+    veye = vec4(eye_xy, front_z, 1.0);
+  } else
+    veye = impostor_viewport_corner();  // Cylinder may cross the eye plane.
+
+  impostor_cyl_center = cyl_center;
+  impostor_cyl_axis = cyl_dir;
+  impostor_cyl_radius = cyl_radius;
+  impostor_cyl_half_length = cyl_half_len;
+
+  #ifdef USE_CLIP_PLANES
+    for (int i = 0 ; i < num_clip_planes ; ++i)
+      gl_ClipDistance[i] = 1.0; // Analytic surface clipping is done per fragment.
+  #endif
+
+#else // not USE_IMPOSTOR_SPHERE or USE_IMPOSTOR_CYLINDER
 
 #ifdef USE_SHIFT_AND_SCALE
   vec4 vi = vec4(instance_shift_and_scale.w * position + instance_shift_and_scale.xyz, 1);
@@ -250,14 +326,14 @@ void main(void)
   vec4 veye = model_view_matrix * vi;
 #endif
 
-#endif // end USE_IMPOSTOR_SPHERE
+#endif // end USE_IMPOSTOR_SPHERE / USE_IMPOSTOR_CYLINDER
 
-#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE) || defined(USE_IMPOSTOR_SPHERE)
+#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE) || defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
    v = veye.xyz;
 #endif
 
 #ifdef USE_LIGHTING
-  #if !defined(USE_IMPOSTOR_SPHERE)
+  #if !defined(USE_IMPOSTOR_SPHERE) && !defined(USE_IMPOSTOR_CYLINDER)
   #ifdef USE_LIGHTING_NORMALS
     #ifdef USE_INSTANCING
       vec3 ni = vec3(instance_placement * vec4(normal,0));
@@ -266,7 +342,7 @@ void main(void)
     #endif
     N = normalize((model_view_matrix * vec4(ni,0)).xyz);
   #endif
-  #endif // not USE_IMPOSTOR_SPHERE
+  #endif // not USE_IMPOSTOR_SPHERE/CYLINDER
   #ifdef USE_SHADOW
     #ifdef USE_STEREO_360
       shadow_tex_coord = (shadow_transform * (view_matrix * vec4(vshadow,1))).stp;
@@ -301,7 +377,7 @@ void main(void)
 #endif
 
   gl_Position = projection_matrix * veye;
-  #if defined(USE_IMPOSTOR_SPHERE)
+  #if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
     // Keep the proxy alive when its center plane crosses the near plane.  The
     // fragment shader writes the analytic surface depth, so moving only the
     // proxy's clip-space depth does not change the rendered surface.

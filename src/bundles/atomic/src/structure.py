@@ -2396,6 +2396,7 @@ class LevelOfDetail(State):
             w = len(ta) if ta is not None else 0
             va, na, ta = self.cylinder_geometry(div = ntri//4)
             drawing.set_geometry(va, na, ta)
+            drawing.set_cylinder_impostor(0.5)
 
     def cylinder_geometry(self, div):
         # Cache cylinder triangulations of different sizes.

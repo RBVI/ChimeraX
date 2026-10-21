@@ -187,7 +187,7 @@ class Drawing:
         Whether to draw on top of everything else.  Used for text labels.
         '''
 
-        self._impostor = None			# Ray cast shape, see set_sphere_impostor()
+        self._impostor = None			# Ray cast shape tuple, see set_sphere_impostor()
 
         # OpenGL drawing
         self._draw_shape = None
@@ -823,10 +823,15 @@ class Drawing:
         r = renderer
         impostor = self._impostor_to_draw(r)
         if impostor:
-            sopt |= r.SHADER_IMPOSTOR_SPHERE
+            shape, height = impostor
+            impostor_option = (r.SHADER_IMPOSTOR_SPHERE if shape == 'sphere'
+                               else r.SHADER_IMPOSTOR_CYLINDER)
+            sopt |= impostor_option
         shader = r.shader(sopt)
-        if impostor and not shader.capabilities & r.SHADER_IMPOSTOR_SPHERE:
+        if impostor and not shader.capabilities & impostor_option:
             impostor = None	# Renderer disabled impostors for this pass, draw triangles.
+        if impostor and shape == 'cylinder':
+            shader.set_vector3('impostor_cylinder', (height, 0, 0))
         self.set_shader_options(r)
 
         # Set color
@@ -876,7 +881,16 @@ class Drawing:
         The geometry must be a unit sphere centered at the origin, and
         positions must scale uniformly.
         '''
-        self._impostor = 'sphere'
+        self._impostor = ('sphere', 1)
+
+    def set_cylinder_impostor(self, height):
+        '''
+        Draw this drawing by ray casting the open cylinders its triangles
+        approximate, like set_sphere_impostor().  The geometry must be a
+        cylinder of radius 1 along the z axis with the given height centered
+        at the origin, and positions must scale x and y equally.
+        '''
+        self._impostor = ('cylinder', height)
 
     def clear_impostor(self):
         '''Draw the triangles instead of a ray cast shape.'''
