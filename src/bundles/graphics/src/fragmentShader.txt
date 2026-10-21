@@ -25,6 +25,16 @@
  * === UCSF ChimeraX Copyright ===
  */
 
+// Impostors only move fragment depth back from their quads, so declaring
+// conservative depth keeps the early depth test on where it is supported.
+// Apple OpenGL lacks it and uses USE_IMPOSTOR_DEPTH_CULL instead.
+#if defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
+#if !defined(USE_DEPTH_TEXTURE) && !defined(USE_ALPHA_DEPTH) && defined(GL_ARB_conservative_depth)
+#extension GL_ARB_conservative_depth : enable
+#define IMPOSTOR_CONSERVATIVE_DEPTH 1
+#endif
+#endif
+
 /* ----------------------------------------------------------------------------
 * Various debugging shaders
 */
@@ -202,6 +212,10 @@ in float impostor_cyl_radius;
 in float impostor_cyl_half_length;
 flat in int impostor_cyl_caps;
 uniform mat4 projection_matrix;
+#endif
+
+#ifdef IMPOSTOR_CONSERVATIVE_DEPTH
+layout (depth_greater) out float gl_FragDepth;
 #endif
 
 #if (defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)) && defined(USE_CLIP_PLANES)
@@ -573,6 +587,12 @@ void main (void)
     vec4 cyl_clip_pos = projection_matrix * vec4(impostor_hit, 1.0);
     float cyl_ndc_z = cyl_clip_pos.z / cyl_clip_pos.w;
     gl_FragDepth = gl_DepthRange.diff * 0.5 * cyl_ndc_z + gl_DepthRange.near + gl_DepthRange.diff * 0.5;
+  #endif
+
+  #ifdef IMPOSTOR_CONSERVATIVE_DEPTH
+    // Quads are at the front of their shapes, so this only removes rounding
+    // at the nearest point, keeping the depth_greater declaration exact.
+    gl_FragDepth = max(gl_FragDepth, gl_FragCoord.z);
   #endif
 
   #ifdef USE_IMPOSTOR_DEPTH_CULL
