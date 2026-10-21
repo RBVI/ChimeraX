@@ -135,6 +135,7 @@ def _shader_chooser(**attrs):
     from types import SimpleNamespace
     from chimerax.graphics import opengl
     attrs = dict(enable_capabilities=0, disable_capabilities=0, impostor_depth_prepass=False,
+                 impostor_depth_cull=SimpleNamespace(active=False),
                  _opengl_shader=lambda options: options) | attrs
     r = SimpleNamespace(**attrs)
     for name in opengl.shader_options:
