@@ -58,7 +58,7 @@ uniform mat4 projection_matrix;
 
 layout(location = 0) in vec3 position;
 
-#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE)
+#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE) || defined(USE_IMPOSTOR_SPHERE)
 out vec3 v;
 #endif
 
@@ -110,6 +110,11 @@ out vec3 tex_coord_cubemap;
 layout(location = 4) in vec4 instance_shift_and_scale;
 #endif
 
+#ifdef USE_IMPOSTOR_SPHERE
+out vec3 impostor_center;   // sphere center in eye space
+out float impostor_radius;  // sphere radius
+#endif
+
 #ifdef USE_INSTANCING
 layout(location = 5) in mat4 instance_placement;
 #endif
@@ -132,8 +137,89 @@ uniform vec4 clip_planes[8]; // Normal in scene coordinates and offset
 out float gl_ClipDistance[8];
 #endif
 
+#if defined(USE_IMPOSTOR_SPHERE)
+// Each instance is drawn as two triangles, without vertex buffers.  Quad
+// corners come from the vertex index.
+const vec2 impostor_corners[6] = vec2[6](vec2(-1,-1), vec2(1,-1), vec2(1,1),
+                                         vec2(-1,-1), vec2(1,1), vec2(-1,1));
+vec2 impostor_corner()
+{
+  return impostor_corners[gl_VertexID % 6];
+}
+
+// Perspective slope bounds for a sphere wholly in front of the eye.
+void sphere_slope_bounds(vec3 center, float radius,
+                         out vec2 lower, out vec2 upper)
+{
+  float depth = -center.z;
+  float denom = (depth - radius) * (depth + radius);
+  vec2 root = sqrt(max(vec2(denom) + center.xy * center.xy, vec2(0.0)));
+  lower = (center.xy * depth - radius * root) / denom;
+  upper = (center.xy * depth + radius * root) / denom;
+}
+
+// Camera coordinates of a viewport corner, on the corner pixel ray.  Used for
+// shapes crossing the eye plane, which have no finite perspective projection.
+vec4 impostor_viewport_corner()
+{
+  vec4 e = inverse(projection_matrix) * vec4(impostor_corner(), 0.0, 1.0);
+  return vec4(e.xyz / e.w, 1.0);
+}
+#endif
+
 void main(void)
 {
+#if defined(USE_IMPOSTOR_SPHERE)
+  // The same affine instance placements used by triangle geometry.
+  #ifdef USE_SHIFT_AND_SCALE
+    float scale = instance_shift_and_scale.w;
+    mat4 primitive_placement = mat4(vec4(scale, 0, 0, 0), vec4(0, scale, 0, 0),
+      vec4(0, 0, scale, 0), vec4(instance_shift_and_scale.xyz, 1));
+  #elif defined(USE_INSTANCING)
+    mat4 primitive_placement = instance_placement;
+  #else
+    mat4 primitive_placement = mat4(1);
+  #endif
+#endif
+#ifdef USE_IMPOSTOR_SPHERE
+  // Impostor sphere: expand unit quad into camera-facing billboard
+  vec3 center_eye = (model_view_matrix * primitive_placement[3]).xyz;
+  float radius = length((model_view_matrix * primitive_placement[0]).xyz);
+  if (radius <= 0.0) {
+    gl_Position = vec4(2, 2, 2, 1);
+    return;
+  }
+  bool sphere_ortho = (projection_matrix[3][3] != 0.0);
+  vec4 veye;
+  if (sphere_ortho) {
+    veye = vec4(center_eye + vec3(impostor_corner() * radius * 1.005, radius), 1.0);
+  } else {
+    // Smallest axis-aligned rectangle enclosing the perspective projection of
+    // the sphere.  Unlike a symmetric billboard, its bounds shift off-axis.
+    float depth = -center_eye.z;
+    if (depth > radius * 1.000001) {
+      vec2 slope_min, slope_max;
+      sphere_slope_bounds(center_eye, radius, slope_min, slope_max);
+      vec2 slope_mid = 0.5 * (slope_min + slope_max);
+      vec2 slope_half = 0.5025 * (slope_max - slope_min);
+      vec2 slope = slope_mid + impostor_corner() * slope_half;
+      // Place the quad at the front of the sphere so the far clip plane
+      // does not remove it while the front of the sphere is in view.
+      float front_z = center_eye.z + radius;
+      veye = vec4(slope * -front_z, front_z, 1.0);
+    } else
+      veye = impostor_viewport_corner();  // Sphere crosses the eye plane.
+  }
+  impostor_center = center_eye;
+  impostor_radius = radius;
+
+  #ifdef USE_CLIP_PLANES
+    for (int i = 0 ; i < num_clip_planes ; ++i)
+      gl_ClipDistance[i] = 1.0; // Analytic surface clipping is done per fragment.
+  #endif
+
+#else // not USE_IMPOSTOR_SPHERE
+
 #ifdef USE_SHIFT_AND_SCALE
   vec4 vi = vec4(instance_shift_and_scale.w * position + instance_shift_and_scale.xyz, 1);
 #else
@@ -164,11 +250,14 @@ void main(void)
   vec4 veye = model_view_matrix * vi;
 #endif
 
-#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE)
+#endif // end USE_IMPOSTOR_SPHERE
+
+#if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE) || defined(USE_IMPOSTOR_SPHERE)
    v = veye.xyz;
 #endif
 
 #ifdef USE_LIGHTING
+  #if !defined(USE_IMPOSTOR_SPHERE)
   #ifdef USE_LIGHTING_NORMALS
     #ifdef USE_INSTANCING
       vec3 ni = vec3(instance_placement * vec4(normal,0));
@@ -177,6 +266,7 @@ void main(void)
     #endif
     N = normalize((model_view_matrix * vec4(ni,0)).xyz);
   #endif
+  #endif // not USE_IMPOSTOR_SPHERE
   #ifdef USE_SHADOW
     #ifdef USE_STEREO_360
       shadow_tex_coord = (shadow_transform * (view_matrix * vec4(vshadow,1))).stp;
@@ -211,6 +301,13 @@ void main(void)
 #endif
 
   gl_Position = projection_matrix * veye;
+  #if defined(USE_IMPOSTOR_SPHERE)
+    // Keep the proxy alive when its center plane crosses the near plane.  The
+    // fragment shader writes the analytic surface depth, so moving only the
+    // proxy's clip-space depth does not change the rendered surface.
+    if (gl_Position.w > 0.0 && gl_Position.z < -gl_Position.w)
+      gl_Position.z = -gl_Position.w;
+  #endif
 }
 
 #endif

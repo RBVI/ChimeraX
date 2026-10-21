@@ -1261,6 +1261,7 @@ class AtomsDrawing(Drawing):
     def __init__(self, name):
         self.visible_atoms = None
         super().__init__(name)
+        self.set_sphere_impostor()
 
     def bounds(self):
         cpb = self._cached_position_bounds	# Attribute of Drawing.

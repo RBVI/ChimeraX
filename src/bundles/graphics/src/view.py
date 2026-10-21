@@ -39,6 +39,7 @@ class View:
         self.window_size = window_size		# pixels
         self._render = None
         self._opengl_initialized = False
+        self._use_impostors = True
 
         self.set_default_parameters()
 
@@ -112,6 +113,7 @@ class View:
             r.lighting = self._lighting
             r.material = self._material
             r.silhouette = self._silhouette
+            r.use_impostors = self._use_impostors
             pscale = opengl_context.pixel_scale()
             self.silhouette.thickness = pscale
             self.highlight_thickness = pscale
@@ -414,6 +416,19 @@ class View:
 
     material = property(_get_material, _set_material)
     '''Material reflectivity parameters.'''
+
+    def _get_use_impostors(self):
+        return self._use_impostors
+
+    def _set_use_impostors(self, enable):
+        self._use_impostors = enable
+        r = self._render
+        if r:
+            r.use_impostors = enable
+        self.redraw_needed = True
+
+    use_impostors = property(_get_use_impostors, _set_use_impostors)
+    '''Whether drawings with impostors are drawn by ray casting.'''
 
     @property
     def silhouette(self):
