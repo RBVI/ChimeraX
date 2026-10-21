@@ -245,6 +245,7 @@ class PseudobondGroup(PseudobondGroupData, Model):
             return False
         va, na, ta = _pseudobond_geometry(self._dashes//2, sides)
         d.set_geometry(va, na, ta)
+        d.set_cylinder_impostor(0.5, caps = True, dashes = self._dashes//2)
         d._current_cylinder_sides = sides
         self._graphics_changed |= self._SHAPE_CHANGE
         return True

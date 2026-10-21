@@ -200,6 +200,7 @@ in vec3 impostor_cyl_center;
 in vec3 impostor_cyl_axis;
 in float impostor_cyl_radius;
 in float impostor_cyl_half_length;
+flat in int impostor_cyl_caps;
 uniform mat4 projection_matrix;
 #endif
 
@@ -496,6 +497,26 @@ void main (void)
       }
     }
 
+    if (abs(cyl_d_dot_a) > 1e-8) {
+      for (int cap_index = 0; cap_index < 2; ++cap_index) {
+        int cap_bit = 1 << cap_index;
+        if ((impostor_cyl_caps & cap_bit) != 0) {
+          float cap_along = cap_index == 0 ? -impostor_cyl_half_length : impostor_cyl_half_length;
+          float cap_t = (cap_along - cyl_delta_dot_a) / cyl_d_dot_a;
+          if (cap_t > 0.0 && cap_t < nearest_cyl_t) {
+            vec3 cap_hit = cyl_ray_origin + cap_t * cyl_ray_dir;
+            vec3 cap_radial = cap_hit - impostor_cyl_center - cap_along * impostor_cyl_axis;
+            if (dot(cap_radial, cap_radial) <= impostor_cyl_radius * impostor_cyl_radius &&
+                cap_hit.z <= impostor_clip_z) {
+              nearest_cyl_t = cap_t;
+              impostor_hit = cap_hit;
+              impostor_normal = (cap_index == 0 ? -1.0 : 1.0) * impostor_cyl_axis;
+              cyl_hit_found = true;
+            }
+          }
+        }
+      }
+    }
     if (!cyl_hit_found) discard;
     if (dot(impostor_normal, cyl_ray_dir) > 0.0)
       impostor_normal = -impostor_normal;  // Inside of cylinder, two-sided lighting as for triangles.
