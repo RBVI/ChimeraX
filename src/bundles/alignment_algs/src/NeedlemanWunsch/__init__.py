@@ -43,12 +43,19 @@ def nw(s1, s2, score_match=10, score_mismatch=-3, score_gap=0, score_gap_open=-4
         go_helix = gap_open_helix
         go_strand = gap_open_strand
         go_other = gap_open_other
+
+    def ss_type(seq, index, ss_fraction):
+        # avoid computing secondary structure if unnecessary
+        if ss_fraction is False or ss_fraction is None:
+            return ' '
+        return seq.ss_type(index) or ' '
+
     score, match_list = match(s1.characters, s2.characters, score_match, score_mismatch,
         score_gap_open, score_gap, ends_are_gaps, similarity_matrix, score_matrix,
         frequency_matrix, ss_matrix, ss_fraction, ss_specific_gaps, go_helix, go_strand,
         go_other, getattr(s1, 'gap_freqs', None), getattr(s2, 'gap_freqs', None),
-        "".join([s1.ss_type(i) or ' ' for i in range(len(s1))]),
-        "".join([s2.ss_type(i)  or ' 'for i in range(len(s2))]),
+        "".join([ss_type(s1, i, ss_fraction) for i in range(len(s1))]),
+        "".join([ss_type(s2, i, ss_fraction) for i in range(len(s2))]),
         getattr(s1, 'ss_freqs', None), getattr(s2, 'ss_freqs', None),
         getattr(s1, 'occupancy', None), getattr(s2, 'occupancy', None))
     if return_seqs:
