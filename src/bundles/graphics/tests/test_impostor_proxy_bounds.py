@@ -203,6 +203,32 @@ def test_orthographic_quad_covers_surface(quad_shader, start, end, radius):
     _assert_covers(shape, quad, start, end, radius, _orthographic())
 
 
+def _assert_quad_in_front(shape, quad, start, end, radius, projection):
+    # Fragment shaders declare depth_greater, so ray cast depth must never be
+    # in front of the quad depth.  Quads are planes of constant eye z.
+    clip = quad(start, end, radius, projection)
+    pts = _surface_points(shape, start, end, radius)
+    pts = pts[pts[:, 2] <= _near_z(projection)]
+    if len(pts) == 0:
+        return
+    h = np.column_stack((pts, np.ones(len(pts)))) @ projection.T
+    surface_depth = (h[:, 2] / h[:, 3]).min()
+    quad_depth = (clip[:, 2] / clip[:, 3]).max()
+    assert quad_depth <= surface_depth + 1e-6
+
+
+@pytest.mark.parametrize('start, end, radius', CASES)
+def test_perspective_quad_is_in_front_of_surface(quad_shader, start, end, radius):
+    shape, quad = quad_shader
+    _assert_quad_in_front(shape, quad, start, end, radius, _perspective())
+
+
+@pytest.mark.parametrize('start, end, radius', CASES[:3])
+def test_orthographic_quad_is_in_front_of_surface(quad_shader, start, end, radius):
+    shape, quad = quad_shader
+    _assert_quad_in_front(shape, quad, start, end, radius, _orthographic())
+
+
 def test_quad_behind_eye_is_clipped(quad_shader):
     shape, quad = quad_shader
     clip = quad((0, 0, 5), (0, 0, 8), 1.0, _perspective())
