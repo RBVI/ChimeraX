@@ -208,6 +208,30 @@ uniform mat4 projection_matrix;
 uniform mat4 inverse_view_matrix;	// Camera to scene, for clipping ray cast surface
 #endif
 
+#ifdef USE_IMPOSTOR_DEPTH_CULL
+uniform sampler2D impostor_depth_snapshot;
+flat in float impostor_near_z;  // eye z of the primitive's nearest point
+// The snapshot and this pass are different shader variants, which need not
+// round alike (macOS compiles with fast math).  Ray intersections amplify the
+// difference, to about sqrt(epsilon) * distance at silhouettes.  Compare eye
+// z with a tolerance scaled by distance and primitive size: a fixed
+// window-depth slack shrinks as z^2/near and rejected visible fragments up
+// close.  Culling is only an optimization, so err toward keeping fragments.
+const float impostor_depth_tolerance = 1e-3;
+
+// Eye z of a window depth (depth range 0-1, checked on the CPU), for
+// perspective or orthographic projections.  Otherwise culling is skipped.
+bool impostor_occluder_z(float depth, out float z)
+{
+  mat4 p = projection_matrix;
+  bool standard = p[0][2] == 0.0 && p[1][2] == 0.0 && p[0][3] == 0.0 &&
+                  p[1][3] == 0.0 && p[2][2] * p[3][3] - p[3][2] * p[2][3] < 0.0;
+  float ndc = 2.0 * depth - 1.0;
+  z = (p[3][2] - ndc * p[3][3]) / (ndc * p[2][3] - p[2][2]);
+  return standard;
+}
+#endif
+
 #if (defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)) && defined(USE_CLIP_PLANES)
 uniform int num_clip_planes;
 uniform vec4 clip_planes[8];
@@ -408,6 +432,23 @@ void main (void)
 }
 #else
 
+  #ifdef USE_IMPOSTOR_DEPTH_CULL
+    float impostor_occluder_depth = texelFetch(
+      impostor_depth_snapshot, ivec2(gl_FragCoord.xy), 0).r;
+    float impostor_occluder_eye_z;
+    bool impostor_cull = impostor_occluder_z(impostor_occluder_depth, impostor_occluder_eye_z);
+    #ifdef USE_IMPOSTOR_SPHERE
+      float impostor_size = impostor_radius;
+    #else
+      float impostor_size = impostor_cyl_radius;
+    #endif
+    float impostor_tolerance = impostor_depth_tolerance *
+      (abs(impostor_occluder_eye_z) + impostor_size);
+    if (impostor_cull &&
+        impostor_near_z < impostor_occluder_eye_z - impostor_tolerance)
+      discard;
+  #endif
+
   #ifdef USE_IMPOSTOR_SPHERE
     // Ray-sphere intersection for impostor sphere rendering.
     // Construct ray in eye space from interpolated vertex position v.
@@ -532,6 +573,15 @@ void main (void)
     vec4 cyl_clip_pos = projection_matrix * vec4(impostor_hit, 1.0);
     float cyl_ndc_z = cyl_clip_pos.z / cyl_clip_pos.w;
     gl_FragDepth = gl_DepthRange.diff * 0.5 * cyl_ndc_z + gl_DepthRange.near + gl_DepthRange.diff * 0.5;
+  #endif
+
+  #ifdef USE_IMPOSTOR_DEPTH_CULL
+    // The bound may overlap visible depth even when this exact hit is hidden.
+    // Reject it before texture/color evaluation and expensive shadow lighting.
+    // Never adjust gl_FragDepth here: nearby surfaces (atoms just inside a
+    // molecular surface) must still be resolved by the hardware depth test.
+    if (impostor_cull && impostor_hit.z < impostor_occluder_eye_z - impostor_tolerance)
+      discard;
   #endif
 
   #ifdef USE_DEPTH_TEXTURE

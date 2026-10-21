@@ -128,6 +128,10 @@ uniform vec3 impostor_cylinder; // unit height, cap bits, dash count (0: solid)
 layout(location = 5) in mat4 instance_placement;
 #endif
 
+#ifdef USE_IMPOSTOR_DEPTH_CULL
+flat out float impostor_near_z;  // eye z of the primitive's nearest point
+#endif
+
 #ifdef USE_FRAME_NUMBER
 uniform float frame_number;
 #endif
@@ -240,6 +244,9 @@ void main(void)
   }
   impostor_center = center_eye;
   impostor_radius = radius;
+  #ifdef USE_IMPOSTOR_DEPTH_CULL
+    float impostor_near_z_bound = center_eye.z + radius;
+  #endif
 
   #ifdef USE_CLIP_PLANES
     for (int i = 0 ; i < num_clip_planes ; ++i)
@@ -316,6 +323,12 @@ void main(void)
   impostor_cyl_radius = cyl_radius;
   impostor_cyl_half_length = cyl_half_len;
   impostor_cyl_caps = int(impostor_cylinder.y + 0.5);
+  #ifdef USE_IMPOSTOR_DEPTH_CULL
+    // Support of a finite cylinder along the eye-space z axis.  Using xy
+    // length avoids cancellation in sqrt(1 - axis.z^2) near an axial view.
+    float impostor_near_z_bound = cyl_center.z + cyl_half_len * abs(cyl_dir.z) +
+      cyl_radius * length(cyl_dir.xy);
+  #endif
 
   #ifdef USE_CLIP_PLANES
     for (int i = 0 ; i < num_clip_planes ; ++i)
@@ -355,6 +368,13 @@ void main(void)
 #endif
 
 #endif // end USE_IMPOSTOR_SPHERE / USE_IMPOSTOR_CYLINDER
+
+#ifdef USE_IMPOSTOR_DEPTH_CULL
+  // Rasterize the original proxy; only the rejection bound moves forward.
+  // The fragment shader compares eye-space z, so a bound in front of the
+  // near plane or behind the eye needs no special handling.
+  impostor_near_z = impostor_near_z_bound;
+#endif
 
 #if defined(USE_LIGHTING) || defined(USE_DEPTH_CUE) || defined(USE_IMPOSTOR_SPHERE) || defined(USE_IMPOSTOR_CYLINDER)
    v = veye.xyz;
