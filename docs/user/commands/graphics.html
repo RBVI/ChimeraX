@@ -35,6 +35,8 @@ with additional options detailed below:
 &ndash; set background color
 </li><li><a href="#driver"><b>graphics driver</b></a>
 &ndash; report graphics driver
+</li><li><a href="#impostors"><b>graphics impostors</b></a>
+&ndash; draw atoms by ray casting
 </li><li><a href="#quality"><b>graphics quality</b></a>
 &ndash; set/report triangulation fineness
 </li><li><a href="#rate"><b>graphics rate</b></a>
@@ -87,6 +89,20 @@ Background color can also be changed with
 Report system graphics (OpenGL) information to the
 <a href="../tools/log.html"><b>Log</b></a>
 in terse (default) or verbose fashion.
+</blockquote>
+
+<a href="#top" class="nounder">&bull;</a>
+<a name="impostors"></a>
+<b>graphics impostors</b> [&nbsp;true&nbsp;|&nbsp;false&nbsp;]
+<blockquote>
+Whether to draw atoms as exact spheres computed for each pixel
+(<b><i>impostors</i></b>, default <b>true</b>)
+rather than as the triangles set by <a href="#quality"><b>graphics quality</b></a>.
+Impostors look the same at any level of detail and are faster to draw for large structures.
+The triangles are still used for
+<a href="save.html#export">3D export</a> and for mesh and dot display styles.
+Given without options, <b>graphics impostors</b> reports the
+current setting in the <a href="../tools/log.html"><b>Log</b></a>.
 </blockquote>
 
 <a href="#top" class="nounder">&bull;</a>
