@@ -45,6 +45,11 @@ def register_ui_command(logger):
         synopsis="Whether to temporarily hide floating tools or not")
     register('ui hideFloating', ui_hide_floating_desc, ui_hide_floating, logger=logger)
 
+    ui_tool_layout_desc = CmdDesc(
+        required=[('layout', EnumOf(['fullWidth', 'fullHeight']))],
+        synopsis="whether top/bottom or left/right docked tools extend into the window corners")
+    register('ui toolLayout', ui_tool_layout_desc, ui_tool_layout, logger=logger)
+
     ui_statusbar_desc = CmdDesc(
         required=[('show', BoolArg)],
         synopsis = "control whether main window status bar is shown or hidden")
@@ -182,6 +187,15 @@ def ui_windowfill(session, fill):
     if fill == 'toggle':
         fill = not mw.hide_tools
     mw.hide_tools = fill
+
+# -----------------------------------------------------------------------------
+#
+def ui_tool_layout(session, layout):
+    '''
+    Make tools docked at the top/bottom span the full window width (fullWidth),
+    or tools docked at the left/right span the full window height (fullHeight).
+    '''
+    session.ui.main_window.tool_layout = {'fullWidth': "full width", 'fullHeight': "full height"}[layout]
 
 # -----------------------------------------------------------------------------
 #
