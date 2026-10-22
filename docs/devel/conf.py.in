@@ -40,6 +40,33 @@ extensions = [
     "sphinx_autodoc_typehints",
     "class_munger",
 ]
+
+
+def _restrict_stub_search():
+    # sphinx_autodoc_typehints looks for annotations in a .pyi stub for any
+    # object without them, including constructors ChimeraX classes inherit
+    # from Qt, and rebuilds the stub's namespace each time (seconds for the
+    # PySide6 stubs).  Only look for stubs of ChimeraX modules.
+    try:
+        from sphinx_autodoc_typehints._resolver import _stubs
+    except ImportError:
+        return
+    find_stub_owner = getattr(_stubs, "_find_stub_owner", None)
+    get_module = getattr(_stubs, "_get_module", None)
+    if find_stub_owner is None or get_module is None:
+        return
+
+    def chimerax_stub_owner(obj):
+        module = get_module(obj)
+        if module is None or not module.__name__.startswith("chimerax."):
+            return None
+        return find_stub_owner(obj)
+
+    _stubs._find_stub_owner = chimerax_stub_owner
+
+
+_restrict_stub_search()
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
