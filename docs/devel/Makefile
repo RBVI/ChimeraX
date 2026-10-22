@@ -15,7 +15,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # You can set these variables from the command line.
-SPHINXOPTS    ?=
+SPHINXOPTS    ?= -j auto
 ifdef USE_MAC_FRAMEWORKS
 SPHINXBUILD   ?= $(APP_PYTHON_EXE) $(APP_PYTHON_FRAMEWORK)/bin/sphinx-build
 else ifdef WIN32
