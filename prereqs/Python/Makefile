@@ -73,6 +73,10 @@ ifeq ($(OS),Windows)
 APP_INSTALL_DEP = $(PBS_DIR)
 endif
 
+# The packaging tools, at the versions we pin
+PINNED_TOOLS = pip==$(PIP_VERSION) wheel==$(WHEEL_VERSION) \
+	setuptools==$(SETUPTOOLS_VERSION) build==$(BUILD_VERSION)
+
 ifeq ($(OS),Darwin)
 # Path from bindir/libdir/includedir (build/bin, build/lib, build/include) to
 # the framework, used for the convenience symlinks.
@@ -140,17 +144,14 @@ endif
 	# remove unused static libraries
 	-rm -rf $(PYTHON_LIBRARY_DIR)/config-*/*.{a,dylib}
 
-	# Update pip, setuptools, wheel, and build to our pinned versions.  pip
-	# uses its own vendored certificates for these downloads, so this works
-	# before certifi is installed by prereqs/pips.
-	$(PYTHON_EXE) -m ensurepip --upgrade
-	$(PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
-	$(PYTHON_EXE) -m pip install --upgrade setuptools==$(SETUPTOOLS_VERSION)
-	$(PYTHON_EXE) -m pip install --upgrade wheel==$(WHEEL_VERSION)
-	$(PYTHON_EXE) -m pip install --upgrade build==$(BUILD_VERSION)
-ifdef UV_BUILD
-	$(PYTHON_EXE) -m pip install --upgrade uv==$(UV_VERSION)
-endif
+	# Update pip, setuptools, wheel, and build to our pinned versions, and
+	# install uv.  pip uses its own vendored certificates for these downloads,
+	# so this works before certifi is installed by prereqs/pips.  (One pip run,
+	# since pip takes a while to start.)  ensurepip is only needed when there
+	# is no pip yet (on Windows, where site-packages is not copied).
+	$(PYTHON_EXE) -m pip --version > /dev/null 2>&1 || $(PYTHON_EXE) -m ensurepip --upgrade
+	$(PYTHON_EXE) -m pip install --upgrade --disable-pip-version-check \
+		$(PINNED_TOOLS) uv==$(UV_VERSION)
 
 	# double check that ssl and expat support are present
 	$(PYTHON_EXE) -c 'import ssl, pyexpat'
@@ -210,11 +211,8 @@ ifneq ($(OS),Windows)
 	$(APP_PYTHON_EXE) clean_config_vars.py $(build_prefix)
 endif
 	$(APP_PYTHON_EXE) -m ensurepip --upgrade
-	$(APP_PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
-	$(APP_PYTHON_EXE) -m pip install --upgrade \
-		wheel==$(WHEEL_VERSION) \
-		setuptools==$(SETUPTOOLS_VERSION) \
-		build==$(BUILD_VERSION)
+	$(APP_PYTHON_EXE) -m pip install --upgrade --disable-pip-version-check \
+		$(PINNED_TOOLS)
 ifdef UV_BUILD
 	$(APP_PYTHON_EXE) -m pip install --upgrade uv==$(UV_VERSION)
 endif
