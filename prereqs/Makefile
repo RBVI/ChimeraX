@@ -36,9 +36,6 @@ ffmpeg.app-install:
 endif
 
 
-# Python egg installation has a race condition updating easy-install.pth
-.NOTPARALLEL:
-
 # keep in alphabetical order, dependencies go below
 
 SUBDIRS	+= ambertools pips
@@ -96,7 +93,10 @@ $(SUBDIR_APP_INSTALL): build-app-dirs
 
 # Whole platform dependencies
 ifdef WIN32
+# win32 puts the Visual C++ runtime DLLs next to the build tree's Python,
+# which Windows will not let them be replaced under while it runs
 $(subst win32.install,,$(SUBDIR_INSTALL)): win32.install
+$(filter-out win32.app-install,$(SUBDIR_APP_INSTALL)): win32.app-install
 endif
 
 # Please keep dependencies in alphabetical order.
