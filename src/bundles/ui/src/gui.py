@@ -119,6 +119,14 @@ class UI(QApplication):
         redirect_stdio_to_logger(self.session.logger)
         self.redirect_qt_messages()
 
+        # Prevent QtWebEngine from looking inside Google Chrome app for widevinecdm.dylib
+        # since this generates a scary warning on macOS 27 about ChimeraX accessing other apps' data.
+        # ChimeraX ticket #21111
+        from sys import platform
+        if platform == 'darwin':
+            import os
+            os.environ['QTWEBENGINE_CHROMIUM_FLAGS'] = '--widevine-path=/dev/null'
+
         from chimerax import app_dirs as ad
         QApplication.__init__(self, [ad.appname])
         import sys
