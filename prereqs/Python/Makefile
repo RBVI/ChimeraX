@@ -82,6 +82,10 @@ endif
 # The packaging tools, at the versions we pin
 PINNED_TOOLS = pip==$(PIP_VERSION) wheel==$(WHEEL_VERSION) \
 	setuptools==$(SETUPTOOLS_VERSION) build==$(BUILD_VERSION)
+# Succeeds if the pinned versions of the packaging tools are already installed
+HAVE_PINNED_TOOLS = -c 'import sys, importlib.metadata as m; \
+	sys.exit(any(m.version(n) != v for n, v in (a.split("==") for a in sys.argv[1:])))' \
+	$(PINNED_TOOLS)
 
 ifeq ($(OS),Darwin)
 # Path from bindir/libdir/includedir (build/bin, build/lib, build/include) to
@@ -228,9 +232,13 @@ ifneq ($(OS),Windows)
 	# we do not build Python on Windows, so no action is needed
 	$(APP_PYTHON_EXE) clean_config_vars.py $(build_prefix)
 endif
-	$(APP_PYTHON_EXE) -m ensurepip --upgrade
-	$(APP_PYTHON_EXE) -m pip install --upgrade --disable-pip-version-check \
-		$(PINNED_TOOLS)
+	# On macOS, the framework is copied with its site-packages, so the pinned
+	# tools are usually already there
+	$(APP_PYTHON_EXE) $(HAVE_PINNED_TOOLS) 2>/dev/null || { \
+		$(APP_PYTHON_EXE) -m ensurepip --upgrade && \
+		$(APP_PYTHON_EXE) -m pip install --upgrade --disable-pip-version-check \
+			$(PINNED_TOOLS) ; \
+	}
 ifdef UV_BUILD
 	$(APP_PYTHON_EXE) -m pip install --upgrade uv==$(UV_VERSION)
 endif
