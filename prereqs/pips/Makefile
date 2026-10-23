@@ -205,5 +205,4 @@ $(CYTHON_WHEEL):
 	$(APP_PYTHON_EXE) -m pip download --platform=macosx_10_9_x86_64 --only-binary=:all: --no-deps Cython==$(CYTHON_VERSION)
 
 $(CXSERVICES_WHEEL):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cxservices/cxservices-$(CXSERVICES_VER)-$(CXSERVICES_DEPLOYMENT_VER)-py3-none-any.whl
-	mv cxservices-$(CXSERVICES_VER)-$(CXSERVICES_DEPLOYMENT_VER)-py3-none-any.whl $(CXSERVICES_WHEEL)
+	$(call FETCH_PREREQ_TO,$@,$(PREREQS_ARCHIVE)/cxservices/cxservices-$(CXSERVICES_VER)-$(CXSERVICES_DEPLOYMENT_VER)-py3-none-any.whl)

@@ -117,11 +117,12 @@ ifeq ($(OS),Darwin)
 	tar xf $(AMBERTOOLS_FLIBS_PREBUILT) -C $(app_libdir)
 endif
 
+# The flibs archive first, so this one existing means both are complete
 $(AMBERTOOLS_PREBUILT):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ambertools/$(AMBERTOOLS_PREBUILT)
 ifeq ($(OS),Darwin)
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ambertools/$(AMBERTOOLS_FLIBS_PREBUILT)
+	$(call FETCH_PREREQ_TO,$(AMBERTOOLS_FLIBS_PREBUILT),$(PREREQS_ARCHIVE)/ambertools/$(AMBERTOOLS_FLIBS_PREBUILT))
 endif
+	$(call FETCH_PREREQ_TO,$@,$(PREREQS_ARCHIVE)/ambertools/$(AMBERTOOLS_PREBUILT))
 
 else
 install: $(SOURCE)
@@ -209,7 +210,7 @@ endif
 endif
 
 $(DISTRIBUTION):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ambertools/$(DISTRIBUTION)
+	$(call FETCH_PREREQ_TO,$@,$(PREREQS_ARCHIVE)/ambertools/$(DISTRIBUTION))
 
 upload-new-source-version:
 	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/ambertools
