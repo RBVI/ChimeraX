@@ -63,6 +63,10 @@ help:
 	@echo "  linkcheck  to check all external links for integrity"
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 
+# clean must finish before html makes conf.py and the rest, and Sphinx builds
+# in parallel itself
+.NOTPARALLEL:
+
 install: clean html
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
 	$(RSYNC) $(BUILDDIR)/html/ $(DOCDIR)
