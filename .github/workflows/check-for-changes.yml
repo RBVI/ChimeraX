@@ -82,13 +82,24 @@ jobs:
       # committed manifest so that local flatpak builds are unaffected.
       - name: Mark the CI environment in the Flatpak manifest
         run: sed -i -e 's/\(USE_COVERAGE=1 make pytest\)/CI=1 \1/' arm-flatpak.yml
+      # The release manifest does a full install-rbvi (docs, vdocs, compileall)
+      # and runs the wheel tests too. For change checks, do what the other
+      # platforms do: build-minimal, then the app tests.
+      - name: Trim the Flatpak manifest down to a minimal build
+        run: |
+          sed -i -e 's/make -j$(nproc) install-rbvi/make -j$(nproc) build-minimal/' \
+                 -e '/make pytest-wheel/d' arm-flatpak.yml
+          grep -q 'build-minimal' arm-flatpak.yml
+      # Stopping before krb5 (which only follows the chimerax module so that it can
+      # land in PySide6's lib dir) also skips exporting and bundling the Flatpak,
+      # which a change check has no use for.
       - name: Build ChimeraX
         uses: flatpak/flatpak-github-actions/flatpak-builder@master
         with:
-          bundle: chimerax.flatpak
           manifest-path: arm-flatpak.yml
           arch: aarch64
           cache-key: flatpak-builder-arm64
+          stop-at-module: krb5
           upload-artifact: false
   build-and-test-macos:
     runs-on: macos-latest
