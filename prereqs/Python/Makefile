@@ -227,6 +227,9 @@ ifeq ($(OS),Windows)
 	# and package correctly from this Unix-style build host.
 	find $(PBS_DIR) \( -name '*.dll' -o -name '*.pyd' \) -exec chmod +x {} +
 endif
+	# tar gives the directory the archive's time, but it must be newer than
+	# the archive (and the install that depends on it)
+	touch $@
 
 $(DISTRIBUTION):
 	$(call FETCH_PYTHON_TO,$@,$(PYTHON_BUILD_STANDALONE_BASE)/$(PYTHON_BUILD_STANDALONE_RELEASE)/$(DISTRIBUTION))
