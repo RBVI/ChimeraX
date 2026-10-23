@@ -66,6 +66,7 @@ prereqs/pips/tables*.whl
 prereqs/pips/grako*.whl
 prereqs/pips/tinyarray*.whl
 prereqs/pips/Cython*.whl
+prereqs/pips/cython*.whl
 prereqs/pips/PyOpenGL*.whl
 prereqs/pips/pyopengl_accelerate*.tar.gz
 prereqs/pips/pyopengl_accelerate-3.1.9

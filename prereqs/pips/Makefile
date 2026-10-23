@@ -14,8 +14,10 @@ SOURCE_WHEELS =
 SOURCE_VERSIONS =
 WHEEL_CFLAGS ?=
 
-# On macOS, only the x86_64 version of Cython is available from pypi.
-# So we install the same version on arm64, but from source.
+# On Intel macOS, Cython's only compiled wheel is tagged cp39-abi3, which pip
+# passes over for the pure Python wheel. Universal builds then lipo the ARM
+# build's compiled modules in next to Intel's .py files, and the arm64-only
+# extensions fail to load on Intel (#21074). Fetch the x86_64 wheel explicitly.
 CYTHON_VERSION = $(shell grep Cython $(TOP)/pyproject.toml  | sed -e 's/ ;.*//' -e 's/.*=//' -e 's/.*=//' -e 's/",//')
 CXSERVICES_VER = 1.2.3
 CXSERVICES_DEPLOYMENT_VER ?= production
@@ -57,6 +59,7 @@ SCIPY_WHEEL = $(subst ==,-,$(shell grep '"scipy' $(TOP)/pyproject.toml | sed -e 
 else
 ifeq ($(OSARCH),DarwinIntel64)
 SCIPY_WHEEL = $(subst ==,-,$(shell grep '"scipy' $(TOP)/pyproject.toml | sed -e 's/[\ ",]//g'))-cp314-cp314-macosx_10_15_x86_64.whl
+CYTHON_WHEEL = cython-$(CYTHON_VERSION)-cp39-abi3-macosx_10_9_x86_64.whl
 endif
 endif
 endif
@@ -77,12 +80,16 @@ app-list:
 upgrade:
 
 ifeq ($(OS),Darwin)
-app-install: app_requirements.txt $(PLATO_WHEELS) $(SCIPY_WHEEL)
+app-install: app_requirements.txt $(PLATO_WHEELS) $(SCIPY_WHEEL) $(CYTHON_WHEEL)
 else
 app-install: app_requirements.txt $(PLATO_WHEELS)
 endif
 	# Install Cython first so ndindex builds on Linux ARM64
+ifdef CYTHON_WHEEL
+	$(APP_PIP_INSTALL) ./$(CYTHON_WHEEL)
+else
 	$(APP_PIP_INSTALL) $(shell grep Cython $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
+endif
 	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt | sed -e 's/[\ #",]//g')
 	# pynmrstar 3.5.1 has no cp314 wheel, so it builds from its sdist using the
 	# maturin backend. Since we use --no-build-isolation, pip and uv won't create
@@ -195,7 +202,7 @@ ifeq ($(OSARCH),DarwinIntel64)
 endif
 
 $(CYTHON_WHEEL):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cython/$(CYTHON_WHEEL)
+	$(APP_PYTHON_EXE) -m pip download --platform=macosx_10_9_x86_64 --only-binary=:all: --no-deps Cython==$(CYTHON_VERSION)
 
 $(CXSERVICES_WHEEL):
 	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cxservices/cxservices-$(CXSERVICES_VER)-$(CXSERVICES_DEPLOYMENT_VER)-py3-none-any.whl

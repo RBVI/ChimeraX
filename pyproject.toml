@@ -66,7 +66,7 @@ wheel = [
   "beautifulsoup4==4.15.0",
   "colorama==0.4.6",
   "Cython==3.2.9",
-  "filelock==3.32.0",
+  "filelock==3.32.7",
   "grako==3.16.5",
   "html2text==2025.4.15",
   "ihm==2.2",
@@ -90,13 +90,13 @@ wheel = [
   # if the OpenMM version changes, the patches in prereqs/pips need to be updated
   "openmm==8.4.0 ; platform_machine != 'aarch64'",
   "openmm-cuda-12==8.4.0 ; ((sys_platform == 'win32') or (sys_platform == 'linux')) and (platform_machine != 'aarch64')",
-  "packaging==26.2",
+  "packaging==26.3",
   # as per Tristan's request in ticket #3055"
   "ParmEd==4.2.2",
   "pep517==0.13.1",
   # optional package to prevent warning in Python shell [#16571]
   "pickleshare==0.7.5",
-  "Pillow==12.3.0",
+  "Pillow==13.0.0",
   "pkginfo==1.12.1.2",
   "psutil==7.2.2",
   "pybind11==3.0.4",

@@ -32,7 +32,7 @@ include $(TOP)/mk/os.make
 
 # version numbers that leak out of prerequisites
 PYTHON_VERSION = 3.14
-PYTHON_PATCH_VERSION = 6
+PYTHON_PATCH_VERSION = 9
 
 ifndef DEBUG
 # Starting with Python 3.8 the ABI "m" has been dropped.
@@ -68,7 +68,7 @@ endif
 # (maintained by Astral) instead of being built from source or hosted on our own
 # server.  Pin both the release and the patch version so builds are reproducible;
 # bump both together to upgrade.  See https://github.com/astral-sh/python-build-standalone
-PYTHON_BUILD_STANDALONE_RELEASE = 20260610
+PYTHON_BUILD_STANDALONE_RELEASE = 20261021
 PYTHON_BUILD_STANDALONE_BASE = https://github.com/astral-sh/python-build-standalone/releases/download
 # GitHub release downloads redirect to a CDN, so the fetch must follow redirects.
 FETCH_PYTHON = curl --silent --show-error --fail --location --insecure -O

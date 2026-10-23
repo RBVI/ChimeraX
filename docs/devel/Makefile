@@ -15,7 +15,7 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # You can set these variables from the command line.
-SPHINXOPTS    ?=
+SPHINXOPTS    ?= -j auto
 ifdef USE_MAC_FRAMEWORKS
 SPHINXBUILD   ?= $(APP_PYTHON_EXE) $(APP_PYTHON_FRAMEWORK)/bin/sphinx-build
 else ifdef WIN32
@@ -67,8 +67,14 @@ install: clean html
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
 	$(RSYNC) $(BUILDDIR)/html/ $(DOCDIR)
 
+# Spare Sphinx's cache of the intersphinx inventories, which it refreshes
+# after intersphinx_cache_limit days, so each build need not fetch them
 clean:
-	-rm -rf $(BUILDDIR)/* conf.py index.rst _static/cxlinks.js __pycache__ _static/devdocs.css \
+	-if [ -d $(BUILDDIR) ]; then \
+		find $(BUILDDIR) -mindepth 1 -maxdepth 1 ! -name doctrees -exec rm -rf {} + ; \
+		find $(BUILDDIR)/doctrees -mindepth 1 -maxdepth 1 ! -name __intersphinx_cache__ -exec rm -rf {} + ; \
+	fi
+	-rm -rf conf.py index.rst _static/cxlinks.js __pycache__ _static/devdocs.css \
 		apps chimerax modules
 
 conf.py: conf.py.in
