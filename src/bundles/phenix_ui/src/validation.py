@@ -36,6 +36,7 @@ def read_probe_dots(session, data, file_name, structure_model, **kw):
     red = Color("red").uint8x4()
     orange_red = Color("orange red").uint8x4()
 
+    session.logger.status("Reading Probe file")
     from numpy import array, concatenate, empty, float32, int32, array_equal
     dot_data = []
     line_num = 0
@@ -70,8 +71,9 @@ def read_probe_dots(session, data, file_name, structure_model, **kw):
             color = red
         else:
             color = orange_red
-        dot_data.append((node_xyz, (spike_xyz if node_gap > -0.3 else None), color))
+        dot_data.append((node_xyz, spike_xyz, color))
 
+    session.logger.status("Creating Probe depictions")
     from chimerax.core.models import Model
     probe_model = Model("Probe markups", session)
     structure_model.add([probe_model])
@@ -79,7 +81,7 @@ def read_probe_dots(session, data, file_name, structure_model, **kw):
     # 'shape' command defaults to 3810 triangles for a sphere of radius 1; scale down for the radius
     # we're using
     radius = 0.05
-    from chimerax.geometry import sphere, translation
+    from chimerax.geometry import sphere, translation, norm, vector_rotation
     from chimerax.surface import calculate_vertex_normals
     from chimerax.shape.shape import cylinder_divisions, cylinder_geometry
     # number of triangles has to be even
@@ -90,21 +92,38 @@ def read_probe_dots(session, data, file_name, structure_model, **kw):
     tarrays = []
     rgba8s = []
     num_vertices = len(varray1)
-    spk_radius = radius / 4
-    for i, dot_info in enumerate(dot_data):
-        node_xyz, spike_xyz, rgba8 = dot_info
+    spike_radius = radius / 4
+    t_offset = 0
+    for node_xyz, spike_xyz, rgba8 in dot_data:
         varray = translation(node_xyz).transform_points(varray1)
         narray = calculate_vertex_normals(varray, tarray1)
         varrays.append(varray)
         narrays.append(narray)
-        tarrays.append(tarray1 + i * num_vertices)
+        tarrays.append(tarray1 + t_offset)
+        t_offset += num_vertices
         rgba8s.extend([rgba8] * num_vertices)
         if array_equal(node_xyz, spike_xyz):
             # no spike
             continue
-        #TODO
-    num_all_vertices = len(varray1) * len(dot_data)
-    num_all_triangles = len(tarray1) * len(dot_data)
+        # replicating the behavior of shape._line_orientation here for our specific set of values...
+        axis = array((0,0,1), float32)
+        center = 0.5 * (node_xyz + spike_xyz)
+        vector = spike_xyz - node_xyz
+        rotation = vector_rotation((0,0,1), vector)
+        height = norm(vector)
+        # now replicating the behavior of what shape.shape_cylinder does with those values...
+        nz, nc = cylinder_divisions(spike_radius, height, 72)
+        spike_varray, spike_tarray = cylinder_geometry(spike_radius, height, nz, nc, True)
+        spike_varray = (translation(center) * rotation).transform_points(spike_varray)
+        spike_narray = calculate_vertex_normals(spike_varray, spike_tarray)
+        varrays.append(spike_varray)
+        narrays.append(spike_narray)
+        tarrays.append(spike_tarray + t_offset)
+        t_offset += len(spike_varray)
+        rgba8s.extend([rgba8] * len(spike_varray))
+
+    num_all_vertices = sum([len(varray) for varray in varrays])
+    num_all_triangles = sum([len(tarray) for tarray in tarrays])
     vertices = empty((num_all_vertices, 3), dtype=float32)
     normals = empty((num_all_vertices, 3), dtype=float32)
     triangles = empty((num_all_triangles, 3), dtype=int32)
@@ -120,6 +139,7 @@ def read_probe_dots(session, data, file_name, structure_model, **kw):
         return ProbeTester(self)
     from chimerax.atomic import Atom
     Atom.probe_id = property(probe_id)
+    session.logger.status("")
 
 class ProbeTester():
     def __init__(self, atom):
