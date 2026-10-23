@@ -128,7 +128,10 @@ ifeq ($(OSARCH),Linux)
 	$(APP_PIP) uninstall -y nvidia-nvjitlink-cu12
 endif
 endif
-	$(APP_PIP) uninstall -y maturin puccinialin
+	# Build-only tools.  On macOS, uv comes along when the build tree's
+	# Python.framework is copied into the app, but is only run from the build
+	# tree's Python.
+	$(APP_PIP) uninstall -y maturin puccinialin uv
 
 app_requirements.txt: ../../pyproject.toml
 	$(APP_PYTHON_BIN) make_requirements.py
