@@ -39,7 +39,7 @@ class _PhenixBundle(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr, **kw):
         from chimerax.open_command import OpenerInfo
-        class MDInfo(OpenerInfo):
+        class ProbeInfo(OpenerInfo):
             def open(self, session, data, file_name, *, structure_model=None, **kw):
                 if structure_model is None:
                     from chimerax.core.errors import UserError, CancelOperation
@@ -94,7 +94,7 @@ class _PhenixBundle(BundleAPI):
             def open_args(self):
                 from chimerax.atomic import StructureArg
                 return { 'structure_model': StructureArg }
-        return MDInfo()
+        return ProbeInfo()
 
     @staticmethod
     def start_tool(session, tool_name):

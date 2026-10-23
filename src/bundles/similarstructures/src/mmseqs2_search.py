@@ -252,16 +252,16 @@ def fetch_pdb_entity_info(entity_list, rcsb_graphql_url = 'https://data.rcsb.org
 
     from chimerax.core import version as cx_version
     from urllib.request import urlopen, Request
+    import json
     req = Request(
         rcsb_graphql_url,
-        data=query.encode("utf-8"),
-        headers={"Content-Type": "application/graphql", 'User-Agent': f'ChimeraX {cx_version}'},
+        data=json.dumps({"query": query}).encode("utf-8"),
+        headers={"Content-Type": "application/json", 'User-Agent': f'ChimeraX {cx_version}'},
     )
     f = urlopen(req)
     data = f.read()
     f.close()
     data = data.decode("utf-8")
-    import json
     info = json.loads(data)
     if "errors" in info:
         raise ValueError("Fetching BLAST PDB info had errors: %s" % info["errors"])

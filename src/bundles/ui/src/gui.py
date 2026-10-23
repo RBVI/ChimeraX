@@ -119,6 +119,14 @@ class UI(QApplication):
         redirect_stdio_to_logger(self.session.logger)
         self.redirect_qt_messages()
 
+        # Prevent QtWebEngine from looking inside Google Chrome app for widevinecdm.dylib
+        # since this generates a scary warning on macOS 27 about ChimeraX accessing other apps' data.
+        # ChimeraX ticket #21111
+        from sys import platform
+        if platform == 'darwin':
+            import os
+            os.environ['QTWEBENGINE_CHROMIUM_FLAGS'] = '--widevine-path=/dev/null'
+
         from chimerax import app_dirs as ad
         QApplication.__init__(self, [ad.appname])
         import sys
@@ -707,6 +715,7 @@ class MainWindow(QMainWindow, PlainTextLog):
 
         self._build_status()
         self._populate_menus(session)
+        self.tool_layout = session.ui.settings.tool_layout
 
         # set icon for About dialog
         from chimerax import app_dirs as ad, app_data_dir
@@ -1170,6 +1179,29 @@ class MainWindow(QMainWindow, PlainTextLog):
         if sbar:
             sbar.status(msg, color, secondary)
 
+    @property
+    def tool_layout(self):
+        if self.corner(Qt.Corner.TopLeftCorner) == Qt.DockWidgetArea.LeftDockWidgetArea:
+            return "full height"
+        return "full width"
+
+    @tool_layout.setter
+    def tool_layout(self, layout):
+        '''"full width": top/bottom docked tools span the window width.
+           "full height": left/right docked tools span the window height.
+        '''
+        if layout not in ToolLayoutOption.values:
+            raise ValueError("Unknown tool layout: %r" % layout)
+        full_height = layout == "full height"
+        left = Qt.DockWidgetArea.LeftDockWidgetArea if full_height else Qt.DockWidgetArea.TopDockWidgetArea
+        right = Qt.DockWidgetArea.RightDockWidgetArea if full_height else Qt.DockWidgetArea.TopDockWidgetArea
+        self.setCorner(Qt.Corner.TopLeftCorner, left)
+        self.setCorner(Qt.Corner.TopRightCorner, right)
+        if not full_height:
+            left = right = Qt.DockWidgetArea.BottomDockWidgetArea
+        self.setCorner(Qt.Corner.BottomLeftCorner, left)
+        self.setCorner(Qt.Corner.BottomRightCorner, right)
+
     def show_statusbar(self, show):
         self._status_bar.show(show)
 
@@ -1356,6 +1388,11 @@ class MainWindow(QMainWindow, PlainTextLog):
         self.add_settings_option("Window", ToolSideOption("Default tool side",
             settings.default_tool_window_side, None, attr_name="default_tool_window_side", settings=settings,
             balloon="Which side of main window that new tool windows appear on by default"))
+        self.add_settings_option("Window", ToolLayoutOption("Docked tool layout",
+            settings.tool_layout, lambda opt, *, mw=self: setattr(mw, 'tool_layout', opt.value),
+            attr_name="tool_layout", settings=settings,
+            balloon="Whether tools docked at the top/bottom of the main window span its full width,\n"
+            "or tools docked at the left/right span its full height"))
         from .options import BooleanOption
         self.add_settings_option("Window", BooleanOption("Tool windows start undocked",
             settings.auto_float_tools, None, attr_name="auto_float_tools", settings=settings,
@@ -3447,6 +3484,9 @@ def menu_capitalize(text):
 from .options import Option, EnumOption
 class ToolSideOption(EnumOption):
     values = ("left", "right")
+
+class ToolLayoutOption(EnumOption):
+    values = ("full width", "full height")
 
 class InitWindowSizeOption(Option):
 

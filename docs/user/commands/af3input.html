@@ -1,0 +1,119 @@
+<html lang="en"><!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
+<title>Command: af3input</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
+
+<h3><a href="../index.html#commands">Command</a>: af3input</h3>
+<p>
+The af3input command produces <a href="https://github.com/google-deepmind/alphafold3/blob/main/docs/input.md"
+target="_blank">input files</a> for AlphaFold 3 structure prediction.  The output files use the standard JSON
+Alphafold 3 format not the AlphaFold Server format.  The input files can be used to run predictions using
+a computer with AlphaFold 3 installed rather than Google's web server.
+</p>
+
+<p>
+Example:
+</p>
+
+<blockquote><b>
+af3input #1 file groel_af3.json
+</b></blockquote>
+
+<a href="usageconventions.html"><b>Usage</b></a>:
+<b>af3input</b> [&nbsp;<a href="#sequence-spec"><i>sequences</i></a>&nbsp;]
+[&nbsp;<b>protein</b>&nbsp;&nbsp;<a href="#sequence-spec"><i>sequences</i></a>&nbsp;]
+[&nbsp;<b>dna</b>&nbsp;&nbsp;<a href="#sequence-spec"><i>sequences</i></a>&nbsp;]
+[&nbsp;<b>rna</b>&nbsp;&nbsp;<a href="#sequence-spec"><i>sequences</i></a>&nbsp;]
+[&nbsp;<b>ligands</b>&nbsp;&nbsp;<a href="atomspec.html#hierarchy"><i>residue-spec</i></a>&nbsp;&nbsp;[&nbsp;<b>excludeLigands</b>&nbsp;&nbsp;<i>CCD-names</i>&nbsp;]]
+[&nbsp;<b>ligandCcd</b>&nbsp;&nbsp;<i>CCD-names</i>&nbsp;]
+[&nbsp;<b>ligandSmiles</b>&nbsp;&nbsp;<i>SMILES-string</i>&nbsp;]
+[&nbsp;<b>forEachSmilesLigand</b>&nbsp;&nbsp;<i>name,SMILES-string,name,SMILES-string...</i>&nbsp;]
+[&nbsp;<b>file</b>&nbsp;&nbsp;<i>output-file</i>&nbsp;]
+
+<p>
+<b>Biopolymer chains</b>.<br>
+<a name="sequence-spec"></a>
+The <i>sequences</i> of biopolymer chains to predict can be given as a 
+comma-separated list of any of the following:
+</p>
+
+<ol>
+<li>a <a href="atomspec.html#hierarchy"><i>chain-spec</i></a>
+for one or more chains in atomic structure(s) open in ChimeraX
+</li><li>the <a href="seqspec.html"><i>sequence-spec</i></a> of a sequence
+in the <a href="../tools/sequenceviewer.html"><b>Sequence Viewer</b></a>,
+in the form:
+&nbsp;<span class="nowrap"><i>alignment-ID</i>:<i>sequence-ID</i></span>&nbsp;
+(<a href="seqspec.html">details...</a>)
+</li><li>a <a href="https://www.uniprot.org/" target="_blank">UniProt</a>
+name or accession number for a protein chain
+</li><li>a plain-text string of 1-letter residue codes pasted directly into 
+the command line
+</li>
+</ol>
+
+<p>
+If given with the <b>protein</b>, <b>dna</b>, or <b>rna</b> keywords,
+the <i>sequences</i> argument can be of the same form as described above,
+but chains other than protein, DNA, or RNA (respectively) will be excluded.
+The <b>dna</b> option will interpret single-letter codes as DNA,
+the <b>rna</b> option will interpret single-letter codes as RNA,
+and neither will accept
+<a href="https://www.uniprot.org/" target="_blank">UniProt</a> identifiers
+since they are only for protein chains.
+The <b>protein</b>, <b>dna</b>, and <b>rna</b> options
+can be used more than once in the same command.
+</p>
+
+<p>
+<b>Ligand, cofactor, and ion components</b>.<br>
+Residues present in currently open structures can be specified with
+<b>ligands</b> <a href="atomspec.html#hierarchy"><i>residue-spec</i></a>,
+optionally with <b>excludeLigands</b> to omit specific types from that set.
+For example, if <b>ligands #1</b> was given but not all of
+the small molecules in #1 are wanted, <b>excludeLigands</b> 
+would be used to list which residue types to omit.
+Residues to exclude are specified by a comma-separated list of their
+3- or 5-letter residue names in the <a href="https://www.wwpdb.org/data/ccd" target="_blank">PDB Chemical Component Dictionary (CCD)</a>.
+By default, CCD name <b>HOH</b> (water) is excluded.
+Ligands to include can also be specified by a comma-separated list of
+CCD names with the <b>ligandCcd</b> option, or by a comma-separated list of
+<a href="https://www.daylight.com/dayhtml/doc/theory/theory.smiles.html" target="_blank">SMILES</a> strings with the <b>ligandSmiles</b> option.
+The <b>ligandCcd</b> and <b>ligandSmiles</b> options can be used more than
+once in the same command.
+</p>
+
+<p>
+<b>Batch predictions of different ligands with the same macromolecular
+chains</b>.<br>
+The <b>forEachSmilesLigand</b> option is for batch prediction of the structures
+of different small-molecule ligands in complex with the same set of 
+biopolymeric components (protein and/or nucleic acid chains).
+The ligands are specified as a comma-separated list of names and SMILES strings.
+</p>
+
+<p>
+  The <b>file</b> option specifies the path to the JSON output file and is required.
+</p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2026</address>
+
+</body></html>

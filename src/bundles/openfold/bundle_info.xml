@@ -35,6 +35,7 @@
     <ChimeraXClassifier>Command :: openfold server start :: Structure Prediction :: Start a server that runs OpenFold predictions</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: openfold server list :: Structure Prediction :: List active OpenFold prediction server jobs</ChimeraXClassifier>
     <ChimeraXClassifier>Command :: openfold server fetch :: Structure Prediction :: Fetch active OpenFold prediction server jobs</ChimeraXClassifier>
+    <ChimeraXClassifier>Command :: af3input :: Structure Prediction :: Write AlphaFold 3 input file</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: OpenFold :: Structure Prediction :: Predict structures using OpenFold 3</ChimeraXClassifier>
     <ChimeraXClassifier>Tool :: OpenFold History :: Structure Prediction :: Table of previously run OpenFold predictions</ChimeraXClassifier>
   </Classifiers>

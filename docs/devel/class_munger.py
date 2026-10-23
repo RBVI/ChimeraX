@@ -54,7 +54,8 @@ def setup(app):
     app.connect("doctree-read", doctree_read)
     app.connect("autodoc-process-docstring", autodoc_process_docstring)
     app.connect("autodoc-skip-member", autodoc_skip_member)
-    return {"version":"0.1"}
+    # We don't keep state, so documents can be read and written in parallel
+    return {"version": "0.1", "parallel_read_safe": True, "parallel_write_safe": True}
 
 
 def munge_autodoc():

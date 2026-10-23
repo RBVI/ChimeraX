@@ -5,11 +5,11 @@ include $(TOP)/mk/config.make
 # PYTHON_VERSION and PYTHON_PATCH_VERSION are in config.make
 PYTHON_PATCH_LEVEL = $(PYTHON_VERSION).$(PYTHON_PATCH_VERSION)
 
-PIP_VERSION = 26.1.2
+PIP_VERSION = 26.2.2
 WHEEL_VERSION = 0.47.0
 SETUPTOOLS_VERSION = 83.0.0
 BUILD_VERSION = 1.5.0
-UV_VERSION = 0.11.32
+UV_VERSION = 0.13.4
 
 # macOS and Windows use relocatable distributions from python-build-standalone
 # (https://github.com/astral-sh/python-build-standalone), so no per-platform

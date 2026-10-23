@@ -85,7 +85,7 @@ jobs:
     steps:
       - name: Set up Homebrew
         id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@e99025eb970cfa124b8284a35463d87426917478
+        uses: Homebrew/actions/setup-homebrew@eb02c69dbabdb66ff183c614f4ce7ab3c077592c
       - uses: actions/checkout@v7
       - run: ${PWD}/utils/set_up_macos.sh
       - name: Fetch Plato prerequisites
@@ -119,9 +119,9 @@ jobs:
       - uses: actions/checkout@v7
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: UCRT64
           update: true
-          install: git mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
+          install: git mingw-w64-ucrt-x86_64-binutils mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gcc-objc mingw-w64-ucrt-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-ucrt-x86_64-autotools
       - name: Fetch Plato prerequisites
         uses: ./utils/ci/consolidated_cache
         with:

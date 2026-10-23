@@ -124,9 +124,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: UCRT64
           update: true
-          install: git mingw-w64-x86_64-imagemagick mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
+          install: git mingw-w64-ucrt-x86_64-imagemagick mingw-w64-ucrt-x86_64-binutils mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gcc-objc mingw-w64-ucrt-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-ucrt-x86_64-autotools
       - run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && MAKEOPTS="-j$(nproc)" make -j$(nproc) install
       - name: Run the legacy test suite
         run: AUTOMATIC_DISCOVERY=1 . ./vsvars.sh && make test

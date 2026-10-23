@@ -24,6 +24,7 @@ class UI_Settings(Settings):
         'default_tool_window_side': "right",
         'favorites': [],
         'initial_window_size': ("last used", None),
+        'tool_layout': "full width",
         'tool_positions': {'toolbars': {}, 'windows': {}},
         'undockable': {
             'Help Viewer': { None: True },

@@ -325,6 +325,9 @@ no_warn = [
     ".dist-info/direct_url.json",
     "Contents/share/install-timestamp",
     "LICENSE.txt",
+    # QtWebEngine snapshots; each build keeps only its own (prune_pyside6.py)
+    "v8_context_snapshot.arm64.bin",
+    "v8_context_snapshot.x86_64.bin",
 ]
 
 

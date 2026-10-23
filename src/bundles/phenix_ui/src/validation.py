@@ -36,7 +36,7 @@ def read_probe_dots(session, data, file_name, structure_model, **kw):
     red = Color("red").uint8x4()
     orange_red = Color("orange red").uint8x4()
 
-    from numpy import array, concatenate, empty, float32, int32
+    from numpy import array, concatenate, empty, float32, int32, array_equal
     dot_data = []
     line_num = 0
     for line in data:
@@ -81,6 +81,7 @@ def read_probe_dots(session, data, file_name, structure_model, **kw):
     radius = 0.05
     from chimerax.geometry import sphere, translation
     from chimerax.surface import calculate_vertex_normals
+    from chimerax.shape.shape import cylinder_divisions, cylinder_geometry
     # number of triangles has to be even
     varray1, tarray1 = sphere.sphere_triangulation(2 * round(radius * 3810) // 2)
     varray1 *= radius
@@ -89,6 +90,7 @@ def read_probe_dots(session, data, file_name, structure_model, **kw):
     tarrays = []
     rgba8s = []
     num_vertices = len(varray1)
+    spk_radius = radius / 4
     for i, dot_info in enumerate(dot_data):
         node_xyz, spike_xyz, rgba8 = dot_info
         varray = translation(node_xyz).transform_points(varray1)
@@ -97,6 +99,10 @@ def read_probe_dots(session, data, file_name, structure_model, **kw):
         narrays.append(narray)
         tarrays.append(tarray1 + i * num_vertices)
         rgba8s.extend([rgba8] * num_vertices)
+        if array_equal(node_xyz, spike_xyz):
+            # no spike
+            continue
+        #TODO
     num_all_vertices = len(varray1) * len(dot_data)
     num_all_triangles = len(tarray1) * len(dot_data)
     vertices = empty((num_all_vertices, 3), dtype=float32)
@@ -109,7 +115,7 @@ def read_probe_dots(session, data, file_name, structure_model, **kw):
 
     # Insert fake attribute (ala Chain.identity) to allow matching to probe identifiers
     # (particulary since probe identifiers can be for non-existent hydrogens).
-    # Can only add properties to classes, so...
+    # Can only add properties to classes (not instances), so...
     def probe_id(self):
         return ProbeTester(self)
     from chimerax.atomic import Atom
