@@ -56,6 +56,9 @@ endif
 # Location for fetching third party binaries.
 PREREQS_ARCHIVE = https://cxtoolshed.rbvi.ucsf.edu/prereqs
 FETCH_PREREQ = curl --silent --show-error --fail -O
+# Fetch URL $(2) to file $(1), which is never left partly written (make would
+# otherwise take the file left by an interrupted fetch as up to date)
+FETCH_PREREQ_TO = curl --silent --show-error --fail -o $(1).part $(2) && mv $(1).part $(1)
 PREREQS_UPLOAD = plato.cgl.ucsf.edu:/usr/local/projects/chimerax/www/data/prereqs
 
 # On macOS and Windows, there are no prebuilt prerequisites, so
@@ -72,6 +75,8 @@ PYTHON_BUILD_STANDALONE_RELEASE = 20261021
 PYTHON_BUILD_STANDALONE_BASE = https://github.com/astral-sh/python-build-standalone/releases/download
 # GitHub release downloads redirect to a CDN, so the fetch must follow redirects.
 FETCH_PYTHON = curl --silent --show-error --fail --location --insecure -O
+FETCH_PYTHON_TO = curl --silent --show-error --fail --location --insecure \
+	-o $(1).part $(2) && mv $(1).part $(1)
 # Linux is built from CPython source instead, so it dynamically links the
 # distribution's system OpenSSL (which the distro patches for CVEs independently
 # of ChimeraX releases).  The source tarball comes from python.org.
