@@ -73,6 +73,12 @@ ifeq ($(OS),Windows)
 APP_INSTALL_DEP = $(PBS_DIR)
 endif
 
+ifneq ($(OS),Linux)
+# Only redo the install when the distribution or how it is installed changes.
+# (On Linux the install depends on a CI-cached tarball, so it always runs.)
+INSTALL_STAMP = $(build_prefix)/.python-$(PYTHON_PATCH_LEVEL)-installed
+endif
+
 # The packaging tools, at the versions we pin
 PINNED_TOOLS = pip==$(PIP_VERSION) wheel==$(WHEEL_VERSION) \
 	setuptools==$(SETUPTOOLS_VERSION) build==$(BUILD_VERSION)
@@ -85,7 +91,19 @@ endif
 
 all:
 
-install: $(INSTALL_DEP)
+ifneq ($(OS),Linux)
+install: $(INSTALL_STAMP)
+
+$(INSTALL_STAMP): $(INSTALL_DEP) Makefile Info.plist.in clean_config_vars.py
+	$(MAKE) python-install
+	touch $@
+else
+install: python-install
+endif
+
+.PHONY: python-install
+
+python-install: $(INSTALL_DEP)
 ifeq ($(OS),Windows)
 	# Windows layout: python.exe plus DLLs/Lib/include/libs at the top level.
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ --delete\
