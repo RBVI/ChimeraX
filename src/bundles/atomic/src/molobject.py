@@ -1129,10 +1129,10 @@ class StructureSeq(Sequence):
         return s_exist[0] < o_exist[0]
 
     chain_id = c_property('sseq_chain_id', string)
-    '''Chain identifier. Read only string.'''
+    '''Chain identifier (string).'''
     # characters read-only in StructureSeq/Chain (use bulk_set)
     characters = c_property('sequence_characters', string, doc=
-        "Supported API. A string representing the contents of the sequence. Read only.")
+        "Supported API. A string representing the contents of the sequence.")
     description = c_property('sseq_description', string, doc="description derived from PDB/mmCIF"
         " info and set by AtomicStructure constructor")
     existing_residues = c_property('sseq_residues', cptr, 'num_residues', astype = convert.non_null_residues, read_only = True)

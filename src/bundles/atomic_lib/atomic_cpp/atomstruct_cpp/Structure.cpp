@@ -291,6 +291,10 @@ Structure::change_chain_ids(const std::vector<StructureSeq*> changing_chains,
     if (unique_ids.size() < new_ids.size())
         throw std::logic_error("List of chain IDs to change to must not contain duplicates");
 
+    for (auto& new_id: new_ids)
+        if (new_id.empty())
+            throw std::logic_error("Chain IDs cannot be empty strings");
+
     // can change StructureSeq chain IDs freely; Chain chain IDs cannot conflict with existing
     std::set<ChainID> other_ids;
     for (auto chain: chains())
