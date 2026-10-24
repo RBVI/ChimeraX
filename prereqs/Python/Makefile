@@ -73,6 +73,20 @@ ifeq ($(OS),Windows)
 APP_INSTALL_DEP = $(PBS_DIR)
 endif
 
+ifneq ($(OS),Linux)
+# Only redo the install when the distribution or how it is installed changes.
+# (On Linux the install depends on a CI-cached tarball, so it always runs.)
+INSTALL_STAMP = $(build_prefix)/.python-$(PYTHON_PATCH_LEVEL)-installed
+endif
+
+# The packaging tools, at the versions we pin
+PINNED_TOOLS = pip==$(PIP_VERSION) wheel==$(WHEEL_VERSION) \
+	setuptools==$(SETUPTOOLS_VERSION) build==$(BUILD_VERSION)
+# Succeeds if the pinned versions of the packaging tools are already installed
+HAVE_PINNED_TOOLS = -c 'import sys, importlib.metadata as m; \
+	sys.exit(any(m.version(n) != v for n, v in (a.split("==") for a in sys.argv[1:])))' \
+	$(PINNED_TOOLS)
+
 ifeq ($(OS),Darwin)
 # Path from bindir/libdir/includedir (build/bin, build/lib, build/include) to
 # the framework, used for the convenience symlinks.
@@ -81,7 +95,19 @@ endif
 
 all:
 
-install: $(INSTALL_DEP)
+ifneq ($(OS),Linux)
+install: $(INSTALL_STAMP)
+
+$(INSTALL_STAMP): $(INSTALL_DEP) Makefile Info.plist.in clean_config_vars.py
+	$(MAKE) python-install
+	touch $@
+else
+install: python-install
+endif
+
+.PHONY: python-install
+
+python-install: $(INSTALL_DEP)
 ifeq ($(OS),Windows)
 	# Windows layout: python.exe plus DLLs/Lib/include/libs at the top level.
 	$(RSYNC) --exclude='site-packages/*' --exclude='test/*' --exclude=__pycache__ --delete\
@@ -140,17 +166,14 @@ endif
 	# remove unused static libraries
 	-rm -rf $(PYTHON_LIBRARY_DIR)/config-*/*.{a,dylib}
 
-	# Update pip, setuptools, wheel, and build to our pinned versions.  pip
-	# uses its own vendored certificates for these downloads, so this works
-	# before certifi is installed by prereqs/pips.
-	$(PYTHON_EXE) -m ensurepip --upgrade
-	$(PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
-	$(PYTHON_EXE) -m pip install --upgrade setuptools==$(SETUPTOOLS_VERSION)
-	$(PYTHON_EXE) -m pip install --upgrade wheel==$(WHEEL_VERSION)
-	$(PYTHON_EXE) -m pip install --upgrade build==$(BUILD_VERSION)
-ifdef UV_BUILD
-	$(PYTHON_EXE) -m pip install --upgrade uv==$(UV_VERSION)
-endif
+	# Update pip, setuptools, wheel, and build to our pinned versions, and
+	# install uv.  pip uses its own vendored certificates for these downloads,
+	# so this works before certifi is installed by prereqs/pips.  (One pip run,
+	# since pip takes a while to start.)  ensurepip is only needed when there
+	# is no pip yet (on Windows, where site-packages is not copied).
+	$(PYTHON_EXE) -m pip --version > /dev/null 2>&1 || $(PYTHON_EXE) -m ensurepip --upgrade
+	$(PYTHON_EXE) -m pip install --upgrade --disable-pip-version-check \
+		$(PINNED_TOOLS) uv==$(UV_VERSION)
 
 	# double check that ssl and expat support are present
 	$(PYTHON_EXE) -c 'import ssl, pyexpat'
@@ -209,12 +232,13 @@ ifneq ($(OS),Windows)
 	# we do not build Python on Windows, so no action is needed
 	$(APP_PYTHON_EXE) clean_config_vars.py $(build_prefix)
 endif
-	$(APP_PYTHON_EXE) -m ensurepip --upgrade
-	$(APP_PYTHON_EXE) -m pip install --upgrade pip==$(PIP_VERSION)
-	$(APP_PYTHON_EXE) -m pip install --upgrade \
-		wheel==$(WHEEL_VERSION) \
-		setuptools==$(SETUPTOOLS_VERSION) \
-		build==$(BUILD_VERSION)
+	# On macOS, the framework is copied with its site-packages, so the pinned
+	# tools are usually already there
+	$(APP_PYTHON_EXE) $(HAVE_PINNED_TOOLS) 2>/dev/null || { \
+		$(APP_PYTHON_EXE) -m ensurepip --upgrade && \
+		$(APP_PYTHON_EXE) -m pip install --upgrade --disable-pip-version-check \
+			$(PINNED_TOOLS) ; \
+	}
 ifdef UV_BUILD
 	$(APP_PYTHON_EXE) -m pip install --upgrade uv==$(UV_VERSION)
 endif
@@ -229,9 +253,12 @@ ifeq ($(OS),Windows)
 	# and package correctly from this Unix-style build host.
 	find $(PBS_DIR) \( -name '*.dll' -o -name '*.pyd' \) -exec chmod +x {} +
 endif
+	# tar gives the directory the archive's time, but it must be newer than
+	# the archive (and the install that depends on it)
+	touch $@
 
 $(DISTRIBUTION):
-	$(FETCH_PYTHON) $(PYTHON_BUILD_STANDALONE_BASE)/$(PYTHON_BUILD_STANDALONE_RELEASE)/$(DISTRIBUTION)
+	$(call FETCH_PYTHON_TO,$@,$(PYTHON_BUILD_STANDALONE_BASE)/$(PYTHON_BUILD_STANDALONE_RELEASE)/$(DISTRIBUTION))
 
 # --- Linux: fetch and configure the CPython source ---------------------------
 $(SOURCE): $(SOURCE_DIST)
@@ -252,7 +279,7 @@ endif
 	fi
 
 $(SOURCE_DIST):
-	$(FETCH_PYTHON) $(PYTHON_SOURCE_BASE)/$(PYTHON_PATCH_LEVEL)/$(SOURCE_DIST)
+	$(call FETCH_PYTHON_TO,$@,$(PYTHON_SOURCE_BASE)/$(PYTHON_PATCH_LEVEL)/$(SOURCE_DIST))
 
 clean:
 	-rm -rf $(PBS_DIR) $(DISTRIBUTION) $(SOURCE) $(SOURCE_DIST) $(LINUX_PREBUILT)

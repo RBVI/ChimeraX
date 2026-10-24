@@ -84,27 +84,26 @@ app-install: app_requirements.txt $(PLATO_WHEELS) $(SCIPY_WHEEL) $(CYTHON_WHEEL)
 else
 app-install: app_requirements.txt $(PLATO_WHEELS)
 endif
-	# Install Cython first so ndindex builds on Linux ARM64
-ifdef CYTHON_WHEEL
-	$(APP_PIP_INSTALL) ./$(CYTHON_WHEEL)
-else
-	$(APP_PIP_INSTALL) $(shell grep Cython $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
-endif
-	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt | sed -e 's/[\ #",]//g')
-	# pynmrstar 3.5.1 has no cp314 wheel, so it builds from its sdist using the
-	# maturin backend. Since we use --no-build-isolation, pip and uv won't create
-	# isolated, ephemeral environments with it, and we have to install it.
-	# puccinialin (which bootstraps a Rust toolchain when none is present) must
-	# also already be in the environment before pynmrstar builds.
-	# On Darwin Intel, we also need cffi
-	$(APP_PIP_INSTALL) maturin puccinialin
-ifeq ($(OSARCH),DarwinIntel64)
-	$(APP_PIP_INSTALL) cffi
-endif
-ifeq ($(OS),Darwin)
-	$(APP_PIP_INSTALL) ./$(SCIPY_WHEEL)
-endif
-	PATH="$(APP_SCRIPT_DIR):$$PATH" CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
+	# What the builds of packages in app_requirements.txt need, installed first
+	# (in one install, since each takes a while to start):
+	# - Cython, so ndindex builds on Linux ARM64
+	# - numpy
+	# - pynmrstar 3.5.1 has no cp314 wheel, so it builds from its sdist using
+	#   the maturin backend. Since we use --no-build-isolation, pip and uv won't
+	#   create isolated, ephemeral environments with it, and we have to install
+	#   it. puccinialin (which bootstraps a Rust toolchain when none is present)
+	#   must also already be in the environment before pynmrstar builds.
+	# - On Darwin Intel, cffi
+	# - On macOS, our scipy wheel, rather than the one the requirements would
+	#   pick
+	$(APP_PIP_INSTALL) \
+		$(if $(CYTHON_WHEEL),./$(CYTHON_WHEEL),$(shell grep Cython $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')) \
+		$(shell grep numpy app_requirements.txt | sed -e 's/[\ #",]//g') \
+		maturin puccinialin \
+		$(if $(filter DarwinIntel64,$(OSARCH)),cffi) \
+		$(if $(filter Darwin,$(OS)),./$(SCIPY_WHEEL))
+	# With our own wheels too, in the same install
+	PATH="$(APP_SCRIPT_DIR):$$PATH" CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt $(PLATO_WHEELS)
 ifdef USE_PYSIDE6
 	$(APP_PIP_INSTALL) $(shell grep PySide6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 	$(APP_PIP_INSTALL) $(shell grep shiboken6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
@@ -117,7 +116,6 @@ endif
 ifdef DEV_DEPENDENCIES
 	$(APP_PIP_INSTALL) --no-build-isolation -r dev_requirements.txt
 endif
-	$(APP_PIP_INSTALL) $(PLATO_WHEELS)
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
@@ -130,7 +128,10 @@ ifeq ($(OSARCH),Linux)
 	$(APP_PIP) uninstall -y nvidia-nvjitlink-cu12
 endif
 endif
-	$(APP_PIP) uninstall -y maturin puccinialin
+	# Build-only tools.  On macOS, uv comes along when the build tree's
+	# Python.framework is copied into the app, but is only run from the build
+	# tree's Python.
+	$(APP_PIP) uninstall -y maturin puccinialin uv
 
 app_requirements.txt: ../../pyproject.toml
 	$(APP_PYTHON_BIN) make_requirements.py
@@ -205,5 +206,4 @@ $(CYTHON_WHEEL):
 	$(APP_PYTHON_EXE) -m pip download --platform=macosx_10_9_x86_64 --only-binary=:all: --no-deps Cython==$(CYTHON_VERSION)
 
 $(CXSERVICES_WHEEL):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cxservices/cxservices-$(CXSERVICES_VER)-$(CXSERVICES_DEPLOYMENT_VER)-py3-none-any.whl
-	mv cxservices-$(CXSERVICES_VER)-$(CXSERVICES_DEPLOYMENT_VER)-py3-none-any.whl $(CXSERVICES_WHEEL)
+	$(call FETCH_PREREQ_TO,$@,$(PREREQS_ARCHIVE)/cxservices/cxservices-$(CXSERVICES_VER)-$(CXSERVICES_DEPLOYMENT_VER)-py3-none-any.whl)
