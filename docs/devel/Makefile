@@ -71,14 +71,8 @@ install: clean html
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
 	$(RSYNC) $(BUILDDIR)/html/ $(DOCDIR)
 
-# Spare Sphinx's cache of the intersphinx inventories, which it refreshes
-# after intersphinx_cache_limit days, so each build need not fetch them
 clean:
-	-if [ -d $(BUILDDIR) ]; then \
-		find $(BUILDDIR) -mindepth 1 -maxdepth 1 ! -name doctrees -exec rm -rf {} + ; \
-		find $(BUILDDIR)/doctrees -mindepth 1 -maxdepth 1 ! -name __intersphinx_cache__ -exec rm -rf {} + ; \
-	fi
-	-rm -rf conf.py index.rst _static/cxlinks.js __pycache__ _static/devdocs.css \
+	-rm -rf $(BUILDDIR)/* conf.py index.rst _static/cxlinks.js __pycache__ _static/devdocs.css \
 		apps chimerax modules
 
 conf.py: conf.py.in
