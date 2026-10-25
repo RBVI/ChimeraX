@@ -98,7 +98,7 @@ all:
 ifneq ($(OS),Linux)
 install: $(INSTALL_STAMP)
 
-$(INSTALL_STAMP): $(INSTALL_DEP) Makefile Info.plist.in clean_config_vars.py
+$(INSTALL_STAMP): $(INSTALL_DEP) Makefile Info.plist.in clean_config_vars.py python_main.c
 	$(MAKE) python-install
 	touch $@
 else
@@ -148,6 +148,12 @@ else
 	mkdir -p $(PYTHON_FRAMEWORK)
 	$(RSYNC) '$(PBS_DIR)'/bin '$(PBS_DIR)'/lib '$(PBS_DIR)'/include $(PYTHON_FRAMEWORK)
 	-[ -d '$(PBS_DIR)'/share ] && $(RSYNC) '$(PBS_DIR)'/share $(PYTHON_FRAMEWORK)
+	# Replace the distribution's python, which links libpython statically,
+	# with one that uses lib/libpython$(PYTHON_VERSION).dylib.  Extension
+	# modules find Python's symbols in whichever one is loaded.
+	$(CC) -O2 -o $(PYTHON_FRAMEWORK)/bin/python$(PYTHON_VERSION) python_main.c \
+		-L$(PYTHON_FRAMEWORK)/lib -lpython$(PYTHON_VERSION) \
+		-Wl,-rpath,@executable_path/../lib
 	# framework entry points (the dylib is reached through these symlinks)
 	ln -sf lib/libpython$(PYTHON_VERSION).dylib $(PYTHON_FRAMEWORK)/Python
 	ln -sf include/python$(PYTHON_VERSION) $(PYTHON_FRAMEWORK)/Headers
