@@ -59,6 +59,9 @@ KEEP_PLUGIN_DIRS = {
 # Plugins in kept directories that need removed libraries
 REMOVE_PLUGINS = re.compile(r"virtualkeyboard|qpdf", re.IGNORECASE)
 
+# QtWebEngine (Chromium) locale files to keep
+KEEP_WEBENGINE_LOCALES = {"en-US.pak"}
+
 # Developer tools, whether a bare executable, .exe or macOS .app
 TOOLS = {
     "assistant", "designer", "linguist", "lrelease", "lupdate", "balsam",
@@ -183,11 +186,21 @@ def removals(pyside_dir, machine=None):
             remove.append(path)
 
     # Translations of Qt's own strings, which ChimeraX does not load.
-    # QtWebEngine's locale .pak files in qtwebengine_locales are needed.
     translations = os.path.join(qt, "translations")
     if os.path.isdir(translations):
         remove.extend(os.path.join(translations, fn)
                       for fn in os.listdir(translations) if fn.endswith(".qm"))
+
+    # Translations of Chromium's own strings (context menus, error pages).
+    # ChimeraX is not translated, so keep only the US English .pak, which
+    # QtWebEngine falls back to.  They are in Qt/translations on Linux and
+    # Windows, and in each copy of the framework's Resources on macOS.
+    for root, dirs, _ in os.walk(qt):
+        if "qtwebengine_locales" in dirs:
+            locales = os.path.join(root, "qtwebengine_locales")
+            remove.extend(os.path.join(locales, fn)
+                          for fn in os.listdir(locales)
+                          if fn not in KEEP_WEBENGINE_LOCALES)
 
     libexec = os.path.join(qt, "libexec")
     if os.path.isdir(libexec):
@@ -227,6 +240,46 @@ def remove_paths(paths):
                 freed += os.path.getsize(path)
             os.remove(path)
     return freed
+
+
+def link_framework(framework):
+    """Replace the copies at the top of a macOS framework with the usual
+    links into Versions/Current, returning the number of bytes freed
+
+    Wheels cannot contain symbolic links, so PySide6's frameworks have full
+    copies of Versions/A/Resources (and Helpers) at their top level, and no
+    Versions/Current.  The top-level copies are the ones Qt uses, and they
+    are not always identical: only Helpers/QtWebEngineProcess.app is a signed
+    bundle.  So the top-level copies replace the ones in Versions/A.
+    """
+    versions = os.path.join(framework, "Versions")
+    version = os.path.join(versions, "A")
+    current = os.path.join(versions, "Current")
+    if os.path.lexists(current) or not os.path.isdir(version):
+        return 0
+    freed = 0
+    for fn in os.listdir(framework):
+        path = os.path.join(framework, fn)
+        if fn == "Versions" or os.path.islink(path):
+            continue
+        target = os.path.join(version, fn)
+        freed += remove_paths([target])
+        os.rename(path, target)
+        os.symlink(os.path.join("Versions", "Current", fn), path)
+    os.symlink("A", current)
+    # The library itself, which the wheels only have in Versions/A
+    name = os.path.splitext(os.path.basename(framework))[0]
+    link = os.path.join(framework, name)
+    if os.path.exists(os.path.join(version, name)) and not os.path.lexists(link):
+        os.symlink(os.path.join("Versions", "Current", name), link)
+    return freed
+
+
+def link_frameworks(pyside_dir):
+    """Link the top level of each Qt framework into Versions/Current"""
+    libs = lib_dir(pyside_dir)
+    return sum(link_framework(os.path.join(libs, fn))
+               for fn in os.listdir(libs) if fn.endswith(".framework"))
 
 
 def bindings_present(pyside_dir):
@@ -322,6 +375,8 @@ def prune(site_packages):
     libs = libs_present(pyside_dir)
     machine = platform.machine() if sys.platform == "darwin" else None
     freed = remove_paths(removals(pyside_dir, machine))
+    if sys.platform == "darwin":
+        freed += link_frameworks(pyside_dir)
     print("prune_pyside6: removed %.0f MB" % (freed / 1e6))
     removed_bindings = bindings - bindings_present(pyside_dir)
     removed_libs = libs - libs_present(pyside_dir)
