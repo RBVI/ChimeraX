@@ -570,6 +570,8 @@ def main():
         '-i', frenv.name,
         '--',
         '/usr/bin/dpkg-deb',
+        # smallest practical payload; Ubuntu's dpkg defaults to a fast zstd
+        '-Zxz', '-z9',
         '--build',
         pkg_root,
         dst_dir
