@@ -91,6 +91,10 @@ ifeq ($(OS),Darwin)
 # Path from bindir/libdir/includedir (build/bin, build/lib, build/include) to
 # the framework, used for the convenience symlinks.
 REL_PYTHON_FRAMEWORK = ../Library/Frameworks/Python.framework/Versions/$(PYTHON_VERSION)
+# CPython's own main program for this release, rebuilt to link the framework's
+# libpython dylib instead of the distribution's statically linked python
+CPYTHON_MAIN = python-$(PYTHON_PATCH_LEVEL).c
+CPYTHON_MAIN_URL = https://raw.githubusercontent.com/python/cpython/v$(PYTHON_PATCH_LEVEL)/Programs/python.c
 endif
 
 all:
@@ -98,7 +102,7 @@ all:
 ifneq ($(OS),Linux)
 install: $(INSTALL_STAMP)
 
-$(INSTALL_STAMP): $(INSTALL_DEP) Makefile Info.plist.in clean_config_vars.py python_main.c
+$(INSTALL_STAMP): $(INSTALL_DEP) Makefile Info.plist.in clean_config_vars.py $(CPYTHON_MAIN)
 	$(MAKE) python-install
 	touch $@
 else
@@ -151,7 +155,8 @@ else
 	# Replace the distribution's python, which links libpython statically,
 	# with one that uses lib/libpython$(PYTHON_VERSION).dylib.  Extension
 	# modules find Python's symbols in whichever one is loaded.
-	$(CC) -O2 -o $(PYTHON_FRAMEWORK)/bin/python$(PYTHON_VERSION) python_main.c \
+	$(CC) -O2 -o $(PYTHON_FRAMEWORK)/bin/python$(PYTHON_VERSION) $(CPYTHON_MAIN) \
+		-I$(PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) \
 		-L$(PYTHON_FRAMEWORK)/lib -lpython$(PYTHON_VERSION) \
 		-Wl,-rpath,@executable_path/../lib
 	# framework entry points (the dylib is reached through these symlinks)
@@ -266,6 +271,11 @@ endif
 $(DISTRIBUTION):
 	$(call FETCH_PYTHON_TO,$@,$(PYTHON_BUILD_STANDALONE_BASE)/$(PYTHON_BUILD_STANDALONE_RELEASE)/$(DISTRIBUTION))
 
+ifeq ($(OS),Darwin)
+$(CPYTHON_MAIN):
+	$(call FETCH_PYTHON_TO,$@,$(CPYTHON_MAIN_URL))
+endif
+
 # --- Linux: fetch and configure the CPython source ---------------------------
 $(SOURCE): $(SOURCE_DIST)
 	tar -xf $(SOURCE_DIST) -C $(tmpdir) --no-same-owner
@@ -288,4 +298,4 @@ $(SOURCE_DIST):
 	$(call FETCH_PYTHON_TO,$@,$(PYTHON_SOURCE_BASE)/$(PYTHON_PATCH_LEVEL)/$(SOURCE_DIST))
 
 clean:
-	-rm -rf $(PBS_DIR) $(DISTRIBUTION) $(SOURCE) $(SOURCE_DIST) $(LINUX_PREBUILT)
+	-rm -rf $(PBS_DIR) $(DISTRIBUTION) $(SOURCE) $(SOURCE_DIST) $(LINUX_PREBUILT) $(CPYTHON_MAIN)
