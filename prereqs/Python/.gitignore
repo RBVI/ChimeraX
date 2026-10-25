@@ -3,3 +3,4 @@
 /cpython-*.tar.gz
 /Python-*.tar.xz
 /python-*.tar.bz2
+/python-*.c
