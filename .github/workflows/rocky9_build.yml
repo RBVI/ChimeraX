@@ -24,8 +24,13 @@ jobs:
       PYOPENGL_PLATFORM: egl
     steps:
       - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
-      - run: dnf update -y
-      - run: dnf install -y git-all
+      # Mirror speed varies wildly between runs; download in parallel from the
+      # fastest mirror. set_up_centos.sh already runs dnf update, so don't do it
+      # twice, and git-all drags in Perl, Tk and Subversion that we don't need.
+      - name: Configure dnf and install git
+        run: |
+          printf 'max_parallel_downloads=10\nfastestmirror=True\ninstall_weak_deps=False\n' >> /etc/dnf/dnf.conf
+          dnf install -y git
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.branch || 'develop' }}
