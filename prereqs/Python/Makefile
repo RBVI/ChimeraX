@@ -181,8 +181,10 @@ endif
 	# install uv.  pip uses its own vendored certificates for these downloads,
 	# so this works before certifi is installed by prereqs/pips.  (One pip run,
 	# since pip takes a while to start.)  ensurepip is only needed when there
-	# is no pip yet (on Windows, where site-packages is not copied).
-	$(PYTHON_EXE) -m pip --version > /dev/null 2>&1 || $(PYTHON_EXE) -m ensurepip --upgrade
+	# is no pip yet (on Windows, where site-packages is not copied).  Look
+	# for pip without starting it, which takes most of a second.
+	$(PYTHON_EXE) -c 'import importlib.util, sys; sys.exit(importlib.util.find_spec("pip") is None)' \
+		|| $(PYTHON_EXE) -m ensurepip --upgrade
 	$(PYTHON_EXE) -m pip install --upgrade --disable-pip-version-check \
 		$(PINNED_TOOLS) uv==$(UV_VERSION)
 
