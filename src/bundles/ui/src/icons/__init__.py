@@ -11,9 +11,17 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+# Image formats icons may be in, most preferred first
+ICON_SUFFIXES = ('.webp', '.png', '.svg', '.jpg')
+
 def get_icon_path(icon_name):
-    from os.path import join, dirname
-    return join(dirname(__file__), icon_name + '.webp')
+    from os.path import join, dirname, exists
+    base = join(dirname(__file__), icon_name)
+    for suffix in ICON_SUFFIXES:
+        path = base + suffix
+        if exists(path):
+            return path
+    return base + ICON_SUFFIXES[0]
 
 def get_qt_icon(icon_name):
     from Qt.QtGui import QPixmap, QIcon
