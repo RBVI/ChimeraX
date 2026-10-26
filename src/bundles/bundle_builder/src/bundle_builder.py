@@ -98,10 +98,15 @@ CHIMERAX1_0_PYTHON_VERSION = Version("3.7")
 
 
 class BundleBuilder:
-    def __init__(self, logger, bundle_path=None, bundle_xml=None):
+    def __init__(
+        self, logger, bundle_path=None, bundle_xml=None, check_build_dependencies=True
+    ):
         import os
 
         self.logger = logger
+        # build_extensions builds only extensions that use no other bundle,
+        # possibly before the build dependencies are installed
+        self.check_build_dependencies = check_build_dependencies
         if bundle_path is None:
             bundle_path = os.getcwd()
         self.path = bundle_path
@@ -118,8 +123,8 @@ class BundleBuilder:
         self._make_paths()
 
     @classmethod
-    def from_path(cls, logger, bundle_path):
-        return cls(logger, bundle_path)
+    def from_path(cls, logger, bundle_path, **kw):
+        return cls(logger, bundle_path, **kw)
 
     def make_wheel(self, debug=False, release=False):
         # The release keyword does nothing and is only here to conform to the API
@@ -170,6 +175,37 @@ class BundleBuilder:
                 print("Distribution is in %s" % wheel_lower_path)
                 self.wheel_path = wheel_lower_path
         return dist
+
+    def build_extensions(self, names, debug=False):
+        """Build only the named extension modules, without a wheel.
+
+        For extensions that use no other bundle: built before the bundle's
+        dependencies are, they are up to date when the wheel is built later,
+        so build_ext skips them then.  They are built without any other
+        bundle's include and library directories, which also means nothing
+        reads the metadata of bundles that may be being installed meanwhile.
+        """
+        modules = [cm for cm in self.c_modules if cm.name in names]
+        unknown = set(names) - {cm.name for cm in modules}
+        if unknown:
+            raise ValueError("no such extension: %s" % ", ".join(sorted(unknown)))
+        self._clear_distutils_cache()
+        ext_mods = [cm.ext_mod(self.logger, self.package, []) for cm in modules]
+        saved = getattr(self, "setup_arguments", None)
+        self.setup_arguments = {"name": self.name, "ext_modules": cythonize(
+            [em for em in ext_mods if em is not None]
+        )}
+        if self.version:
+            self.setup_arguments["version"] = self.version
+        setup_args = ["--no-user-cfg", "build_ext", f"-j{cpu_count}"]
+        if debug:
+            setup_args.append("--debug")
+        try:
+            dist, built = self._run_setup(setup_args)
+        finally:
+            self.setup_arguments = saved
+        if not built:
+            raise RuntimeError("Building extensions failed: %s" % ", ".join(names))
 
     def make_editable_wheel(self, debug=False):
         # HACK: distutils uses a cache to track created directories
@@ -523,7 +559,7 @@ class BundleBuilder:
             except ValueError:
                 raise ValueError("Bad version specifier (see PEP 440): %r" % req_str)
 
-            if e.get("build", False):
+            if e.get("build", False) and self.check_build_dependencies:
                 installed_version = parse(version(req.name))
                 if re.match(r"[Cc]himera[Xx]-[Cc]ore", req.name):
                     # Always accept prereleases for the core for developers building

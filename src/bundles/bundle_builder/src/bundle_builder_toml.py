@@ -998,6 +998,37 @@ class Bundle:
                 shutil.rmtree("./wheelhouse")
         return wheel
 
+    def build_extensions(self, names, debug=False):
+        """Build only the named extension modules, without a wheel.
+
+        For extensions that use no other bundle: built before the bundle's
+        dependencies are, they are up to date when the wheel is built later,
+        so build_ext skips them then.  They are built without any other
+        bundle's include and library directories, which also means nothing
+        reads the metadata of bundles that may be being installed meanwhile.
+        """
+        modules = [cm for cm in self.c_modules if cm.name in names]
+        unknown = set(names) - {cm.name for cm in modules}
+        if unknown:
+            raise ValueError("no such extension: %s" % ", ".join(sorted(unknown)))
+        self._clear_distutils_cache()
+        ext_mods = [cm.ext_mod(self.logger, self.module_name, []) for cm in modules]
+        saved = getattr(self, "setup_arguments", None)
+        self.setup_arguments = {"name": self.name, "ext_modules": cythonize(
+            [em for em in ext_mods if em is not None]
+        )}
+        if self.version:
+            self.setup_arguments["version"] = self.version
+        setup_args = ["--no-user-cfg", "build_ext", f"-j{cpu_count}"]
+        if debug:
+            setup_args.append("--debug")
+        try:
+            dist, built = self._run_setup(setup_args)
+        finally:
+            self.setup_arguments = saved
+        if not built:
+            raise RuntimeError("Building extensions failed: %s" % ", ".join(names))
+
     def build_sdist(self):
         self._clear_distutils_dir_and_prep_srcdir()
         setup_args = ["sdist"]

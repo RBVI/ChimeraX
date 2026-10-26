@@ -6,24 +6,30 @@ import sys
 from chimerax.bundle_builder import xml_to_toml
 
 
-def _get_builder(logger, path):
+def _get_builder(logger, path, check_build_dependencies=True):
     if os.path.exists(os.path.join(os.path.abspath(path), "bundle_info.xml")):
         from chimerax.bundle_builder import BundleBuilder
 
-        return BundleBuilder.from_path(logger, path)
+        return BundleBuilder.from_path(
+            logger, path, check_build_dependencies=check_build_dependencies
+        )
+    # Checks its build dependencies only when building a wheel
     from chimerax.bundle_builder import BundleBuilderTOML
 
     return BundleBuilderTOML.from_path(logger, path)
 
 
-def _build(path, debug=False, release=False):
+def _build(path, debug=False, release=False, extensions=None):
     # Same as "devel build" but without starting ChimeraX, so wheels can be
     # built while other bundles are being installed
     logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
     logger = logging.getLogger("bundle_builder")
     try:
-        bb = _get_builder(logger, path)
-        bb.make_wheel(debug=debug, release=release)
+        bb = _get_builder(logger, path, check_build_dependencies=not extensions)
+        if extensions:
+            bb.build_extensions(extensions, debug=debug)
+        else:
+            bb.make_wheel(debug=debug, release=release)
     except Exception:
         import traceback
 
@@ -155,10 +161,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "--release", action="store_true", help="When building, make a release build"
     )
+    parser.add_argument(
+        "--extensions",
+        nargs="+",
+        metavar="NAME",
+        help="With --build, build only these extension modules (ones that use"
+        " no other bundle), ahead of building the wheel",
+    )
     args = parser.parse_args()
     if args.convert:
         xml_to_toml(args.convert, dynamic_version=args.dynamic_version)
     if args.build and len(args.build) > 1:
+        if args.extensions:
+            parser.error("--extensions needs a single --build path")
         sys.exit(
             _build_many(
                 args.build, args.jobs, debug=args.debug, release=args.release
@@ -170,5 +185,6 @@ if __name__ == "__main__":
                 args.build[0],
                 debug=args.debug,
                 release=args.release,
+                extensions=args.extensions,
             )
         )
