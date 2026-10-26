@@ -145,7 +145,25 @@ sync:
 
 ifdef BUILD_AND_INSTALL
 INSTALL_ARGS = noDeps true
+ifdef NO_DOGFOODING
+# Install the wheel just built.  Neither path starts ChimeraX: its toolshed
+# scans site-packages at startup, which races with the BUILD_AND_INSTALL
+# bundles being installed in parallel.  The toolshed cache is refreshed by
+# "toolshed reload installed" afterwards.
+# In the ChimeraX source tree, install with uv from the build tree's Python,
+# which is much faster than pip
+BUILD_TREE_PYTHON = $(firstword $(wildcard $(TOP)/build/bin/python3.[1-9][0-9]))
+build: wheel
+	if [ -n "$(BUILD_TREE_PYTHON)" ] && $(BUILD_TREE_PYTHON) -I -c 'import uv' 2>/dev/null; then \
+		$(BUILD_TREE_PYTHON) -I -m uv pip install --python $(APP_PYTHON_EXE) \
+			--no-deps --reinstall --compile-bytecode dist/*.whl ; \
+	else \
+		PYTHONNOUSERSITE=1 $(PYTHONISO) -m pip install --no-deps --force-reinstall \
+			--disable-pip-version-check dist/*.whl ; \
+	fi
+else
 build: install
+endif
 else
 build: wheel
 endif

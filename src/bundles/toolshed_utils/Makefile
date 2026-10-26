@@ -17,14 +17,17 @@ PYLINT = $(PYTHON) -m flake8
 PYSRCS = $(wildcard src/*.py)
 
 wheel: $(PYSRCS)
-	$(PYTHON) -m build --no-isolation --wheel
+	# What "python -m build --no-isolation --wheel" does, in one process
+	mkdir -p dist
+	$(PYTHON) -c 'from setuptools import build_meta; build_meta.build_wheel("dist")'
 
 sdist: $(PYSRCS)
 	$(PYTHON) -m build --no-isolation --sdist
 
+# Install the wheel just built (rather than building another), replacing any
+# installed copy with the same version
 install app-install: wheel
-	$(PYTHON) -m pip uninstall --yes ChimeraX-ToolshedUtils
-	$(PYTHON) -m pip install --no-build-isolation .
+	$(APP_PIP_INSTALL) --reinstall-package ChimeraX-ToolshedUtils dist/*.whl
 
 build: install
 	# unlike normal bundles, install as well
