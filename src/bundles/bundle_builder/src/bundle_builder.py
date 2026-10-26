@@ -85,6 +85,18 @@ def _compile_in_parallel(compiler, jobs, **kw):
     return [obj for i in range(len(jobs)) for obj in futures[i].result()]
 
 
+def _debug_info_args(compiler, debug):
+    """Return the compile arguments that leave out debug information unless
+    debug is true.
+
+    Python's compile flags, which every compile starts with, include -g, which
+    makes compiling slower.  On macOS its output stays in the object files and
+    never reaches the wheel."""
+    if not debug and compiler.compiler_type in ("unix", "cygwin", "mingw32"):
+        return ["-g0"]
+    return []
+
+
 def _find_openmp_mac():
     """Return (include_dir, lib_dir) for libomp on macOS, or (None, None) if not found."""
     candidates = [
@@ -1282,7 +1294,13 @@ class _CompiledCode:
             self.target_lang = "c++"
         jobs = [(f, cpp_flags + self.compile_arguments) for f in cpp_files]
         jobs.extend((f, self.compile_arguments) for f in c_files)
-        _compile_in_parallel(compiler, jobs, macros=macros, debug=debug)
+        _compile_in_parallel(
+            compiler,
+            jobs,
+            macros=macros,
+            debug=debug,
+            extra_postargs=_debug_info_args(compiler, debug),
+        )
         objs = compiler.object_filenames(self.source_files)
         return compiler, objs, extra_link_args
 
