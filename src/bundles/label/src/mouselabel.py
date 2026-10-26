@@ -3,7 +3,7 @@ from chimerax.mouse_modes import MouseMode
 class LabelMouseMode(MouseMode):
     '''Click an atom,ribbon,pseudobond or bond to label or unlabel it with default label.'''
     name = 'label'
-    icon_file = 'label.png'
+    icon_file = 'label.webp'
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)

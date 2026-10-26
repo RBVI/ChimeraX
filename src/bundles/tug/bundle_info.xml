@@ -10,8 +10,8 @@
   <Description>Tug on atoms with molecular dynamics.</Description>
 
   <DataFiles>
-    <DataFile>tug.png</DataFile>
-    <DataFile>minimize.png</DataFile>
+    <DataFile>tug.webp</DataFile>
+    <DataFile>minimize.webp</DataFile>
   </DataFiles>
 
   <Categories>

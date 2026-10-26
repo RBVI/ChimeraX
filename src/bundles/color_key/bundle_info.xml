@@ -10,7 +10,7 @@
   <Description>Overlay color key on graphics scene.</Description>
 
   <DataFiles>
-    <DataFile>icons/*.png</DataFile>
+    <DataFile>icons/*.webp</DataFile>
   </DataFiles>
 
   <Categories>
@@ -27,7 +27,7 @@
 
   <Providers manager="toolbar">
     <Provider tab="Right Mouse" section="Annotation" name="color key" after="Move label"
-	  display_name="Key" icon="ckiconvertical.png" description="Draw color key"/>
+	  display_name="Key" icon="ckiconvertical.webp" description="Draw color key"/>
   </Providers>
 
   <Classifiers>

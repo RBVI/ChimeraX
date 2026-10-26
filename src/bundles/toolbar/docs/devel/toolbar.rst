@@ -20,7 +20,7 @@ Example::
 
   <Providers manager="toolbar">
     <Provider tab="Graphics" section="Undo"
-      name="Redo" icon="redo-variant.png" description="Redo last action"/>
+      name="Redo" icon="redo-variant.webp" description="Redo last action"/>
   </Providers>
 
 A basic button **Provider** needs a *tab*, *section*, *name*, *icon*,

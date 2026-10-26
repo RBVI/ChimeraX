@@ -13,7 +13,7 @@
 
 def get_icon_path(icon_name):
     from os.path import join, dirname
-    return join(dirname(__file__), icon_name + '.png')
+    return join(dirname(__file__), icon_name + '.webp')
 
 def get_qt_icon(icon_name):
     from Qt.QtGui import QPixmap, QIcon

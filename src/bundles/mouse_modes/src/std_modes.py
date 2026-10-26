@@ -32,7 +32,7 @@ from .mousemodes import MouseMode
 class SelectMouseMode(MouseMode):
     '''Mouse mode to select objects by clicking on them.'''
     name = 'select'
-    icon_file = 'icons/select.png'
+    icon_file = 'icons/select.webp'
 
     _menu_entry_info = []
 
@@ -566,7 +566,7 @@ class RotateMouseMode(MoveMouseMode):
     perpendicular to the direction of the drag.
     '''
     name = 'rotate'
-    icon_file = 'icons/rotate.png'
+    icon_file = 'icons/rotate.webp'
     mouse_action = 'rotate'
 
 class RotateAndSelectMouseMode(RotateMouseMode):
@@ -577,7 +577,7 @@ class RotateAndSelectMouseMode(RotateMouseMode):
     while click and drag produces rotation.
     '''
     name = 'rotate and select'
-    icon_file = 'icons/rotatesel.png'
+    icon_file = 'icons/rotatesel.webp'
     click_to_select = True
 
 class RotateSelectedModelsMouseMode(RotateMouseMode):
@@ -588,7 +588,7 @@ class RotateSelectedModelsMouseMode(RotateMouseMode):
     then the camera is moved as if all models are rotated.
     '''
     name = 'rotate selected models'
-    icon_file = 'icons/rotate_h2o.png'
+    icon_file = 'icons/rotate_h2o.webp'
 
     def models(self):
         return top_selected(self.session)
@@ -641,7 +641,7 @@ class TranslateMouseMode(MoveMouseMode):
     Mouse mode to move objects in x and y (actually the camera is moved) by dragging.
     '''
     name = 'translate'
-    icon_file = 'icons/translate.png'
+    icon_file = 'icons/translate.webp'
     mouse_action = 'translate'
 
 class TranslateSelectedModelsMouseMode(TranslateMouseMode):
@@ -652,7 +652,7 @@ class TranslateSelectedModelsMouseMode(TranslateMouseMode):
     then the camera is moved as if all models are shifted.
     '''
     name = 'translate selected models'
-    icon_file = 'icons/move_h2o.png'
+    icon_file = 'icons/move_h2o.webp'
 
     def models(self):
         return top_selected(self.session)
@@ -672,7 +672,7 @@ class MovePickedModelsMouseMode(TranslateMouseMode):
     Mouse mode to translate picked models.
     '''
     name = 'move picked models'
-    icon_file = 'icons/move_picked_model.png'
+    icon_file = 'icons/move_picked_model.webp'
 
     def __init__(self, session):
         TranslateMouseMode.__init__(self, session)
@@ -715,7 +715,7 @@ class TranslateSelectedAtomsMouseMode(TranslateMouseMode):
     Mouse mode to translate selected atoms.
     '''
     name = 'translate selected atoms'
-    icon_file = 'icons/move_atoms.png'
+    icon_file = 'icons/move_atoms.webp'
     move_atoms = True
 
 class RotateSelectedAtomsMouseMode(RotateMouseMode):
@@ -723,7 +723,7 @@ class RotateSelectedAtomsMouseMode(RotateMouseMode):
     Mouse mode to rotate selected atoms.
     '''
     name = 'rotate selected atoms'
-    icon_file = 'icons/rotate_atoms.png'
+    icon_file = 'icons/rotate_atoms.webp'
     move_atoms = True
 
 class ZoomMouseMode(MouseMode):
@@ -732,7 +732,7 @@ class ZoomMouseMode(MouseMode):
     and the objects remain at their same scene coordinates.
     '''
     name = 'zoom'
-    icon_file = 'icons/zoom.png'
+    icon_file = 'icons/zoom.webp'
     def __init__(self, session):
         MouseMode.__init__(self, session)
         self.speed = 1
@@ -803,7 +803,7 @@ class CenterOfRotationMode(MouseMode):
     sets the center of rotation at that position.
     '''
     name = 'pivot'
-    icon_file = 'icons/pivot.png'
+    icon_file = 'icons/pivot.webp'
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
@@ -898,7 +898,7 @@ class ClipMouseMode(MouseMode):
     If the planes do not exist create them.
     '''
     name = 'clip'
-    icon_file = 'icons/clip.png'
+    icon_file = 'icons/clip.webp'
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)
@@ -1030,7 +1030,7 @@ class ClipRotateMouseMode(MouseMode):
     Rotate clip planes.
     '''
     name = 'clip rotate'
-    icon_file = 'icons/cliprot.png'
+    icon_file = 'icons/cliprot.webp'
 
     def mouse_down(self, event):
         MouseMode.mouse_down(self, event)

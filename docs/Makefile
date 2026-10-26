@@ -31,7 +31,7 @@ endif
 endif
 
 SRCS = $(wildcard *.html) license.html embedded.html licenses videos
-IMAGES = $(wildcard *.png)
+IMAGES = $(wildcard *.webp)
 
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make

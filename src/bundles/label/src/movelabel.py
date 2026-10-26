@@ -26,7 +26,7 @@ from chimerax.mouse_modes import MouseMode
 class MoveLabelMouseMode(MouseMode):
     '''Move 2D labels or arrows with mouse.'''
     name = 'move label'
-    icon_file = 'movelabel.png'
+    icon_file = 'movelabel.webp'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)
@@ -112,7 +112,7 @@ class MoveLabelMouseMode(MouseMode):
 class ArrowMouseMode(MoveLabelMouseMode):
     '''Move labels or create arrows.'''
     name = 'label or arrow'
-    icon_file = 'movelabel.png'
+    icon_file = 'movelabel.webp'
 
     def __init__(self, session):
         self.color = None

@@ -62,7 +62,7 @@ tab = "Extras"
 section = "File"
 hidden = true
 name = "Open"
-icon = "open-in-app.png"
+icon = "open-in-app.webp"
 description = "Open data file"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -70,8 +70,8 @@ tab = "Extras"
 section = "File"
 hidden = true
 name = "Recent"
-icon = "recentfiles.png"
-darkIcon = "recentfiles-dark.png"
+icon = "recentfiles.webp"
+darkIcon = "recentfiles-dark.webp"
 description = "Open recent files"
 after = "Open"
 
@@ -80,7 +80,7 @@ tab = "Extras"
 section = "File"
 hidden = true
 name = "Save"
-icon = "content-save.png"
+icon = "content-save.webp"
 description = "Save session file"
 after = "Recent"
 
@@ -89,7 +89,7 @@ tab = "Extras"
 section = "File"
 hidden = true
 name = "Close"
-icon = "close-box.png"
+icon = "close-box.webp"
 description = "Close current session"
 after = "Save"
 
@@ -98,7 +98,7 @@ tab = "Extras"
 section = "File"
 hidden = true
 name = "Exit"
-icon = "exit.png"
+icon = "exit.webp"
 description = "Exit application"
 after = "Save"
 
@@ -107,7 +107,7 @@ tab = "Extras"
 section = "Undo"
 hidden = true
 name = "Undo"
-icon = "undo-variant.png"
+icon = "undo-variant.webp"
 description = "Undo last action"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -115,7 +115,7 @@ tab = "Extras"
 section = "Undo"
 hidden = true
 name = "Redo"
-icon = "redo-variant.png"
+icon = "redo-variant.webp"
 description = "Redo last action"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -189,7 +189,7 @@ after = "Lighting & Effects"
 tab = "Graphics"
 section = "Camera"
 name = "Side view"
-icon = "sideview.png"
+icon = "sideview.webp"
 description = "Show side view tool"
 
 [[tool.chimerax.provider."toolbar"]]

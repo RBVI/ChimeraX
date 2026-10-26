@@ -26,7 +26,7 @@ from chimerax.mouse_modes import MouseMode
 class NextDockingMouseMode(MouseMode):
 
   name = 'next docked'
-  icon_file = 'nextdocking.png'
+  icon_file = 'nextdocking.webp'
   vd_instance = None
 
   def __init__(self, session):

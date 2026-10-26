@@ -12,7 +12,7 @@
 from chimerax.mouse_modes import MouseMode
 class AtomZoneMouseMode(MouseMode):
     name = 'zone'
-    icon_file = 'zone.png'
+    icon_file = 'zone.webp'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)

@@ -3318,7 +3318,7 @@ class NoneMode(HandMode):
     @staticmethod
     def icon_location():
         from os.path import join, dirname
-        return join(dirname(__file__), 'no_action.png')
+        return join(dirname(__file__), 'no_action.webp')
 
 class MoveUIMode(HandMode):
     name = 'move ui'
@@ -3374,7 +3374,7 @@ class ShowUIMode(MoveUIMode):
     @staticmethod
     def icon_location():
         from os.path import join, dirname
-        return join(dirname(__file__), 'menu_icon.png')
+        return join(dirname(__file__), 'menu_icon.webp')
     def pressed(self, hand_event):
         c = hand_event.camera
         ui = c.user_interface
@@ -3542,7 +3542,7 @@ class RecenterMode(HandMode):
     def icon_location():
         from os.path import join, dirname
         from chimerax import shortcuts
-        return join(dirname(shortcuts.__file__), 'icons', 'viewall.png')
+        return join(dirname(shortcuts.__file__), 'icons', 'viewall.webp')
 
 class ButtonLockMode(HandMode):
     name = 'button lock'
@@ -3555,7 +3555,7 @@ class ButtonLockMode(HandMode):
     def icon_location():
         from os.path import join, dirname
         from chimerax import shortcuts
-        return join(dirname(shortcuts.__file__), 'icons', 'lock.png')
+        return join(dirname(shortcuts.__file__), 'icons', 'lock.webp')
 
 class MouseMode(HandMode):
     def __init__(self, mouse_mode):
@@ -3626,7 +3626,7 @@ class RunCommandMode(HandMode):
     @staticmethod
     def icon_location():
         from os.path import join, dirname
-        return join(dirname(__file__), 'command_icon.png')
+        return join(dirname(__file__), 'command_icon.webp')
     def pressed(self, hand_event):
         from chimerax.core.errors import UserError
         from chimerax.core.commands import run

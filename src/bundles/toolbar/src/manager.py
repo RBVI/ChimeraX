@@ -58,7 +58,7 @@ class ToolbarManager(ProviderManager):
         # <Provider tab="Molecule Display" section="Cartoons" help="help:..."
         #   name="layout1" before="Surfaces" after="Atoms"/>
         # <Provider tab="Home" section="Undo"
-        #   name="Redo" icon="redo-variant.png" description="Redo last action"/>
+        #   name="Redo" icon="redo-variant.webp" description="Redo last action"/>
         # <Provider tab="Home" section="Undo"
         #   name="Redo" link="BundleName:provider-name"/>
         # <Provider tab="Markers" section="Place markers" name="pm1"

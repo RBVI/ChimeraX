@@ -22,7 +22,7 @@ class MeetingTool(ToolInstance):
 
     self._face_image = None
     from os.path import join, dirname
-    self._default_face_image = join(dirname(__file__), 'face.png')
+    self._default_face_image = join(dirname(__file__), 'face.webp')
 
     ToolInstance.__init__(self, session, tool_name)
 

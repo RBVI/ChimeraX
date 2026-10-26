@@ -34,7 +34,7 @@
 from chimerax.mouse_modes import MouseMode
 class OrthoPickMode(MouseMode):
     name = 'orthopick'
-    icon_file = 'orthopick.png'
+    icon_file = 'orthopick.webp'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)

@@ -12,7 +12,7 @@
   <Description>Structure measurement tool, mouse mode, and context-menu entry</Description>
 
   <DataFiles>
-    <DataFile>distance.png</DataFile>
+    <DataFile>distance.webp</DataFile>
   </DataFiles>
 
   <!-- Categories is a list where this bundle should appear -->

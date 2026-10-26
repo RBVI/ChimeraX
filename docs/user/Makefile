@@ -19,7 +19,7 @@ SUBDIRS = tools dicom tutorials
 DOCDIR = $(app_datadir)/docs/user
 
 SRCS = $(wildcard *.html) userdocs.css commands formats
-IMAGES = $(wildcard *.png) $(wildcard *.svg) $(wildcard *.jpg)
+IMAGES = $(wildcard *.webp) $(wildcard *.svg) $(wildcard *.jpg)
 OTHER = $(wildcard *.cxc)
 
 # All needed subdirectories must be set by now.

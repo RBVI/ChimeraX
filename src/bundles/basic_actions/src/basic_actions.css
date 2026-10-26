@@ -58,11 +58,11 @@ td:nth-child(3), td:nth-child(4), td:nth-child(5) {
  * Indicators on sorted column
  */
 table thead tr .tablesorter-headerAsc {
-  background-image: url("lib/downarrow.png");
+  background-image: url("lib/downarrow.webp");
   padding-right: 1.2em;
 }
 table thead tr .tablesorter-headerDesc {
-  background-image: url("lib/uparrow.png");
+  background-image: url("lib/uparrow.webp");
   padding-right: 1.2em;
 }
 

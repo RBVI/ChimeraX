@@ -193,6 +193,7 @@ nonbinary_suffixes = set(
         ".pyx",
         ".pyi",
         ".png",
+        ".webp",
         ".jpg",
         ".pgm",
         ".xbm",

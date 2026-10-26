@@ -157,6 +157,7 @@ class RESTHandler(BaseHTTPRequestHandler):
     ContentTypes = [
         (".html", "text/html"),
         (".png", "image/png"),
+        (".webp", "image/webp"),
         (".ico", "image/png"),
     ]
 

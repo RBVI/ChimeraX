@@ -12,7 +12,7 @@
   <Description>Bond rotation support</Description>
 
   <DataFiles>
-    <DataFile>bondrot.png</DataFile>
+    <DataFile>bondrot.webp</DataFile>
   </DataFiles>
 
   <!-- Categories is a list where this bundle should appear -->

@@ -15,7 +15,7 @@
 from chimerax.mouse_modes import MouseMode
 class MinimizeMode(MouseMode):
     name = 'minimize'
-    icon_file = 'minimize.png'
+    icon_file = 'minimize.webp'
 
     def __init__(self, session):
 

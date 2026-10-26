@@ -180,12 +180,12 @@ class RegionMouseMode(MouseMode):
 
 class PlanesMouseMode(RegionMouseMode):
     name = 'move planes'
-    icon_file = 'icons/moveplanes.png'
+    icon_file = 'icons/moveplanes.webp'
     move_faces = False
 
 class CropMouseMode(RegionMouseMode):
     name = 'crop volume'
-    icon_file = 'icons/crop.png'
+    icon_file = 'icons/crop.webp'
     move_faces = True
     
 def matching_maps(v, maps):

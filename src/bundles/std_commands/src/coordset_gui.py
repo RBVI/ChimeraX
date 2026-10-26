@@ -146,7 +146,7 @@ from chimerax.mouse_modes import MouseMode
 class PlayCoordinatesMouseMode(MouseMode):
 
     name = 'play coordinates'
-    icon_file = 'coordset.png'
+    icon_file = 'coordset.webp'
     def __init__(self, session):
         MouseMode.__init__(self, session)
         self._wrap = False

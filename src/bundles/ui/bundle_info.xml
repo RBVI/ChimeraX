@@ -12,7 +12,7 @@
   <DataFiles>
     <DataFile>about.html</DataFile>
     <DataFile>splash.jpg</DataFile>
-    <DataFile>icons/*.png</DataFile>
+    <DataFile>icons/*.webp</DataFile>
     <DataDir>html</DataDir>
   </DataFiles>
 

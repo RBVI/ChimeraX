@@ -34,7 +34,7 @@ classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
 [tool.chimerax.package-data]
 "src/icons" = [
-  "*.png",
+  "*.webp",
   "*.svg",
 ]
 
@@ -51,7 +51,7 @@ tab = "Molecule Display"
 section = "Atoms"
 name = "da"
 display-name = "Show"
-icon = "atomshow.png"
+icon = "atomshow.webp"
 description = "Show atoms"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -59,8 +59,8 @@ tab = "Molecule Display"
 section = "Atoms"
 name = "ha"
 display-name = "Hide"
-icon = "atomhide.png"
-darkIcon = "atomhide-dark.png"
+icon = "atomhide.webp"
+darkIcon = "atomhide-dark.webp"
 description = "Hide atoms"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -68,7 +68,7 @@ tab = "Molecule Display"
 section = "Cartoons"
 name = "rb"
 display-name = "Show"
-icon = "ribshow.png"
+icon = "ribshow.webp"
 description = "Show cartoons"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -76,8 +76,8 @@ tab = "Molecule Display"
 section = "Cartoons"
 name = "hr"
 display-name = "Hide"
-icon = "ribhide.png"
-darkIcon = "ribhide-dark.png"
+icon = "ribhide.webp"
+darkIcon = "ribhide-dark.webp"
 description = "Hide cartoons"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -85,7 +85,7 @@ tab = "Molecule Display"
 section = "Surfaces"
 name = "ms"
 display-name = "Show"
-icon = "surfshow.png"
+icon = "surfshow.webp"
 description = "Show surfaces"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -93,8 +93,8 @@ tab = "Molecule Display"
 section = "Surfaces"
 name = "hs"
 display-name = "Hide"
-icon = "surfhide.png"
-darkIcon = "surfhide-dark.png"
+icon = "surfhide.webp"
+darkIcon = "surfhide-dark.webp"
 description = "Hide surfaces"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -102,7 +102,7 @@ tab = "Molecule Display"
 section = "Styles"
 name = "st"
 display-name = "Stick"
-icon = "stick.png"
+icon = "stick.webp"
 description = "Display atoms in stick style"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -110,7 +110,7 @@ tab = "Molecule Display"
 section = "Styles"
 name = "sp"
 display-name = "Sphere"
-icon = "sphere.png"
+icon = "sphere.webp"
 description = "Display atoms in sphere style"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -118,7 +118,7 @@ tab = "Molecule Display"
 section = "Styles"
 name = "bs"
 display-name = "Ball & stick"
-icon = "ball.png"
+icon = "ball.webp"
 description = "Display atoms in ball and stick style"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -126,7 +126,7 @@ tab = "Molecule Display"
 section = "Coloring"
 name = "ce"
 display-name = "heteroatom"
-icon = "colorbyelement.png"
+icon = "colorbyelement.webp"
 description = "Color non-carbon atoms by element"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -134,7 +134,7 @@ tab = "Molecule Display"
 section = "Coloring"
 name = "cc"
 display-name = "chain"
-icon = "colorbychain.png"
+icon = "colorbychain.webp"
 description = "Color by chain"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -142,7 +142,7 @@ tab = "Molecule Display"
 section = "Coloring"
 name = "cp"
 display-name = "polymer"
-icon = "polymer.png"
+icon = "polymer.webp"
 description = "Color by polymer"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -150,7 +150,7 @@ tab = "Molecule Display"
 section = "Coloring"
 name = "rB"
 display-name = "rainbow"
-icon = "rainbow.png"
+icon = "rainbow.webp"
 description = "Rainbow color N to C-terminus"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -158,7 +158,7 @@ tab = "Molecule Display"
 section = "Coloring"
 name = "ep"
 display-name = "electrostatic"
-icon = "esp.png"
+icon = "esp.webp"
 description = "Color surface by electrostatic potential"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -166,7 +166,7 @@ tab = "Molecule Display"
 section = "Coloring"
 name = "hp"
 display-name = "hydrophobic"
-icon = "hydrophobicity.png"
+icon = "hydrophobicity.webp"
 description = "Color surface by hydrophobicity"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -174,7 +174,7 @@ tab = "Molecule Display"
 section = "Coloring"
 name = "bf"
 display-name = "b-factor"
-icon = "bfactor.png"
+icon = "bfactor.webp"
 description = "Color by b-factor"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -182,7 +182,7 @@ tab = "Molecule Display"
 section = "Analysis"
 name = "hb"
 display-name = "H-bonds"
-icon = "hbondsflat.png"
+icon = "hbondsflat.webp"
 description = "Show hydrogen bonds"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -190,7 +190,7 @@ tab = "Molecule Display"
 section = "Analysis"
 name = "HB"
 display-name = "Hide H-bonds"
-icon = "hbondsflathide.png"
+icon = "hbondsflathide.webp"
 description = "Hide hydrogen bonds"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -198,7 +198,7 @@ tab = "Molecule Display"
 section = "Analysis"
 name = "sq"
 display-name = "Sequence"
-icon = "sequence.png"
+icon = "sequence.webp"
 description = "Show polymer sequence"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -206,7 +206,7 @@ tab = "Molecule Display"
 section = "Analysis"
 name = "if"
 display-name = "Interfaces"
-icon = "interfaces.png"
+icon = "interfaces.webp"
 description = "Show chain contacts diagram"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -214,7 +214,7 @@ tab = "Graphics"
 section = "Background"
 name = "wb"
 display-name = "White"
-icon = "whitebg.png"
+icon = "whitebg.webp"
 description = "White background"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -222,7 +222,7 @@ tab = "Graphics"
 section = "Background"
 name = "gb"
 display-name = "Gray"
-icon = "graybg.png"
+icon = "graybg.webp"
 description = "Gray background"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -230,7 +230,7 @@ tab = "Graphics"
 section = "Background"
 name = "bk"
 display-name = "Black"
-icon = "blackbg.png"
+icon = "blackbg.webp"
 description = "Black background"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -238,7 +238,7 @@ tab = "Graphics"
 section = "Lighting & Effects"
 name = "ls"
 display-name = "Simple"
-icon = "simplelight.png"
+icon = "simplelight.webp"
 description = "Simple lighting"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -246,7 +246,7 @@ tab = "Graphics"
 section = "Lighting & Effects"
 name = "la"
 display-name = "Soft"
-icon = "softlight.png"
+icon = "softlight.webp"
 description = "Ambient lighting"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -254,7 +254,7 @@ tab = "Graphics"
 section = "Lighting & Effects"
 name = "lf"
 display-name = "Full"
-icon = "fulllight.png"
+icon = "fulllight.webp"
 description = "Full lighting"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -262,7 +262,7 @@ tab = "Graphics"
 section = "Lighting & Effects"
 name = "lF"
 display-name = "Flat"
-icon = "flat.png"
+icon = "flat.webp"
 description = "Flat lighting"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -270,7 +270,7 @@ tab = "Graphics"
 section = "Lighting & Effects"
 name = "sh"
 display-name = "Shadow"
-icon = "shadow.png"
+icon = "shadow.webp"
 description = "Toggle shadows"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -278,8 +278,8 @@ tab = "Graphics"
 section = "Lighting & Effects"
 name = "se"
 display-name = "Silhouettes"
-icon = "silhouette.png"
-darkIcon = "silhouette-dark.png"
+icon = "silhouette.webp"
+darkIcon = "silhouette-dark.webp"
 description = "Toggle silhouettes"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -288,8 +288,8 @@ section = "Camera"
 after = "Side view"
 name = "vs"
 display-name = "View selected"
-icon = "viewsel.png"
-darkIcon = "viewsel-dark.png"
+icon = "viewsel.webp"
+darkIcon = "viewsel-dark.webp"
 description = "View selected"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -297,8 +297,8 @@ tab = "Graphics"
 section = "Camera"
 name = "va"
 display-name = "View all"
-icon = "viewall.png"
-darkIcon = "viewall-dark.png"
+icon = "viewall.webp"
+darkIcon = "viewall-dark.webp"
 description = "View all"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -306,8 +306,8 @@ tab = "Graphics"
 section = "Camera"
 name = "dv"
 display-name = "Orient"
-icon = "orient.png"
-darkIcon = "orient-dark.png"
+icon = "orient.webp"
+darkIcon = "orient-dark.webp"
 description = "Default orientation"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -315,7 +315,7 @@ tab = "Map"
 section = "Map"
 name = "sM"
 display-name = "Show"
-icon = "showmap.png"
+icon = "showmap.webp"
 description = "Show map"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -323,7 +323,7 @@ tab = "Map"
 section = "Map"
 name = "hM"
 display-name = "Hide"
-icon = "hidemap.png"
+icon = "hidemap.webp"
 description = "Hide map"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -331,7 +331,7 @@ tab = "Map"
 section = "Style"
 name = "fl"
 display-name = "surface"
-icon = "mapsurf.png"
+icon = "mapsurf.webp"
 description = "Show map or surface in filled style"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -339,7 +339,7 @@ tab = "Map"
 section = "Style"
 name = "me"
 display-name = "mesh"
-icon = "mesh.png"
+icon = "mesh.webp"
 description = "Show map or surface as mesh"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -347,7 +347,7 @@ tab = "Map"
 section = "Style"
 name = "gs"
 display-name = "image"
-icon = "mapimage.png"
+icon = "mapimage.webp"
 description = "Show map as grayscale"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -355,7 +355,7 @@ tab = "Map"
 section = "Style"
 name = "tt"
 display-name = "Transparent surface"
-icon = "icecube.png"
+icon = "icecube.webp"
 description = "Toggle surface transparency"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -363,7 +363,7 @@ tab = "Map"
 section = "Style"
 name = "ob"
 display-name = "Outline box"
-icon = "outlinebox.png"
+icon = "outlinebox.webp"
 description = "Toggle outline box"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -371,7 +371,7 @@ tab = "Map"
 section = "Steps"
 name = "s1"
 display-name = "Step 1"
-icon = "step1.png"
+icon = "step1.webp"
 description = "Show map at step 1"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -379,7 +379,7 @@ tab = "Map"
 section = "Steps"
 name = "s2"
 display-name = "Step 2"
-icon = "step2.png"
+icon = "step2.webp"
 description = "Show map at step 2"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -387,7 +387,7 @@ tab = "Map"
 section = "Subregions"
 name = "pl"
 display-name = "Z-plane"
-icon = "plane.png"
+icon = "plane.webp"
 description = "Show one plane"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -395,7 +395,7 @@ tab = "Map"
 section = "Subregions"
 name = "is"
 display-name = "Slab"
-icon = "slab.png"
+icon = "slab.webp"
 description = "Show rotatable slab"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -403,7 +403,7 @@ tab = "Map"
 section = "Subregions"
 name = "o3"
 display-name = "Orthoplanes"
-icon = "orthoplanes.png"
+icon = "orthoplanes.webp"
 description = "Show 3 orthogonal planes"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -411,7 +411,7 @@ tab = "Map"
 section = "Subregions"
 name = "pa"
 display-name = "Full"
-icon = "fullvolume.png"
+icon = "fullvolume.webp"
 description = "Show all planes"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -419,7 +419,7 @@ tab = "Map"
 section = "Subregions"
 name = "vz"
 display-name = "Zone"
-icon = "volzone.png"
+icon = "volzone.webp"
 description = "Show map near atoms"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -428,7 +428,7 @@ section = "Appearance"
 hidden = true
 name = "zs"
 display-name = "XYZ slices"
-icon = "xyzslice.png"
+icon = "xyzslice.webp"
 description = "Volume XYZ slices"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -437,7 +437,7 @@ section = "Appearance"
 hidden = true
 name = "ps"
 display-name = "Perpendicular slices"
-icon = "perpslice.png"
+icon = "perpslice.webp"
 description = "Volume perpendicular slices"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -455,7 +455,7 @@ section = "Appearance"
 hidden = true
 name = "aw"
 display-name = "Airways"
-icon = "airways.png"
+icon = "airways.webp"
 description = "Airways CT scan coloring"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -464,7 +464,7 @@ section = "Appearance"
 hidden = true
 name = "ch"
 display-name = "Chest CT"
-icon = "chest.png"
+icon = "chest.webp"
 description = "Chest CT scan coloring"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -473,7 +473,7 @@ section = "Appearance"
 hidden = true
 name = "bc"
 display-name = "Brain CT"
-icon = "brain.png"
+icon = "brain.webp"
 description = "Brain CT scan coloring"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -481,7 +481,7 @@ tab = "Map"
 section = "Appearance"
 name = "cz"
 display-name = "Color near atoms"
-icon = "colorzone.png"
+icon = "colorzone.webp"
 description = "Color map to match atoms"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -489,7 +489,7 @@ tab = "Map"
 section = "Appearance"
 name = "hd"
 display-name = "Hide dust"
-icon = "dust.png"
+icon = "dust.webp"
 description = "Hide small surface blobs"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -498,7 +498,7 @@ section = "Appearance"
 hidden = true
 name = "dc"
 display-name = "Default thresholds"
-icon = "initialcurve.png"
+icon = "initialcurve.webp"
 description = "Default volume curve"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -506,7 +506,7 @@ tab = "Map"
 section = "Calculations"
 name = "fm"
 display-name = "Fit"
-icon = "fitmap.png"
+icon = "fitmap.webp"
 description = "Fit atomic model or map in map"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -514,7 +514,7 @@ tab = "Map"
 section = "Calculations"
 name = "sb"
 display-name = "Subtract"
-icon = "diffmap.png"
+icon = "diffmap.webp"
 description = "Subtract map from map"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -522,7 +522,7 @@ tab = "Map"
 section = "Calculations"
 name = "gf"
 display-name = "Smooth"
-icon = "smooth.png"
+icon = "smooth.webp"
 description = "Smooth map"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -531,7 +531,7 @@ section = "Images"
 hidden = true
 name = "sx"
 display-name = "Snapshot"
-icon = "camera.png"
+icon = "camera.webp"
 description = "Save snapshot to desktop"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -540,7 +540,7 @@ section = "Images"
 hidden = true
 name = "vd"
 display-name = "Spin movie"
-icon = "video.png"
+icon = "video.webp"
 description = "Record spin movie"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -549,7 +549,7 @@ section = "Viewing"
 hidden = true
 name = "vr"
 display-name = "Virtual reality"
-icon = "vr.png"
+icon = "vr.webp"
 description = "Enable virtual reality with OpenXR.  Press to toggle passthrough video."
 
 [[tool.chimerax.provider."toolbar"]]
@@ -558,7 +558,7 @@ section = "Viewing"
 hidden = true
 name = "xr"
 display-name = "OpenXR"
-icon = "xr.png"
+icon = "xr.webp"
 description = "Turn OpenXR on/off for 3D flat panel displays."
 
 [tool.chimerax.selector.selAtoms]

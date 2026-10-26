@@ -10,7 +10,7 @@
   <Description>Show virtual reality hand controllers or mouse from ChimeraX running on a remote machine.</Description>
 
   <DataFiles>
-    <DataFile>face.png</DataFile>
+    <DataFile>face.webp</DataFile>
   </DataFiles>
 
   <Categories>

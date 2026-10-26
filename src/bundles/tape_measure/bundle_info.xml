@@ -12,7 +12,7 @@
   <Description>Measure distance between two points in scene</Description>
 
   <DataFiles>
-    <DataFile>tape.png</DataFile>
+    <DataFile>tape.webp</DataFile>
   </DataFiles>
 
   <!-- Categories is a list where this bundle should appear -->

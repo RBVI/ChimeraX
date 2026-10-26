@@ -25,7 +25,7 @@ IGNORE_SUFFIXES = set([
     '.a', '.o', '.py', '.pyc', '.pyw', '.cpp', '.h', '.pyx', '.c', '.f', '.f90', '.pth', '.i',
     '.cif', '.pdb', '.stl', '.pdb', '.mmcif', '.mol2', '.cxc', '.h5', '.bild',
     '.rst', '.html', '.css', '.css_t', '.js', '.js_t', '.json', '.xml', '.xsl',
-    '.png', '.svg', '.jpg', '.gif',
+    '.png', '.webp', '.svg', '.jpg', '.gif',
     '.txt', '.idatmres',
     '.qml', '.qmlc', '.dat', '.qm', '.pak', '.qmltypes', '.mplstyle',
     '.mat', '.sav',

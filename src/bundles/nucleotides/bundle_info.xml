@@ -32,38 +32,38 @@
   </Dependencies>
 
   <DataFiles>
-    <DataFile>icons/*.png</DataFile>
+    <DataFile>icons/*.webp</DataFile>
   </DataFiles>
 
   <Providers manager="toolbar">
     <Provider tab="Nucleotides"
       name="tab-nuc" after="Molecule Display" before="Graphics"/>
     <Provider tab="Nucleotides" section="Styles" 
-      name="nucleotide-plain" display_name="Plain" icon="nuc-atoms.png" 
+      name="nucleotide-plain" display_name="Plain" icon="nuc-atoms.webp" 
       description="Remove nucleotides styling"/>
     <Provider tab="Nucleotides" section="Styles" 
-      name="nucleotide-filled" display_name="Filled" icon="nuc-fill.png" 
+      name="nucleotide-filled" display_name="Filled" icon="nuc-fill.webp" 
       description="Show nucleotides with filled rings"/>
     <Provider tab="Nucleotides" section="Styles" 
-      name="nucleotide-slab" display_name="Slab" icon="nuc-slab.png"
+      name="nucleotide-slab" display_name="Slab" icon="nuc-slab.webp"
       description="Show nucleotide bases as slabs and fill sugars"/>
     <Provider tab="Nucleotides" section="Styles" 
-      name="nucleotide-box" display_name="Tube/&#10;Slab" icon="nuc-box.png"
+      name="nucleotide-box" display_name="Tube/&#10;Slab" icon="nuc-box.webp"
       description="Show nucleotide bases as boxes and sugars as tubes"/>
     <Provider tab="Nucleotides" section="Styles" 
-      name="nucleotide-ellipsoid" display_name="Tube/&#10;Ellipsoid" icon="nuc-elli.png"
+      name="nucleotide-ellipsoid" display_name="Tube/&#10;Ellipsoid" icon="nuc-elli.webp"
       description="Show nucleotide bases as ellipsoids and sugars as tubes"/>
     <Provider tab="Nucleotides" section="Styles" 
-      name="nucleotide-muffler" display_name="Tube/&#10;Muffler" icon="nuc-muff.png"
+      name="nucleotide-muffler" display_name="Tube/&#10;Muffler" icon="nuc-muff.webp"
       description="Show nucleotide bases as mufflers and sugars as tubes"/>
     <Provider tab="Nucleotides" section="Styles" 
-      name="nucleotide-ladder" display_name="Ladder" icon="nuc-ladder.png"
+      name="nucleotide-ladder" display_name="Ladder" icon="nuc-ladder.webp"
       description="Show nucleotides as H-bond ladders"/>
     <Provider tab="Nucleotides" section="Styles"
-      name="nucleotide-stubs" display_name="Stubs" icon="nuc-stubs.png"
+      name="nucleotide-stubs" display_name="Stubs" icon="nuc-stubs.webp"
       description="Show nucleotides as stubs"/>
     <Provider tab="Nucleotides" section="Coloring" 
-      name="nucleotide-color" display_name="nucleotide" icon="nuc-color.png"
+      name="nucleotide-color" display_name="nucleotide" icon="nuc-color.webp"
       description="Color by nucleotide"/>
 
     <!-- Provider names must be unique, so create duplicates

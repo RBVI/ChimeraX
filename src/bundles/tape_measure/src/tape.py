@@ -25,7 +25,7 @@
 from chimerax.mouse_modes import MouseMode
 class TapeMeasureMouseMode(MouseMode):
     name = 'tape measure'
-    icon_file = 'tape.png'
+    icon_file = 'tape.webp'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)

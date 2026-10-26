@@ -12,7 +12,7 @@
   <Description>Display atoms and density near an atom chosen with the mouse</Description>
 
   <DataFiles>
-    <DataFile>zone.png</DataFile>
+    <DataFile>zone.webp</DataFile>
   </DataFiles>
 
   <!-- Categories is a list where this bundle should appear -->

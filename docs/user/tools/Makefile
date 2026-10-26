@@ -17,41 +17,41 @@ include $(TOP)/mk/config.make
 DOCDIR = $(app_datadir)/docs/user/tools
 
 SRCS = $(wildcard *.html)
-IMAGES = $(wildcard *.png) $(wildcard *.svg)
+IMAGES = $(wildcard *.webp) $(wildcard *.svg)
 
-MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png \
-		$(TOP)/src/bundles/bond_rot/src/bondrot.png \
-		$(TOP)/src/bundles/struct_measure/src/distance.png \
-		$(TOP)/src/bundles/label/src/label.png \
-		$(TOP)/src/bundles/color_key/src/icons/ckiconvertical.png \
-		$(TOP)/src/bundles/label/src/movelabel.png \
-		$(TOP)/src/bundles/map/src/icons/*.png \
-		$(TOP)/src/bundles/map_series/src/vseries.png \
-		$(TOP)/src/bundles/markers/src/icons/*.png \
-		$(TOP)/src/bundles/orthopick/src/icons/*.png \
+MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.webp \
+		$(TOP)/src/bundles/bond_rot/src/bondrot.webp \
+		$(TOP)/src/bundles/struct_measure/src/distance.webp \
+		$(TOP)/src/bundles/label/src/label.webp \
+		$(TOP)/src/bundles/color_key/src/icons/ckiconvertical.webp \
+		$(TOP)/src/bundles/label/src/movelabel.webp \
+		$(TOP)/src/bundles/map/src/icons/*.webp \
+		$(TOP)/src/bundles/map_series/src/vseries.webp \
+		$(TOP)/src/bundles/markers/src/icons/*.webp \
+		$(TOP)/src/bundles/orthopick/src/icons/*.webp \
 		$(TOP)/src/bundles/segmentations/src/icons/*small.svg \
-		$(TOP)/src/bundles/std_commands/src/coordset.png \
-		$(TOP)/src/bundles/swapaa/src/swapaa.png \
-		$(TOP)/src/bundles/tug/src/minimize.png \
-		$(TOP)/src/bundles/tug/src/tug.png \
-		$(TOP)/src/bundles/zone/src/zone.png \
-		$(TOP)/src/bundles/pick_blobs/src/pickblobs.png \
-		$(TOP)/src/bundles/map_eraser/src/eraser.png \
-		$(TOP)/src/bundles/tape_measure/src/tape.png \
-		$(TOP)/src/bundles/viewdock/src/icons/nextdocking.png
+		$(TOP)/src/bundles/std_commands/src/coordset.webp \
+		$(TOP)/src/bundles/swapaa/src/swapaa.webp \
+		$(TOP)/src/bundles/tug/src/minimize.webp \
+		$(TOP)/src/bundles/tug/src/tug.webp \
+		$(TOP)/src/bundles/zone/src/zone.webp \
+		$(TOP)/src/bundles/pick_blobs/src/pickblobs.webp \
+		$(TOP)/src/bundles/map_eraser/src/eraser.webp \
+		$(TOP)/src/bundles/tape_measure/src/tape.webp \
+		$(TOP)/src/bundles/viewdock/src/icons/nextdocking.webp
 MICONDIR = $(DOCDIR)/mouse-icons
 SCICONDIR = $(TOP)/src/bundles/shortcuts/src/icons
-SHORTCUTICONS = $(SCICONDIR)/*.png $(SCICONDIR)/*.svg
+SHORTCUTICONS = $(SCICONDIR)/*.webp $(SCICONDIR)/*.svg
 SICONDIR = $(DOCDIR)/shortcut-icons
-TOOLBARICONS = $(TOP)/src/bundles/toolbar/src/icons/*.png \
-		$(TOP)/src/bundles/medical_toolbar/src/icons/opendicom.png \
-		$(TOP)/src/bundles/sel_inspector/src/icons/magnifying-glass.png
+TOOLBARICONS = $(TOP)/src/bundles/toolbar/src/icons/*.webp \
+		$(TOP)/src/bundles/medical_toolbar/src/icons/opendicom.webp \
+		$(TOP)/src/bundles/sel_inspector/src/icons/magnifying-glass.webp
 TICONDIR = $(DOCDIR)/toolbar-icons
-NUCICONS = $(TOP)/src/bundles/nucleotides/src/icons/*.png
+NUCICONS = $(TOP)/src/bundles/nucleotides/src/icons/*.webp
 NICONDIR = $(DOCDIR)/nuc-icons
 BASICICONS = $(TOP)/src/bundles/basic_actions/src/lib/*.svg
 BICONDIR = $(DOCDIR)/basic-icons
-UIICONS = $(TOP)/src/bundles/ui/src/icons/*.png
+UIICONS = $(TOP)/src/bundles/ui/src/icons/*.webp
 UICONDIR = $(DOCDIR)/ui-icons
 
 install: install-icons

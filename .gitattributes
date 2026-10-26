@@ -9,6 +9,7 @@
 # Images
 src/apps/ChimeraX/icon.rc.in eol=crlf
 *.png binary
+*.webp binary
 *.jpg binary
 *.jpeg binary
 *.gif binary

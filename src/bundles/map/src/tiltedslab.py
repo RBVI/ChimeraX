@@ -13,7 +13,7 @@
 from chimerax.mouse_modes import MouseMode
 class RotateSlabMouseMode(MouseMode):
     name = 'rotate slab'
-    icon_file = 'icons/rotateslab.png'
+    icon_file = 'icons/rotateslab.webp'
 
     def __init__(self, session):
 

@@ -64,7 +64,7 @@ write_logs = False
 from chimerax.mouse_modes import MouseMode
 class TugAtomsMode(MouseMode):
     name = 'tug'
-    icon_file = 'tug.png'
+    icon_file = 'tug.webp'
 
     def __init__(self, session):
 

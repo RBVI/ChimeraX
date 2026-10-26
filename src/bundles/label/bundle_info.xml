@@ -10,8 +10,8 @@
   <Description>Overlay 2D text on graphics scene.</Description>
 
   <DataFiles>
-    <DataFile>label.png</DataFile>
-    <DataFile>movelabel.png</DataFile>
+    <DataFile>label.webp</DataFile>
+    <DataFile>movelabel.webp</DataFile>
   </DataFiles>
 
   <Categories>

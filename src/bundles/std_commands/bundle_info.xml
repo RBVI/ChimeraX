@@ -6,7 +6,7 @@
   <Synopsis>Standard commands</Synopsis>
   <Description>General purpose commands always available in ChimeraX</Description>
   <DataFiles>
-    <DataFile>coordset.png</DataFile>
+    <DataFile>coordset.webp</DataFile>
   </DataFiles>
   <Categories>
     <Category name="Structure Analysis"/>

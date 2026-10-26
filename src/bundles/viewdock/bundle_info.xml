@@ -16,7 +16,7 @@ UCSF DOCK output in PDB and mol2 formats are supported.
   </Description>
 
   <DataFiles>
-    <DataFile>icons/*.png</DataFile>
+    <DataFile>icons/*.webp</DataFile>
   </DataFiles>
 
   <!-- Categories is a list where this bundle should appear -->
@@ -52,7 +52,7 @@ UCSF DOCK output in PDB and mol2 formats are supported.
 
   <Providers manager="toolbar">
     <Provider tab="Right Mouse" section="Other" name="mO1" mouse_mode="next docked"
-	  display_name="Next docked" description="Show next docked ligand" icon="nextdocking.png" />
+	  display_name="Next docked" description="Show next docked ligand" icon="nextdocking.webp" />
   </Providers>
 
   <Classifiers>

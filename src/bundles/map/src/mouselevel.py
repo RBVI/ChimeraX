@@ -12,7 +12,7 @@
 from chimerax.mouse_modes import MouseMode
 class ContourLevelMouseMode(MouseMode):
     name = 'contour level'
-    icon_file = 'icons/contour.png'
+    icon_file = 'icons/contour.webp'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)

@@ -295,47 +295,47 @@ def _exclude_transparent_surfaces(drawing):
 #
 class MarkMaximumMouseMode(MarkerMouseMode):
     name = 'mark maximum'
-    icon_file = 'icons/maximum.png'
+    icon_file = 'icons/maximum.webp'
     description = 'Place marker at density maximum'
     
 class MarkPlaneMouseMode(MarkerMouseMode):
     name = 'mark plane'
-    icon_file = 'icons/plane.png'
+    icon_file = 'icons/plane.webp'
     description = 'Place marker on volume plane'
     
 class MarkSurfaceMouseMode(MarkerMouseMode):
     name = 'mark surface'
-    icon_file = 'icons/surface.png'
+    icon_file = 'icons/surface.webp'
     description = 'Place marker on surface'
     
 class MarkCenterMouseMode(MarkerMouseMode):
     name = 'mark center'
-    icon_file = 'icons/center.png'
+    icon_file = 'icons/center.webp'
     description = 'Place marker at center of connected surface'
     
 class MarkPointMouseMode(MarkerMouseMode):
     name = 'mark point'
-    icon_file = 'icons/point.png'
+    icon_file = 'icons/point.webp'
     description = 'Place marker at 3d pointer position'
     
 class LinkMarkersPointMouseMode(MarkerMouseMode):
     name = 'link markers'
-    icon_file = 'icons/link.png'
+    icon_file = 'icons/link.webp'
     description = 'Link consecutively clicked markers'
     
 class MoveMarkersPointMouseMode(MarkerMouseMode):
     name = 'move markers'
-    icon_file = 'icons/move.png'
+    icon_file = 'icons/move.webp'
     description = 'Move markers'
     
 class ResizeMarkersPointMouseMode(MarkerMouseMode):
     name = 'resize markers'
-    icon_file = 'icons/resize.png'
+    icon_file = 'icons/resize.webp'
     description = 'Resize markers or links'
     
 class DeleteMarkersPointMouseMode(MarkerMouseMode):
     name = 'delete markers'
-    icon_file = 'icons/delete.png'
+    icon_file = 'icons/delete.webp'
     description = 'Delete markers or links'
     
 # -----------------------------------------------------------------------------

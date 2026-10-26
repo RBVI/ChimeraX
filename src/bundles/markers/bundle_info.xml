@@ -10,7 +10,7 @@
   <Description>Mouse mode to place markers on density maps.</Description>
 
   <DataFiles>
-    <DataFile>icons/*.png</DataFile>
+    <DataFile>icons/*.webp</DataFile>
   </DataFiles>
 
   <Categories>

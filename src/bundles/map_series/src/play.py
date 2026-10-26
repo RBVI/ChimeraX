@@ -348,7 +348,7 @@ from chimerax.mouse_modes import MouseMode
 class PlaySeriesMouseMode(MouseMode):
 
   name = 'play map series'
-  icon_file = 'vseries.png'
+  icon_file = 'vseries.webp'
 
   def __init__(self, session):
     MouseMode.__init__(self, session)

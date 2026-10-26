@@ -10,7 +10,7 @@
   <Description>Display and analyze 3d image time series.</Description>
 
   <DataFiles>
-    <DataFile>vseries.png</DataFile>
+    <DataFile>vseries.webp</DataFile>
   </DataFiles>
 
   <Categories>

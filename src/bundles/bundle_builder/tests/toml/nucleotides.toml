@@ -40,7 +40,7 @@ classifiers = ["Development Status :: 2 - Pre-Alpha"]
 
 [tool.chimerax.package-data]
 "src/icons" = [
-  "*.png",
+  "*.webp",
 ]
 
 [tool.chimerax.command.nucleotides]
@@ -62,7 +62,7 @@ tab = "Nucleotides"
 section = "Styles"
 name = "nucleotide-plain"
 display-name = "Plain"
-icon = "nuc-atoms.png"
+icon = "nuc-atoms.webp"
 description = "Remove nucleotides styling"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -70,7 +70,7 @@ tab = "Nucleotides"
 section = "Styles"
 name = "nucleotide-filled"
 display-name = "Filled"
-icon = "nuc-fill.png"
+icon = "nuc-fill.webp"
 description = "Show nucleotides with filled rings"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -78,7 +78,7 @@ tab = "Nucleotides"
 section = "Styles"
 name = "nucleotide-slab"
 display-name = "Slab"
-icon = "nuc-slab.png"
+icon = "nuc-slab.webp"
 description = "Show nucleotide bases as slabs and fill sugars"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -86,7 +86,7 @@ tab = "Nucleotides"
 section = "Styles"
 name = "nucleotide-box"
 display-name = "Tube/\nSlab"
-icon = "nuc-box.png"
+icon = "nuc-box.webp"
 description = "Show nucleotide bases as boxes and sugars as tubes"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -94,7 +94,7 @@ tab = "Nucleotides"
 section = "Styles"
 name = "nucleotide-ellipsoid"
 display-name = "Tube/\nEllipsoid"
-icon = "nuc-elli.png"
+icon = "nuc-elli.webp"
 description = "Show nucleotide bases as ellipsoids and sugars as tubes"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -102,7 +102,7 @@ tab = "Nucleotides"
 section = "Styles"
 name = "nucleotide-muffler"
 display-name = "Tube/\nMuffler"
-icon = "nuc-muff.png"
+icon = "nuc-muff.webp"
 description = "Show nucleotide bases as mufflers and sugars as tubes"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -110,7 +110,7 @@ tab = "Nucleotides"
 section = "Styles"
 name = "nucleotide-ladder"
 display-name = "Ladder"
-icon = "nuc-ladder.png"
+icon = "nuc-ladder.webp"
 description = "Show nucleotides as H-bond ladders"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -118,7 +118,7 @@ tab = "Nucleotides"
 section = "Styles"
 name = "nucleotide-stubs"
 display-name = "Stubs"
-icon = "nuc-stubs.png"
+icon = "nuc-stubs.webp"
 description = "Show nucleotides as stubs"
 
 [[tool.chimerax.provider."toolbar"]]
@@ -126,7 +126,7 @@ tab = "Nucleotides"
 section = "Coloring"
 name = "nucleotide-color"
 display-name = "nucleotide"
-icon = "nuc-color.png"
+icon = "nuc-color.webp"
 description = "Color by nucleotide"
 
 [[tool.chimerax.provider."toolbar"]]

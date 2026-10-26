@@ -4,7 +4,7 @@ include ../Makefile.bundle
 # need bash for $'\n' to work
 SHELL = /bin/bash
 
-DATAFILES = $(wildcard src/icons/*.png src/mousemode_icons/*.png src/widgets/icons/*.png)
+DATAFILES = $(wildcard src/icons/*.webp src/mousemode_icons/*.webp src/widgets/icons/*.webp)
 CLEAN_ALWAYS += src/about.html src/*/__pycache__
 
 build uv-wheel uv-install wheel install app-install:	src/about.html $(DATAFILES)

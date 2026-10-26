@@ -25,7 +25,7 @@
 from chimerax.mouse_modes import MouseMode
 class DistMouseMode(MouseMode):
     name = 'distance'
-    icon_file = 'distance.png'
+    icon_file = 'distance.webp'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)

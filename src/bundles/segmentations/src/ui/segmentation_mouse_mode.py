@@ -224,7 +224,7 @@ class CreateSegmentation3DMouseMode(MouseMode):
     icon_file = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "icons",
-        "create_segmentation.png",
+        "create_segmentation.webp",
     )
 
     def mouse_down(self, event):
@@ -262,7 +262,7 @@ class EraseSegmentation3DMouseMode(MouseMode):
     icon_file = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "icons",
-        "create_segmentation.png",
+        "create_segmentation.webp",
     )
 
     def mouse_down(self, event):
@@ -298,7 +298,7 @@ class Move3DSegmentationSphereMouseMode(MouseMode):
     icon_file = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "icons",
-        "move_cursor.png",
+        "move_cursor.webp",
     )
 
     def mouse_drag(self, event):
@@ -322,7 +322,7 @@ class Resize3DSegmentationSphereMouseMode(MouseMode):
     icon_file = os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
         "icons",
-        "resize_cursor.png",
+        "resize_cursor.webp",
     )
 
     def wheel(self, event):

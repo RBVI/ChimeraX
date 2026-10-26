@@ -10,9 +10,9 @@
   <Description>Use virtual reality headsets with SteamVR.</Description>
 
   <DataFiles>
-    <DataFile>menu_icon.png</DataFile>
-    <DataFile>no_action.png</DataFile>
-    <DataFile>command_icon.png</DataFile>
+    <DataFile>menu_icon.webp</DataFile>
+    <DataFile>no_action.webp</DataFile>
+    <DataFile>command_icon.webp</DataFile>
   </DataFiles>
 
   <Categories>

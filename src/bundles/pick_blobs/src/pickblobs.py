@@ -196,7 +196,7 @@ def register_measure_blob_command(logger):
 from chimerax.mouse_modes import MouseMode
 class PickBlobs(MouseMode):
     name = 'pick blobs'
-    icon_file = 'pickblobs.png'
+    icon_file = 'pickblobs.webp'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)

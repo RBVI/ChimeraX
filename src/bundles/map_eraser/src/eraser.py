@@ -106,7 +106,7 @@ def register_volume_erase_command(logger):
 from chimerax.mouse_modes import MouseMode
 class MapEraser(MouseMode):
     name = 'map eraser'
-    icon_file = 'eraser.png'
+    icon_file = 'eraser.webp'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)

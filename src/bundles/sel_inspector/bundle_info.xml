@@ -12,7 +12,7 @@
   <Description>Inspect/change attributes of current selection</Description>
 
   <DataFiles>
-    <DataFile>icons/*.png</DataFile>
+    <DataFile>icons/*.webp</DataFile>
   </DataFiles>
 
   <!-- Categories is a list where this bundle should appear -->
@@ -29,7 +29,7 @@
 
   <Providers manager="toolbar">
     <Provider tab="Extras" section="Selection" hidden="true" name="selection inspector"
-      display_name="Inspect" icon="magnifying-glass.png" description="Inspect current selection"/>
+      display_name="Inspect" icon="magnifying-glass.webp" description="Inspect current selection"/>
   </Providers>
 
   <Classifiers>

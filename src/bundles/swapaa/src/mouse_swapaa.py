@@ -12,7 +12,7 @@
 from chimerax.mouse_modes import MouseMode
 class SwapAAMouseMode(MouseMode):
     name = 'swapaa'
-    icon_file = 'swapaa.png'
+    icon_file = 'swapaa.webp'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)

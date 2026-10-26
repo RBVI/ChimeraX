@@ -124,14 +124,14 @@ class SegmentationToolControlsDialog(QDialog):
             os.path.join(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                 "icons",
-                "right_controller.png",
+                "right_controller.webp",
             )
         )
         self.mouse_image = QImage(
             os.path.join(
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                 "icons",
-                "mouse.png",
+                "mouse.webp",
             )
         )
 

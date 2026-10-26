@@ -10,7 +10,7 @@
   <Description>Measure and color connected parts of a surface.</Description>
 
   <DataFiles>
-    <DataFile>pickblobs.png</DataFile>
+    <DataFile>pickblobs.webp</DataFile>
   </DataFiles>
 
   <Categories>

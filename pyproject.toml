@@ -148,6 +148,7 @@ version = { attr = "chimerax.core.__version__" }
   "**/*.lib",
   "**/*.a",
   "**/*.png",
+  "**/*.webp",
   "**/icons/**",
   "**/static/**",
   "**/html/**",

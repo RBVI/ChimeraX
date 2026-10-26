@@ -10,7 +10,7 @@
   <Description>Erase image data within a sphere.</Description>
 
   <DataFiles>
-    <DataFile>eraser.png</DataFile>
+    <DataFile>eraser.webp</DataFile>
   </DataFiles>
 
   <Categories>

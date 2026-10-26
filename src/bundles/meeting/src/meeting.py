@@ -1973,7 +1973,7 @@ class VRHeadModel(Model):
     pickable = False
     skip_bounds = True
     SESSION_SAVE = False
-    default_face_file = 'face.png'
+    default_face_file = 'face.webp'
     def __init__(self, session, name = 'Head', size = 0.3, image_file = None):
         self.room_position = None
 

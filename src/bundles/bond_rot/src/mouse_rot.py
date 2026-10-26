@@ -25,7 +25,7 @@
 from chimerax.mouse_modes import MouseMode
 class BondRotationMouseMode(MouseMode):
     name = 'bond rotation'
-    icon_file = 'bondrot.png'
+    icon_file = 'bondrot.webp'
 
     def __init__(self, session):
         MouseMode.__init__(self, session)

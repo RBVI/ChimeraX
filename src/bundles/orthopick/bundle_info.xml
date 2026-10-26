@@ -10,7 +10,7 @@
   <Description>Show orthogonal views for tomogram particle picking.</Description>
 
   <DataFiles>
-    <DataFile>icons/orthopick.png</DataFile>
+    <DataFile>icons/orthopick.webp</DataFile>
   </DataFiles>
 
   <Categories>
@@ -26,7 +26,7 @@
 
   <Providers manager="toolbar">
     <Provider tab="Right Mouse" section="Map" hidden="true"
-	      name="orthopick" icon="orthopick.png" display_name="Orthopick"
+	      name="orthopick" icon="orthopick.webp" display_name="Orthopick"
 	      description="Show orthogonal views of picked particles in tomograms."/>
   </Providers>
 
