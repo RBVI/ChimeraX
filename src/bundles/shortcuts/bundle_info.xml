@@ -7,6 +7,7 @@
   <Description>Provide button and keyboard shortcuts for common commands.</Description>
   <DataFiles>
     <DataFile>icons/*.webp</DataFile>
+    <DataFile>icons/*.png</DataFile>
     <DataFile>icons/*.svg</DataFile>
   </DataFiles>
   <Categories>

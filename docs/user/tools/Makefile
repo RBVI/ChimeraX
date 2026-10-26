@@ -17,7 +17,7 @@ include $(TOP)/mk/config.make
 DOCDIR = $(app_datadir)/docs/user/tools
 
 SRCS = $(wildcard *.html)
-IMAGES = $(wildcard *.webp) $(wildcard *.svg)
+IMAGES = $(wildcard *.webp) $(wildcard *.png) $(wildcard *.svg)
 
 MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.webp \
 		$(TOP)/src/bundles/bond_rot/src/bondrot.webp \
@@ -38,20 +38,27 @@ MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.webp \
 		$(TOP)/src/bundles/pick_blobs/src/pickblobs.webp \
 		$(TOP)/src/bundles/map_eraser/src/eraser.webp \
 		$(TOP)/src/bundles/tape_measure/src/tape.webp \
-		$(TOP)/src/bundles/viewdock/src/icons/nextdocking.webp
+		$(TOP)/src/bundles/viewdock/src/icons/nextdocking.webp \
+		$(wildcard $(TOP)/src/bundles/mouse_modes/src/icons/*.png \
+			$(TOP)/src/bundles/map/src/icons/*.png \
+			$(TOP)/src/bundles/markers/src/icons/*.png \
+			$(TOP)/src/bundles/orthopick/src/icons/*.png)
 MICONDIR = $(DOCDIR)/mouse-icons
 SCICONDIR = $(TOP)/src/bundles/shortcuts/src/icons
-SHORTCUTICONS = $(SCICONDIR)/*.webp $(SCICONDIR)/*.svg
+SHORTCUTICONS = $(SCICONDIR)/*.webp $(SCICONDIR)/*.svg $(wildcard $(SCICONDIR)/*.png)
 SICONDIR = $(DOCDIR)/shortcut-icons
 TOOLBARICONS = $(TOP)/src/bundles/toolbar/src/icons/*.webp \
 		$(TOP)/src/bundles/medical_toolbar/src/icons/opendicom.webp \
-		$(TOP)/src/bundles/sel_inspector/src/icons/magnifying-glass.webp
+		$(TOP)/src/bundles/sel_inspector/src/icons/magnifying-glass.webp \
+		$(wildcard $(TOP)/src/bundles/toolbar/src/icons/*.png)
 TICONDIR = $(DOCDIR)/toolbar-icons
-NUCICONS = $(TOP)/src/bundles/nucleotides/src/icons/*.webp
+NUCICONS = $(TOP)/src/bundles/nucleotides/src/icons/*.webp \
+		$(wildcard $(TOP)/src/bundles/nucleotides/src/icons/*.png)
 NICONDIR = $(DOCDIR)/nuc-icons
 BASICICONS = $(TOP)/src/bundles/basic_actions/src/lib/*.svg
 BICONDIR = $(DOCDIR)/basic-icons
-UIICONS = $(TOP)/src/bundles/ui/src/icons/*.webp
+UIICONS = $(TOP)/src/bundles/ui/src/icons/*.webp \
+		$(wildcard $(TOP)/src/bundles/ui/src/icons/*.png)
 UICONDIR = $(DOCDIR)/ui-icons
 
 install: install-icons

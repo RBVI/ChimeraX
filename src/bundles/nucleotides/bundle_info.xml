@@ -33,6 +33,7 @@
 
   <DataFiles>
     <DataFile>icons/*.webp</DataFile>
+    <DataFile>icons/*.png</DataFile>
   </DataFiles>
 
   <Providers manager="toolbar">

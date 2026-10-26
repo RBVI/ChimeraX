@@ -17,6 +17,7 @@ UCSF DOCK output in PDB and mol2 formats are supported.
 
   <DataFiles>
     <DataFile>icons/*.webp</DataFile>
+    <DataFile>icons/*.png</DataFile>
   </DataFiles>
 
   <!-- Categories is a list where this bundle should appear -->

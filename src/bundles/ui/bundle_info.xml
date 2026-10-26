@@ -13,6 +13,7 @@
     <DataFile>about.html</DataFile>
     <DataFile>splash.jpg</DataFile>
     <DataFile>icons/*.webp</DataFile>
+    <DataFile>icons/*.png</DataFile>
     <DataDir>html</DataDir>
   </DataFiles>
 
