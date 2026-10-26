@@ -29,6 +29,7 @@ CLEAN_ALWAYS ?=
 
 ifdef DEBUG
 DEBUG_ARG += debug true
+BUILD_DEBUG_ARG = --debug
 endif
 
 # Platform-dependent settings.  Should not need fixing.
@@ -67,8 +68,18 @@ endif
 
 ifdef RELEASE
 RELEASE_ARG=release true
+BUILD_RELEASE_ARG=--release
 else
 RELEASE_ARG=
+BUILD_RELEASE_ARG=
+endif
+
+# With NO_DOGFOODING, bundles are built without starting ChimeraX, which is
+# much faster; otherwise the devel command builds them, so it stays in use
+ifdef NO_DOGFOODING
+BUILD_WHEEL = PYTHONNOUSERSITE=1 $(PYTHONISO) -m chimerax.bundle_builder --build . $(BUILD_RELEASE_ARG) $(BUILD_DEBUG_ARG) $(BUILD_ARGS)
+else
+BUILD_WHEEL = $(RUN_CMD) "devel build . exit true $(RELEASE_ARG) $(DEBUG_ARG) $(BUILD_ARGS)"
 endif
 
 PYSRCS = $(wildcard src/*.py)
@@ -79,7 +90,7 @@ wheel: $$(PYSRCS)
 	if [ -z "$(APP_PYTHON_EXE)" ]; then \
 		echo "missing ChimeraX application's python"; exit 1; \
 	else \
-		$(RUN_CMD) "devel build . exit true $(RELEASE_ARG) $(DEBUG_ARG) $(BUILD_ARGS)"; \
+		$(BUILD_WHEEL); \
 	fi
 
 uv-install uv-app-install:
