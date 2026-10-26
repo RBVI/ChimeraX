@@ -6,6 +6,9 @@ sdk: org.freedesktop.Sdk
 command: ChimeraX
 
 build-options:
+  # Only strip binaries.  Otherwise flatpak-builder extracts and compresses
+  # every ELF file's debug info for a .Debug extension that we never publish.
+  strip: true
   build_args:
   # need to fetch files from https://cxtoolshed.rbvi.ucsf.edu/prereqs
   - --share=network
