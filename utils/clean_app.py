@@ -18,6 +18,7 @@ def clean_app(chimerax_root):
     remove_package_tests(sysconfig.get_path("purelib"))
     remove_tkinter(sys.base_prefix, sysconfig.get_path("stdlib"),
                    sysconfig.get_path("scripts"))
+    remove_babel_locales(sysconfig.get_path("purelib"))
     if sys.platform == "darwin":
         thin_macos_binaries(chimerax_root, platform.machine())
     # TODO: figure this out
@@ -124,6 +125,30 @@ def remove_tkinter(prefix, stdlib, scripts):
                              for fn in files)
             shutil.rmtree(path)
     print(f"clean_app: removed {freed / 1e6:.0f} MB of tkinter and Tcl/Tk")
+    return freed
+
+
+# Babel's CLDR data for English and the root locale it inherits from
+BABEL_KEEP_LOCALES = re.compile(r"(root|en|en_\w+)\.dat")
+
+
+def remove_babel_locales(site_packages):
+    """Remove Babel's locale data for languages other than English
+
+    Only Sphinx uses Babel, to build ChimeraX's and some Toolshed bundles'
+    (e.g., ISOLDE's) English documentation.  The other ~1000 locales are 29 MB.
+    """
+    locale_dir = os.path.join(site_packages, "babel", "locale-data")
+    if not os.path.isdir(locale_dir):
+        return 0
+    freed = 0
+    for fn in os.listdir(locale_dir):
+        if not fn.endswith(".dat") or BABEL_KEEP_LOCALES.fullmatch(fn):
+            continue
+        path = os.path.join(locale_dir, fn)
+        freed += os.lstat(path).st_size
+        os.remove(path)
+    print(f"clean_app: removed {freed / 1e6:.0f} MB of Babel locale data")
     return freed
 
 
