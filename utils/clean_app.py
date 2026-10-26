@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 import sysconfig
+from concurrent.futures import ThreadPoolExecutor
 
 
 def clean_app(chimerax_root, keep_debug_info=False):
@@ -250,27 +251,35 @@ def thin_macos_binaries(chimerax_root, arch):
     so each build only needs its own architecture.  Wheels like PySide6's
     are universal2, which roughly doubles their size.
     """
-    freed = 0
+    paths = []
     for root, dirs, files in os.walk(chimerax_root):
         for fn in files:
             path = os.path.join(root, fn)
-            if os.path.islink(path) or not is_fat_macho(path):
-                continue
-            result = subprocess.run(["lipo", "-archs", path],
-                                    capture_output=True, text=True)
-            if result.returncode != 0:
-                continue
-            if arch not in result.stdout.split():
-                print(f"clean_app: no {arch} code in {path}", file=sys.__stderr__)
-                continue
-            size = os.path.getsize(path)
-            thin = path + ".thin"
-            subprocess.run(["lipo", "-thin", arch, path, "-output", thin],
-                           check=True)
-            shutil.copymode(path, thin)
-            os.replace(thin, path)
-            freed += size - os.path.getsize(path)
+            if not os.path.islink(path) and is_fat_macho(path):
+                paths.append(path)
+
+    def thin(path):
+        """Return the number of bytes freed"""
+        result = subprocess.run(["lipo", "-archs", path],
+                                capture_output=True, text=True)
+        if result.returncode != 0:
+            return 0
+        if arch not in result.stdout.split():
+            print(f"clean_app: no {arch} code in {path}", file=sys.__stderr__)
+            return 0
+        size = os.path.getsize(path)
+        thin_path = path + ".thin"
+        subprocess.run(["lipo", "-thin", arch, path, "-output", thin_path],
+                       check=True)
+        shutil.copymode(path, thin_path)
+        os.replace(thin_path, path)
+        return size - os.path.getsize(path)
+
+    # Two lipo runs per binary, one binary per CPU at a time
+    with ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:
+        freed = sum(pool.map(thin, paths))
     print(f"clean_app: removed {freed / 1e6:.0f} MB of non-{arch} code")
+    return freed
 
 
 def elf_files(chimerax_root):
