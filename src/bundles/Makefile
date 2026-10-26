@@ -97,7 +97,9 @@ endif
 #             behind every other bundle; a short list of its own is rescanned
 #             quickly.  The parts of bundles that need no other bundle
 #             (PREBUILD_SUBDIRS) start right away, alongside core; then the
-#             longest chains are listed first.
+#             longest chains are listed first, and bundles that are not on one
+#             (CRITICAL_SUBDIRS) are kept out of their way (see the c.phase
+#             rules at the end).
 #
 # toolshed_utils only needs setuptools, so it also runs alongside core.
 PREBUILD_SUBDIRS = md_crds mmcif
@@ -108,8 +110,11 @@ PY_SUBDIRS = $(filter-out $(C_BUILD_SUBDIRS) $(C_SUBDIRS),$(SUBDIRS))
 .PHONY: phased-build c.phase py.phase py.batch core.build toolshed_utils.build \
 	$(PREBUILD_SUBDIRS:=.prebuild)
 phased-build: c.phase py.phase toolshed_utils.build
+# c.phase is not limited by job slots: the low priority bundles hold theirs
+# for a long time, and a critical bundle must not wait behind them for one.
+# There are only a few dozen bundles, and each limits its own compiles.
 c.phase:
-	$(MAKE) PHASED_C_BUILD=1 core.build \
+	$(MAKE) -j PHASED_C_BUILD=1 core.build \
 		$(PREBUILD_SUBDIRS:=.prebuild) $(C_BUILD_SUBDIRS:=.build)
 # Each pure Python bundle takes a fraction of a second, and they have plenty of
 # time, so a few at a time is enough and leaves the cores to the C bundles
@@ -125,14 +130,14 @@ py.phase:
 	$(MAKE) -j$(PY_PHASE_JOBS) $(PY_MAKE_SUBDIRS:=.build) \
 		$(if $(PY_BATCH_SUBDIRS),py.batch)
 py.batch:
-	PYTHONNOUSERSITE=1 $(APP_PYTHON_EXE) -m chimerax.bundle_builder \
+	PYTHONNOUSERSITE=1 $(LOW_PRIORITY) $(APP_PYTHON_EXE) -m chimerax.bundle_builder \
 		-j $(PY_PHASE_JOBS) $(if $(DEBUG),--debug) $(if $(RELEASE),--release) \
 		--build $(PY_BATCH_SUBDIRS)
 	cp -p $(PY_BATCH_SUBDIRS:=/dist/*.whl) $(SYNC_DIR)
 core.build toolshed_utils.build:
 	$(MAKE) -C $(subst .build,,$@) build
 $(PREBUILD_SUBDIRS:=.prebuild):
-	$(MAKE) -C $(subst .prebuild,,$@) prebuild
+	$(LOW_PRIORITY) $(MAKE) -C $(subst .prebuild,,$@) prebuild
 uv-install:
 	PYTHON=python $(MAKE) -C bundle_builder uv-build
 	PYTHON=python $(MAKE) -C core uv-build
@@ -188,4 +193,13 @@ ifdef PHASED_C_BUILD
 # Only in c.phase, so that "make build" still does not rebuild core
 $(addsuffix .build,$(filter $(CORE_DEP_SUBDIRS),$(C_BUILD_SUBDIRS))): core.build
 $(foreach d,$(PREBUILD_SUBDIRS),$(eval $(d).build: $(d).prebuild))
+# Bundles off the critical path: those that can start alongside its first
+# steps have until its end, so they use the efficiency cores; the others wait
+# for its step at their own depth (see Make_dependencies.py).  private, so the
+# bundles these depend on do not inherit it.
+$(addsuffix .build,$(filter $(EARLY_SUBDIRS),$(C_BUILD_SUBDIRS))): \
+	private SUBDIR_BUILD_PREFIX = $(BACKGROUND_COMPILE_PRIORITY)
+$(addsuffix .build,$(filter-out $(CRITICAL_SUBDIRS) $(EARLY_SUBDIRS),$(C_BUILD_SUBDIRS))): \
+	private SUBDIR_BUILD_PREFIX = $(LOW_PRIORITY)
+$(foreach w,$(LATE_WAITS),$(eval $(subst :,: ,$(w))))
 endif

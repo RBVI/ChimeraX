@@ -235,5 +235,26 @@ endif
 
 PYLINT = $(PYTHON_EXE) -m flake8
 
+# Prefix for commands that should yield the CPU to others.  (On macOS, a
+# "taskpolicy -c utility" clamp is stronger, but it confines work to the
+# efficiency cores and throttles its I/O, which makes it far too slow for
+# work that anything waits on soon.)
+ifeq ($(OS),Windows)
+LOW_PRIORITY =
+else
+LOW_PRIORITY = nice -n 10
+endif
+# Prefix for work with plenty of time to finish, which on macOS keeps it on
+# the efficiency cores, out of the way of the work others wait on
+ifeq ($(OS),Darwin)
+BACKGROUND_PRIORITY = taskpolicy -c utility
+# The same for building bundles, but only for their compilers: bundle_builder
+# itself (Python, and largely serial) is slowed by it far more than they are
+BACKGROUND_COMPILE_PRIORITY = CHIMERAX_BUILD_SPAWN_PREFIX='$(BACKGROUND_PRIORITY)' $(LOW_PRIORITY)
+else
+BACKGROUND_PRIORITY = $(LOW_PRIORITY)
+BACKGROUND_COMPILE_PRIORITY = $(LOW_PRIORITY)
+endif
+
 # common makefile targets
 .PHONY: all install app-install clean
