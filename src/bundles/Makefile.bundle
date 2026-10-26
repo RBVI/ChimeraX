@@ -167,14 +167,18 @@ debug:
 	$(CX_BIN) --debug
 
 clean:
-ifndef NO_CHIMERAX_APP
+ifeq ($(NO_DOGFOODING)$(NO_CHIMERAX_APP),)
 	if [ -x "$(APP_PYTHON_EXE)" -a -e bundle_info.xml ]; then \
 		$(RUN_CMD) "devel clean . exit true" ; \
 	else \
 		rm -rf $(CLEAN) ; \
 	fi
 else
+	# Same as "devel clean", without the cost of starting ChimeraX
 	rm -rf $(CLEAN)
+	if [ -d src ]; then \
+		find src \( -name '*.a' -o -name '*.o' -o -name '*.obj' \) -type f -delete ; \
+	fi
 endif
 	if [ -n "$(CLEAN_ALWAYS)" ]; then \
 		rm -rf $(CLEAN_ALWAYS); \
