@@ -71,12 +71,48 @@ $(SUBDIR_BUILD): dir
 
 install:
 	$(MAKE) -C bundle_builder build
+ifdef NO_DOGFOODING
+	$(MAKE) phased-build
+else
+	# "devel build" starts ChimeraX, so core and toolshed_utils come first
 	$(MAKE) -C core build
 	$(MAKE) -C toolshed_utils build
 	$(MAKE) build
+endif
 	cd $(SYNC_DIR) && $(APP_PIP_INSTALL) *.whl
 	$(APP_PYTHON_EXE) -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
 
+# With NO_DOGFOODING (see Makefile.bundle), the same as "build", but split
+# into two sub-makes that share the jobserver, so the total number of jobs is
+# unchanged:
+#
+#   py.phase  Pure Python bundles.  Wheels are built without ChimeraX, so these
+#             only need bundle_builder and run alongside core, a few at a
+#             time.
+#   c.phase   core, then the bundles with compiled code.  When a job finishes,
+#             make resumes its walk through the prerequisite list where it left
+#             off and only revisits targets that were waiting on a dependency
+#             after reaching the end.  In one long list with the pure Python
+#             bundles, the arrays -> atomic_lib -> pdb_lib -> mmcif chain waits
+#             behind every other bundle; a short list of its own is rescanned
+#             quickly.  The longest chains are listed first.
+#
+# toolshed_utils only needs setuptools, so it also runs alongside core.
+CHAIN_SUBDIRS = $(filter $(SUBDIRS),$(BUILD_DEP_SUBDIRS))
+C_REST_SUBDIRS = $(filter-out $(CHAIN_SUBDIRS),$(filter $(SUBDIRS),$(C_SUBDIRS)))
+C_BUILD_SUBDIRS = $(CHAIN_SUBDIRS) $(C_REST_SUBDIRS)
+PY_SUBDIRS = $(filter-out $(C_BUILD_SUBDIRS) $(C_SUBDIRS),$(SUBDIRS))
+.PHONY: phased-build c.phase py.phase core.build toolshed_utils.build
+phased-build: c.phase py.phase toolshed_utils.build
+c.phase:
+	$(MAKE) PHASED_C_BUILD=1 core.build $(C_BUILD_SUBDIRS:=.build)
+# Each pure Python bundle takes a fraction of a second, and they have plenty of
+# time, so a few at a time is enough and leaves the cores to the C bundles
+PY_PHASE_JOBS = 6
+py.phase:
+	$(MAKE) -j$(PY_PHASE_JOBS) $(PY_SUBDIRS:=.build)
+core.build toolshed_utils.build:
+	$(MAKE) -C $(subst .build,,$@) build
 uv-install:
 	PYTHON=python $(MAKE) -C bundle_builder uv-build
 	PYTHON=python $(MAKE) -C core uv-build
@@ -124,4 +160,11 @@ ifneq ($(MAKECMDGOALS),clean)
 $(REST_SUBDIRS:=.build):
 
 include Makefile.dependencies
+endif
+
+# c.phase rules (see phased-build above).  They come after the include since
+# the target lists use its variables.
+ifdef PHASED_C_BUILD
+# Only in c.phase, so that "make build" still does not rebuild core
+$(addsuffix .build,$(filter $(CORE_DEP_SUBDIRS),$(C_BUILD_SUBDIRS))): core.build
 endif
