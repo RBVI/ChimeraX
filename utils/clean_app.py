@@ -16,6 +16,8 @@ def clean_app(chimerax_root):
     """Clean application tree for distribution"""
     remove_pycache(chimerax_root)
     remove_package_tests(sysconfig.get_path("purelib"))
+    remove_tkinter(sys.base_prefix, sysconfig.get_path("stdlib"),
+                   sysconfig.get_path("scripts"))
     if sys.platform == "darwin":
         thin_macos_binaries(chimerax_root, platform.machine())
     # TODO: figure this out
@@ -79,6 +81,50 @@ def remove_package_tests(site_packages):
     for d in test_dirs:
         shutil.rmtree(d)
     return test_dirs
+
+
+# The standard library's Tk GUI modules
+TK_MODULES = ("tkinter", "idlelib", "turtledemo", "turtle.py")
+# _tkinter extension module, in lib-dynload or (Windows) DLLs
+TK_EXTENSION = re.compile(r"_tkinter\b.*\.(so|pyd)$")
+# Tcl/Tk libraries and script directories: libtcl9.0.dylib, libtcl9tk9.0.dylib,
+# tcl9.0, tk9.0, itcl4.3.8, thread3.0.6 (macOS, Linux) and tcl86t.dll,
+# tk86t.dll (Windows, whose scripts are all in a tcl directory)
+TCL_LIBS = re.compile(r"(lib)?(tcl|tk|itcl|thread|tdbc\w*)\d.*")
+TCL_DLLS = re.compile(r"(tcl|tk)\d+t?\.dll", re.IGNORECASE)
+
+
+def remove_tkinter(prefix, stdlib, scripts):
+    """Remove tkinter, IDLE, turtle and the Tcl/Tk they use
+
+    ChimeraX's GUI is Qt.  The Tk dialogs left in Segger are from Chimera
+    and are never shown.
+    """
+    paths = [os.path.join(stdlib, name) for name in TK_MODULES]
+    for d in (os.path.join(stdlib, "lib-dynload"), os.path.join(prefix, "DLLs")):
+        if os.path.isdir(d):
+            paths.extend(os.path.join(d, fn) for fn in os.listdir(d)
+                         if TK_EXTENSION.match(fn) or TCL_DLLS.fullmatch(fn))
+    lib = os.path.join(prefix, "lib")
+    if os.path.isdir(lib):
+        paths.extend(os.path.join(lib, fn) for fn in os.listdir(lib)
+                     if TCL_LIBS.fullmatch(fn))
+    paths.append(os.path.join(prefix, "tcl"))
+    if os.path.isdir(scripts):
+        paths.extend(os.path.join(scripts, fn) for fn in os.listdir(scripts)
+                     if fn.startswith("idle"))
+    freed = 0
+    for path in paths:
+        if os.path.islink(path) or os.path.isfile(path):
+            freed += os.lstat(path).st_size
+            os.remove(path)
+        elif os.path.isdir(path):
+            for root, _, files in os.walk(path):
+                freed += sum(os.lstat(os.path.join(root, fn)).st_size
+                             for fn in files)
+            shutil.rmtree(path)
+    print(f"clean_app: removed {freed / 1e6:.0f} MB of tkinter and Tcl/Tk")
+    return freed
 
 
 def is_fat_macho(path):
