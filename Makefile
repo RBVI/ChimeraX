@@ -53,8 +53,8 @@ endif
 # While the bundles build, load the app's newly written libraries once, so
 # macOS's first-load signature checks are paid then instead of later in the
 # docs build and ChimeraX runs.  The bundles' own are not written yet.
-.PHONY: src-install src.install warm-libraries
-src-install: src.install warm-libraries
+.PHONY: src-install src.install warm-libraries warm-bytecode
+src-install: src.install warm-libraries warm-bytecode
 src.install:
 	# post-src-install reloads the toolshed alongside the docs
 	$(MAKE) -C src install DEFER_TOOLSHED_RELOAD=1
@@ -64,6 +64,19 @@ ifeq ($(OS),Darwin)
 	-taskpolicy -c utility $(APP_PYTHON_EXE) utils/build/warm_libraries.py \
 		$(APP_PYTHON_LIBRARY_DIR) chimerax > /dev/null 2>&1
 endif
+
+# Likewise compile the bytecode of what the documentation build imports, which
+# it would otherwise compile itself, serially.  (The prerequisites are
+# installed without bytecode, since clean_app removes it all.)  Only speed
+# depends on this list.
+DOCS_IMPORTS = sphinx docutils pygments a11y_pygments sphinxcontrib babel \
+	jinja2 markupsafe bs4 soupsieve snowballstemmer pydata_sphinx_theme \
+	sphinx_autodoc_typehints alabaster imagesize roman_numerals requests \
+	urllib3 idna charset_normalizer certifi numpy PySide6 shiboken6 packaging
+warm-bytecode:
+	# (Some packages include files that are not meant to compile)
+	$(BACKGROUND_PRIORITY) $(APP_PYTHON_EXE) -m compileall -q -j0 \
+		$(wildcard $(addprefix $(APP_PYSITEDIR)/,$(DOCS_IMPORTS))) > /dev/null 2>&1 || true
 
 # Independent steps after the bundles are installed, run in parallel.  (Since
 # src is installed with DEFER_TOOLSHED_RELOAD, the toolshed is reloaded here.)
