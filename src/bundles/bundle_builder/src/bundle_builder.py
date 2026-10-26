@@ -7,6 +7,7 @@ import re
 import setuptools
 import sys
 import sysconfig
+import threading
 import setuptools._distutils as distutils
 from Cython.Build import cythonize
 from packaging.version import Version
@@ -15,6 +16,7 @@ from setuptools.build_meta import (
 )  # noqa import not in __all__
 
 from numpy import get_include as get_numpy_include_dirs
+from setuptools.command.build import build as _build
 from setuptools.command.build_ext import build_ext as _build_ext
 
 # The compile process is initiated by setuptools and handled
@@ -98,9 +100,55 @@ def _debug_info_args(compiler, debug):
     return []
 
 
+class _BackgroundBuild:
+    """Build a bundle's C libraries and executables in a thread while setup()
+    compiles its C modules, which only need the libraries when they link."""
+
+    def __init__(self, work):
+        self._work = work
+        self._error = None
+        self._thread = threading.Thread(target=self._run, daemon=True)
+
+    def _run(self):
+        try:
+            self._work()
+        except BaseException as e:
+            self._error = e
+
+    def start(self):
+        self._thread.start()
+
+    def join(self):
+        if self._thread.ident is not None:
+            self._thread.join()
+
+    def wait(self):
+        """Wait for the build to finish and raise any error it had."""
+        self._thread.join()
+        if self._error is not None:
+            raise RuntimeError(
+                "building the bundle's C libraries failed"
+            ) from self._error
+
+
+class _Build(_build):
+    """build that runs build_ext first.
+
+    build_ext waits for the bundle's C libraries (see _BackgroundBuild), which
+    build_py, which build would otherwise run first, packages."""
+
+    sub_commands = sorted(
+        _build.sub_commands, key=lambda command: command[0] != "build_ext"
+    )
+
+
 class _BuildExt(_build_ext):
     """build_ext that leaves out debug information unless --debug is given,
-    and compiles each extension into its own folder of object files."""
+    compiles each extension into its own folder of object files, and waits
+    for the bundle's C libraries before linking."""
+
+    # The _BackgroundBuild of the bundle's C libraries and executables, if any
+    background = None
 
     def build_extensions(self):
         compiler = self.compiler
@@ -116,6 +164,15 @@ class _BuildExt(_build_ext):
             )
 
         compiler.compile = compile_without_debug_info
+        background = self.background
+        if background is not None:
+            link = compiler.link_shared_object
+
+            def link_after_libraries(*args, **kw):
+                background.wait()
+                return link(*args, **kw)
+
+            compiler.link_shared_object = link_after_libraries
         super().build_extensions()
 
     def build_extension(self, ext):
@@ -128,6 +185,12 @@ class _BuildExt(_build_ext):
         command = copy(self)
         command.build_temp = os.path.join(self.build_temp, ext.name)
         return super(_BuildExt, command).build_extension(ext)
+
+    def run(self):
+        super().run()
+        if self.background is not None:
+            # build_py, which runs next, packages the libraries
+            self.background.wait()
 
 
 def _find_openmp_mac():
@@ -925,7 +988,7 @@ class BundleBuilder:
         self.setup_arguments = {
             "name": self.name,
             "python_requires": f">={rel[0]}.{rel[1]}",
-            "cmdclass": {"build_ext": _BuildExt},
+            "cmdclass": {"build": _Build, "build_ext": _BuildExt},
         }
         add_argument("version", self.version)
         add_argument("description", self.synopsis)
