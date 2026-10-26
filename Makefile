@@ -29,33 +29,60 @@ install:
 endif
 	@echo 'Started install at' `date` on `hostname`
 	$(MAKE) build-dirs
+	$(MAKE) prereqs-install
+	$(MAKE) build-app-dirs
+	$(MAKE) src-install
+	$(MAKE) post-src-install
+	# after the docs, whose imports leave __pycache__ directories behind
+	$(APP_PYTHON_EXE) utils/clean_app.py $(if $(DEBUG),--keep-debug-info)
+ifdef FLATPAK_DIST
+	-${APP_PYTHON_EXE} -m compileall -d CHIMERAX ${app_libdir}
+	${APP_EXE} --exit --nogui --silent --cmd 'linux flatpak-files edu.ucsf.rbvi.ChimeraX'
+endif
+	@echo 'Finished install at' `date`
+
+.PHONY: prereqs-install
+prereqs-install:
 ifdef NO_PREBUILT
 	$(MAKE) -C prereqs install
 else
 	$(MAKE) -C prereqs install-prebuilt
 endif
 	$(MAKE) -C prereqs app-install
-	$(MAKE) build-app-dirs
-	$(MAKE) -C src install
-	$(MAKE) -C docs install
+
+.PHONY: src-install src.install
+src-install: src.install
+src.install:
+	# post-src-install reloads the toolshed alongside the docs
+	$(MAKE) -C src install DEFER_TOOLSHED_RELOAD=1
+
+# Independent steps after the bundles are installed, run in parallel.  (Since
+# src is installed with DEFER_TOOLSHED_RELOAD, the toolshed is reloaded here.)
+POST_SRC_INSTALL = docs.post-install pip-check.post-install \
+	toolshed-reload.post-install
 ifndef WIN32
-	# Admin privileges are needed on Windows 10
-	# To enable, follow the instructions at
-	# https://stackoverflow.com/a/65504258/12208118
-	# then you can make -C vdocs by hand if you like
-	$(MAKE) -C vdocs install
+# Admin privileges are needed for vdocs on Windows 10
+# To enable, follow the instructions at
+# https://stackoverflow.com/a/65504258/12208118
+# then you can make -C vdocs by hand if you like
+POST_SRC_INSTALL += vdocs.post-install
 endif
-	$(MAKE) clean-app
-	$(APP_PYTHON_EXE) -m pip check
 ifeq ($(OS),Darwin)
+POST_SRC_INSTALL += plist.post-install
+endif
+.PHONY: post-src-install $(POST_SRC_INSTALL)
+post-src-install: $(POST_SRC_INSTALL)
+# These run ChimeraX, which needs an up-to-date toolshed
+vdocs.post-install plist.post-install: toolshed-reload.post-install
+toolshed-reload.post-install:
+	$(APP_PYTHON_EXE) -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
+docs.post-install vdocs.post-install:
+	$(MAKE) -C $(subst .post-install,,$@) install
+pip-check.post-install:
+	$(APP_PYTHON_EXE) -m pip check
+plist.post-install:
 	# update Info.plist with data formats provided by bundles
 	$(MAKE) -C src/apps/ChimeraX install-plist
-endif
-ifdef FLATPAK_DIST
-	-${APP_PYTHON_EXE} -m compileall -d CHIMERAX ${app_libdir}
-	${APP_EXE} --exit --nogui --silent --cmd 'linux flatpak-files edu.ucsf.rbvi.ChimeraX'
-endif
-	@echo 'Finished install at' `date`
 
 uv-build: build-dirs
 	uv pip install -r pyproject.toml --all-extras
