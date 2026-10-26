@@ -73,7 +73,7 @@ install: clean html
 
 clean:
 	-rm -rf $(BUILDDIR)/* conf.py index.rst _static/cxlinks.js __pycache__ _static/devdocs.css \
-		apps chimerax modules
+		apps chimerax cpp modules
 
 conf.py: conf.py.in
 	sed -e 's/PYTHON_VERSION/$(PYTHON_VERSION)/' \
