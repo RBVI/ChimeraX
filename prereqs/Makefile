@@ -84,6 +84,16 @@ install-prebuilt:
 endif
 
 SUBDIR_APP_INSTALL = $(SUBDIRS:=.app-install)
+ifdef SKIP_PYTHON_APP_INSTALL
+# The top-level install has installed the app's Python already, so that it
+# can build bundle_builder alongside the rest (see prereqs-install there).
+# (On Windows that installed win32 first, which must not run again: it would
+# replace DLLs next to the Python that bundle_builder is running.)
+SKIPPED_APP_INSTALL = Python.app-install win32.app-install
+SUBDIR_APP_INSTALL := $(filter-out $(SKIPPED_APP_INSTALL),$(SUBDIR_APP_INSTALL))
+.PHONY: $(SKIPPED_APP_INSTALL)
+$(SKIPPED_APP_INSTALL):
+endif
 .PHONY: $(SUBDIR_APP_INSTALL)
 app-install: $(SUBDIR_APP_INSTALL)
 

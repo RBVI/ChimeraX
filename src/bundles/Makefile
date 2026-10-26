@@ -70,7 +70,9 @@ dir:	Makefile.dependencies
 $(SUBDIR_BUILD): dir
 
 install:
+ifndef BUNDLE_BUILDER_INSTALLED
 	$(MAKE) -C bundle_builder build
+endif
 ifdef NO_DOGFOODING
 	$(MAKE) phased-build
 else

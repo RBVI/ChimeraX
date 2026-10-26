@@ -41,14 +41,23 @@ ifdef FLATPAK_DIST
 endif
 	@echo 'Finished install at' `date`
 
-.PHONY: prereqs-install
-prereqs-install:
+.PHONY: prereqs-install prereqs.build \
+	prereqs.python-app-install prereqs.app-install bundle_builder.install
+# Every bundle needs bundle_builder, which needs only the app's Python, so it
+# is built and installed alongside the rest of the prerequisites' app install
+prereqs-install: prereqs.app-install bundle_builder.install
+prereqs.build:
 ifdef NO_PREBUILT
 	$(MAKE) -C prereqs install
 else
 	$(MAKE) -C prereqs install-prebuilt
 endif
-	$(MAKE) -C prereqs app-install
+prereqs.python-app-install: prereqs.build
+	$(MAKE) -C prereqs Python.app-install
+prereqs.app-install: prereqs.python-app-install
+	$(MAKE) -C prereqs app-install SKIP_PYTHON_APP_INSTALL=1
+bundle_builder.install: prereqs.python-app-install
+	$(MAKE) -C src/bundles/bundle_builder build
 
 # While the bundles build, load the app's newly written libraries once, so
 # macOS's first-load signature checks are paid then instead of later in the
@@ -57,7 +66,7 @@ endif
 src-install: src.install warm-libraries warm-bytecode
 src.install:
 	# post-src-install reloads the toolshed alongside the docs
-	$(MAKE) -C src install DEFER_TOOLSHED_RELOAD=1
+	$(MAKE) -C src install DEFER_TOOLSHED_RELOAD=1 BUNDLE_BUILDER_INSTALLED=1
 warm-libraries:
 ifeq ($(OS),Darwin)
 	# utility QoS: efficiency cores only, which is fast enough for this
