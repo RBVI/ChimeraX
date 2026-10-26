@@ -63,7 +63,13 @@ def test_c_module_compiles_leave_out_debug_info(builder, monkeypatch):
     assert calls == [
         (
             ["a.cpp"],
-            {"macros": [], "debug": False, "extra_postargs": ["-O2", "-g0"], "depends": []},
+            {
+                "macros": [],
+                "debug": False,
+                "extra_preargs": None,
+                "extra_postargs": ["-O2", "-g0"],
+                "depends": [],
+            },
         )
     ]
 
@@ -71,3 +77,33 @@ def test_c_module_compiles_leave_out_debug_info(builder, monkeypatch):
 def test_c_module_debug_compiles_keep_debug_info(builder, monkeypatch):
     calls = _build_extensions(builder, monkeypatch, debug=True)
     assert calls[0][1]["extra_postargs"] == ["-O2"]
+
+
+def test_c_module_sources_compile_in_their_own_calls(builder, monkeypatch, tmp_path):
+    sources = []
+    for name, size in (("a.cpp", 1), ("b.cpp", 100), ("c.cpp", 10)):
+        path = tmp_path / name
+        path.write_text("x" * size)
+        sources.append(str(path))
+    preargs = ["-std=c++17"]
+    results = []
+
+    def build_extensions(self):
+        results.append(self.compiler.compile(
+            sources, macros=[], debug=False, extra_preargs=preargs,
+            extra_postargs=["-O2"], depends=[],
+        ))
+
+    monkeypatch.setattr(builder._build_ext, "build_extensions", build_extensions)
+    command = object.__new__(builder._BuildExt)
+    command.compiler = FakeCompiler()
+    command.build_extensions()
+    calls = command.compiler.calls
+    # One call per source, each with -g0 once, returning objects in order
+    assert sorted(s for (s,), _ in calls) == sorted(sources)
+    assert all(kw["extra_postargs"] == ["-O2", "-g0"] for _, kw in calls)
+    assert all(kw["extra_preargs"] == preargs for _, kw in calls)
+    # each has its own copy, which MSVC's compile() appends to
+    assert len({id(kw["extra_preargs"]) for _, kw in calls}) == len(sources)
+    assert all(kw["extra_preargs"] is not preargs for _, kw in calls)
+    assert results == [sources]

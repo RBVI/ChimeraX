@@ -181,9 +181,10 @@ class _Build(_build):
 
 
 class _BuildExt(_build_ext):
-    """build_ext that leaves out debug information unless --debug is given,
-    compiles each extension into its own folder of object files, and waits
-    for the bundle's C libraries before linking."""
+    """build_ext that compiles each extension's sources in parallel, leaves
+    out debug information unless --debug is given, compiles each extension
+    into its own folder of object files, and waits for the bundle's C
+    libraries before linking."""
 
     # The _BackgroundBuild of the bundle's C libraries and executables, if any
     background = None
@@ -192,16 +193,30 @@ class _BuildExt(_build_ext):
         compiler = self.compiler
         compile = compiler.compile
 
-        def compile_without_debug_info(
-            sources, *args, debug=False, extra_postargs=None, **kw
+        def compile_sources(
+            sources, *args, debug=False, extra_preargs=None, extra_postargs=None,
+            **kw
         ):
+            if len(sources) > 1 and not args:
+                # build_ext -j builds extensions in parallel, but compiles the
+                # sources of each one after another.  This calls back here for
+                # each source.  (Each gets its own extra_preargs, which MSVC's
+                # compile() appends to.)
+                jobs = [
+                    (source, None if extra_preargs is None else list(extra_preargs))
+                    for source in sources
+                ]
+                return _compile_in_parallel(
+                    compiler, jobs, debug=debug, extra_postargs=extra_postargs, **kw
+                )
             extra_postargs = list(extra_postargs or [])
             extra_postargs += _debug_info_args(compiler, debug)
             return compile(
-                sources, *args, debug=debug, extra_postargs=extra_postargs, **kw
+                sources, *args, debug=debug, extra_preargs=extra_preargs,
+                extra_postargs=extra_postargs, **kw
             )
 
-        compiler.compile = compile_without_debug_info
+        compiler.compile = compile_sources
         background = self.background
         if background is not None:
             link = compiler.link_shared_object
