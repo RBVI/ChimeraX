@@ -21,5 +21,4 @@ SUBDIRS	+= bundles apps examples
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
 
-# Ensure bundles installs first even on parallel builds
-apps.install: bundles.install
+# apps needs only the prerequisites, so it builds alongside the bundles
