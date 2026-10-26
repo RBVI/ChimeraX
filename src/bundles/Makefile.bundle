@@ -143,6 +143,13 @@ endif
 sync:
 	cp -av dist/*.whl $(SYNC_DIR)
 
+# Bundles may extend this with parts of their build that need no other bundle,
+# so they can be made before the build time dependencies are ready.
+# PREBUILD_EXTENSIONS names extension modules that use no other bundle's
+# headers or libraries; the wheel build then finds them up to date.
+prebuild:
+	$(if $(PREBUILD_EXTENSIONS),PYTHONNOUSERSITE=1 $(PYTHONISO) -m chimerax.bundle_builder --build . $(BUILD_DEBUG_ARG) --extensions $(PREBUILD_EXTENSIONS))
+
 ifdef BUILD_AND_INSTALL
 INSTALL_ARGS = noDeps true
 ifdef NO_DOGFOODING

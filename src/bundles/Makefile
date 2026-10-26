@@ -95,17 +95,22 @@ endif
 #             after reaching the end.  In one long list with the pure Python
 #             bundles, the arrays -> atomic_lib -> pdb_lib -> mmcif chain waits
 #             behind every other bundle; a short list of its own is rescanned
-#             quickly.  The longest chains are listed first.
+#             quickly.  The parts of bundles that need no other bundle
+#             (PREBUILD_SUBDIRS) start right away, alongside core; then the
+#             longest chains are listed first.
 #
 # toolshed_utils only needs setuptools, so it also runs alongside core.
+PREBUILD_SUBDIRS = md_crds mmcif
 CHAIN_SUBDIRS = $(filter $(SUBDIRS),$(BUILD_DEP_SUBDIRS))
 C_REST_SUBDIRS = $(filter-out $(CHAIN_SUBDIRS),$(filter $(SUBDIRS),$(C_SUBDIRS)))
 C_BUILD_SUBDIRS = $(CHAIN_SUBDIRS) $(C_REST_SUBDIRS)
 PY_SUBDIRS = $(filter-out $(C_BUILD_SUBDIRS) $(C_SUBDIRS),$(SUBDIRS))
-.PHONY: phased-build c.phase py.phase py.batch core.build toolshed_utils.build
+.PHONY: phased-build c.phase py.phase py.batch core.build toolshed_utils.build \
+	$(PREBUILD_SUBDIRS:=.prebuild)
 phased-build: c.phase py.phase toolshed_utils.build
 c.phase:
-	$(MAKE) PHASED_C_BUILD=1 core.build $(C_BUILD_SUBDIRS:=.build)
+	$(MAKE) PHASED_C_BUILD=1 core.build \
+		$(PREBUILD_SUBDIRS:=.prebuild) $(C_BUILD_SUBDIRS:=.build)
 # Each pure Python bundle takes a fraction of a second, and they have plenty of
 # time, so a few at a time is enough and leaves the cores to the C bundles
 PY_PHASE_JOBS = 6
@@ -126,6 +131,8 @@ py.batch:
 	cp -p $(PY_BATCH_SUBDIRS:=/dist/*.whl) $(SYNC_DIR)
 core.build toolshed_utils.build:
 	$(MAKE) -C $(subst .build,,$@) build
+$(PREBUILD_SUBDIRS:=.prebuild):
+	$(MAKE) -C $(subst .prebuild,,$@) prebuild
 uv-install:
 	PYTHON=python $(MAKE) -C bundle_builder uv-build
 	PYTHON=python $(MAKE) -C core uv-build
@@ -180,4 +187,5 @@ endif
 ifdef PHASED_C_BUILD
 # Only in c.phase, so that "make build" still does not rebuild core
 $(addsuffix .build,$(filter $(CORE_DEP_SUBDIRS),$(C_BUILD_SUBDIRS))): core.build
+$(foreach d,$(PREBUILD_SUBDIRS),$(eval $(d).build: $(d).prebuild))
 endif
