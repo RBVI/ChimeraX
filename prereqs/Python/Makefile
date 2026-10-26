@@ -24,7 +24,7 @@ SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 # Relocatable tarball of the freshly built interpreter (members relative to
 # build_prefix).  CI caches this so the source build only runs on a cache miss.
 # The per-distro identity lives in the CI cache key, not in this file name.
-LINUX_PREBUILT = python-$(PYTHON_PATCH_LEVEL)-$(OSARCH).tar.bz2
+LINUX_PREBUILT = python-$(PYTHON_PATCH_LEVEL)-$(OSARCH).$(PREREQ_TAR_EXT)
 
 CONFIG_OPTIONS += --enable-shared
 # --enable-optimizations (PGO+LTO) is left off: it greatly lengthens the build
@@ -136,7 +136,7 @@ else ifeq ($(OS),Linux)
 	# the result so CI can cache it.
 	if [ -f '$(LINUX_PREBUILT)' ]; then \
 		echo 'Unpacking cached Python build: $(LINUX_PREBUILT)' ; \
-		tar xjf '$(LINUX_PREBUILT)' -C $(build_prefix) --no-same-owner ; \
+		tar $(PREREQ_TAR_COMPRESS) -xf '$(LINUX_PREBUILT)' -C $(build_prefix) --no-same-owner ; \
 	else \
 		$(MAKE) linux-source-build ; \
 	fi
@@ -207,7 +207,7 @@ linux-source-build: $(SOURCE)
 	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(datadir)/valgrind-python.supp
 	# Package the freshly built interpreter (without pip, which the install
 	# target installs fresh afterwards) so CI can cache it.
-	cd $(build_prefix) && tar cjf '$(abspath $(LINUX_PREBUILT))' \
+	cd $(build_prefix) && tar $(PREREQ_TAR_COMPRESS) -cf '$(abspath $(LINUX_PREBUILT))' \
 		bin/python$(PYTHON_VERSION) bin/python3 \
 		lib/libpython*.so* \
 		lib/python$(PYTHON_VERSION) \

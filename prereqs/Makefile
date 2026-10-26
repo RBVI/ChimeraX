@@ -60,23 +60,23 @@ install-prebuilt:
 else
 ifeq ($(OS),Linux)
 GCC_VER = $(shell $(CC) -dumpversion)
-PREBUILT = prebuilt-$(OSARCH)-$(GCC_VER).tar.bz2
+PREBUILT = prebuilt-$(OSARCH)-$(GCC_VER).$(PREREQ_TAR_EXT)
 else ifeq ($(OS),Darwin)
-PREBUILT = prebuilt-$(OSARCH).tar.bz2
+PREBUILT = prebuilt-$(OSARCH).$(PREREQ_TAR_EXT)
 else ifeq ($(OS),Windows)
-PREBUILT = prebuilt-$(OSARCH).tar.bz2
+PREBUILT = prebuilt-$(OSARCH).$(PREREQ_TAR_EXT)
 else
-PREBUILT = prebuilt-$(shell uname -s)-$(shell uname -m).tar.bz2
+PREBUILT = prebuilt-$(shell uname -s)-$(shell uname -m).$(PREREQ_TAR_EXT)
 endif
 
 prebuilt:
-	prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && tar --exclude ./tmp -cjf $$prebuilt .
+	prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && tar --exclude ./tmp $(PREREQ_TAR_COMPRESS) -cf $$prebuilt .
 
 install-prebuilt:
 	@echo 'Started prereq install at' `date` on `hostname`
 	if [ -e $(PREBUILT) ]; then \
 		$(MAKE) build-dirs ; \
-		prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && tar xjf $$prebuilt ; \
+		prebuilt=`pwd`/$(PREBUILT) && cd $(build_prefix) && tar $(PREREQ_TAR_COMPRESS) -xf $$prebuilt ; \
 	else \
 		$(MAKE) install && $(MAKE) prebuilt; \
 	fi
