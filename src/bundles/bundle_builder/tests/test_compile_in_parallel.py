@@ -112,3 +112,10 @@ def test_uninitialized_compiler_is_initialized_once_first(builder, tmp_path):
     )
     assert compiler.initializations == 1
     assert len(compiler.calls) == 3
+
+
+def test_objects_are_returned_in_the_order_of_the_sources(builder, tmp_path):
+    # Compiled largest first, but linked in the order given
+    sources = _sources(tmp_path, [1, 100, 10])
+    objs = builder._compile_in_parallel(FakeCompiler(), [(s, []) for s in sources])
+    assert objs == sources

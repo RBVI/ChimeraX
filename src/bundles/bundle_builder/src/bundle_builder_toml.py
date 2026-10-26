@@ -89,7 +89,8 @@ cpu_count = os.cpu_count()
 
 
 def _compile_in_parallel(compiler, jobs, **kw):
-    """Compile each (source file, extra_preargs) in jobs with its own compiler.
+    """Compile each (source file, extra_preargs) in jobs with its own compiler
+    and return the object files, in the order of jobs.
 
     distutils compiles the sources it is given one at a time, so give it one
     source per call, from a thread per CPU.  Largest files go first so a long
@@ -101,24 +102,25 @@ def _compile_in_parallel(compiler, jobs, **kw):
         # threads race to do it
         compiler.initialize()
 
-    def size(job):
+    def size(i):
         try:
-            return os.path.getsize(job[0])
+            return os.path.getsize(jobs[i][0])
         except OSError:
             return 0
 
     with ThreadPoolExecutor(max_workers=cpu_count) as pool:
-        futures = [
-            pool.submit(compiler.compile, [source], extra_preargs=preargs, **kw)
-            for source, preargs in sorted(jobs, key=size, reverse=True)
-        ]
+        futures = {
+            i: pool.submit(compiler.compile, [jobs[i][0]], extra_preargs=jobs[i][1], **kw)
+            for i in sorted(range(len(jobs)), key=size, reverse=True)
+        }
         try:
-            for future in futures:
+            for future in futures.values():
                 future.result()
         except BaseException:
             # Don't compile the rest of a library that has already failed
             pool.shutdown(cancel_futures=True)
             raise
+    return [obj for i in range(len(jobs)) for obj in futures[i].result()]
 
 
 def _find_openmp_mac():
