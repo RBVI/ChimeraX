@@ -30,6 +30,8 @@ on:
 
 env:
   MACOSX_DEPLOYMENT_TARGET: "13.0"
+  # Build the bundles without starting ChimeraX (see src/bundles/Makefile.bundle)
+  NO_DOGFOODING: "1"
 
 jobs:
   build-intel-macos:

@@ -16,6 +16,10 @@ on:
       DOCKERHUB_TOKEN:
         required: true
 
+env:
+  # Build the bundles without starting ChimeraX (see src/bundles/Makefile.bundle)
+  NO_DOGFOODING: "1"
+
 jobs:
   build-docker:
     runs-on: ubuntu-24.04

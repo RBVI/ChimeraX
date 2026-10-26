@@ -16,6 +16,10 @@ on:
       WINDOWS_SIGNING_PASS:
         required: true
 
+env:
+  # Build the bundles without starting ChimeraX (see src/bundles/Makefile.bundle)
+  NO_DOGFOODING: "1"
+
 jobs:
   build-daily:
     name: Daily
