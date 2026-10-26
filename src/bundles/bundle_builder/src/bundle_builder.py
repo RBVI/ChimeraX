@@ -269,13 +269,10 @@ class BundleBuilder:
         ) or any(getattr(cl, "uses_openmp", False) for cl in self.c_libraries)
         if sys.platform == "darwin" and uses_openmp:
             self._copy_openmp_lib()
-        # Build C libraries and executables
+        # Build C libraries and executables, in the background of _run_setup
         import os
 
-        for lib in self.c_libraries:
-            lib.compile(self.logger, self.dependencies, debug=debug)
-        for executable in self.c_executables:
-            executable.compile(self.logger, self.dependencies, debug=debug)
+        background = self._background_build(debug)
         setup_args = ["--no-user-cfg", "build", f"-j{cpu_count}"]
         if debug:
             setup_args.append("--debug")
@@ -286,7 +283,7 @@ class BundleBuilder:
             setup_args.extend(["--plat-name", self.tag.platform])
             if self.limited_api:
                 setup_args.extend(["--py-limited-api", self.tag.interpreter])
-        dist, built = self._run_setup(setup_args)
+        dist, built = self._run_setup(setup_args, background)
         wheel_dir = os.path.dirname(self.wheel_path)
         wheel = os.path.basename(self.wheel_path)
         wheel_lower = wheel.lower()
@@ -319,9 +316,11 @@ class BundleBuilder:
         self._clear_distutils_cache()
         ext_mods = [cm.ext_mod(self.logger, self.package, []) for cm in modules]
         saved = getattr(self, "setup_arguments", None)
-        self.setup_arguments = {"name": self.name, "ext_modules": cythonize(
-            [em for em in ext_mods if em is not None]
-        )}
+        self.setup_arguments = {
+            "name": self.name,
+            "ext_modules": cythonize([em for em in ext_mods if em is not None]),
+            "cmdclass": {"build": _Build, "build_ext": _BuildExt},
+        }
         if self.version:
             self.setup_arguments["version"] = self.version
         setup_args = ["--no-user-cfg", "build_ext", f"-j{cpu_count}"]
@@ -349,15 +348,12 @@ class BundleBuilder:
         ) or any(getattr(cl, "uses_openmp", False) for cl in self.c_libraries)
         if sys.platform == "darwin" and uses_openmp:
             self._copy_openmp_lib()
-        # Build C libraries and executables
+        # Build C libraries and executables, in the background of _run_setup
         import os
 
-        for lib in self.c_libraries:
-            lib.compile(self.logger, self.dependencies, debug=debug)
-        for executable in self.c_executables:
-            executable.compile(self.logger, self.dependencies, debug=debug)
+        background = self._background_build(debug)
         setup_args = ["build_ext", f"-j{cpu_count}", "--inplace", "editable_wheel"]
-        dist, built = self._run_setup(setup_args)
+        dist, built = self._run_setup(setup_args, background)
         import glob
 
         whl_path = glob.glob(os.path.join(self.path, "dist", "*editable*.whl"))
@@ -1089,7 +1085,19 @@ class BundleBuilder:
         self.wheel_path = os.path.join(self.path, "dist", wheel)
         self.egg_info = os.path.join(self.path, bundle_wheel_name + ".egg-info")
 
-    def _run_setup(self, cmd):
+    def _background_build(self, debug):
+        if not self.c_libraries and not self.c_executables:
+            return None
+
+        def build():
+            for lib in self.c_libraries:
+                lib.compile(self.logger, self.dependencies, debug=debug)
+            for executable in self.c_executables:
+                executable.compile(self.logger, self.dependencies, debug=debug)
+
+        return _BackgroundBuild(build)
+
+    def _run_setup(self, cmd, background=None):
         import os
 
         cwd = os.getcwd()
@@ -1101,8 +1109,16 @@ class BundleBuilder:
             kw = self.setup_arguments.copy()
             kw["package_dir"], kw["packages"] = self._make_package_arguments()
             sys.argv = ["setup.py"] + cmd
+            if background is not None:
+                build_ext = type(
+                    "build_ext", (_BuildExt,), {"background": background}
+                )
+                kw["cmdclass"] = dict(kw["cmdclass"], build_ext=build_ext)
+                background.start()
             with suppress_known_deprecation(), cached_entry_points():
                 dist = setuptools.setup(**kw)
+            if background is not None:
+                background.wait()
             return dist, True
         except Exception:
             import traceback
@@ -1115,6 +1131,9 @@ class BundleBuilder:
             traceback.print_exc()
             return None, False
         finally:
+            if background is not None:
+                # It builds relative to the bundle directory
+                background.join()
             sys.argv = save
             os.chdir(cwd)
             if MySTARTUPINFO:
