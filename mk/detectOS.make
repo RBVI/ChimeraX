@@ -37,10 +37,12 @@ ifeq ($(OS),Linux)
 	endif
 	DISTRO_NAME ?= $(shell . /etc/os-release && echo $$ID)
 	DISTRO_VER ?= $(shell . /etc/os-release && echo $$VERSION_ID)
+	DISTRO_LIKE ?= $(shell . /etc/os-release && echo $$ID_LIKE)
 	# ID is "centos", "debian", "fedora", "rocky", or "ubuntu"
+	# The Red Hat family: RHEL and Oracle Linux by ID, their rebuilds (AlmaLinux...) by ID_LIKE
 	ifeq ($(DISTRO_NAME),org.freedesktop.platform)
 		FLATPAK_DIST = $(DISTRO_VER)
-	else ifneq ($(filter $(DISTRO_NAME),centos rocky),)
+	else ifneq ($(filter centos rocky rhel ol,$(DISTRO_NAME) $(DISTRO_LIKE)),)
 		CENTOS_DIST = $(DISTRO_VER)
 	else ifeq ($(DISTRO_NAME),debian)
 		DEBIAN_DIST = $(DISTRO_VER)
