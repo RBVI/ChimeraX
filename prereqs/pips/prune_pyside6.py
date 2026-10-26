@@ -357,20 +357,26 @@ def check_libs(pyside_dir, removed):
 
     Only removed libraries count: some plugins in the wheels already link
     to libraries the wheels do not include."""
-    problems = {}
+    from concurrent.futures import ThreadPoolExecutor
+
+    paths = []
     for root, _, files in os.walk(pyside_dir):
         for fn in files:
             path = os.path.join(root, fn)
-            if os.path.islink(path) or not _is_binary(path):
-                continue
-            linked = linked_qt_libs(path)
-            if linked is None:
-                print("prune_pyside6: objdump not found, not checking"
-                      " Qt library dependencies")
-                return {}
-            missing = linked & removed
-            if missing:
-                problems[os.path.relpath(path, pyside_dir)] = missing
+            if not os.path.islink(path) and _is_binary(path):
+                paths.append(path)
+    # One otool or objdump run per binary, one binary per CPU at a time
+    with ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:
+        all_linked = list(pool.map(linked_qt_libs, paths))
+    problems = {}
+    for path, linked in zip(paths, all_linked):
+        if linked is None:
+            print("prune_pyside6: objdump not found, not checking"
+                  " Qt library dependencies")
+            return {}
+        missing = linked & removed
+        if missing:
+            problems[os.path.relpath(path, pyside_dir)] = missing
     return problems
 
 

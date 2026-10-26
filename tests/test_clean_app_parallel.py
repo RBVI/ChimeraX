@@ -52,3 +52,18 @@ def test_thin_macos_binaries_thins_each_universal_binary(clean_app, tmp_path,
     assert freed == 5 * (len(fat) - len(b"thin"))
     assert all(path.read_bytes() == b"thin" for path in paths)
     assert not list(tmp_path.glob("*.thin"))
+
+
+def test_check_libs_checks_every_binary(prune_pyside6, tmp_path, monkeypatch):
+    macho = b"\xcf\xfa\xed\xfe" + bytes(12)
+    for name in ("a.so", "b.so", "sub/c.so"):
+        path = tmp_path / name
+        path.parent.mkdir(exist_ok=True)
+        path.write_bytes(macho)
+    (tmp_path / "readme.txt").write_text("not a binary")
+    monkeypatch.setattr(prune_pyside6, "linked_qt_libs",
+                        lambda path: {"Core", "Pdf"} if path.endswith("c.so")
+                        else {"Core"})
+    assert prune_pyside6.check_libs(str(tmp_path), {"Pdf"}) == {
+        str(Path("sub/c.so")): {"Pdf"}
+    }
