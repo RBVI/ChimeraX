@@ -102,15 +102,28 @@ CHAIN_SUBDIRS = $(filter $(SUBDIRS),$(BUILD_DEP_SUBDIRS))
 C_REST_SUBDIRS = $(filter-out $(CHAIN_SUBDIRS),$(filter $(SUBDIRS),$(C_SUBDIRS)))
 C_BUILD_SUBDIRS = $(CHAIN_SUBDIRS) $(C_REST_SUBDIRS)
 PY_SUBDIRS = $(filter-out $(C_BUILD_SUBDIRS) $(C_SUBDIRS),$(SUBDIRS))
-.PHONY: phased-build c.phase py.phase core.build toolshed_utils.build
+.PHONY: phased-build c.phase py.phase py.batch core.build toolshed_utils.build
 phased-build: c.phase py.phase toolshed_utils.build
 c.phase:
 	$(MAKE) PHASED_C_BUILD=1 core.build $(C_BUILD_SUBDIRS:=.build)
 # Each pure Python bundle takes a fraction of a second, and they have plenty of
 # time, so a few at a time is enough and leaves the cores to the C bundles
 PY_PHASE_JOBS = 6
+# Most of that fraction of a second is importing setuptools, so those whose
+# Makefile adds nothing to Makefile.bundle are built by one bundle_builder,
+# which imports it once and forks a child for each.  Windows has no fork.
+ifndef WIN32
+PY_BATCH_SUBDIRS = $(filter $(PLAIN_SUBDIRS),$(PY_SUBDIRS))
+endif
+PY_MAKE_SUBDIRS = $(filter-out $(PY_BATCH_SUBDIRS),$(PY_SUBDIRS))
 py.phase:
-	$(MAKE) -j$(PY_PHASE_JOBS) $(PY_SUBDIRS:=.build)
+	$(MAKE) -j$(PY_PHASE_JOBS) $(PY_MAKE_SUBDIRS:=.build) \
+		$(if $(PY_BATCH_SUBDIRS),py.batch)
+py.batch:
+	PYTHONNOUSERSITE=1 $(APP_PYTHON_EXE) -m chimerax.bundle_builder \
+		-j $(PY_PHASE_JOBS) $(if $(DEBUG),--debug) $(if $(RELEASE),--release) \
+		--build $(PY_BATCH_SUBDIRS)
+	cp -p $(PY_BATCH_SUBDIRS:=/dist/*.whl) $(SYNC_DIR)
 core.build toolshed_utils.build:
 	$(MAKE) -C $(subst .build,,$@) build
 uv-install:
