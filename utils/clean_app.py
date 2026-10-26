@@ -19,6 +19,7 @@ def clean_app(chimerax_root):
     remove_tkinter(sys.base_prefix, sysconfig.get_path("stdlib"),
                    sysconfig.get_path("scripts"))
     remove_babel_locales(sysconfig.get_path("purelib"))
+    remove_foreign_binaries(chimerax_root, sys.platform, platform.machine())
     if sys.platform == "darwin":
         thin_macos_binaries(chimerax_root, platform.machine())
     # TODO: figure this out
@@ -149,6 +150,87 @@ def remove_babel_locales(site_packages):
         freed += os.lstat(path).st_size
         os.remove(path)
     print(f"clean_app: removed {freed / 1e6:.0f} MB of Babel locale data")
+    return freed
+
+
+ELF_MAGIC = b"\x7fELF"
+MACHO_MAGICS = (b"\xfe\xed\xfa\xce", b"\xfe\xed\xfa\xcf",
+                b"\xce\xfa\xed\xfe", b"\xcf\xfa\xed\xfe")
+FAT_MACHO_MAGICS = (b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf")
+# ELF e_machine values for the architectures ChimeraX is built for
+ELF_MACHINES = {"x86_64": 62, "amd64": 62, "aarch64": 183, "arm64": 183}
+
+
+def binary_format(path):
+    """Return ("elf", is_64bit, e_machine), ("macho",), ("pe",) or None"""
+    try:
+        with open(path, "rb") as f:
+            header = f.read(64)
+            if header.startswith(ELF_MAGIC) and len(header) >= 20:
+                order = "little" if header[5] == 1 else "big"
+                return ("elf", header[4] == 2,
+                        int.from_bytes(header[18:20], order))
+            if header[:4] in MACHO_MAGICS:
+                return ("macho",)
+            # Java class files share the fat Mach-O magic number, but their
+            # next four bytes are a version >= 45 instead of an arch count
+            if header[:4] in FAT_MACHO_MAGICS \
+                    and 0 < int.from_bytes(header[4:8], "big") < 45:
+                return ("macho",)
+            if header.startswith(b"MZ") and len(header) == 64:
+                f.seek(int.from_bytes(header[60:64], "little"))
+                if f.read(4) == b"PE\0\0":
+                    return ("pe",)
+    except OSError:
+        pass
+    return None
+
+
+def is_foreign_binary(fmt, system, machine):
+    """Check whether a binary_format() result cannot run on this platform"""
+    if fmt is None:
+        return False
+    kind = fmt[0]
+    if system == "darwin":
+        # thin_macos_binaries() handles other architectures' Mach-O code
+        return kind != "macho"
+    if system == "win32":
+        # Other architectures' PE files include launchers that setuptools
+        # and pip pick from at run time, so keep them
+        return kind != "pe"
+    if kind != "elf":
+        return True
+    _, is_64bit, e_machine = fmt
+    host_machine = ELF_MACHINES.get(machine.lower())
+    return not is_64bit or (host_machine is not None
+                            and e_machine != host_machine)
+
+
+def remove_foreign_binaries(chimerax_root, system, machine):
+    """Remove executables and libraries built for other platforms
+
+    Wheels like PyOpenGL, openvr, pyopenxr and ChimeraX's own looking_glass
+    ship every platform's libraries (and pip and setuptools ship Windows
+    launchers), but only the current platform's can load.  Directories
+    left empty are removed too.
+    """
+    freed = 0
+    emptied = set()
+    for root, dirs, files in os.walk(chimerax_root):
+        for fn in files:
+            path = os.path.join(root, fn)
+            if os.path.islink(path):
+                continue
+            if is_foreign_binary(binary_format(path), system, machine):
+                freed += os.lstat(path).st_size
+                os.remove(path)
+                emptied.add(root)
+    # Deepest first, so a parent is only checked after its children
+    for d in sorted(emptied, key=len, reverse=True):
+        while d != chimerax_root and os.path.isdir(d) and not os.listdir(d):
+            os.rmdir(d)
+            d = os.path.dirname(d)
+    print(f"clean_app: removed {freed / 1e6:.0f} MB of other platforms' binaries")
     return freed
 
 
