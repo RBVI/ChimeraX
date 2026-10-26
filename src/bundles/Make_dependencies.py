@@ -5,6 +5,18 @@ from xml.dom import minidom
 import tomllib
 
 
+def _is_plain(makefile):
+    try:
+        with open(makefile) as f:
+            lines = [
+                line.strip() for line in f
+                if line.strip() and not line.lstrip().startswith("#")
+            ]
+    except OSError:
+        return False
+    return lines == ["include ../Makefile.bundle"]
+
+
 def make_dependencies(dir_path, output_name):
     # remove when toml is part of the standard Python library
 
@@ -15,6 +27,14 @@ def make_dependencies(dir_path, output_name):
     # and bundle name to directory name
     dependencies = {}
     bundle2dirname = {}
+    # Directories of bundles with compiled code
+    c_dirs = set()
+    # Directories of bundles that depend on core in any way, since building
+    # compiled code looks up every dependency's include and library directories
+    core_dep_dirs = set()
+    # Directories whose Makefile adds nothing to Makefile.bundle, so building
+    # them is just building their wheel
+    plain_dirs = set()
     for dir_name in os.listdir(dir_path):
         bundle_info = True
         pyproject = False
@@ -29,6 +49,8 @@ def make_dependencies(dir_path, output_name):
                     if not os.path.exists(p):
                         continue
                 pyproject = True
+        if _is_plain(os.path.join(dir_path, dir_name, "Makefile")):
+            plain_dirs.add(dir_name)
         if bundle_info:
             doc = minidom.parse(p)
             bundle_tags = doc.getElementsByTagName("BundleInfo")
@@ -40,8 +62,15 @@ def make_dependencies(dir_path, output_name):
                 continue
             bundle_name = bundle_tags[0].getAttribute("name")
             bundle2dirname[bundle_name] = dir_name
+            if bundle_tags[0].getAttribute("purePython").lower() == "false" or any(
+                doc.getElementsByTagName(tag)
+                for tag in ("CModule", "CLibrary", "CExecutable")
+            ):
+                c_dirs.add(dir_name)
             dependencies[dir_name] = deps = []
             for e in doc.getElementsByTagName("Dependency"):
+                if e.getAttribute("name") == "ChimeraX-Core":
+                    core_dep_dirs.add(dir_name)
                 build_dep = e.getAttribute("build")
                 if not build_dep or build_dep.lower() == "false":
                     continue
@@ -55,8 +84,17 @@ def make_dependencies(dir_path, output_name):
             except Exception as e:
                 print(str(e))
             build_dependencies = bundle_toml["build-system"]["requires"]
+            all_deps = build_dependencies + bundle_toml["project"].get("dependencies", [])
+            if any(Requirement(d).name == "ChimeraX-Core" for d in all_deps):
+                core_dep_dirs.add(dir_name)
             bundle_name = bundle_toml["project"]["name"]
             bundle2dirname[bundle_name] = dir_name
+            tool = bundle_toml.get("tool", {})
+            cx = bundle_toml.get("chimerax", tool.get("chimerax", {}))
+            if not cx.get("pure", True) or any(
+                cx.get(key) for key in ("extension", "library", "executable")
+            ):
+                c_dirs.add(dir_name)
             dependencies[dir_name] = deps = []
             for dep in build_dependencies:
                 # Toss the dependency on core because we build it first in all cases
@@ -74,6 +112,9 @@ def make_dependencies(dir_path, output_name):
     clean = {}
     # Loop over all directories and emit one dependency line each
     with open(os.path.join(dir_path, output_name), "w") as f:
+        print(f"C_SUBDIRS = {' '.join(sorted(c_dirs))}", file=f)
+        print(f"CORE_DEP_SUBDIRS = {' '.join(sorted(core_dep_dirs))}", file=f)
+        print(f"PLAIN_SUBDIRS = {' '.join(sorted(plain_dirs))}", file=f)
         for dir_name in sorted(dependencies.keys()):
             dep_dirs = []
             uv_dep_dirs = []
