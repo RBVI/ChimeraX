@@ -154,7 +154,6 @@ prereqs/ffmpeg/x264-*.tar.xz
 prereqs/ffmpeg/yasm-*.tar.bz2
 prereqs/openmm/openmm-*.tar.bz2
 prereqs/openssl/*.gz
-prereqs/osmesa/*.bz2
 prereqs/p7zip/*.bz2
 prereqs/p7zip/*.xz
 prereqs/p7zip/7za

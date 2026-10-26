@@ -115,10 +115,10 @@ Use <a href="#nogui">nogui mode</a> and create a buffer for offscreen rendering.
 This option enables &ldquo;headless&rdquo; mode, allowing
 ChimeraX to render and save images and movies when it has no window,
 <i>e.g.</i>, on a server where no desktop windowing system is available.
-It is currently supported only on Linux and uses OSMesa, 
-a software rendering library included in Linux ChimeraX.
-It cannot use a graphics card or hardware-accelerated rendering 
-because OpenGL does not support rendering without a window.
+It is currently supported only on Linux and uses EGL,
+which renders on a graphics card when the graphics driver supports it
+(as NVIDIA's does) and otherwise renders in software with Mesa,
+a library installed with Linux ChimeraX.
 </blockquote>
 <blockquote>
 <a name="script"></a>
