@@ -662,7 +662,7 @@ class BundleBuilder:
             self.packages.append((pkg_name, pkg_folder))
 
     def _get_classifiers(self, bi):
-        from chimerax.core.commands import quote_if_necessary
+        from .classifiers import quote_if_necessary
 
         self.python_classifiers = [
             "Framework :: ChimeraX",
@@ -1130,27 +1130,55 @@ class _CompiledCode:
         return (inc_dirs, lib_dirs, self.macros, extra_link_args, libraries, cpp_flags)
 
     def _get_bundle_dirs(self, logger, dep):
-        from chimerax.core import toolshed
+        # Read the dependency's ChimeraX classifiers directly instead of
+        # asking the toolshed, so wheels can be built without starting
+        # ChimeraX.  See chimerax.core.toolshed.installed for the format.
+        import importlib
         import importlib.metadata
+        from importlib.util import find_spec
         from packaging.requirements import Requirement
 
         req = Requirement(dep)
         d = importlib.metadata.distribution(req.name)
         if not req.specifier.contains(d.version, prereleases=True):
             raise RuntimeError("unsatisfied dependency: %s" % dep)
-        ts = toolshed.get_toolshed()
-        bundle = ts.find_bundle(req.name, logger)
-        if not bundle:
+        package_name = None
+        inc_name = lib_name = None
+        for classifier in d.metadata.get_all("Classifier") or []:
+            parts = [v.strip() for v in classifier.split("::")]
+            if len(parts) < 3 or parts[0] != "ChimeraX":
+                continue
+            if parts[1] == "Bundle" and len(parts) == 7:
+                package_name = parts[4]
+            elif parts[1] == "IncludeDir":
+                inc_name = parts[2]
+            elif parts[1] == "LibraryDir":
+                lib_name = parts[2]
+        if not package_name:
             # The requirement is satisfied but is not recognized
             # as a bundle.  Probably just a regular Python package.
             return None, None
-        inc = bundle.include_dir()
-        lib = bundle.library_dir()
+
+        def bundle_path(filename):
+            if not filename:
+                return None
+            try:
+                s = find_spec(package_name)
+            except ModuleNotFoundError:
+                return None
+            if s is None or not s.submodule_search_locations:
+                return None
+            for loc in s.submodule_search_locations:
+                p = os.path.join(loc, filename)
+                if os.path.exists(p):
+                    return p
+            return None
+
+        inc = bundle_path(inc_name)
+        lib = bundle_path(lib_name)
         if not inc:
             try:
-                import importlib
-
-                mod = importlib.import_module(bundle.package_name)
+                mod = importlib.import_module(package_name)
                 inc = mod.get_include()
             # This code does not distinguish between build dependencies and
             # regular dependencies, so must gracefully fail either way
@@ -1158,9 +1186,7 @@ class _CompiledCode:
                 return inc, None
         if not lib:
             try:
-                import importlib
-
-                mod = importlib.import_module(bundle.package_name)
+                mod = importlib.import_module(package_name)
                 lib = mod.get_lib()
             # This code does not distinguish between build dependencies and
             # regular dependencies, so must gracefully fail either way
