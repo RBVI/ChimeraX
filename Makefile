@@ -223,7 +223,7 @@ distclean: clean
 	-$(MAKE) -C src clean
 	-$(MAKE) -C docs clean
 	-$(MAKE) -C vdocs clean
-	-rm -rf prereqs/prebuilt-*.tar.bz2
+	-rm -rf prereqs/prebuilt-*.tar.bz2 prereqs/prebuilt-*.tar.zst
 
 reallyclean:
 	rm -rf $$(git status --short --ignored --porcelain=v1 | sed -e '/^!!/!d' -e 's/^!! //')
