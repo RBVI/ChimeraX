@@ -45,6 +45,8 @@ else:
             self.dwFlags |= _winapi.STARTF_USESHOWWINDOW
 
 
+from ._entry_points import cached_entry_points
+
 cpu_count = os.cpu_count()
 
 
@@ -973,7 +975,7 @@ class BundleBuilder:
             kw = self.setup_arguments.copy()
             kw["package_dir"], kw["packages"] = self._make_package_arguments()
             sys.argv = ["setup.py"] + cmd
-            with suppress_known_deprecation():
+            with suppress_known_deprecation(), cached_entry_points():
                 dist = setuptools.setup(**kw)
             return dist, True
         except Exception:

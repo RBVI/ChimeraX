@@ -83,6 +83,8 @@ from setuptools.build_meta import (
     suppress_known_deprecation,
 )  # noqa import not in __all__
 
+from ._entry_points import cached_entry_points
+
 cpu_count = os.cpu_count()
 
 
@@ -881,7 +883,7 @@ class Bundle:
             # and package data correctly.
             kw["include_package_data"] = False
             sys.argv = ["setup.py"] + cmd
-            with suppress_known_deprecation():
+            with suppress_known_deprecation(), cached_entry_points():
                 dist = setuptools.setup(**kw)
             return dist, True
         except SystemExit:
