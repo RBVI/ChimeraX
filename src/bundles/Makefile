@@ -86,7 +86,9 @@ endif
 	# rebuilt; without it, every start rebuilds the cache.
 	mkdir -p "$(app_datadir)"
 	date > "$(app_datadir)/install-timestamp"
+ifndef DEFER_TOOLSHED_RELOAD
 	$(APP_PYTHON_EXE) -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
+endif
 
 # With NO_DOGFOODING (see Makefile.bundle), the same as "build", but split
 # into two sub-makes that share the jobserver, so the total number of jobs is
