@@ -29,6 +29,63 @@ def prune_pyside6():
     return _load("prune_pyside6", _ROOT / "prereqs/pips/prune_pyside6.py")
 
 
+def _record_steps(clean_app, monkeypatch, prune_ok=True):
+    events = []
+    lock = threading.Lock()
+
+    def step(name, result=None, wait=0):
+        def run(*args):
+            with lock:
+                events.append(("start", name))
+            time.sleep(wait)
+            with lock:
+                events.append(("end", name))
+            return result
+
+        return run
+
+    for name in ("remove_package_tests", "remove_tkinter",
+                 "remove_babel_locales"):
+        monkeypatch.setattr(clean_app, name, step(name, wait=0.05))
+    monkeypatch.setattr(clean_app, "prune_pyside6",
+                        step("prune_pyside6", prune_ok, wait=0.05))
+    for name in ("remove_pycache", "remove_foreign_binaries",
+                 "thin_macos_binaries"):
+        monkeypatch.setattr(clean_app, name, step(name))
+    return events
+
+
+def test_removals_run_at_once_then_the_whole_tree_steps(clean_app, monkeypatch):
+    events = _record_steps(clean_app, monkeypatch)
+    assert clean_app.clean_app("/app") is True
+    first = {"prune_pyside6", "remove_package_tests", "remove_tkinter",
+             "remove_babel_locales"}
+    # All of the first steps start before any of them ends
+    first_end = min(i for i, (kind, name) in enumerate(events)
+                    if kind == "end" and name in first)
+    assert {name for kind, name in events[:first_end]} == first
+    # remove_pycache starts after they have all ended
+    pycache = events.index(("start", "remove_pycache"))
+    assert {name for kind, name in events[:pycache] if kind == "end"} == first
+    # and the binary steps after it
+    later = [name for kind, name in events[pycache + 1:] if kind == "start"]
+    assert "remove_foreign_binaries" in later
+
+
+def test_failed_prune_fails_clean_app(clean_app, monkeypatch):
+    _record_steps(clean_app, monkeypatch, prune_ok=False)
+    assert clean_app.clean_app("/app") is False
+
+
+def test_prune_pyside6_runs_the_prereqs_script(clean_app, tmp_path):
+    # Without PySide6 the script succeeds without removing anything
+    assert clean_app.prune_pyside6(str(tmp_path)) is True
+
+
+def test_is_fat_macho_of_a_removed_file(clean_app, tmp_path):
+    assert clean_app.is_fat_macho(str(tmp_path / "removed")) is False
+
+
 def test_thin_macos_binaries_thins_each_universal_binary(clean_app, tmp_path,
                                                          monkeypatch):
     fat = b"\xca\xfe\xba\xbe" + bytes(96)

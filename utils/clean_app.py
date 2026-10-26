@@ -14,22 +14,63 @@ from concurrent.futures import ThreadPoolExecutor
 
 
 def clean_app(chimerax_root, keep_debug_info=False):
-    """Clean application tree for distribution"""
+    """Clean application tree for distribution
+
+    Returns whether it succeeded: prune_pyside6 fails if a Qt binding or
+    library it removed turns out to be used.
+    """
+    site_packages = sysconfig.get_path("purelib")
+    # Each of these removes a different part of the tree, so they run at once
+    with ThreadPoolExecutor() as pool:
+        pruned = pool.submit(prune_pyside6, site_packages)
+        steps = [
+            pool.submit(remove_package_tests, site_packages),
+            pool.submit(remove_tkinter, sys.base_prefix,
+                        sysconfig.get_path("stdlib"),
+                        sysconfig.get_path("scripts")),
+            pool.submit(remove_babel_locales, site_packages),
+        ]
+        for step in steps:
+            step.result()
+        ok = pruned.result()
+    # These look at every file, so they wait for the removals
     remove_pycache(chimerax_root)
-    remove_package_tests(sysconfig.get_path("purelib"))
-    remove_tkinter(sys.base_prefix, sysconfig.get_path("stdlib"),
-                   sysconfig.get_path("scripts"))
-    remove_babel_locales(sysconfig.get_path("purelib"))
-    remove_foreign_binaries(chimerax_root, sys.platform, platform.machine())
-    if sys.platform == "darwin":
-        thin_macos_binaries(chimerax_root, platform.machine())
+    with ThreadPoolExecutor() as pool:
+        steps = [pool.submit(remove_foreign_binaries, chimerax_root,
+                             sys.platform, platform.machine())]
+        if sys.platform == "darwin":
+            # On macOS, remove_foreign_binaries only removes files that are
+            # not Mach-O, and these are only Mach-O
+            steps.append(pool.submit(thin_macos_binaries, chimerax_root,
+                                     platform.machine()))
+        for step in steps:
+            step.result()
+    # After remove_foreign_binaries, so other platforms' ELF files are gone
     if sys.platform == "linux" and not keep_debug_info:
         strip_debug_info(chimerax_root)
+    return ok
     # TODO: figure this out
     #   removing scripts makes multiple "make installs" without
     #   a "make clean" inbetween fail and removes scripts that
     #   would be needed for developers to make documentation
     # remove_scripts(chimerax_root)
+
+
+def prune_pyside6(site_packages):
+    """Remove the Qt modules, tools and data ChimeraX does not use, with
+    prereqs/pips/prune_pyside6.py, returning whether it succeeded
+
+    It runs here rather than when PySide6 is installed, since nothing that
+    runs before the end of the build depends on it.
+    """
+    import importlib.util
+
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        os.pardir, "prereqs", "pips", "prune_pyside6.py")
+    spec = importlib.util.spec_from_file_location("prune_pyside6", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.prune(site_packages)
 
 
 def remove_pycache(chimerax_root):
@@ -240,8 +281,12 @@ def remove_foreign_binaries(chimerax_root, system, machine):
 def is_fat_macho(path):
     """Check for a universal binary's magic number (also used by Java class
     files, so confirm with lipo)"""
-    with open(path, "rb") as f:
-        return f.read(4) in (b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf")
+    try:
+        with open(path, "rb") as f:
+            return f.read(4) in (b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf")
+    except OSError:
+        # Such as a file remove_foreign_binaries has removed meanwhile
+        return False
 
 
 def thin_macos_binaries(chimerax_root, arch):
@@ -355,5 +400,6 @@ if __name__ == "__main__":
     if os.path.basename(bin_dir) != 'bin':
         print("Must be called as CHIMERAX/bin/python", file=sys.__stderr__)
         raise SystemExit(1)
-    clean_app(os.path.dirname(bin_dir),
-              keep_debug_info="--keep-debug-info" in sys.argv[1:])
+    ok = clean_app(os.path.dirname(bin_dir),
+                   keep_debug_info="--keep-debug-info" in sys.argv[1:])
+    raise SystemExit(0 if ok else 1)
