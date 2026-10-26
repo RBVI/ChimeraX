@@ -112,9 +112,9 @@ The follow command line arguments are recognized:
 ``--offscreen``
     Run without a gui but allow rendering images that can be saved to files,
     *i.e.*, implies ``--nogui``.
-    This uses OSMesa for rendering which will not make use of
-    a GPU, so rendering can be slow.
-    But it can run on a server without a display.
+    This uses EGL for rendering, on a GPU when the graphics driver
+    supports it and otherwise in software with Mesa.
+    It can run on a server without a display.
 
 ``--safemode``
     Don't run bundle custom initialization code nor load any tools.

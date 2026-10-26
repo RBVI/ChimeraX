@@ -357,7 +357,9 @@ def _initialize_pyopengl(log_opengl_calls = False, offscreen = False):
     _initialized_pyopengl = True
 
     if offscreen:
-        _configure_pyopengl_to_use_osmesa()
+        # Must be set before PyOpenGL is first imported.
+        import os
+        os.environ['PYOPENGL_PLATFORM'] = 'egl'
 
     if log_opengl_calls:
         # Log all OpenGL calls
@@ -374,31 +376,6 @@ def _initialize_pyopengl(log_opengl_calls = False, offscreen = False):
     global GL
     import OpenGL.GL
     GL = OpenGL.GL
-
-def _configure_pyopengl_to_use_osmesa():
-    '''Tell PyOpenGL where to find libOSMesa.'''
-
-    # Get libOSMesa from the Python module osmesa if it exists.
-    try:
-        import osmesa
-    except ImportError:
-        # Let PyOpenGL try to find a system libOSMesa library.
-        import os
-        os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
-        return
-
-    # PyOpenGL 3.1.5 can only find libOSMesa in system locations.
-    # This hack allows it to find libOSMesa in the Python osmesa module.
-    from OpenGL.platform.osmesa import OSMesaPlatform
-    import ctypes
-    OSMesaPlatform.GL = ctypes.CDLL(osmesa.osmesa_library_path(), ctypes.RTLD_GLOBAL)
-
-    import os
-    os.environ['PYOPENGL_PLATFORM'] = 'osmesa'
-
-    # Reload the PyOpenGL platform which is set when OpenGL first imported.
-    from OpenGL.platform import _load
-    _load()
 
 def remember_current_opengl_context():
     '''
@@ -3446,36 +3423,35 @@ def pyopengl_null():
     return ctypes.c_void_p(0)
 
 class OffScreenRenderingContext:
+    '''
+    OpenGL context without a window, made with EGL.  It renders on a graphics card
+    when the driver offers one, otherwise with Mesa's software renderer.
+    '''
 
     def __init__(self, width = 512, height = 512):
         self.width = width
         self.height = height
         import ctypes
         _initialize_pyopengl(offscreen = True)
-        import OpenGL
-        from OpenGL import osmesa
-        from OpenGL import GL, arrays, platform, error
-        # To use OSMesa with PyOpenGL requires environment variable PYOPENGL_PLATFORM=osmesa
-        # Also will need libOSMesa in dlopen library path.
-        attribs = [
-            osmesa.OSMESA_FORMAT, osmesa.OSMESA_RGBA,
-            osmesa.OSMESA_DEPTH_BITS, 32,
-            # osmesa.OSMESA_STENCIL_BITS, 8,
-            osmesa.OSMESA_PROFILE, osmesa.OSMESA_CORE_PROFILE,
-            osmesa.OSMESA_CONTEXT_MAJOR_VERSION, 3,
-            osmesa.OSMESA_CONTEXT_MINOR_VERSION, 3,
-            0  # must end with zero
-        ]
-        attribs = (ctypes.c_int * len(attribs))(*attribs)
-        try:
-            self.context = osmesa.OSMesaCreateContextAttribs(attribs, None)
-        except error.NullFunctionError:
-            raise OpenGLError('Need OSMesa version 12.0 or newer for OpenGL Core Context API.')
+        from OpenGL import EGL, GL
+        self.display = display = _egl_display()
+        attribs = _egl_attributes(EGL.EGL_SURFACE_TYPE, EGL.EGL_PBUFFER_BIT,
+                                  EGL.EGL_RENDERABLE_TYPE, EGL.EGL_OPENGL_BIT,
+                                  EGL.EGL_RED_SIZE, 8, EGL.EGL_GREEN_SIZE, 8, EGL.EGL_BLUE_SIZE, 8,
+                                  EGL.EGL_ALPHA_SIZE, 8, EGL.EGL_DEPTH_SIZE, 24)
+        config, count = EGL.EGLConfig(), EGL.EGLint()
+        if not EGL.eglChooseConfig(display, attribs, ctypes.pointer(config), 1, ctypes.pointer(count)) or count.value == 0:
+            raise OpenGLError('EGL has no RGBA configuration with a depth buffer for offscreen rendering.')
+        self.surface = EGL.eglCreatePbufferSurface(display, config,
+                                                   _egl_attributes(EGL.EGL_WIDTH, width, EGL.EGL_HEIGHT, height))
+        EGL.eglBindAPI(EGL.EGL_OPENGL_API)
+        self.context = EGL.eglCreateContext(display, config, EGL.EGL_NO_CONTEXT,
+                                            _egl_attributes(EGL.EGL_CONTEXT_MAJOR_VERSION, 3,
+                                                            EGL.EGL_CONTEXT_MINOR_VERSION, 3,
+                                                            EGL.EGL_CONTEXT_OPENGL_PROFILE_MASK,
+                                                            EGL.EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT))
         if not self.context:
-            raise OpenGLError('OSMesa needs to be configured with --enable-gallium-osmesa for OpenGL Core Context support.')
-        buf = arrays.GLubyteArray.zeros((height, width, 4))
-        self.buffer = buf
-        # call make_current to induce exception if an older Mesa
+            raise OpenGLError('EGL could not create an OpenGL 3.3 core context.')
         self.make_current()
 
         # Keep track of allocated framebuffers and vertex array objects.
@@ -3484,17 +3460,19 @@ class OffScreenRenderingContext:
         self._bindings = WeakSet()     # Set of Bindings objects
 
         # Draw target for default framebuffer
-        self.default_draw_target = GL.GL_FRONT
+        self.default_draw_target = GL.GL_BACK
 
         # compatibility with OpenGLContext
         self._framebuffer_color_bits = 8
 
     def make_current(self):
-        from OpenGL import GL, arrays, platform
-        from OpenGL import osmesa
-        assert(osmesa.OSMesaMakeCurrent(self.context, self.buffer, GL.GL_UNSIGNED_BYTE, self.width, self.height))
-        assert(platform.CurrentContextIsValid())
+        from OpenGL import EGL
+        assert(EGL.eglMakeCurrent(self.display, self.surface, self.surface, self.context))
         return True
+
+    def done_current(self):
+        # The one offscreen context stays current.
+        pass
 
     def swap_buffers(self):
         pass
@@ -3502,3 +3480,38 @@ class OffScreenRenderingContext:
     def pixel_scale(self):
         # Ratio Qt pixel size to OpenGL pixel size.
         return 1
+
+def _egl_display():
+    '''
+    Return an initialized EGL display on the first device that has one, so no
+    window system is needed.  Graphics drivers list their GPUs, and Mesa lists
+    its software renderer.
+    '''
+    import ctypes
+    from OpenGL import EGL
+    from OpenGL.EGL.EXT.device_enumeration import eglQueryDevicesEXT
+    from OpenGL.EGL.EXT.platform_base import eglGetPlatformDisplayEXT
+    from OpenGL.EGL.EXT.platform_device import EGL_PLATFORM_DEVICE_EXT
+    from OpenGL.raw.EGL._errors import EGLError
+    max_devices = 32
+    devices = (EGL.EGLDeviceEXT * max_devices)()
+    count = EGL.EGLint()
+    try:
+        eglQueryDevicesEXT(max_devices, devices, ctypes.pointer(count))
+    except EGLError as e:
+        raise OpenGLError('EGL could not list devices for offscreen rendering: %s' % e)
+    for device in devices[:count.value]:
+        try:
+            display = eglGetPlatformDisplayEXT(EGL_PLATFORM_DEVICE_EXT, device, None)
+            major, minor = EGL.EGLint(), EGL.EGLint()
+            if display and EGL.eglInitialize(display, ctypes.pointer(major), ctypes.pointer(minor)):
+                return display
+        except EGLError:
+            continue
+    raise OpenGLError('EGL found no device for offscreen rendering.')
+
+def _egl_attributes(*values):
+    '''EGL attribute list, ending with EGL_NONE.'''
+    from OpenGL import EGL
+    values += (EGL.EGL_NONE,)
+    return (EGL.EGLint * len(values))(*values)

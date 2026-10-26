@@ -58,7 +58,6 @@ RHEL 8 compatible containter that can build ChimeraX
 	mesa-libEGL \
 	mesa-libGL-devel \
 	mesa-libGLU-devel \
-	mesa-libOSMesa-devel \
 	mysql-libs \
 	nspr-devel \
 	nss-devel \

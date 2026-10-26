@@ -155,7 +155,7 @@ class UI:
         try:
             c = graphics.OffScreenRenderingContext()
         except Exception as e:
-            # OSMesa library was not found, or old version
+            # EGL library was not found, or no device could render
             if not session.silent:
                 session.logger.info('Offscreen rendering is not available.')
                 session.logger.info(str(e))
