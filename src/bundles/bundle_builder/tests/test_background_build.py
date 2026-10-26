@@ -124,3 +124,41 @@ def test_each_extension_has_its_own_object_folder(builder, monkeypatch):
     assert seen == [os.path.join("build", "temp", Ext.name)]
     # The command the build_ext -j threads share is unchanged
     assert command.build_temp == os.path.join("build", "temp")
+
+
+class FakeLibrary:
+    static = False
+
+    def __init__(self, name, events, barrier):
+        self.name = name
+        self.events = events
+        self.barrier = barrier
+
+    def compile_objects(self, logger, dependencies, static, debug):
+        # Every library's compile waits for the others, so this only
+        # finishes if they compile at once
+        self.barrier.wait()
+        return "compiler", [self.name + ".o"], []
+
+    def link(self, compiler, objs, extra_link_args, debug=False):
+        self.events.append(("link", self.name, objs))
+
+
+def test_libraries_compile_at_once_then_link_in_order(builder):
+    events = []
+    barrier = threading.Barrier(3, timeout=10)
+    libraries = [FakeLibrary(name, events, barrier) for name in ("a", "b", "c")]
+    builder._compile_libraries(libraries, None, [])
+    assert events == [("link", "a", ["a.o"]), ("link", "b", ["b.o"]),
+                      ("link", "c", ["c.o"])]
+
+
+def test_one_library_compiles_as_before(builder):
+    calls = []
+
+    class Library:
+        def compile(self, logger, dependencies, debug=False):
+            calls.append(debug)
+
+    builder._compile_libraries([Library()], None, [], debug=True)
+    assert calls == [True]

@@ -126,6 +126,28 @@ def _compile_in_parallel(compiler, jobs, **kw):
     return [obj for i in range(len(jobs)) for obj in futures[i].result()]
 
 
+def _compile_libraries(libraries, logger, dependencies, debug=False):
+    """Compile and link a bundle's C libraries
+
+    Compiling needs only headers, so all of the libraries' sources compile at
+    once; linking can need the libraries before it, so that is done after,
+    in order."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    if len(libraries) < 2:
+        for lib in libraries:
+            lib.compile(logger, dependencies, debug=debug)
+        return
+
+    def compile_objects(lib):
+        return lib.compile_objects(logger, dependencies, lib.static, debug)
+
+    with ThreadPoolExecutor(max_workers=len(libraries)) as pool:
+        compiled = list(pool.map(compile_objects, libraries))
+    for lib, (compiler, objs, extra_link_args) in zip(libraries, compiled):
+        lib.link(compiler, objs, extra_link_args, debug)
+
+
 def _debug_info_args(compiler, debug):
     """Return the compile arguments that leave out debug information unless
     debug is true.
@@ -1051,8 +1073,7 @@ class Bundle:
             # Build C libraries and executables, in the background of
             # _run_setup
             def build():
-                for lib in self.c_libraries:
-                    lib.compile(self.logger, self.dependencies)
+                _compile_libraries(self.c_libraries, self.logger, self.dependencies)
                 for executable in self.c_executables:
                     executable.compile(self.logger, self.dependencies)
 
@@ -1525,6 +1546,10 @@ class _CLibrary(_CompiledCode):
         compiler, objs, extra_link_args = self.compile_objects(
             logger, dependencies, self.static, debug
         )
+        return self.link(compiler, objs, extra_link_args, debug)
+
+    def link(self, compiler, objs, extra_link_args, debug=False):
+        """Link (or archive) what compile_objects() compiled"""
         compiler.mkpath(self.output_dir)
         if self.static:
             if sys.platform == "darwin":
