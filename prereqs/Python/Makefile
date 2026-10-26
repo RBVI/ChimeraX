@@ -150,8 +150,9 @@ else
 	# at this framework's Versions/$(PYTHON_VERSION)/lib directory.
 	rm -rf $(frameworkdir)/Python.framework
 	mkdir -p $(PYTHON_FRAMEWORK)
-	$(RSYNC) '$(PBS_DIR)'/bin '$(PBS_DIR)'/lib '$(PBS_DIR)'/include $(PYTHON_FRAMEWORK)
-	-[ -d '$(PBS_DIR)'/share ] && $(RSYNC) '$(PBS_DIR)'/share $(PYTHON_FRAMEWORK)
+	# Clone (APFS copy-on-write) rather than copy; cp -c copies where it cannot
+	cp -cRp '$(PBS_DIR)'/bin '$(PBS_DIR)'/lib '$(PBS_DIR)'/include $(PYTHON_FRAMEWORK)
+	-[ -d '$(PBS_DIR)'/share ] && cp -cRp '$(PBS_DIR)'/share $(PYTHON_FRAMEWORK)
 	# Replace the distribution's python, which links libpython statically,
 	# with one that uses lib/libpython$(PYTHON_VERSION).dylib.  Extension
 	# modules find Python's symbols in whichever one is loaded.
@@ -228,7 +229,14 @@ ifeq ($(OS),Windows)
 	  '$(PBS_DIR)'/*.dll \
 	  $(app_bindir)
 else ifdef USE_MAC_FRAMEWORKS
-	$(RSYNC) $(frameworkdir)/Python.framework $(app_frameworkdir)
+	# Into a new app, clone the framework (APFS copy-on-write, so nearly
+	# instant); into an existing one, update it as before, keeping what has
+	# been installed there
+	if [ -e $(app_frameworkdir)/Python.framework ]; then \
+		$(RSYNC) $(frameworkdir)/Python.framework $(app_frameworkdir) ; \
+	else \
+		cp -cRp $(frameworkdir)/Python.framework $(app_frameworkdir) ; \
+	fi
 	ln -s -f $(REL_PYTHON_FRAMEWORK)/bin/pip $(app_bindir)
 	ln -s -f -n $(REL_PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION) $(app_libdir)
 	ln -s -f -n $(REL_PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) $(app_includedir)
