@@ -62,6 +62,9 @@ REMOVE_PLUGINS = re.compile(r"virtualkeyboard|qpdf", re.IGNORECASE)
 # QtWebEngine (Chromium) locale files to keep
 KEEP_WEBENGINE_LOCALES = {"en-US.pak"}
 
+# QtWebEngine (Chromium) developer tools, which ChimeraX does not expose
+WEBENGINE_DEVTOOLS = "qtwebengine_devtools_resources.pak"
+
 # Developer tools, whether a bare executable, .exe or macOS .app
 TOOLS = {
     "assistant", "designer", "linguist", "lrelease", "lupdate", "balsam",
@@ -195,12 +198,17 @@ def removals(pyside_dir, machine=None):
     # ChimeraX is not translated, so keep only the US English .pak, which
     # QtWebEngine falls back to.  They are in Qt/translations on Linux and
     # Windows, and in each copy of the framework's Resources on macOS.
-    for root, dirs, _ in os.walk(qt):
+    # The Chromium developer tools' resources go too: ChimeraX's web views
+    # do not offer Inspect, and the .pak is already compressed, so all 12 MB
+    # of it is in the download.
+    for root, dirs, files in os.walk(qt):
         if "qtwebengine_locales" in dirs:
             locales = os.path.join(root, "qtwebengine_locales")
             remove.extend(os.path.join(locales, fn)
                           for fn in os.listdir(locales)
                           if fn not in KEEP_WEBENGINE_LOCALES)
+        if WEBENGINE_DEVTOOLS in files:
+            remove.append(os.path.join(root, WEBENGINE_DEVTOOLS))
 
     libexec = os.path.join(qt, "libexec")
     if os.path.isdir(libexec):
