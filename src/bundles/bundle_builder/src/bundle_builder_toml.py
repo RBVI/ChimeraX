@@ -83,11 +83,40 @@ from setuptools.build_meta import (
     suppress_known_deprecation,
 )  # noqa import not in __all__
 
-# TODO: Verify
-# Always import this because it changes the behavior of setuptools
-from numpy import get_include as get_numpy_include_dirs  # noqa
-
 cpu_count = os.cpu_count()
+
+
+def _compile_in_parallel(compiler, jobs, **kw):
+    """Compile each (source file, extra_preargs) in jobs with its own compiler.
+
+    distutils compiles the sources it is given one at a time, so give it one
+    source per call, from a thread per CPU.  Largest files go first so a long
+    one does not start last."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    if not getattr(compiler, "initialized", True):
+        # MSVCCompiler initializes itself on its first compile; don't let the
+        # threads race to do it
+        compiler.initialize()
+
+    def size(job):
+        try:
+            return os.path.getsize(job[0])
+        except OSError:
+            return 0
+
+    with ThreadPoolExecutor(max_workers=cpu_count) as pool:
+        futures = [
+            pool.submit(compiler.compile, [source], extra_preargs=preargs, **kw)
+            for source, preargs in sorted(jobs, key=size, reverse=True)
+        ]
+        try:
+            for future in futures:
+                future.result()
+        except BaseException:
+            # Don't compile the rest of a library that has already failed
+            pool.shutdown(cancel_futures=True)
+            raise
 
 
 def _find_openmp_mac():
@@ -120,7 +149,7 @@ except:
 
 # TODO Fact check
 # The compile process is initiated by setuptools and handled
-# by numpy.distutils, which eventually calls subprocess.
+# by distutils, which eventually calls subprocess.
 # On Windows, subprocess invokes CreateProcess.  If a shell
 # is used, subprocess sets the STARTF_USESHOWWINDOW flag
 # to CreateProcess, assuming that "cmd" is going to create
@@ -1241,20 +1270,10 @@ class _CompiledCode:
             else:
                 raise RuntimeError("Unsupported language for %s" % f)
         if cpp_files:
-            compiler.compile(
-                cpp_files,
-                extra_preargs=cpp_flags + self.compile_arguments,
-                macros=macros,
-                debug=debug,
-            )
             self.target_lang = "c++"
-        if c_files:
-            compiler.compile(
-                c_files,
-                extra_preargs=self.compile_arguments,
-                macros=macros,
-                debug=debug,
-            )
+        jobs = [(f, cpp_flags + self.compile_arguments) for f in cpp_files]
+        jobs.extend((f, self.compile_arguments) for f in c_files)
+        _compile_in_parallel(compiler, jobs, macros=macros, debug=debug)
         objs = compiler.object_filenames(self.source_files)
         return compiler, objs, extra_link_args
 
