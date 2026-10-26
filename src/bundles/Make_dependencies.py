@@ -110,8 +110,29 @@ def make_dependencies(dir_path, output_name):
                     deps.append(dep_as_req.name)
     missing = set()
     clean = {}
+    # Directories that have, or are, build time dependencies
+    dependents = {}
+    for dir_name, deps in dependencies.items():
+        for dep in deps:
+            dep_dir = bundle2dirname.get(dep)
+            if dep_dir is not None:
+                dependents.setdefault(dep_dir, set()).add(dir_name)
+                dependents.setdefault(dir_name, set())
+    heights = {}
+
+    def height(dir_name):
+        # Length of the longest chain of builds waiting on this directory
+        if dir_name not in heights:
+            heights[dir_name] = 1 + max(
+                (height(d) for d in dependents[dir_name]), default=0
+            )
+        return heights[dir_name]
+
     # Loop over all directories and emit one dependency line each
     with open(os.path.join(dir_path, output_name), "w") as f:
+        # Longest chains first so make starts them as soon as possible
+        build_dep_dirs = sorted(dependents, key=lambda d: (-height(d), d))
+        print(f"BUILD_DEP_SUBDIRS = {' '.join(build_dep_dirs)}", file=f)
         print(f"C_SUBDIRS = {' '.join(sorted(c_dirs))}", file=f)
         print(f"CORE_DEP_SUBDIRS = {' '.join(sorted(core_dep_dirs))}", file=f)
         print(f"PLAIN_SUBDIRS = {' '.join(sorted(plain_dirs))}", file=f)
