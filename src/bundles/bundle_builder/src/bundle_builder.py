@@ -99,7 +99,8 @@ def _debug_info_args(compiler, debug):
 
 
 class _BuildExt(_build_ext):
-    """build_ext that leaves out debug information unless --debug is given."""
+    """build_ext that leaves out debug information unless --debug is given,
+    and compiles each extension into its own folder of object files."""
 
     def build_extensions(self):
         compiler = self.compiler
@@ -116,6 +117,17 @@ class _BuildExt(_build_ext):
 
         compiler.compile = compile_without_debug_info
         super().build_extensions()
+
+    def build_extension(self, ext):
+        # Extensions that list the same source file would otherwise write the
+        # same object file, at the same time under build_ext -j.  build_temp
+        # is an option of the command, which the build_ext -j threads share,
+        # so change it on a copy.
+        from copy import copy
+
+        command = copy(self)
+        command.build_temp = os.path.join(self.build_temp, ext.name)
+        return super(_BuildExt, command).build_extension(ext)
 
 
 def _find_openmp_mac():
@@ -1316,14 +1328,18 @@ class _CompiledCode:
             self.target_lang = "c++"
         jobs = [(f, cpp_flags + self.compile_arguments) for f in cpp_files]
         jobs.extend((f, self.compile_arguments) for f in c_files)
+        # Keep each library's and executable's object files apart, in case
+        # they or the C modules share a source file
+        object_dir = os.path.join("build", "temp", type(self).__name__, self.name)
         _compile_in_parallel(
             compiler,
             jobs,
+            output_dir=object_dir,
             macros=macros,
             debug=debug,
             extra_postargs=_debug_info_args(compiler, debug),
         )
-        objs = compiler.object_filenames(self.source_files)
+        objs = compiler.object_filenames(self.source_files, output_dir=object_dir)
         return compiler, objs, extra_link_args
 
     def install_locations(self):
