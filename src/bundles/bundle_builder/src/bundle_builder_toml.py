@@ -77,6 +77,7 @@ from setuptools import Extension, find_packages
 # From https://stackoverflow.com/questions/35112511/pip-setup-py-bdist-wheel-no-longer-builds-forced-non-pure-wheels
 from setuptools.dist import Distribution
 from setuptools.extension import Library  # noqa
+from setuptools.command.build_ext import build_ext as _build_ext
 
 # Even setuptools.build_meta runs setup() behind the scenes...
 from setuptools.build_meta import (
@@ -133,6 +134,26 @@ def _debug_info_args(compiler, debug):
     if not debug and compiler.compiler_type in ("unix", "cygwin", "mingw32"):
         return ["-g0"]
     return []
+
+
+class _BuildExt(_build_ext):
+    """build_ext that leaves out debug information unless --debug is given."""
+
+    def build_extensions(self):
+        compiler = self.compiler
+        compile = compiler.compile
+
+        def compile_without_debug_info(
+            sources, *args, debug=False, extra_postargs=None, **kw
+        ):
+            extra_postargs = list(extra_postargs or [])
+            extra_postargs += _debug_info_args(compiler, debug)
+            return compile(
+                sources, *args, debug=debug, extra_postargs=extra_postargs, **kw
+            )
+
+        compiler.compile = compile_without_debug_info
+        super().build_extensions()
 
 
 def _find_openmp_mac():
@@ -718,6 +739,7 @@ class Bundle:
         self.setup_arguments = {
             "name": self.name,
             "python_requires": str(self.python_requirement),
+            "cmdclass": {"build_ext": _BuildExt},
         }
         if self.version:
             add_argument("version", self.version)

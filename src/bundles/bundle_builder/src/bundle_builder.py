@@ -15,6 +15,7 @@ from setuptools.build_meta import (
 )  # noqa import not in __all__
 
 from numpy import get_include as get_numpy_include_dirs
+from setuptools.command.build_ext import build_ext as _build_ext
 
 # The compile process is initiated by setuptools and handled
 # by distutils, which eventually calls subprocess.
@@ -95,6 +96,26 @@ def _debug_info_args(compiler, debug):
     if not debug and compiler.compiler_type in ("unix", "cygwin", "mingw32"):
         return ["-g0"]
     return []
+
+
+class _BuildExt(_build_ext):
+    """build_ext that leaves out debug information unless --debug is given."""
+
+    def build_extensions(self):
+        compiler = self.compiler
+        compile = compiler.compile
+
+        def compile_without_debug_info(
+            sources, *args, debug=False, extra_postargs=None, **kw
+        ):
+            extra_postargs = list(extra_postargs or [])
+            extra_postargs += _debug_info_args(compiler, debug)
+            return compile(
+                sources, *args, debug=debug, extra_postargs=extra_postargs, **kw
+            )
+
+        compiler.compile = compile_without_debug_info
+        super().build_extensions()
 
 
 def _find_openmp_mac():
@@ -892,6 +913,7 @@ class BundleBuilder:
         self.setup_arguments = {
             "name": self.name,
             "python_requires": f">={rel[0]}.{rel[1]}",
+            "cmdclass": {"build_ext": _BuildExt},
         }
         add_argument("version", self.version)
         add_argument("description", self.synopsis)

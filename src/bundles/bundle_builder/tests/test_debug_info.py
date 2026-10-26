@@ -42,3 +42,32 @@ def test_c_library_compiles_get_the_debug_info_args(builder, tmp_path):
     )
     assert compiler.calls[0][1]["extra_postargs"] == ["-g0"]
 
+
+def _build_extensions(builder, monkeypatch, debug):
+    # Run _BuildExt.build_extensions with a base class that compiles the way
+    # build_ext.build_extension does
+    def build_extensions(self):
+        self.compiler.compile(
+            ["a.cpp"], macros=[], debug=debug, extra_postargs=["-O2"], depends=[]
+        )
+
+    monkeypatch.setattr(builder._build_ext, "build_extensions", build_extensions)
+    command = object.__new__(builder._BuildExt)
+    command.compiler = FakeCompiler()
+    command.build_extensions()
+    return command.compiler.calls
+
+
+def test_c_module_compiles_leave_out_debug_info(builder, monkeypatch):
+    calls = _build_extensions(builder, monkeypatch, debug=False)
+    assert calls == [
+        (
+            ["a.cpp"],
+            {"macros": [], "debug": False, "extra_postargs": ["-O2", "-g0"], "depends": []},
+        )
+    ]
+
+
+def test_c_module_debug_compiles_keep_debug_info(builder, monkeypatch):
+    calls = _build_extensions(builder, monkeypatch, debug=True)
+    assert calls[0][1]["extra_postargs"] == ["-O2"]
