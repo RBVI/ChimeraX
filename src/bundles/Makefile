@@ -195,11 +195,11 @@ $(addsuffix .build,$(filter $(CORE_DEP_SUBDIRS),$(C_BUILD_SUBDIRS))): core.build
 $(foreach d,$(PREBUILD_SUBDIRS),$(eval $(d).build: $(d).prebuild))
 # Bundles off the critical path: those that can start alongside its first
 # steps have until its end, so they use the efficiency cores; the others wait
-# for its step at their own depth (see Make_dependencies.py).  private, so the
-# bundles these depend on do not inherit it.
-$(addsuffix .build,$(filter $(EARLY_SUBDIRS),$(C_BUILD_SUBDIRS))): \
-	private SUBDIR_BUILD_PREFIX = $(BACKGROUND_COMPILE_PRIORITY)
-$(addsuffix .build,$(filter-out $(CRITICAL_SUBDIRS) $(EARLY_SUBDIRS),$(C_BUILD_SUBDIRS))): \
-	private SUBDIR_BUILD_PREFIX = $(LOW_PRIORITY)
+# for its step at their own depth (see Make_dependencies.py).  Chosen by $@ at
+# recipe time rather than with target-specific variables, so the bundles these
+# depend on do not inherit it (macOS's make 3.81 has no "private").
+EARLY_BUILDS = $(addsuffix .build,$(filter $(EARLY_SUBDIRS),$(C_BUILD_SUBDIRS)))
+LOW_BUILDS = $(addsuffix .build,$(filter-out $(CRITICAL_SUBDIRS) $(EARLY_SUBDIRS),$(C_BUILD_SUBDIRS)))
+SUBDIR_BUILD_PREFIX = $(if $(filter $@,$(EARLY_BUILDS)),$(BACKGROUND_COMPILE_PRIORITY),$(if $(filter $@,$(LOW_BUILDS)),$(LOW_PRIORITY)))
 $(foreach w,$(LATE_WAITS),$(eval $(subst :,: ,$(w))))
 endif
