@@ -170,6 +170,7 @@ prereqs/PyQt/qt/*.xz
 prereqs/zlib/*.gz
 docs/devel/apps
 docs/devel/chimerax
+docs/devel/cpp
 docs/devel/modules
 docs/license.html
 docs/license.txt

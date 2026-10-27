@@ -34,6 +34,11 @@ fi
 cd ${ROOT}
 ln -s ${ROOT}/src/apps docs/${PREFIX}/
 
+# The mmcif docs link to its C++ readcif library's docs
+mkdir -p docs/${PREFIX}/cpp/mmcif
+ln -s ${ROOT}/src/bundles/mmcif/mmcif_cpp/readcif_cpp/docs docs/${PREFIX}/cpp/mmcif/readcif
+ln -s ${ROOT}/src/bundles/mmcif/mmcif_cpp/readcif_cpp/cifgrep docs/${PREFIX}/cpp/mmcif/cifgrep
+
 mkdir ${ROOT}/docs/${PREFIX}/modules
 cd ${ROOT}/docs/${PREFIX}/modules
 for bundle in "${BUNDLE_DEV_DOC_FOLDERS[@]}"; do
