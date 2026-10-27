@@ -332,9 +332,14 @@ def main():
         )
         raise SystemExit(2)
     dependencies = CENTOS_DEPENDENCIES[os_version]
-    output = subprocess.check_output(
-        [CHIMERAX_BIN, "--nocolor", "--version"], stderr=subprocess.DEVNULL
-    ).decode()
+    result = subprocess.run(
+        [CHIMERAX_BIN, "--nocolor", "--version"], capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        print(f"{CHIMERAX_BIN} --version failed:", file=sys.stderr)
+        print(result.stdout + result.stderr, file=sys.stderr)
+        raise SystemExit(1)
+    output = result.stdout
     full_version = [line for line in output.split("\n") if "version:" in line]
     if not full_version:
         print("Not able to determine version number")
