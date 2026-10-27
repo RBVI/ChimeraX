@@ -25,7 +25,8 @@
   </CLibrary>
 
   <CModule name="_pdbio">
-    <SourceFile>pdbio_cpp/PDBio.cpp</SourceFile>
+    <SourceFile>pdbio_cpp/PDBio_read.cpp</SourceFile>
+    <SourceFile>pdbio_cpp/PDBio_write.cpp</SourceFile>
     <IncludeDir>pdb_cpp/</IncludeDir>
     <LibraryDir>pdb_cpp/lib</LibraryDir>
     <LibraryDir>pdb_cpp/</LibraryDir>
