@@ -87,6 +87,7 @@ modules:
       - /app/bin/python3.* -m pip install wheels/*.whl
       - FLATPAK_DIST=1 make -C src/apps install
       - make -C docs install
+      - FLATPAK_DIST=1 make clean-app
       - /app/bin/ChimeraX --nogui --exit --cmd "linux flatpak-files edu.ucsf.rbvi.ChimeraX"
       - install -Dm644 -t /app/share/metainfo edu.ucsf.rbvi.ChimeraX.metainfo.xml
       - install -Dm644 -t /app/share/applications edu.ucsf.rbvi.ChimeraX.desktop
