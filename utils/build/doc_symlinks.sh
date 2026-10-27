@@ -17,10 +17,6 @@ while IFS=$'\n' read -r line; do
 done < <(find src/bundles/**/docs -maxdepth 3 -type d -name "user" | sort)
 
 PREFIX="devel"
-if [[ $DEV_DOCS_IN_ROOT ]]; then
-	# For readthedocs
-	PREFIX=""
-fi
 
 if [[ ! $INTERNAL_CHIMERAX ]]; then
 	mkdir ${ROOT}/docs/${PREFIX}/chimerax
