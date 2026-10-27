@@ -95,3 +95,62 @@ def test_strip_debug_info_leaves_mapped_file_alone(tmp_path):
     # the hard link points at the stripped file
     assert os.path.samefile(lib, tmp_path / "lib" / "libf.so.1")
     assert not list(tmp_path.rglob("*" + clean_app.STRIP_SUFFIX))
+
+
+def _elf_with_load(offset, vaddr, align, is_64bit=True):
+    """An ELF header and one PT_LOAD program header"""
+    import struct
+    if is_64bit:
+        header = bytearray(64)
+        struct.pack_into("<Q", header, 32, 64)
+        struct.pack_into("<HH", header, 54, 56, 1)
+        ph = struct.pack("<IIQQQQQQ", 1, 5, offset, vaddr, vaddr, 0, 0,
+                         align)
+    else:
+        header = bytearray(52)
+        struct.pack_into("<I", header, 28, 52)
+        struct.pack_into("<HH", header, 42, 32, 1)
+        ph = struct.pack("<IIIIIIII", 1, offset, vaddr, vaddr, 0, 0, 5,
+                         align)
+    header[:4] = b"\x7fELF"
+    header[4] = 2 if is_64bit else 1
+    header[5] = 1
+    return bytes(header) + ph
+
+
+@pytest.mark.parametrize("is_64bit", [True, False])
+def test_load_segments_aligned(tmp_path, is_64bit):
+    clean_app = _load_clean_app_module()
+    good = tmp_path / "good.so"
+    good.write_bytes(_elf_with_load(0x1234, 0x201234, 0x1000, is_64bit))
+    bad = tmp_path / "bad.so"
+    bad.write_bytes(_elf_with_load(0x1234, 0x201000, 0x1000, is_64bit))
+    truncated = tmp_path / "truncated.so"
+    truncated.write_bytes(good.read_bytes()[:-8])
+    assert clean_app.load_segments_aligned(good)
+    assert not clean_app.load_segments_aligned(bad)
+    assert not clean_app.load_segments_aligned(truncated)
+
+
+@pytest.mark.skipif(
+    sys.platform != "linux"
+    or not all(shutil.which(t) for t in ("cc", "strip", "readelf")),
+    reason="needs a Linux toolchain")
+def test_strip_debug_info_keeps_misaligned_original(tmp_path, monkeypatch):
+    """When strip leaves segments the loader would refuse, as binutils 2.35
+    does to some patchelf'd libraries, the original stays"""
+    clean_app = _load_clean_app_module()
+    source = tmp_path / "f.c"
+    source.write_text("int chimerax_f(int x) { return x * 2; }\n")
+    lib = tmp_path / "lib" / "libf.so"
+    lib.parent.mkdir()
+    subprocess.run(["cc", "-g", "-shared", "-fPIC", "-o", str(lib),
+                    str(source)], check=True)
+    assert clean_app.load_segments_aligned(lib)
+    original = lib.read_bytes()
+    monkeypatch.setattr(clean_app, "load_segments_aligned", lambda p: False)
+
+    assert clean_app.strip_debug_info(str(tmp_path)) == 0
+
+    assert lib.read_bytes() == original
+    assert not list(tmp_path.rglob("*" + clean_app.STRIP_SUFFIX))

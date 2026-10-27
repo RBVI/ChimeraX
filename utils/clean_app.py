@@ -345,6 +345,48 @@ def elf_files(chimerax_root):
 
 
 STRIP_SUFFIX = ".clean_app-strip"
+PT_LOAD = 1
+
+
+def load_segments_aligned(path):
+    """Whether each PT_LOAD segment of an ELF file is one the dynamic loader
+    accepts, its address and file offset agreeing modulo its alignment
+
+    glibc refuses anything else with "ELF load command address/offset not
+    properly aligned".
+    """
+    import struct
+    with open(path, "rb") as f:
+        header = f.read(64)
+        if not header.startswith(ELF_MAGIC) or len(header) < 52:
+            return False
+        is_64bit = header[4] == 2
+        order = "<" if header[5] == 1 else ">"
+        if is_64bit:
+            phoff, = struct.unpack_from(order + "Q", header, 32)
+            phentsize, phnum = struct.unpack_from(order + "HH", header, 54)
+            # p_type, p_flags, p_offset, p_vaddr, p_paddr, p_filesz,
+            # p_memsz, p_align
+            fields, offset, vaddr, align = order + "IIQQQQQQ", 2, 3, 7
+        else:
+            phoff, = struct.unpack_from(order + "I", header, 28)
+            phentsize, phnum = struct.unpack_from(order + "HH", header, 42)
+            # p_type, p_offset, p_vaddr, p_paddr, p_filesz, p_memsz,
+            # p_flags, p_align
+            fields, offset, vaddr, align = order + "IIIIIIII", 1, 2, 7
+        size = struct.calcsize(fields)
+        if phentsize < size:
+            return False
+        f.seek(phoff)
+        table = f.read(phentsize * phnum)
+    if len(table) < phentsize * phnum:
+        return False
+    for i in range(phnum):
+        ph = struct.unpack_from(fields, table, i * phentsize)
+        if ph[0] == PT_LOAD and ph[align] > 1 \
+                and (ph[vaddr] - ph[offset]) % ph[align] != 0:
+            return False
+    return True
 
 
 def strip_debug_info(chimerax_root):
@@ -358,6 +400,11 @@ def strip_debug_info(chimerax_root):
     mapped, and strip (binutils 2.36 and later) rewrites a file in place,
     which crashes the process with SIGBUS or SIGSEGV.  So copies are stripped
     and renamed over the originals, leaving the mapped files untouched.
+
+    Older strip (binutils 2.35 on RHEL 9) misplaces the segments of some
+    libraries that auditwheel has rewritten with patchelf, such as numpy's
+    OpenBLAS, and the loader then refuses them.  A copy whose segments the
+    loader would refuse is thrown away, keeping the original.
     """
     groups = elf_files(chimerax_root)
     paths = [links[0] for links in groups]
@@ -376,14 +423,24 @@ def strip_debug_info(chimerax_root):
         # leaving that copy as it was
         if result.returncode != 0:
             print(f"clean_app: {result.stderr.strip()}", file=sys.__stderr__)
+        kept = []
         for links, copy in zip(batch, copies):
+            if not load_segments_aligned(copy):
+                os.remove(copy)
+                kept.append(links[0])
+                continue
             os.replace(copy, links[0])
             for link in links[1:]:
                 os.link(links[0], link + STRIP_SUFFIX)
                 os.replace(link + STRIP_SUFFIX, link)
+        return kept
 
     with ThreadPoolExecutor(max_workers=os.cpu_count() or 1) as pool:
-        list(pool.map(strip_batch, batches))
+        kept = [path for batch_kept in pool.map(strip_batch, batches)
+                for path in batch_kept]
+    for path in kept:
+        print(f"clean_app: strip misaligned {path}, kept it unstripped",
+              file=sys.__stderr__)
     freed = before - sum(os.path.getsize(p) for p in paths)
     print(f"clean_app: removed {freed / 1e6:.0f} MB of debug information")
     return freed
