@@ -49,15 +49,18 @@ def _record_steps(clean_app, monkeypatch, prune_ok=True):
         monkeypatch.setattr(clean_app, name, step(name, wait=0.05))
     monkeypatch.setattr(clean_app, "prune_pyside6",
                         step("prune_pyside6", prune_ok, wait=0.05))
+    # strip_debug_info too: on Linux it really strips whatever is at the path,
+    # and in the Flatpak build /app is the app running the tests
     for name in ("remove_pycache", "remove_foreign_binaries",
-                 "thin_macos_binaries"):
+                 "thin_macos_binaries", "strip_debug_info"):
         monkeypatch.setattr(clean_app, name, step(name))
     return events
 
 
-def test_removals_run_at_once_then_the_whole_tree_steps(clean_app, monkeypatch):
+def test_removals_run_at_once_then_the_whole_tree_steps(clean_app, monkeypatch,
+                                                        tmp_path):
     events = _record_steps(clean_app, monkeypatch)
-    assert clean_app.clean_app("/app") is True
+    assert clean_app.clean_app(str(tmp_path)) is True
     first = {"prune_pyside6", "remove_package_tests", "remove_tkinter",
              "remove_babel_locales"}
     # All of the first steps start before any of them ends
@@ -72,9 +75,9 @@ def test_removals_run_at_once_then_the_whole_tree_steps(clean_app, monkeypatch):
     assert "remove_foreign_binaries" in later
 
 
-def test_failed_prune_fails_clean_app(clean_app, monkeypatch):
+def test_failed_prune_fails_clean_app(clean_app, monkeypatch, tmp_path):
     _record_steps(clean_app, monkeypatch, prune_ok=False)
-    assert clean_app.clean_app("/app") is False
+    assert clean_app.clean_app(str(tmp_path)) is False
 
 
 def test_prune_pyside6_runs_the_prereqs_script(clean_app, tmp_path):
