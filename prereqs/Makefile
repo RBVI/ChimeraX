@@ -105,3 +105,9 @@ endif
 
 pips.app-install: Python.app-install
 pips.install: Python.install
+ifeq ($(OS),Darwin)
+# Once Python.app-install runs the app's python, macOS checks the app bundle,
+# and for a while refuses writes into it from processes without App Management
+# permission, such as ambertools's tar
+Python.app-install: ambertools.app-install
+endif
