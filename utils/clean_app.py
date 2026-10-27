@@ -328,9 +328,9 @@ def thin_macos_binaries(chimerax_root, arch):
 
 
 def elf_files(chimerax_root):
-    """Return the ELF files under chimerax_root, each hard link once"""
-    seen = set()
-    paths = []
+    """Return the ELF files under chimerax_root, as a list of each file's
+    hard links"""
+    links = {}
     for root, dirs, files in os.walk(chimerax_root):
         for fn in files:
             path = os.path.join(root, fn)
@@ -340,10 +340,11 @@ def elf_files(chimerax_root):
             if fmt is None or fmt[0] != "elf":
                 continue
             st = os.stat(path)
-            if (st.st_dev, st.st_ino) not in seen:
-                seen.add((st.st_dev, st.st_ino))
-                paths.append(path)
-    return paths
+            links.setdefault((st.st_dev, st.st_ino), []).append(path)
+    return list(links.values())
+
+
+STRIP_SUFFIX = ".clean_app-strip"
 
 
 def strip_debug_info(chimerax_root):
@@ -352,18 +353,34 @@ def strip_debug_info(chimerax_root):
     Wheels from PyPI ship with theirs, and ChimeraX's own code may have been
     compiled with it.  Symbols stay, so backtraces still have function names.
     Debug builds (DEBUG=1) keep it.
+
+    This runs in the app's own Python, which has many of these libraries
+    mapped, and strip (binutils 2.36 and later) rewrites a file in place,
+    which crashes the process with SIGBUS or SIGSEGV.  So copies are stripped
+    and renamed over the originals, leaving the mapped files untouched.
     """
-    from concurrent.futures import ThreadPoolExecutor
-    paths = elf_files(chimerax_root)
+    groups = elf_files(chimerax_root)
+    paths = [links[0] for links in groups]
     before = sum(os.path.getsize(p) for p in paths)
-    batches = [paths[i:i + 32] for i in range(0, len(paths), 32)]
+    batches = [groups[i:i + 32] for i in range(0, len(groups), 32)]
 
     def strip_batch(batch):
-        result = subprocess.run(["strip", "--strip-debug"] + batch,
+        copies = []
+        for links in batch:
+            copy = links[0] + STRIP_SUFFIX
+            shutil.copy2(links[0], copy)
+            copies.append(copy)
+        result = subprocess.run(["strip", "--strip-debug"] + copies,
                                 capture_output=True, text=True)
-        # strip goes on to the other files after one it can't handle
+        # strip goes on to the other files after one it can't handle,
+        # leaving that copy as it was
         if result.returncode != 0:
             print(f"clean_app: {result.stderr.strip()}", file=sys.__stderr__)
+        for links, copy in zip(batch, copies):
+            os.replace(copy, links[0])
+            for link in links[1:]:
+                os.link(links[0], link + STRIP_SUFFIX)
+                os.replace(link + STRIP_SUFFIX, link)
 
     with ThreadPoolExecutor(max_workers=os.cpu_count() or 1) as pool:
         list(pool.map(strip_batch, batches))
