@@ -12,7 +12,7 @@ import subprocess
 import sysconfig
 
 
-def clean_app(chimerax_root):
+def clean_app(chimerax_root, keep_debug_info=False):
     """Clean application tree for distribution"""
     remove_pycache(chimerax_root)
     remove_package_tests(sysconfig.get_path("purelib"))
@@ -22,6 +22,8 @@ def clean_app(chimerax_root):
     remove_foreign_binaries(chimerax_root, sys.platform, platform.machine())
     if sys.platform == "darwin":
         thin_macos_binaries(chimerax_root, platform.machine())
+    if sys.platform == "linux" and not keep_debug_info:
+        strip_debug_info(chimerax_root)
     # TODO: figure this out
     #   removing scripts makes multiple "make installs" without
     #   a "make clean" inbetween fail and removes scripts that
@@ -271,6 +273,51 @@ def thin_macos_binaries(chimerax_root, arch):
     print(f"clean_app: removed {freed / 1e6:.0f} MB of non-{arch} code")
 
 
+def elf_files(chimerax_root):
+    """Return the ELF files under chimerax_root, each hard link once"""
+    seen = set()
+    paths = []
+    for root, dirs, files in os.walk(chimerax_root):
+        for fn in files:
+            path = os.path.join(root, fn)
+            if os.path.islink(path):
+                continue
+            fmt = binary_format(path)
+            if fmt is None or fmt[0] != "elf":
+                continue
+            st = os.stat(path)
+            if (st.st_dev, st.st_ino) not in seen:
+                seen.add((st.st_dev, st.st_ino))
+                paths.append(path)
+    return paths
+
+
+def strip_debug_info(chimerax_root):
+    """Remove debug information from Linux executables and libraries
+
+    Wheels from PyPI ship with theirs, and ChimeraX's own code may have been
+    compiled with it.  Symbols stay, so backtraces still have function names.
+    Debug builds (DEBUG=1) keep it.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    paths = elf_files(chimerax_root)
+    before = sum(os.path.getsize(p) for p in paths)
+    batches = [paths[i:i + 32] for i in range(0, len(paths), 32)]
+
+    def strip_batch(batch):
+        result = subprocess.run(["strip", "--strip-debug"] + batch,
+                                capture_output=True, text=True)
+        # strip goes on to the other files after one it can't handle
+        if result.returncode != 0:
+            print(f"clean_app: {result.stderr.strip()}", file=sys.__stderr__)
+
+    with ThreadPoolExecutor(max_workers=os.cpu_count() or 1) as pool:
+        list(pool.map(strip_batch, batches))
+    freed = before - sum(os.path.getsize(p) for p in paths)
+    print(f"clean_app: removed {freed / 1e6:.0f} MB of debug information")
+    return freed
+
+
 def remove_scripts(chimerax_root):
     """remove script's whose interpreter is not a system binary
     (eg., Python scripts with paths to "nonexisting" python)
@@ -299,4 +346,5 @@ if __name__ == "__main__":
     if os.path.basename(bin_dir) != 'bin':
         print("Must be called as CHIMERAX/bin/python", file=sys.__stderr__)
         raise SystemExit(1)
-    clean_app(os.path.dirname(bin_dir))
+    clean_app(os.path.dirname(bin_dir),
+              keep_debug_info="--keep-debug-info" in sys.argv[1:])
