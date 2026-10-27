@@ -22,6 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from contextlib import contextmanager
 from chimerax.core.state import State, StateManager
 from numpy import uint8, int32, uint32, float64, float32, byte
 npy_bool = bool
@@ -1687,7 +1688,6 @@ class StructureData:
     worm_ribbon = c_property('structure_worm_ribbon', npy_bool,
         doc = "Show ribbon as a 'worm'. Boolean.")
 
-    from contextlib import contextmanager
     @contextmanager
     def suppress_coordset_change_notifications(self):
         """Suppress coordinate set change notifications while the code body runs.

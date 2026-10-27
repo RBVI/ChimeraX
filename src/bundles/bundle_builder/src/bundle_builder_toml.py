@@ -54,6 +54,7 @@ import re
 import shutil
 import sys
 import sysconfig
+import threading
 from typing import Optional
 from pathlib import Path
 
@@ -77,17 +78,194 @@ from setuptools import Extension, find_packages
 # From https://stackoverflow.com/questions/35112511/pip-setup-py-bdist-wheel-no-longer-builds-forced-non-pure-wheels
 from setuptools.dist import Distribution
 from setuptools.extension import Library  # noqa
+from setuptools.command.build import build as _build
+from setuptools.command.build_ext import build_ext as _build_ext
 
 # Even setuptools.build_meta runs setup() behind the scenes...
 from setuptools.build_meta import (
     suppress_known_deprecation,
 )  # noqa import not in __all__
 
-# TODO: Verify
-# Always import this because it changes the behavior of setuptools
-from numpy import get_include as get_numpy_include_dirs  # noqa
+from ._entry_points import cached_entry_points
 
 cpu_count = os.cpu_count()
+
+
+def _compile_in_parallel(compiler, jobs, **kw):
+    """Compile each (source file, extra_preargs) in jobs with its own compiler
+    and return the object files, in the order of jobs.
+
+    distutils compiles the sources it is given one at a time, so give it one
+    source per call, from a thread per CPU.  Largest files go first so a long
+    one does not start last."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    if not getattr(compiler, "initialized", True):
+        # MSVCCompiler initializes itself on its first compile; don't let the
+        # threads race to do it
+        compiler.initialize()
+
+    def size(i):
+        try:
+            return os.path.getsize(jobs[i][0])
+        except OSError:
+            return 0
+
+    with ThreadPoolExecutor(max_workers=cpu_count) as pool:
+        futures = {
+            i: pool.submit(compiler.compile, [jobs[i][0]], extra_preargs=jobs[i][1], **kw)
+            for i in sorted(range(len(jobs)), key=size, reverse=True)
+        }
+        try:
+            for future in futures.values():
+                future.result()
+        except BaseException:
+            # Don't compile the rest of a library that has already failed
+            pool.shutdown(cancel_futures=True)
+            raise
+    return [obj for i in range(len(jobs)) for obj in futures[i].result()]
+
+
+def _compile_libraries(libraries, logger, dependencies, debug=False):
+    """Compile and link a bundle's C libraries
+
+    Compiling needs only headers, so all of the libraries' sources compile at
+    once; linking can need the libraries before it, so that is done after,
+    in order."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    if len(libraries) < 2:
+        for lib in libraries:
+            lib.compile(logger, dependencies, debug=debug)
+        return
+
+    def compile_objects(lib):
+        return lib.compile_objects(logger, dependencies, lib.static, debug)
+
+    with ThreadPoolExecutor(max_workers=len(libraries)) as pool:
+        compiled = list(pool.map(compile_objects, libraries))
+    for lib, (compiler, objs, extra_link_args) in zip(libraries, compiled):
+        lib.link(compiler, objs, extra_link_args, debug)
+
+
+def _debug_info_args(compiler, debug):
+    """Return the compile arguments that leave out debug information unless
+    debug is true.
+
+    Python's compile flags, which every compile starts with, include -g, which
+    makes compiling slower.  On macOS its output stays in the object files and
+    never reaches the wheel."""
+    if not debug and compiler.compiler_type in ("unix", "cygwin", "mingw32"):
+        return ["-g0"]
+    return []
+
+
+class _BackgroundBuild:
+    """Build a bundle's C libraries and executables in a thread while setup()
+    compiles its C modules, which only need the libraries when they link."""
+
+    def __init__(self, work):
+        self._work = work
+        self._error = None
+        self._thread = threading.Thread(target=self._run, daemon=True)
+
+    def _run(self):
+        try:
+            self._work()
+        except BaseException as e:
+            self._error = e
+
+    def start(self):
+        self._thread.start()
+
+    def join(self):
+        if self._thread.ident is not None:
+            self._thread.join()
+
+    def wait(self):
+        """Wait for the build to finish and raise any error it had."""
+        self._thread.join()
+        if self._error is not None:
+            raise RuntimeError(
+                "building the bundle's C libraries failed"
+            ) from self._error
+
+
+class _Build(_build):
+    """build that runs build_ext first.
+
+    build_ext waits for the bundle's C libraries (see _BackgroundBuild), which
+    build_py, which build would otherwise run first, packages."""
+
+    sub_commands = sorted(
+        _build.sub_commands, key=lambda command: command[0] != "build_ext"
+    )
+
+
+class _BuildExt(_build_ext):
+    """build_ext that compiles each extension's sources in parallel, leaves
+    out debug information unless --debug is given, compiles each extension
+    into its own folder of object files, and waits for the bundle's C
+    libraries before linking."""
+
+    # The _BackgroundBuild of the bundle's C libraries and executables, if any
+    background = None
+
+    def build_extensions(self):
+        compiler = self.compiler
+        compile = compiler.compile
+
+        def compile_sources(
+            sources, *args, debug=False, extra_preargs=None, extra_postargs=None,
+            **kw
+        ):
+            if len(sources) > 1 and not args:
+                # build_ext -j builds extensions in parallel, but compiles the
+                # sources of each one after another.  This calls back here for
+                # each source.  (Each gets its own extra_preargs, which MSVC's
+                # compile() appends to.)
+                jobs = [
+                    (source, None if extra_preargs is None else list(extra_preargs))
+                    for source in sources
+                ]
+                return _compile_in_parallel(
+                    compiler, jobs, debug=debug, extra_postargs=extra_postargs, **kw
+                )
+            extra_postargs = list(extra_postargs or [])
+            extra_postargs += _debug_info_args(compiler, debug)
+            return compile(
+                sources, *args, debug=debug, extra_preargs=extra_preargs,
+                extra_postargs=extra_postargs, **kw
+            )
+
+        compiler.compile = compile_sources
+        background = self.background
+        if background is not None:
+            link = compiler.link_shared_object
+
+            def link_after_libraries(*args, **kw):
+                background.wait()
+                return link(*args, **kw)
+
+            compiler.link_shared_object = link_after_libraries
+        super().build_extensions()
+
+    def build_extension(self, ext):
+        # Extensions that list the same source file would otherwise write the
+        # same object file, at the same time under build_ext -j.  build_temp
+        # is an option of the command, which the build_ext -j threads share,
+        # so change it on a copy.
+        from copy import copy
+
+        command = copy(self)
+        command.build_temp = os.path.join(self.build_temp, ext.name)
+        return super(_BuildExt, command).build_extension(ext)
+
+    def run(self):
+        super().run()
+        if self.background is not None:
+            # build_py, which runs next, packages the libraries
+            self.background.wait()
 
 
 def _find_openmp_mac():
@@ -120,7 +298,7 @@ except:
 
 # TODO Fact check
 # The compile process is initiated by setuptools and handled
-# by numpy.distutils, which eventually calls subprocess.
+# by distutils, which eventually calls subprocess.
 # On Windows, subprocess invokes CreateProcess.  If a shell
 # is used, subprocess sets the STARTF_USESHOWWINDOW flag
 # to CreateProcess, assuming that "cmd" is going to create
@@ -673,6 +851,7 @@ class Bundle:
         self.setup_arguments = {
             "name": self.name,
             "python_requires": str(self.python_requirement),
+            "cmdclass": {"build": _Build, "build_ext": _BuildExt},
         }
         if self.version:
             add_argument("version", self.version)
@@ -838,7 +1017,7 @@ class Bundle:
             add_package(name, folder)
         return package_dir, packages
 
-    def _run_setup(self, cmd):
+    def _run_setup(self, cmd, background=None):
         cwd = os.getcwd()
         save = sys.argv
         try:
@@ -852,12 +1031,23 @@ class Bundle:
             # and package data correctly.
             kw["include_package_data"] = False
             sys.argv = ["setup.py"] + cmd
-            with suppress_known_deprecation():
+            if background is not None:
+                build_ext = type(
+                    "build_ext", (_BuildExt,), {"background": background}
+                )
+                kw["cmdclass"] = dict(kw["cmdclass"], build_ext=build_ext)
+                background.start()
+            with suppress_known_deprecation(), cached_entry_points():
                 dist = setuptools.setup(**kw)
+            if background is not None:
+                background.wait()
             return dist, True
         except SystemExit:
             return None, False
         finally:
+            if background is not None:
+                # It builds relative to the bundle directory
+                background.join()
             sys.argv = save
             os.chdir(cwd)
             if MySTARTUPINFO:
@@ -879,12 +1069,16 @@ class Bundle:
         )
         if sys.platform == "darwin" and uses_openmp:
             self._copy_openmp_lib()
-        if build_exts:
-            # Build C libraries and executables
-            for lib in self.c_libraries:
-                lib.compile(self.logger, self.dependencies)
-            for executable in self.c_executables:
-                executable.compile(self.logger, self.dependencies)
+        if build_exts and (self.c_libraries or self.c_executables):
+            # Build C libraries and executables, in the background of
+            # _run_setup
+            def build():
+                _compile_libraries(self.c_libraries, self.logger, self.dependencies)
+                for executable in self.c_executables:
+                    executable.compile(self.logger, self.dependencies)
+
+            return _BackgroundBuild(build)
+        return None
 
     def _check_output(self, type_="wheel", report_name=True):
         if type_ == "wheel":
@@ -940,11 +1134,11 @@ class Bundle:
         return wheel_name.split("/")[-1]
 
     def build_wheel(self, debug=False, release=False):
-        self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
+        background = self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
         self._check_build_requires()
         setup_args = ["--no-user-cfg", "build", f"-j{cpu_count}"]
         setup_args.extend(["bdist_wheel"])
-        dist, built = self._run_setup(setup_args)
+        dist, built = self._run_setup(setup_args, background)
         if not built:
             raise RuntimeError(f"Failed to build wheel for {self.module_name}; see errors above")
         if not self.version:
@@ -969,6 +1163,39 @@ class Bundle:
                 shutil.rmtree("./wheelhouse")
         return wheel
 
+    def build_extensions(self, names, debug=False):
+        """Build only the named extension modules, without a wheel.
+
+        For extensions that use no other bundle: built before the bundle's
+        dependencies are, they are up to date when the wheel is built later,
+        so build_ext skips them then.  They are built without any other
+        bundle's include and library directories, which also means nothing
+        reads the metadata of bundles that may be being installed meanwhile.
+        """
+        modules = [cm for cm in self.c_modules if cm.name in names]
+        unknown = set(names) - {cm.name for cm in modules}
+        if unknown:
+            raise ValueError("no such extension: %s" % ", ".join(sorted(unknown)))
+        self._clear_distutils_cache()
+        ext_mods = [cm.ext_mod(self.logger, self.module_name, []) for cm in modules]
+        saved = getattr(self, "setup_arguments", None)
+        self.setup_arguments = {
+            "name": self.name,
+            "ext_modules": cythonize([em for em in ext_mods if em is not None]),
+            "cmdclass": {"build": _Build, "build_ext": _BuildExt},
+        }
+        if self.version:
+            self.setup_arguments["version"] = self.version
+        setup_args = ["--no-user-cfg", "build_ext", f"-j{cpu_count}"]
+        if debug:
+            setup_args.append("--debug")
+        try:
+            dist, built = self._run_setup(setup_args)
+        finally:
+            self.setup_arguments = saved
+        if not built:
+            raise RuntimeError("Building extensions failed: %s" % ", ".join(names))
+
     def build_sdist(self):
         self._clear_distutils_dir_and_prep_srcdir()
         setup_args = ["sdist"]
@@ -982,13 +1209,13 @@ class Bundle:
 
     def build_editable(self, config_settings=None):
         self._remove_libraries()
-        self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
+        background = self._clear_distutils_dir_and_prep_srcdir(build_exts=True)
         self._check_build_requires()
         setup_args = ["build_ext", f"-j{cpu_count}", "--inplace", "editable_wheel"]
         if config_settings:
             if "editable_mode" in config_settings:
                 setup_args.extend(["--mode", config_settings["editable_mode"]])
-        dist, built = self._run_setup(setup_args)
+        dist, built = self._run_setup(setup_args, background)
         if not built:
             raise RuntimeError(f"Failed to build editable wheel for {self.module_name}; see errors above")
         if not self.version:
@@ -1241,21 +1468,21 @@ class _CompiledCode:
             else:
                 raise RuntimeError("Unsupported language for %s" % f)
         if cpp_files:
-            compiler.compile(
-                cpp_files,
-                extra_preargs=cpp_flags + self.compile_arguments,
-                macros=macros,
-                debug=debug,
-            )
             self.target_lang = "c++"
-        if c_files:
-            compiler.compile(
-                c_files,
-                extra_preargs=self.compile_arguments,
-                macros=macros,
-                debug=debug,
-            )
-        objs = compiler.object_filenames(self.source_files)
+        jobs = [(f, cpp_flags + self.compile_arguments) for f in cpp_files]
+        jobs.extend((f, self.compile_arguments) for f in c_files)
+        # Keep each library's and executable's object files apart, in case
+        # they or the C modules share a source file
+        object_dir = os.path.join("build", "temp", type(self).__name__, self.name)
+        _compile_in_parallel(
+            compiler,
+            jobs,
+            output_dir=object_dir,
+            macros=macros,
+            debug=debug,
+            extra_postargs=_debug_info_args(compiler, debug),
+        )
+        objs = compiler.object_filenames(self.source_files, output_dir=object_dir)
         return compiler, objs, extra_link_args
 
 
@@ -1319,6 +1546,10 @@ class _CLibrary(_CompiledCode):
         compiler, objs, extra_link_args = self.compile_objects(
             logger, dependencies, self.static, debug
         )
+        return self.link(compiler, objs, extra_link_args, debug)
+
+    def link(self, compiler, objs, extra_link_args, debug=False):
+        """Link (or archive) what compile_objects() compiled"""
         compiler.mkpath(self.output_dir)
         if self.static:
             if sys.platform == "darwin":

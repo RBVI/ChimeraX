@@ -29,6 +29,7 @@ CLEAN_ALWAYS ?=
 
 ifdef DEBUG
 DEBUG_ARG += debug true
+BUILD_DEBUG_ARG = --debug
 endif
 
 # Platform-dependent settings.  Should not need fixing.
@@ -67,8 +68,18 @@ endif
 
 ifdef RELEASE
 RELEASE_ARG=release true
+BUILD_RELEASE_ARG=--release
 else
 RELEASE_ARG=
+BUILD_RELEASE_ARG=
+endif
+
+# With NO_DOGFOODING, bundles are built without starting ChimeraX, which is
+# much faster; otherwise the devel command builds them, so it stays in use
+ifdef NO_DOGFOODING
+BUILD_WHEEL = PYTHONNOUSERSITE=1 $(PYTHONISO) -m chimerax.bundle_builder --build . $(BUILD_RELEASE_ARG) $(BUILD_DEBUG_ARG) $(BUILD_ARGS)
+else
+BUILD_WHEEL = $(RUN_CMD) "devel build . exit true $(RELEASE_ARG) $(DEBUG_ARG) $(BUILD_ARGS)"
 endif
 
 PYSRCS = $(wildcard src/*.py)
@@ -79,7 +90,7 @@ wheel: $$(PYSRCS)
 	if [ -z "$(APP_PYTHON_EXE)" ]; then \
 		echo "missing ChimeraX application's python"; exit 1; \
 	else \
-		$(RUN_CMD) "devel build . exit true $(RELEASE_ARG) $(DEBUG_ARG) $(BUILD_ARGS)"; \
+		$(BUILD_WHEEL); \
 	fi
 
 uv-install uv-app-install:
@@ -132,9 +143,34 @@ endif
 sync:
 	cp -av dist/*.whl $(SYNC_DIR)
 
+# Bundles may extend this with parts of their build that need no other bundle,
+# so they can be made before the build time dependencies are ready.
+# PREBUILD_EXTENSIONS names extension modules that use no other bundle's
+# headers or libraries; the wheel build then finds them up to date.
+prebuild:
+	$(if $(PREBUILD_EXTENSIONS),PYTHONNOUSERSITE=1 $(PYTHONISO) -m chimerax.bundle_builder --build . $(BUILD_DEBUG_ARG) --extensions $(PREBUILD_EXTENSIONS))
+
 ifdef BUILD_AND_INSTALL
 INSTALL_ARGS = noDeps true
+ifdef NO_DOGFOODING
+# Install the wheel just built.  Neither path starts ChimeraX: its toolshed
+# scans site-packages at startup, which races with the BUILD_AND_INSTALL
+# bundles being installed in parallel.  The toolshed cache is refreshed by
+# "toolshed reload installed" afterwards.
+# In the ChimeraX source tree, install with uv from the build tree's Python,
+# which is much faster than pip
+BUILD_TREE_PYTHON = $(firstword $(wildcard $(TOP)/build/bin/python3.[1-9][0-9]))
+build: wheel
+	if [ -n "$(BUILD_TREE_PYTHON)" ] && $(BUILD_TREE_PYTHON) -I -c 'import uv' 2>/dev/null; then \
+		$(BUILD_TREE_PYTHON) -I -m uv pip install --python $(APP_PYTHON_EXE) \
+			--no-deps --reinstall --compile-bytecode dist/*.whl ; \
+	else \
+		PYTHONNOUSERSITE=1 $(PYTHONISO) -m pip install --no-deps --force-reinstall \
+			--disable-pip-version-check dist/*.whl ; \
+	fi
+else
 build: install
+endif
 else
 build: wheel
 endif
@@ -156,14 +192,18 @@ debug:
 	$(CX_BIN) --debug
 
 clean:
-ifndef NO_CHIMERAX_APP
+ifeq ($(NO_DOGFOODING)$(NO_CHIMERAX_APP),)
 	if [ -x "$(APP_PYTHON_EXE)" -a -e bundle_info.xml ]; then \
 		$(RUN_CMD) "devel clean . exit true" ; \
 	else \
 		rm -rf $(CLEAN) ; \
 	fi
 else
+	# Same as "devel clean", without the cost of starting ChimeraX
 	rm -rf $(CLEAN)
+	if [ -d src ]; then \
+		find src \( -name '*.a' -o -name '*.o' -o -name '*.obj' \) -type f -delete ; \
+	fi
 endif
 	if [ -n "$(CLEAN_ALWAYS)" ]; then \
 		rm -rf $(CLEAN_ALWAYS); \

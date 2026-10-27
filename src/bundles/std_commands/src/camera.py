@@ -52,7 +52,12 @@ def camera(session, type=None, field_of_view=None,
     has_arg = False
     if type is not None:
         has_arg = True
-        if (type == 'stereo') != view.render.opengl_context.stereo:
+        # Without a window (nogui, offscreen) there is no OpenGL context to switch to stereo.
+        gui = session.ui.is_gui
+        if type == 'stereo' and not gui:
+            from chimerax.core.errors import UserError
+            raise UserError('Camera mode stereo requires a graphics window')
+        if gui and (type == 'stereo') != view.render.opengl_context.stereo:
             # Need to switch stereo mode of OpenGL context.
             if not session.ui.main_window.enable_stereo(type == 'stereo'):
                 from chimerax.core.errors import UserError

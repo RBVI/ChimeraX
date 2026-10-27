@@ -24,7 +24,7 @@ SOURCE = $(tmpdir)/Python-$(PYTHON_PATCH_LEVEL)
 # Relocatable tarball of the freshly built interpreter (members relative to
 # build_prefix).  CI caches this so the source build only runs on a cache miss.
 # The per-distro identity lives in the CI cache key, not in this file name.
-LINUX_PREBUILT = python-$(PYTHON_PATCH_LEVEL)-$(OSARCH).tar.bz2
+LINUX_PREBUILT = python-$(PYTHON_PATCH_LEVEL)-$(OSARCH).$(PREREQ_TAR_EXT)
 
 CONFIG_OPTIONS += --enable-shared
 # --enable-optimizations (PGO+LTO) is left off: it greatly lengthens the build
@@ -91,6 +91,10 @@ ifeq ($(OS),Darwin)
 # Path from bindir/libdir/includedir (build/bin, build/lib, build/include) to
 # the framework, used for the convenience symlinks.
 REL_PYTHON_FRAMEWORK = ../Library/Frameworks/Python.framework/Versions/$(PYTHON_VERSION)
+# CPython's own main program for this release, rebuilt to link the framework's
+# libpython dylib instead of the distribution's statically linked python
+CPYTHON_MAIN = python-$(PYTHON_PATCH_LEVEL).c
+CPYTHON_MAIN_URL = https://raw.githubusercontent.com/python/cpython/v$(PYTHON_PATCH_LEVEL)/Programs/python.c
 endif
 
 all:
@@ -98,7 +102,7 @@ all:
 ifneq ($(OS),Linux)
 install: $(INSTALL_STAMP)
 
-$(INSTALL_STAMP): $(INSTALL_DEP) Makefile Info.plist.in clean_config_vars.py
+$(INSTALL_STAMP): $(INSTALL_DEP) Makefile Info.plist.in clean_config_vars.py $(CPYTHON_MAIN)
 	$(MAKE) python-install
 	touch $@
 else
@@ -132,7 +136,7 @@ else ifeq ($(OS),Linux)
 	# the result so CI can cache it.
 	if [ -f '$(LINUX_PREBUILT)' ]; then \
 		echo 'Unpacking cached Python build: $(LINUX_PREBUILT)' ; \
-		tar xjf '$(LINUX_PREBUILT)' -C $(build_prefix) --no-same-owner ; \
+		tar $(PREREQ_TAR_COMPRESS) -xf '$(LINUX_PREBUILT)' -C $(build_prefix) --no-same-owner ; \
 	else \
 		$(MAKE) linux-source-build ; \
 	fi
@@ -146,8 +150,16 @@ else
 	# at this framework's Versions/$(PYTHON_VERSION)/lib directory.
 	rm -rf $(frameworkdir)/Python.framework
 	mkdir -p $(PYTHON_FRAMEWORK)
-	$(RSYNC) '$(PBS_DIR)'/bin '$(PBS_DIR)'/lib '$(PBS_DIR)'/include $(PYTHON_FRAMEWORK)
-	-[ -d '$(PBS_DIR)'/share ] && $(RSYNC) '$(PBS_DIR)'/share $(PYTHON_FRAMEWORK)
+	# Clone (APFS copy-on-write) rather than copy; cp -c copies where it cannot
+	cp -cRp '$(PBS_DIR)'/bin '$(PBS_DIR)'/lib '$(PBS_DIR)'/include $(PYTHON_FRAMEWORK)
+	-[ -d '$(PBS_DIR)'/share ] && cp -cRp '$(PBS_DIR)'/share $(PYTHON_FRAMEWORK)
+	# Replace the distribution's python, which links libpython statically,
+	# with one that uses lib/libpython$(PYTHON_VERSION).dylib.  Extension
+	# modules find Python's symbols in whichever one is loaded.
+	$(CC) -O2 -o $(PYTHON_FRAMEWORK)/bin/python$(PYTHON_VERSION) $(CPYTHON_MAIN) \
+		-I$(PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) \
+		-L$(PYTHON_FRAMEWORK)/lib -lpython$(PYTHON_VERSION) \
+		-Wl,-rpath,@executable_path/../lib
 	# framework entry points (the dylib is reached through these symlinks)
 	ln -sf lib/libpython$(PYTHON_VERSION).dylib $(PYTHON_FRAMEWORK)/Python
 	ln -sf include/python$(PYTHON_VERSION) $(PYTHON_FRAMEWORK)/Headers
@@ -170,8 +182,10 @@ endif
 	# install uv.  pip uses its own vendored certificates for these downloads,
 	# so this works before certifi is installed by prereqs/pips.  (One pip run,
 	# since pip takes a while to start.)  ensurepip is only needed when there
-	# is no pip yet (on Windows, where site-packages is not copied).
-	$(PYTHON_EXE) -m pip --version > /dev/null 2>&1 || $(PYTHON_EXE) -m ensurepip --upgrade
+	# is no pip yet (on Windows, where site-packages is not copied).  Look
+	# for pip without starting it, which takes most of a second.
+	$(PYTHON_EXE) -c 'import importlib.util, sys; sys.exit(importlib.util.find_spec("pip") is None)' \
+		|| $(PYTHON_EXE) -m ensurepip --upgrade
 	$(PYTHON_EXE) -m pip install --upgrade --disable-pip-version-check \
 		$(PINNED_TOOLS) uv==$(UV_VERSION)
 
@@ -196,7 +210,7 @@ linux-source-build: $(SOURCE)
 	sed -i -e 's;obj:.*libcrypto.*;obj:*/libcrypto.so.*;' $(datadir)/valgrind-python.supp
 	# Package the freshly built interpreter (without pip, which the install
 	# target installs fresh afterwards) so CI can cache it.
-	cd $(build_prefix) && tar cjf '$(abspath $(LINUX_PREBUILT))' \
+	cd $(build_prefix) && tar $(PREREQ_TAR_COMPRESS) -cf '$(abspath $(LINUX_PREBUILT))' \
 		bin/python$(PYTHON_VERSION) bin/python3 \
 		lib/libpython*.so* \
 		lib/python$(PYTHON_VERSION) \
@@ -215,7 +229,14 @@ ifeq ($(OS),Windows)
 	  '$(PBS_DIR)'/*.dll \
 	  $(app_bindir)
 else ifdef USE_MAC_FRAMEWORKS
-	$(RSYNC) $(frameworkdir)/Python.framework $(app_frameworkdir)
+	# Into a new app, clone the framework (APFS copy-on-write, so nearly
+	# instant); into an existing one, update it as before, keeping what has
+	# been installed there
+	if [ -e $(app_frameworkdir)/Python.framework ]; then \
+		$(RSYNC) $(frameworkdir)/Python.framework $(app_frameworkdir) ; \
+	else \
+		cp -cRp $(frameworkdir)/Python.framework $(app_frameworkdir) ; \
+	fi
 	ln -s -f $(REL_PYTHON_FRAMEWORK)/bin/pip $(app_bindir)
 	ln -s -f -n $(REL_PYTHON_FRAMEWORK)/lib/python$(PYTHON_VERSION) $(app_libdir)
 	ln -s -f -n $(REL_PYTHON_FRAMEWORK)/include/python$(PYTHON_VERSION) $(app_includedir)
@@ -260,6 +281,11 @@ endif
 $(DISTRIBUTION):
 	$(call FETCH_PYTHON_TO,$@,$(PYTHON_BUILD_STANDALONE_BASE)/$(PYTHON_BUILD_STANDALONE_RELEASE)/$(DISTRIBUTION))
 
+ifeq ($(OS),Darwin)
+$(CPYTHON_MAIN):
+	$(call FETCH_PYTHON_TO,$@,$(CPYTHON_MAIN_URL))
+endif
+
 # --- Linux: fetch and configure the CPython source ---------------------------
 $(SOURCE): $(SOURCE_DIST)
 	tar -xf $(SOURCE_DIST) -C $(tmpdir) --no-same-owner
@@ -282,4 +308,4 @@ $(SOURCE_DIST):
 	$(call FETCH_PYTHON_TO,$@,$(PYTHON_SOURCE_BASE)/$(PYTHON_PATCH_LEVEL)/$(SOURCE_DIST))
 
 clean:
-	-rm -rf $(PBS_DIR) $(DISTRIBUTION) $(SOURCE) $(SOURCE_DIST) $(LINUX_PREBUILT)
+	-rm -rf $(PBS_DIR) $(DISTRIBUTION) $(SOURCE) $(SOURCE_DIST) $(LINUX_PREBUILT) $(CPYTHON_MAIN)

@@ -12,6 +12,10 @@ on:
       PREBUILT_CACHE_SECRET:
         required: true
 
+env:
+  # Build the bundles without starting ChimeraX (see src/bundles/Makefile.bundle)
+  NO_DOGFOODING: "1"
+
 jobs:
   build-ubuntu:
     strategy:
@@ -71,6 +75,7 @@ jobs:
           cp -rp include ChimeraX.app
           make -C src/apps install BUILD_TYPE="${{ inputs.release_type }}"
           make -C docs install BUILD_TYPE="${{ inputs.release_type }}"
+          make clean-app
       - name: Install Pytest
         run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting

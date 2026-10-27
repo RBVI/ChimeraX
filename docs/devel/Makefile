@@ -16,6 +16,11 @@ include $(TOP)/mk/config.make
 
 # You can set these variables from the command line.
 SPHINXOPTS    ?= -j auto
+ifeq ($(OS),Darwin)
+# Sphinx forks its parallel workers after the docs have imported Qt, and the
+# Objective-C runtime aborts a forked child that initializes a class
+SPHINX_ENV = OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+endif
 ifdef USE_MAC_FRAMEWORKS
 SPHINXBUILD   ?= $(APP_PYTHON_EXE) $(APP_PYTHON_FRAMEWORK)/bin/sphinx-build
 else ifdef WIN32
@@ -71,15 +76,9 @@ install: clean html
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
 	$(RSYNC) $(BUILDDIR)/html/ $(DOCDIR)
 
-# Spare Sphinx's cache of the intersphinx inventories, which it refreshes
-# after intersphinx_cache_limit days, so each build need not fetch them
 clean:
-	-if [ -d $(BUILDDIR) ]; then \
-		find $(BUILDDIR) -mindepth 1 -maxdepth 1 ! -name doctrees -exec rm -rf {} + ; \
-		find $(BUILDDIR)/doctrees -mindepth 1 -maxdepth 1 ! -name __intersphinx_cache__ -exec rm -rf {} + ; \
-	fi
-	-rm -rf conf.py index.rst _static/cxlinks.js __pycache__ _static/devdocs.css \
-		apps chimerax modules
+	-rm -rf $(BUILDDIR)/* conf.py index.rst _static/cxlinks.js __pycache__ _static/devdocs.css \
+		apps chimerax cpp modules
 
 conf.py: conf.py.in
 	sed -e 's/PYTHON_VERSION/$(PYTHON_VERSION)/' \
@@ -100,7 +99,7 @@ html: clean conf.py index.rst _static/cxlinks.js _static/devdocs.css
 		ln -s $(realpath $(APP_PYSITEDIR)/chimerax) chimerax ; \
 		INTERNAL_CHIMERAX=1 $(TOP)/utils/build/doc_symlinks.sh ; \
 	fi
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	$(SPHINX_ENV) $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 

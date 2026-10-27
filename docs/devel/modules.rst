@@ -144,6 +144,8 @@ User Interface
 
     modules/ui/gui.rst
 
+    modules/preset_mgr/presets.rst
+
     modules/scheme_mgr/scheme_mgr.rst
 
     modules/toolbar/toolbar.rst

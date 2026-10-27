@@ -67,6 +67,17 @@ ifneq (,$(filter $(OS),Darwin Windows))
 NO_PREBUILT = 1
 endif
 
+# Archives of locally built prerequisites (the prebuilt tarball and Linux's
+# compiled Python).  zstd compresses them in parallel, smaller than bzip2 and
+# 20x faster; bzip2 is the fallback when zstd isn't installed.
+ifneq (,$(shell command -v zstd 2>/dev/null))
+PREREQ_TAR_EXT = tar.zst
+PREREQ_TAR_COMPRESS = --use-compress-program='zstd -9 -T0'
+else
+PREREQ_TAR_EXT = tar.bz2
+PREREQ_TAR_COMPRESS = --bzip2
+endif
+
 # On macOS and Windows, relocatable CPython is sourced from python-build-standalone
 # (maintained by Astral) instead of being built from source or hosted on our own
 # server.  Pin both the release and the patch version so builds are reproducible;
@@ -223,6 +234,27 @@ APP_PIP_INSTALL = $(APP_BOOTSTRAP_PIP) install
 endif
 
 PYLINT = $(PYTHON_EXE) -m flake8
+
+# Prefix for commands that should yield the CPU to others.  (On macOS, a
+# "taskpolicy -c utility" clamp is stronger, but it confines work to the
+# efficiency cores and throttles its I/O, which makes it far too slow for
+# work that anything waits on soon.)
+ifeq ($(OS),Windows)
+LOW_PRIORITY =
+else
+LOW_PRIORITY = nice -n 10
+endif
+# Prefix for work with plenty of time to finish, which on macOS keeps it on
+# the efficiency cores, out of the way of the work others wait on
+ifeq ($(OS),Darwin)
+BACKGROUND_PRIORITY = taskpolicy -c utility
+# The same for building bundles, but only for their compilers: bundle_builder
+# itself (Python, and largely serial) is slowed by it far more than they are
+BACKGROUND_COMPILE_PRIORITY = CHIMERAX_BUILD_SPAWN_PREFIX='$(BACKGROUND_PRIORITY)' $(LOW_PRIORITY)
+else
+BACKGROUND_PRIORITY = $(LOW_PRIORITY)
+BACKGROUND_COMPILE_PRIORITY = $(LOW_PRIORITY)
+endif
 
 # common makefile targets
 .PHONY: all install app-install clean
