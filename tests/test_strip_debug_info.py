@@ -154,3 +154,29 @@ def test_strip_debug_info_keeps_misaligned_original(tmp_path, monkeypatch):
 
     assert lib.read_bytes() == original
     assert not list(tmp_path.rglob("*" + clean_app.STRIP_SUFFIX))
+
+
+@pytest.mark.skipif(
+    sys.platform != "linux"
+    or not all(shutil.which(t) for t in ("cc", "strip", "readelf")),
+    reason="needs a Linux toolchain")
+def test_strip_debug_info_runs_strip_from_environment(tmp_path, monkeypatch):
+    """CI points $STRIP at a newer strip than the system's"""
+    clean_app = _load_clean_app_module()
+    source = tmp_path / "f.c"
+    source.write_text("int chimerax_f(int x) { return x * 2; }\n")
+    lib = tmp_path / "app" / "libf.so"
+    lib.parent.mkdir()
+    subprocess.run(["cc", "-g", "-shared", "-fPIC", "-o", str(lib),
+                    str(source)], check=True)
+    ran = tmp_path / "ran"
+    wrapper = tmp_path / "my-strip"
+    wrapper.write_text(f'#!/bin/sh\ntouch "{ran}"\n'
+                       f'exec "{shutil.which("strip")}" "$@"\n')
+    wrapper.chmod(0o755)
+    monkeypatch.setenv("STRIP", str(wrapper))
+
+    clean_app.strip_debug_info(str(lib.parent))
+
+    assert ran.exists()
+    assert ".debug_info" not in _sections(lib)

@@ -405,7 +405,11 @@ def strip_debug_info(chimerax_root):
     libraries that auditwheel has rewritten with patchelf, such as numpy's
     OpenBLAS, and the loader then refuses them.  A copy whose segments the
     loader would refuse is thrown away, keeping the original.
+
+    $STRIP, if set, is the strip to run instead of the one on $PATH.  CI uses
+    it to run a newer one from gcc-toolset-15-binutils on Rocky.
     """
+    strip = os.environ.get("STRIP") or "strip"
     groups = elf_files(chimerax_root)
     paths = [links[0] for links in groups]
     before = sum(os.path.getsize(p) for p in paths)
@@ -417,7 +421,7 @@ def strip_debug_info(chimerax_root):
             copy = links[0] + STRIP_SUFFIX
             shutil.copy2(links[0], copy)
             copies.append(copy)
-        result = subprocess.run(["strip", "--strip-debug"] + copies,
+        result = subprocess.run([strip, "--strip-debug"] + copies,
                                 capture_output=True, text=True)
         # strip goes on to the other files after one it can't handle,
         # leaving that copy as it was

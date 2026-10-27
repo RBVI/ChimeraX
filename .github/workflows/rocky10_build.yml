@@ -25,15 +25,19 @@ jobs:
       SHELL: /bin/bash
       PATH: /usr/bin:/usr/sbin:/bin:/sbin
       PYOPENGL_PLATFORM: egl
+      # The system strip mangles libraries that patchelf has rewritten, like
+      # numpy's OpenBLAS; binutils 2.43 and later don't (see clean_app.py)
+      STRIP: /opt/rh/gcc-toolset-15/root/usr/bin/strip
     steps:
       - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
       # Mirror speed varies wildly between runs; download in parallel from the
       # fastest mirror. set_up_centos.sh already runs dnf update, so don't do it
       # twice, and git-all drags in Perl, Tk and Subversion that we don't need.
-      - name: Configure dnf and install git
+      - name: Configure dnf and install git and a newer strip
         run: |
           printf 'max_parallel_downloads=10\nfastestmirror=True\ninstall_weak_deps=False\n' >> /etc/dnf/dnf.conf
-          dnf install -y git
+          dnf install -y git gcc-toolset-15-binutils
+          $STRIP --version
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.branch || 'develop' }}
