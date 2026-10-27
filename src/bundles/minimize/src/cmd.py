@@ -45,22 +45,21 @@ def cmd_minimize(session, atoms, *, dock_prep=True, live_updates=True, log_energ
         raise UserError("Specify atoms in only one structure for minimization")
     else:
         structure = atoms[0].structure
-    # Since dock prep may add hydrogens, need to let minimize know what the fixed atoms
-    # are at this point (and use Atoms collections in case dock prep deletes some)
-    atoms_set = set(atoms)
-    if len(atoms_set) == structure.num_atoms:
-        fixed = Atoms([])
+    # Since dock prep may add hydrogens and side-chain heavy atoms, need to let minimize know what the
+    # mobile atoms are at this point (and use Atoms collections in case dock prep deletes some)
+    if len(atoms) == structure.num_atoms:
+        mobile = True
     else:
-        fixed = Atoms([a for a in structure.atoms if a not in atoms_set])
+        mobile = atoms
     if dock_prep:
         from chimerax.dock_prep import dock_prep_caller
         dock_prep_caller(session, [structure], memorize_name="minimization", nogui=True,
-            callback=lambda ses=session, struct=structure, fixed=fixed, updates=live_updates, log=log_energy,
-            steps=max_steps: _minimize(ses, struct, fixed, updates, log, steps), **kw)
+            callback=lambda ses=session, struct=structure, mobile=mobile, updates=live_updates,
+            log=log_energy, steps=max_steps: _minimize(ses, struct, mobile, updates, log, steps), **kw)
     else:
-        _minimize(session, structure, fixed, live_updates, log_energy, max_steps)
+        _minimize(session, structure, mobile, live_updates, log_energy, max_steps)
 
-def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_steps):
+def _minimize(session, structure, mobile_atoms, live_updates, log_energy, max_steps):
     from openmm.app import Topology, ForceField, element, HBonds, Simulation
     from openmm.unit import angstrom, nanometer, Quantity
     from openmm import LangevinIntegrator, LocalEnergyMinimizer, vec3, Context, MinimizationReporter
@@ -121,16 +120,17 @@ def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_ste
     NH_len = CO_len = PO_len = None
     filter = []
     # OpenMM doesn't allow constraints between massless (fixed) and massful atoms (mobile) atoms,
-    # hydrogens have distance constraints to their heavy atoms, so also hydrogens bonded to
-    # fixed atoms massless
-    if fixed_atoms:
-        # remove hydrogens from fixed set in case only the heavy atoms were designated as mobile;
-        # needed fixed hydrogens will be added next
-        fixed_heavys = fixed_atoms.filter(fixed_atoms.element_numbers > 1)
-        fixed_set = set(fixed_heavys)
-        neighbors = fixed_heavys.neighbors
-        hyds = neighbors.filter(neighbors.element_numbers == 1)
-        fixed_set.update(hyds)
+    # hydrogens have distance constraints to their heavy atoms, so avoid making hydrogens bonded to
+    # mobile atoms massless
+    if mobile_atoms is not True:
+        # atoms not in mobile set are fixed, except for hydrogens bonded to mobile atoms
+        mobile_set = set(mobile_atoms)
+        all_atoms = structure.atoms
+        fixed = [hvy for hvy in all_atoms.filter(all_atoms.element_numbers > 1) if hvy not in mobile_set]
+        for h in all_atoms.filter(all_atoms.element_numbers == 1):
+            if h.neighbors[0] not in mobile_set:
+                fixed.append(h)
+        fixed_set = set(fixed)
     else:
         fixed_set = set()
     fixed_indices = []
@@ -179,6 +179,8 @@ def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_ste
                 num = 1
                 while r.find_atom("H%d" % num):
                     num += 1
+                if n in fixed_set:
+                    fixed_indices.append(top.getNumAtoms())
                 h = top.addAtom("H%d" % num, element.Element.getBySymbol("H"), residues[r], fake_serial)
                 coords.append(Quantity(vec3.Vec3(*pos), angstrom))
                 top.addBond(atoms[n], h)
@@ -195,6 +197,8 @@ def _minimize(session, structure, fixed_atoms, live_updates, log_energy, max_ste
             if len(bonded) != 2:
                 raise LimitationError(c_error_template % (r, "C atom not bonded to exactly two other atoms"))
             for pos in bond_positions(c.coord, 3, CO_len, [bd.coord for bd in bonded]):
+                if c in fixed_set:
+                    fixed_indices.append(top.getNumAtoms())
                 o = top.addAtom("OXT", element.Element.getBySymbol("O"), residues[r], fake_serial)
                 coords.append(Quantity(vec3.Vec3(*pos), angstrom))
                 top.addBond(atoms[c], o)
