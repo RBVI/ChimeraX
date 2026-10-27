@@ -21,4 +21,9 @@ SUBDIRS	+= bundles apps examples
 # All needed subdirectories must be set by now.
 include $(TOP)/mk/subdir.make
 
-# apps needs only the prerequisites, so it builds alongside the bundles
+# apps needs only the prerequisites, so it builds alongside the bundles,
+# except on Windows, where the launcher's icon resource gets its version and
+# copyright year from the installed chimerax.core's buildinfo.py
+ifdef WIN32
+apps.install: bundles.install
+endif
