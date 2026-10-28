@@ -130,6 +130,22 @@ class FileHistory:
         self._save_files = True
         self.history_changed()
 
+    def remove_file(self, fspec):
+        self.remove_files([fspec])
+
+    def remove_files(self, fspecs):
+        f = self._files
+        keys = [(fs.path, fs.database) for fs in fspecs]
+        keys = [k for k in keys if k in f]
+        if keys:
+            for k in keys:
+                del f[k]
+            self._prune_section_keys()
+            self._organization_changed()
+
+    def find_file(self, path, database = None):
+        return self._files.get((path, database))
+
     # ------------------------------------------------------------------------
     # User defined sections.
     #
@@ -160,6 +176,82 @@ class FileHistory:
                 return s.name
         return None
 
+    def add_section(self, name, index = None):
+        name = self._check_new_section_name(name)
+        s = HistorySection(name)
+        if index is None:
+            self._sections.append(s)
+        else:
+            self._sections.insert(index, s)
+        self._organization_changed()
+        return name
+
+    def rename_section(self, name, new_name):
+        s = self._section(name)
+        if s is None:
+            raise ValueError('No file history section named "%s"' % name)
+        if new_name.strip() == name:
+            return
+        s.name = self._check_new_section_name(new_name)
+        if self._current_section == name:
+            self._current_section = s.name
+        self._organization_changed()
+
+    def remove_section(self, name):
+        '''Remove a section.  Its files go back to the unsorted files.'''
+        s = self._section(name)
+        if s is None:
+            raise ValueError('No file history section named "%s"' % name)
+        self._sections.remove(s)
+        if self._current_section == name:
+            self._current_section = None
+        self._organization_changed()
+
+    def move_section(self, name, index):
+        s = self._section(name)
+        if s is None:
+            raise ValueError('No file history section named "%s"' % name)
+        self._sections.remove(s)
+        index = max(0, min(index, len(self._sections)))
+        self._sections.insert(index, s)
+        self._organization_changed()
+
+    def move_file(self, fspec, section_name, before = None):
+        self.move_files([fspec], section_name, before)
+
+    def move_files(self, fspecs, section_name, before = None):
+        '''
+        Put files in a section, in the given order, placed before FileSpec
+        "before", or at the end if before is None.  A section_name of None
+        removes the files from their sections.
+        '''
+        keys = []
+        for fs in fspecs:
+            key = (fs.path, fs.database)
+            if key not in self._files:
+                raise ValueError('File %s is not in the file history' % fs.path)
+            if key not in keys:
+                keys.append(key)
+        dest = None
+        if section_name is not None:
+            dest = self._section(section_name)
+            if dest is None:
+                raise ValueError('No file history section named "%s"' % section_name)
+        # If inserting before one of the moved files use the next file that is not moved.
+        bkey = None
+        if dest is not None and before is not None:
+            bkey = (before.path, before.database)
+            if bkey in dest.keys:
+                following = dest.keys[dest.keys.index(bkey):]
+                bkey = next((k for k in following if k not in keys), None)
+        moved = set(keys)
+        for s in self._sections:
+            s.keys = [k for k in s.keys if k not in moved]
+        if dest is not None:
+            i = dest.keys.index(bkey) if bkey in dest.keys else len(dest.keys)
+            dest.keys[i:i] = keys
+        self._organization_changed()
+
     def _get_current_section(self):
         return self._current_section
     def _set_current_section(self, name):
@@ -178,6 +270,14 @@ class FileHistory:
             if s.name == name:
                 return s
         return None
+
+    def _check_new_section_name(self, name):
+        name = name.strip()
+        if not name:
+            raise ValueError('File history section name cannot be empty')
+        if self._section(name) is not None:
+            raise ValueError('File history section "%s" already exists' % name)
+        return name
 
     def _placed_keys(self):
         return set(k for s in self._sections for k in s.keys)
