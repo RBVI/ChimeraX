@@ -1546,6 +1546,12 @@ def get_toolshed():
 
 
 def get_help_directories():
+    return list(_iter_help_directories())
+
+
+def _iter_help_directories():
+    # Command help can often be found in the built-in documentation.  Avoid
+    # locating every bundle's documentation until those paths are exhausted.
     global _default_help_dirs
     if _default_help_dirs is None:
         import chimerax
@@ -1560,10 +1566,9 @@ def get_help_directories():
             ]
         else:
             _default_help_dirs = []
-    hd = _default_help_dirs[:]
+    yield from _default_help_dirs
     if _toolshed is not None:
-        hd.extend(_toolshed._installed_bundle_info.help_directories)
-    return hd
+        yield from _toolshed._installed_bundle_info.help_directories
 
 
 def default_toolshed_url():

@@ -2665,7 +2665,7 @@ def _get_help_url(words):
         frag = "-".join(words[1:])
     from .. import toolshed
 
-    help_directories = toolshed.get_help_directories()
+    help_directories = toolshed._iter_help_directories()
     cmd_subpath = os.path.join("user", "commands", "%s.html" % cname)
     for hd in help_directories:
         cpath = os.path.join(hd, cmd_subpath)
