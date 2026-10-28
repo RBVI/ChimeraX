@@ -107,7 +107,7 @@ class ToolbarTool(ToolInstance):
         layout.setContentsMargins(margins)
         self.ttb = TabbedToolbar(
             self.tool_window.ui_area, show_section_titles=_settings.show_section_labels,
-            show_button_titles=_settings.show_button_labels)
+            show_button_titles=_settings.show_button_labels, lazy_tabs=True)
         layout.addWidget(self.ttb)
         self._build_tabs()
         self.tool_window.ui_area.setLayout(layout)
@@ -123,7 +123,7 @@ class ToolbarTool(ToolInstance):
             self.ttb.setParent(None)
             self.ttb = TabbedToolbar(
                 self.tool_window.ui_area, show_section_titles=_settings.show_section_labels,
-                show_button_titles=_settings.show_button_labels)
+                show_button_titles=_settings.show_button_labels, lazy_tabs=True)
             layout.addWidget(self.ttb)
         self._build_tabs()
 
