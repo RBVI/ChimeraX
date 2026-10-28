@@ -739,6 +739,13 @@ class MainWindow(QMainWindow, HtmlLog):
         self._activated_window_index = 0
         self.set_hot_keys()
 
+        # On macOS start directly on File History, avoiding initialization of
+        # a 3D window that UI.build immediately hides.  Keep the initial show
+        # on other platforms: Windows checks for affected Intel drivers before
+        # HTML tools are created and may require native windows for those tools.
+        if sys.platform == 'darwin':
+            self.rapid_access_shown = True
+
         # full screen works very poorly on Windows as of 6/16/20 (see ticket #3409)
         # so withdrawn in favor of just "maximized" for now
         #if sizing_scheme == "full screen":
