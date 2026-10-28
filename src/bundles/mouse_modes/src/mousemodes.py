@@ -511,6 +511,10 @@ class MouseModes:
         return False, False
 
     def _graphics_cursor_position(self):
+        # The graphics window is connected on its first show, which may be
+        # deferred while File History is visible.
+        if self.graphics_window is None or not self.graphics_window.isVisible():
+            return None
         from Qt.QtGui import QCursor
         gp = QCursor.pos()
         p = self.graphics_window.mapFromGlobal(gp)
