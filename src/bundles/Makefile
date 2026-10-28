@@ -80,6 +80,12 @@ else
 	$(MAKE) build
 endif
 	cd $(SYNC_DIR) && $(APP_PIP_INSTALL) *.whl
+	# The installed bundle cache is only used while it is newer than this
+	# file, which installing a bundle with ChimeraX writes.  Bundles here may
+	# all be installed without ChimeraX, so write it before the cache is
+	# rebuilt; without it, every start rebuilds the cache.
+	mkdir -p "$(app_datadir)"
+	date > "$(app_datadir)/install-timestamp"
 	$(APP_PYTHON_EXE) -m chimerax.core --exit --nogui --silent --cmd "toolshed reload installed"
 
 # With NO_DOGFOODING (see Makefile.bundle), the same as "build", but split
