@@ -1,0 +1,60 @@
+--- numpy/matrixlib/defmatrix.py
++++ numpy/matrixlib/defmatrix.py
+@@ -10,7 +10,12 @@
+ 
+ # While not in __all__, matrix_power used to be defined here, so we import
+ # it for backward compatibility.
+-from numpy.linalg import matrix_power
++# ChimeraX: on first use, so importing numpy does not import numpy.linalg.
++def __getattr__(name):
++    if name == "matrix_power":
++        from numpy.linalg import matrix_power
++        return matrix_power
++    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+ 
+ 
+ def _convert_from_string(data):
+@@ -236,6 +241,7 @@
+         return self
+ 
+     def __pow__(self, other):
++        from numpy.linalg import matrix_power
+         return matrix_power(self, other)
+ 
+     def __ipow__(self, other):
+--- numpy/lib/_polynomial_impl.py
++++ numpy/lib/_polynomial_impl.py
+@@ -27,7 +27,8 @@
+ from numpy.lib._function_base_impl import trim_zeros
+ from numpy.lib._twodim_base_impl import diag, vander
+ from numpy.lib._type_check_impl import imag, iscomplex, mintypecode, real
+-from numpy.linalg import eigvals, inv, lstsq
++# ChimeraX: numpy.linalg (eigvals, inv, lstsq) is imported where it is used,
++# so importing numpy does not import it.
+ 
+ array_function_dispatch = functools.partial(
+     overrides.array_function_dispatch, module='numpy')
+@@ -138,6 +139,7 @@
+     sh = seq_of_zeros.shape
+ 
+     if len(sh) == 2 and sh[0] == sh[1] and sh[0] != 0:
++        from numpy.linalg import eigvals
+         seq_of_zeros = eigvals(seq_of_zeros)
+     elif len(sh) == 1:
+         dt = seq_of_zeros.dtype
+@@ -251,6 +253,7 @@
+         # build companion matrix and find its eigenvalues (the roots)
+         A = diag(NX.ones((N - 2,), p.dtype), -1)
+         A[0, :] = -p[1:] / p[0]
++        from numpy.linalg import eigvals
+         roots = eigvals(A)
+     else:
+         roots = NX.array([])
+@@ -672,6 +675,7 @@
+     # scale lhs to improve condition number and solve
+     scale = NX.sqrt((lhs * lhs).sum(axis=0))
+     lhs /= scale
++    from numpy.linalg import inv, lstsq
+     c, resids, rank, s = lstsq(lhs, rhs, rcond)
+     c = (c.T / scale).T  # broadcast scale coefficients
+ 
