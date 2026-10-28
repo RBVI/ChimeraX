@@ -1,8 +1,6 @@
 from chimerax.core.commands import CmdDesc, register, BoolArg, EnumOf
 from chimerax.core.models import REMOVE_MODELS
 
-from chimerax.map import Volume
-
 import chimerax.segmentations.triggers
 from chimerax.segmentations.triggers import Trigger
 
@@ -12,6 +10,7 @@ from chimerax.segmentations.settings import get_settings
 
 
 def any_open_volumes(session) -> bool:
+    from chimerax.map import Volume
     return any(isinstance(v, Volume) for v in session.models)
 
 
