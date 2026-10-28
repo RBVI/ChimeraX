@@ -977,6 +977,8 @@ class Toolshed:
             all_bundles = self._installed_bundle_info
         self._manager_instances[mgr.name] = mgr
         for pbi in all_bundles:
+            if not pbi.providers:
+                continue
             for pvdr, kw in pbi._providers_for_manager(mgr.name):
                 mgr.add_provider(pbi, pvdr, **kw)
         mgr.end_providers()

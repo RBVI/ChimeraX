@@ -79,3 +79,29 @@ def test_manager_without_available_bundles_still_finishes():
         _available_bundle_info=None, _manager_instances={})
     Toolshed._init_single_manager(ts, manager)
     assert calls == ['done']
+
+
+def test_empty_bundles_skip_provider_iteration_but_later_additions_are_registered():
+    class CheckedBundle(BundleInfo):
+        def _providers_for_manager(self, manager_name):
+            assert self.providers, 'Iterated an empty provider dictionary'
+            yield from super()._providers_for_manager(manager_name)
+
+    installed_empty = CheckedBundle('installed-empty', True)
+    available_empty = CheckedBundle('available-empty', False)
+    populated = bundle('populated', {'open/existing': {'x': 1}})
+    calls = []
+    manager = SimpleNamespace(name='open',
+        add_provider=lambda bi, name, **kw: calls.append((bi.name, name, kw)),
+        end_providers=lambda: calls.append('done'))
+    ts = SimpleNamespace(_installed_bundle_info=[installed_empty, populated],
+        _available_bundle_info=[available_empty], _manager_instances={})
+    Toolshed._init_single_manager(ts, manager)
+    assert calls == [('populated', 'existing', {'x': 1}), 'done']
+    installed_empty.providers['open/new-installed'] = {'x': 2}
+    available_empty.providers['open/new-available'] = {'x': 3}
+    calls.clear()
+    Toolshed._init_single_manager(ts, manager)
+    assert calls == [('installed-empty', 'new-installed', {'x': 2}),
+                     ('populated', 'existing', {'x': 1}),
+                     ('available-empty', 'new-available', {'x': 3}), 'done']
