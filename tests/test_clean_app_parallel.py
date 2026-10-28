@@ -45,7 +45,7 @@ def _record_steps(clean_app, monkeypatch, prune_ok=True):
         return run
 
     for name in ("remove_package_tests", "remove_tkinter",
-                 "remove_babel_locales"):
+                 "remove_babel_locales", "remove_unused_pyopengl"):
         monkeypatch.setattr(clean_app, name, step(name, wait=0.05))
     monkeypatch.setattr(clean_app, "prune_pyside6",
                         step("prune_pyside6", prune_ok, wait=0.05))
@@ -62,7 +62,7 @@ def test_removals_run_at_once_then_the_whole_tree_steps(clean_app, monkeypatch,
     events = _record_steps(clean_app, monkeypatch)
     assert clean_app.clean_app(str(tmp_path)) is True
     first = {"prune_pyside6", "remove_package_tests", "remove_tkinter",
-             "remove_babel_locales"}
+             "remove_babel_locales", "remove_unused_pyopengl"}
     # All of the first steps start before any of them ends
     first_end = min(i for i, (kind, name) in enumerate(events)
                     if kind == "end" and name in first)
@@ -83,6 +83,22 @@ def test_failed_prune_fails_clean_app(clean_app, monkeypatch, tmp_path):
 def test_prune_pyside6_runs_the_prereqs_script(clean_app, tmp_path):
     # Without PySide6 the script succeeds without removing anything
     assert clean_app.prune_pyside6(str(tmp_path)) is True
+
+
+def test_remove_unused_pyopengl_keeps_desktop_gl(clean_app, tmp_path):
+    opengl = tmp_path / "OpenGL"
+    keep = ["GL", "EGL", "GLX", "WGL", "GLU", "osmesa", "platform", "arrays",
+            "raw/GL", "raw/EGL", "raw/GLX", "raw/WGL", "raw/osmesa"]
+    remove = ["GLES1", "GLES2", "GLES3", "GLUT", "GLE", "Tk", "DLLS",
+              "raw/GLES1", "raw/GLES2", "raw/GLES3", "raw/GLUT", "raw/GLE"]
+    for name in keep + remove:
+        (opengl / name).mkdir(parents=True)
+        (opengl / name / "__init__.py").write_text("")
+    clean_app.remove_unused_pyopengl(str(tmp_path))
+    assert all((opengl / name).is_dir() for name in keep)
+    assert not any((opengl / name).exists() for name in remove)
+    # Without PyOpenGL there is nothing to do
+    clean_app.remove_unused_pyopengl(str(tmp_path / "empty"))
 
 
 def test_is_fat_macho_of_a_removed_file(clean_app, tmp_path):

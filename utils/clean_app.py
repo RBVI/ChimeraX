@@ -29,6 +29,7 @@ def clean_app(chimerax_root, keep_debug_info=False):
                         sysconfig.get_path("stdlib"),
                         sysconfig.get_path("scripts")),
             pool.submit(remove_babel_locales, site_packages),
+            pool.submit(remove_unused_pyopengl, site_packages),
         ]
         for step in steps:
             step.result()
@@ -71,6 +72,26 @@ def prune_pyside6(site_packages):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module.prune(site_packages)
+
+
+# PyOpenGL bindings nothing uses: OpenGL ES, GLUT, GLE, and the Tk widget
+# (tkinter is removed too).  ChimeraX draws through chimerax.graphics.gl and
+# uses PyOpenGL only for desktop GL, EGL, GLX, WGL and OSMesa.  PyOpenGL's
+# platform code loads the GLES and GLUT shared libraries on demand but never
+# imports these packages.
+UNUSED_PYOPENGL = (
+    "GLES1", "GLES2", "GLES3", "GLUT", "GLE", "Tk", "DLLS",
+    os.path.join("raw", "GLES1"), os.path.join("raw", "GLES2"),
+    os.path.join("raw", "GLES3"), os.path.join("raw", "GLUT"),
+    os.path.join("raw", "GLE"),
+)
+
+
+def remove_unused_pyopengl(site_packages):
+    """Remove the parts of PyOpenGL that ChimeraX does not use"""
+    opengl = os.path.join(site_packages, "OpenGL")
+    for name in UNUSED_PYOPENGL:
+        shutil.rmtree(os.path.join(opengl, name), ignore_errors=True)
 
 
 def remove_pycache(chimerax_root):
