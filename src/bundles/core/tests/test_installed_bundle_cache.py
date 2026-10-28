@@ -49,6 +49,99 @@ def test_discovery_reads_classifiers_without_converting_metadata(monkeypatch):
     assert cache == [info]
 
 
+def test_bundle_cache_paths_are_stable_and_separate_by_executable(monkeypatch, tmp_path):
+    import sys
+    from chimerax.core.toolshed import Toolshed
+
+    toolshed = SimpleNamespace(_cache_dir=str(tmp_path))
+    monkeypatch.setattr(sys, "executable", str(tmp_path / "build-a" / "ChimeraX"))
+    first = Toolshed._bundle_cache(toolshed, False, None)
+    monkeypatch.setattr(sys, "executable", str(tmp_path / "build-b" / "ChimeraX"))
+    second = Toolshed._bundle_cache(toolshed, False, None)
+    assert first != second
+    monkeypatch.setattr(sys, "executable", str(tmp_path / "build-a" / "ChimeraX"))
+    assert Toolshed._bundle_cache(toolshed, False, None) == first
+
+
+def test_executable_changes_still_invalidate_cache(monkeypatch, tmp_path):
+    import json
+    import os
+    import sys
+    from chimerax.core.toolshed import Toolshed
+    from chimerax.core.toolshed.installed import InstalledBundleCache
+
+    executable = tmp_path / "ChimeraX"
+    executable.touch()
+    monkeypatch.setattr(sys, "executable", str(executable))
+    filename = Toolshed._bundle_cache(SimpleNamespace(_cache_dir=str(tmp_path)), False, None)
+    mtime = executable.stat().st_mtime
+    with open(filename, "w") as f:
+        f.write(json.dumps([str(executable), mtime]) + "\n[]")
+    monkeypatch.setattr(InstalledBundleCache, "_is_cache_newer", lambda *args: True)
+    assert InstalledBundleCache()._read_cache(filename)
+    os.utime(executable, (mtime + 1, mtime + 1))
+    assert not InstalledBundleCache()._read_cache(filename)
+
+
+def test_macos_launcher_hard_links_share_cache_and_header(monkeypatch, tmp_path):
+    import json
+    import os
+    import sys
+    from chimerax.core.toolshed import Toolshed
+    from chimerax.core.toolshed.installed import InstalledBundleCache
+
+    contents = tmp_path / 'ChimeraX.app' / 'Contents'
+    cli = contents / 'bin' / 'ChimeraX'
+    dock = contents / 'MacOS' / 'ChimeraX'
+    cli.parent.mkdir(parents=True)
+    dock.parent.mkdir()
+    cli.touch()
+    os.link(cli, dock)
+    monkeypatch.setattr(sys, 'platform', 'darwin')
+    monkeypatch.setattr(sys, 'executable', str(cli))
+    toolshed = SimpleNamespace(_cache_dir=str(tmp_path))
+    filename = Toolshed._bundle_cache(toolshed, False, None)
+    monkeypatch.setattr(sys, 'executable', str(dock))
+    assert Toolshed._bundle_cache(toolshed, False, None) == filename
+
+    errors = []
+    InstalledBundleCache()._write_cache(filename, SimpleNamespace(error=errors.append))
+    assert not errors
+    with open(filename) as f:
+        assert json.loads(f.readline())[0] == str(cli)
+    monkeypatch.setattr(InstalledBundleCache, '_is_cache_newer', lambda *args: True)
+    assert InstalledBundleCache()._read_cache(filename)
+    monkeypatch.setattr(sys, 'executable', str(cli))
+    assert InstalledBundleCache()._read_cache(filename)
+    mtime = cli.stat().st_mtime
+    os.utime(cli, (mtime + 1, mtime + 1))
+    monkeypatch.setattr(sys, 'executable', str(dock))
+    assert not InstalledBundleCache()._read_cache(filename)
+
+
+def test_macos_launcher_cache_requires_matching_file(monkeypatch, tmp_path):
+    import os
+    import sys
+    from chimerax.core.toolshed import _bundle_cache_executable
+
+    contents = tmp_path / 'ChimeraX.app' / 'Contents'
+    dock = contents / 'MacOS' / 'ChimeraX'
+    cli = contents / 'bin' / 'ChimeraX'
+    dock.parent.mkdir(parents=True)
+    cli.parent.mkdir()
+    dock.touch()
+    monkeypatch.setattr(sys, 'platform', 'darwin')
+    monkeypatch.setattr(sys, 'executable', str(dock))
+    assert _bundle_cache_executable() == str(dock)  # missing counterpart
+    cli.touch()
+    assert _bundle_cache_executable() == str(dock)  # different binary
+    cli.unlink()
+    os.link(dock, cli)
+    assert _bundle_cache_executable() == str(cli)
+    monkeypatch.setattr(sys, 'platform', 'linux')
+    assert _bundle_cache_executable() == str(dock)
+
+
 def test_dependency_order_reuses_names_and_reads_requirements_once():
     from chimerax.core.toolshed.installed import InstalledBundleCache
 
