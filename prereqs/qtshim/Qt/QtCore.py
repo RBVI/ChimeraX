@@ -32,7 +32,11 @@ elif using_pyside2:
     __version__ = PySide2.QtCore.__version__
 
 elif using_pyside6:
-    from PySide6.QtCore import *
+    from PySide6 import QtCore as _native_module
+    from .promote_enums import native_enum_shortcuts as _native_enum_shortcuts
+    _lazy_exports = _native_enum_shortcuts(_native_module)
+    if not _lazy_exports:
+        from PySide6.QtCore import *
     import PySide6.QtCore
 
     from .promote_enums import promote_enums_pyside as promote_enums
@@ -41,3 +45,8 @@ elif using_pyside6:
     del QtCore
 
     __version__ = PySide6.QtCore.__version__
+
+if using_pyside6 and _lazy_exports:
+    from ._lazy import export_module as _export_module
+    from .promote_enums import prepare_pyside_class as _prepare_pyside_class
+    _export_module(globals(), _native_module, prepare_class=_prepare_pyside_class)

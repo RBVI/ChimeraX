@@ -30,6 +30,14 @@ def promote_enums_pyside(module):
     Search enums in the given module and allow unscoped access. Similar to the above function.
 
     """
+    if native_enum_shortcuts(module):
+        # Native lookup supplies unscoped enum members lazily.  These classes
+        # have ambiguous member names; retain the shim's alphabetical overwrite
+        # order rather than letting native lookup choose a different enum.
+        if module.__name__ == 'PySide6.QtGui':
+            _promote_pyside_class(module.QColorSpace)
+            _promote_pyside_class(module.QPointingDevice)
+        return
     from PySide6 import QtWidgets
     wrappertype = type(QtWidgets.QWidget)
     class_names = [name for name in dir(module) if name.startswith('Q')]
