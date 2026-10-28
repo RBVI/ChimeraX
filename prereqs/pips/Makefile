@@ -23,6 +23,8 @@ CXSERVICES_VER = 1.2.3
 CXSERVICES_DEPLOYMENT_VER ?= production
 
 PATCHES = grako.patch
+# Import traceback only where used; it pulls in inspect, ast and more at startup.
+PATCHES += sortedcontainers.patch
 ifeq ($(OS),Windows)
 ifneq ($(filter $(MSYSTEM),MSYS MINGW64 UCRT64),)
 PATCHES += openmm_metadata.patch
