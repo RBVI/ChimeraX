@@ -61,13 +61,29 @@ def test_unavailable_method_keeps_synchronous_fallback(native_font, monkeypatch)
     assert calls == []
 
 
-@pytest.mark.parametrize('platform', ['linux', 'win32'])
-def test_other_platforms_do_not_start_native_work(native_font, monkeypatch, platform):
+def test_windows_does_not_start_native_work(native_font, monkeypatch):
     import sys
     font, ui, calls = native_font
-    monkeypatch.setattr(sys, 'platform', platform)
+    monkeypatch.setattr(sys, 'platform', 'win32')
     assert font._start_font_cache(ui) is None
     assert calls == []
+
+
+def test_linux_warms_fonts_through_libqt6gui(native_font, monkeypatch):
+    import ctypes
+    import sys
+    font, ui, calls = native_font
+    monkeypatch.setattr(sys, 'platform', 'linux')
+    opened = []
+    cdll = ctypes.CDLL
+    def record(path):
+        opened.append(path)
+        return cdll(path)
+    monkeypatch.setattr(ctypes, 'CDLL', record)
+    worker = font._start_font_cache(ui)
+    worker.join(timeout=5)
+    assert opened == ['libQt6Gui.so.6']
+    assert calls == [1234]
 
 
 def test_ui_waits_once_for_font_work():
