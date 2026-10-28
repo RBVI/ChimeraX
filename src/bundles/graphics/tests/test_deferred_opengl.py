@@ -27,12 +27,12 @@ def test_first_make_current_initializes_bindings_before_using_context(monkeypatc
     events = []
     monkeypatch.setattr(opengl, "_initialize_pyopengl",
                         lambda: events.append("bindings"))
-    window = object()
+    window = SimpleNamespace(create=lambda: events.append("create"))
     context = opengl.OpenGLContext(window, None)
 
     def make_current(surface):
         assert surface is window
-        assert events == ["bindings"]
+        assert events == ["bindings", "create"]
         events.append("current")
         return True
 
@@ -40,7 +40,7 @@ def test_first_make_current_initializes_bindings_before_using_context(monkeypatc
     monkeypatch.setattr(context, "_check_thread", lambda: None)
     try:
         assert context.make_current()
-        assert events == ["bindings", "current"]
+        assert events == ["bindings", "create", "current"]
     finally:
         context._contexts.clear()
         context.delete()
