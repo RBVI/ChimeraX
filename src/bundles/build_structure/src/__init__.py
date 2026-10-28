@@ -11,11 +11,39 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .mod import modify_atom, cn_peptide_bond
-from .start import place_fragment, place_helium, place_peptide, PeptideError
 from .provider_api import StartStructureProvider
 
 from chimerax.core.toolshed import BundleAPI
+
+_lazy_exports = {
+    'modify_atom': 'mod',
+    'cn_peptide_bond': 'mod',
+    'place_fragment': 'start',
+    'place_helium': 'start',
+    'place_peptide': 'start',
+    'PeptideError': 'start',
+}
+
+
+def __getattr__(name):
+    try:
+        module_name = _lazy_exports[name]
+    except KeyError:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
+    from importlib import import_module
+    value = getattr(import_module('.' + module_name, __name__), name)
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(_lazy_exports))
+
+
+# Preserve wildcard exports, including the submodules previously imported here.
+__all__ = [*_lazy_exports, 'mod', 'start', 'provider_api',
+           'StartStructureProvider', 'BundleAPI', 'BuildStructureAPI', 'bundle_api']
+
 
 class BuildStructureAPI(BundleAPI):
 
