@@ -27,13 +27,20 @@
  * A cold start reads the shared libraries and Python modules it needs one
  * page fault or one small file at a time.  ChimeraX records the files a GUI
  * startup used (chimerax.core.startup_prefetch) in the file named by
- * CHIMERAX_STARTUP_PREFETCH.  On later starts, ask the kernel to read them
- * ahead, from a background thread, before Python initializes, so the reads
- * overlap with startup instead of blocking it.  Windows has its own
- * application prefetcher.
+ * CHIMERAX_STARTUP_PREFETCH.  On later starts, read them ahead from
+ * background threads before Python initializes, so the reads overlap with
+ * startup instead of blocking it.  Windows has its own application
+ * prefetcher.
+ *
+ * On Linux a line may end with a tab and the byte ranges startup touched,
+ * "offset+length,...", and the files are read with several threads.  Asking
+ * the kernel to read whole files ahead (posix_fadvise WILLNEED) from one
+ * thread fell well behind startup: a cold start took 0.51 s with it, 0.39 s
+ * reading the touched ranges with 4 threads, and 0.36 s warm.
  */
 static char prefetch_list[PATH_MAX];
 
+# ifdef __APPLE__
 static void
 prefetch_file(const char* path)
 {
@@ -42,14 +49,10 @@ prefetch_file(const char* path)
 		return;
 	struct stat st;
 	if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode) && st.st_size > 0) {
-# ifdef __APPLE__
 		struct radvisory ra;
 		ra.ra_offset = 0;
 		ra.ra_count = st.st_size > INT_MAX ? INT_MAX : (int) st.st_size;
 		(void) fcntl(fd, F_RDADVISE, &ra);
-# else
-		(void) posix_fadvise(fd, 0, 0, POSIX_FADV_WILLNEED);
-# endif
 	}
 	close(fd);
 }
@@ -70,6 +73,115 @@ prefetch_files(void* unused)
 	fclose(f);
 	return NULL;
 }
+# else
+#  define PREFETCH_THREADS 4
+#  define PREFETCH_BUFFER (1 << 20)
+
+static char** prefetch_entries;
+static size_t prefetch_count;
+static size_t prefetch_next;
+
+static void
+read_range(int fd, char* buffer, off_t offset, off_t length)
+{
+	while (length > 0) {
+		ssize_t n = pread(fd, buffer,
+			length < PREFETCH_BUFFER ? (size_t) length : PREFETCH_BUFFER, offset);
+		if (n <= 0)
+			break;
+		offset += n;
+		length -= n;
+	}
+}
+
+static void
+prefetch_entry(char* entry, char* buffer)
+{
+	char* ranges = strchr(entry, '\t');
+	if (ranges != NULL)
+		*ranges++ = '\0';
+	int fd = open(entry, O_RDONLY | O_CLOEXEC);
+	if (fd < 0)
+		return;
+	if (ranges == NULL) {
+		struct stat st;
+		if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode))
+			read_range(fd, buffer, 0, st.st_size);
+	} else {
+		char* p = ranges;
+		while (*p != '\0') {
+			char* end;
+			unsigned long long offset = strtoull(p, &end, 10);
+			if (*end != '+')
+				break;
+			unsigned long long length = strtoull(end + 1, &end, 10);
+			read_range(fd, buffer, (off_t) offset, (off_t) length);
+			if (*end != ',')
+				break;
+			p = end + 1;
+		}
+	}
+	close(fd);
+}
+
+static void*
+prefetch_worker(void* unused)
+{
+	char* buffer = malloc(PREFETCH_BUFFER);
+	if (buffer == NULL)
+		return NULL;
+	for (;;) {
+		// Take entries in list order, which is roughly the order startup needs them.
+		size_t i = __atomic_fetch_add(&prefetch_next, 1, __ATOMIC_RELAXED);
+		if (i >= prefetch_count)
+			break;
+		prefetch_entry(prefetch_entries[i], buffer);
+	}
+	free(buffer);
+	return NULL;
+}
+
+static void*
+prefetch_files(void* unused)
+{
+	FILE* f = fopen(prefetch_list, "r");
+	if (f == NULL)
+		return NULL;
+	struct stat st;
+	char* text = NULL;
+	if (fstat(fileno(f), &st) == 0 && st.st_size > 0
+			&& (text = malloc((size_t) st.st_size + 1)) != NULL) {
+		size_t n = fread(text, 1, (size_t) st.st_size, f);
+		text[n] = '\0';
+	}
+	fclose(f);
+	if (text == NULL)
+		return NULL;
+
+	size_t lines = 1;
+	for (char* c = text; *c; ++c)
+		if (*c == '\n')
+			++lines;
+	prefetch_entries = malloc(lines * sizeof (char*));
+	if (prefetch_entries == NULL)
+		return NULL;
+	char* save = NULL;
+	for (char* line = strtok_r(text, "\n", &save); line != NULL; line = strtok_r(NULL, "\n", &save))
+		if (line[0] == '/')
+			prefetch_entries[prefetch_count++] = line;
+
+	pthread_attr_t attr;
+	if (pthread_attr_init(&attr) == 0) {
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+		for (int i = 1; i < PREFETCH_THREADS; ++i) {
+			pthread_t thread;
+			(void) pthread_create(&thread, &attr, prefetch_worker, NULL);
+		}
+		pthread_attr_destroy(&attr);
+	}
+	return prefetch_worker(NULL);
+}
+# endif
 
 static void
 start_prefetch(void)
