@@ -184,7 +184,11 @@ class InstallOpenFold:
         logger = self._session.logger
         logger.info('Now installing machine learning package torch.')
         # TODO: We should try to match the system cuda version.
-        command = [self._venv_python_executable(), '-m', 'pip', 'install', 'torch==2.7.1',
+        if self._branch in ('chimerax_openfold_0.5', 'chimerax_openfold_0.5.1'):
+            torch_version = '2.11.0'	# Newer triton is not compatible with Torch 2.7.1
+        else:
+            torch_version = '2.7.1'
+        command = [self._venv_python_executable(), '-m', 'pip', 'install', f'torch=={torch_version}',
                    '--index-url', 'https://download.pytorch.org/whl/cu128']
         logger.info(' '.join(command))
 
