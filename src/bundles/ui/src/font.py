@@ -1,15 +1,20 @@
 # vim: set expandtab shiftwidth=4 softtabstop=4:
 
 def _start_font_cache(ui):
-    """Warm macOS's font database while the main thread initializes bundles.
+    """Warm the font database while the main thread initializes bundles.
+
+    The first text measurement loads the font database (CoreText on macOS,
+    fontconfig on Linux) and the application font: about 9 ms on Linux,
+    which the file history otherwise pays while the main window is built.
 
     QFontMetrics is reentrant, but PySide's height() wrapper retains the GIL.
     Call the same public Qt method through CDLL so Python startup can proceed.
-    Resolve through the loaded binding's own Qt dependency on macOS. If the
-    native symbol is unavailable, ordinary layout initializes fonts instead.
+    Resolve through the loaded binding's own Qt dependency on macOS, and
+    libQt6Gui on Linux. If the native symbol is unavailable, ordinary layout
+    initializes fonts instead.
     """
     import sys
-    if sys.platform != 'darwin':
+    if sys.platform not in ('darwin', 'linux'):
         return None
     from Qt import using_pyside6
     if not using_pyside6:
@@ -22,7 +27,11 @@ def _start_font_cache(ui):
     from Qt.QtGui import QFontMetrics
 
     try:
-        library = ctypes.CDLL(native_gui.__file__)
+        if sys.platform == 'linux':
+            # QFontMetrics::height is exported by libQt6Gui, which QtGui.abi3.so loads.
+            library = ctypes.CDLL('libQt6Gui.so.6')
+        else:
+            library = ctypes.CDLL(native_gui.__file__)
         height = library._ZNK12QFontMetrics6heightEv
         height.argtypes = [ctypes.c_void_p]
         height.restype = ctypes.c_int
