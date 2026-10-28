@@ -381,6 +381,11 @@ class UI(QApplication):
             self.session.tools.start_tools(final_autostart)
 
         self.triggers.activate_trigger('ready', None)
+        # Tool construction can process paint events. Attach native menus only
+        # after all startup tools are ready and the complete window is painted.
+        mw._native_menus_ready = True
+        if getattr(mw, '_native_menu_to_attach', None) is not None:
+            mw.update()
 
     def event(self, event):
         from Qt.QtCore import QEvent
@@ -1340,11 +1345,48 @@ class MainWindow(QMainWindow, HtmlLog):
         self.tool_instance_to_windows.setdefault(tw.tool_instance,[]).append(tw)
 
     def _populate_menus(self, session):
+        from Qt.QtCore import Qt
+        attr = Qt.ApplicationAttribute.AA_DontUseNativeMenuBar
+        native_menu = sys.platform == 'darwin' and not QApplication.testAttribute(attr)
+        if native_menu:
+            # Keep native menu initialization out of the first window paint.
+            QApplication.setAttribute(attr, True)
+            try:
+                mb = self.menuBar()
+            finally:
+                QApplication.setAttribute(attr, False)
+            mb.hide()
+            self._native_menu_to_attach = mb
+        else:
+            mb = self.menuBar()
+        self._populate_menu_contents(session, mb)
+
+    def paintEvent(self, event):
+        QMainWindow.paintEvent(self, event)
+        if (getattr(self, '_native_menus_ready', False)
+                and getattr(self, '_native_menu_to_attach', None) is not None):
+            from Qt.QtCore import QTimer
+            mb = self._native_menu_to_attach
+            self._native_menu_to_attach = None
+            def attach(mb=mb):
+                # Switching an existing bar to native mode does not populate
+                # or attach its platform menu. Create a native bar normally,
+                # preserving the existing menus and all their callbacks.
+                from Qt.QtWidgets import QMenuBar
+                native = QMenuBar(self)
+                for action in mb.actions():
+                    menu = action.menu()
+                    if menu is not None:
+                        menu.setParent(native)
+                    native.addAction(action)
+                self.setMenuBar(native)
+            QTimer.singleShot(0, attach)
+
+    def _populate_menu_contents(self, session, mb):
         from Qt.QtGui import QKeySequence, QAction
         from Qt.QtCore import Qt
         from chimerax.core.commands import run
 
-        mb = self.menuBar()
         file_menu = mb.addMenu("&File")
         file_menu.setObjectName("File")
         cd_action = QAction("Set &Working Folder...", self)
