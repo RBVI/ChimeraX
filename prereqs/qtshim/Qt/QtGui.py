@@ -20,9 +20,18 @@ elif using_pyside2:
     from PySide2.QtWidgets import QAction, QShortcut
 
 elif using_pyside6:
-    from PySide6.QtGui import *
+    from PySide6 import QtGui as _native_module
+    from .promote_enums import native_enum_shortcuts as _native_enum_shortcuts
+    _lazy_exports = _native_enum_shortcuts(_native_module)
+    if not _lazy_exports:
+        from PySide6.QtGui import *
 
     from .promote_enums import promote_enums_pyside as promote_enums
     from PySide6 import QtGui
     promote_enums(QtGui)
     del QtGui
+
+if using_pyside6 and _lazy_exports:
+    from ._lazy import export_module as _export_module
+    from .promote_enums import prepare_pyside_class as _prepare_pyside_class
+    _export_module(globals(), _native_module, prepare_class=_prepare_pyside_class)
