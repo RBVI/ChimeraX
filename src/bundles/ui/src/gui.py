@@ -97,6 +97,7 @@ class UI(QApplication):
         self.already_quit = False
         self._fatal_error_log_file = None
         self._force_float_count = 0
+        self._font_cache_thread = None
         self.session = session
         self.color_scheme = None
 
@@ -163,6 +164,17 @@ class UI(QApplication):
             for slot, custom_rgba in enumerate(saved_colors[:
                     min(len(saved_colors), QColorDialog.customCount())]):
                 QColorDialog.setCustomColor(slot, QColor(*custom_rgba))
+
+        from .font import _start_font_cache
+        self._font_cache_thread = _start_font_cache(self)
+        if self._font_cache_thread is not None:
+            self.aboutToQuit.connect(self._wait_for_font_cache)
+
+    def _wait_for_font_cache(self):
+        worker = self._font_cache_thread
+        if worker is not None:
+            worker.join()
+            self._font_cache_thread = None
 
     def _set_linux_palette(self, new_scheme):
         # On Linux, the standard dark palette is lacking. Input fields are hard
@@ -349,6 +361,7 @@ class UI(QApplication):
         return im
 
     def build(self):
+        self._wait_for_font_cache()
         self.main_window = mw = MainWindow(self, self.session)
         # key event forwarding from the main window itself seems to have
         # no benefit, and occasionally causes double command execution
@@ -552,6 +565,7 @@ class UI(QApplication):
 
     def quit(self, confirm=True):
         # called by exit command
+        self._wait_for_font_cache()
         self.already_quit = True
         ses = self.session
         log = ses.logger
