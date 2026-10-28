@@ -65,6 +65,13 @@ class Log(ToolInstance, HtmlLog):
         self.suppress_scroll = False
         self._log_file = None
         self.page_source = ""
+        # offsets in page_source where each message starts, and the
+        # earliest offset changed since the log view was last updated
+        self._msg_starts = []
+        self._dirty_from = None
+        self._source_replaced = False
+        from threading import RLock
+        self._source_lock = RLock()
         from chimerax.ui import MainToolWindow
 
         class LogToolWindow(MainToolWindow):
@@ -306,7 +313,6 @@ class Log(ToolInstance, HtmlLog):
         Parameters documented in HtmlLog base class
         """
 
-        start_len = len(self.page_source)
         if image_info[0] is not None:
             from chimerax.core.logger import image_info_to_html
 
@@ -359,66 +365,89 @@ class Log(ToolInstance, HtmlLog):
                 color = scheme_color("warning")
                 msg = f'<p style="color:{color}">{msg}</p>'
 
-            # compact repeated output, e.g. ISOLDE's 'stepto' command
-            #
-            # printing to stderr can produce extremely piecemeal logging (e.g. consecutive loggings of
-            # a space character), so only try to compact if "<br>" or "<div" is in msg
-            if (
-                "<br>" in msg and not msg.replace("<br>", " ").isspace()
-            ) or "<div" in msg:
-                compaction_start_text = "[Repeated "
-                compaction_end_text = " time(s)]"
-                compaction_start = None
-                if self.page_source.endswith(compaction_end_text):
-                    # possibly already compacting some output
-                    try:
-                        bracket_start = self.page_source.rindex(compaction_start_text)
-                    except ValueError:
-                        pass
-                    else:
-                        if self.page_source[bracket_start:].startswith(
-                            compaction_start_text
-                        ):
-                            try:
-                                compaction_number = int(
-                                    self.page_source[
-                                        bracket_start
-                                        + len(compaction_start_text) : -len(
-                                            compaction_end_text
-                                        )
-                                    ]
-                                )
-                            except ValueError:
-                                pass
-                            else:
-                                compaction_start = bracket_start
-                if compaction_start is None:
-                    test_text = self.page_source
-                else:
-                    test_text = self.page_source[:compaction_start]
-                if test_text.endswith(msg):
+            with self._source_lock:
+                # compact repeated output, e.g. ISOLDE's 'stepto' command
+                #
+                # printing to stderr can produce extremely piecemeal logging (e.g. consecutive loggings of
+                # a space character), so only try to compact if "<br>" or "<div" is in msg
+                if (
+                    "<br>" in msg and not msg.replace("<br>", " ").isspace()
+                ) or "<div" in msg:
+                    compaction_start_text = "[Repeated "
+                    compaction_end_text = " time(s)]"
+                    compaction_start = None
+                    if self.page_source.endswith(compaction_end_text):
+                        # possibly already compacting some output
+                        try:
+                            bracket_start = self.page_source.rindex(compaction_start_text)
+                        except ValueError:
+                            pass
+                        else:
+                            if self.page_source[bracket_start:].startswith(
+                                compaction_start_text
+                            ):
+                                try:
+                                    compaction_number = int(
+                                        self.page_source[
+                                            bracket_start
+                                            + len(compaction_start_text) : -len(
+                                                compaction_end_text
+                                            )
+                                        ]
+                                    )
+                                except ValueError:
+                                    pass
+                                else:
+                                    compaction_start = bracket_start
                     if compaction_start is None:
-                        self.page_source += (
-                            compaction_start_text + "1" + compaction_end_text
-                        )
+                        test_text = self.page_source
                     else:
-                        self.page_source = self.page_source[
-                            :compaction_start
-                        ] + "%s%d%s" % (
-                            compaction_start_text,
-                            compaction_number + 1,
-                            compaction_end_text,
+                        test_text = self.page_source[:compaction_start]
+                    if test_text.endswith(msg):
+                        self._mark_dirty(
+                            len(self.page_source) if compaction_start is None else compaction_start
                         )
+                        if compaction_start is None:
+                            self.page_source += (
+                                compaction_start_text + "1" + compaction_end_text
+                            )
+                        else:
+                            self.page_source = self.page_source[
+                                :compaction_start
+                            ] + "%s%d%s" % (
+                                compaction_start_text,
+                                compaction_number + 1,
+                                compaction_end_text,
+                            )
+                    else:
+                        self._append_message(msg)
                 else:
                     self._append_message(msg)
-            else:
-                self._append_message(msg)
         self.show_page_source()
         return True
 
     def _append_message(self, msg):
-        self.page_source += msg
+        with self._source_lock:
+            start = len(self.page_source)
+            self.page_source += msg
+            self._msg_starts.append(start)
+            self._mark_dirty(start)
         self._log_to_file(msg)
+
+    def _mark_dirty(self, offset):
+        with self._source_lock:
+            if self._dirty_from is None or offset < self._dirty_from:
+                self._dirty_from = offset
+
+    def _set_page_source(self, *messages):
+        with self._source_lock:
+            self.page_source = ""
+            self._msg_starts = []
+            for msg in messages:
+                self._msg_starts.append(len(self.page_source))
+                self.page_source += msg
+            self._mark_dirty(0)
+            self._source_replaced = True
 
     def _log_to_file(self, msg):
         file = self._log_file
@@ -468,7 +497,7 @@ class Log(ToolInstance, HtmlLog):
         return log_html_to_plain_text(self.page_source)
 
     def clear(self):
-        self.page_source = ""
+        self._set_page_source()
         self.show_page_source()
 
     def save(self, path, *, executable_links=None):
@@ -588,7 +617,8 @@ class Log(ToolInstance, HtmlLog):
                         retain = version
                     else:
                         retain = version + "<br>" + self.page_source[index:]
-                    self.page_source = retain + prev_ses_html
+                    self._set_page_source(retain, prev_ses_html)
+                    self.show_page_source()
                 from chimerax.core.triggerset import DEREGISTER
 
                 return DEREGISTER
