@@ -32,17 +32,25 @@ class FileHistory:
 
         self.session = session
         self.version = 1        # In case cache file changes format.
+        self.sections_version = 1
         self.max_files = 200
 
         self._save_files = False
         self._need_thumbnails = []
         self._thumbnail_size = (128,128)
 
+        # User defined sections that group files.  Files in a section keep their
+        # position when reopened.  Files in no section are ordered by access time.
+        self._sections = []    # List of HistorySection
+        self._current_section = None    # Name of section new files are added to
+
         from .history import ObjectHistory
         self._file_cache = ObjectHistory('file_history')
+        self._sections_cache = ObjectHistory('file_history_sections')
         self._files = self.load_history()    # Map (file path, database) to FileSpec
-        
-        session.triggers.add_trigger('file history changed')
+
+        if not session.triggers.has_trigger('file history changed'):
+            session.triggers.add_trigger('file history changed')
 
         import atexit
         atexit.register(self.quit_cb)
@@ -72,6 +80,9 @@ class FileHistory:
         else:
             f[(apath,database)] = fs = FileSpec(apath, format, database = database,
                                                 open_options = open_options)
+            s = self._section(self._current_section)
+            if s:
+                s.keys.append((apath,database))
         has_graphics = self.session.main_view.render is not None
         if has_graphics and (fs.image is None or file_saved):
             self._need_thumbnails.append((fs, models))
@@ -107,13 +118,78 @@ class FileHistory:
         if remove:
             for fspec in remove:
                 del f[(fspec.path,fspec.database)]
+            self._prune_section_keys()
             self._save_files = True
             self.history_changed()
 
     def clear_file_history(self):
+        '''Remove all files from the history.  Sections are kept, now empty.'''
         f = self._files
         f.clear()
+        self._prune_section_keys()
         self._save_files = True
+        self.history_changed()
+
+    # ------------------------------------------------------------------------
+    # User defined sections.
+    #
+    @property
+    def sections(self):
+        '''Names of the user defined sections in display order.'''
+        return [s.name for s in self._sections]
+
+    def section_files(self, section_name = None):
+        '''
+        FileSpecs in a section in user order.  If section_name is None
+        return the files not in any section, most recently used first.
+        '''
+        if section_name is None:
+            placed = self._placed_keys()
+            return [fs for fs in reversed(self.files)
+                    if (fs.path, fs.database) not in placed]
+        s = self._section(section_name)
+        if s is None:
+            raise ValueError('No file history section named "%s"' % section_name)
+        return [self._files[k] for k in s.keys if k in self._files]
+
+    def file_section(self, fspec):
+        '''Name of section containing the file or None.'''
+        key = (fspec.path, fspec.database)
+        for s in self._sections:
+            if key in s.keys:
+                return s.name
+        return None
+
+    def _get_current_section(self):
+        return self._current_section
+    def _set_current_section(self, name):
+        if name is not None and self._section(name) is None:
+            raise ValueError('No file history section named "%s"' % name)
+        if name != self._current_section:
+            self._current_section = name
+            self._organization_changed()
+    current_section = property(_get_current_section, _set_current_section,
+                               doc = 'Name of the section that newly opened files are added to, or None.')
+
+    def _section(self, name):
+        if name is None:
+            return None
+        for s in self._sections:
+            if s.name == name:
+                return s
+        return None
+
+    def _placed_keys(self):
+        return set(k for s in self._sections for k in s.keys)
+
+    def _prune_section_keys(self):
+        f = self._files
+        for s in self._sections:
+            s.keys = [k for k in s.keys if k in f]
+
+    def _organization_changed(self):
+        # Save right away so organizing work is not lost if ChimeraX does not exit cleanly.
+        self.save_history()
         self.history_changed()
 
     def history_changed(self):
@@ -124,30 +200,79 @@ class FileHistory:
             self.save_history()
 
     def load_history(self):
-        try:
-            fc = self._file_cache.load()
-        except Exception as e:
-            backup_path = self._file_cache.backup()
-            msg = ('The history of data files opened in ChimeraX was unreadable.\n'
-                   'The unreadable file has been copied to %s.\n' % backup_path +
-                   'Please report this as a bug using menu Help / Report a Bug.\n\n' +
-                   'The error was "%s".' % str(e))
-            self.session.logger.bug(msg)
-            fc = None
+        fc = self._load_cache(self._file_cache, 'The history of data files opened in ChimeraX')
         fmap = {}
         if fc is not None:
             for f in fc['files']:
                 fs = FileSpec.from_state(self.session, f)
                 fmap[(fs.path,fs.database)] = fs
+
+        # Sections are kept in a separate file because older ChimeraX versions rewrite
+        # the file history without them.  That file also has the files in sections in
+        # case an older ChimeraX dropped them from the file history.
+        sc = self._load_cache(self._sections_cache, 'The file history sections')
+        if sc is not None:
+            for f in sc.get('files', []):
+                fs = FileSpec.from_state(self.session, f)
+                key = (fs.path,fs.database)
+                cur = fmap.get(key)
+                if cur is None or cur.access_time < fs.access_time:
+                    fmap[key] = fs
+            names = set()
+            for sstate in sc.get('sections', []):
+                s = HistorySection.from_state(sstate)
+                if s.name not in names:
+                    names.add(s.name)
+                    s.keys = [k for k in s.keys if k in fmap]
+                    self._sections.append(s)
+            cur = sc.get('current_section')
+            self._current_section = cur if cur in names else None
         return fmap
 
+    def _load_cache(self, cache, description):
+        try:
+            return cache.load()
+        except Exception as e:
+            backup_path = cache.backup()
+            msg = ('%s was unreadable.\n' % description +
+                   'The unreadable file has been copied to %s.\n' % backup_path +
+                   'Please report this as a bug using menu Help / Report a Bug.\n\n' +
+                   'The error was "%s".' % str(e))
+            self.session.logger.bug(msg)
+            return None
+
     def save_history(self):
+        # Keep all files placed in sections and the most recent unplaced files.
+        placed = self._placed_keys()
+        files = self.files
+        unplaced = [f for f in files if (f.path,f.database) not in placed]
+        keep = set(id(f) for f in unplaced[-self.max_files:])
+        saved = [f for f in files if id(f) in keep or (f.path,f.database) in placed]
         data = {
             'version': self.version,
-            'files': [f.state() for f in self.files[-self.max_files:]]
+            'files': [f.state() for f in saved],
         }
         self._file_cache.save(data)
+        sections = {
+            'version': self.sections_version,
+            'sections': [s.state() for s in self._sections],
+            'current_section': self._current_section,
+            'files': [f.state() for f in files if (f.path,f.database) in placed],
+        }
+        self._sections_cache.save(sections)
         self._save_files = False
+
+class HistorySection:
+    def __init__(self, name, keys = None):
+        self.name = name
+        self.keys = [] if keys is None else keys    # List of (path, database) in display order
+
+    def state(self):
+        return {'name': self.name, 'files': [list(k) for k in self.keys]}
+
+    @classmethod
+    def from_state(cls, state):
+        return cls(state['name'], [tuple(k) for k in state.get('files', [])])
 
 _savable_option_value_types = (bool, int, float, str)
 def _supported_option_value_types(open_options):
