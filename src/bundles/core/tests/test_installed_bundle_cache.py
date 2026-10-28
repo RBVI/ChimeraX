@@ -63,6 +63,29 @@ def test_bundle_cache_paths_are_stable_and_separate_by_executable(monkeypatch, t
     assert Toolshed._bundle_cache(toolshed, False, None) == first
 
 
+def test_bundle_cache_name_uses_sha256_without_openssl(monkeypatch, tmp_path):
+    import builtins
+    import hashlib
+    import os
+    import sys
+    from chimerax.core.toolshed import Toolshed, _bundle_cache_executable
+
+    monkeypatch.setattr(sys, "executable", str(tmp_path / "ChimeraX"))
+    original_import = builtins.__import__
+
+    def import_without_hashlib(name, *args, **kw):
+        if name == 'hashlib':
+            raise AssertionError('Naming the cache must not load OpenSSL')
+        return original_import(name, *args, **kw)
+
+    monkeypatch.setattr(builtins, '__import__', import_without_hashlib)
+    filename = Toolshed._bundle_cache(SimpleNamespace(_cache_dir=str(tmp_path)), False, None)
+    monkeypatch.setattr(builtins, '__import__', original_import)
+    # Same name as earlier releases, so existing caches are reused.
+    key = hashlib.sha256(os.fsencode(_bundle_cache_executable())).hexdigest()[:16]
+    assert os.path.basename(filename) == f"bundle_info-{key}.cache"
+
+
 def test_executable_changes_still_invalidate_cache(monkeypatch, tmp_path):
     import json
     import os
