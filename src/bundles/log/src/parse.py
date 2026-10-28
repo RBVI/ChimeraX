@@ -41,6 +41,17 @@ _summary_re = re.compile(r'\s*<summary\b[^>]*>(.*?)</summary\s*>', re.IGNORECASE
 _variant_re = re.compile(r'<div class="cxcmd_as_(doc|cmd)">(.*?)</div\s*>', re.IGNORECASE | re.DOTALL)
 _bg_re = re.compile(r'background-color\s*:\s*([^;"\']+)', re.IGNORECASE)
 
+_block_tags = r'(?:p|div|table|pre|ul|ol|dl|h[1-6]|blockquote|details|center)'
+_starts_block_re = re.compile(r'\s*<(?:%s\b|hr\b)' % _block_tags, re.IGNORECASE)
+_inline_block_re = re.compile(
+    r'<div\s+style\s*=\s*(["\'])(?P<style>.*?)\1\s*>\s*</div\s*>', re.IGNORECASE | re.DOTALL)
+_redundant_br_re = re.compile(
+    r'<br\s*/?>\s*(?=<(?:%s|li|hr)\b|</(?:%s|td|th|li|dd|dt|summary)\s*>)' % (_block_tags, _block_tags),
+    re.IGNORECASE)
+_starts_table_re = re.compile(r'\s*<table\b', re.IGNORECASE)
+_trailing_br_re = re.compile(r'\s*<br\s*/?>\s*$', re.IGNORECASE)
+_ends_block_re = re.compile(r'(?:</%s\s*>|<hr\b[^>]*>)\s*$' % _block_tags, re.IGNORECASE)
+
 
 @dataclass
 class Html:
@@ -128,3 +139,84 @@ def select_command_variant(html, exec_links):
     of a command echo, since Qt doesn't support 'display: none'."""
     want = 'cmd' if exec_links else 'doc'
     return _variant_re.sub(lambda m: m.group(2) if m.group(1).lower() == want else '', html)
+
+
+def parse_style(style):
+    """Convert a CSS declaration list into a dict of lowercase property names to values."""
+    props = {}
+    for decl in style.split(';'):
+        name, sep, value = decl.partition(':')
+        if sep:
+            props[name.strip().lower()] = value.strip()
+    return props
+
+
+def replace_inline_blocks(html, replace):
+    """Replace empty inline-block divs, such as color swatches, whose
+    style dict is passed to 'replace' and which returns the replacement HTML.
+    Qt treats all divs as blocks, so these would otherwise vanish."""
+    if 'inline-block' not in html:
+        return html
+
+    def sub(m):
+        props = parse_style(m.group('style'))
+        if props.get('display', '').lower() != 'inline-block':
+            return m.group(0)
+        return replace(props)
+    return _inline_block_re.sub(sub, html)
+
+
+def css_length(value, em):
+    """Convert a CSS length in px or em ('em' gives pixels per em) to pixels,
+    or None if it can't be interpreted."""
+    m = re.fullmatch(r'\s*([0-9]*\.?[0-9]+)\s*(px|em)?\s*', value or '')
+    if m is None:
+        return None
+    size = float(m.group(1))
+    return size * em if m.group(2) == 'em' else size
+
+
+_border_styles = {'solid', 'dashed', 'dotted', 'double', 'groove', 'ridge', 'inset', 'outset'}
+
+
+def css_border(value):
+    """Return (width in px, color or None) from a CSS 'border' shorthand
+    such as '1px solid #000'.  A color of None means the text color."""
+    width, color = 3, None  # CSS 'medium' width
+    for part in (value or '').split():
+        p = part.lower()
+        if p in ('none', 'hidden'):
+            return 0, None
+        if p in _border_styles:
+            continue
+        w = css_length(p, em=None) if not p.endswith('em') else None
+        if w is not None:
+            width = w
+        else:
+            color = part
+    return width, color
+
+
+def drop_redundant_breaks(html):
+    """Remove <br>s that immediately precede the start or end of a block.
+    Browsers don't show these as an empty line, but Qt does."""
+    return _redundant_br_re.sub('', html)
+
+
+def starts_block(html):
+    """Whether 'html' starts with a block-level element."""
+    return _starts_block_re.match(html) is not None
+
+
+def starts_table(html):
+    """Whether 'html' starts with a table, which Qt always puts in its own block."""
+    return _starts_table_re.match(html) is not None
+
+
+def strip_line_end(html):
+    """Return (html, ends_line).  A trailing <br> is removed since the
+    view starts a new block for following content instead."""
+    m = _trailing_br_re.search(html)
+    if m:
+        return html[:m.start()], True
+    return html, _ends_block_re.search(html) is not None
