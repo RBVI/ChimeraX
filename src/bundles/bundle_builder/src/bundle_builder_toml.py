@@ -724,11 +724,10 @@ class Bundle:
         for dependency in build_dependencies:
             req = Requirement(dependency)
             installed_version = parse(version(req.name))
-            if re.match(r"[Cc]himera[Xx]-[Cc]ore", req.name):
-                # Always accept prereleases for the core for developers building
-                # bundles
-                req.specifier.prereleases = True
-            if installed_version not in req.specifier:
+            # Always accept prereleases for the core for developers building
+            # bundles
+            prereleases = True if re.match(r"[Cc]himera[Xx]-[Cc]ore", req.name) else None
+            if not req.specifier.contains(installed_version, prereleases=prereleases):
                 raise ValueError(
                     "Incompatible version for build dependency %s (needed: %s, installed: %s)"
                     % (req.name, req.specifier, str(installed_version))
