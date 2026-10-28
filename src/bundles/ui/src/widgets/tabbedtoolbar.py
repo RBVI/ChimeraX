@@ -58,7 +58,7 @@ class _ButtonInfo:
     __slots__ = (
         "title",
         "callback",
-        "icon",
+        "_icon",
         "description",
         "group",
         "vr_mode",
@@ -75,6 +75,18 @@ class _ButtonInfo:
         self.vr_mode = vr_mode
         self.enabled = enabled
         self.highlight_icon = None
+
+    @property
+    def icon(self):
+        # Hidden tabs retain a factory until an action or highlight needs it.
+        # Cache its result, including None, across widget/layout rebuilds.
+        if callable(self._icon):
+            self._icon = self._icon()
+        return self._icon
+
+    @icon.setter
+    def icon(self, icon):
+        self._icon = icon
 
 
 class _Section(QWidgetAction):
@@ -486,6 +498,11 @@ class TabbedToolbar(QTabWidget):
         vr_mode=None,
         enabled=True,
     ):
+        """Add a button with a QIcon, None, or a zero-argument icon factory.
+
+        Factories are resolved once, when the button or its highlight first
+        needs an icon.  This avoids loading icons for unpopulated tabs.
+        """
         if isinstance(enabled, str):
             enabled = enabled not in ("False", "false", "0", "off")
         section = self._get_section(tab_title, section_title)
