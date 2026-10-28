@@ -45,17 +45,41 @@ from .structure import all_atoms, all_bonds, all_residues, all_atomic_structures
 from .structure import structure_atoms, structure_residues, structure_graphics_updater, level_of_detail
 from .structure import PickedAtom, PickedBond, PickedResidue, PickedPseudobond
 from .structure import uniprot_ids
-from .molsurf import buried_area, MolecularSurface, surfaces_with_atoms
 from .changes import check_for_changes
-from .pdbmatrices import biological_unit_matrices
 from .triggers import get_triggers
-from .shapedrawing import AtomicShapeDrawing, AtomicShapeInfo
-from .args import ElementArg, AtomArg, AtomsArg, OrderedAtomsArg, ResiduesArg
-from .args import BondArg, BondsArg, PseudobondsArg, PseudobondGroupsArg
-from .args import UniqueChainsArg, ChainArg, SequencesArg, SequenceArg, UniProtIdArg, is_uniprot_id
-from .args import AtomicStructureArg, AtomicStructuresArg, StructureArg, StructuresArg
-from .args import SymmetryArg, concise_residue_spec, concise_chain_spec, concise_atom_spec, classify_hydrogen_visibility
-from .cytmpl import TmplResidue
+
+# Initialization needs the atomic data model, but not surface algorithms,
+# command annotations, custom drawings, or residue templates. Keep the public
+# objects themselves (including their class identity) when resolving exports.
+_lazy_exports = {
+    **dict.fromkeys(('buried_area', 'MolecularSurface', 'surfaces_with_atoms'), 'molsurf'),
+    'biological_unit_matrices': 'pdbmatrices',
+    **dict.fromkeys(('AtomicShapeDrawing', 'AtomicShapeInfo'), 'shapedrawing'),
+    **dict.fromkeys(('ElementArg', 'AtomArg', 'AtomsArg', 'OrderedAtomsArg', 'ResiduesArg',
+        'BondArg', 'BondsArg', 'PseudobondsArg', 'PseudobondGroupsArg', 'UniqueChainsArg',
+        'ChainArg', 'SequencesArg', 'SequenceArg', 'UniProtIdArg', 'is_uniprot_id',
+        'AtomicStructureArg', 'AtomicStructuresArg', 'StructureArg', 'StructuresArg',
+        'SymmetryArg', 'concise_residue_spec', 'concise_chain_spec', 'concise_atom_spec',
+        'classify_hydrogen_visibility'), 'args'),
+    'TmplResidue': 'cytmpl',
+}
+_lazy_modules = set(_lazy_exports.values())
+
+
+def __getattr__(name):
+    from importlib import import_module
+    if name in _lazy_exports:
+        value = getattr(import_module('.' + _lazy_exports[name], __name__), name)
+    elif name in _lazy_modules:
+        value = import_module('.' + name, __name__)
+    else:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(_lazy_exports) | _lazy_modules)
 
 def initialize_atomic(session):
     from . import settings
@@ -355,3 +379,7 @@ class _AtomicBundleAPI(BundleAPI):
         add_selection_context_menu_items(session)
         
 bundle_api = _AtomicBundleAPI()
+
+# Preserve wildcard imports, including the submodules previously imported above.
+__all__ = [name for name in globals() if not name.startswith('_')]
+__all__ += [name for name in (*_lazy_exports, *_lazy_modules) if name not in __all__]
