@@ -282,16 +282,8 @@ class Log(ToolInstance, HtmlLog):
         self.regulating_timer = QTimer()
         self.regulating_timer.timeout.connect(self._actually_show)
 
-        from Qt.QtWidgets import QGridLayout, QErrorMessage
-
-        class BiggerErrorDialog(QErrorMessage):
-            def sizeHint(self):
-                from Qt.QtCore import QSize
-
-                return QSize(600, 300)
-
-        self.error_dialog = BiggerErrorDialog(parent)
-        self._add_report_bug_button()
+        self._error_dialog = None
+        from Qt.QtWidgets import QGridLayout
         layout = QGridLayout(parent)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.log_window, 0, 0)
@@ -311,6 +303,22 @@ class Log(ToolInstance, HtmlLog):
     def cm_set_cmd_links(self, checked):
         self.settings.exec_cmd_links = checked
         self._show()
+
+    @property
+    def error_dialog(self):
+        # QErrorMessage builds a text viewer, checkbox, buttons, and icons.
+        # None of those are needed until an error actually opens the dialog.
+        if self._error_dialog is None:
+            from Qt.QtWidgets import QErrorMessage
+
+            class BiggerErrorDialog(QErrorMessage):
+                def sizeHint(self):
+                    from Qt.QtCore import QSize
+                    return QSize(600, 300)
+
+            self._error_dialog = BiggerErrorDialog(self.tool_window.ui_area)
+            self._add_report_bug_button()
+        return self._error_dialog
 
     def show_error_message(self, msg, bug=False):
         ed = self.error_dialog
