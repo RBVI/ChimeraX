@@ -5,7 +5,6 @@
 # duplication and use. This notice must be embedded in or
 # attached to all copies, including partial copies, of the
 # software or any revisions or derivations thereof.
-import logging
 import os
 import platform
 import sys
@@ -405,8 +404,30 @@ def disable_external_logs(debug: bool) -> None:
     """Disable external loggers. Some ChimeraX dependencies have blathy logs
     that can clutter up the UI."""
     # TODO: Different lists of loggers for different situations e.g. debug vs normal
-    if not debug:
-        logging.getLogger("urllib3").setLevel(100)
+    if debug:
+        return
+    # Importing logging pulls in traceback, inspect, ast and more (~10 ms),
+    # and nothing else needs it at startup.  If it is not loaded yet, quiet
+    # urllib3 just before urllib3 is first imported.
+    if "logging" in sys.modules:
+        _quiet_urllib3()
+    else:
+        sys.meta_path.insert(0, _QuietUrllib3OnImport)
+
+
+def _quiet_urllib3() -> None:
+    import logging
+
+    logging.getLogger("urllib3").setLevel(100)
+
+
+class _QuietUrllib3OnImport:
+    @classmethod
+    def find_spec(cls, fullname, path, target=None):
+        if fullname == "urllib3":
+            sys.meta_path.remove(cls)
+            _quiet_urllib3()
+        return None
 
 
 def _certifi_where() -> str:
@@ -1084,6 +1105,8 @@ def init(argv, event_loop=True):
 
     # By this point the GUI module will have redirected stdout if it's going to
     if opts.debug:
+        import logging
+
         logging.basicConfig(
             level=logging.DEBUG,
             format="%(levelname)s:%(message)s",
