@@ -977,10 +977,8 @@ class Toolshed:
             all_bundles = self._installed_bundle_info
         self._manager_instances[mgr.name] = mgr
         for pbi in all_bundles:
-            for name, kw in pbi.providers.items():
-                p_mgr, pvdr = name.split("/", 1)
-                if p_mgr == mgr.name:
-                    mgr.add_provider(pbi, pvdr, **kw)
+            for pvdr, kw in pbi._providers_for_manager(mgr.name):
+                mgr.add_provider(pbi, pvdr, **kw)
         mgr.end_providers()
 
     def import_bundle(self, bundle_name, logger, install="ask", session=None):

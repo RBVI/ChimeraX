@@ -137,6 +137,23 @@ class BundleInfo:
         self._version = version
         self._synopsis = synopsis
 
+    def _providers_for_manager(self, manager_name):
+        # Keep only names in the index: provider options may be edited in place
+        # or replaced.  Comparing ordered keys also detects additions, removals,
+        # and reordering without repeatedly splitting every provider name.
+        names = tuple(self.providers)
+        cached = getattr(self, '_provider_index', None)
+        if cached is None or names != cached[0]:
+            by_manager = {}
+            for name in names:
+                manager, provider = name.split('/', 1)
+                by_manager.setdefault(manager, []).append((name, provider))
+            self._provider_index = (names, by_manager)
+        else:
+            by_manager = cached[1]
+        for name, provider in by_manager.get(manager_name, ()):
+            yield provider, self.providers[name]
+
     @property
     def supercedes(self):
         # deprecated in ChimeraX 1.2
