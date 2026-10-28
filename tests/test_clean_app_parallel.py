@@ -52,7 +52,8 @@ def _record_steps(clean_app, monkeypatch, prune_ok=True):
     # strip_debug_info too: on Linux it really strips whatever is at the path,
     # and in the Flatpak build /app is the app running the tests
     for name in ("remove_pycache", "remove_foreign_binaries",
-                 "thin_macos_binaries", "strip_debug_info"):
+                 "thin_macos_binaries", "strip_debug_info",
+                 "remove_windows_debug_symbols"):
         monkeypatch.setattr(clean_app, name, step(name))
     return events
 
@@ -78,6 +79,47 @@ def test_removals_run_at_once_then_the_whole_tree_steps(clean_app, monkeypatch,
 def test_failed_prune_fails_clean_app(clean_app, monkeypatch, tmp_path):
     _record_steps(clean_app, monkeypatch, prune_ok=False)
     assert clean_app.clean_app(str(tmp_path)) is False
+
+
+@pytest.mark.parametrize("system,keep_debug_info,removed", [
+    ("win32", False, True),
+    ("win32", True, False),
+    ("linux", False, False),
+    ("darwin", False, False),
+])
+def test_windows_symbol_cleanup_respects_platform_and_debug_flag(
+        clean_app, monkeypatch, tmp_path, system, keep_debug_info, removed):
+    events = _record_steps(clean_app, monkeypatch)
+    monkeypatch.setattr(clean_app.sysconfig, "get_path", lambda _: str(tmp_path))
+    monkeypatch.setattr(clean_app.sys, "platform", system)
+    assert clean_app.clean_app(str(tmp_path), keep_debug_info) is True
+    assert (("start", "remove_windows_debug_symbols") in events) is removed
+
+
+def test_remove_windows_debug_symbols_keeps_molecular_pdbs(clean_app, tmp_path):
+    symbol_data = b"Microsoft C/C++ MSF 7.00\r\n\x1aDS\x00\x00\x00" + bytes(64)
+    symbols = []
+    for name in ("bin/DLLs/_ssl.pdb", "bin/Lib/site-packages/debugpy/helper.PDB",
+                 "bin/Lib/venv/scripts/nt/venvlauncher.pdb"):
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(symbol_data)
+        symbols.append(path)
+    keep = {
+        "molecule.pdb": b"HEADER    PROTEIN\nATOM      1  N   ALA A   1\n",
+        "MODEL.PDB": b"MODEL        1\nENDMDL\n",
+        "empty.pdb": b"",
+        "text.pdb": b"Microsoft C/C++ documentation\n",
+        "other.dat": symbol_data,
+    }
+    for name, data in keep.items():
+        (tmp_path / name).write_bytes(data)
+
+    assert clean_app.remove_windows_debug_symbols(str(tmp_path)) \
+        == len(symbols) * len(symbol_data)
+    assert all(not path.exists() for path in symbols)
+    for name, data in keep.items():
+        assert (tmp_path / name).read_bytes() == data
 
 
 def test_prune_pyside6_runs_the_prereqs_script(clean_app, tmp_path):

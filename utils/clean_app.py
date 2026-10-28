@@ -43,6 +43,9 @@ def clean_app(chimerax_root, keep_debug_info=False):
             # not Mach-O, and these are only Mach-O
             steps.append(pool.submit(thin_macos_binaries, chimerax_root,
                                      platform.machine()))
+        if sys.platform == "win32" and not keep_debug_info:
+            steps.append(pool.submit(remove_windows_debug_symbols,
+                                     chimerax_root))
         for step in steps:
             step.result()
     # After remove_foreign_binaries, so other platforms' ELF files are gone
@@ -203,6 +206,28 @@ MACHO_MAGICS = (b"\xfe\xed\xfa\xce", b"\xfe\xed\xfa\xcf",
 FAT_MACHO_MAGICS = (b"\xca\xfe\xba\xbe", b"\xca\xfe\xba\xbf")
 # ELF e_machine values for the architectures ChimeraX is built for
 ELF_MACHINES = {"x86_64": 62, "amd64": 62, "aarch64": 183, "arm64": 183}
+
+
+PDB_MAGIC = b"Microsoft C/C++ MSF 7.00\r\n\x1aDS\x00\x00\x00"
+
+
+def remove_windows_debug_symbols(chimerax_root):
+    """Remove binary PDB debug symbols, keeping molecular PDB data files."""
+    freed = 0
+    for root, dirs, files in os.walk(chimerax_root):
+        for fn in files:
+            if not fn.lower().endswith(".pdb"):
+                continue
+            path = os.path.join(root, fn)
+            if os.path.islink(path):
+                continue
+            with open(path, "rb") as f:
+                if f.read(len(PDB_MAGIC)) != PDB_MAGIC:
+                    continue
+            freed += os.path.getsize(path)
+            os.remove(path)
+    print(f"clean_app: removed {freed / 1e6:.0f} MB of Windows debug symbols")
+    return freed
 
 
 def binary_format(path):
