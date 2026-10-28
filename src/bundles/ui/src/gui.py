@@ -135,6 +135,8 @@ class UI(QApplication):
         QApplication.__init__(self, [ad.appname])
         from . import desktop_settings
         desktop_settings.apply_settings(self)
+        from chimerax.graphics.opengl import start_driver_warmup
+        start_driver_warmup(self)
         import sys
 
         from Qt.QtCore import Qt
