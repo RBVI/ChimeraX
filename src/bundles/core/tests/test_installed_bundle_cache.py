@@ -63,27 +63,35 @@ def test_bundle_cache_paths_are_stable_and_separate_by_executable(monkeypatch, t
     assert Toolshed._bundle_cache(toolshed, False, None) == first
 
 
-def test_bundle_cache_name_uses_sha256_without_openssl(monkeypatch, tmp_path):
+def test_bundle_cache_name_loads_no_hash_module(monkeypatch, tmp_path):
     import builtins
-    import hashlib
     import os
     import sys
-    from chimerax.core.toolshed import Toolshed, _bundle_cache_executable
+    from chimerax.core.toolshed import Toolshed
 
     monkeypatch.setattr(sys, "executable", str(tmp_path / "ChimeraX"))
     original_import = builtins.__import__
 
-    def import_without_hashlib(name, *args, **kw):
-        if name == 'hashlib':
-            raise AssertionError('Naming the cache must not load OpenSSL')
+    def import_without_hashes(name, *args, **kw):
+        if name in ('hashlib', '_sha2'):
+            raise AssertionError('Naming the cache must not load a hash module')
         return original_import(name, *args, **kw)
 
-    monkeypatch.setattr(builtins, '__import__', import_without_hashlib)
+    monkeypatch.setattr(builtins, '__import__', import_without_hashes)
     filename = Toolshed._bundle_cache(SimpleNamespace(_cache_dir=str(tmp_path)), False, None)
     monkeypatch.setattr(builtins, '__import__', original_import)
-    # Same name as earlier releases, so existing caches are reused.
-    key = hashlib.sha256(os.fsencode(_bundle_cache_executable())).hexdigest()[:16]
-    assert os.path.basename(filename) == f"bundle_info-{key}.cache"
+    name = os.path.basename(filename)
+    assert name.startswith("bundle_info-") and name.endswith(".cache")
+    key = name[len("bundle_info-"):-len(".cache")]
+    assert len(key) == 16 and int(key, 16) >= 0
+
+
+def test_fnv1a_64_reference_values():
+    from chimerax.core.toolshed import _fnv1a_64
+    # Published FNV-1a 64-bit test vectors
+    assert _fnv1a_64(b"") == 0xcbf29ce484222325
+    assert _fnv1a_64(b"a") == 0xaf63dc4c8601ec8c
+    assert _fnv1a_64(b"foobar") == 0x85944171f73967e8
 
 
 def test_executable_changes_still_invalidate_cache(monkeypatch, tmp_path):

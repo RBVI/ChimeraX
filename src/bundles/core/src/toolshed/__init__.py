@@ -222,6 +222,16 @@ _TIMESTAMP = "install-timestamp"
 _debug_toolshed = False
 
 
+def _fnv1a_64(data):
+    """64-bit FNV-1a hash of bytes.  Naming a cache file needs no cryptographic
+    hash, and loading one (_sha2, or OpenSSL through hashlib) at startup can
+    wait on the dynamic loader while the OpenGL driver loads in another thread."""
+    h = 0xcbf29ce484222325
+    for byte in data:
+        h = ((h ^ byte) * 0x100000001b3) & 0xffffffffffffffff
+    return h
+
+
 def _bundle_cache_executable():
     """Use one cache for the two macOS app launcher hard links."""
     import os.path
@@ -1155,18 +1165,12 @@ class Toolshed:
             os.makedirs(self._cache_dir, exist_ok=True)
         import os.path
 
-        try:
-            # CPython's own SHA-256; hashlib would load OpenSSL at startup.
-            from _sha2 import sha256
-        except ImportError:
-            from hashlib import sha256
-
         # Builds with the same version share the user cache directory, but
         # have different installed bundles.  Keep one cache per executable so
         # switching builds does not discard the previous build's cached data.
         # The app's MacOS and bin launchers are hard links. Share their cache,
         # while retaining the executable mtime and install-timestamp checks.
-        executable_key = sha256(os.fsencode(_bundle_cache_executable())).hexdigest()[:16]
+        executable_key = '%016x' % _fnv1a_64(os.fsencode(_bundle_cache_executable()))
         return os.path.join(self._cache_dir, f"bundle_info-{executable_key}.cache")
 
 
