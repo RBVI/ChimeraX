@@ -96,6 +96,7 @@ class _Section(QWidgetAction):
         super().__init__(parent)
         self._buttons = []
         self._groups = {}  # { toolbar-widget: { group-name: qtoolbutton } }
+        self._group_defaults = {}
         self._actions = (
             {}
         )  # keep references to actions in menus { button-title: [action] }
@@ -252,6 +253,10 @@ class _Section(QWidgetAction):
     def _layout_buttons(self, w):
         for column, button_info in enumerate(self._buttons):
             self._add_button(w, column, button_info)
+        for group, title in self._group_defaults.items():
+            action = self.get_qt_button_action(w, title)
+            if action is not None:
+                self._groups[w][group].setDefaultAction(action)
         if self.show_section_titles:
             w._title = QLabel(self.section_title, w)
             self._adjust_title(w)
@@ -395,6 +400,7 @@ class _Section(QWidgetAction):
         group = button_info.group
         if group is None:
             return
+        self._group_defaults[group] = button_title
         existing_widgets = self.createdWidgets()
         for parent in existing_widgets:
             action = self.get_qt_button_action(parent, button_title)
@@ -407,10 +413,14 @@ class _Section(QWidgetAction):
 class TabbedToolbar(QTabWidget):
     # A Microsoft Office ribbon-style interface
 
-    def __init__(self, *args, show_section_titles=True, show_button_titles=True, **kw):
+    def __init__(self, *args, show_section_titles=True, show_button_titles=True,
+                 lazy_tabs=False, **kw):
         super().__init__(*args, **kw)
         # TODO: self.tabs.setMovable(True)  # and save tab order in preferences
         self._buttons = {}  # { tab_title: { section_title: _Section() } }
+        self._lazy_tabs = lazy_tabs
+        self._unpopulated_tabs = set()
+        self.currentChanged.connect(self._populate_tab)
         self.show_section_titles = show_section_titles
         self.show_button_titles = show_button_titles
         # self.setStyleSheet("* { padding: 0; margin: 0; border: 1px inset red; } *::separator { background-color: green; width: 1px; }")
@@ -421,6 +431,16 @@ class TabbedToolbar(QTabWidget):
 
     # TODO: disable/enable button/section, remove button
 
+    def _populate_tab(self, index):
+        tab = self.widget(index)
+        if tab not in self._unpopulated_tabs:
+            return
+        self._unpopulated_tabs.remove(tab)
+        for title, section in self._buttons.get(self.tabText(index), {}).items():
+            if title != '__toolbar__':
+                tab.addAction(section)
+                tab.addSeparator()
+
     def _get_section(self, tab_title, section_title, create=True):
         tab_info = self._buttons.setdefault(tab_title, {})
         tab = tab_info.get("__toolbar__", None)
@@ -428,6 +448,8 @@ class TabbedToolbar(QTabWidget):
             if not create:
                 return None
             tab = tab_info["__toolbar__"] = QToolBar(self)
+            if self._lazy_tabs:
+                self._unpopulated_tabs.add(tab)
             self.addTab(tab, tab_title)
         section = tab_info.get(section_title, None)
         if section is None:
@@ -440,8 +462,11 @@ class TabbedToolbar(QTabWidget):
                 self.show_button_titles,
                 self._highlight_color,
             )
-            tab.addAction(section)
-            tab.addSeparator()
+            # Attaching a QWidgetAction creates its widgets immediately, even
+            # for hidden tabs.  Keep their section data until first selection.
+            if tab not in self._unpopulated_tabs:
+                tab.addAction(section)
+                tab.addSeparator()
         return section
 
     def set_section_compact(self, tab_title, section_title, on_off):
@@ -494,6 +519,7 @@ class TabbedToolbar(QTabWidget):
         self._buttons[tab_title]["__toolbar__"] = tab
 
     def clear_all(self):
+        self._unpopulated_tabs.clear()
         for tab_title in list(self._buttons):
             self.clear_tab(tab_title)
             del self._buttons[tab_title]
