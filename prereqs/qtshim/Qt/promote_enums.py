@@ -32,16 +32,44 @@ def promote_enums_pyside(module):
     """
     from PySide6 import QtWidgets
     wrappertype = type(QtWidgets.QWidget)
-    from enum import EnumType
     class_names = [name for name in dir(module) if name.startswith('Q')]
     for class_name in class_names:
         klass = getattr(module, class_name)
         if not isinstance(klass, wrappertype):
             continue
-        attrib_names = [name for name in dir(klass) if name[0].isupper()]
-        for attrib_name in attrib_names:
-            attrib = getattr(klass, attrib_name)
-            if not isinstance(attrib, EnumType):
-                continue
+        _promote_pyside_class(klass)
+
+
+def _promote_pyside_class(klass):
+    from enum import EnumType
+    for attrib_name in dir(klass):
+        if not attrib_name[0].isupper():
+            continue
+        attrib = getattr(klass, attrib_name)
+        if isinstance(attrib, EnumType):
             for name, value in attrib.__members__.items():
                 setattr(klass, name, value)
+
+
+def prepare_pyside_class(klass):
+    # Native forgiveness applies to class lookup, but not instance lookup
+    # (e.g. table.AdjustToContents). Preserve both forms for exported classes.
+    if klass.__module__.startswith('PySide6.'):
+        _promote_pyside_class(klass)
+    return klass
+
+
+def native_enum_shortcuts(module):
+    """Use PySide's documented forgiveness mode for the standard Qt modules.
+
+    Keep explicit promotion for older bindings, other modules, and customized
+    enum modes.  Since 6.6 Python enums are mandatory; the default mode provides
+    unscoped members on their enclosing classes without eagerly copying them.
+    https://doc.qt.io/qtforpython-6/developer/enumfeatures_doc.html
+    """
+    import sys
+    import PySide6
+    return (PySide6.__version_info__ >= (6, 6)
+            and getattr(sys, 'pyside6_option_python_enum', None) == 1
+            and module.__name__ in (
+                'PySide6.QtCore', 'PySide6.QtGui', 'PySide6.QtWidgets'))
