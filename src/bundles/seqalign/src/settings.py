@@ -46,6 +46,7 @@ def init(session):
         settings = _AlignmentsSettings(session, "alignments")
 
 def register_settings_options(session):
+    from functools import partial
     from chimerax.core.colors import color_name
     from chimerax.ui.options import IntOption, SymbolicEnumOption
     def viewer_option(variety, attribute):
@@ -92,6 +93,6 @@ def register_settings_options(session):
             opt_class, kw = opt_class
         else:
             kw = {}
-        opt = opt_class(opt_name, getattr(settings, setting), None,
+        opt = partial(opt_class, opt_name, None, None,
             attr_name=setting, settings=settings, balloon=balloon, **kw)
-        session.ui.main_window.add_settings_option("Sequences", opt)
+        session.ui.main_window.add_settings_option("Sequences", opt, factory=True)
