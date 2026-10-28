@@ -222,6 +222,26 @@ _TIMESTAMP = "install-timestamp"
 _debug_toolshed = False
 
 
+def _bundle_cache_executable():
+    """Use one cache for the two macOS app launcher hard links."""
+    import os.path
+    import sys
+
+    executable = sys.executable
+    if sys.platform == 'darwin':
+        directory, name = os.path.split(executable)
+        contents, entry = os.path.split(directory)
+        if entry == 'MacOS' and os.path.basename(contents) == 'Contents':
+            command_line_executable = os.path.join(contents, 'bin', name)
+            try:
+                if os.path.samefile(executable, command_line_executable):
+                    return command_line_executable
+            except OSError:
+                # A missing/inaccessible counterpart must not prevent startup.
+                pass
+    return executable
+
+
 def _debug(*args, file=None, flush=True, **kw):
     if _debug_toolshed:
         if file is None:
@@ -1095,8 +1115,15 @@ class Toolshed:
 
             os.makedirs(self._cache_dir, exist_ok=True)
         import os.path
+        from hashlib import sha256
 
-        return os.path.join(self._cache_dir, "bundle_info.cache")
+        # Builds with the same version share the user cache directory, but
+        # have different installed bundles.  Keep one cache per executable so
+        # switching builds does not discard the previous build's cached data.
+        # The app's MacOS and bin launchers are hard links. Share their cache,
+        # while retaining the executable mtime and install-timestamp checks.
+        executable_key = sha256(os.fsencode(_bundle_cache_executable())).hexdigest()[:16]
+        return os.path.join(self._cache_dir, f"bundle_info-{executable_key}.cache")
 
 
 class ProviderManager(metaclass=abc.ABCMeta):
