@@ -11,6 +11,10 @@
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
+from Qt.QtCore import Qt, QSize, QRect, QPoint
+from Qt.QtWidgets import QLayout
+
+
 class FileHistory:
 
     def __init__(self, session, parent, bg_color=None, thumbnail_size=(64,64), filename_size=8,
@@ -144,3 +148,62 @@ class HistoryWindow(ChimeraXHtmlView):
     def clear_file_history(self):
         from chimerax.core.filehistory import file_history
         file_history(self.session).clear_file_history()
+
+class FlowLayout(QLayout):
+    '''Lay out widgets left to right wrapping to new rows.'''
+    def __init__(self, parent = None, spacing = 6):
+        super().__init__(parent)
+        self._items = []
+        self.setSpacing(spacing)
+
+    def addItem(self, item):
+        self._items.append(item)
+
+    def count(self):
+        return len(self._items)
+
+    def itemAt(self, index):
+        return self._items[index] if 0 <= index < len(self._items) else None
+
+    def takeAt(self, index):
+        return self._items.pop(index) if 0 <= index < len(self._items) else None
+
+    def expandingDirections(self):
+        return Qt.Orientation(0)
+
+    def hasHeightForWidth(self):
+        return True
+
+    def heightForWidth(self, width):
+        return self._do_layout(QRect(0, 0, width, 0), test_only = True)
+
+    def setGeometry(self, rect):
+        super().setGeometry(rect)
+        self._do_layout(rect, test_only = False)
+
+    def sizeHint(self):
+        return self.minimumSize()
+
+    def minimumSize(self):
+        size = QSize()
+        for item in self._items:
+            size = size.expandedTo(item.minimumSize())
+        m = self.contentsMargins()
+        return size + QSize(m.left() + m.right(), m.top() + m.bottom())
+
+    def _do_layout(self, rect, test_only):
+        m = self.contentsMargins()
+        r = rect.adjusted(m.left(), m.top(), -m.right(), -m.bottom())
+        x, y, row_height = r.x(), r.y(), 0
+        spacing = self.spacing()
+        for item in self._items:
+            hint = item.sizeHint()
+            if x > r.x() and x + hint.width() > r.right() + 1:
+                x = r.x()
+                y += row_height + spacing
+                row_height = 0
+            if not test_only:
+                item.setGeometry(QRect(QPoint(x, y), hint))
+            x += hint.width() + spacing
+            row_height = max(row_height, hint.height())
+        return y + row_height - rect.y() + m.bottom()
