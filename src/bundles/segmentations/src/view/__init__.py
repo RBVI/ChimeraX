@@ -10,5 +10,20 @@
 # including partial copies, of the software or any revisions
 # or derivations thereof.
 # === UCSF ChimeraX Copyright ===
-from chimerax.segmentations.view.ui import views, FourPanelView
+views = ["fourup", "sidebyside", "overunder"]
 from chimerax.segmentations.view.modes import ViewMode
+
+
+__all__ = ['views', 'FourPanelView', 'ViewMode']
+
+
+def __getattr__(name):
+    if name == 'FourPanelView':
+        from .ui import FourPanelView
+        globals()[name] = FourPanelView
+        return FourPanelView
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))
