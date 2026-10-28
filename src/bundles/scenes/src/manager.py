@@ -22,9 +22,12 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from typing import Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Optional
 from chimerax.core.state import StateManager
-from .scene import Scene
+if TYPE_CHECKING:
+    from .scene import Scene
 from chimerax.core.models import REMOVE_MODELS
 from .triggers import activate_trigger, SAVED, DELETED, RENAMED, RESTORED
 
@@ -90,6 +93,7 @@ class SceneManager(StateManager):
         if self.scene_exists(scene_name):
             self.get_scene(scene_name).init_from_session()
         else:
+            from .scene import Scene
             self.scenes.append(Scene(self.session, scene_name))
             self.num_saved_scenes += 1
         activate_trigger(SAVED, scene_name)
@@ -185,6 +189,7 @@ class SceneManager(StateManager):
         Args:
             data (dict): The session data.
         """
+        from .scene import Scene
         self.clear()
         for scene_snapshot in data["scenes"]:
             scene = Scene.restore_snapshot(self.session, scene_snapshot)
