@@ -1,0 +1,26 @@
+--- sortedcontainers/sortedlist.py
++++ sortedcontainers/sortedlist.py
+@@ -17,7 +17,6 @@
+ from __future__ import print_function
+ 
+ import sys
+-import traceback
+ 
+ from bisect import bisect_left, bisect_right, insort
+ from itertools import chain, repeat, starmap
+@@ -1670,6 +1669,7 @@
+                         child_sum = self._index[child] + self._index[child + 1]
+                         assert child_sum == self._index[pos]
+         except:
++            import traceback
+             traceback.print_exc(file=sys.stdout)
+             print('len', self._len)
+             print('load', self._load)
+@@ -2628,6 +2628,7 @@
+                         child_sum = self._index[child] + self._index[child + 1]
+                         assert child_sum == self._index[pos]
+         except:
++            import traceback
+             traceback.print_exc(file=sys.stdout)
+             print('len', self._len)
+             print('load', self._load)
