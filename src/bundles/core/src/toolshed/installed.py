@@ -148,50 +148,39 @@ class InstalledBundleCache(list):
         import os.path
         if not os.path.exists(cache_file):
             return False
-        import filelock
         import json
         import os
         import sys
         from .info import BundleInfo
+        # Writers publish a complete snapshot with atomic replacement.  Readers
+        # can keep the old file open during replacement without taking a lock.
+        # A partial file from an older writer is treated as a cache miss below.
         try:
-            lock_file = cache_file + '.lock'
-            lock = filelock.FileLock(lock_file)
-            with lock.acquire():
-                if not lock.is_locked:
-                    # As of filelock==2.0.8:
-                    # On Unix, failing to create the lock file results
-                    # in an exception, but on Windows the acquire fails
-                    # silently but leaves the lock unlocked
-                    raise OSError("cannot create lock file %r" % lock_file)
-                f = open(cache_file, "r", encoding='utf-8')
-                try:
-                    with f:
-                        data = f.readline()
-                        data = json.loads(data)
-                        if not isinstance(data[0], str):
-                            _debug("InstalledBundleCache._read_cache: obsolete cache")
-                            return None  # obsolete cache format
-                        executable, mtime = data
-                        if executable != sys.executable:
-                            _debug("InstalledBundleCache._read_cache: different executable")
-                            return None
-                        if mtime != os.path.getmtime(executable):
-                            _debug("InstalledBundleCache._read_cache: changed executable")
-                            return None
-                        if not self._is_cache_newer(cache_file):
-                            return None
-                        data = json.load(f)
-                    self.extend([BundleInfo.from_cache_data(x) for x in data])
-                    _debug("InstalledBundleCache._read_cache: %d bundles" % len(self))
-                    return True
-                except Exception as e:
-                    _debug("InstalledBundleCache._read_cache: failed:", e)
-                    return False
-        except OSError as e:
-            _debug("InstalledBundleCache._read_cache: failed os:", str(e))
+            with open(cache_file, "r", encoding="utf-8") as f:
+                data = json.loads(f.readline())
+                if not isinstance(data[0], str):
+                    _debug("InstalledBundleCache._read_cache: obsolete cache")
+                    return None
+                executable, mtime = data
+                if executable != sys.executable:
+                    _debug("InstalledBundleCache._read_cache: different executable")
+                    return None
+                if mtime != os.path.getmtime(executable):
+                    _debug("InstalledBundleCache._read_cache: changed executable")
+                    return None
+                # Validate this open snapshot, not a replacement at the same path.
+                if not self._is_cache_newer(cache_file, os.fstat(f.fileno()).st_mtime):
+                    return None
+                data = json.load(f)
+            bundles = [BundleInfo.from_cache_data(x) for x in data]
+        except Exception as e:
+            _debug("InstalledBundleCache._read_cache: failed:", e)
             return False
+        self.extend(bundles)
+        _debug("InstalledBundleCache._read_cache: %d bundles" % len(self))
+        return True
 
-    def _is_cache_newer(self, cache_file):
+    def _is_cache_newer(self, cache_file, cache_time=None):
         """Check if cache is newer than timestamps."""
         _debug("_is_cache_newer")
         from chimerax import app_dirs, app_data_dir
@@ -200,10 +189,11 @@ class InstalledBundleCache(list):
             (os.path.join(app_data_dir, _TIMESTAMP), True),
             (os.path.join(app_dirs.user_data_dir, _TIMESTAMP), False),
         )
-        try:
-            cache_time = os.path.getmtime(cache_file)
-        except FileNotFoundError:
-            return False
+        if cache_time is None:
+            try:
+                cache_time = os.path.getmtime(cache_file)
+            except FileNotFoundError:
+                return False
         for filename, required in files:
             try:
                 time = os.path.getmtime(filename)
@@ -223,18 +213,18 @@ class InstalledBundleCache(list):
         import sys
         os.makedirs(os.path.dirname(cache_file), exist_ok=True)
         lock = filelock.FileLock(cache_file + '.lock')
+        from ..safesave import SaveTextFile
         with lock.acquire():
             try:
-                f = open(cache_file, 'w', encoding='utf-8')
-            except IOError as e:
-                logger.error("\"%s\": %s" % (cache_file, str(e)))
-            else:
-                with f:
-                    data = [sys.executable, os.path.getmtime(sys.executable)]
+                with SaveTextFile(cache_file, encoding='utf-8') as f:
+                    executable = sys.executable
+                    data = [executable, os.path.getmtime(executable)]
                     json.dump(data, f, ensure_ascii=False)
                     print(file=f)
                     json.dump([bi.cache_data() for bi in self], f,
                               ensure_ascii=False, check_circular=False)
+            except OSError as e:
+                logger.error("\"%s\": %s" % (cache_file, str(e)))
 
     @property
     def help_directories(self):
