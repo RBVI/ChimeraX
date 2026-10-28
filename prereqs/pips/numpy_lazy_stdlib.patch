@@ -1,0 +1,27 @@
+--- numpy/lib/_utils_impl.py
++++ numpy/lib/_utils_impl.py
+@@ -1,8 +1,6 @@
+ import functools
+ import os
+-import platform
+ import sys
+-import textwrap
+ import types
+ import warnings
+ 
+@@ -36,6 +34,7 @@
+        ``__cpu_baseline__`` and ``__cpu_dispatch__``
+ 
+     """
++    import platform
+     from pprint import pprint
+ 
+     from numpy._core._multiarray_umath import (
+@@ -183,6 +182,7 @@
+                         break
+                     skip += len(line) + 1
+                 doc = doc[skip:]
++            import textwrap
+             depdoc = textwrap.indent(depdoc, ' ' * indent)
+             doc = f'{depdoc}\n\n{doc}'
+         newfunc.__doc__ = doc
