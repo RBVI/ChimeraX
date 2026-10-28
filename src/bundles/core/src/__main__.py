@@ -610,6 +610,11 @@ def init(argv, event_loop=True):
         os.environ["SSL_CERT_FILE"] = _certifi_where()
 
     opts, args = parse_arguments(argv)
+    if opts.gui and "CHIMERAX_STARTUP_PREFETCH" in os.environ:
+        # Note the settings and caches this startup reads (see below).
+        from chimerax.core.startup_prefetch import watch_opened_files
+
+        watch_opened_files()
     if not opts.devel:
         import warnings
 
@@ -1090,6 +1095,13 @@ def init(argv, event_loop=True):
     # Allow the event_loop to be disabled, so we can be embedded in
     # another application
     if event_loop and opts.event_loop:
+        if opts.gui and os.environ.get("CHIMERAX_STARTUP_PREFETCH"):
+            # Tell the launcher which files this startup read, once the
+            # window is up, so the next cold start can read them ahead.
+            from Qt.QtCore import QTimer
+            from chimerax.core.startup_prefetch import record_startup_files
+
+            QTimer.singleShot(3000, record_startup_files)
         try:
             sess.ui.event_loop()
         except SystemExit as e:
