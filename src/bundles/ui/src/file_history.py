@@ -33,14 +33,15 @@ class FileHistory:
         self._default_pixmap = None
         self._selected = set()	# (path, database) of selected files
         self._selection_anchor = None	# (path, database) for shift-click range selection
+        self._show_banner = show_banner
+        self._bg_color = bg_color
 
         self._history_window = HistoryWindow(self, size_hint)
-        self._empty_window = EmptyHistoryWindow(self, show_banner)
+        self._empty_window = None
 
         self._stack = layout = QStackedLayout(parent)
         layout.setContentsMargins(0,0,0,0)
         layout.addWidget(self._history_window)
-        layout.addWidget(self._empty_window)
 
         if bg_color is not None:
             self.set_background_color(bg_color)
@@ -59,6 +60,11 @@ class FileHistory:
         h = self.history
         if len(h.files) == 0 and len(h.sections) == 0:
             self._history_window.clear()
+            if self._empty_window is None:
+                self._empty_window = EmptyHistoryWindow(self, self._show_banner)
+                self._stack.addWidget(self._empty_window)
+                if self._bg_color is not None:
+                    self.set_background_color(self._bg_color)
             self._stack.setCurrentWidget(self._empty_window)
         else:
             self._selected = set(k for k in self._selected if h.find_file(*k) is not None)
@@ -71,8 +77,11 @@ class FileHistory:
         self.update()
 
     def set_background_color(self, color):
+        self._bg_color = color
         from Qt.QtGui import QColor, QPalette
         for w in (self._history_window.viewport(), self._empty_window):
+            if w is None:
+                continue
             w.setAutoFillBackground(True)
             p = w.palette()
             p.setColor(QPalette.ColorRole.Window, QColor(color))
