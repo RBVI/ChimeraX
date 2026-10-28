@@ -27,6 +27,8 @@ from chimerax.core.toolshed import ProviderManager
 
 class SchemesManager(ProviderManager):
     """Manager for html schemes used by all bundles"""
+    # add_provider() ignores bundles that are not installed.
+    uses_uninstalled_providers = False
 
     def __init__(self, session, name):
         self.session = session
