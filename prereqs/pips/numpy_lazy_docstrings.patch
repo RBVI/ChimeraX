@@ -1,0 +1,32 @@
+--- numpy/_core/__init__.py
++++ numpy/_core/__init__.py
+@@ -126,8 +126,6 @@
+ # appearing in an import-time traceback
+ # add these for module-freeze analysis (like PyInstaller)
+ from . import (
+-    _add_newdocs,
+-    _add_newdocs_scalars,
+     _dtype,
+     _dtype_ctypes,
+     _internal,
+@@ -135,6 +133,20 @@
+ )
+ from .numeric import absolute as abs
+ 
++
++# ChimeraX: attaching docstrings to numpy's C functions and types takes a few
++# milliseconds.  An application that sets sys.numpy_defer_docstrings before
++# importing numpy calls _load_docstrings() itself once it has started.
++def _load_docstrings():
++    from . import _add_newdocs, _add_newdocs_scalars  # noqa: F401
++
++
++import sys as _sys
++
++if not getattr(_sys, "numpy_defer_docstrings", False):
++    _load_docstrings()
++del _sys
++
+ acos = numeric.arccos
+ acosh = numeric.arccosh
+ asin = numeric.arcsin

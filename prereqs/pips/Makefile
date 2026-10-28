@@ -23,10 +23,14 @@ CXSERVICES_VER = 1.2.3
 CXSERVICES_DEPLOYMENT_VER ?= production
 
 PATCHES = grako.patch
-# Import traceback only where used; it pulls in inspect, ast and more at startup.
+# Import traceback and textwrap only where used; they cost startup time.
 PATCHES += sortedcontainers.patch
 # numpy imports numpy.linalg (with numpy._typing) only when it is used.
 PATCHES += numpy_lazy_linalg.patch
+# numpy attaches docstrings to its C objects when ChimeraX asks, after startup.
+PATCHES += numpy_lazy_docstrings.patch
+# numpy imports platform and textwrap only where used.
+PATCHES += numpy_lazy_stdlib.patch
 ifeq ($(OS),Windows)
 ifneq ($(filter $(MSYSTEM),MSYS MINGW64 UCRT64),)
 PATCHES += openmm_metadata.patch

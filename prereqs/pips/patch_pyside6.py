@@ -359,6 +359,43 @@ def patch_bootstrap(shiboken_dir, files_dir):
     os.replace(tmp, path)
 
 
+def patch_qtcore_snippet(pyside_dir):
+    # QtCore runs an embedded snippet when it creates the Qt namespace, which
+    # imports textwrap only for a deprecation warning.  Import it in the
+    # warning instead, overwriting the NUL-terminated snippet in place.
+    import_line = b"        from textwrap import dedent\n"
+    warn_old = b'warn(dedent(f"""'
+    warn_new = b'warn(__import__("textwrap").dedent(f"""'
+    # QtCore.abi3.so (Linux, macOS), QtCore.pyd (Windows)
+    libs = [n for n in os.listdir(pyside_dir)
+            if n.startswith("QtCore.") and n.endswith((".so", ".pyd"))]
+    if len(libs) != 1:
+        sys.exit(f"expected one QtCore extension in {pyside_dir}, found {libs}")
+    path = os.path.join(pyside_dir, libs[0])
+    with open(path, "rb") as f:
+        data = f.read()
+    if warn_new in data:
+        return
+    if data.count(import_line) != 1:
+        sys.exit(f"{path}: embedded textwrap import not found exactly once")
+    i = data.find(import_line)
+    start = data.rfind(b"\0", 0, i) + 1
+    end = data.find(b"\0", i)
+    old = data[start:end]
+    if old.count(warn_old) != 1:
+        sys.exit(f"{path}: embedded snippet has an unexpected layout")
+    new = old.replace(import_line, b"").replace(warn_old, warn_new) + b"# " + MARK.encode()
+    if len(new) > len(old):
+        sys.exit(f"{path}: patched snippet is longer than the original")
+    patched = data[:start] + new + b" " * (len(old) - len(new)) + data[end:]
+    assert len(patched) == len(data)
+    tmp = path + ".tmp"
+    with open(tmp, "wb") as f:
+        f.write(patched)
+    os.chmod(tmp, os.stat(path).st_mode)
+    os.replace(tmp, path)
+
+
 def main():
     site = sysconfig.get_paths()["purelib"]
     shiboken_dir = os.path.join(site, "shiboken6")
@@ -370,6 +407,7 @@ def main():
     install_fast_enum(shiboken_dir)
     patch_pyside_init(pyside_dir)
     patch_bootstrap(shiboken_dir, files_dir)
+    patch_qtcore_snippet(pyside_dir)
     import compileall
     compileall.compile_dir(files_dir, quiet=1)
     compileall.compile_file(os.path.join(shiboken_dir, "__init__.py"), quiet=1)
