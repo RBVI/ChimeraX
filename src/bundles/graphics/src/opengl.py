@@ -119,6 +119,11 @@ class OpenGLContext:
         self._check_thread()
 
         w = self.window if window is None else window
+        if w is not None:
+            # The window's native resources may not exist yet if it hasn't been
+            # shown (macOS defers them), e.g., when rendering a file history
+            # thumbnail while the graphics are hidden.  Does nothing if they do.
+            w.create()
         if not qc.makeCurrent(w):
             raise OpenGLError("Could not make graphics context current")
 
