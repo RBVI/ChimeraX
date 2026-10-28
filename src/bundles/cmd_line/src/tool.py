@@ -392,14 +392,35 @@ class _HistoryDialog:
         # make dialog hidden initially
         self.controller = controller
         self.typed_only = typed_only
+        self._window = None
+        self._listbox = None
+        self._history_row = -1
+        from chimerax.core.history import FIFOHistory
+        self._history = FIFOHistory(controller.settings.num_remembered, controller.session, "commands")
+        self._record_dialog = None
+        self._search_cache = (False, None)
 
-        self.window = controller.tool_window.create_child_window(
+    @property
+    def window(self):
+        if self._window is None:
+            self._create_window()
+        return self._window
+
+    @property
+    def listbox(self):
+        if self._window is None:
+            self._create_window()
+        return self._listbox
+
+    def _create_window(self):
+        controller = self.controller
+        self._window = controller.tool_window.create_child_window(
             "Command History", close_destroys=False)
         self.window.fill_context_menu = self.fill_context_menu
 
         parent = self.window.ui_area
         from Qt.QtWidgets import QListWidget, QVBoxLayout, QFrame, QHBoxLayout, QPushButton, QLabel
-        self.listbox = QListWidget(parent)
+        self._listbox = QListWidget(parent)
         self.listbox.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self.listbox.itemSelectionChanged.connect(self.select)
         main_layout = QVBoxLayout(parent)
@@ -455,25 +476,42 @@ class _HistoryDialog:
         # manage() call results in a tiny initial size, but not for other similar initially hidden
         # floating dialogs.  The following kludge results in a full-size window.
         self.window.floating = True
-        from chimerax.core.history import FIFOHistory
-        self._history = FIFOHistory(controller.settings.num_remembered, controller.session, "commands")
-        self._record_dialog = None
-        self._search_cache = (False, None)
+        self._populate_list()
+
+    def _populate_list(self):
+        # Materializing history must not replace a partially entered command.
+        listbox = self._listbox
+        blocked = listbox.blockSignals(True)
+        try:
+            listbox.clear()
+            listbox.addItems(self.history())
+            listbox.setCurrentRow(self._history_row)
+            listbox.scrollToBottom()
+        finally:
+            listbox.blockSignals(blocked)
 
     def add(self, item, *, typed=False):
         if len(self._history) >= self.controller.settings.num_remembered:
             if not self.typed_only or self._history[0][1]:
                 # unless signals are blocked, this will clear partially entered text
-                self.listbox.blockSignals(True)
-                self.listbox.takeItem(0)
-                self.listbox.blockSignals(False)
-        if typed or not self.typed_only:
+                if self._listbox is None:
+                    if self._history_row >= 0:
+                        self._history_row = max(0, self._history_row - 1)
+                else:
+                    self.listbox.blockSignals(True)
+                    self.listbox.takeItem(0)
+                    self.listbox.blockSignals(False)
+        if (typed or not self.typed_only) and self._listbox is not None:
             self.listbox.addItem(item)
         self._history.enqueue((item, typed))
+        if self._listbox is None:
+            self._history_row = min(self._history_row, len(self.history()) - 1)
         # 'if typed:' to avoid clearing any partially entered command text
         if typed:
-            self.listbox.clearSelection()
-            self.listbox.setCurrentRow(len(self.history()) - 1)
+            self._history_row = len(self.history()) - 1
+            if self._listbox is not None:
+                self.listbox.clearSelection()
+                self.listbox.setCurrentRow(self._history_row)
             self.update_list()
 
     def button_clicked(self, label):
@@ -618,15 +656,15 @@ class _HistoryDialog:
         self.select()
 
     def populate(self):
-        self.listbox.clear()
         history = self.history()
-        self.listbox.addItems([cmd for cmd in history])
-        self.listbox.setCurrentRow(len(history) - 1)
+        self._history_row = len(history) - 1
+        if self._listbox is not None:
+            self._populate_list()
         self.update_list()
-        self.select()
+        if history:
+            self.controller.cmd_replace(history[-1])
         self.controller.text.lineEdit().setFocus()
         self.controller.text.lineEdit().selectAll()
-        cursels = self.listbox.scrollToBottom()
 
     def search_reset(self):
         searching, target = self._search_cache
