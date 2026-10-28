@@ -22,37 +22,93 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .sasa import spheres_surface_area
-from .split import split_surfaces
-from .shapes import sphere_geometry, sphere_geometry2, cylinder_geometry, dashed_cylinder_geometry, cone_geometry, box_geometry
-from .area import surface_area, enclosed_volume, surface_volume_and_area
-from .gridsurf import ses_surface_geometry
+# Surface algorithms are not needed merely to initialize the bundle. Resolve
+# public exports on first use, retaining their original functions and classes.
+import chimerax.arrays  # _surface needs libarrays to be linkable before loading.
 
-# Make sure _surface can runtime link shared library libarrays.
-import chimerax.arrays
+_surface_exports = {
+    'spheres_surface_area': 'sasa',
+    'split_surfaces': 'split',
+    'sphere_geometry': 'shapes',
+    'sphere_geometry2': 'shapes',
+    'cylinder_geometry': 'shapes',
+    'dashed_cylinder_geometry': 'shapes',
+    'cone_geometry': 'shapes',
+    'box_geometry': 'shapes',
+    'surface_area': 'area',
+    'enclosed_volume': 'area',
+    'surface_volume_and_area': 'area',
+    'ses_surface_geometry': 'gridsurf',
+    'subdivide_triangles': '_surface',
+    'vertex_areas': '_surface',
+    'surface_area_of_spheres': '_surface',
+    'estimate_surface_area_of_spheres': '_surface',
+    'calculate_vertex_normals': '_surface',
+    'invert_vertex_normals': '_surface',
+    'connected_triangles': '_surface',
+    'triangle_vertices': '_surface',
+    'sharp_edge_patches': '_surface',
+    'unique_vertex_map': '_surface',
+    'connected_pieces': '_surface',
+    'boundary_edges': '_surface',
+    'compute_cap': '_surface',
+    'triangulate_polygon': '_surface',
+    'refine_mesh': '_surface',
+    'boundary_loops': '_surface',
+    'boundary_edge_mask': '_surface',
+    'vertex_convexity': '_surface',
+    'smooth_vertex_positions': '_surface',
+    'surface_distance': '_surface',
+    'largest_blobs_triangle_mask': 'dust',
+    'gaussian_surface': 'gaussian',
+    'update_clip_caps': 'cap',
+    'remove_clip_caps': 'cap',
+    'check_surface_topology': 'topology',
+    'color_radial': 'colorgeom',
+    'color_cylindrical': 'colorgeom',
+    'color_height': 'colorgeom',
+    'color_sample': 'colorvol',
+    'color_electrostatic': 'colorvol',
+    'color_gradient': 'colorvol',
+    'color_surfaces_by_map_value': 'colorvol',
+    'combine_geometry': 'combine',
+    'combine_geometry_vnt': 'combine',
+    'combine_geometry_vntc': 'combine',
+    'combine_geometry_xvnt': 'combine',
+    'combine_geometry_vtp': 'combine',
+    'combine_geometry_xvntctp': 'combine',
+    'combine_geometry_vtc': 'combine',
+    'combine_geometry_vte': 'combine',
+    'surface': 'surfacecmds',
+    'surface_show_patches': 'surfacecmds',
+    'surface_hide_patches': 'surfacecmds',
+    'surface_zone': 'sop',
+}
 
-from ._surface import subdivide_triangles, vertex_areas
-from ._surface import surface_area_of_spheres, estimate_surface_area_of_spheres
-from ._surface import calculate_vertex_normals, invert_vertex_normals
-from ._surface import connected_triangles, triangle_vertices
-from ._surface import sharp_edge_patches, unique_vertex_map, connected_pieces
-from ._surface import boundary_edges, compute_cap, triangulate_polygon, refine_mesh, boundary_loops
-from ._surface import boundary_edge_mask
-from ._surface import vertex_convexity
-from ._surface import smooth_vertex_positions
-from ._surface import surface_distance
+_surface_modules = (
+    'sasa', 'split', 'shapes', 'area', 'gridsurf', 'dust', 'gaussian',
+    'cap', 'topology', 'colorgeom', 'colorvol', 'combine', 'surfacecmds', 'sop',
+)
 
-from .dust import largest_blobs_triangle_mask
-from .gaussian import gaussian_surface
-from .cap import update_clip_caps, remove_clip_caps
-from .topology import check_surface_topology
-from .colorgeom import color_radial, color_cylindrical, color_height
-from .colorvol import color_sample, color_electrostatic, color_gradient, color_surfaces_by_map_value
-from .combine import combine_geometry, combine_geometry_vnt, combine_geometry_vntc
-from .combine import combine_geometry_xvnt, combine_geometry_vtp
-from .combine import combine_geometry_xvntctp, combine_geometry_vtc, combine_geometry_vte
-from .surfacecmds import surface, surface_show_patches, surface_hide_patches
-from .sop import surface_zone
+
+def __getattr__(name):
+    from importlib import import_module
+    if name in _surface_exports:
+        module = import_module('.' + _surface_exports[name], __name__)
+        value = getattr(module, name)
+    elif name in _surface_modules:
+        value = import_module('.' + name, __name__)
+    else:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(_surface_exports) | set(_surface_modules))
+
+
+__all__ = [*_surface_exports, *_surface_modules, 'BundleAPI', 'bundle_api', 'chimerax']
 
 from chimerax.core.toolshed import BundleAPI
 
