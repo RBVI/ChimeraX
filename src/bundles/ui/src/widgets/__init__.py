@@ -14,18 +14,64 @@ ui.widgets: ChimeraX graphical user interface widgets
 =====================================================
 """
 
-from Qt import qt_have_web_engine
-if qt_have_web_engine():
-    from .htmlview import HtmlView, ChimeraXHtmlView
-from .citation import Citation
-from .color_button import ColorButton, MultiColorButton, hex_color_name
-from .composite import radio_buttons, button_row, vertical_layout, horizontal_layout, row_frame, column_frame
-from .composite import EntriesRow, CollapsiblePanel, ModelMenu
-from .disclosure import DisclosureArea
-from .histogram import MarkedHistogram
-from .item_chooser import ModelListWidget, ModelMenuButton, ItemListWidget, ItemMenuButton
-from .item_table import ItemTable, get_csv_info
-from .job_dialog import LongJobDialog
-from .palette_chooser import PaletteChooser
-from .slider import Slider, LogSlider, FloatSlider
-from .tricheckbox import TwoThreeStateCheckBox
+# Load widget implementations only when their public exports are requested.
+_widget_modules = {
+    'Citation': 'citation',
+    'ColorButton': 'color_button',
+    'MultiColorButton': 'color_button',
+    'hex_color_name': 'color_button',
+    'radio_buttons': 'composite',
+    'button_row': 'composite',
+    'vertical_layout': 'composite',
+    'horizontal_layout': 'composite',
+    'row_frame': 'composite',
+    'column_frame': 'composite',
+    'EntriesRow': 'composite',
+    'CollapsiblePanel': 'composite',
+    'ModelMenu': 'composite',
+    'DisclosureArea': 'disclosure',
+    'MarkedHistogram': 'histogram',
+    'ModelListWidget': 'item_chooser',
+    'ModelMenuButton': 'item_chooser',
+    'ItemListWidget': 'item_chooser',
+    'ItemMenuButton': 'item_chooser',
+    'ItemTable': 'item_table',
+    'get_csv_info': 'item_table',
+    'LongJobDialog': 'job_dialog',
+    'PaletteChooser': 'palette_chooser',
+    'Slider': 'slider',
+    'LogSlider': 'slider',
+    'FloatSlider': 'slider',
+    'TwoThreeStateCheckBox': 'tricheckbox',
+    'HtmlView': 'htmlview',
+    'ChimeraXHtmlView': 'htmlview',
+}
+
+# Keep the existing package-module exports as well as the widget names.
+_widget_submodules = ('citation', 'color_button', 'composite', 'disclosure', 'histogram', 'item_chooser', 'item_table', 'job_dialog', 'palette_chooser', 'slider', 'tricheckbox')
+
+
+def __getattr__(name):
+    from importlib import import_module
+    if name in _widget_submodules:
+        value = import_module('.' + name, __name__)
+    elif name in _widget_modules:
+        value = getattr(import_module('.' + _widget_modules[name], __name__), name)
+    else:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(_widget_modules) | set(_widget_submodules))
+
+
+__all__ = [*_widget_submodules, *(_name for _name in _widget_modules
+                                if _name not in ('HtmlView', 'ChimeraXHtmlView'))]
+import Qt as _qt
+from importlib.util import find_spec as _find_spec
+_binding = ('PySide6' if _qt.using_pyside6 else 'PyQt6' if _qt.using_pyqt6
+            else 'PySide2' if _qt.using_pyside2 else 'PyQt5')
+if _find_spec(_binding + '.QtWebEngineWidgets') is not None:
+    __all__ += ['HtmlView', 'ChimeraXHtmlView']
