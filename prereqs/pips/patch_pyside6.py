@@ -286,6 +286,23 @@ def patch_shiboken_init(shiboken_dir):
     write(path, s)
 
 
+FAST_ENUM_IMPORT = "from . import _chimerax_fast_enum  # ChimeraX: faster enum classes\n"
+
+
+def install_fast_enum(shiboken_dir):
+    # Must run before libshiboken creates any enum class, i.e. before
+    # shiboken6.Shiboken is imported.
+    with open(os.path.join(HERE, "pyside6_fast_enum.py"), encoding="utf-8") as f:
+        write(os.path.join(shiboken_dir, "_chimerax_fast_enum.py"), f.read())
+    path = os.path.join(shiboken_dir, "__init__.py")
+    s = read(path)
+    if FAST_ENUM_IMPORT in s:
+        return
+    s = replace_once(s, "from shiboken6.Shiboken import *",
+                     FAST_ENUM_IMPORT + "from shiboken6.Shiboken import *", path)
+    write(path, s)
+
+
 def patch_pyside_init(pyside_dir):
     path = os.path.join(pyside_dir, "__init__.py")
     s = read(path)
@@ -350,11 +367,13 @@ def main():
     patch_loader(files_dir)
     patch_feature(files_dir)
     patch_shiboken_init(shiboken_dir)
+    install_fast_enum(shiboken_dir)
     patch_pyside_init(pyside_dir)
     patch_bootstrap(shiboken_dir, files_dir)
     import compileall
     compileall.compile_dir(files_dir, quiet=1)
     compileall.compile_file(os.path.join(shiboken_dir, "__init__.py"), quiet=1)
+    compileall.compile_file(os.path.join(shiboken_dir, "_chimerax_fast_enum.py"), quiet=1)
     compileall.compile_file(os.path.join(pyside_dir, "__init__.py"), quiet=1)
 
 
