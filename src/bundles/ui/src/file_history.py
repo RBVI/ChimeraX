@@ -29,6 +29,8 @@ class FileHistory:
         self.filename_size = filename_size	# Characters
         self._pixmaps = {}      # Map base64 JPEG string to QPixmap
         self._default_pixmap = None
+        self._selected = set()	# (path, database) of selected files
+        self._selection_anchor = None	# (path, database) for shift-click range selection
 
         self._history_window = HistoryWindow(self, size_hint)
         self._empty_window = EmptyHistoryWindow(self, show_banner)
@@ -57,6 +59,7 @@ class FileHistory:
             self._history_window.clear()
             self._stack.setCurrentWidget(self._empty_window)
         else:
+            self._selected = set(k for k in self._selected if h.find_file(*k) is not None)
             used = {}
             self._history_window.fill(h, used)
             self._pixmaps = used	# Drop pixmaps for thumbnails no longer shown.
@@ -120,22 +123,77 @@ class FileHistory:
         QTimer.singleShot(0, open_cb)
 
     def move_files(self, fspecs, section_name, before = None):
+        self.clear_selection()
         try:
             self.history.move_files(fspecs, section_name, before)
         except ValueError as e:
             self.session.logger.error(str(e))
 
     def remove_files(self, fspecs):
+        self.clear_selection()
         self.history.remove_files(fspecs)
+
+    # ------------------------------------------------------------------------
+    # Selection.  Ctrl-click (command-click on Mac) toggles a thumbnail,
+    # shift-click selects a range, plain click opens the file.
+    #
+    def is_selected(self, fspec):
+        return _key(fspec) in self._selected
+
+    def selected_files(self):
+        '''Selected files in display order.'''
+        return [t.file_spec for t in self._history_window.tiles if self.is_selected(t.file_spec)]
+
+    def clear_selection(self):
+        if self._selected:
+            self._selected.clear()
+            self._show_selection()
+        self._selection_anchor = None
+
+    def tile_clicked(self, tile, modifiers):
+        key = _key(tile.file_spec)
+        if modifiers & Qt.KeyboardModifier.ControlModifier:
+            if key in self._selected:
+                self._selected.remove(key)
+            else:
+                self._selected.add(key)
+            self._selection_anchor = key
+        elif modifiers & Qt.KeyboardModifier.ShiftModifier:
+            keys = [_key(t.file_spec) for t in self._history_window.tiles]
+            anchor = self._selection_anchor
+            if anchor in keys:
+                i0, i1 = sorted((keys.index(anchor), keys.index(key)))
+                self._selected = set(keys[i0:i1+1])
+            else:
+                self._selected = {key}
+                self._selection_anchor = key
+        else:
+            self.clear_selection()
+            self.open_files([tile.file_spec])
+            return
+        self._show_selection()
+
+    def _show_selection(self):
+        for t in self._history_window.tiles:
+            t.set_selected(self.is_selected(t.file_spec))
+
+    def _action_files(self, tile):
+        '''Files a drag or context menu on a tile acts on.'''
+        if self.is_selected(tile.file_spec):
+            return self.selected_files()
+        self.clear_selection()
+        return [tile.file_spec]
 
     def show_context_menu(self, global_pos, tile = None, section = None):
         h = self.history
         from Qt.QtWidgets import QMenu
         menu = QMenu(self._history_window)
         if tile is not None:
-            files = [tile.file_spec]
-            menu.addAction('Open', lambda: self.open_files(files))
-            move_menu = menu.addMenu('Move to section')
+            files = self._action_files(tile)
+            n = len(files)
+            what = '' if n == 1 else ' %d files' % n
+            menu.addAction('Open' + what, lambda: self.open_files(files))
+            move_menu = menu.addMenu('Move%s to section' % what)
             fsections = set(h.file_section(fs) for fs in files)
             for name in [None] + h.sections:
                 a = move_menu.addAction(_section_title(name))
@@ -144,7 +202,7 @@ class FileHistory:
                 a.triggered.connect(lambda checked, n=name: self.move_files(files, n))
             move_menu.addSeparator()
             move_menu.addAction('New section...', lambda: self.new_section(files))
-            menu.addAction('Remove from history', lambda: self.remove_files(files))
+            menu.addAction('Remove%s from history' % what, lambda: self.remove_files(files))
             menu.addSeparator()
         if section is not None and h.sections:
             name = section.section_name
@@ -204,6 +262,9 @@ def limit_string(s, n):
         return s[:n//2] + '...' + s[-(n//2):]
     return s
 
+def _key(fspec):
+    return (fspec.path, fspec.database)
+
 def _section_title(name):
     return 'Recent' if name is None else name
 
@@ -250,6 +311,12 @@ class HistoryWindow(QScrollArea):
     def clear(self):
         self.tiles = []
         self._replace_content(None)
+
+    def mousePressEvent(self, event):
+        # Click on background clears thumbnail selection.
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._file_history.clear_selection()
+        super().mousePressEvent(event)
 
     def _replace_content(self, content):
         # Delete the old widgets later since this may be called from one of their event handlers.
@@ -323,13 +390,15 @@ class TileArea(QWidget):
         p.end()
 
 class Tile(QWidget):
-    '''Thumbnail image and file name.  Click to open.'''
+    '''Thumbnail image and file name.  Click to open,
+    ctrl-click or shift-click to select several.'''
     def __init__(self, file_history, fspec, used_pixmaps):
         super().__init__()
         self._file_history = file_history
         self.file_spec = fspec
         self._press_pos = None
         self._hover = False
+        self._selected = file_history.is_selected(fspec)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         descrip = fspec.path if fspec.database is None else '%s %s' % (fspec.database.upper(), fspec.path)
         self.setToolTip(descrip)
@@ -349,6 +418,11 @@ class Tile(QWidget):
         name.setPalette(pal)
         layout.addWidget(name)
 
+    def set_selected(self, selected):
+        if selected != self._selected:
+            self._selected = selected
+            self.update()
+
     def enterEvent(self, event):
         self._hover = True
         self.update()
@@ -358,12 +432,12 @@ class Tile(QWidget):
         self.update()
 
     def paintEvent(self, event):
-        if self._hover:
+        if self._hover or self._selected:
             from Qt.QtGui import QPainter, QPalette
             p = QPainter(self)
             p.setRenderHint(QPainter.RenderHint.Antialiasing)
             c = self.palette().color(QPalette.ColorRole.Highlight)
-            c.setAlpha(70)
+            c.setAlpha(160 if self._selected else 70)
             p.setPen(Qt.PenStyle.NoPen)
             p.setBrush(c)
             p.drawRoundedRect(self.rect(), 4, 4)
@@ -380,7 +454,7 @@ class Tile(QWidget):
         self._press_pos = None
         if (pressed and event.button() == Qt.MouseButton.LeftButton
                 and self.rect().contains(event.position().toPoint())):
-            self._file_history.open_files([self.file_spec])
+            self._file_history.tile_clicked(self, event.modifiers())
 
 class EmptyHistoryWindow(QWidget):
     '''Shown when there is no file history.  Optionally a large ChimeraX banner.'''
