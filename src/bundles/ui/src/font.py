@@ -6,6 +6,7 @@ def _start_font_cache(ui):
     The first text measurement loads the font database (CoreText on macOS,
     fontconfig on Linux) and the application font: about 9 ms on Linux,
     which the file history otherwise pays while the main window is built.
+    The status line font is loaded too (2 ms), before the first message.
 
     QFontMetrics is reentrant, but PySide's height() wrapper retains the GIL.
     Call the same public Qt method through CDLL so Python startup can proceed.
@@ -24,7 +25,8 @@ def _start_font_cache(ui):
     from threading import Thread
     from PySide6 import QtGui as native_gui
     from shiboken6 import getCppPointer
-    from Qt.QtGui import QFontMetrics
+    from Qt.QtGui import QFont, QFontMetrics
+    from .statusbar import STATUS_FONT
 
     try:
         if sys.platform == 'linux':
@@ -35,15 +37,16 @@ def _start_font_cache(ui):
         height = library._ZNK12QFontMetrics6heightEv
         height.argtypes = [ctypes.c_void_p]
         height.restype = ctypes.c_int
-        metrics = QFontMetrics(ui.font())
-        pointer = getCppPointer(metrics)[0]
+        metrics = [QFontMetrics(ui.font()), QFontMetrics(QFont(STATUS_FONT))]
+        pointers = [getCppPointer(m)[0] for m in metrics]
     except (OSError, AttributeError, TypeError):
         return None
 
     def warm(metrics=metrics):
-        # Retain the value object while native code runs without the GIL.
+        # Retain the value objects while native code runs without the GIL.
         try:
-            height(pointer)
+            for pointer in pointers:
+                height(pointer)
         except Exception:
             # Normal layout initializes fonts if the warmup cannot finish.
             pass

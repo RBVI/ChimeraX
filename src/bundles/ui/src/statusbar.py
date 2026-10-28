@@ -22,6 +22,10 @@
 # lead to errors.  The second more drastic approach (_StatusBarOpenGL class) which is currently
 # used is to render the status line with OpenGL.
 #
+# Font family of status messages; the font warmup in font.py loads it early.
+STATUS_FONT = 'Arial'
+
+
 class _StatusBarOpenGL:
     def __init__(self, session):
         self.session = session
@@ -32,7 +36,7 @@ class _StatusBarOpenGL:
         self._drawing = None
         self._drawing2 = None	# Secondary status
         self.set_colors()
-        self.font = 'Arial'
+        self.font = STATUS_FONT
         self.pad_vert = 0.2 		# Fraction of status bar height
         self.pad_horz = 0.3 		# Fraction of status bar height (not width)
         self.widget = self._make_widget()

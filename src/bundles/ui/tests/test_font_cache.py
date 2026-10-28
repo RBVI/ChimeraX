@@ -17,11 +17,14 @@ def native_font(monkeypatch):
     monkeypatch.setattr(sys, 'platform', 'darwin')
     monkeypatch.setattr(Qt, 'using_pyside6', True)
     created = []
+    fonts = []
     class Metrics:
         def __init__(self, value):
             self.font = value
             created.append(weakref.ref(self))
+            fonts.append(value)
     monkeypatch.setattr(QtGui, 'QFontMetrics', Metrics)
+    monkeypatch.setattr(QtGui, 'QFont', lambda family: 'font ' + family)
     monkeypatch.setattr(shiboken6, 'getCppPointer', lambda value: (1234,))
     calls = []
     class Height:
@@ -32,20 +35,27 @@ def native_font(monkeypatch):
     height = Height()
     monkeypatch.setattr(ctypes, 'CDLL', lambda path:
         SimpleNamespace(_ZNK12QFontMetrics6heightEv=height))
-    return font, SimpleNamespace(font=lambda: 'default font'), calls
+    return font, SimpleNamespace(font=lambda: 'default font'), calls, fonts
 
 
 def test_native_value_lives_until_warmup_finishes(native_font):
-    font, ui, calls = native_font
+    font, ui, calls, fonts = native_font
     worker = font._start_font_cache(ui)
     worker.join(timeout=5)
     assert not worker.is_alive()
-    assert calls == [1234]
+    assert calls == [1234, 1234]
+
+
+def test_status_line_font_is_warmed(native_font):
+    from chimerax.ui.statusbar import STATUS_FONT
+    font, ui, calls, fonts = native_font
+    font._start_font_cache(ui).join(timeout=5)
+    assert fonts == ['default font', 'font ' + STATUS_FONT]
 
 
 def test_unavailable_framework_keeps_synchronous_fallback(native_font, monkeypatch):
     import ctypes
-    font, ui, calls = native_font
+    font, ui, calls, fonts = native_font
     def missing(path):
         raise OSError('framework not available')
     monkeypatch.setattr(ctypes, 'CDLL', missing)
@@ -55,7 +65,7 @@ def test_unavailable_framework_keeps_synchronous_fallback(native_font, monkeypat
 
 def test_unavailable_method_keeps_synchronous_fallback(native_font, monkeypatch):
     import ctypes
-    font, ui, calls = native_font
+    font, ui, calls, fonts = native_font
     monkeypatch.setattr(ctypes, 'CDLL', lambda path: object())
     assert font._start_font_cache(ui) is None
     assert calls == []
@@ -63,7 +73,7 @@ def test_unavailable_method_keeps_synchronous_fallback(native_font, monkeypatch)
 
 def test_windows_does_not_start_native_work(native_font, monkeypatch):
     import sys
-    font, ui, calls = native_font
+    font, ui, calls, fonts = native_font
     monkeypatch.setattr(sys, 'platform', 'win32')
     assert font._start_font_cache(ui) is None
     assert calls == []
@@ -72,7 +82,7 @@ def test_windows_does_not_start_native_work(native_font, monkeypatch):
 def test_linux_warms_fonts_through_libqt6gui(native_font, monkeypatch):
     import ctypes
     import sys
-    font, ui, calls = native_font
+    font, ui, calls, fonts = native_font
     monkeypatch.setattr(sys, 'platform', 'linux')
     opened = []
     cdll = ctypes.CDLL
@@ -83,7 +93,7 @@ def test_linux_warms_fonts_through_libqt6gui(native_font, monkeypatch):
     worker = font._start_font_cache(ui)
     worker.join(timeout=5)
     assert opened == ['libQt6Gui.so.6']
-    assert calls == [1234]
+    assert calls == [1234, 1234]
 
 
 def test_ui_waits_once_for_font_work():
@@ -100,7 +110,7 @@ def test_ui_waits_once_for_font_work():
 
 def test_other_binding_keeps_synchronous_fallback(native_font, monkeypatch):
     import Qt
-    font, ui, calls = native_font
+    font, ui, calls, fonts = native_font
     monkeypatch.setattr(Qt, 'using_pyside6', False)
     assert font._start_font_cache(ui) is None
     assert calls == []
@@ -108,7 +118,7 @@ def test_other_binding_keeps_synchronous_fallback(native_font, monkeypatch):
 
 def test_thread_start_failure_keeps_synchronous_fallback(native_font, monkeypatch):
     import threading
-    font, ui, calls = native_font
+    font, ui, calls, fonts = native_font
     class UnavailableThread:
         def __init__(self, **kwargs):
             pass
@@ -121,7 +131,7 @@ def test_thread_start_failure_keeps_synchronous_fallback(native_font, monkeypatc
 
 def test_invalid_native_pointer_keeps_synchronous_fallback(native_font, monkeypatch):
     import shiboken6
-    font, ui, calls = native_font
+    font, ui, calls, fonts = native_font
     def unavailable(value):
         raise TypeError('no native value')
     monkeypatch.setattr(shiboken6, 'getCppPointer', unavailable)
@@ -132,7 +142,7 @@ def test_invalid_native_pointer_keeps_synchronous_fallback(native_font, monkeypa
 def test_native_failure_does_not_escape_worker(native_font, monkeypatch):
     import ctypes
     import threading
-    font, ui, calls = native_font
+    font, ui, calls, fonts = native_font
     class FailingHeight:
         def __call__(self, pointer):
             calls.append(pointer)
