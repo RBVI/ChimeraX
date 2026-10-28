@@ -483,15 +483,25 @@ def _read_colorbrewer(colormaps):
     except IOError as e:
         print("%s: %s" % (brewer_filename, str(e)), flush=True)
     else:
-        def rgb(r, g, b):
-            return (r / 255, g / 255, b / 255, 1)
-        gs = {'__builtins__': None, 'rgb': rgb}
-        ls = {}
+        # ColorBrewer stores RGB data, not Python expressions.  Parse each
+        # distinct color once; many ramps reuse the same RGB triples.
+        rgb_colors = {}
+
+        def rgba(text):
+            try:
+                return rgb_colors[text]
+            except KeyError:
+                if not text.startswith('rgb(') or not text.endswith(')'):
+                    raise ValueError("Invalid ColorBrewer RGB color: %r" % text)
+                r, g, b = map(int, text[4:-1].split(','))
+                color = (r / 255, g / 255, b / 255, 1)
+                rgb_colors[text] = color
+                return color
         for scheme, ramps in brewer_maps.items():
             s_type = ramps.pop("type")
             for count, rgbs in ramps.items():
                 name = "%s-%s" % (scheme, count)
-                colors = tuple([eval(e, gs, ls) for e in rgbs])
+                colors = tuple(rgba(text) for text in rgbs)
                 colormaps[name.casefold()] = Colormap(None, colors, name=name)
                 if ((s_type == "div" and count == "5") or
                         (s_type == "seq" and count == "5") or
