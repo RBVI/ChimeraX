@@ -25,11 +25,33 @@
 from chimerax.core import toolshed
 _new_bundle_handler = None
 
-help_url_paths = []     # help directories in URL path form
+__all__ = ['toolshed', 'help_url_paths', 'show_url', 'reload_toolshed_tabs', 'bundle_api']
+
+
+def __getattr__(name):
+    if name != 'help_url_paths':
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    # Discover and convert paths only when Help needs them.  In particular,
+    # importing urllib.request for pathname2url need not delay normal startup.
+    from urllib.request import pathname2url
+    paths = []
+    for directory in toolshed.get_help_directories():
+        path = pathname2url(directory)
+        if path.startswith('///'):
+            path = path[2:]
+        if not path.endswith('/'):
+            path += '/'
+        paths.append(path)
+    globals()[name] = paths
+    return paths
+
+
+def __dir__():
+    return sorted(set(globals()) | {'help_url_paths'})
 
 
 def _update_cache(trigger_name=None, bundle_info=None):
-    global help_url_paths
+    globals().pop('help_url_paths', None)
 
     import os
     from chimerax import app_dirs
@@ -38,18 +60,6 @@ def _update_cache(trigger_name=None, bundle_info=None):
         os.remove(cached_index)
     except OSError:
         pass
-
-    def cvt_path(path):
-        from urllib.request import pathname2url
-        help_path = pathname2url(path)
-        if help_path.startswith('///'):
-            help_path = help_path[2:]
-        if not help_path.endswith('/'):
-            help_path += '/'
-        return help_path
-
-    help_directories = toolshed.get_help_directories()
-    help_url_paths = [cvt_path(hd) for hd in help_directories]
 
 
 class _MyAPI(toolshed.BundleAPI):
