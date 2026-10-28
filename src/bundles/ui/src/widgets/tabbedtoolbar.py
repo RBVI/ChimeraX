@@ -62,7 +62,7 @@ class _ButtonInfo:
         "description",
         "group",
         "vr_mode",
-        "highlight_icon",
+        "_highlight_icon",
         "enabled",
     )
 
@@ -87,6 +87,22 @@ class _ButtonInfo:
     @icon.setter
     def icon(self, icon):
         self._icon = icon
+
+    @property
+    def highlight_icon(self):
+        # Like icon, a highlight for a button in an unpopulated tab is drawn
+        # only when the button is first created.
+        if callable(self._highlight_icon):
+            self._highlight_icon = self._highlight_icon()
+        return self._highlight_icon
+
+    @highlight_icon.setter
+    def highlight_icon(self, icon):
+        self._highlight_icon = icon
+
+    @property
+    def highlighted(self):
+        return self._highlight_icon is not None
 
 
 class _Section(QWidgetAction):
@@ -144,10 +160,10 @@ class _Section(QWidgetAction):
         if "\n" not in title and len(title) > 6:
             title = split_title(title)
 
-        if button_info.highlight_icon is None:
-            icon = button_info.icon
-        else:
+        if button_info.highlighted:
             icon = button_info.highlight_icon
+        else:
+            icon = button_info.icon
 
         if not button_info.group:
             group_first = group_follow = False
@@ -332,7 +348,11 @@ class _Section(QWidgetAction):
                 break
         else:
             return
-        icon = button_info.icon
+        button_info.highlight_icon = lambda: self._make_highlight_icon(button_info.icon)
+        if redo and self.createdWidgets():
+            self._redo_layout()
+
+    def _make_highlight_icon(self, icon):
         if icon is None or icon.isNull():
             # Make a single color icon
             pm = QPixmap(256, 256)
@@ -364,9 +384,7 @@ class _Section(QWidgetAction):
             finally:
                 if p:
                     p.end()
-        button_info.highlight_icon = QIcon(pm)
-        if redo:
-            self._redo_layout()
+        return QIcon(pm)
 
     def remove_button_highlight(self, title, redo=True):
         for button_info in self._buttons:
@@ -381,7 +399,7 @@ class _Section(QWidgetAction):
     def set_highlight_color(self, color):
         self.highlight_color = color
         for button_info in self._buttons:
-            if button_info.highlight_icon is None:
+            if not button_info.highlighted:
                 continue
             self.add_button_highlight(button_info.title, redo=False)
         self._redo_layout()
