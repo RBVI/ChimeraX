@@ -23,8 +23,11 @@
 # === UCSF ChimeraX Copyright ===
 
 import numpy
-from numpy.linalg import norm, eig, svd, eigh
-normalize = lambda v: v/norm(v)
+# numpy.linalg is imported where it is used: chimerax.geometry is imported at
+# startup, and numpy.linalg brings numpy._typing with it (~5 ms).
+def normalize(v):
+    from numpy.linalg import norm
+    return v/norm(v)
 sqlength = lambda v: numpy.sum(v*v)
 
 from chimerax.core.state import State
@@ -58,6 +61,7 @@ class Plane(State):
             xyzs = origin_info
             centroid = xyzs.mean(0)
             centered = xyzs - centroid
+            from numpy.linalg import svd
             ignore, vals, vecs = svd(centered, full_matrices=False)
             self._origin = centroid
             # sets 'normal' property, and therefore calls _compute_offset
