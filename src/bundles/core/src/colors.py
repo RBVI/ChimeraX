@@ -418,7 +418,7 @@ class Colormap(State):
 
 def colormap_with_range(colormap, range, default_colormap_name='red-blue', full_range=(0, 1)):
     if colormap is None:
-        colormap = BuiltinColormaps[default_colormap_name]
+        colormap = _get_builtin_colormaps()[default_colormap_name]
     if range == 'full':
         range = full_range
     if range is None:
@@ -878,11 +878,11 @@ def palette_equal(p1, p2, *, tolerance=1/512):
 
 
 def palette_name(rgbas, *, tolerance=1/512):
-    for name, cm in BuiltinColormaps.items():
+    for name, cm in _get_builtin_colormaps().items():
         if palette_equal(cm.colors, rgbas, tolerance=tolerance):
             return name
     # reversed palettes
-    for name, cm in BuiltinColormaps.items():
+    for name, cm in _get_builtin_colormaps().items():
         if palette_equal(cm.colors, list(reversed(rgbas)), tolerance=tolerance):
             return '^' + name
     return None
@@ -1103,7 +1103,32 @@ class ColorValue(configfile.Value):
 
 
 BuiltinColors = _builtin_colors()
-BuiltinColormaps = _builtin_colormaps()
+# Palette arrays are not needed to create the initial window. Keep the same
+# shared SortedDict once requested, including its aliases and mutable values.
+from _thread import allocate_lock as _allocate_lock
+# Reloading the module should also invalidate the previous catalog.
+globals().pop('BuiltinColormaps', None)
+_colormaps_lock = _allocate_lock()
+
+
+def _get_builtin_colormaps():
+    if 'BuiltinColormaps' not in globals():
+        # NumPy operations can release the GIL while constructing palettes.
+        # Publish only a complete dictionary, once, even for concurrent users.
+        with _colormaps_lock:
+            if 'BuiltinColormaps' not in globals():
+                globals()['BuiltinColormaps'] = _builtin_colormaps()
+    return globals()['BuiltinColormaps']
+
+
+def __getattr__(name):
+    if name == 'BuiltinColormaps':
+        return _get_builtin_colormaps()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    return sorted(set(globals()) | {'BuiltinColormaps'})
 
 
 class ColorScheme(IntEnum):
@@ -1198,3 +1223,8 @@ _scheme_colors = {
     'CanvasText': ('black', 'white'),
     'LinkText': ('blue', 'dodgerblue'),
 }
+
+
+# Preserve wildcard imports without eagerly constructing the palette catalog.
+__all__ = [name for name in globals() if not name.startswith('_')]
+__all__.append('BuiltinColormaps')
