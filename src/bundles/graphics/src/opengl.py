@@ -57,8 +57,6 @@ class OpenGLContext:
     required_opengl_core_profile = True
 
     def __init__(self, graphics_window, screen, use_stereo = False):
-        _initialize_pyopengl() # Set global GL module.
-
         self.window = graphics_window
         self._screen = screen
         self._context_thread = None
@@ -79,7 +77,8 @@ class OpenGLContext:
         self._bindings = WeakSet()     # Set of Bindings objects
 
         # Draw target for default framebuffer
-        self.default_draw_target = GL.GL_BACK
+        # Keep construction independent of PyOpenGL until a context is used.
+        self.default_draw_target = 0x0405  # GL_BACK
 
     def __del__(self):
         if not self._deleted:
@@ -104,6 +103,7 @@ class OpenGLContext:
 
     def make_current(self, window = None):
         '''Make the OpenGL context active.'''
+        _initialize_pyopengl() # Set global GL module on first use.
         if self._create_failed:
             return False
 
@@ -2222,7 +2222,8 @@ class Framebuffer:
         self._color_rb = None
         self._color_bits = opengl_context._framebuffer_color_bits # 8 or 16-bit depth
         self._depth_rb = None
-        self._draw_buffer = GL.GL_COLOR_ATTACHMENT0
+        # Framebuffers can be described before the first context is used.
+        self._draw_buffer = 0x8CE0  # GL_COLOR_ATTACHMENT0
         self._deleted = False
 
         self._fbo = None
