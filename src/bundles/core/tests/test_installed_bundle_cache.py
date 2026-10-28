@@ -86,3 +86,101 @@ def test_dependency_order_reuses_names_and_reads_requirements_once():
     assert ordered.index(info_b) < ordered.index(info_c)
 
 
+def test_cache_read_does_not_import_filelock(monkeypatch, tmp_path):
+    import builtins
+    import json
+    import sys
+    from chimerax.core.toolshed.installed import InstalledBundleCache
+
+    executable = tmp_path / 'ChimeraX'
+    executable.touch()
+    monkeypatch.setattr(sys, 'executable', str(executable))
+    cache_file = tmp_path / 'cache.json'
+    cache_file.write_text(json.dumps([str(executable), executable.stat().st_mtime]) + '\n[]')
+    monkeypatch.setattr(InstalledBundleCache, '_is_cache_newer', lambda *args: True)
+    original_import = builtins.__import__
+
+    def import_without_filelock(name, *args, **kw):
+        if name == 'filelock':
+            raise AssertionError('Cache hits must not import locking machinery')
+        return original_import(name, *args, **kw)
+
+    monkeypatch.setattr(builtins, '__import__', import_without_filelock)
+    assert InstalledBundleCache()._read_cache(str(cache_file))
+
+
+def test_atomic_cache_publish_keeps_old_snapshot_until_complete(monkeypatch, tmp_path):
+    import json
+    import sys
+    from chimerax.core.toolshed.info import BundleInfo
+    from chimerax.core.toolshed.installed import InstalledBundleCache
+
+    executable = tmp_path / 'ChimeraX'
+    executable.touch()
+    monkeypatch.setattr(sys, 'executable', str(executable))
+    monkeypatch.setattr(InstalledBundleCache, '_is_cache_newer', lambda *args: True)
+    cache_file = tmp_path / 'cache.json'
+    old = json.dumps([str(executable), executable.stat().st_mtime]) + '\n[]'
+    cache_file.write_text(old)
+    cache = InstalledBundleCache()
+    cache.append(BundleInfo('ChimeraX-Example', installed=True, version='1'))
+    dump = json.dump
+
+    def inspect_during_write(*args, **kw):
+        assert cache_file.read_text() == old
+        assert InstalledBundleCache()._read_cache(str(cache_file))
+        return dump(*args, **kw)
+
+    monkeypatch.setattr(json, 'dump', inspect_during_write)
+    errors = []
+    cache._write_cache(str(cache_file), SimpleNamespace(error=errors.append))
+    assert not errors
+    restored = InstalledBundleCache()
+    assert restored._read_cache(str(cache_file))
+    assert [b.name for b in restored] == ['ChimeraX-Example']
+
+
+def test_failed_serialization_preserves_previous_cache(monkeypatch, tmp_path):
+    import pytest
+    from chimerax.core.toolshed.installed import InstalledBundleCache
+
+    cache_file = tmp_path / 'cache.json'
+    cache_file.write_text('previous complete snapshot')
+    cache = InstalledBundleCache()
+    cache.append(SimpleNamespace(cache_data=lambda: object()))
+    with pytest.raises(TypeError):
+        cache._write_cache(str(cache_file), SimpleNamespace(error=lambda message: None))
+    assert cache_file.read_text() == 'previous complete snapshot'
+    assert not list(tmp_path.glob('*.tmp'))
+
+
+def test_reader_validates_open_snapshot_timestamp(monkeypatch, tmp_path):
+    import json
+    import os
+    import sys
+    import pytest
+    from chimerax.core.toolshed.installed import InstalledBundleCache
+
+    if sys.platform.startswith('win'):
+        pytest.skip('Windows does not allow replacing this open file; SaveTextFile retries instead')
+    executable = tmp_path / 'ChimeraX'
+    executable.touch()
+    monkeypatch.setattr(sys, 'executable', str(executable))
+    cache_file = tmp_path / 'cache.json'
+    data = json.dumps([str(executable), executable.stat().st_mtime]) + '\n[]'
+    cache_file.write_text(data)
+    os.utime(cache_file, (100, 100))
+    timestamps = []
+
+    def newer(self, path, snapshot_time):
+        replacement = tmp_path / 'replacement.json'
+        replacement.write_text(data)
+        os.utime(replacement, (200, 200))
+        os.replace(replacement, path)
+        timestamps.append(snapshot_time)
+        return snapshot_time >= 150
+
+    monkeypatch.setattr(InstalledBundleCache, '_is_cache_newer', newer)
+    assert not InstalledBundleCache()._read_cache(str(cache_file))
+    assert timestamps == [100]
+    assert cache_file.stat().st_mtime == 200
