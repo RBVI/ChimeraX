@@ -231,12 +231,10 @@ class UI(QApplication):
             msg = f'Window color scheme is now "{new_scheme}"'
             self.session.logger.status(msg)
             print(msg)  # cause log to redraw with new color scheme
-            if hasattr(self.main_window, 'fh'):
-                fh = self.main_window.fh
-                background = scheme_color('new_user_canvas')
-                fh.bg_color = background
-                # HTML widgets need to wait
-                self.thread_safe(fh.update_html, post_event=True)
+            fh = self.main_window.fh
+            fh.set_background_color(scheme_color('new_user_canvas'))
+            # Rebuild thumbnails after the new palette is in effect.
+            self.thread_safe(fh.update, post_event=True)
             self.thread_safe(self.triggers.activate_trigger, 'color scheme changed', None, post_event=True)
 
     def set_color_scheme(self, color_scheme, first_time=False):
@@ -677,43 +675,9 @@ class MainWindow(QMainWindow, HtmlLog):
         self._stack.addWidget(g.widget)
         self.rapid_access = QWidget(self._stack)
         self.view_layout = "default"
-        background = scheme_color('new_user_canvas')
-        foreground = scheme_color('new_user_canvas_text')
-        link = scheme_color('LinkText')
-        new_user_text = [
-            "<style>",
-            "body {",
-            f"    background-color: {background};"
-            "}",
-            ".banner-text {",
-            #"    font-size: %dpx;" % font_size,
-            "    font-size: 10vw;"
-            f"    color: {foreground};",
-            "    position: absolute;",
-            "    top: 50%;",
-            "    left: 50%;",
-            "    transform: translate(-50%,-150%);",
-            "    text-shadow: #000 0px 0px 1px;",
-            "}"
-            ".help-link {",
-            "    font-size: 2vw;"
-            "    position: absolute;"
-            "    top: 60%;",
-            "    left: 50%;",
-            "    transform: translate(-50%,-50%);",
-            "}",
-            ".help-link a {"
-            f"    color: {link};",
-            "}",
-            "</style>",
-            '<p class="banner-text">ChimeraX</p>',
-            '<p class="help-link"><a href="cxcmd:help help:quickstart">Get started</a><p>',
-        ]
-        from Qt import qt_have_web_engine
-        if qt_have_web_engine():
-            from .file_history import FileHistory
-            self.fh = FileHistory(session, self.rapid_access, bg_color=background, thumbnail_size=(128,128),
-                             filename_size=15, no_hist_text="\n".join(new_user_text))
+        from .file_history import FileHistory
+        self.fh = FileHistory(session, self.rapid_access, bg_color=scheme_color('new_user_canvas'),
+                              thumbnail_size=(128,128), filename_size=15, show_banner=True)
         self._stack.addWidget(self.rapid_access)
         self._stack.setCurrentWidget(g.widget)
         self.setCentralWidget(self._stack)
