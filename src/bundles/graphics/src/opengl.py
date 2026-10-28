@@ -26,8 +26,9 @@
 OpenGL classes
 ==============
 
-All calls to OpenGL are made through this module.  Currently all OpenGL
-is done with PyOpenGL.
+All calls to OpenGL are made through this module.  With Qt OpenGL contexts
+they go through the small ctypes binding in gl.py; offscreen OSMesa rendering
+and call logging use PyOpenGL.
 
 The Render class manages shader, view matrices, and lighting.  The Buffer
 class handles object geometry (vertices, normals, triangles) and colors
@@ -35,7 +36,7 @@ and texture coordinates.  The Bindings class defines the connections
 between Buffers and shader program variables.  The Texture class manages
 2D texture storage.  '''
 
-# Set to PyOpenGL module OpenGL.GL by _initialize_pyopengl().
+# Set to the gl.py binding or PyOpenGL's OpenGL.GL by _initialize_pyopengl().
 GL = None
 
 # OpenGL workarounds:
@@ -373,12 +374,15 @@ def _initialize_pyopengl(log_opengl_calls = False, offscreen = False):
         import OpenGL
         OpenGL.FULL_LOGGING = True
 
-    #import OpenGL
-    #OpenGL.ERROR_CHECKING = False
-
     global GL
-    import OpenGL.GL
-    GL = OpenGL.GL
+    if offscreen or log_opengl_calls:
+        # OSMesa contexts are not Qt contexts, and call logging is a PyOpenGL feature.
+        import OpenGL.GL
+        GL = OpenGL.GL
+    else:
+        # Importing PyOpenGL's OpenGL.GL took ~45 ms of every start.
+        from . import gl
+        GL = gl
 
 def _configure_pyopengl_to_use_osmesa():
     '''Tell PyOpenGL where to find libOSMesa.'''
@@ -613,11 +617,11 @@ class Render:
         if record:
             from . import gllist
             self._recording_calls = rc = gllist.start_gl_call_list()
+            self._gl_before_recording = GL
             globals()['GL'] = gllist
             return rc
         else:
-            from OpenGL import GL
-            globals()['GL'] = GL
+            globals()['GL'] = getattr(self, '_gl_before_recording', GL)
             self._recording_calls = None
 
     @property
@@ -2964,7 +2968,10 @@ class Shader:
         fshader = self.insert_define_macros(f.read(), capabilities, max_shadows)
         f.close()
 
-        from OpenGL.GL import shaders
+        if GL.__name__ == __package__ + '.gl':
+            shaders = GL.shaders
+        else:
+            from OpenGL.GL import shaders
         try:
             vs = shaders.compileShader(vshader, GL.GL_VERTEX_SHADER)
             fs = shaders.compileShader(fshader, GL.GL_FRAGMENT_SHADER)
