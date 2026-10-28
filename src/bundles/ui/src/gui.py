@@ -1316,9 +1316,7 @@ class MainWindow(QMainWindow, HtmlLog):
             from .core_settings_ui import CoreSettingsPanel
             container = QWidget()
             self._core_settings_panel = csp = CoreSettingsPanel(self.session, container)
-            for cat, opt in self._accumulated_settings_options:
-                csp.options_widget.add_option(cat, opt)
-            self._accumulated_settings_options = []
+            self._add_accumulated_settings_options(csp.options_widget)
             dw.setWidget(container)
             from Qt.QtCore import Qt
             self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dw)
@@ -1328,13 +1326,24 @@ class MainWindow(QMainWindow, HtmlLog):
             self._settings_ui_widget = dw
         return self._settings_ui_widget
 
-    def add_settings_option(self, category, option):
+    def _add_accumulated_settings_options(self, options_widget):
+        for category, option, factory in self._accumulated_settings_options:
+            options_widget.add_option(category, option() if factory else option)
+        self._accumulated_settings_options = []
+
+    def add_settings_option(self, category, option, *, factory=False):
         """For bundles that need/want to present their settings with the core ChimeraX settings
-           rather than present their own settings UI"""
+           rather than present their own settings UI.
+
+           With factory=True, option is a no-argument callable that constructs
+           the option when the Settings window is first opened. Settings values
+           should be read inside the callable so that they remain current.
+        """
         if self._settings_ui_widget is None:
-            self._accumulated_settings_options.append((category, option))
+            self._accumulated_settings_options.append((category, option, factory))
         else:
-            self._core_settings_panel.options_widget.add_option(category, option)
+            self._core_settings_panel.options_widget.add_option(
+                category, option() if factory else option)
 
     def show_settings(self, category=None):
         self.settings_ui_widget.show()
@@ -1433,22 +1442,22 @@ class MainWindow(QMainWindow, HtmlLog):
         self._settings_ui_widget = None
         self._accumulated_settings_options = []
         settings = session.ui.settings
-        self.add_settings_option("Window", InitWindowSizeOption("Initial overall window size",
+        self.add_settings_option("Window", lambda: InitWindowSizeOption("Initial overall window size",
             settings.initial_window_size, None, attr_name="initial_window_size", settings=settings,
-            session=self.session, balloon="Initial overall size of ChimeraX window"))
-        self.add_settings_option("Window", ToolSideOption("Default tool side",
+            session=self.session, balloon="Initial overall size of ChimeraX window"), factory=True)
+        self.add_settings_option("Window", lambda: ToolSideOption("Default tool side",
             settings.default_tool_window_side, None, attr_name="default_tool_window_side", settings=settings,
-            balloon="Which side of main window that new tool windows appear on by default"))
+            balloon="Which side of main window that new tool windows appear on by default"), factory=True)
         self.add_settings_option("Window", ToolLayoutOption("Docked tool layout",
             settings.tool_layout, lambda opt, *, mw=self: setattr(mw, 'tool_layout', opt.value),
             attr_name="tool_layout", settings=settings,
             balloon="Whether tools docked at the top/bottom of the main window span its full width,\n"
             "or tools docked at the left/right span its full height"))
         from .options import BooleanOption
-        self.add_settings_option("Window", BooleanOption("Tool windows start undocked",
+        self.add_settings_option("Window", lambda: BooleanOption("Tool windows start undocked",
             settings.auto_float_tools, None, attr_name="auto_float_tools", settings=settings,
             balloon="Tools (other than ones launched at ChimeraX startup) start undocked and undockable.\n"
-            'A tool can be made dockable through its "Dockable Tool" context menu entry.'))
+            'A tool can be made dockable through its "Dockable Tool" context menu entry.'), factory=True)
 
         self.favorites_menu = mb.addMenu("Fa&vorites")
         self.favorites_menu.setToolTipsVisible(True)
