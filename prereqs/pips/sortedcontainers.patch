@@ -1,6 +1,6 @@
 --- sortedcontainers/sortedlist.py
 +++ sortedcontainers/sortedlist.py
-@@ -17,7 +17,6 @@
+@@ -17,13 +17,11 @@
  from __future__ import print_function
  
  import sys
@@ -8,7 +8,24 @@
  
  from bisect import bisect_left, bisect_right, insort
  from itertools import chain, repeat, starmap
-@@ -1670,6 +1669,7 @@
+ from math import log
+ from operator import add, eq, ne, gt, ge, lt, le, iadd
+-from textwrap import dedent
+ 
+ ###############################################################################
+ # BEGIN Python 2/3 Shims
+@@ -1579,7 +1577,9 @@
+         :return: true if sorted list is {0} `other`
+ 
+         """
+-        comparer.__doc__ = dedent(doc_str.format(doc, seq_op_name, symbol))
++        # ChimeraX: textwrap.dedent only removed the indentation before the closing
++        # quotes, and importing textwrap costs startup time.
++        comparer.__doc__ = doc_str.format(doc, seq_op_name, symbol).rstrip(' ')
+         return comparer
+ 
+ 
+@@ -1670,6 +1670,7 @@
                          child_sum = self._index[child] + self._index[child + 1]
                          assert child_sum == self._index[pos]
          except:
@@ -16,7 +33,7 @@
              traceback.print_exc(file=sys.stdout)
              print('len', self._len)
              print('load', self._load)
-@@ -2628,6 +2628,7 @@
+@@ -2628,6 +2629,7 @@
                          child_sum = self._index[child] + self._index[child + 1]
                          assert child_sum == self._index[pos]
          except:
@@ -24,3 +41,24 @@
              traceback.print_exc(file=sys.stdout)
              print('len', self._len)
              print('load', self._load)
+--- sortedcontainers/sortedset.py
++++ sortedcontainers/sortedset.py
+@@ -15,7 +15,6 @@
+ 
+ from itertools import chain
+ from operator import eq, ne, gt, ge, lt, le
+-from textwrap import dedent
+ 
+ from .sortedlist import SortedList, recursive_repr
+ 
+@@ -290,7 +289,9 @@
+         :return: true if sorted set is {0} `other`
+ 
+         """
+-        comparer.__doc__ = dedent(doc_str.format(doc, set_op_name, symbol))
++        # ChimeraX: textwrap.dedent only removed the indentation before the closing
++        # quotes, and importing textwrap costs startup time.
++        comparer.__doc__ = doc_str.format(doc, set_op_name, symbol).rstrip(' ')
+         return comparer
+ 
+ 

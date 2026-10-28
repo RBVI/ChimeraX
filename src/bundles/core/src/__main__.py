@@ -6,7 +6,6 @@
 # attached to all copies, including partial copies, of the
 # software or any revisions or derivations thereof.
 import os
-import platform
 import sys
 
 __version__ = "0.2.0a0"  # version of this file -- PEP 440 compatible
@@ -63,6 +62,8 @@ if sys.platform.startswith("win"):
     os.EX_PROTOCOL = 76  # remote error in protocol
     os.EX_NOPERM = 77  # permission denied
     os.EX_CONFIG = 78  # configuration error
+
+    import platform
 
     if "LANG" in os.environ and sys.stdout is not None and platform.system().startswith("CYGWIN_NT"):
         # Double check that stdout matches what LANG asks for.
@@ -597,6 +598,17 @@ def _set_app_dirs(version):
     chimerax.app_lib_dir = os.path.join(rootdir, "lib")
 
 
+def _load_numpy_docstrings():
+    # numpy defers these when sys.numpy_defer_docstrings is set
+    # (prereqs/pips/numpy_lazy_docstrings.patch).
+    sys.numpy_defer_docstrings = False
+    try:
+        from numpy._core import _load_docstrings
+    except ImportError:
+        return
+    _load_docstrings()
+
+
 def init(argv, event_loop=True):
     import sys
 
@@ -697,6 +709,11 @@ def init(argv, event_loop=True):
     if not opts.gui and opts.load_tools:
         # only load tools if we have a GUI
         opts.load_tools = False
+
+    if opts.gui and event_loop and opts.event_loop and "numpy" not in sys.modules:
+        # numpy attaches docstrings to its C functions once the window is up
+        # (_load_numpy_docstrings), not while it is imported at startup.
+        sys.numpy_defer_docstrings = True
 
     _set_app_dirs(version)
 
@@ -1125,6 +1142,10 @@ def init(argv, event_loop=True):
             from chimerax.core.startup_prefetch import record_startup_files
 
             QTimer.singleShot(3000, record_startup_files)
+        if getattr(sys, "numpy_defer_docstrings", False):
+            from Qt.QtCore import QTimer
+
+            QTimer.singleShot(1000, _load_numpy_docstrings)
         try:
             sess.ui.event_loop()
         except SystemExit as e:
