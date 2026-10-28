@@ -122,9 +122,7 @@ ifneq ($(OSARCH),LinuxArm64)
 	# openmm-cuda-12 brings in ~600MB of CUDA dependencies it does not use
 	$(APP_PIP) uninstall -y nvidia-cuda-runtime-cu12 nvidia-cuda-nvcc-cu12 nvidia-cuda-nvrtc-cu12 nvidia-cuda-cupti-cu12 nvidia-cufft-cu12
 endif
-ifeq ($(OS),Linux)
 	$(APP_PIP) uninstall -y nvidia-nvjitlink-cu12
-endif
 endif
 	# Build-only tools.  On macOS, uv comes along when the build tree's
 	# Python.framework is copied into the app, but is only run from the build
