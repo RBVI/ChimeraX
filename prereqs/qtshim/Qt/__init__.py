@@ -142,3 +142,8 @@ def qt_delete(object):
     elif using_pyside6:
         import shiboken6
         shiboken6.delete(object)
+
+if using_pyside6 and PySide6.__version_info__[:2] == (6, 11):
+    # This workaround relies on PySide internals verified for the 6.11 series.
+    from ._features import defer_source_scans as _defer_source_scans
+    _defer_source_scans()
