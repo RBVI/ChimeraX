@@ -26,6 +26,7 @@
 from . import _debug
 from . import _TIMESTAMP
 from . import ToolshedError
+from . import _bundle_cache_executable
 
 
 class InstalledBundleCache(list):
@@ -150,7 +151,6 @@ class InstalledBundleCache(list):
             return False
         import json
         import os
-        import sys
         from .info import BundleInfo
         # Writers publish a complete snapshot with atomic replacement.  Readers
         # can keep the old file open during replacement without taking a lock.
@@ -162,7 +162,7 @@ class InstalledBundleCache(list):
                     _debug("InstalledBundleCache._read_cache: obsolete cache")
                     return None
                 executable, mtime = data
-                if executable != sys.executable:
+                if executable != _bundle_cache_executable():
                     _debug("InstalledBundleCache._read_cache: different executable")
                     return None
                 if mtime != os.path.getmtime(executable):
@@ -210,14 +210,13 @@ class InstalledBundleCache(list):
         import filelock
         import json
         import os
-        import sys
         os.makedirs(os.path.dirname(cache_file), exist_ok=True)
         lock = filelock.FileLock(cache_file + '.lock')
         from ..safesave import SaveTextFile
         with lock.acquire():
             try:
                 with SaveTextFile(cache_file, encoding='utf-8') as f:
-                    executable = sys.executable
+                    executable = _bundle_cache_executable()
                     data = [executable, os.path.getmtime(executable)]
                     json.dump(data, f, ensure_ascii=False)
                     print(file=f)
