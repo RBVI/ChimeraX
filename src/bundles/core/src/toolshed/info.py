@@ -522,15 +522,16 @@ class BundleInfo:
 
     def update_library_path(self):
         # _debug("update_library_path", self.name, self.package_name)
+        import sys
+        if not sys.platform.startswith('win'):
+            return
         libdir = self.library_dir()
         if not libdir:
             # _debug("  update_library_path: no libdir")
             return
-        import sys
-        if sys.platform.startswith('win'):
-            import os
-            os.add_dll_directory(libdir)
-            # _debug("  update_library_path: windows", paths)
+        import os
+        os.add_dll_directory(libdir)
+        # _debug("  update_library_path: windows", paths)
 
     def _get_api(self, logger=None):
         """Return BundleAPI instance for this bundle."""
