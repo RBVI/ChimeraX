@@ -58,14 +58,18 @@ class InstalledBundleCache(list):
         _debug("InstalledBundleCache.load: rebuilding cache")
         from importlib.metadata import distributions
         dist_bundle_map = {}
-        dists = distributions()
-        filtered_dists = list(filter(lambda d: any([c.startswith('ChimeraX') for c in d.metadata.json.get('classifier', [])]), dists))
         # work around https://github.com/pypa/setuptools/issues/4170
         # all packages are duplicated when an editable package is installed
         seen_bundles = set()
-        for d in filtered_dists:
+        for d in distributions():
+            # Read metadata once, and avoid converting all headers to JSON
+            # just to inspect classifiers (including non-ChimeraX packages).
+            metadata = d.metadata
+            if not any(c.startswith('ChimeraX')
+                       for c in metadata.get_all('Classifier', [])):
+                continue
             _debug("InstalledBundleCache.load: package %s" % d)
-            bi = _make_bundle_info(d, True, logger)
+            bi = _make_bundle_info(d, True, logger, metadata=metadata)
             if bi is not None:
                 _debug("InstalledBundleCache.load: bundle %s" % bi)
                 if bi.name in seen_bundles:
@@ -252,14 +256,17 @@ class InstalledBundleCache(list):
         # First we build a list of distribution names that
         # map to bundles.  This is so we can ignore dependencies
         # that are not bundles.
-        dist_names = set([d.name for d in dist_bundle_map.keys()])
+        # Distribution.name reparses METADATA on each access.  BundleInfo
+        # already holds that name, so reuse it throughout dependency ordering.
+        names = {d: bi.name for d, bi in dist_bundle_map.items()}
+        dist_names = set(names.values())
         # build a dependency-exclusion map from the bi.inits value
         # [built from Initialization tags], and prevent the reverse
         # dependency from being used to determine initialization order.
         # This "should" break all circular dependencies.
         bundle_name_to_dist_key = {}
         for d, bi in dist_bundle_map.items():
-            bundle_name_to_dist_key[bi.name] = d.name
+            bundle_name_to_dist_key[bi.name] = names[d]
         explicit_reverse_order = {}
         for d, bi in dist_bundle_map.items():
             if not bi.inits:
@@ -272,7 +279,7 @@ class InstalledBundleCache(list):
                         logger.warning("Unknown bundle name '%s' listed in Initializations"
                                 " section for bundle %s" % (bundle_name, bi.name))
                         continue
-                    explicit_reverse_order.setdefault(dist_key, set()).add(d.name)
+                    explicit_reverse_order.setdefault(dist_key, set()).add(names[d])
         # Then we build a dependency map where the key is a
         # distribution instance and the value is a list of
         # bundle distribution names that it depends on.
@@ -280,15 +287,13 @@ class InstalledBundleCache(list):
         dist_needs = {}
         for d, bi in dist_bundle_map.items():
             dist_needs[d] = needs = []
-            if d.requires is None:
-                continue
-            for req in d.requires:
+            for req in d.requires or ():
                 try:
                     r = Requirement(req)
                 except InvalidRequirement:
                     continue
                 if r.name in dist_names:
-                    if r.name in explicit_reverse_order.get(d.name, []):
+                    if r.name in explicit_reverse_order.get(names[d], []):
                         continue
                     needs.append(r.name)
         # Now we start with all bundle distributions in the
@@ -312,7 +317,7 @@ class InstalledBundleCache(list):
             if can_move:
                 ready.extend(can_move)
                 to_be_done.difference_update(can_move)
-                seen.update([d.name for d in can_move])
+                seen.update(names[d] for d in can_move)
             else:
                 # dependency declaration are not necessarily install-time,
                 # so it's okay for there to be circular dependencies.  The
@@ -390,21 +395,23 @@ def _report_difference(logger, before, after):
 #
 
 
-def _make_bundle_info(d, installed, logger):
+def _make_bundle_info(d, installed, logger, *, metadata=None):
     """Convert distribution into a list of :py:class:`BundleInfo` instances."""
     from .info import BundleInfo, ToolInfo, CommandInfo, SelectorInfo, FormatInfo
     from ..commands import unescape
-    name = d.name
+    if metadata is None:
+        metadata = d.metadata
+    name = metadata['Name']
     if not name[0].isalpha():
         # pip uninstall renames package ChimeraX-XXX to ~himeraX-XXX,
         # which we somehow translate to -himeraX-XXX.
         return None
-    version = d.version
+    version = metadata['Version']
     bi = None
     description = None
     kw = {"name": name, "version": version}
     kw['packages'] = _get_installed_packages(d, logger)
-    for metadata_type, data in d.metadata.items():
+    for metadata_type, data in metadata.items():
         if metadata_type == "Summary":
             kw['synopsis'] = data.strip()
             continue
