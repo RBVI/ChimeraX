@@ -84,8 +84,10 @@ def initialize_ssl_cert_dir():
     if not sys.platform.startswith('linux'):
         return
     import os
-    import ssl
-    dvp = ssl.get_default_verify_paths()
+    # This was ssl.get_default_verify_paths().openssl_cafile_env, which is
+    # OpenSSL's X509_get_default_cert_file_env(), always "SSL_CERT_FILE".
+    # Importing ssl only to read that constant cost several milliseconds.
+    cafile_env = "SSL_CERT_FILE"
     # from https://golang.org/src/crypto/x509/root_linux.go
     cert_files = [
         "/etc/ssl/certs/ca-certificates.crt",                # Debian/Ubuntu/Gentoo etc.
@@ -97,7 +99,7 @@ def initialize_ssl_cert_dir():
     ]
     for fn in cert_files:
         if os.path.exists(fn):
-            os.environ[dvp.openssl_cafile_env] = fn
+            os.environ[cafile_env] = fn
             # os.environ[dvp.openssl_capath_env] = os.path.dirname(fn)
             return
 
