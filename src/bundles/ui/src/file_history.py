@@ -13,12 +13,14 @@
 
 #
 # Thumbnail view of the file history using native Qt widgets.
-# Thumbnails can be grouped into user defined sections using the
-# context menu.
+# Thumbnails can be grouped into user defined sections by dragging
+# them or using the context menu.
 #
 from Qt.QtCore import Qt, QSize, QRect, QPoint, QTimer
 from Qt.QtWidgets import (QWidget, QLabel, QLayout, QVBoxLayout, QStackedLayout,
                           QScrollArea, QFrame, QApplication)
+
+_MIME_TYPE = 'application/x-chimerax-file-history-entry'
 
 class FileHistory:
 
@@ -184,6 +186,54 @@ class FileHistory:
         self.clear_selection()
         return [tile.file_spec]
 
+    def start_drag(self, tile):
+        fspecs = self._action_files(tile)
+        from Qt.QtCore import QMimeData
+        from Qt.QtGui import QDrag
+        import json
+        md = QMimeData()
+        keys = [[fs.path, fs.database] for fs in fspecs]
+        md.setData(_MIME_TYPE, json.dumps(keys).encode('utf-8'))
+        drag = QDrag(tile)
+        drag.setMimeData(md)
+        pixmap = self._drag_pixmap(tile.file_spec, len(fspecs))
+        drag.setPixmap(pixmap)
+        drag.setHotSpot(QPoint(pixmap.width()//2, pixmap.height()//2))
+        drag.exec(Qt.DropAction.MoveAction)
+
+    def _drag_pixmap(self, fspec, count):
+        pixmap = self.thumbnail(fspec).scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatio,
+                                              Qt.TransformationMode.SmoothTransformation)
+        if count > 1:
+            # Show number of files being dragged in a badge.
+            from Qt.QtGui import QPainter, QColor
+            p = QPainter(pixmap)
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            r = QRect(pixmap.width()-26, 2, 24, 18)
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(QColor(200, 30, 30))
+            p.drawRoundedRect(r, 9, 9)
+            p.setPen(QColor('white'))
+            f = p.font()
+            f.setBold(True)
+            f.setPixelSize(11)
+            p.setFont(f)
+            p.drawText(r, Qt.AlignmentFlag.AlignCenter, str(count))
+            p.end()
+        return pixmap
+
+    def files_from_mime_data(self, mime_data):
+        if not mime_data.hasFormat(_MIME_TYPE):
+            return []
+        import json
+        try:
+            keys = json.loads(bytes(mime_data.data(_MIME_TYPE)).decode('utf-8'))
+        except Exception:
+            return []
+        h = self.history
+        fspecs = [h.find_file(path, database) for path, database in keys]
+        return [fs for fs in fspecs if fs is not None]
+
     def show_context_menu(self, global_pos, tile = None, section = None):
         h = self.history
         from Qt.QtWidgets import QMenu
@@ -342,11 +392,13 @@ class HistoryWindow(QScrollArea):
         self._file_history.show_context_menu(event.globalPos(), tile, section)
 
 class SectionWidget(QWidget):
-    '''Optional heading and thumbnails for one section.'''
+    '''Optional heading and thumbnails for one section.  Thumbnails can be dropped on it.'''
     def __init__(self, file_history, section_name, files, show_heading, is_current, used_pixmaps):
         super().__init__()
         self._file_history = file_history
         self.section_name = section_name	# None for files not in a section
+        self._drag_highlight = False
+        self.setAcceptDrops(True)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4,4,4,4)
@@ -362,15 +414,73 @@ class SectionWidget(QWidget):
             f.setPointSizeF(f.pointSizeF() * 1.4)
             heading.setFont(f)
             layout.addWidget(heading)
-        placeholder = 'No files' if show_heading else None
+        placeholder = 'Drag thumbnails here' if show_heading else None
         self.tile_area = TileArea(file_history, files, placeholder, used_pixmaps)
         layout.addWidget(self.tile_area)
+
+    def paintEvent(self, event):
+        if self._drag_highlight:
+            from Qt.QtGui import QPainter, QPalette
+            p = QPainter(self)
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            c = self.palette().color(QPalette.ColorRole.Highlight)
+            c.setAlpha(50)
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(c)
+            p.drawRoundedRect(self.rect(), 6, 6)
+            p.end()
+
+    def _set_drag_highlight(self, highlight):
+        if highlight != self._drag_highlight:
+            self._drag_highlight = highlight
+            self.update()
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasFormat(_MIME_TYPE):
+            event.acceptProposedAction()
+            self._set_drag_highlight(True)
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if not event.mimeData().hasFormat(_MIME_TYPE):
+            event.ignore()
+            return
+        event.acceptProposedAction()
+        if self.section_name is not None:
+            # Files not in a section are ordered by time, so only show insert position in sections.
+            ta = self.tile_area
+            ta.show_drop_indicator(ta.mapFrom(self, event.position().toPoint()))
+
+    def dragLeaveEvent(self, event):
+        self._set_drag_highlight(False)
+        self.tile_area.show_drop_indicator(None)
+
+    def dropEvent(self, event):
+        self._set_drag_highlight(False)
+        ta = self.tile_area
+        ta.show_drop_indicator(None)
+        fh = self._file_history
+        fspecs = fh.files_from_mime_data(event.mimeData())
+        if not fspecs:
+            event.ignore()
+            return
+        event.acceptProposedAction()
+        before = None
+        if self.section_name is not None:
+            tile = ta.insertion_tile(ta.mapFrom(self, event.position().toPoint()))
+            if tile is not None:
+                before = tile.file_spec
+        # Defer since moving the file rebuilds the widgets including this one.
+        name = self.section_name
+        QTimer.singleShot(0, lambda: fh.move_files(fspecs, name, before))
 
 class TileArea(QWidget):
     '''Thumbnails laid out in rows that wrap to the widget width.'''
     def __init__(self, file_history, files, placeholder, used_pixmaps):
         super().__init__()
         self._placeholder = None if files else placeholder
+        self._indicator = None	# (x, top, bottom) of drop position line
         self._layout = layout = FlowLayout(self, spacing = 8)
         layout.setContentsMargins(4,0,4,0)
         self.tiles = [Tile(file_history, fs, used_pixmaps) for fs in files]
@@ -379,18 +489,52 @@ class TileArea(QWidget):
         if not files and placeholder:
             self.setMinimumHeight(40)
 
+    def insertion_tile(self, pos):
+        '''Tile a drop at this position would be placed before, or None for the end.'''
+        for t in self.tiles:
+            g = t.geometry()
+            if pos.y() < g.top():
+                return t
+            if pos.y() <= g.bottom() and pos.x() < g.center().x():
+                return t
+        return None
+
+    def show_drop_indicator(self, pos):
+        if pos is None:
+            self._indicator = None
+        else:
+            gap = self._layout.spacing() // 2
+            before = self.insertion_tile(pos)
+            if before is not None:
+                g = before.geometry()
+                x = g.left() - gap
+            elif self.tiles:
+                g = self.tiles[-1].geometry()
+                x = g.right() + gap
+            else:
+                g = self.rect()
+                x = 4
+            self._indicator = (max(x, 1), g.top(), g.bottom())
+        self.update()
+
     def paintEvent(self, event):
-        if self._placeholder is None:
+        if self._placeholder is None and self._indicator is None:
             return
-        from Qt.QtGui import QPainter, QPalette
+        from Qt.QtGui import QPainter, QPalette, QPen
         p = QPainter(self)
-        p.setPen(self.palette().color(QPalette.ColorRole.PlaceholderText))
-        p.drawText(self.rect().adjusted(8,0,0,0),
-                   Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, self._placeholder)
+        pal = self.palette()
+        if self._placeholder:
+            p.setPen(pal.color(QPalette.ColorRole.PlaceholderText))
+            p.drawText(self.rect().adjusted(8,0,0,0),
+                       Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, self._placeholder)
+        if self._indicator:
+            x, top, bottom = self._indicator
+            p.setPen(QPen(pal.color(QPalette.ColorRole.Highlight), 3))
+            p.drawLine(x, top, x, bottom)
         p.end()
 
 class Tile(QWidget):
-    '''Thumbnail image and file name.  Click to open,
+    '''Thumbnail image and file name.  Click to open, drag to move to another section,
     ctrl-click or shift-click to select several.'''
     def __init__(self, file_history, fspec, used_pixmaps):
         super().__init__()
@@ -448,6 +592,15 @@ class Tile(QWidget):
             self._press_pos = event.position().toPoint()
         else:
             super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self._press_pos is None or not (event.buttons() & Qt.MouseButton.LeftButton):
+            return
+        moved = (event.position().toPoint() - self._press_pos).manhattanLength()
+        if moved < QApplication.startDragDistance():
+            return
+        self._press_pos = None
+        self._file_history.start_drag(self)
 
     def mouseReleaseEvent(self, event):
         pressed = self._press_pos is not None
