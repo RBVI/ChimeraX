@@ -218,11 +218,11 @@ class ToolbarTool(ToolInstance):
                         icon_path = m.icon_path
                 rmbs.append((tab, section, display_name, icon_path))
             if theme_icon is not None:
-                icon = QIcon.fromTheme(theme_icon)
+                icon = lambda theme_icon=theme_icon: QIcon.fromTheme(theme_icon)
             elif dark_icon_path is not None and self.session.ui.dark_mode():
-                icon = QIcon(dark_icon_path)
+                icon = lambda path=dark_icon_path: QIcon(path)
             elif icon_path is not None:
-                icon = QIcon(icon_path)
+                icon = lambda path=icon_path: QIcon(path)
             else:
                 icon = None
 
