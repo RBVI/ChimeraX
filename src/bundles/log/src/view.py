@@ -57,7 +57,8 @@ class LogView(QTextBrowser):
         link_cb : called with a QUrl when a link other than a disclosure toggle is clicked
         command_color_cb : returns the background color name for command echoes
         context_menu_cb : called with the QContextMenuEvent instead of showing Qt's menu
-        user_agent : User-Agent header for fetching remote images
+        user_agent : User-Agent header for fetching remote images, or a function
+            returning it, called when the first image is fetched
         """
         super().__init__(parent)
         self._link_cb = link_cb
@@ -404,6 +405,8 @@ class LogView(QTextBrowser):
         if self._network is None:
             self._network = QNetworkAccessManager(self)
         request = QNetworkRequest(url)
+        if callable(self._user_agent):
+            self._user_agent = self._user_agent()
         if self._user_agent:
             request.setHeader(QNetworkRequest.KnownHeaders.UserAgentHeader, self._user_agent)
         reply = self._network.get(request)

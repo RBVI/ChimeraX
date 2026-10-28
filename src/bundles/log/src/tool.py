@@ -113,7 +113,8 @@ class Log(ToolInstance, HtmlLog):
             command_color_cb=command_color,
             context_menu_cb=self.tool_window._show_context_menu,
             size_hint=(575, 500),
-            user_agent=html_user_agent(app_dirs),
+            # Finding the OS version is slow, and only image links need it.
+            user_agent=lambda: html_user_agent(app_dirs),
         )
         self.log_window.exec_links = self.settings.exec_cmd_links
         from Qt.QtCore import QTimer
