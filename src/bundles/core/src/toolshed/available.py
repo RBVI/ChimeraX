@@ -139,10 +139,14 @@ class AvailableBundleCache(list):
         if self.cache_dir is None:
             raise FileNotFoundError("no bundle cache")
         import os
-        with open(os.path.join(self.cache_dir, _CACHE_FILE), encoding='utf-8') as f:
-            import json
-            data = json.load(f)
-            stat = os.fstat(f.fileno())
+        path = os.path.join(self.cache_dir, _CACHE_FILE)
+        stat = os.stat(path)
+        data = _read_snapshot(path, stat)
+        if data is None:
+            with open(path, encoding='utf-8') as f:
+                import json
+                data = json.load(f)
+            _write_snapshot(path, stat, data)
         import chimerax.core
         import packaging
         # A changed catalog or compatibility evaluator must start fresh.
@@ -242,6 +246,45 @@ def has_cache_file(cache_dir):
         return False
     import os
     return os.path.exists(os.path.join(cache_dir, _CACHE_FILE))
+
+
+# Parsing the 2.3 MB catalog JSON took ~6 ms of every start; reading the same
+# data back with marshal takes about a third of that.  The snapshot is
+# keyed to the JSON file and to this Python, since marshal's format can
+# change between Python versions.
+_SNAPSHOT_SUFFIX = '.marshal'
+
+
+def _snapshot_key(stat):
+    import sys
+    return (1, sys.version, stat.st_mtime_ns, stat.st_size)
+
+
+def _read_snapshot(path, stat):
+    import marshal
+    try:
+        # marshal.load() on a file reads in small pieces; read it at once.
+        with open(path + _SNAPSHOT_SUFFIX, 'rb') as f:
+            key, data = marshal.loads(f.read())
+    except Exception:
+        return None
+    return data if key == _snapshot_key(stat) else None
+
+
+def _write_snapshot(path, stat, data):
+    import marshal
+    import os
+    temp = '%s%s.%d.tmp' % (path, _SNAPSHOT_SUFFIX, os.getpid())
+    try:
+        with open(temp, 'wb') as f:
+            marshal.dump((_snapshot_key(stat), data), f)
+        os.replace(temp, path + _SNAPSHOT_SUFFIX)
+    except Exception:
+        # The snapshot is only an optimization.
+        try:
+            os.remove(temp)
+        except OSError:
+            pass
 
 
 def _build_bundle(d, format_version=1):
