@@ -22,16 +22,45 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .cmd import (get_alignment_sequence, SeqArg, AlignmentArg, AlignSeqPairArg, SeqRegionArg,
-                    AlignmentViewerArg, SequenceViewerArg)
-from .alignment import clustal_strong_groups, clustal_weak_groups
+_lazy_exports = {
+    **dict.fromkeys(('get_alignment_sequence', 'SeqArg', 'AlignmentArg',
+        'AlignSeqPairArg', 'SeqRegionArg', 'AlignmentViewerArg', 'SequenceViewerArg'), 'cmd'),
+    **dict.fromkeys(('clustal_strong_groups', 'clustal_weak_groups'), 'alignment'),
+}
+_lazy_submodules = ('cmd', 'alignment', 'manager', 'settings')
+__all__ = [*_lazy_exports, *_lazy_submodules, 'BundleAPI', 'bundle_api']
+
+
+def __getattr__(name):
+    from importlib import import_module
+    if name in _lazy_submodules:
+        return import_module('.' + name, __name__)
+    try:
+        module_name = _lazy_exports[name]
+    except KeyError:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
+    value = getattr(import_module('.' + module_name, __name__), name)
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))
+
+
+class _AlignmentArgument:
+    # Toolshed needs the actual annotation class on both class and instance
+    # access, but initializing the manager does not need sequence commands.
+    def __get__(self, instance, owner):
+        from .cmd import AlignmentArg
+        return AlignmentArg
 
 from chimerax.core.toolshed import BundleAPI
 
 class _AlignmentsBundleAPI(BundleAPI):
 
     # so toolshed can find it...
-    AlignmentArg = AlignmentArg
+    AlignmentArg = _AlignmentArgument()
 
     @staticmethod
     def get_class(class_name):
@@ -85,6 +114,7 @@ class _AlignmentsBundleAPI(BundleAPI):
 
                 @property
                 def open_args(self, *, session=session):
+                    from .cmd import AlignmentViewerArg, SequenceViewerArg
                     from chimerax.core.commands import BoolArg, StringArg, Or
                     return {
                         'alignment': BoolArg,
@@ -109,6 +139,7 @@ class _AlignmentsBundleAPI(BundleAPI):
 
                 @property
                 def save_args(self):
+                    from .cmd import AlignmentArg
                     return { 'alignment': AlignmentArg }
 
         return SeqInfo()
