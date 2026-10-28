@@ -30,18 +30,19 @@ remembered so that new messages are appended and a changed message (e.g.,
 "[Repeated N time(s)]" compaction) only re-renders from that message on.
 """
 
+import base64
 from bisect import bisect_right
 
-from Qt.QtCore import QEvent, QSize
+from Qt.QtCore import Qt, QBuffer, QByteArray, QEvent, QRectF, QSize
 from Qt.QtGui import (
-    QColor, QFont, QFontDatabase, QPalette,
+    QColor, QFont, QFontDatabase, QFontInfo, QImage, QPainter, QPalette, QPen,
     QTextBlockFormat, QTextCharFormat, QTextCursor, QTextDocument, QTextFrameFormat,
 )
 from Qt.QtWidgets import QTextBrowser
 
 from .parse import (
-    tokenize, Command, Disclosure, select_command_variant, drop_redundant_breaks,
-    starts_block, starts_table, strip_line_end,
+    tokenize, Command, Disclosure, select_command_variant, replace_inline_blocks, drop_redundant_breaks,
+    css_length, css_border, starts_block, starts_table, strip_line_end,
 )
 
 TOGGLE_SCHEME = "cxlog-toggle"
@@ -86,6 +87,7 @@ class LogView(QTextBrowser):
         self._new_block = False
         # offsets of <details> whose open/closed state the user changed
         self._toggled = set()
+        self._swatches = {}
 
     def set_content(self, source, starts, dirty_from, *, replaced=False, scroll_to_end=True):
         """Show log HTML 'source', whose messages begin at offsets 'starts'.
@@ -164,7 +166,8 @@ class LogView(QTextBrowser):
 
     def _prepare(self, html):
         html = select_command_variant(html, self.exec_links)
-        return drop_redundant_breaks(html)
+        html = drop_redundant_breaks(html)
+        return replace_inline_blocks(html, self._swatch_html)
 
     def _insert_html(self, cursor, html):
         html, ends_line = strip_line_end(self._prepare(html))
@@ -200,6 +203,42 @@ class LogView(QTextBrowser):
                 fmt.setProperty(prop, first.property(prop))
         if not fmt.isEmpty():
             QTextCursor(self.document().findBlock(position)).mergeBlockFormat(fmt)
+
+    def _swatch_html(self, props):
+        """Draw an inline-block div, e.g., a color swatch, as an image."""
+        em = QFontInfo(self.font()).pixelSize()
+        width = css_length(props.get("width"), em) or em
+        height = css_length(props.get("height"), em) or em
+        border_width, border_color = css_border(props.get("border")) if "border" in props else (0, None)
+        key = (width, height, props.get("background-color"), border_width, border_color)
+        if key not in self._swatches:
+            self._swatches[key] = self._swatch_image(*key)
+        return self._swatches[key]
+
+    def _swatch_image(self, width, height, background, border_width, border_color):
+        scale = 2  # stay sharp on high resolution displays
+        w, h = width + 2 * border_width, height + 2 * border_width
+        image = QImage(max(round(w * scale), 1), max(round(h * scale), 1), QImage.Format.Format_ARGB32)
+        image.fill(Qt.GlobalColor.transparent)
+        p = QPainter(image)
+        p.scale(scale, scale)
+        bg = QColor(background) if background else QColor()
+        if bg.isValid():
+            p.fillRect(QRectF(border_width, border_width, width, height), bg)
+        if border_width:
+            color = QColor(border_color) if border_color else self.palette().color(QPalette.ColorRole.Text)
+            pen = QPen(color, border_width)
+            pen.setJoinStyle(Qt.PenJoinStyle.MiterJoin)
+            p.setPen(pen)
+            half = border_width / 2
+            p.drawRect(QRectF(half, half, w - border_width, h - border_width))
+        p.end()
+        data = QByteArray()
+        buf = QBuffer(data)
+        buf.open(QBuffer.OpenModeFlag.WriteOnly)
+        image.save(buf, "PNG")
+        return '<img src="data:image/png;base64,%s" width=%d height=%d>' % (
+            base64.b64encode(bytes(data)).decode("ascii"), round(w), round(h))
 
     def _insert_command(self, cursor, piece):
         block_format = QTextBlockFormat()
@@ -308,6 +347,7 @@ class LogView(QTextBrowser):
     def changeEvent(self, event):
         super().changeEvent(event)
         if event.type() == QEvent.Type.PaletteChange and self._rendered:
+            self._swatches.clear()
             # command and disclosure colors depend on light/dark mode
             self.rerender()
 
