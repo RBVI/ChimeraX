@@ -93,3 +93,114 @@ def test_decisions_do_not_survive_catalog_loads(monkeypatch):
     assert len(new) == 1 and not new.uninstallable
 
 
+def cached_catalog(tmp_path, requires):
+    import json
+    data = [{'bundle_name': 'ChimeraX_Example', 'bundle': {'ChimeraX_Example': {
+        'version': '1', 'requires': requires}}}]
+    (tmp_path / 'available.json').write_text(json.dumps(data))
+
+
+def test_disk_compatibility_cache_avoids_reparse_but_keeps_full_requirements(tmp_path, monkeypatch):
+    import chimerax.core
+    monkeypatch.setattr(chimerax.core, 'version', '1.5')
+    texts = ['numpy', 'ChimeraX-Core>=1', 'other>=2']
+    cached_catalog(tmp_path, texts)
+    first = available.AvailableBundleCache(str(tmp_path))
+    first.load_from_cache()
+    calls = []
+    parse = available._parse_requires
+    monkeypatch.setattr(available, '_parse_requires', lambda text: calls.append(text) or parse(text))
+    second = available.AvailableBundleCache(str(tmp_path))
+    second.load_from_cache()
+    assert calls == []
+    assert [b.cache_data() for b in second] == [b.cache_data() for b in first]
+    assert [str(r) for r in second[0].requires] == texts
+    assert calls == texts
+
+
+@pytest.mark.parametrize('change', ['core', 'parser', 'catalog'])
+def test_disk_compatibility_cache_invalidates(tmp_path, monkeypatch, change):
+    import chimerax.core
+    import packaging
+    monkeypatch.setattr(chimerax.core, 'version', '1.5')
+    cached_catalog(tmp_path, ['ChimeraX-Core>=2'])
+    first = available.AvailableBundleCache(str(tmp_path))
+    first.load_from_cache()
+    assert not first and len(first.uninstallable) == 1
+    if change == 'core':
+        monkeypatch.setattr(chimerax.core, 'version', '2.0')
+    elif change == 'parser':
+        monkeypatch.setattr(packaging, '__version__', packaging.__version__ + '.changed')
+    else:
+        cached_catalog(tmp_path, ['ChimeraX-Core>=1.000'])
+    calls = []
+    parse = available._parse_requires
+    monkeypatch.setattr(available, '_parse_requires', lambda text: calls.append(text) or parse(text))
+    second = available.AvailableBundleCache(str(tmp_path))
+    second.load_from_cache()
+    assert calls
+    assert bool(second) == (change != 'parser')
+
+
+def test_environment_markers_are_reevaluated_between_loads(tmp_path, monkeypatch):
+    import chimerax.core
+    from packaging.markers import Marker
+    monkeypatch.setattr(chimerax.core, 'version', '1.5')
+    cached_catalog(tmp_path, ['numpy', 'ChimeraX-Core>=1; python_version >= "3"'])
+    monkeypatch.setattr(Marker, 'evaluate', lambda *a, **kw: True)
+    first = available.AvailableBundleCache(str(tmp_path))
+    first.load_from_cache()
+    assert len(first) == 1
+    monkeypatch.setattr(Marker, 'evaluate', lambda *a, **kw: False)
+    second = available.AvailableBundleCache(str(tmp_path))
+    second.load_from_cache()
+    assert not second and len(second.uninstallable) == 1
+
+
+@pytest.mark.parametrize('contents', ['not json', '{}', '[1,2]', '[[],{"x":1}]'])
+def test_malformed_compatibility_cache_falls_back(tmp_path, monkeypatch, contents):
+    import chimerax.core
+    monkeypatch.setattr(chimerax.core, 'version', '1.5')
+    cached_catalog(tmp_path, ['ChimeraX-Core>=1'])
+    (tmp_path / 'core-compatibility.json').write_text(contents)
+    cache = available.AvailableBundleCache(str(tmp_path))
+    cache.load_from_cache()
+    assert len(cache) == 1
+
+
+def test_unwritable_compatibility_cache_does_not_prevent_loading(tmp_path, monkeypatch):
+    import chimerax.core
+    from chimerax.core import safesave
+    monkeypatch.setattr(chimerax.core, 'version', '1.5')
+    cached_catalog(tmp_path, ['ChimeraX-Core>=1'])
+    def unwritable(*a, **kw):
+        raise PermissionError('read-only cache directory')
+    monkeypatch.setattr(safesave, 'SaveTextFile', unwritable)
+    cache = available.AvailableBundleCache(str(tmp_path))
+    cache.load_from_cache()
+    assert len(cache) == 1
+
+
+@pytest.mark.parametrize('bad_checks', [
+    {'ChimeraX-Core>=1': 1},
+    {'ChimeraX-Core>=1': 'true'},
+    {'ChimeraX-Core>=1; python_version > "1"': True},
+    ['not', 'a', 'mapping'],
+])
+def test_matching_cache_key_does_not_bypass_payload_validation(tmp_path, monkeypatch, bad_checks):
+    import json
+    import chimerax.core
+    monkeypatch.setattr(chimerax.core, 'version', '1.5')
+    cached_catalog(tmp_path, ['ChimeraX-Core>=1'])
+    first = available.AvailableBundleCache(str(tmp_path))
+    first.load_from_cache()
+    path = tmp_path / 'core-compatibility.json'
+    key, checks = json.loads(path.read_text())
+    path.write_text(json.dumps([key, bad_checks]))
+    calls = []
+    parse = available._parse_requires
+    monkeypatch.setattr(available, '_parse_requires', lambda text: calls.append(text) or parse(text))
+    second = available.AvailableBundleCache(str(tmp_path))
+    second.load_from_cache()
+    assert len(second) == 1
+    assert calls == ['ChimeraX-Core>=1']
