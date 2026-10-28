@@ -106,11 +106,12 @@ class UI(QApplication):
 
         self._mouse_modes = None
 
-        # for whatever reason, QtWebEngineWidgets has to be imported before a
-        # QtCoreApplication is created...
-        from Qt import qt_have_web_engine
-        if qt_have_web_engine():
-            import Qt.QtWebEngineWidgets
+        # Qt 5 requires WebEngine initialization before QApplication. Qt 6
+        # supports loading it on demand with shared OpenGL contexts enabled.
+        from Qt import using_qt5
+        if using_qt5:
+            from Qt import qt_have_web_engine
+            qt_have_web_engine()
 
         # make sure that validated input fields (QValidator) generate numbers
         # Python's float will accept [#16374]...
@@ -1216,6 +1217,7 @@ class MainWindow(QMainWindow, HtmlLog):
             content = f.read()
         content = content.replace("VERSION", buildinfo.version)
         content = content.replace("DATE", buildinfo.date.split()[0])
+        self.session.url_schemes.initialize_web_engine()
         self._about_dialog = QWebEngineView()
         self._about_dialog.setHtml(content, QUrl.fromLocalFile(
             os.path.dirname(os.path.realpath(__file__)) + os.sep))

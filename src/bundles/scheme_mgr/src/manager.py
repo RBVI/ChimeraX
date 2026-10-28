@@ -31,6 +31,8 @@ class SchemesManager(ProviderManager):
     def __init__(self, session, name):
         self.session = session
         self.schemes = set()
+        self._pending_schemes = []
+        self._web_engine_initialized = False
         from chimerax.core.triggerset import TriggerSet
         self.triggers = TriggerSet()
         self.triggers.add_trigger("html schemes changed")
@@ -41,12 +43,26 @@ class SchemesManager(ProviderManager):
             return
         self.schemes.add(name)
 
-        def is_true(value):
-            return value and value.casefold() in ('true', '1', 'on')
+        self._pending_schemes.append((name, dict(kw)))
+        import sys
+        if self._web_engine_initialized or 'Qt.QtWebEngineCore' in sys.modules:
+            self.initialize_web_engine()
 
+    def initialize_web_engine(self):
+        """Register all schemes before the first browser profile is created."""
+        if not self._pending_schemes:
+            return
         from Qt import qt_have_web_engine
         if not qt_have_web_engine():
-            return  # macOS arm64 does not have QtWebEngine
+            return
+        self._web_engine_initialized = True
+        pending, self._pending_schemes = self._pending_schemes, []
+        for name, kw in pending:
+            self._register_scheme(name, kw)
+
+    def _register_scheme(self, name, kw):
+        def is_true(value):
+            return value and value.casefold() in ('true', '1', 'on')
 
         from Qt.QtWebEngineCore import QWebEngineUrlScheme
         scheme = QWebEngineUrlScheme(name.encode('utf-8'))
