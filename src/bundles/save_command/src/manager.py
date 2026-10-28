@@ -147,6 +147,10 @@ def _readable_bundle_name(bundle_info):
 
 def bool_cvt(val, name, bundle_name, var_name):
     if not isinstance(val, bool):
+        # Providers are registered at startup; most values are "true" or "false".
+        known = {"True": True, "False": False}.get(val.capitalize())
+        if known is not None:
+            return known
         try:
             val = eval(val.capitalize())
         except (ValueError, NameError):
