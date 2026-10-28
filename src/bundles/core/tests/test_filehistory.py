@@ -140,3 +140,106 @@ def test_remove_file(history):
     assert _paths(history.section_files(None)) == ["b.pdb"]
 
 
+def test_sections_saved_and_restored(history, test_production_session):
+    a, b = _add_files(history, "/tmp/a.pdb", "/tmp/b.pdb")
+    history.add_section("P")
+    history.move_file(b, "P")
+    history.move_file(a, "P")
+    history.current_section = "P"
+    history.save_history()
+
+    from chimerax.core.filehistory import FileHistory
+
+    restored = FileHistory(test_production_session)
+    assert restored.sections == ["P"]
+    assert restored.current_section == "P"
+    assert _paths(restored.section_files("P")) == ["b.pdb", "a.pdb"]
+
+
+def test_files_in_sections_not_dropped_by_max_files(history, test_production_session):
+    files = _add_files(history, *["/tmp/f%d.pdb" % i for i in range(5)])
+    history.add_section("P")
+    history.move_file(files[0], "P")  # Oldest file
+    history.max_files = 2
+    history.save_history()
+
+    from chimerax.core.filehistory import FileHistory
+
+    restored = FileHistory(test_production_session)
+    assert _paths(restored.section_files("P")) == ["f0.pdb"]
+    assert _paths(restored.section_files(None)) == ["f4.pdb", "f3.pdb"]
+
+
+def test_history_without_sections_loads(history, test_production_session):
+    # History files written before sections existed have no "sections" key.
+    _MemoryHistory.saved["file_history"] = {
+        "version": 1,
+        "files": [
+            {
+                "path": "/tmp/a.pdb",
+                "format": None,
+                "database": None,
+                "access_time": 1.0,
+                "image": None,
+            }
+        ],
+    }
+    from chimerax.core.filehistory import FileHistory
+
+    h = FileHistory(test_production_session)
+    assert h.sections == []
+    assert h.current_section is None
+    assert _paths(h.section_files(None)) == ["a.pdb"]
+
+
+def test_sections_survive_older_chimerax_rewriting_history(history, test_production_session):
+    a, b = _add_files(history, "/tmp/a.pdb", "/tmp/b.pdb")
+    history.add_section("P")
+    history.move_file(a, "P")
+    history.save_history()
+
+    # Older ChimeraX rewrites the main history file with only the keys it knows,
+    # and may drop files.  Here it dropped the file that is in a section.
+    main = _MemoryHistory.saved["file_history"]
+    assert set(main.keys()) == {"version", "files"}
+    _MemoryHistory.saved["file_history"] = {
+        "version": 1,
+        "files": [f for f in main["files"] if not f["path"].endswith("a.pdb")],
+    }
+
+    from chimerax.core.filehistory import FileHistory
+
+    restored = FileHistory(test_production_session)
+    assert restored.sections == ["P"]
+    assert _paths(restored.section_files("P")) == ["a.pdb"]
+    assert _paths(restored.section_files(None)) == ["b.pdb"]
+
+
+def test_move_several_files(history):
+    a, b, c, d = _add_files(history, "/tmp/a.pdb", "/tmp/b.pdb", "/tmp/c.pdb", "/tmp/d.pdb")
+    history.add_section("P")
+    history.add_section("Q")
+    history.move_files([a, b], "P")
+    history.move_files([d, c], "P", before=b)
+    assert _paths(history.section_files("P")) == ["a.pdb", "d.pdb", "c.pdb", "b.pdb"]
+
+    # Inserting before one of the moved files places them before the next unmoved file.
+    history.move_files([a, c], "P", before=c)
+    assert _paths(history.section_files("P")) == ["d.pdb", "a.pdb", "c.pdb", "b.pdb"]
+
+    history.move_files([a, b], "Q")
+    assert _paths(history.section_files("P")) == ["d.pdb", "c.pdb"]
+    assert _paths(history.section_files("Q")) == ["a.pdb", "b.pdb"]
+
+    history.move_files([c, d], None)
+    assert history.section_files("P") == []
+    assert set(_paths(history.section_files(None))) == {"c.pdb", "d.pdb"}
+
+
+def test_remove_several_files(history):
+    a, b, c = _add_files(history, "/tmp/a.pdb", "/tmp/b.pdb", "/tmp/c.pdb")
+    history.add_section("P")
+    history.move_files([a, b], "P")
+    history.remove_files([a, c])
+    assert _paths(history.section_files("P")) == ["b.pdb"]
+    assert history.section_files(None) == []
