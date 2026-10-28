@@ -556,20 +556,23 @@ class Tile(QWidget):
         descrip = fspec.path if fspec.database is None else '%s %s' % (fspec.database.upper(), fspec.path)
         self.setToolTip(descrip)
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(3,3,3,3)
-        layout.setSpacing(2)
-        image = QLabel()
-        image.setPixmap(file_history.thumbnail(fspec, used_pixmaps))
-        image.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(image)
-        name = QLabel(file_history.display_name(fspec))
-        name.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._pixmap = file_history.thumbnail(fspec, used_pixmaps)
+        # QPixmap sizes are physical pixels; layout and painting use logical pixels.
+        ratio = self._pixmap.devicePixelRatioF()
+        self._image_size = QSize(round(self._pixmap.width() / ratio),
+                                 round(self._pixmap.height() / ratio))
+        self._name = file_history.display_name(fspec)
+        self.setAccessibleName(self._name)
         from Qt.QtGui import QPalette
-        pal = name.palette()
-        pal.setColor(QPalette.ColorRole.WindowText, pal.color(QPalette.ColorRole.Link))
-        name.setPalette(pal)
-        layout.addWidget(name)
+        self._text_color = QApplication.palette('QLabel').color(QPalette.ColorRole.Link)
+
+    def sizeHint(self):
+        fm = self.fontMetrics()
+        return QSize(max(self._image_size.width(), fm.horizontalAdvance(self._name)) + 6,
+                     self._image_size.height() + fm.height() + 8)
+
+    def minimumSizeHint(self):
+        return self.sizeHint()
 
     def set_selected(self, selected):
         if selected != self._selected:
@@ -585,16 +588,20 @@ class Tile(QWidget):
         self.update()
 
     def paintEvent(self, event):
+        from Qt.QtGui import QPainter, QPalette
+        p = QPainter(self)
         if self._hover or self._selected:
-            from Qt.QtGui import QPainter, QPalette
-            p = QPainter(self)
             p.setRenderHint(QPainter.RenderHint.Antialiasing)
             c = self.palette().color(QPalette.ColorRole.Highlight)
             c.setAlpha(160 if self._selected else 70)
             p.setPen(Qt.PenStyle.NoPen)
             p.setBrush(c)
             p.drawRoundedRect(self.rect(), 4, 4)
-            p.end()
+        p.drawPixmap((self.width() - self._image_size.width()) // 2, 3, self._pixmap)
+        p.setPen(self._text_color)
+        text_rect = QRect(3, self._image_size.height() + 5, self.width() - 6, self.fontMetrics().height())
+        p.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, self._name)
+        p.end()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
