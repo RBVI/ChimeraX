@@ -135,6 +135,19 @@ either the currently <b>visible region</b> (initial default) or the
 that will be composited together to create a single image
    </li><li><b>DPI</b> &ndash; image resolution in pixels per inch
    </li></ul>
+  </li><li><b>Load Color Scheme...</b>
+read a <a href="cxcolor.html#format">parameter file</a> to set the
+coloring of residue codes in the sequence window.
+When a scheme is loaded, the residue codes are colored accordingly
+and the name of the custom coloring file is added to the list of 
+choices for <a href="#coloring"><b>Residue lettering color scheme</b></a>
+in the <a href="#settings-appearance"><b>Appearance</b> preferences</a>.
+The dialog for loading the file includes an option to <b>Make this scheme the default</b>.
+The location of each custom coloring file is saved
+as part of including it in the list of available color schemes.
+rf a custom coloring file is later
+renamed, moved, or deleted, trying to load the corresponding scheme 
+will generate an error.
   </li><li><b>Load Sequence Coloring File...</b> open a
   <a href="../formats/scf.html">sequence coloring file</a>
   to create <a href="#regions">regions</a> and color 
@@ -709,6 +722,7 @@ there can be only one set of saved preference values.
   &ndash; when wrapping, allow breaks at multiples of <i>N</i> residues
   (<b>5</b>)
   </li><li><b>Vertically separate wrapped lines</b> (<b>off</b>)
+  </li><li><b>Residue letter color scheme</b> (<b>contrasting</b>)
   </li></ul>
 </li><li><b>Alignment</b>
   <ul class="none">
@@ -724,6 +738,33 @@ there can be only one set of saved preference values.
   </li><li><b>Show numbering at startup</b> 
   &ndash; whether to show alignment numbering (1, 11, <i>etc.</i>)
   for subsequently opened alignments (<b>on</b>)
+  </li><li><a name="coloring"><b>Residue letter color scheme</b> (<b>contrasting</b>) &ndash; choices are:
+    <ul>
+	<li><b>contrasting</b> &ndash; letter color that best contrasts with the background color
+	of the sequence viewer, so white if a black background and black if a white background.
+	<a name="background-color">
+	The background color will correspond to the user's desktop theme, so white for light
+	themes and black for dark themes.
+	</li><li><b>ClustalX</b> &ndash; use <a href="cxcolor.html">Clustal X coloring</a>,
+	which depends on both residue type and the pattern of conservation within a column
+   </li><li><b>ribbon</b> - color one-letter codes to match the
+    <a href="#association">associated</a> structure residues,
+    the average color where multiple structures are associated, and black
+    where no structures are associated;
+    <a href="../commands/cartoon.html">ribbons</a> will
+    match the lettering, but need not be displayed for this option to work.
+    Possible uses include making the letters match a structure that has been
+    colored <a href="../commands/color.html#byattribute">by attribute</a>, by domain,
+    or over a <a href="../commands/color.html#sequential">rainbow</a> range of hues.
+   </li><li><b>Kyte-Doolittle hydrophobicity</b> - color one-letter codes by
+   <a href="../hydrophobicity.html">Kyte-Doolittle 
+   hydrophobicity</a>, ranging from red for the most hydrophobic 
+   amino acids to blue for the most hydrophilic, with black in the middle
+   </li><li>custom coloring schemes can be listed here by describing them 
+   in the Clustal X <a href="cxcolor.html#format">parameter file format</a> 
+   and reading them in with <b>File... Load Color Scheme</b>
+   in the <b>Sequence Viewer</b> <a href="#context">context menu</a>
+   </li></ul>
   </li></ul>
 </li></ul>
 

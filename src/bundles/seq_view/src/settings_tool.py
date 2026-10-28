@@ -27,6 +27,7 @@ class SettingsTool:
     def __init__(self, sv, tool_window):
         self.sv = sv
         self.tool_window = tool_window
+        tool_window.help = "help:user/tools/sequenceviewer.html#settings"
 
         from .settings import defaults, APPEARANCE, SINGLE_PREFIX, ALIGNMENT_PREFIX
         from chimerax.ui.options import CategorizedSettingsPanel, CategorizedOptionsPanel

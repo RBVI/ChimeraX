@@ -16,7 +16,7 @@ include $(TOP)/mk/config.make
 
 DOCDIR = $(app_datadir)/docs/user/tools
 
-SRCS = $(wildcard *.html)
+SRCS = $(wildcard *.html) $(wildcard *.par)
 IMAGES = $(wildcard *.png) $(wildcard *.svg)
 
 MOUSEICONS = $(TOP)/src/bundles/mouse_modes/src/icons/*.png \

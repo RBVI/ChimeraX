@@ -1,0 +1,47 @@
+# Matches my favorite protein structure coloring scheme.
+# Colors darkened relative to the corresponding Chimera colors.
+# Does not use consensus conditions.
+
+@rgbindex
+ORANGE_RED   0.8 0.2 0.0
+RED          0.8 0.0 0.0
+HOT_PINK     0.8 0.4 0.5
+DP_PINK      0.8 0.2 0.3
+DODGER_BLUE  0.0 0.3 0.8
+BLUE         0.0 0.0 0.8
+DP_SKY_BLUE  0.0 0.5 0.8
+LT_GREEN     0.4 0.7 0.4
+PINK         0.8 0.5 0.6
+PLUM         0.7 0.3 0.7
+GOLD         0.8 0.6 0.0
+GOLDENROD    0.7 0.5 0.0
+DK_KHAKI     0.5 0.5 0.2
+TAN          0.6 0.4 0.3
+SANDY_BROWN  0.7 0.4 0.2
+ROSY_BROWN   0.5 0.4 0.4
+
+@consensus
++ = 80% d:e
+- = 80% h:k:r
+
+@color
+d = ORANGE_RED
+e = RED
+n = HOT_PINK
+q = DP_PINK
+k = DODGER_BLUE
+r = BLUE
+h = DP_SKY_BLUE
+g = LT_GREEN
+p = LT_GREEN
+s = PINK
+t = PLUM
+c = GOLD
+m = GOLDENROD
+a = DK_KHAKI
+v = DK_KHAKI
+i = TAN
+l = TAN
+f = SANDY_BROWN
+w = SANDY_BROWN
+y = ROSY_BROWN

@@ -40,7 +40,7 @@ class ColorSchemeDialog:
 
         self.file_opt = InputFileOption("Color scheme file:", None, None)
         options_panel.add_option(self.file_opt)
-        self.default_opt = BooleanOption("Make scheme default:", True, None)
+        self.default_opt = BooleanOption("Make this scheme the default:", True, None)
         options_panel.add_option(self.default_opt)
 
         from Qt.QtWidgets import QDialogButtonBox as qbbox
