@@ -91,7 +91,7 @@ def test_icon_factory_waits_for_tab_and_survives_layout_rebuild(toolbar):
     assert calls == [True]
 
 
-def test_highlight_resolves_icon_once_before_hidden_tab_is_shown(toolbar):
+def test_highlight_waits_for_hidden_tab_and_resolves_icon_once(toolbar):
     calls = []
     def no_icon():
         calls.append(True)
@@ -101,8 +101,11 @@ def test_highlight_resolves_icon_once_before_hidden_tab_is_shown(toolbar):
     toolbar.add_button_highlight('Later', 'Modes', 'Move')
     section = toolbar._buttons['Later']['Modes']
     assert not section.createdWidgets()
-    assert calls == [True]
+    assert calls == []
     toolbar.show_tab('Later')
+    parent = section.createdWidgets()[0]
+    assert not section.get_qt_button_action(parent, 'Move').icon().isNull()
+    assert calls == [True]
     toolbar.remove_button_highlight('Later', 'Modes', 'Move')
     toolbar.set_show_button_titles(False)
     assert section._buttons[0].icon is None
@@ -117,3 +120,34 @@ def test_clearing_unvisited_tab_does_not_load_icons(toolbar):
     toolbar.clear_tab('Later')
     toolbar.add_button('Later', 'Actions', 'New', None)
     toolbar.show_tab('Later')
+
+
+def test_highlight_on_visible_tab_is_drawn_immediately(toolbar):
+    from Qt.QtGui import QColor
+    toolbar.add_button('Home', 'Modes', 'Move', None)
+    section = toolbar._buttons['Home']['Modes']
+    parent = section.createdWidgets()[0]
+    assert section.get_qt_button_action(parent, 'Move').icon().isNull()
+    toolbar.add_button_highlight('Home', 'Modes', 'Move')
+    parent = section.createdWidgets()[0]
+    icon = section.get_qt_button_action(parent, 'Move').icon()
+    assert not icon.isNull()
+    toolbar.remove_button_highlight('Home', 'Modes', 'Move')
+    assert section.get_qt_button_action(parent, 'Move').icon().isNull()
+    section.highlight_color = QColor('red')
+    toolbar.add_button_highlight('Home', 'Modes', 'Move')
+    image = section.get_qt_button_action(parent, 'Move').icon().pixmap(8, 8).toImage()
+    assert image.pixelColor(4, 4).red() == 255
+
+
+def test_changing_highlight_color_redraws_only_highlighted_buttons(toolbar):
+    from Qt.QtGui import QColor
+    toolbar.add_button('Home', 'Main', 'Home', None)
+    toolbar.add_button('Later', 'Modes', 'Move', None)
+    toolbar.add_button('Later', 'Modes', 'Turn', None)
+    toolbar.add_button_highlight('Later', 'Modes', 'Move')
+    section = toolbar._buttons['Later']['Modes']
+    section.set_highlight_color(QColor('red'))
+    move, turn = section._buttons
+    assert move.highlighted and not turn.highlighted
+    assert move.highlight_icon.pixmap(8, 8).toImage().pixelColor(4, 4).red() == 255
