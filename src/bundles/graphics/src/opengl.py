@@ -132,6 +132,7 @@ class OpenGLContext:
 
     def _initialize_context(self, mode = None, window = None):
         '''Can raise OpenGLError, or OpenGLVersion error.'''
+        _wait_for_driver_warmup()
         if mode is None:
             mode = self._mode
 
@@ -354,6 +355,65 @@ def _set_windows_swap_interval(wait):
     except Exception:
         success = False
     return success
+
+_driver_warmup = None
+def start_driver_warmup(app):
+    '''
+    Initialize the OpenGL driver in a background thread while bundles
+    initialize, by creating Qt's global share context (contexts share with
+    it when Qt.AA_ShareOpenGLContexts is set).  With NVIDIA's Linux driver
+    that is ~40 ms of CPU time, which the first graphics context otherwise
+    pays while the main window is shown.  The first context made in the main
+    thread still costs ~20 ms of per-thread driver setup.
+
+    QOpenGLContext::globalShareContext() is called through ctypes so the
+    thread runs without the GIL, and the context is moved to the main thread,
+    where Qt deletes it.  Linux only; returns whether the thread was started.
+    '''
+    global _driver_warmup
+    import sys
+    if sys.platform != 'linux' or _driver_warmup is not None:
+        return False
+    from Qt.QtCore import QCoreApplication, Qt
+    if not QCoreApplication.testAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts):
+        return False
+    import ctypes
+    try:
+        gui = ctypes.CDLL('libQt6Gui.so.6')
+        core = ctypes.CDLL('libQt6Core.so.6')
+        share_context = gui._ZN14QOpenGLContext18globalShareContextEv
+        move_to_thread = core._ZN7QObject12moveToThreadEP7QThread
+        from shiboken6 import getCppPointer
+        main_thread = getCppPointer(app.thread())[0]
+    except (OSError, AttributeError, ImportError, TypeError):
+        return False
+    share_context.argtypes = []
+    share_context.restype = ctypes.c_void_p
+    move_to_thread.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+    move_to_thread.restype = None
+
+    def warmup():
+        try:
+            context = share_context()
+            if context:
+                move_to_thread(context, main_thread)
+        except Exception:
+            pass	# The first graphics context initializes the driver instead.
+
+    from threading import Thread
+    thread = Thread(target=warmup, name='ChimeraX OpenGL driver warmup', daemon=True)
+    try:
+        thread.start()
+    except RuntimeError:
+        return False
+    _driver_warmup = thread
+    return True
+
+def _wait_for_driver_warmup():
+    global _driver_warmup
+    if _driver_warmup:
+        _driver_warmup.join()
+        _driver_warmup = False	# Done; never start again.
 
 _initialized_pyopengl = False
 def _initialize_pyopengl(log_opengl_calls = False, offscreen = False):
