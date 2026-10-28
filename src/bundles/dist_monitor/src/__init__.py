@@ -23,7 +23,27 @@
 # === UCSF ChimeraX Copyright ===
 
 from chimerax.core.toolshed import BundleAPI
-from .cmd import SimpleMeasurable, ComplexMeasurable
+
+
+def __getattr__(name):
+    if name in ('SimpleMeasurable', 'ComplexMeasurable'):
+        from importlib import import_module
+        value = getattr(import_module('.cmd', __name__), name)
+        globals()[name] = value
+        return value
+    if name == 'cmd':
+        from importlib import import_module
+        value = import_module('.cmd', __name__)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))
+
+
+__all__ = ['BundleAPI', 'SimpleMeasurable', 'ComplexMeasurable', 'cmd', 'bundle_api']
 
 class _DistMonitorBundleAPI(BundleAPI):
 
