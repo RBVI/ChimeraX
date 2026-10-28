@@ -937,9 +937,31 @@ class Toolshed:
         failed = []
         done = set()
         initializing = set()
-        for bi in self._installed_bundle_info:
-            self._init_bundle_manager(session, bi, done, initializing, failed)
+        # Startup creates the managers one after another.  Find the providers
+        # for all of them in one pass over the bundles instead of one pass
+        # per manager.
+        self._startup_providers = self._providers_by_manager()
+        try:
+            for bi in self._installed_bundle_info:
+                self._init_bundle_manager(session, bi, done, initializing, failed)
+        finally:
+            self._startup_providers = None
         return failed
+
+    def _providers_by_manager(self):
+        """{(manager name, installed): [(bundle info, key, provider name), ...]}
+        in the order _init_single_manager() would offer them.  Options are
+        looked up by key when offered, since they may be edited or replaced."""
+        index = {}
+        for installed, bundles in ((True, self._installed_bundle_info),
+                                   (False, self._available_bundle_info or ())):
+            for pbi in bundles:
+                if not pbi.providers:
+                    continue
+                for name in pbi.providers:
+                    manager, provider = name.split('/', 1)
+                    index.setdefault((manager, installed), []).append((pbi, name, provider))
+        return index
 
     def _init_bundle_manager(self, session, bi, done, initializing, failed):
         if not bi.managers or bi in done:
@@ -976,16 +998,28 @@ class Toolshed:
         done.add(bi)
 
     def _init_single_manager(self, mgr):
-        if self._available_bundle_info and getattr(mgr, 'uses_uninstalled_providers', True):
-            all_bundles = self._installed_bundle_info + self._available_bundle_info
-        else:
-            all_bundles = self._installed_bundle_info
+        uninstalled = bool(self._available_bundle_info) and getattr(
+            mgr, 'uses_uninstalled_providers', True)
         self._manager_instances[mgr.name] = mgr
-        for pbi in all_bundles:
-            if not pbi.providers:
-                continue
-            for pvdr, kw in pbi._providers_for_manager(mgr.name):
-                mgr.add_provider(pbi, pvdr, **kw)
+        index = getattr(self, '_startup_providers', None)
+        if index is not None:
+            providers = index.get((mgr.name, True), [])
+            if uninstalled:
+                providers = providers + index.get((mgr.name, False), [])
+            for pbi, name, pvdr in providers:
+                kw = pbi.providers.get(name)
+                if kw is not None:
+                    mgr.add_provider(pbi, pvdr, **kw)
+        else:
+            if uninstalled:
+                all_bundles = self._installed_bundle_info + self._available_bundle_info
+            else:
+                all_bundles = self._installed_bundle_info
+            for pbi in all_bundles:
+                if not pbi.providers:
+                    continue
+                for pvdr, kw in pbi._providers_for_manager(mgr.name):
+                    mgr.add_provider(pbi, pvdr, **kw)
         mgr.end_providers()
 
     def import_bundle(self, bundle_name, logger, install="ask", session=None):
