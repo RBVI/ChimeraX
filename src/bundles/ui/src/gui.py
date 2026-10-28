@@ -27,7 +27,7 @@ in a thread-safe manner.  The UI instance is accessed as session.ui.
 """
 
 from Qt.QtWidgets import QApplication
-from chimerax.core.logger import PlainTextLog
+from chimerax.core.logger import HtmlLog
 import site
 import sys
 from contextlib import contextmanager
@@ -612,7 +612,9 @@ class UI(QApplication):
 
 
 from Qt.QtWidgets import QMainWindow, QStackedWidget, QLabel, QToolButton, QWidget
-class MainWindow(QMainWindow, PlainTextLog):
+# This log consumer only handles status messages. Accept HTML unchanged so
+# regular messages are not converted to plain text before log() discards them.
+class MainWindow(QMainWindow, HtmlLog):
 
     def __init__(self, ui, session):
         self.session = session
