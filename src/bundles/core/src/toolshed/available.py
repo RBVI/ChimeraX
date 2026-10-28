@@ -188,9 +188,11 @@ class AvailableBundleCache(list):
             pass
 
     def _build_bundles(self, data, requirement_checks=None):
-        from packaging.version import Version
         import chimerax.core
-        my_version = Version(chimerax.core.version)
+        # A version string: SpecifierSet.contains() parses it if a requirement
+        # is not already in requirement_checks, so a start with every check
+        # cached does not import packaging.version.
+        my_version = chimerax.core.version
         # Share compatibility decisions, never mutable Requirement objects.
         if requirement_checks is None:
             requirement_checks = {}

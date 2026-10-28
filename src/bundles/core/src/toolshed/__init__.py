@@ -771,7 +771,6 @@ class Toolshed:
             container = self._installed_bundle_info
         else:
             container = self._get_available_bundles(logger)
-        from packaging.version import Version
 
         # put the below kludge in to allow sessions saved before some
         # bundles got renamed to restore
@@ -813,7 +812,6 @@ class Toolshed:
             if version is None:
                 if best_bi is None:
                     best_bi = bi
-                    best_version = Version(bi.version)
                 elif best_bi.name != bi.name:
                     logger.warning(
                         "%r matches multiple bundles %s, %s"
@@ -821,6 +819,10 @@ class Toolshed:
                     )
                     return None
                 else:
+                    # Only parse versions when there are several to compare.
+                    from packaging.version import Version
+                    if best_version is None:
+                        best_version = Version(best_bi.version)
                     v = Version(bi.version)
                     if v > best_version:
                         best_bi = bi
