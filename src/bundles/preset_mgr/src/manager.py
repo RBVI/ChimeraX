@@ -25,6 +25,8 @@
 from chimerax.core.toolshed import ProviderManager
 class PresetsManager(ProviderManager):
     """Manager for presets"""
+    # add_provider() ignores bundles that are not installed.
+    uses_uninstalled_providers = False
 
     def __init__(self, session, name):
         self.session = session

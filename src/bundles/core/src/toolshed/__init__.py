@@ -976,7 +976,7 @@ class Toolshed:
         done.add(bi)
 
     def _init_single_manager(self, mgr):
-        if self._available_bundle_info:
+        if self._available_bundle_info and getattr(mgr, 'uses_uninstalled_providers', True):
             all_bundles = self._installed_bundle_info + self._available_bundle_info
         else:
             all_bundles = self._installed_bundle_info
@@ -1138,6 +1138,12 @@ class Toolshed:
 
 class ProviderManager(metaclass=abc.ABCMeta):
     """API for managers created by bundles"""
+
+    # Whether add_provider() should also be called for the providers of
+    # bundles that are available from the Toolshed but not installed.  A
+    # manager that ignores them can set this False, which saves thousands of
+    # calls at startup.
+    uses_uninstalled_providers = True
 
     def __init__(self, manager_name):
         self.name = manager_name
