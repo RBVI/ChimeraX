@@ -33,12 +33,12 @@ remembered so that new messages are appended and a changed message (e.g.,
 import base64
 from bisect import bisect_right
 
-from Qt.QtCore import Qt, QBuffer, QByteArray, QEvent, QPointF, QRectF, QSize
+from Qt.QtCore import Qt, QEvent, QSize
 from Qt.QtGui import (
-    QColor, QFont, QFontDatabase, QFontInfo, QImage, QPainter, QPalette, QPen,
-    QTextBlockFormat, QTextCharFormat, QTextCursor, QTextDocument, QTextFrameFormat,
+    QColor, QFont, QFontDatabase, QPalette,
+    QTextBlockFormat, QTextCharFormat, QTextCursor, QTextDocument,
 )
-from Qt.QtWidgets import QTextBrowser, QToolTip
+from Qt.QtWidgets import QTextBrowser
 
 from .parse import (
     tokenize, Command, Disclosure, select_command_variant, replace_inline_blocks, drop_redundant_breaks,
@@ -212,6 +212,7 @@ class LogView(QTextBrowser):
 
     def _swatch_html(self, props):
         """Draw an inline-block div, e.g., a color swatch, as an image."""
+        from Qt.QtGui import QFontInfo
         em = QFontInfo(self.font()).pixelSize()
         width = css_length(props.get("width"), em) or em
         height = css_length(props.get("height"), em) or em
@@ -222,6 +223,8 @@ class LogView(QTextBrowser):
         return self._swatches[key]
 
     def _swatch_image(self, width, height, background, border_width, border_color):
+        from Qt.QtCore import QBuffer, QByteArray, QRectF
+        from Qt.QtGui import QImage, QPainter, QPen
         scale = 2  # stay sharp on high resolution displays
         w, h = width + 2 * border_width, height + 2 * border_width
         image = QImage(max(round(w * scale), 1), max(round(h * scale), 1), QImage.Format.Format_ARGB32)
@@ -258,6 +261,7 @@ class LogView(QTextBrowser):
         self._new_block = True
 
     def _insert_disclosure(self, cursor, piece):
+        from Qt.QtGui import QTextFrameFormat
         expanded = piece.open != (piece.offset in self._toggled)
         # A frame paints its background across its blocks' margins too,
         # which per-block backgrounds do not.
@@ -353,6 +357,8 @@ class LogView(QTextBrowser):
     def viewportEvent(self, event):
         # QTextBrowser doesn't show tooltips from title attributes
         if event.type() == QEvent.Type.ToolTip:
+            from Qt.QtCore import QPointF
+            from Qt.QtWidgets import QToolTip
             offset = QPointF(self.horizontalScrollBar().value(), self.verticalScrollBar().value())
             pos = self.document().documentLayout().hitTest(
                 QPointF(event.pos()) + offset, Qt.HitTestAccuracy.ExactHit)
@@ -404,6 +410,7 @@ class LogView(QTextBrowser):
         reply.finished.connect(lambda reply=reply, url=url: self._image_fetched(reply, url))
 
     def _image_fetched(self, reply, url):
+        from Qt.QtGui import QImage
         from Qt.QtNetwork import QNetworkReply
         try:
             if reply.error() != QNetworkReply.NetworkError.NoError:
