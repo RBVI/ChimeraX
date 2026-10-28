@@ -462,25 +462,39 @@ class BundleInfo:
         # actually importing the Python package
         if not filename:
             return None
+        locations = self._package_locations()
+        import os.path
+        for d in locations:
+            p = os.path.join(d, filename)
+            if os.path.exists(p):
+                return p
+        return None
+
+    def _package_locations(self):
+        # Searching for a package that isn't imported walks sys.path and every
+        # editable-install finder, and toolbar icons look up many such paths
+        # at startup.  Remember where a package was found; a reinstalled
+        # bundle gets a new BundleInfo when the toolshed reloads.
+        name = self.package_name
+        cached = getattr(self, '_package_search_locations', None)
+        if cached is not None and cached[0] == name:
+            return cached[1]
         from importlib.util import find_spec
         try:
-            s = find_spec(self.package_name)
-            if s is None:
-                return None
+            s = find_spec(name)
         except ModuleNotFoundError:
-            return None
-        import os.path
-        if s.submodule_search_locations:
-            for d in s.submodule_search_locations:
-                p = os.path.join(d, filename)
-                if os.path.exists(p):
-                    return p
-        return None
+            s = None
+        if s is None or not s.submodule_search_locations:
+            return ()
+        locations = tuple(s.submodule_search_locations)
+        self._package_search_locations = (name, locations)
+        return locations
 
     def unload(self, logger):
         """Supported API. Unload bundle modules (as best as we can)."""
         import sys
         logger.info("unloading module %s" % self.package_name)
+        self._package_search_locations = None
         name = self.package_name
         prefix = name + '.'
         remove_list = [k for k in sys.modules.keys()
