@@ -46,9 +46,13 @@ class _BootstrapAPI(BundleAPI):
     @staticmethod
     def initialize(session, bundle_info):
         # 'initialize' is called by the toolshed on start up
-        from . import cmd
         from chimerax.core import toolshed
-        cmd.register_command(session.logger)
+        from chimerax.core.commands.cli import delay_registration
+
+        def register_updates():
+            from . import cmd
+            cmd.register_command(session.logger)
+        delay_registration("toolshed updates", register_updates, logger=session.logger)
 
         def show_updates(trigger_name, data, *, session=session):
             from . import tool
