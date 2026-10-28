@@ -135,6 +135,12 @@ class UI(QApplication):
         QApplication.__init__(self, [ad.appname])
         from . import desktop_settings
         desktop_settings.apply_settings(self)
+        # Before the driver warmup: while the driver loads its libraries,
+        # the dynamic loader lock makes CDLL wait.
+        from .font import _start_font_cache
+        self._font_cache_thread = _start_font_cache(self)
+        if self._font_cache_thread is not None:
+            self.aboutToQuit.connect(self._wait_for_font_cache)
         from chimerax.graphics.opengl import start_driver_warmup
         start_driver_warmup(self)
         import sys
@@ -172,10 +178,6 @@ class UI(QApplication):
                     min(len(saved_colors), QColorDialog.customCount())]):
                 QColorDialog.setCustomColor(slot, QColor(*custom_rgba))
 
-        from .font import _start_font_cache
-        self._font_cache_thread = _start_font_cache(self)
-        if self._font_cache_thread is not None:
-            self.aboutToQuit.connect(self._wait_for_font_cache)
 
     def _wait_for_font_cache(self):
         worker = self._font_cache_thread
