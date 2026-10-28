@@ -32,7 +32,39 @@ FORMAT_VERSION = 2
 
 
 class _AvailableBundleInfo(BundleInfo):
-    """Keep catalog requirements lazy until their complete list is requested."""
+    """Resolve catalog requirements and UI records only when requested."""
+
+    def _set_ui_entries(self, data):
+        # Keep the catalog's raw UI sections until a caller requests their
+        # records. Startup provider registration needs none of these lists.
+        for section, attribute in (('tool', 'tools'), ('command', 'commands'),
+                                   ('selector', 'selectors')):
+            entries = data.get(section)
+            if entries:
+                self.__dict__['_' + section + '_data'] = entries
+                del self.__dict__[attribute]
+
+    @cached_property
+    def tools(self):
+        from .info import ToolInfo
+        records = [ToolInfo(name, fields.get('categories', []), fields.get('synopsis', ''))
+                   for name, fields in self._tool_data.items()]
+        return self.__dict__.setdefault('tools', records)
+
+    @cached_property
+    def commands(self):
+        from .info import CommandInfo
+        records = [CommandInfo(name, fields.get('categories', []), fields.get('synopsis', ''))
+                   for name, fields in self._command_data.items()]
+        return self.__dict__.setdefault('commands', records)
+
+    @cached_property
+    def selectors(self):
+        from .info import SelectorInfo
+        records = [SelectorInfo(name, fields.get('synopsis', ''),
+                                fields.get('atomic', '').lower() != 'false')
+                   for name, fields in self._selector_data.items()]
+        return self.__dict__.setdefault('selectors', records)
 
     def _set_requirements(self, requirements):
         self._requirement_strings = tuple(requirements)
@@ -261,56 +293,7 @@ def _build_bundle(d, format_version=1):
     requires = bundle_d.get("requires", [])
     bi._set_requirements(requires)
 
-    #
-    # Process tool information
-    #
-    try:
-        tool_d = d["tool"]
-    except KeyError:
-        # No tools defined
-        pass
-    else:
-        from .info import ToolInfo
-        for tool_name, td in tool_d.items():
-            # _debug("processing tool: %s" % tool_name)
-            categories = td.get("categories", [])
-            synopsis = td.get("synopsis", "")
-            ti = ToolInfo(tool_name, categories, synopsis)
-            bi.tools.append(ti)
-
-    #
-    # Process command information
-    #
-    try:
-        cmd_d = d["command"]
-    except KeyError:
-        # No commands defined
-        pass
-    else:
-        from .info import CommandInfo
-        for cmd_name, cd in cmd_d.items():
-            # _debug("processing command: %s" % cmd_name)
-            categories = cd.get("categories", [])
-            synopsis = cd.get("synopsis", "")
-            ci = CommandInfo(cmd_name, categories, synopsis)
-            bi.commands.append(ci)
-
-    #
-    # Process selector information
-    #
-    try:
-        sel_d = d["selector"]
-    except KeyError:
-        # No selectors defined
-        pass
-    else:
-        from .info import SelectorInfo
-        for sel_name, sd in sel_d.items():
-            # _debug("processing selector: %s" % sel_name)
-            synopsis = sd.get("synopsis", "")
-            atomic = sd.get("atomic", "").lower() != "false"
-            si = SelectorInfo(sel_name, synopsis, atomic)
-            bi.selectors.append(si)
+    bi._set_ui_entries(d)
 
     #
     # Process manager information
