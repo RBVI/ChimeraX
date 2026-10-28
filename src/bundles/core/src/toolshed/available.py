@@ -24,9 +24,35 @@
 
 
 from . import _debug
+from .info import BundleInfo
+from functools import cached_property
 
 _CACHE_FILE = "available.json"
 FORMAT_VERSION = 2
+
+
+class _AvailableBundleInfo(BundleInfo):
+    """Keep catalog requirements lazy until their complete list is requested."""
+
+    def _set_requirements(self, requirements):
+        self._requirement_strings = tuple(requirements)
+        self._parsed_requirements = {}
+
+    def _iter_requires(self):
+        # Once exposed, use the same mutable list callers have been given.
+        if 'requires' in self.__dict__:
+            yield from self.requires
+            return
+        for index, text in enumerate(self._requirement_strings):
+            if index not in self._parsed_requirements:
+                self._parsed_requirements[index] = _parse_requires(text)
+            requirement = self._parsed_requirements[index]
+            if requirement is not None:
+                yield requirement
+
+    @cached_property
+    def requires(self):
+        return list(self._iter_requires())
 
 
 class AvailableBundleCache(list):
@@ -86,10 +112,13 @@ class AvailableBundleCache(list):
             data = json.load(f)
         self._build_bundles(data)
 
-    def _build_bundles(self, data):
+    def _build_bundles(self, data, requirement_checks=None):
         from packaging.version import Version
         import chimerax.core
         my_version = Version(chimerax.core.version)
+        # Share compatibility decisions, never mutable Requirement objects.
+        if requirement_checks is None:
+            requirement_checks = {}
         for d in data:
             if isinstance(d, list):
                 if d[0] == 'format_version':
@@ -100,24 +129,29 @@ class AvailableBundleCache(list):
                 b = _build_bundle(d, self.format_version)
                 if not b:
                     continue
-                if self._installable(b, my_version):
+                if self._installable(b, my_version, requirement_checks):
                     self.append(b)
                 else:
                     self.uninstallable.append(b)
                 self._index[b.name] = b
 
-    def _installable(self, b, my_version):
-        installable = False
-        for require in b.requires:
-            if require.name != "ChimeraX-Core":
-                continue
-            if require.marker is None:
-                okay = True
-            else:
-                okay = require.marker.evaluate()
-            installable = okay and require.specifier.contains(my_version, prereleases=True)
-            break
-        return installable
+    def _installable(self, b, my_version, requirement_checks=None):
+        if requirement_checks is not None and 'requires' not in b.__dict__:
+            for text in b._requirement_strings:
+                if text not in requirement_checks:
+                    requirement_checks[text] = _core_requirement_satisfied(
+                        _parse_requires(text), my_version)
+                result = requirement_checks[text]
+                if result is not None:
+                    return result
+        else:
+            # Once a caller exposes/edits requires, honor that bundle's own
+            # objects.  Direct checks retain the existing prefix parse cache.
+            for require in b._iter_requires():
+                result = _core_requirement_satisfied(require, my_version)
+                if result is not None:
+                    return result
+        return False
 
     def find_by_name(self, name):
         try:
@@ -150,7 +184,6 @@ def _build_bundle(d, format_version=1):
     #
     # First create BundleInfo instance
     #
-    from .info import BundleInfo
     kw = {}
     kw["name"] = d["bundle_name"].replace("_", "-")
     try:
@@ -174,7 +207,7 @@ def _build_bundle(d, format_version=1):
     _set_value(kw, bundle_d, "api_package_name")
     _set_value(kw, bundle_d, "supersedes")
     _set_value(kw, bundle_d, "custom_init", lambda v: v == "true")
-    bi = BundleInfo(installed=False, **kw)
+    bi = _AvailableBundleInfo(installed=False, **kw)
 
     if format_version >= 2:
         bi.release_file = d.get('release_file', None)
@@ -183,7 +216,7 @@ def _build_bundle(d, format_version=1):
     # Squirrel away requirements information
     #
     requires = bundle_d.get("requires", [])
-    bi.requires = [r for r in [_parse_requires(r) for r in requires] if r]
+    bi._set_requirements(requires)
 
     #
     # Process tool information
@@ -300,3 +333,13 @@ def _parse_requires(r):
     except InvalidRequirement:
         return None
     return require
+
+
+def _core_requirement_satisfied(require, my_version):
+    # None means this is not a Core requirement.  False must stop the scan:
+    # only the first Core requirement controls compatibility.
+    if require is None or require.name != "ChimeraX-Core":
+        return None
+    if require.marker is not None and not require.marker.evaluate():
+        return False
+    return require.specifier.contains(my_version, prereleases=True)
