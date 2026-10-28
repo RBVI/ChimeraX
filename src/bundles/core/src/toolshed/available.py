@@ -110,7 +110,50 @@ class AvailableBundleCache(list):
         with open(os.path.join(self.cache_dir, _CACHE_FILE), encoding='utf-8') as f:
             import json
             data = json.load(f)
-        self._build_bundles(data)
+            stat = os.fstat(f.fileno())
+        import chimerax.core
+        import packaging
+        # A changed catalog or compatibility evaluator must start fresh.
+        key = [1, chimerax.core.version, packaging.__version__,
+               stat.st_mtime_ns, stat.st_size]
+        checks = self._read_compatibility_cache(key)
+        previous = checks.copy()
+        self._build_bundles(data, checks)
+        # Markers depend on the current environment, not just Core's version.
+        persistent = {text: result for text, result in checks.items() if ';' not in text}
+        if persistent != previous:
+            self._write_compatibility_cache(key, persistent)
+
+    def _read_compatibility_cache(self, key):
+        import json
+        import os
+        try:
+            with open(os.path.join(self.cache_dir, 'core-compatibility.json'),
+                      encoding='utf-8') as f:
+                data = json.load(f)
+        except (OSError, ValueError):
+            return {}
+        if not isinstance(data, list) or len(data) != 2 or data[0] != key:
+            return {}
+        checks = data[1]
+        if not isinstance(checks, dict) or any(
+                not isinstance(text, str) or ';' in text
+                or (result is not None and type(result) is not bool)
+                for text, result in checks.items()):
+            return {}
+        return checks
+
+    def _write_compatibility_cache(self, key, checks):
+        import json
+        import os
+        from ..safesave import SaveTextFile
+        try:
+            with SaveTextFile(os.path.join(self.cache_dir, 'core-compatibility.json'),
+                              encoding='utf-8') as f:
+                json.dump([key, checks], f)
+        except OSError:
+            # This optional cache must not prevent loading the catalog.
+            pass
 
     def _build_bundles(self, data, requirement_checks=None):
         from packaging.version import Version
