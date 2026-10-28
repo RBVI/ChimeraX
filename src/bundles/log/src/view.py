@@ -33,12 +33,12 @@ remembered so that new messages are appended and a changed message (e.g.,
 import base64
 from bisect import bisect_right
 
-from Qt.QtCore import Qt, QBuffer, QByteArray, QEvent, QRectF, QSize
+from Qt.QtCore import Qt, QBuffer, QByteArray, QEvent, QPointF, QRectF, QSize
 from Qt.QtGui import (
     QColor, QFont, QFontDatabase, QFontInfo, QImage, QPainter, QPalette, QPen,
     QTextBlockFormat, QTextCharFormat, QTextCursor, QTextDocument, QTextFrameFormat,
 )
-from Qt.QtWidgets import QTextBrowser
+from Qt.QtWidgets import QTextBrowser, QToolTip
 
 from .parse import (
     tokenize, Command, Disclosure, select_command_variant, replace_inline_blocks, drop_redundant_breaks,
@@ -46,15 +46,18 @@ from .parse import (
 )
 
 TOGGLE_SCHEME = "cxlog-toggle"
+_IMAGE_RESOURCE = QTextDocument.ResourceType.ImageResource.value
 
 
 class LogView(QTextBrowser):
 
-    def __init__(self, parent, *, link_cb, command_color_cb, context_menu_cb=None, size_hint=None):
+    def __init__(self, parent, *, link_cb, command_color_cb, context_menu_cb=None, size_hint=None,
+                 user_agent=None):
         """
         link_cb : called with a QUrl when a link other than a disclosure toggle is clicked
         command_color_cb : returns the background color name for command echoes
         context_menu_cb : called with the QContextMenuEvent instead of showing Qt's menu
+        user_agent : User-Agent header for fetching remote images
         """
         super().__init__(parent)
         self._link_cb = link_cb
@@ -88,6 +91,9 @@ class LogView(QTextBrowser):
         # offsets of <details> whose open/closed state the user changed
         self._toggled = set()
         self._swatches = {}
+        self._user_agent = user_agent
+        self._network = None
+        self._fetched_images = set()
 
     def set_content(self, source, starts, dirty_from, *, replaced=False, scroll_to_end=True):
         """Show log HTML 'source', whose messages begin at offsets 'starts'.
@@ -344,6 +350,25 @@ class LogView(QTextBrowser):
     def _value_changed(self, value):
         self._pin_bottom = value >= self.verticalScrollBar().maximum()
 
+    def viewportEvent(self, event):
+        # QTextBrowser doesn't show tooltips from title attributes
+        if event.type() == QEvent.Type.ToolTip:
+            offset = QPointF(self.horizontalScrollBar().value(), self.verticalScrollBar().value())
+            pos = self.document().documentLayout().hitTest(
+                QPointF(event.pos()) + offset, Qt.HitTestAccuracy.ExactHit)
+            tip = ""
+            if 0 <= pos < self.document().characterCount() - 1:
+                cursor = QTextCursor(self.document())
+                cursor.setPosition(pos + 1)
+                tip = cursor.charFormat().toolTip()
+            if tip:
+                QToolTip.showText(event.globalPos(), tip, self.viewport())
+            else:
+                QToolTip.hideText()
+                event.ignore()
+            return True
+        return super().viewportEvent(event)
+
     def changeEvent(self, event):
         super().changeEvent(event)
         if event.type() == QEvent.Type.PaletteChange and self._rendered:
@@ -356,6 +381,41 @@ class LogView(QTextBrowser):
             self._context_menu_cb(event)
         else:
             super().contextMenuEvent(event)
+
+    def loadResource(self, resource_type, url):
+        # QTextBrowser only loads local files, so fetch remote images in
+        # the background and lay out again when they arrive
+        if resource_type == _IMAGE_RESOURCE and url.scheme() in ("http", "https"):
+            key = url.toString()
+            if key not in self._fetched_images:
+                self._fetched_images.add(key)
+                self._fetch_image(url)
+            return None
+        return super().loadResource(resource_type, url)
+
+    def _fetch_image(self, url):
+        from Qt.QtNetwork import QNetworkAccessManager, QNetworkRequest
+        if self._network is None:
+            self._network = QNetworkAccessManager(self)
+        request = QNetworkRequest(url)
+        if self._user_agent:
+            request.setHeader(QNetworkRequest.KnownHeaders.UserAgentHeader, self._user_agent)
+        reply = self._network.get(request)
+        reply.finished.connect(lambda reply=reply, url=url: self._image_fetched(reply, url))
+
+    def _image_fetched(self, reply, url):
+        from Qt.QtNetwork import QNetworkReply
+        try:
+            if reply.error() != QNetworkReply.NetworkError.NoError:
+                return
+            image = QImage.fromData(reply.readAll())
+            if image.isNull():
+                return
+            doc = self.document()
+            doc.addResource(_IMAGE_RESOURCE, url, image)
+            doc.markContentsDirty(0, doc.characterCount())
+        finally:
+            reply.deleteLater()
 
     def sizeHint(self):
         if self._size_hint:
