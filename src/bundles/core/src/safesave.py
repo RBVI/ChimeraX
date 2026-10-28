@@ -46,7 +46,7 @@ or::
         f.close(e)
 
 """
-import os, psutil
+import os
 
 
 class SaveFile:
@@ -80,11 +80,11 @@ class SaveFile:
             raise OSError(errno.ENOTDIR, os.strerror(errno.ENOTDIR), save_dir)
         self.name = filename
         self._critical = critical
-        # prevent conflicts between ChimeraX's running/starting at the same time
-        # Flatpak processes may have the same PID (typically 2), so also embed
-        # process start time
-        pid = os.getpid()
-        self._tmp_filename = filename + "." + str(pid) + "." + str(psutil.Process(pid).create_time()) + ".tmp"
+        # A random token distinguishes both simultaneous saves in this process
+        # and processes with the same PID in different Flatpak containers.
+        # No process inspection is needed on the settings-save startup path.
+        token = os.urandom(16).hex()
+        self._tmp_filename = filename + "." + str(os.getpid()) + "." + token + ".tmp"
         self._f = open(self._tmp_filename)
         assert(self._f.writable())
 
