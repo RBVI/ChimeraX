@@ -12,7 +12,7 @@
 # === UCSF ChimeraX Copyright ===
 
 from Qt.QtCore import Qt, QSize, QRect, QPoint
-from Qt.QtWidgets import QLayout
+from Qt.QtWidgets import QWidget, QLabel, QLayout, QVBoxLayout
 
 
 class FileHistory:
@@ -148,6 +148,128 @@ class HistoryWindow(ChimeraXHtmlView):
     def clear_file_history(self):
         from chimerax.core.filehistory import file_history
         file_history(self.session).clear_file_history()
+
+class TileArea(QWidget):
+    '''Thumbnails laid out in rows that wrap to the widget width.'''
+    def __init__(self, file_history, files, used_pixmaps):
+        super().__init__()
+        self._layout = layout = FlowLayout(self, spacing = 8)
+        layout.setContentsMargins(4,0,4,0)
+        self.tiles = [Tile(file_history, fs, used_pixmaps) for fs in files]
+        for t in self.tiles:
+            layout.addWidget(t)
+
+class Tile(QWidget):
+    '''Thumbnail image and file name.  Click to open.'''
+    def __init__(self, file_history, fspec, used_pixmaps):
+        super().__init__()
+        self._file_history = file_history
+        self.file_spec = fspec
+        self._press_pos = None
+        self._hover = False
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        descrip = fspec.path if fspec.database is None else '%s %s' % (fspec.database.upper(), fspec.path)
+        self.setToolTip(descrip)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(3,3,3,3)
+        layout.setSpacing(2)
+        image = QLabel()
+        image.setPixmap(file_history.thumbnail(fspec, used_pixmaps))
+        image.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(image)
+        name = QLabel(file_history.display_name(fspec))
+        name.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        from Qt.QtGui import QPalette
+        pal = name.palette()
+        pal.setColor(QPalette.ColorRole.WindowText, pal.color(QPalette.ColorRole.Link))
+        name.setPalette(pal)
+        layout.addWidget(name)
+
+    def enterEvent(self, event):
+        self._hover = True
+        self.update()
+
+    def leaveEvent(self, event):
+        self._hover = False
+        self.update()
+
+    def paintEvent(self, event):
+        if self._hover:
+            from Qt.QtGui import QPainter, QPalette
+            p = QPainter(self)
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            c = self.palette().color(QPalette.ColorRole.Highlight)
+            c.setAlpha(70)
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(c)
+            p.drawRoundedRect(self.rect(), 4, 4)
+            p.end()
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._press_pos = event.position().toPoint()
+        else:
+            super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        pressed = self._press_pos is not None
+        self._press_pos = None
+        if (pressed and event.button() == Qt.MouseButton.LeftButton
+                and self.rect().contains(event.position().toPoint())):
+            self._file_history.open_files([self.file_spec])
+
+class EmptyHistoryWindow(QWidget):
+    '''Shown when there is no file history.  Optionally a large ChimeraX banner.'''
+    def __init__(self, file_history, show_banner):
+        super().__init__()
+        self._file_history = file_history
+        self._title = self._link = None
+        layout = QVBoxLayout(self)
+        if show_banner:
+            from chimerax.core.colors import scheme_color
+            from Qt.QtGui import QPalette, QColor
+            self._title = title = QLabel('ChimeraX')
+            title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            pal = title.palette()
+            pal.setColor(QPalette.ColorRole.WindowText, QColor(scheme_color('new_user_canvas_text')))
+            title.setPalette(pal)
+            from Qt.QtWidgets import QGraphicsDropShadowEffect
+            shadow = QGraphicsDropShadowEffect(title)
+            shadow.setBlurRadius(2)
+            shadow.setOffset(0, 0)
+            shadow.setColor(QColor('black'))
+            title.setGraphicsEffect(shadow)
+            self._link = link = QLabel('<a href="help:quickstart">Get started</a>')
+            link.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            link.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse)
+            link.linkActivated.connect(self._get_started)
+            layout.addStretch(3)
+            layout.addWidget(title)
+            layout.addWidget(link)
+            layout.addStretch(4)
+        else:
+            label = QLabel('No files in history')
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(label)
+
+    def _get_started(self, url):
+        from chimerax.core.commands import run
+        run(self._file_history.session, 'help %s' % url)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # Scale banner text with window width.
+        w = event.size().width()
+        for label, frac in ((self._title, 0.1), (self._link, 0.02)):
+            if label is not None:
+                f = label.font()
+                f.setPixelSize(max(12, int(frac * w)))
+                label.setFont(f)
+
+    def contextMenuEvent(self, event):
+        event.accept()
+        self._file_history.show_context_menu(event.globalPos())
 
 class FlowLayout(QLayout):
     '''Lay out widgets left to right wrapping to new rows.'''
