@@ -39,6 +39,7 @@ class _CmdLineSettings(Settings):
 # 'settings' module attribute will be set by the initialization of the bundle API
 
 def register_settings_options(session):
+    from functools import partial
     from chimerax.ui.options import StringsOption, EnumOption
     class CmdLinePlacementOption(EnumOption):
         values = ("left", "right", "bottom")
@@ -52,9 +53,9 @@ def register_settings_options(session):
     }
     for setting, setting_info in settings_info.items():
         opt_name, opt_class, balloon = setting_info
-        opt = opt_class(opt_name, getattr(settings, setting), None,
+        opt = partial(opt_class, opt_name, None, None,
             attr_name=setting, settings=settings, balloon=balloon)
-        session.ui.main_window.add_settings_option("Startup", opt)
+        session.ui.main_window.add_settings_option("Startup", opt, factory=True)
     settings_info = {
         'default_side': (
             "Default command line location",
@@ -64,6 +65,6 @@ def register_settings_options(session):
     }
     for setting, setting_info in settings_info.items():
         opt_name, opt_class, balloon = setting_info
-        opt = opt_class(opt_name, getattr(settings, setting), None,
+        opt = partial(opt_class, opt_name, None, None,
             attr_name=setting, settings=settings, balloon=balloon)
-        session.ui.main_window.add_settings_option("Window", opt)
+        session.ui.main_window.add_settings_option("Window", opt, factory=True)
