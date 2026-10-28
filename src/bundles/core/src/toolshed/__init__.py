@@ -227,7 +227,10 @@ def _bundle_cache_executable():
     import os.path
     import sys
 
-    executable = sys.executable
+    # The build runs the same interpreter through paths such as
+    # src/bundles/io/../../../ChimeraX.app/bin/python3.14; without resolving
+    # them, every bundle directory left its own cache file behind.
+    executable = os.path.realpath(sys.executable)
     if sys.platform == 'darwin':
         directory, name = os.path.split(executable)
         contents, entry = os.path.split(directory)
