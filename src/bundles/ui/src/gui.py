@@ -36,6 +36,8 @@ from chimerax.core.colors import scheme_color, set_default_color_scheme
 def initialize_qt():
     initialize_qt_plugins_location()
     initialize_shared_opengl_contexts()
+    from . import desktop_settings
+    desktop_settings.select_platform_theme()
 
 def initialize_qt_plugins_location():
     # remove the build tree plugin path, and add install tree plugin path
@@ -131,6 +133,8 @@ class UI(QApplication):
 
         from chimerax import app_dirs as ad
         QApplication.__init__(self, [ad.appname])
+        from . import desktop_settings
+        desktop_settings.apply_settings(self)
         import sys
 
         from Qt.QtCore import Qt
@@ -218,9 +222,16 @@ class UI(QApplication):
         self.setPalette(palette)
 
     def _update_color_scheme(self):
+        from . import desktop_settings
+        if desktop_settings.active():
+            # Desktop changes come from GSettings (desktop_settings), and
+            # Qt's gnome theme would ignore an explicitly chosen scheme.
+            return
         from Qt.QtCore import Qt
-        from Qt.QtCore import QEvent
         new_scheme = 'dark' if self.styleHints().colorScheme() == Qt.ColorScheme.Dark else 'light'
+        self._change_color_scheme(new_scheme)
+
+    def _change_color_scheme(self, new_scheme):
         if new_scheme != self.color_scheme:
             self.color_scheme = new_scheme
             set_default_color_scheme(self.color_scheme)
@@ -241,10 +252,15 @@ class UI(QApplication):
     def set_color_scheme(self, color_scheme, first_time=False):
         if color_scheme == "system":
             color_scheme = None
+        from . import desktop_settings
+        self.following_desktop_color_scheme = color_scheme is None and desktop_settings.active()
         if color_scheme is None:
             self.color_scheme = None
             self.styleHints().setColorScheme(Qt.ColorScheme.Unknown)
-            if self.styleHints().colorScheme() == Qt.ColorScheme.Dark:
+            if self.following_desktop_color_scheme:
+                # Qt's gnome platform theme does not know the desktop's preference.
+                color_scheme = 'dark' if desktop_settings.prefers_dark() else 'light'
+            elif self.styleHints().colorScheme() == Qt.ColorScheme.Dark:
                 color_scheme = 'dark'
             else:
                 color_scheme = 'light'
@@ -253,7 +269,10 @@ class UI(QApplication):
                 self.styleHints().setColorScheme(Qt.ColorScheme.Light)
             else:
                 self.styleHints().setColorScheme(Qt.ColorScheme.Dark)
-                if self.styleHints().colorScheme() != Qt.ColorScheme.Dark:
+                # Qt's gnome platform theme cannot change its color scheme, but
+                # on Linux ChimeraX draws dark mode with its own palette.
+                if (self.styleHints().colorScheme() != Qt.ColorScheme.Dark
+                        and not desktop_settings.active()):
                     self.session.logger.warning("Unable to set dark mode")
                     color_scheme = 'light'
         from sys import platform
