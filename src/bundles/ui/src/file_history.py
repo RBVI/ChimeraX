@@ -13,6 +13,7 @@
 
 #
 # Thumbnail view of the file history using native Qt widgets.
+# Thumbnails can be grouped into user defined sections.
 #
 from Qt.QtCore import Qt, QSize, QRect, QPoint, QTimer
 from Qt.QtWidgets import (QWidget, QLabel, QLayout, QVBoxLayout, QStackedLayout,
@@ -51,7 +52,7 @@ class FileHistory:
 
     def update(self):
         h = self.history
-        if len(h.files) == 0:
+        if len(h.files) == 0 and len(h.sections) == 0:
             self._history_window.clear()
             self._stack.setCurrentWidget(self._empty_window)
         else:
@@ -142,8 +143,11 @@ def limit_string(s, n):
         return s[:n//2] + '...' + s[-(n//2):]
     return s
 
+def _section_title(name):
+    return 'Recent' if name is None else name
+
 class HistoryWindow(QScrollArea):
-    '''Scrolled area showing thumbnails, most recently opened first.'''
+    '''Scrolled area showing a heading and thumbnails for each section.'''
     def __init__(self, file_history, size_hint = None):
         super().__init__()
         self._file_history = file_history
@@ -165,9 +169,17 @@ class HistoryWindow(QScrollArea):
         layout = QVBoxLayout(content)
         layout.setContentsMargins(6,6,6,6)
         layout.setSpacing(10)
-        tile_area = TileArea(fh, list(reversed(history.files)), used_pixmaps)
-        layout.addWidget(tile_area)
-        self.tiles = tile_area.tiles
+        sections = history.sections
+        # Only show section headings once the user has made a section.
+        show_headings = len(sections) > 0
+        current = history.current_section
+        tiles = []
+        for name in [None] + sections:
+            files = history.section_files(name)
+            s = SectionWidget(fh, name, files, show_headings, name == current, used_pixmaps)
+            layout.addWidget(s)
+            tiles.extend(s.tile_area.tiles)
+        self.tiles = tiles
         layout.addStretch(1)
 
         scroll = self.verticalScrollBar().value()
@@ -199,15 +211,53 @@ class HistoryWindow(QScrollArea):
             w = w.parentWidget()
         self._file_history.show_context_menu(event.globalPos(), tile)
 
+class SectionWidget(QWidget):
+    '''Optional heading and thumbnails for one section.'''
+    def __init__(self, file_history, section_name, files, show_heading, is_current, used_pixmaps):
+        super().__init__()
+        self._file_history = file_history
+        self.section_name = section_name	# None for files not in a section
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(4,4,4,4)
+        layout.setSpacing(4)
+        if show_heading:
+            from html import escape
+            text = '<b>%s</b>' % escape(_section_title(section_name))
+            if is_current:
+                text += '&nbsp;&nbsp;<small>(new files added here)</small>'
+            heading = QLabel(text)
+            heading.setTextFormat(Qt.TextFormat.RichText)
+            f = heading.font()
+            f.setPointSizeF(f.pointSizeF() * 1.4)
+            heading.setFont(f)
+            layout.addWidget(heading)
+        placeholder = 'No files' if show_heading else None
+        self.tile_area = TileArea(file_history, files, placeholder, used_pixmaps)
+        layout.addWidget(self.tile_area)
+
 class TileArea(QWidget):
     '''Thumbnails laid out in rows that wrap to the widget width.'''
-    def __init__(self, file_history, files, used_pixmaps):
+    def __init__(self, file_history, files, placeholder, used_pixmaps):
         super().__init__()
+        self._placeholder = None if files else placeholder
         self._layout = layout = FlowLayout(self, spacing = 8)
         layout.setContentsMargins(4,0,4,0)
         self.tiles = [Tile(file_history, fs, used_pixmaps) for fs in files]
         for t in self.tiles:
             layout.addWidget(t)
+        if not files and placeholder:
+            self.setMinimumHeight(40)
+
+    def paintEvent(self, event):
+        if self._placeholder is None:
+            return
+        from Qt.QtGui import QPainter, QPalette
+        p = QPainter(self)
+        p.setPen(self.palette().color(QPalette.ColorRole.PlaceholderText))
+        p.drawText(self.rect().adjusted(8,0,0,0),
+                   Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, self._placeholder)
+        p.end()
 
 class Tile(QWidget):
     '''Thumbnail image and file name.  Click to open.'''
