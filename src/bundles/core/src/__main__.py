@@ -526,11 +526,11 @@ def _set_app_dirs(version):
         setdlldir.restype = ctypes.c_bool
         setdlldir(rootdir)
 
-    from packaging.version import Version
+    from chimerax.core.utils import version_major_minor
 
-    ver = Version(version)
+    major, minor = version_major_minor(version)
     py_ver = sys.version_info
-    partial_version = f"{ver.major}.{ver.minor}+python{py_ver.major}.{py_ver.minor}"
+    partial_version = f"{major}.{minor}+python{py_ver.major}.{py_ver.minor}"
 
     import chimerax
     import appdirs

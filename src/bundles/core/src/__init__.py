@@ -237,8 +237,11 @@ def profile(func):
 
 def is_daily_build():
     """Supported API. Return if ChimeraX Core is from a daily build."""
-    # Daily builds are development releases
-    from packaging.version import Version
+    # Daily builds are development releases: packaging.version's
+    # Version(version).is_devrelease, i.e. the public version ends with a
+    # PEP 440 dev segment.  The toolbar asks while it is being created, so
+    # check directly rather than importing packaging at startup.
+    import re
 
-    ver = Version(version)
-    return ver.is_devrelease
+    public = version.split("+", 1)[0].strip()
+    return re.search(r"[-_.]?dev[-_.]?[0-9]*$", public, re.IGNORECASE) is not None

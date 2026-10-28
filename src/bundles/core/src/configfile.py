@@ -287,11 +287,9 @@ class ConfigFile:
             return
 
         import configparser
-        from packaging.version import Version
         import os
-        if not isinstance(version, Version):
-            version = Version(version)
-        major_version = version.major
+        from .utils import version_major_minor
+        major_version = version_major_minor(version)[0]
         # don't want all tools forgetting their settings when core version number changes,
         # so use unversioned appdirs
         from chimerax import app_dirs_unversioned
