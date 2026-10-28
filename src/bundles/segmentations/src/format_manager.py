@@ -58,6 +58,8 @@ class SegmentationFormatHandler(ABC):
 
 class SegmentationFormatManager(ProviderManager):
     """Holds the set of registered SegmentationFormatHandlers."""
+    # add_provider() ignores bundles that are not installed.
+    uses_uninstalled_providers = False
 
     def __init__(self, session, name):
         self.session = session
