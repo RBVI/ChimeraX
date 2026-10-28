@@ -100,13 +100,22 @@ class InstallOpenFold:
     def _astral_python_url(self):
         astral_download_url = 'https://github.com/astral-sh/python-build-standalone/releases/download/'
 
+        branch = self._branch
+        if branch == 'chimerax_openfold_preview2':
+            prefix = '20260623/cpython-3.11.15+20260623'
+        elif branch in ('chimerax_openfold_0.5.1', 'chimerax_openfold_0.5'):
+            prefix = '20261026/cpython-3.13.18+20261026'
+        else:
+            from chimerax.core.errors import UserError
+            raise UserError(f"Don't know which Python version to use for ChimeraX OpenFold branch {self._branch}")
+            
         platform_urls = {
-            ('darwin', 'arm64'): '20260623/cpython-3.11.15+20260623-aarch64-apple-darwin-install_only.tar.gz',
-            ('darwin', 'x86_64'): '20260623/cpython-3.11.15+20260623-x86_64-apple-darwin-install_only.tar.gz',
-            ('linux', 'x86_64'): '20260623/cpython-3.11.15+20260623-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz',
-            ('linux', 'aarch64'): '20260623/cpython-3.11.15+20260623-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz',
-            ('win32','AMD64'): '20260623/cpython-3.11.15+20260623-x86_64-pc-windows-msvc-install_only_stripped.tar.gz',
-            ('win32', 'ARM64'): '20260623/cpython-3.11.15+20260623-aarch64-pc-windows-msvc-install_only_stripped.tar.gz'
+            ('darwin', 'arm64'): prefix + '-aarch64-apple-darwin-install_only.tar.gz',
+            ('darwin', 'x86_64'): prefix + '-x86_64-apple-darwin-install_only.tar.gz',
+            ('linux', 'x86_64'): prefix + '-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz',
+            ('linux', 'aarch64'): prefix + '-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz',
+            ('win32','AMD64'): prefix + '-x86_64-pc-windows-msvc-install_only_stripped.tar.gz',
+            ('win32', 'ARM64'): prefix + '-aarch64-pc-windows-msvc-install_only_stripped.tar.gz'
         }
         
         from sys import platform
