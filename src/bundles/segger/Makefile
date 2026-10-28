@@ -14,7 +14,7 @@ seggerx: $(SEGGER_SRC)
 	touch seggerx
 
 $(SEGGER_SRC):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/segger/$(SEGGER_SRC)
+	$(call FETCH_PREREQ_TO,$@,$(PREREQS_ARCHIVE)/segger/$(SEGGER_SRC))
 
 upload_new_version:
 	$(RSYNC) $(SEGGER_SRC) $(PREREQS_UPLOAD)/segger

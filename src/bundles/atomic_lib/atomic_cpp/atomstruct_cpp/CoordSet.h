@@ -55,13 +55,7 @@ private:
     CoordSet(Structure* as, int cs_id, int size);
 
 public:
-    CoordSet& operator=(const CoordSet& source) {
-        if (this != &source) {
-            _coords = source._coords;
-            _bfactor_map = source._bfactor_map; _occupancy_map = source._occupancy_map;
-        }
-        return *this;
-    }
+    CoordSet& operator=(const CoordSet& source);
     void  add_coord(const Point& coord) { _coords.push_back(coord); }
     void  add_coords(const CoordSet* coords) {
         _coords.insert(_coords.end(), coords->coords().begin(), coords->coords().end());

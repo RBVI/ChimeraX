@@ -41,19 +41,20 @@ MinGW
 =====
 Necessary Packages
 ------------------
-MinGW comes with the ``pacman`` package manager. You will need at least:
+MSYS2 comes with the ``pacman`` package manager. Use the UCRT64
+environment; MINGW64 is deprecated. You will need at least:
 ::
 
     git
     make
-    mingw-w64-x86_64-binutils
-    mingw-w64-x86_64-imagemagick
+    mingw-w64-ucrt-x86_64-binutils
+    mingw-w64-ucrt-x86_64-imagemagick
     openssh
     patch
     rsync
     unzip
 
-You will also need to ensure that ``/mingw64/bin`` comes before
+You will also need to ensure that ``/ucrt64/bin`` comes before
 ``C:\Windows\System32`` in your ``PATH``; otherwise ``convert.exe``
 will take precedence over imagemagick's ``convert`` and the build
 will fail attempting to generate the ChimeraX desktop icon.
@@ -100,7 +101,7 @@ Adding MinGW
 ------------
 Set the command line to ::
 
-    C:\\msys64\\msys2_shell.cmd -defterm -here -no-start -mingw64
+    C:\\msys64\\msys2_shell.cmd -defterm -here -no-start -ucrt64
 
 If you prefer, you can install ``zsh`` and append ``-shell zsh`` to the
 command.

@@ -15,7 +15,12 @@ TOP	= ../..
 include $(TOP)/mk/config.make
 
 # You can set these variables from the command line.
-SPHINXOPTS    ?=
+SPHINXOPTS    ?= -j auto
+ifeq ($(OS),Darwin)
+# Sphinx forks its parallel workers after the docs have imported Qt, and the
+# Objective-C runtime aborts a forked child that initializes a class
+SPHINX_ENV = OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+endif
 ifdef USE_MAC_FRAMEWORKS
 SPHINXBUILD   ?= $(APP_PYTHON_EXE) $(APP_PYTHON_FRAMEWORK)/bin/sphinx-build
 else ifdef WIN32
@@ -63,13 +68,17 @@ help:
 	@echo "  linkcheck  to check all external links for integrity"
 	@echo "  doctest    to run all doctests embedded in the documentation (if enabled)"
 
+# clean must finish before html makes conf.py and the rest, and Sphinx builds
+# in parallel itself
+.NOTPARALLEL:
+
 install: clean html
 	if [ ! -d "$(DOCDIR)" ]; then mkdir -p $(DOCDIR); fi
 	$(RSYNC) $(BUILDDIR)/html/ $(DOCDIR)
 
 clean:
 	-rm -rf $(BUILDDIR)/* conf.py index.rst _static/cxlinks.js __pycache__ _static/devdocs.css \
-		apps chimerax modules
+		apps chimerax cpp modules
 
 conf.py: conf.py.in
 	sed -e 's/PYTHON_VERSION/$(PYTHON_VERSION)/' \
@@ -90,7 +99,7 @@ html: clean conf.py index.rst _static/cxlinks.js _static/devdocs.css
 		ln -s $(realpath $(APP_PYSITEDIR)/chimerax) chimerax ; \
 		INTERNAL_CHIMERAX=1 $(TOP)/utils/build/doc_symlinks.sh ; \
 	fi
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	$(SPHINX_ENV) $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 

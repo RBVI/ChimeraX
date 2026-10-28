@@ -45,7 +45,7 @@ ifndef WIN32
 	# then you can make -C vdocs by hand if you like
 	$(MAKE) -C vdocs install
 endif
-	$(APP_PYTHON_EXE) utils/clean_app.py
+	$(MAKE) clean-app
 	$(APP_PYTHON_EXE) -m pip check
 ifeq ($(OS),Darwin)
 	# update Info.plist with data formats provided by bundles
@@ -156,6 +156,11 @@ endif
 install-common-wheels:
 	$(APP_PYTHON_EXE) -m pip install wheels/*.whl
 
+# CI builds that assemble the app from cached wheels, rather than with
+# 'make install', run this themselves
+clean-app:
+	$(APP_PYTHON_EXE) utils/clean_app.py $(if $(DEBUG),--keep-debug-info)
+
 sync:
 	mkdir -p $(build_prefix)/sync/
 	$(MAKE) -C src/bundles sync
@@ -223,7 +228,7 @@ distclean: clean
 	-$(MAKE) -C src clean
 	-$(MAKE) -C docs clean
 	-$(MAKE) -C vdocs clean
-	-rm -rf prereqs/prebuilt-*.tar.bz2
+	-rm -rf prereqs/prebuilt-*.tar.bz2 prereqs/prebuilt-*.tar.zst
 
 reallyclean:
 	rm -rf $$(git status --short --ignored --porcelain=v1 | sed -e '/^!!/!d' -e 's/^!! //')

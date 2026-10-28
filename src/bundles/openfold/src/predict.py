@@ -29,7 +29,7 @@ def openfold_predict(session, sequences = [], ligands = None, exclude_ligands = 
                   device = None, precision = None,
                   use_server = False, server_host = None, server_port = None,
                   msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/OpenFoldMSA',
-                  open = True, install_location = None, wait = None):
+                  zip_archive = False, open = True, install_location = None, wait = None):
 
     if install_location is not None:
         from .settings import _openfold_settings
@@ -73,7 +73,7 @@ def openfold_predict(session, sequences = [], ligands = None, exclude_ligands = 
                      device = device, precision = precision,
                      use_server = use_server, server_host = server_host, server_port = server_port,
                      msa_only = msa_only, use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
-                     open = open, wait = wait)
+                     zip_archive = zip_archive, open = open, wait = wait)
 
     msa_run = _msa_run(session, name, molecular_components, msa_cache_dir, wait) if for_each_ligand else None
     if msa_run is None:
@@ -187,7 +187,7 @@ def _for_each_ligand(name_and_smiles, used_chain_ids, log):
         
 # ------------------------------------------------------------------------------
 #
-def _each_ligand_predictions(for_each_ligand, molecular_components, align_to):
+def _each_ligand_predictions(for_each_ligand, molecular_components, align_to = None):
     predictions = []
     for ligand in for_each_ligand:
         components = molecular_components + [ligand]
@@ -302,6 +302,63 @@ template_preprocessor_settings:
 '''
         return input, msa_path_yaml
 
+    def alphafold3_json(self):
+        self._make_unique_uppercase_chain_ids()
+
+        components = []
+        for mc in self._molecular_components:
+            if mc.type in ('protein', 'dna', 'rna'):
+                component = {mc.type: { 'id': mc.chain_ids, 'sequence': mc.sequence_string}}
+                components.append(component)
+
+        # Create json for ligands
+        for mc in self._molecular_components:
+            if mc.type == 'ligand':
+                component = {'ligand': {"id": mc.chain_ids}}
+                if mc.ccd_code:
+                    component['ligand']['ccd_codes'] = [mc.ccd_code]
+                elif mc.smiles_string:
+                    smiles = mc.smiles_string.replace('\\', '\\\\')  # Escape backslashes
+                    component['ligand']['smiles'] = smiles
+                components.append(component)
+
+        input = {
+            'name': self.name,
+            'sequences': components,
+            'modelSeeds': [42],
+            'dialect': 'alphafold3',
+            'version': 4
+        }
+
+        return input
+
+    def _make_unique_uppercase_chain_ids(self):
+        '''AlphaFold 3 requires chain ids to be upper case letters.'''
+        ids = set()
+        for mc in self._molecular_components:
+            for id in mc.chain_ids:
+                ids.add(id)
+
+        from string import ascii_uppercase
+        suffixes = 'L' + ascii_uppercase	# "LABC...Z"  Try L first as a hint that original was lowercase.
+        for mc in self._molecular_components:
+            cids = []
+            for id in mc.chain_ids:
+                upper_id = id.upper()
+                if upper_id != id and upper_id in ids:
+                    for suffix in suffixes:
+                        if f'{upper_id}{suffix}' not in ids:
+                            break
+                    new_id = f'{upper_id}{suffix}'
+                    if new_id in ids:
+                        raise RuntimeError(f'Could not replace {id} with uppercase {upper_id} with A,B,C... suffix to produce a unique all uppercase chain id as required by AlphaFold 3')
+                    cids.append(new_id)
+                    ids.add(new_id)
+                else:
+                    cids.append(upper_id)
+            if cids != mc.chain_ids:
+                mc.chain_ids = cids
+                    
     def _msa_cache_files(self, msa_cache_directory):
         if msa_cache_directory:
             protein_seqs = [mc.sequence_string for mc in self._molecular_components if mc.type == 'protein']
@@ -314,11 +371,13 @@ template_preprocessor_settings:
         return msa_cache_files
 
     def _copy_msa_files(self, msa_files, msa_directory):
-        # Copy MSA files to run directory so they are sent to server.
+        # Copy MSA files to run directory so they can be sent to server.
         from shutil import copytree
-        from os.path import join, relpath
+        from os.path import join, relpath, exists
         for subdir in ('colabfold_msas', 'colabfold_templates'):
-            copytree(join(msa_files.directory, subdir), join(msa_directory, subdir))
+            dir = join(msa_directory, subdir)
+            if not exists(dir):
+                copytree(join(msa_files.directory, subdir), dir)
 
         for seq_paths in msa_files.paths.values():
             rel_paths = {name: (_posix_path(relpath(path, msa_files.directory))
@@ -429,7 +488,7 @@ class OpenFoldRun:
                  device = 'default', precision = None,
                  use_server = False, server_host = None, server_port = None,
                  msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/OpenFoldMSA',
-                 open = True, wait = False):
+                 zip_archive = False, open = True, wait = False):
 
         self._session = session
         self._predictions = [structures] if isinstance(structures, OpenFoldPrediction) else structures
@@ -447,6 +506,7 @@ class OpenFoldRun:
         self._precision = precision	# "32-true", "bf16-mixed", "16-true", "bf16-true"
         self._seeds = seeds		# Random seeds for computation. Separate inference for each seed.
         self._open = open		# Whether to open predictions when openfold finishes.
+        self._zip_archive = zip_archive	# Whether to zip the results
 
         from os.path import abspath, isabs
         run_dir = abspath(run_directory) if run_directory and not isabs(run_directory) else run_directory
@@ -476,9 +536,19 @@ class OpenFoldRun:
 
     def start(self, finished_callback = None):
         self._finished_callback = finished_callback
+        self._run_directory = self._unique_run_directory()
         self._write_json_input_files()
         self._write_ligands_file()
+        if self._msa_only and not self._use_msa_server:
+            self._msa_finished()
+            return
         self._run_openfold()
+
+    def _msa_finished(self):
+        self._session.logger.status(f'Wrote OpenFold input files to {self._run_directory}', log=True)
+        if self._zip_archive:
+            self._make_job_zip_file()
+        self._prediction_finished(success = True)
 
     @property
     def _settings(self):
@@ -487,15 +557,13 @@ class OpenFoldRun:
         return settings
 
     def _write_json_input_files(self):
-        # Create json before making directory so directory is not created if json creation fails.
-        self._run_directory = dir = self._unique_run_directory()
-
+        dir = self._run_directory
         if self.name is None:
             from os.path import basename
             self.name = basename(dir)
 
         msa_cache_dir = self._msa_cache_dir if self._use_msa_cache else None
-        copy_msa_to_directory = (self._run_directory if self._use_server else None)
+        copy_msa_to_directory = (self._run_directory if self._use_server or self._msa_only else None)
         queries = {}
         for i,p in enumerate(self._predictions):
             if p.name is None:
@@ -583,7 +651,13 @@ class OpenFoldRun:
 
     def _run_openfold(self):
         self._running = True
-        msg = f'sending to server {self._server_host}' if self._use_server else 'starting OpenFold'
+        if self._use_server:
+            if self._msa_only:
+                msg = 'computing MSAs and templates'
+            else:
+                msg = f'sending to server {self._server_host}'
+        else:
+            msg = 'starting OpenFold'
         self._set_stage(msg)
 
         self._log_prediction_info()
@@ -635,6 +709,16 @@ class OpenFoldRun:
             self._check_process_completion()
         else:
             self._session.triggers.add_handler('new frame', self._check_process_completion)
+
+    def _make_job_zip_file(self):
+        run_dir = self._run_directory
+        zip_path = run_dir + '.zip'
+        from .server import make_zip_file_from_directory
+        make_zip_file_from_directory(run_dir, zip_path, include_top_dir = True)
+        self._prediction_finished(success = True)
+        results = '' if self._msa_only else 'and results '
+        msg = f'Created zip file of OpenFold input file, MSAs and templates {results}at {zip_path}'
+        self._session.logger.info(msg)
 
     def _run_on_server(self):
         '''This blocks until the prediction is finished.'''
@@ -765,7 +849,11 @@ class OpenFoldRun:
         mol_descrip = pred[0]._assembly_description() if len(pred) == 1 else f'{len(pred)} ligands'
         device = self.device
         log = self._session.logger
-        log.info(f'Running OpenFold prediction of {mol_descrip} on {device}')
+        if self._msa_only:
+            msg = f'Running MSA and template search for {mol_descrip}'
+        else:
+            msg = f'Running OpenFold prediction of {mol_descrip} on {device}'
+        log.info(msg)
 
         if self._use_msa_server:
             msa_method = 'Using multiple sequence alignment server https://api.colabfold.com'
@@ -903,7 +991,11 @@ class OpenFoldRun:
             self._session.logger.error(msg)
             success = False
         else:
+            if self._use_msa_cache:
+                for p in self._predictions:
+                    p._add_to_msa_cache(self._msa_directory, self._template_directory, self._msa_cache_dir)
             if self._msa_only:
+                self._write_json_input_files()	# Rewrite input files to include MSAs.
                 self._report_runtime()
             elif len(self._predictions) > 1:
                 self._report_multi_prediction_results()
@@ -920,11 +1012,9 @@ class OpenFoldRun:
                                        for i in range(self._samples)]
                         models.extend(p.open_predictions(self._session, mmcif_paths))
                     self._opened_predictions = models
+            if self._zip_archive:
+                self._make_job_zip_file()
             success = True
-
-        if self._use_msa_cache:
-            for p in self._predictions:
-                p._add_to_msa_cache(self._msa_directory, self._template_directory, self._msa_cache_dir)
 
         self._prediction_finished(success)
 
@@ -957,7 +1047,10 @@ class OpenFoldRun:
         parts.append(f'structure inference {"%.0f" % sit} sec')
 
         timings = ', '.join(parts)
-        msg = f'OpenFold prediction completed in {"%.0f" % total} seconds ({timings})'
+        if self._msa_only:
+            msg = f'OpenFold MSA and template search completed in {"%.0f" % total} seconds'
+        else:
+            msg = f'OpenFold prediction completed in {"%.0f" % total} seconds ({timings})'
         self._session.logger.info(msg)
 
         if self._use_msa_server and wait_t >= 60:
@@ -1025,8 +1118,10 @@ class OpenFoldRun:
 
     def terminate(self):
         if self._running:
-            self._process.kill()
+            if self._process is not None:
+                self._process.kill()
             self._user_terminated = True
+            self._prediction_finished(success = False)
 
     def _prediction_ran_out_of_memory(self, stdout, stderr):
         return (len(self._prediction_cif_files()) == 0 and
@@ -1249,13 +1344,18 @@ def _torch_has_cuda(session):
     if platform == 'win32':
         lib_path = 'Lib/site-packages/torch/lib/torch_cuda.dll'
     elif platform == 'linux':
-        from sys import version_info as v
-        lib_path = f'lib/python{v.major}.{v.minor}/site-packages/torch/lib/libtorch_cuda.so'
+        lib_path = 'lib/python*/site-packages/torch/lib/libtorch_cuda.so'
     from .settings import _openfold_settings
     settings = _openfold_settings(session)
     openfold_install = settings.openfold_install_location
     from os.path import join, exists
     torch_cuda_lib = join(openfold_install, lib_path)
+    if '*' in torch_cuda_lib:
+        from glob import glob
+        paths = glob(torch_cuda_lib)
+        if len(paths) != 1:
+            return false
+        torch_cuda_lib = paths[0]
     return exists(torch_cuda_lib)
 
 # ------------------------------------------------------------------------------
@@ -1521,6 +1621,50 @@ class ReadOutputThread:
 
 # ------------------------------------------------------------------------------
 #
+def af3input(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
+             protein = [], dna = [], rna = [],
+             ligand_ccd = [], ligand_smiles = [], for_each_smiles_ligand = [],
+             file = None):
+
+    polymer_components, modeled_chains, unmodeled_chains = _polymer_components(sequences, protein, dna, rna)
+    used_chain_ids = set(sum((pc.chain_ids for pc in polymer_components), []))
+    ligand_components, covalent_ligands = _ligand_components(ligands, exclude_ligands.split(','),
+                                                             ligand_ccd, ligand_smiles, used_chain_ids)
+    molecular_components = polymer_components + ligand_components
+
+    if len(molecular_components) == 0 and len(for_each_smiles_ligand) == 0:
+        from chimerax.core.errors import UserError
+        raise UserError('No molecules specified for AlphaFold 3 input file')
+   
+    # Warn about unmodeled compnents
+    if unmodeled_chains:
+        msg = f'Chains {", ".join(unmodeled_chains)} not modeled because not protein/DNA/RNA'
+        session.logger.warning(msg)
+    if covalent_ligands:
+        session.logger.info(f'Predicting covalent ligands not yet supported: {covalent_ligands}')
+
+    for_each_ligand = _for_each_ligand(for_each_smiles_ligand, used_chain_ids, session.logger)
+    if for_each_ligand is None:
+        from os.path import basename, splitext
+        name = splitext(basename(file))[0]
+        p = OpenFoldPrediction(name, molecular_components)
+        predictions = [p]
+    else:
+        predictions = _each_ligand_predictions(for_each_ligand, molecular_components)
+
+    # Write JSON files
+    import json
+    from os.path import splitext
+    file_base, file_suffix = splitext(file)
+    for p in predictions:
+        data = p.alphafold3_json()
+        json_text = json.dumps(data, indent=2)
+        path = file if len(predictions) == 1 else f'{file_base}_{p.name}{file_suffix}'
+        with open(file, 'w') as f:
+            f.write(json_text)
+
+# ------------------------------------------------------------------------------
+#
 from chimerax.core.commands import Annotation, AnnotationError, next_token
 class LigandsArg(Annotation):
     name = 'ligands'
@@ -1576,7 +1720,7 @@ class RepeatSequencesArg(Annotation):
 # ------------------------------------------------------------------------------
 #
 def register_openfold_predict_command(logger):
-    from chimerax.core.commands import CmdDesc, register, StringArg, SaveFolderNameArg, BoolArg, EnumOf, IntArg, IntsArg, OpenFolderNameArg
+    from chimerax.core.commands import CmdDesc, register, StringArg, SaveFolderNameArg, BoolArg, EnumOf, IntArg, IntsArg, OpenFolderNameArg, SaveFileNameArg
     from chimerax.atomic import SequencesArg, ResiduesArg, ChainArg
 
     desc = CmdDesc(
@@ -1600,6 +1744,7 @@ def register_openfold_predict_command(logger):
                    ('server_port', IntArg),
                    ('use_msa_cache', BoolArg),
                    ('msa_only', BoolArg),
+                   ('zip_archive', BoolArg),
                    ('open', BoolArg),
                    ('install_location', SaveFolderNameArg),
                    ('wait', BoolArg)],
@@ -1616,3 +1761,20 @@ def register_openfold_predict_command(logger):
     )
     register('openfold ligandtable', desc, openfold_ligand_table, logger=logger)
 
+    desc = CmdDesc(
+        optional = [('sequences', SequencesArg)],
+        keyword = [('ligands', ResiduesArg),
+                   ('exclude_ligands', StringArg),
+                   ('protein', RepeatSequencesArg),
+                   ('dna', RepeatSequencesArg),
+                   ('rna', RepeatSequencesArg),
+                   ('ligand_ccd', LigandsArg),
+                   ('ligand_smiles', LigandsArg),
+                   ('for_each_smiles_ligand', NamedLigandsArg),
+                   ('file', SaveFileNameArg),
+                   ],
+        required_arguments = ['file'],
+        synopsis = 'Write an AlphaFold 3 JSON input file',
+        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold.html'
+    )
+    register('af3input', desc, af3input, logger=logger)

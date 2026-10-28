@@ -332,9 +332,14 @@ def main():
         )
         raise SystemExit(2)
     dependencies = CENTOS_DEPENDENCIES[os_version]
-    output = subprocess.check_output(
-        [CHIMERAX_BIN, "--nocolor", "--version"], stderr=subprocess.DEVNULL
-    ).decode()
+    result = subprocess.run(
+        [CHIMERAX_BIN, "--nocolor", "--version"], capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        print(f"{CHIMERAX_BIN} --version failed:", file=sys.stderr)
+        print(result.stdout + result.stderr, file=sys.stderr)
+        raise SystemExit(1)
+    output = result.stdout
     full_version = [line for line in output.split("\n") if "version:" in line]
     if not full_version:
         print("Not able to determine version number")
@@ -475,6 +480,9 @@ def make_spec_file(
             %define _build_id_links none
             %define __spec_install_post %{{nil}}
             %define debug_package %{{nil}}
+            # xz -9 makes a ~10% smaller payload than the EL default (w19.zstdio),
+            # and T compresses on all cores instead of one
+            %define _binary_payload w9T.xzdio
             # %%define __os_install_post\
                 /usr/lib/rpm/redhat/brp-compress
 

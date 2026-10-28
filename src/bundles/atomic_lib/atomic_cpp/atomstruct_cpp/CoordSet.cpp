@@ -59,6 +59,23 @@ CoordSet::~CoordSet()
     _structure->change_tracker()->add_deleted(_structure, this);
 }
 
+CoordSet&
+CoordSet::operator=(const CoordSet& source) {
+    if (this != &source) {
+        _coords = source._coords;
+        if (_structure == source._structure) {
+            _bfactor_map = source._bfactor_map;
+            _occupancy_map = source._occupancy_map;
+        } else {
+            // This should be a copy operation; let the copy code handle this since atoms haven't
+            // been created yet
+            if (_structure->atoms().size() > 0)
+                throw std::runtime_error("Atoms already created during coordset cross-copy");
+        }
+    }
+    return *this;
+}
+
 void
 CoordSet::set_coords(Real *xyz, size_t n)
 {

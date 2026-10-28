@@ -40,6 +40,7 @@ build
 !utils/build
 pip.log
 prebuilt*.bz2
+prebuilt*.zst
 ChimeraX.app
 chimerax
 imex.h
@@ -66,6 +67,7 @@ prereqs/pips/tables*.whl
 prereqs/pips/grako*.whl
 prereqs/pips/tinyarray*.whl
 prereqs/pips/Cython*.whl
+prereqs/pips/cython*.whl
 prereqs/pips/PyOpenGL*.whl
 prereqs/pips/pyopengl_accelerate*.tar.gz
 prereqs/pips/pyopengl_accelerate-3.1.9
@@ -160,6 +162,7 @@ prereqs/pytables/tables-*.tar.gz
 prereqs/Python/Python-*/
 prereqs/Python/Python.framework
 prereqs/Python/python-*.tar.bz2
+prereqs/Python/python-*.tar.zst
 prereqs/Python/*.xz
 prereqs/Python/relocatable-python
 prereqs/PyQt/*commercial*
@@ -167,6 +170,7 @@ prereqs/PyQt/qt/*.xz
 prereqs/zlib/*.gz
 docs/devel/apps
 docs/devel/chimerax
+docs/devel/cpp
 docs/devel/modules
 docs/license.html
 docs/license.txt

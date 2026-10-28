@@ -3,11 +3,18 @@ name: Rebuild on change
 on:
   pull_request:
     branches: [develop, release/*]
+  push:
+    branches: [develop, release/*]
+    paths-ignore: [.github/workflows/nightly.yml, .github/workflows/*build.yml]
 
 # See https://stackoverflow.com/a/72408109
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Build the bundles without starting ChimeraX (see src/bundles/Makefile.bundle)
+  NO_DOGFOODING: "1"
 
 jobs:
   build-and-test-rocky9-docker:
@@ -19,8 +26,13 @@ jobs:
       PATH: /usr/bin:/usr/sbin:/bin:/sbin
     steps:
       - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
-      - run: dnf update -y
-      - run: dnf install -y git-all
+      # Mirror speed varies wildly between runs; download in parallel from the
+      # fastest mirror. set_up_centos.sh already runs dnf update, so don't do it
+      # twice, and git-all drags in Perl, Tk and Subversion that we don't need.
+      - name: Configure dnf and install git
+        run: |
+          printf 'max_parallel_downloads=10\nfastestmirror=True\ninstall_weak_deps=False\n' >> /etc/dnf/dnf.conf
+          dnf install -y git
       - uses: actions/checkout@v7
       # buildinfo.py breaks without this
       - run: chown -R $(id -u):$(id -g) $PWD
@@ -74,13 +86,24 @@ jobs:
       # committed manifest so that local flatpak builds are unaffected.
       - name: Mark the CI environment in the Flatpak manifest
         run: sed -i -e 's/\(USE_COVERAGE=1 make pytest\)/CI=1 \1/' arm-flatpak.yml
+      # The release manifest does a full install-rbvi (docs, vdocs, compileall)
+      # and runs the wheel tests too. For change checks, do what the other
+      # platforms do: build-minimal, then the app tests.
+      - name: Trim the Flatpak manifest down to a minimal build
+        run: |
+          sed -i -e 's/make -j$(nproc) install-rbvi/make -j$(nproc) build-minimal/' \
+                 -e '/make pytest-wheel/d' arm-flatpak.yml
+          grep -q 'build-minimal' arm-flatpak.yml
+      # Stopping before krb5 (which only follows the chimerax module so that it can
+      # land in PySide6's lib dir) also skips exporting and bundling the Flatpak,
+      # which a change check has no use for.
       - name: Build ChimeraX
         uses: flatpak/flatpak-github-actions/flatpak-builder@master
         with:
-          bundle: chimerax.flatpak
           manifest-path: arm-flatpak.yml
           arch: aarch64
           cache-key: flatpak-builder-arm64
+          stop-at-module: krb5
           upload-artifact: false
   build-and-test-macos:
     runs-on: macos-latest
@@ -89,7 +112,7 @@ jobs:
     steps:
       - name: Set up Homebrew
         id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@e99025eb970cfa124b8284a35463d87426917478
+        uses: Homebrew/actions/setup-homebrew@4790763c0a3ba4036f72634dc079c4a7dfcd4878
       - uses: actions/checkout@v7
       - run: ${PWD}/utils/set_up_macos.sh
       - name: Fetch Plato prerequisites
@@ -123,9 +146,9 @@ jobs:
       - uses: actions/checkout@v7
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: UCRT64
           update: true
-          install: git mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-gcc-objc mingw-w64-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-x86_64-autotools
+          install: git mingw-w64-ucrt-x86_64-binutils mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-gcc-objc mingw-w64-ucrt-x86_64-gcc-fortran rsync patch unzip openssh make mingw-w64-ucrt-x86_64-autotools
       - name: Fetch Plato prerequisites
         uses: ./utils/ci/consolidated_cache
         with:

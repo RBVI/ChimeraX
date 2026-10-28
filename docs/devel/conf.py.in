@@ -40,6 +40,119 @@ extensions = [
     "sphinx_autodoc_typehints",
     "class_munger",
 ]
+
+
+def _restrict_stub_search():
+    # sphinx_autodoc_typehints looks for annotations in a .pyi stub for any
+    # object without them, including constructors ChimeraX classes inherit
+    # from Qt, and rebuilds the stub's namespace each time (seconds for the
+    # PySide6 stubs).  Only look for stubs of ChimeraX modules.
+    try:
+        from sphinx_autodoc_typehints._resolver import _stubs
+    except ImportError:
+        return
+    find_stub_owner = getattr(_stubs, "_find_stub_owner", None)
+    get_module = getattr(_stubs, "_get_module", None)
+    if find_stub_owner is None or get_module is None:
+        return
+
+    def chimerax_stub_owner(obj):
+        module = get_module(obj)
+        if module is None or not module.__name__.startswith("chimerax."):
+            return None
+        return find_stub_owner(obj)
+
+    _stubs._find_stub_owner = chimerax_stub_owner
+
+
+_restrict_stub_search()
+
+
+def _lazy_type_mapping():
+    # Before reading any document, sphinx_autodoc_typehints maps the runtime
+    # paths of types to the names the intersphinx inventories document them
+    # under, by importing every module the inventories name: over 2000 (scipy,
+    # matplotlib, IPython, ...), which takes seconds.  A type that is in an
+    # annotation has been imported, and so has the module documenting it (its
+    # package, or one its package imports), so instead look only at the
+    # modules already imported, when a lookup asks.
+    import types
+
+    try:
+        import sphinx_autodoc_typehints as sat
+        from sphinx_autodoc_typehints import _intersphinx
+    except ImportError:
+        return
+    if not hasattr(sat, "build_type_mapping") or not hasattr(_intersphinx, "_ROLES"):
+        return
+
+    class LazyTypeMapping:
+        def __init__(self, inventory):
+            self._documented = set()
+            # module path -> [(index, documented name, attribute)], the index
+            # keeping build_type_mapping's choice among duplicates (the last)
+            self._by_module = {}
+            index = 0
+            for role in _intersphinx._ROLES:
+                for name in inventory.get(role) or ():
+                    self._documented.add(name)
+                    mod_path, _, attr = name.rpartition(".")
+                    if not mod_path:
+                        self._documented.add(f"builtins.{name}")
+                        continue
+                    self._by_module.setdefault(mod_path, []).append((index, name, attr))
+                    index += 1
+            self._mapping = {}
+            self._modules_seen = 0
+
+        def __bool__(self):
+            return True
+
+        def _update(self):
+            for mod_path in [m for m in self._by_module if sys.modules.get(m)]:
+                mod = sys.modules[mod_path]
+                for index, name, attr in self._by_module.pop(mod_path):
+                    try:
+                        obj = getattr(mod, attr)
+                        if isinstance(obj, types.UnionType):
+                            continue
+                        internal = f"{obj.__module__}.{obj.__qualname__}"
+                    except Exception:
+                        continue
+                    if internal in {"types.UnionType", "typing.Union"}:
+                        continue
+                    if internal == name or internal in self._documented:
+                        continue
+                    if internal not in self._mapping or self._mapping[internal][0] < index:
+                        self._mapping[internal] = (index, name)
+
+        def get(self, internal_path, default=None):
+            if len(sys.modules) != self._modules_seen:
+                self._modules_seen = len(sys.modules)
+                self._update()
+            found = self._mapping.get(internal_path)
+            return default if found is None else found[1]
+
+    sat.build_type_mapping = lambda env: LazyTypeMapping(
+        getattr(env, "intersphinx_inventory", {})
+    )
+
+
+_lazy_type_mapping()
+# Load the big compiled libraries the documented modules use here, before the
+# parallel reading forks, rather than in each reader (which until
+# _lazy_type_mapping happened by way of the intersphinx modules it imported).
+# Qt's query macOS (through CoreFoundation) when they are loaded, which
+# crashes in a forked process, and numpy's fail to load in the readers.
+try:
+    import numpy  # noqa: F401
+    import PySide6.QtCore, PySide6.QtGui, PySide6.QtWidgets  # noqa: F401
+except ImportError:
+    pass
+# No document uses an autosummary directive, so skip the (serial) scan of
+# every source file for one
+autosummary_generate = False
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 

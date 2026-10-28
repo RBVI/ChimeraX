@@ -269,6 +269,8 @@ class MatchAlignTool(ToolInstance):
             if len(chains) > 1:
                 if s in self._prev_chains:
                     chains.remove(self._prev_chains[s])
+                    while len(chains) > 1:
+                        chains.pop(0)
                 self.chain_list.blockSignals(True)
                 self.chain_list.value = sum(changed_chains.values(), start=[])
                 self.chain_list.blockSignals(False)

@@ -37,7 +37,7 @@ class _OpenFoldBundle(BundleAPI):
 
     @staticmethod
     def register_command(command_name, logger):
-        if command_name in ('openfold predict', 'openfold ligandtable'):
+        if command_name in ('openfold predict', 'openfold ligandtable', 'af3input'):
             from . import predict
             predict.register_openfold_predict_command(logger)
         elif command_name == 'openfold install':

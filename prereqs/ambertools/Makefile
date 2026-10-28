@@ -22,10 +22,19 @@ USE_PREBUILT=true
 UPLOAD_PREBUILT=false
 #endif
 ifeq ($(OS),Linux)
-SUPPORTED_DISTROS := Ubuntu CentOS Debian Rocky Freedesktop
-# CentOS uses "CentOS Linux", hence the second awk in the following line
-LINUX_FLAVOR = $(shell grep '^NAME=' /etc/os-release | sed -e 's/.*="//' -e 's/\( .*\)*"//')
-LINUX_RELEASE = $(shell grep '^VERSION_ID=' /etc/os-release | sed -e 's/.*="*//' -e 's/\..*//')
+# From the distribution detectOS.make found; the Red Hat family besides CentOS runs Rocky's build
+ifdef FLATPAK_DIST
+LINUX_FLAVOR = Freedesktop
+else ifeq ($(DISTRO_NAME),centos)
+LINUX_FLAVOR = CentOS
+else ifdef CENTOS_DIST
+LINUX_FLAVOR = Rocky
+else ifdef UBUNTU_DIST
+LINUX_FLAVOR = Ubuntu
+else ifdef DEBIAN_DIST
+LINUX_FLAVOR = Debian
+endif
+LINUX_RELEASE = $(firstword $(subst ., ,$(DISTRO_VER)))
 AMBERTOOLS_PREBUILT = ambertools-$(VERSION)-$(OS)-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
 ifdef FLATPAK_DIST
 ifeq ($(OSARCH),LinuxArm64)
@@ -34,8 +43,7 @@ else
 AMBERTOOLS_PREBUILT = ambertools-24-$(OS)-$(LINUX_FLAVOR)-$(LINUX_RELEASE).tar.bz2
 endif
 endif
-ifneq ($(filter $(LINUX_FLAVOR),$(SUPPORTED_DISTROS)),)
-else
+ifndef LINUX_FLAVOR
 USE_PREBUILT=false
 endif
 else
@@ -117,11 +125,12 @@ ifeq ($(OS),Darwin)
 	tar xf $(AMBERTOOLS_FLIBS_PREBUILT) -C $(app_libdir)
 endif
 
+# The flibs archive first, so this one existing means both are complete
 $(AMBERTOOLS_PREBUILT):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ambertools/$(AMBERTOOLS_PREBUILT)
 ifeq ($(OS),Darwin)
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ambertools/$(AMBERTOOLS_FLIBS_PREBUILT)
+	$(call FETCH_PREREQ_TO,$(AMBERTOOLS_FLIBS_PREBUILT),$(PREREQS_ARCHIVE)/ambertools/$(AMBERTOOLS_FLIBS_PREBUILT))
 endif
+	$(call FETCH_PREREQ_TO,$@,$(PREREQS_ARCHIVE)/ambertools/$(AMBERTOOLS_PREBUILT))
 
 else
 install: $(SOURCE)
@@ -209,7 +218,7 @@ endif
 endif
 
 $(DISTRIBUTION):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ambertools/$(DISTRIBUTION)
+	$(call FETCH_PREREQ_TO,$@,$(PREREQS_ARCHIVE)/ambertools/$(DISTRIBUTION))
 
 upload-new-source-version:
 	$(RSYNC) $(DISTRIBUTION) $(PREREQS_UPLOAD)/ambertools

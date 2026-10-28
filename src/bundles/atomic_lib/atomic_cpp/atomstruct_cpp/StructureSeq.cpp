@@ -45,6 +45,9 @@ StructureSeq::StructureSeq(const ChainID& chain_id, Structure* s, PolymerType pt
     Sequence(std::string("chain ") + (chain_id == " " ? "(blank)" : chain_id.c_str())),
     _chain_id(chain_id), _from_seqres(false), _is_chain(false), _polymer_type(pt), _structure(s)
 {
+    if (chain_id.empty())
+        throw std::logic_error("chain ID cannot be empty string");
+
     if (!s->lower_case_chains) {
         for (auto c: chain_id) {
             if (std::islower(c)) {
@@ -442,6 +445,9 @@ void
 StructureSeq::set_chain_id(ChainID chain_id)
 {
     if (chain_id != _chain_id) {
+        if (chain_id.empty())
+            throw std::logic_error("chain ID cannot be empty string");
+
         std::string std_name("chain ");
         std_name += _chain_id;
         if (name() == std_name) {

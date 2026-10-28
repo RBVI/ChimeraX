@@ -6,6 +6,12 @@ sdk: org.freedesktop.Sdk
 command: ChimeraX
 
 build-options:
+  env:
+    # Build the bundles without starting ChimeraX (see src/bundles/Makefile.bundle)
+    NO_DOGFOODING: "1"
+  # Only strip binaries.  Otherwise flatpak-builder extracts and compresses
+  # every ELF file's debug info for a .Debug extension that we never publish.
+  strip: true
   build_args:
   # need to fetch files from https://cxtoolshed.rbvi.ucsf.edu/prereqs
   - --share=network
@@ -81,6 +87,7 @@ modules:
       - /app/bin/python3.* -m pip install wheels/*.whl
       - FLATPAK_DIST=1 make -C src/apps install
       - make -C docs install
+      - FLATPAK_DIST=1 make clean-app
       - /app/bin/ChimeraX --nogui --exit --cmd "linux flatpak-files edu.ucsf.rbvi.ChimeraX"
       - install -Dm644 -t /app/share/metainfo edu.ucsf.rbvi.ChimeraX.metainfo.xml
       - install -Dm644 -t /app/share/applications edu.ucsf.rbvi.ChimeraX.desktop

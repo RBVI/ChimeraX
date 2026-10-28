@@ -37,6 +37,10 @@ endif
 all: $(MOD_NAME).sh
 
 install: all
+	# The chimerax package directories may not exist yet, since apps builds
+	# alongside the bundles, and rsync would copy the file to their name
+	mkdir -p $(PKG_DIR)
+	if [ -d "$(app_prefix)" ]; then mkdir -p $(APP_PKG_DIR); fi
 	SUFFIX=""; \
 	if [ ! -d $(MOD_NAME) ]; then \
 		SUFFIX=".py"; \

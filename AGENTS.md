@@ -121,3 +121,4 @@ Do not ask "would you like me to build/test this?" - just make the code changes 
 - Modern bundles should prefer `pyproject.toml` over `bundle_info.xml`
 - The `toolshed` command manages bundle installation/removal in built ChimeraX
 - **When modifying code, add tests to cover the changes.** Tests go in `tests/` at the repo root or in bundle-specific `tests/` directories.
+- **Do not add yourself to commits**
