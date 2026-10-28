@@ -16,7 +16,8 @@ def log():
     instance = Log.__new__(Log)
     instance._error_dialog = None
     instance.tool_window = SimpleNamespace(ui_area=parent)
-    instance.session = SimpleNamespace(ui=app)
+    session = SimpleNamespace(ui=app)
+    instance._session = lambda: session
     yield instance
     if instance._error_dialog is not None:
         instance._error_dialog.close()

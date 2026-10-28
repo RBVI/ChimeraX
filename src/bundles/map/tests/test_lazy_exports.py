@@ -7,9 +7,9 @@ from types import SimpleNamespace
 import pytest
 
 
-def fresh_exports():
+def fresh_exports(name='map_exports_example'):
     path = Path(__file__).parents[1] / 'src' / '__init__.py'
-    spec = importlib.util.spec_from_file_location('map_exports_example', path)
+    spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -45,10 +45,9 @@ def test_saver_widget_resolves_volume_without_prior_public_access(monkeypatch):
     from chimerax.map.volume import Volume
     import chimerax.save_command.widgets as widgets
 
-    fresh = fresh_exports()
+    fresh = fresh_exports(maps.__name__)
     # Use a real package for the method's relative imports, with no Volume
     # global cached in the freshly loaded package implementation.
-    fresh.__package__ = maps.__name__
     created = []
     monkeypatch.setattr(widgets, 'SaveModelOptionWidget',
         lambda *args: created.append(args) or 'widget')
