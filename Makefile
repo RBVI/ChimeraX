@@ -61,6 +61,7 @@ uv-build: build-dirs
 	uv pip install -r pyproject.toml --all-extras
 	UV_BUILD=1 $(MAKE) -C prereqs/pips uv-install
 	uv pip install PySide6 shiboken6
+	python -I prereqs/pips/patch_pyside6.py
 	PYTHON=python $(MAKE) -C src/bundles uv-install
 
 uv-install: build-dirs uv-build
