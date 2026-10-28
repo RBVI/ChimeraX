@@ -610,6 +610,21 @@ def _load_numpy_docstrings():
 
 
 def init(argv, event_loop=True):
+    # Startup allocates hundreds of thousands of long-lived objects and almost
+    # no garbage, so cyclic garbage collection during it (about 50
+    # collections, 10 ms) finds next to nothing.  Collect again from the
+    # point where user code runs.
+    import gc
+
+    gc.disable()
+    try:
+        return _init(argv, event_loop)
+    finally:
+        gc.enable()
+
+
+def _init(argv, event_loop):
+    import gc
     import sys
 
     # MacOS 10.12+ generates drop event for command-line argument before main()
@@ -919,6 +934,13 @@ def init(argv, event_loop=True):
             start_tools.append(tools[0][1])
         sess.tools.start_tools(start_tools)
 
+    # User commands, scripts and files follow; collect garbage from here on.
+    if opts.gui and event_loop and opts.event_loop:
+        # Otherwise the first allocation would collect everything startup
+        # allocated before the window is drawn.  Unfrozen once it is up.
+        gc.freeze()
+    gc.enable()
+
     if opts.commands:
         if not opts.silent:
             msg = "Running startup commands"
@@ -1142,10 +1164,12 @@ def init(argv, event_loop=True):
             from chimerax.core.startup_prefetch import record_startup_files
 
             QTimer.singleShot(3000, record_startup_files)
-        if getattr(sys, "numpy_defer_docstrings", False):
+        if opts.gui:
             from Qt.QtCore import QTimer
 
-            QTimer.singleShot(1000, _load_numpy_docstrings)
+            QTimer.singleShot(1000, gc.unfreeze)
+            if getattr(sys, "numpy_defer_docstrings", False):
+                QTimer.singleShot(1000, _load_numpy_docstrings)
         try:
             sess.ui.event_loop()
         except SystemExit as e:
