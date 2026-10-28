@@ -1115,7 +1115,12 @@ class Toolshed:
 
             os.makedirs(self._cache_dir, exist_ok=True)
         import os.path
-        from hashlib import sha256
+
+        try:
+            # CPython's own SHA-256; hashlib would load OpenSSL at startup.
+            from _sha2 import sha256
+        except ImportError:
+            from hashlib import sha256
 
         # Builds with the same version share the user cache directory, but
         # have different installed bundles.  Keep one cache per executable so
