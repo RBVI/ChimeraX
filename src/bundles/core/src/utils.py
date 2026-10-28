@@ -104,6 +104,24 @@ def initialize_ssl_cert_dir():
             return
 
 
+def version_major_minor(version):
+    """Return the major and minor release numbers of a PEP 440 version, as
+    packaging.version.Version(version).major and .minor would.
+
+    Startup only needs these numbers, and importing packaging.version to get
+    them costs a few milliseconds.  Version objects are accepted too.
+    """
+    if not isinstance(version, str):
+        return version.major, version.minor
+    import re
+    m = re.match(r"\s*v?(?:\d+!)?(\d+)(?:\.(\d+))?", version, re.IGNORECASE)
+    if m is None:
+        from packaging.version import Version
+        ver = Version(version)	# raises InvalidVersion as before
+        return ver.major, ver.minor
+    return int(m.group(1)), int(m.group(2) or 0)
+
+
 def can_set_file_icon():
     '''Can an icon image be associated with a file on this operating system.'''
     from sys import platform
