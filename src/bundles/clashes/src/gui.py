@@ -379,7 +379,8 @@ class AtomProximityGUI(QWidget):
                     info_options.add_option(self.log_option)
 
                 if show_save_file:
-                    self.save_file_option = BooleanOption("File", False, None)
+                    self.save_file_option = BooleanOption("File", None if settings else False, None,
+                        attr_name="save_file", settings=settings)
                     info_options.add_option(self.save_file_option)
             if show_summary:
                 self.summary_option = BooleanOption("Log total number of %s" % prox_words,
@@ -414,11 +415,13 @@ class AtomProximityGUI(QWidget):
                 fname = QFileDialog.getSaveFileName(self, "Save %s File" % self.prox_words.capitalize())[0]
                 if fname:
                     command_values['save_file'] = fname
+                    settings['save_file'] = True
                 else:
                     from chimerax.core.errors import CancelOperation
                     raise CancelOperation("%s save file cancelled" % self.prox_words.capitalize())
             else:
                 command_values['save_file'] = None
+                settings['save_file'] = False
         else:
             command_values['save_file'] = None
 
