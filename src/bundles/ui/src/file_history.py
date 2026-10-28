@@ -13,7 +13,8 @@
 
 #
 # Thumbnail view of the file history using native Qt widgets.
-# Thumbnails can be grouped into user defined sections.
+# Thumbnails can be grouped into user defined sections using the
+# context menu.
 #
 from Qt.QtCore import Qt, QSize, QRect, QPoint, QTimer
 from Qt.QtWidgets import (QWidget, QLabel, QLayout, QVBoxLayout, QStackedLayout,
@@ -118,18 +119,50 @@ class FileHistory:
                 run(session, cmd)
         QTimer.singleShot(0, open_cb)
 
+    def move_files(self, fspecs, section_name, before = None):
+        try:
+            self.history.move_files(fspecs, section_name, before)
+        except ValueError as e:
+            self.session.logger.error(str(e))
+
     def remove_files(self, fspecs):
         self.history.remove_files(fspecs)
 
-    def show_context_menu(self, global_pos, tile = None):
+    def show_context_menu(self, global_pos, tile = None, section = None):
         h = self.history
         from Qt.QtWidgets import QMenu
         menu = QMenu(self._history_window)
         if tile is not None:
             files = [tile.file_spec]
             menu.addAction('Open', lambda: self.open_files(files))
+            move_menu = menu.addMenu('Move to section')
+            fsections = set(h.file_section(fs) for fs in files)
+            for name in [None] + h.sections:
+                a = move_menu.addAction(_section_title(name))
+                a.setCheckable(True)
+                a.setChecked(fsections == {name})
+                a.triggered.connect(lambda checked, n=name: self.move_files(files, n))
+            move_menu.addSeparator()
+            move_menu.addAction('New section...', lambda: self.new_section(files))
             menu.addAction('Remove from history', lambda: self.remove_files(files))
             menu.addSeparator()
+        if section is not None and h.sections:
+            name = section.section_name
+            a = menu.addAction('Add new files to this section')
+            a.setCheckable(True)
+            a.setChecked(h.current_section == name)
+            a.triggered.connect(lambda checked, n=name: self._set_current_section(n if checked else None))
+            if name is not None:
+                menu.addAction('Rename section...', lambda: self.rename_section(name))
+                i = h.sections.index(name)
+                up = menu.addAction('Move section up', lambda: h.move_section(name, i-1))
+                up.setEnabled(i > 0)
+                down = menu.addAction('Move section down', lambda: h.move_section(name, i+1))
+                down.setEnabled(i < len(h.sections)-1)
+                menu.addAction('Remove section', lambda: h.remove_section(name))
+            menu.addSeparator()
+        menu.addAction('New section...', lambda: self.new_section())
+        menu.addSeparator()
         a = menu.addAction('Show full file names')
         a.setCheckable(True)
         a.setChecked(self.session.ui.settings.file_history_show_full_filenames)
@@ -137,6 +170,34 @@ class FileHistory:
         menu.addAction('Remove deleted files', h.remove_missing_files)
         menu.addAction('Clear file history', h.clear_file_history)
         menu.exec(global_pos)
+
+    def new_section(self, fspecs = None):
+        from Qt.QtWidgets import QInputDialog
+        name, ok = QInputDialog.getText(self._history_window, 'New Section', 'Section name:')
+        if not ok:
+            return
+        h = self.history
+        try:
+            name = h.add_section(name)
+        except ValueError as e:
+            self.session.logger.error(str(e))
+            return
+        if fspecs:
+            self.move_files(fspecs, name)
+
+    def rename_section(self, name):
+        from Qt.QtWidgets import QInputDialog, QLineEdit
+        new_name, ok = QInputDialog.getText(self._history_window, 'Rename Section', 'Section name:',
+                                            QLineEdit.EchoMode.Normal, name)
+        if not ok:
+            return
+        try:
+            self.history.rename_section(name, new_name)
+        except ValueError as e:
+            self.session.logger.error(str(e))
+
+    def _set_current_section(self, name):
+        self.history.current_section = name
 
 def limit_string(s, n):
     if len(s) > n:
@@ -202,14 +263,16 @@ class HistoryWindow(QScrollArea):
 
     def contextMenuEvent(self, event):
         event.accept()
-        tile = None
+        tile = section = None
         w = QApplication.widgetAt(event.globalPos())
         while w is not None and w is not self:
-            if isinstance(w, Tile):
+            if tile is None and isinstance(w, Tile):
                 tile = w
+            if isinstance(w, SectionWidget):
+                section = w
                 break
             w = w.parentWidget()
-        self._file_history.show_context_menu(event.globalPos(), tile)
+        self._file_history.show_context_menu(event.globalPos(), tile, section)
 
 class SectionWidget(QWidget):
     '''Optional heading and thumbnails for one section.'''
