@@ -22,57 +22,43 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-# -----------------------------------------------------------------------------
-# Create and show a volume madel from a GridData object as defined by the
-# data module.
-#
-from .volume import open_map, volume_from_grid_data
-
-# -----------------------------------------------------------------------------
-# A grid data object combined with graphical display state is a Volume object.
-# Many methods of Volume objects (interpolation, coloring, thresholds, ...)
-# are available.
-#
-from .volume import Volume
-from .volume import VolumeSurface, VolumeImage
-
-# -----------------------------------------------------------------------------
-# Map contouring and distance maps.
-#
 # Make sure _map can runtime link shared library libarrays.
 import chimerax.arrays
 
-from ._map import contour_surface, sphere_surface_distance
-from ._map import interpolate_colormap, set_outside_volume_colors
-from ._map import extend_crystal_map
-from ._map import moments, affine_scale
-from ._map import local_correlation
-from ._map import linear_combination
-from ._map import covariance_sum
-from ._map import offset_range, box_cuts
-from ._map import high_indices
-from ._map import indices_to_colors
+# Mouse modes can be registered without loading volume models, contouring
+# extensions, or command parsers. Resolve public objects only when requested.
+_lazy_exports = {
+    **dict.fromkeys(('open_map', 'volume_from_grid_data', 'Volume', 'VolumeSurface',
+        'VolumeImage', 'maps_pickable', 'PickedMap', 'add_map_format',
+        'MapChannelsModel', 'MultiChannelSeries'), 'volume'),
+    **dict.fromkeys(('contour_surface', 'sphere_surface_distance', 'interpolate_colormap',
+        'set_outside_volume_colors', 'extend_crystal_map', 'moments', 'affine_scale',
+        'local_correlation', 'linear_combination', 'covariance_sum', 'offset_range',
+        'box_cuts', 'high_indices', 'indices_to_colors'), '_map'),
+    'PlanesMouseMode': 'moveplanes',
+    'ContourLevelMouseMode': 'mouselevel',
+    'register_volume_command': 'volumecommand',
+    'register_molmap_command': 'molmap',
+    **dict.fromkeys(('MapArg', 'MapsArg', 'Float1or3Arg', 'ValueTypeArg',
+        'MapRegionArg', 'MapStepArg'), 'mapargs'),
+}
+_lazy_modules = {name for name in _lazy_exports.values() if not name.startswith('_')}
 
-# -----------------------------------------------------------------------------
-# Control whether maps are pickable with mouse.
-#
-from .volume import maps_pickable
-from .volume import PickedMap
 
-# -----------------------------------------------------------------------------
-# Mouse modes for moving planes and changing contour level
-#
-from .moveplanes import PlanesMouseMode
-from .mouselevel import ContourLevelMouseMode
+def __getattr__(name):
+    from importlib import import_module
+    if name in _lazy_exports:
+        value = getattr(import_module('.' + _lazy_exports[name], __name__), name)
+    elif name in _lazy_modules:
+        value = import_module('.' + name, __name__)
+    else:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    globals()[name] = value
+    return value
 
-# -----------------------------------------------------------------------------
-# Routines to register map file formats, database fetch, and volume command.
-#
-from .volume import add_map_format
-from .volume import MapChannelsModel, MultiChannelSeries
-from .volumecommand import register_volume_command
-from .molmap import register_molmap_command
-from .mapargs import MapArg, MapsArg, Float1or3Arg, ValueTypeArg, MapRegionArg, MapStepArg
+
+def __dir__():
+    return sorted(set(globals()) | set(_lazy_exports) | _lazy_modules)
 
 # -----------------------------------------------------------------------------
 #
@@ -230,6 +216,7 @@ class _MapBundle(BundleAPI):
 
                 def save_args_widget(self, session):
                     from chimerax.save_command.widgets import SaveModelOptionWidget
+                    from .volume import Volume
                     return SaveModelOptionWidget(session, 'Map', Volume)
 
                 def save_args_string_from_widget(self, widget):
@@ -238,3 +225,6 @@ class _MapBundle(BundleAPI):
         return Info()
 
 bundle_api = _MapBundle()
+
+__all__ = [name for name in globals() if not name.startswith('_')]
+__all__ += [name for name in (*_lazy_exports, *_lazy_modules) if name not in __all__]
