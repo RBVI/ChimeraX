@@ -51,3 +51,41 @@ def test_managers_can_skip_uninstalled_providers():
     installed_only = Manager(False)
     ts._init_single_manager(installed_only)
     assert installed_only.added == ["installed"] and installed_only.ended
+
+
+def test_startup_provider_index_offers_the_same_providers_in_order():
+    from chimerax.core.toolshed import Toolshed, ProviderManager
+
+    def bundle(name, installed, providers):
+        b = SimpleNamespace(name=name, installed=installed, providers=providers)
+        b._providers_for_manager = lambda m, b=b: [
+            (key.split('/', 1)[1], opts) for key, opts in b.providers.items() if key.split('/', 1)[0] == m]
+        return b
+
+    class Manager(ProviderManager):
+        def __init__(self, name):
+            self.name = name
+            self.added = []
+
+        def add_provider(self, bundle_info, name, **kw):
+            self.added.append((bundle_info.name, name, kw))
+
+    ts = Toolshed.__new__(Toolshed)
+    ts._installed_bundle_info = [
+        bundle("a", True, {"m1/x": {"k": 1}, "m2/y": {}, "m1/z": {}}),
+        bundle("b", True, {}),
+        bundle("c", True, {"m2/w": {"k": 2}}),
+    ]
+    ts._available_bundle_info = [bundle("d", False, {"m1/v": {}})]
+    ts._manager_instances = {}
+    expected = {}
+    for name in ("m1", "m2", "m3"):
+        m = Manager(name)
+        ts._init_single_manager(m)
+        expected[name] = m.added
+    ts._startup_providers = ts._providers_by_manager()
+    for name in ("m1", "m2", "m3"):
+        m = Manager(name)
+        ts._init_single_manager(m)
+        assert m.added == expected[name]
+    assert expected["m1"] == [("a", "x", {"k": 1}), ("a", "z", {}), ("d", "v", {})]
