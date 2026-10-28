@@ -409,6 +409,25 @@ def disable_external_logs(debug: bool) -> None:
         logging.getLogger("urllib3").setLevel(100)
 
 
+def _certifi_where() -> str:
+    """Return certifi's CA bundle without importing certifi.
+
+    certifi.where() imports importlib.resources, tempfile, and zipfile to
+    handle a zipped install, which ChimeraX never uses.  Fall back to it if
+    the bundle is not a plain file next to the package.
+    """
+    from importlib.util import find_spec
+
+    spec = find_spec("certifi")
+    if spec is not None and spec.origin:
+        path = os.path.join(os.path.dirname(spec.origin), "cacert.pem")
+        if os.path.isfile(path):
+            return path
+    import certifi
+
+    return certifi.where()
+
+
 def dedup_sys_path():
     """remove duplicate entries on sys.path"""
     # importlib.metadata.distributions() will return duplicates if there is more
@@ -587,9 +606,8 @@ def init(argv, event_loop=True):
     # environment (e.g. pointing at an enterprise CA bundle behind a
     # TLS-inspecting proxy) is respected instead of being overwritten
     # by certifi's Mozilla bundle.
-    import certifi
-
-    os.environ.setdefault("SSL_CERT_FILE", certifi.where())
+    if "SSL_CERT_FILE" not in os.environ:
+        os.environ["SSL_CERT_FILE"] = _certifi_where()
 
     opts, args = parse_arguments(argv)
     if not opts.devel:
