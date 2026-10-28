@@ -52,6 +52,12 @@ def create_profile(parent, schemes=None, interceptor=None, download=None, handle
     storage_name : a string giving a unique name for persistent cookie storage.
                    if this is None then cookies are only stored in memory.
     """
+    # Native startup panels may have deferred WebEngine and URL schemes.
+    from Qt.QtWidgets import QApplication
+    session = getattr(QApplication.instance(), 'session', None)
+    manager = getattr(session, 'url_schemes', None)
+    if manager is not None:
+        manager.initialize_web_engine()
     if storage_name is None:
         profile = QWebEngineProfile(parent)
     else:
