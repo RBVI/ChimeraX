@@ -50,7 +50,7 @@ from .opengl import OffScreenRenderingContext, OpenGLContext
 from .opengl import remember_current_opengl_context, restore_current_opengl_context
 from .opengl import Render, OpenGLError, OpenGLVersionError
 
-from .view import View
+from .view import View, image_from_rgba
 from .clipping import SceneClipPlane, CameraClipPlane, ClipPlane
 
 from chimerax.core.toolshed import BundleAPI
