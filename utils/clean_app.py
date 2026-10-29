@@ -43,11 +43,12 @@ def clean_app(chimerax_root, keep_debug_info=False):
             # not Mach-O, and these are only Mach-O
             steps.append(pool.submit(thin_macos_binaries, chimerax_root,
                                      platform.machine()))
-        if sys.platform == "win32" and not keep_debug_info:
-            steps.append(pool.submit(remove_windows_debug_symbols,
-                                     chimerax_root))
         for step in steps:
             step.result()
+    # The binary scanner opens PDBs too; Windows cannot delete them while
+    # another thread has them open.
+    if sys.platform == "win32" and not keep_debug_info:
+        remove_windows_debug_symbols(chimerax_root)
     # After remove_foreign_binaries, so other platforms' ELF files are gone
     if sys.platform == "linux" and not keep_debug_info:
         strip_debug_info(chimerax_root)
