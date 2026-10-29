@@ -225,12 +225,14 @@ def find_dependencies(directory, pkg_type):
         print('No packages needed')
     else:
         import glob
+        # Offscreen rendering loads Mesa's EGL and its software renderer at run time
         if pkg_type == 'deb':
-            osmesas = glob.glob("/usr/lib/x86_64-linux-gnu/libOSMesa.so*")
-            if osmesas:
-                pkg = get_package_for_lib(osmesas[0], "deb")
-                if pkg is not None:
-                    packages.add(pkg)
+            for pattern in ("/usr/lib/x86_64-linux-gnu/libEGL_mesa.so*", "/usr/lib/x86_64-linux-gnu/dri/swrast_dri.so"):
+                libs = glob.glob(pattern)
+                if libs:
+                    pkg = get_package_for_lib(libs[0], "deb")
+                    if pkg is not None:
+                        packages.add(pkg)
             if 'xdg-utils' not in packages:
                 packages.add('xdg-utils')
             # don't depend on Postgres
@@ -238,12 +240,13 @@ def find_dependencies(directory, pkg_type):
             # don't depend on Qt multimedia gstreamer tools
             packages.discard('libqgsttools-p1')
         elif pkg_type == 'rpm':
-            osmesas = glob.glob("/usr/lib64/libOSMesa.so*")
-            if osmesas:
-                osmesas.sort(key=len, reverse=True)
-                pkg = get_package_for_lib(osmesas[0], "rpm")
-                if pkg is not None:
-                    packages.add(pkg)
+            for pattern in ("/usr/lib64/libEGL_mesa.so*", "/usr/lib64/dri/swrast_dri.so"):
+                libs = glob.glob(pattern)
+                if libs:
+                    libs.sort(key=len, reverse=True)
+                    pkg = get_package_for_lib(libs[0], "rpm")
+                    if pkg is not None:
+                        packages.add(pkg)
             pkg = get_package_for_lib("/usr/bin/xdg-desktop-menu", "rpm")
             if pkg is None:
                 packages.add("xdg-utils-1.1.0-el7.noarch")

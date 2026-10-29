@@ -48,7 +48,8 @@ liblzma-dev
 libminizip1
 libmysqlclient-dev
 libnss3-dev
-libosmesa6-dev
+libegl-mesa0
+libgl1-mesa-dri
 libpango1.0-dev
 libpcre3-dev
 libpng-dev

@@ -20,13 +20,14 @@
 # This notice must be embedded in or attached to all copies, including partial
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
+from __future__ import annotations
+
 from collections import defaultdict
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from chimerax.core.models import ADD_MODELS, REMOVE_MODELS
-from chimerax.map import Volume
-
-from chimerax.segmentations.segmentation import Segmentation
+if TYPE_CHECKING:
+    from chimerax.segmentations.segmentation import Segmentation
 
 import chimerax.segmentations.triggers
 from chimerax.segmentations.triggers import Trigger
@@ -102,6 +103,9 @@ class SegmentationTracker:
 
 
 def on_model_added_to_session(session, _, models):
+    from chimerax.map import Volume
+    from chimerax.segmentations.segmentation import Segmentation
+
     tracker = get_tracker()
     from chimerax.segmentations.format_manager import get_manager
     formats = get_manager(session)
@@ -136,6 +140,8 @@ def on_model_added_to_session(session, _, models):
 
 
 def on_model_removed_from_session(session, _, models):
+    from chimerax.segmentations.segmentation import Segmentation
+
     tracker = get_tracker()
     for model in models:
         if isinstance(model, Segmentation):
