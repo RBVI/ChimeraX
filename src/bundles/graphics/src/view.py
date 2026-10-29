@@ -493,7 +493,7 @@ class View:
         # the on-screen sizes.  This is used for 2d label sizing.
         r.image_save = True
             
-        if supersample is None:
+        if supersample is None or supersample == 1:
             self.draw(c, drawings, swap_buffers = False)
             rgba = r.frame_buffer_image(w, h)
         else:
