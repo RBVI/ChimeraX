@@ -273,7 +273,7 @@ class ConfigFile:
         self._tool_name = tool_name
         # affirm that properties don't conflict with methods
         for method in dir(self):
-            assert(method not in self.PROPERTY_INFO)
+            assert method not in self.PROPERTY_INFO
         # convert all property information to Values
         for name, value in self.PROPERTY_INFO.items():
             if not isinstance(value, Value):
@@ -333,8 +333,11 @@ class ConfigFile:
         if only_use_defaults:
             raise UserError("Custom configuration is disabled")
         from .safesave import SaveTextFile
-        with SaveTextFile(self._filename) as f:
-            self._config.write(f)
+        try:
+            with SaveTextFile(self._filename) as f:
+                self._config.write(f)
+        except OSError as err:
+            raise UserError(f"Unable able to save settings for '{self._tool_name}': {err}")
 
     def reset(self):
         """Revert all properties to their default state"""
@@ -533,18 +536,18 @@ if __name__ == '__main__':
 
     prefs = _ToolPreferences(session)  # noqa
 
-    assert(not prefs.on_disk())
+    assert not prefs.on_disk()
 
     prefs.log_level = 4
     prefs.save()
     # confirm log level is in file
-    assert(0 == os.system("grep -q log_level '%s'" % prefs._filename))
+    assert 0 == os.system("grep -q log_level '%s'" % prefs._filename)
     raise SystemExit(42)
 
     prefs.log_level = 1
     prefs.save()
     # confirm log level is not in file
-    assert(0 != os.system("grep -q log_level '%s'" % prefs._filename))
+    assert 0 != os.system("grep -q log_level '%s'" % prefs._filename)
 
     # finished with configuration file
     os.remove(prefs._filename)
