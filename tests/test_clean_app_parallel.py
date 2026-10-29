@@ -45,7 +45,7 @@ def _record_steps(clean_app, monkeypatch, prune_ok=True):
         return run
 
     for name in ("remove_package_tests", "remove_tkinter",
-                 "remove_babel_locales"):
+                 "remove_babel_locales", "remove_unused_pyopengl"):
         monkeypatch.setattr(clean_app, name, step(name, wait=0.05))
     monkeypatch.setattr(clean_app, "prune_pyside6",
                         step("prune_pyside6", prune_ok, wait=0.05))
@@ -63,7 +63,7 @@ def test_removals_run_at_once_then_the_whole_tree_steps(clean_app, monkeypatch,
     events = _record_steps(clean_app, monkeypatch)
     assert clean_app.clean_app(str(tmp_path)) is True
     first = {"prune_pyside6", "remove_package_tests", "remove_tkinter",
-             "remove_babel_locales"}
+             "remove_babel_locales", "remove_unused_pyopengl"}
     # All of the first steps start before any of them ends
     first_end = min(i for i, (kind, name) in enumerate(events)
                     if kind == "end" and name in first)
