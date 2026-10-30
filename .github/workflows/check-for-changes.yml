@@ -103,7 +103,7 @@ jobs:
         with:
           manifest-path: arm-flatpak.yml
           arch: aarch64
-          cache-key: flatpak-builder-arm64
+          cache-key: flatpak-builder-aarch64-${{ github.run_id }}-${{ github.run_attempt }}
           stop-at-module: krb5
           upload-artifact: false
   build-and-test-macos:

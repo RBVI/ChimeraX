@@ -72,7 +72,8 @@ jobs:
           bundle: chimerax.flatpak
           manifest-path: arm-flatpak.yml
           arch: aarch64
-          cache-key: flatpak-builder-arm64
+          # Match the action's architecture fallback and save each updated cache.
+          cache-key: flatpak-builder-aarch64-${{ github.run_id }}-${{ github.run_attempt }}
           upload-artifact: false
       # For now, we're skipping tests for the Flatpak
       - name: Put the build date and commit in the environment

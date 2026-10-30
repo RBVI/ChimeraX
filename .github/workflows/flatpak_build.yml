@@ -78,7 +78,9 @@ jobs:
         with:
           bundle: chimerax.flatpak
           manifest-path: github-flatpak.yaml
-          cache-key: flatpak-builder-x86
+          # The action restores by flatpak-builder-${arch}; a new key lets it
+          # save updated module/ccache results instead of freezing the first run.
+          cache-key: flatpak-builder-x86_64-${{ github.run_id }}-${{ github.run_attempt }}
           upload-artifact: false
       # For now, we're skipping tests for the Flatpak
       - name: Put the build date and commit in the environment

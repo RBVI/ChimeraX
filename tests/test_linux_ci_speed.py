@@ -118,3 +118,18 @@ def test_flatpak_prerequisites_use_parallel_make():
     commands = [line for line in manifest.splitlines() if "make" in line and "-C prereqs" in line]
     assert len(commands) == 2
     assert all('make -j$(nproc)' in line for line in commands)
+
+
+@pytest.mark.parametrize("name,arch", [
+    ("flatpak_build.yml", "x86_64"),
+    ("flatpak_arm_build.yml", "aarch64"),
+    ("check-for-changes.yml", "aarch64"),
+])
+def test_flatpak_cache_can_restore_and_advance(name, arch):
+    source = workflow(name)
+    key = re.search(r"cache-key: (flatpak-builder-.*)", source).group(1)
+    # The upstream action appends the arch and restores by this prefix. An
+    # immutable key prevents it from ever saving new compiler cache entries.
+    assert key.startswith(f"flatpak-builder-{arch}-")
+    assert "github.run_id" in key
+    assert "github.run_attempt" in key
