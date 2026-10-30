@@ -188,6 +188,8 @@ wheel/pyproject.toml
 prereqs/pips/scipy*.whl
 prereqs/pips/tinyarray-1.2.4*
 prereqs/pips/app_requirements.txt
+prereqs/pips/app_requirements-with-deps.txt
+prereqs/pips/app_requirements-no-deps.txt
 src/bundles/add_charge/pyproject.toml
 src/bundles/addh/pyproject.toml
 src/bundles/alignment_algs/pyproject.toml
