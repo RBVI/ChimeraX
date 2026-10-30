@@ -133,3 +133,11 @@ def test_flatpak_cache_can_restore_and_advance(name, arch):
     assert key.startswith(f"flatpak-builder-{arch}-")
     assert "github.run_id" in key
     assert "github.run_attempt" in key
+
+
+def test_flatpak_build_type_updates_the_manifest_that_is_built():
+    source = workflow("flatpak_build.yml")
+    edit = source.split("Insert the build type into the Flatpak YAML file", 1)[1]
+    edit = edit.split("      - name:", 1)[0]
+    assert "github-flatpak.yaml" in edit
+    assert "arm-flatpak.yml" not in edit
