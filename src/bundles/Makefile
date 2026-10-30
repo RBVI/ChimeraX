@@ -131,10 +131,10 @@ c.phase:
 PY_PHASE_JOBS = 6
 # Most of that fraction of a second is importing setuptools, so those whose
 # Makefile adds nothing to Makefile.bundle are built by one bundle_builder,
-# which imports it once and forks a child for each.  Windows has no fork.
-ifndef WIN32
+# which imports it once and forks a child for each. On Windows it launches
+# isolated Python subprocesses instead, still avoiding a make and its shells
+# for every plain bundle. Bundles with custom Makefile steps stay on make.
 PY_BATCH_SUBDIRS = $(filter $(PLAIN_SUBDIRS),$(PY_SUBDIRS))
-endif
 PY_MAKE_SUBDIRS = $(filter-out $(PY_BATCH_SUBDIRS),$(PY_SUBDIRS))
 py.phase:
 	$(MAKE) -j$(PY_PHASE_JOBS) $(PY_MAKE_SUBDIRS:=.build) \
