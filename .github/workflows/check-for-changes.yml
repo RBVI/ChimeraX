@@ -79,6 +79,7 @@ jobs:
         with:
           platform: linux
           architecture: arm64
+          cache_native_python: 'false'
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       # flatpak-builder runs the test suite inside a bwrap sandbox that does not
       # inherit this runner's CI/GITHUB_ACTIONS variables, so the test suite's

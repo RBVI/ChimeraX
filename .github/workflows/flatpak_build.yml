@@ -39,6 +39,7 @@ jobs:
         uses: ./utils/ci/consolidated_cache
         with:
           platform: linux
+          cache_native_python: 'false'
           architecture: x86_64
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       - name: Restore bundles and includes from cache
