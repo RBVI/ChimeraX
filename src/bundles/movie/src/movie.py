@@ -170,10 +170,8 @@ class Movie:
         v = self.session.main_view
         rgba = v.image_rgba(width, height, supersample = self.supersample,
                             transparent_background = self.transparent_background)
-        color_components = 4 if self.transparent_background else 3
-        from PIL import Image
-        # Flip y-axis since PIL image has row 0 at top, opengl has row 0 at bottom.
-        i = Image.fromarray(rgba[::-1, :, :color_components])
+        from chimerax.graphics import image_from_rgba
+        i = image_from_rgba(rgba, self.transparent_background)
         try:
             i.save(save_path, self.img_fmt)
         except OSError as e:
