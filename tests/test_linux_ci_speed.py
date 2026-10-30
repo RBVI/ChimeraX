@@ -111,3 +111,10 @@ def test_packaging_and_docs_are_not_on_shared_build_path():
 def test_packaging_retains_high_compression():
     assert "'-Zxz', '-z9'" in (ROOT / "mkubuntu.py").read_text()
     assert "%define _binary_payload w9T.xzdio" in (ROOT / "mkcentos.py").read_text()
+
+
+def test_flatpak_prerequisites_use_parallel_make():
+    manifest = (ROOT / "github-flatpak.yaml").read_text()
+    commands = [line for line in manifest.splitlines() if "make" in line and "-C prereqs" in line]
+    assert len(commands) == 2
+    assert all('make -j$(nproc)' in line for line in commands)
