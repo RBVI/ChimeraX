@@ -66,7 +66,32 @@ jobs:
           max_attempts: 1000
           timeout_seconds: 60
           command: ./utils/ci/nightly_logs.sh ${{ secrets.PREBUILT_CACHE_SECRET }} ${{ github.run_id }} ${{ steps.get_job_id.outputs.job_id }} centos-9 ${{ inputs.release_type }}
-      - run: MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 BUILD_TYPE="${{ inputs.release_type }}" make -j$(nproc) -f Makefile.centos install-rbvi
+      - name: Restore bundles and includes from cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            linux-bundles.tar.gz
+            linux-include.tar.gz
+          fail-on-cache-miss: true
+          key: linux-bundles-x64-${{ github.run_id }}-${{ inputs.branch || 'develop' }}-${{ inputs.release_type }}
+      - name: Unpack the bundles to build/sync
+        run: |
+          mkdir wheels
+          tar -xvf linux-bundles.tar.gz -C wheels
+      - name: Unpack the include tarball to include
+        run: |
+          tar -xvf linux-include.tar.gz
+      - name: Build the rest of ChimeraX
+        run: |
+          make build-dirs
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial BUILD_TYPE="${{ inputs.release_type }}" make -j$(nproc) -C prereqs install
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial BUILD_TYPE="${{ inputs.release_type }}" make -j$(nproc) -C prereqs app-install
+          make -C src/apps/ChimeraX install BUILD_TYPE="${{ inputs.release_type }}"
+          MAKEOPTS="-j$(nproc)" NO_PREBUILT=1 PYQT_LICENSE=commercial BUILD_TYPE="${{ inputs.release_type }}" make -j$(nproc) install-common-wheels
+          cp -rp include ChimeraX.app
+          make -C src/apps install BUILD_TYPE="${{ inputs.release_type }}"
+          BUILD_TYPE="${{ inputs.release_type }}" make -j$(nproc) post-src-install
+          make clean-app
       - name: Install Pytest
         run: USE_COVERAGE=1 make pytest-install
       - name: Set up the repo for coverage reporting
@@ -142,15 +167,3 @@ jobs:
           max_attempts: 1000
           timeout_seconds: 60
           command: curl -v -F "key=${{ secrets.PREBUILT_CACHE_SECRET }}" -F "file=@$GITHUB_WORKSPACE/chimerax-docs.tar.gz" https://rbvi.ucsf.edu/chimerax/cgi-bin/upload_docs.py
-      - name: Tar bundles and includes for other builds
-        run: |
-          export BUNDLE_REPO_DIR=$(git rev-parse --show-toplevel)/build/sync
-          tar -cvzf linux-bundles.tar.gz -C $BUNDLE_REPO_DIR .
-          tar -cvzf linux-include.tar.gz -C build include
-      - name: Cache the bundles and includes
-        uses: actions/cache/save@v6
-        with:
-          path: |
-            linux-bundles.tar.gz
-            linux-include.tar.gz
-          key: linux-bundles-x64-${{ inputs.release_type }}-${{ github.sha }}

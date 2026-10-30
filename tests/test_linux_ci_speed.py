@@ -65,3 +65,49 @@ def test_flatpak_never_restores_host_python():
         flatpak = source[source.index("image: fedora:latest"):]
         cache = flatpak.split("uses: ./utils/ci/consolidated_cache", 1)[1].split("      - ", 1)[0]
         assert "cache_native_python: 'false'" in cache
+
+
+@pytest.mark.parametrize("name", ["nightly.yml", "release.yml"])
+def test_linux_consumers_wait_only_for_shared_build(name):
+    jobs = dict(re.findall(r"^  ([\w-]+):\n(.*?)(?=^  [\w-]+:|\Z)",
+                           workflow(name), re.MULTILINE | re.DOTALL))
+    producer = jobs["build-linux-bundles"]
+    assert "uses: ./.github/workflows/linux_bundles_build.yml" in producer
+    assert "needs:" not in producer
+    for job in ("build-rocky9-docker", "build-rocky10-docker", "build-ubuntu",
+                "build-docker", "build-flatpak"):
+        assert "needs: [build-linux-bundles]" in jobs[job]
+        assert "needs: [build-rocky9-docker]" not in jobs[job]
+
+
+def test_shared_build_handoff_is_run_scoped_and_retry_stable():
+    names = ("linux_bundles_build.yml", "rocky9_build.yml", "rocky10_build.yml",
+             "ubuntu_build.yml", "docker_build.yml", "flatpak_build.yml")
+    keys = []
+    for name in names:
+        source = workflow(name)
+        keys.append(re.search(r"key: (linux-bundles-x64-.*)", source).group(1))
+        if name != names[0]:
+            assert "fail-on-cache-miss: true" in source
+    assert len(set(keys)) == 1
+    for field in ("github.run_id", "inputs.branch", "inputs.release_type"):
+        assert field in keys[0]
+    assert "github.run_attempt" not in keys[0]
+    assert "github.sha" not in keys[0]
+
+
+def test_packaging_and_docs_are_not_on_shared_build_path():
+    source = workflow("linux_bundles_build.yml")
+    assert "make -j$(nproc) src.install" in source
+    assert "post-src-install" not in source
+    assert "pytest" not in source
+    assert "-package" not in source
+    rocky = workflow("rocky9_build.yml")
+    for required in ("post-src-install", "make pytest-app", "daily", "-package",
+                     "upload_docs.py", "upload_build.py"):
+        assert required in rocky
+
+
+def test_packaging_retains_high_compression():
+    assert "'-Zxz', '-z9'" in (ROOT / "mkubuntu.py").read_text()
+    assert "%define _binary_payload w9T.xzdio" in (ROOT / "mkcentos.py").read_text()
