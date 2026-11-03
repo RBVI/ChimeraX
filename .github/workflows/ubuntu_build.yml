@@ -57,7 +57,8 @@ jobs:
           path: |
             linux-bundles.tar.gz
             linux-include.tar.gz
-          key: linux-bundles-x64-${{ inputs.release_type }}-${{ github.sha }}
+          fail-on-cache-miss: true
+          key: linux-bundles-x64-${{ github.run_id }}-${{ inputs.branch || 'develop' }}-${{ inputs.release_type }}
       - name: Unpack the bundles tarball to wheels
         run: |
           mkdir wheels

@@ -79,8 +79,8 @@ modules:
         path: .
     build-commands:
       - mkdir -p /app
-      - NO_PREBUILT=1 FLATPAK_DIST=1 make -C prereqs install
-      - NO_PREBUILT=1 FLATPAK_DIST=1 make -C prereqs app-install
+      - NO_PREBUILT=1 FLATPAK_DIST=1 MAKEOPTS="-j$(nproc)" make -j$(nproc) -C prereqs install
+      - NO_PREBUILT=1 FLATPAK_DIST=1 MAKEOPTS="-j$(nproc)" make -j$(nproc) -C prereqs app-install
       # TODO Move FLATPAK_APPNAME to config.mk and define it if FLATPAK_DIST is defined
       - FLATPAK_DIST=1 FLATPAK_APPNAME=edu.ucsf.rbvi.ChimeraX make -C src/apps/ChimeraX install FLATPAK_DIST=23.08 FLATPAK_APPNAME=edu.ucsf.rbvi.ChimeraX
       - cp -rp include /app

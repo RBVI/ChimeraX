@@ -103,7 +103,17 @@ endif
 		$(if $(filter DarwinIntel64,$(OSARCH)),cffi) \
 		$(if $(filter Darwin,$(OS)),./$(SCIPY_WHEEL))
 	# With our own wheels too, in the same install
+ifeq ($(OS),Windows)
+	# OpenMM itself is an explicit requirement. Its CUDA plugin's NVIDIA
+	# dependencies are removed by openmm_metadata.patch below; avoid downloading
+	# and installing hundreds of MB just to uninstall them again.
+	sed '/^openmm-cuda-12==/d' app_requirements.txt > app_requirements-with-deps.txt
+	sed -n '/^openmm-cuda-12==/p' app_requirements.txt > app_requirements-no-deps.txt
+	PATH="$(APP_SCRIPT_DIR):$$PATH" CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements-with-deps.txt $(PLATO_WHEELS)
+	$(APP_PIP_INSTALL) --no-deps -r app_requirements-no-deps.txt
+else
 	PATH="$(APP_SCRIPT_DIR):$$PATH" CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt $(PLATO_WHEELS)
+endif
 ifdef USE_PYSIDE6
 	$(APP_PIP_INSTALL) $(shell grep PySide6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 	$(APP_PIP_INSTALL) $(shell grep shiboken6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
@@ -164,7 +174,7 @@ app-upgrade: app_requirements.txt
 
 clean:
 	-rm -f pip.log
-	-rm -f app_requirements.txt
+	-rm -f app_requirements.txt app_requirements-with-deps.txt app_requirements-no-deps.txt
 	make -C package_checker clean
 
 outdated:

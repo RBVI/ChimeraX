@@ -83,7 +83,7 @@ wheel = [
   "lz4==4.4.5",
   "matplotlib==3.11.2",
   "mcp==1.30.0",
-  "msgpack==1.2.1",
+  "msgpack==1.2.3",
   "netCDF4==1.7.4",
   "networkx==3.3",
   "numpy==2.4.6",

@@ -79,6 +79,7 @@ jobs:
         with:
           platform: linux
           architecture: arm64
+          cache_native_python: 'false'
           cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
       # flatpak-builder runs the test suite inside a bwrap sandbox that does not
       # inherit this runner's CI/GITHUB_ACTIONS variables, so the test suite's
@@ -102,7 +103,7 @@ jobs:
         with:
           manifest-path: arm-flatpak.yml
           arch: aarch64
-          cache-key: flatpak-builder-arm64
+          cache-key: flatpak-builder-aarch64-${{ github.run_id }}-${{ github.run_attempt }}
           stop-at-module: krb5
           upload-artifact: false
   build-and-test-macos:
@@ -112,7 +113,7 @@ jobs:
     steps:
       - name: Set up Homebrew
         id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@4790763c0a3ba4036f72634dc079c4a7dfcd4878
+        uses: Homebrew/actions/setup-homebrew@d482da0e602890d3160aade42e72c8556103bf04
       - uses: actions/checkout@v7
       - run: ${PWD}/utils/set_up_macos.sh
       - name: Fetch Plato prerequisites
