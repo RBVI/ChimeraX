@@ -114,7 +114,12 @@ endif
 ifeq ($(USE_PREBUILT),true)
 install:
 
-app-install: $(AMBERTOOLS_PREBUILT)
+# Unpack once into each app, since one build may reach app-install more than
+# once (on macOS, Python.app-install depends on it; see prereqs/Makefile)
+AMBERTOOLS_STAMP = $(AMBERBIN_DST_HOME)/.installed-$(AMBERTOOLS_PREBUILT)
+app-install: $(AMBERTOOLS_STAMP)
+
+$(AMBERTOOLS_STAMP): $(AMBERTOOLS_PREBUILT)
 	-mkdir -p $(AMBERBIN_DST_HOME)
 ifeq ($(OS),Windows)
 	# Antechamber complains bitterly about a missing tmp directory otherwise
@@ -124,6 +129,7 @@ endif
 ifeq ($(OS),Darwin)
 	tar xf $(AMBERTOOLS_FLIBS_PREBUILT) -C $(app_libdir)
 endif
+	touch $@
 
 # The flibs archive first, so this one existing means both are complete
 $(AMBERTOOLS_PREBUILT):
