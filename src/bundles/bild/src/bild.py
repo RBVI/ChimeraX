@@ -35,6 +35,7 @@ The plan is to support all of the existing bild format.
 """
 
 from chimerax.core.errors import UserError
+from chimerax.core.colors import Color
 from numpy import array, empty, float32, int32, uint8, array_equal
 from chimerax.geometry import identity, translation, rotation, scale, distance, z_align
 from chimerax.atomic import AtomicShapeDrawing, AtomicShapeInfo
@@ -76,7 +77,7 @@ def _is_int(i):
 
 class _BildFile:
 
-    def __init__(self, session, filename):
+    def __init__(self, session, filename, color=None):
         from chimerax.core import generic3d
         self.model = generic3d.Generic3DModel(filename, session)
         self.session = session
@@ -86,7 +87,11 @@ class _BildFile:
         self.lineno = 0
         self.transforms = [identity()]
         self.pure = [True]   # True if corresponding transform has pure rotation
-        self.cur_color = [1.0, 1.0, 1.0, 1.0]
+        if color is None:
+            self.cur_color = [1.0, 1.0, 1.0, 1.0]
+        else:
+            color = Color(color)
+            self.cur_color = color.rgba
         self.cur_transparency = 0
         self.cur_pos = array([0.0, 0.0, 0.0])
         self.cur_pos_is_move = True  # set whenever cur_pos is set
@@ -607,14 +612,14 @@ class _BildFile:
     }
 
 
-def read_bild(session, stream, file_name):
+def read_bild(session, stream, file_name, color=None):
     """Populate the scene with the geometry from a bild file
 
     :param stream: either a binary I/O stream or the name of a file
 
     Extra arguments are ignored.
     """
-    b = _BildFile(session, file_name)
+    b = _BildFile(session, file_name, color)
     return b.parse_stream(stream)
 
 
