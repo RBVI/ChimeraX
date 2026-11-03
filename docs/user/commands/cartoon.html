@@ -262,6 +262,23 @@ The following <b>cartoon style</b> <i>model-options</i>
 have only a single value per model:
 </p>
 <blockquote>
+<a name="helixInsideColor"></a>
+<b>helixInsideColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;default
+<br>
+Set a separate color for the inward-facing surface of helix ribbons.
+For example, <b>cartoon style #1 helixInsideColor white</b> colors the
+inside of the helix ribbons in model #1 white. Color boundaries are sharp,
+and the inside color stays on the same material side throughout each helix,
+including distorted or locally flat regions. Lighting remains smooth.
+The outward-facing surface
+and end caps retain the normal residue cartoon colors, as do strands and coil.
+This setting applies to all helices in each specified model, in the
+<b>default</b> and <b>wrap</b> helix modes. It has no effect on worms or
+helices shown as tubes or cylinders.
+The initial setting, <b>default</b>, uses normal residue cartoon colors on
+both sides. Use <b>cartoon style #1 helixInsideColor default</b> to restore it.
+</blockquote>
+<blockquote>
 <a name="hmode"></a>
 <b>modeHelix</b>&nbsp;&nbsp;tube&nbsp;|&nbsp;cylinder&nbsp;|&nbsp;wrap&nbsp;|&nbsp;default
 <br>
