@@ -233,7 +233,7 @@ def _minimize(session, structure, mobile_atoms, live_updates, log_energy, max_st
         'C': 'c', 'CT': 'c3', 'CX': 'c3', '2C': 'c3', '3C': 'c3',
         'H': 'hn', 'HC': 'hc', 'HO': 'ho', 'H1': 'hc',
         'N': 'n',
-        'O': 'o', 'OH': 'oh',
+        'O': 'o', 'OH': 'oh', 'O2': 'o',
     }
     while True:
         templates, no_tmpl_omm_residues = forcefield.generateTemplatesForUnmatchedResidues(top)
