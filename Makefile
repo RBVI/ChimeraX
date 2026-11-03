@@ -138,16 +138,41 @@ build-minimal:
 endif
 	$(MAKE) build-dirs
 	$(MAKE) build-app-dirs
+	$(MAKE) minimal-install
+
+# The steps of build-minimal, each started as soon as what it needs is done:
+# as in install, bundle_builder builds alongside the rest of the prerequisites'
+# app install, and the launcher, which needs only the build tree's Python,
+# builds alongside the prerequisites and bundles.  (On Windows, Python.install
+# and Python.app-install install win32 first; see prereqs/Makefile.)
+MINIMAL_STEPS = prereqs.minimal-build prereqs.minimal-python-app-install \
+	prereqs.minimal-app-install bundle_builder.minimal-install \
+	bundles.minimal-install app.minimal-install warm-libraries.minimal
+.PHONY: minimal-install $(MINIMAL_STEPS)
+minimal-install: bundles.minimal-install app.minimal-install \
+	warm-libraries.minimal
+prereqs.minimal-build:
+	$(MAKE) -C prereqs Python.install
+prereqs.minimal-python-app-install: prereqs.minimal-build
+	$(MAKE) -C prereqs Python.app-install
+prereqs.minimal-app-install: prereqs.minimal-python-app-install
+	$(MAKE) -C prereqs pips.app-install ambertools.app-install \
+		SKIP_PYTHON_APP_INSTALL=1
+bundle_builder.minimal-install: prereqs.minimal-python-app-install
+	$(MAKE) -C src/bundles/bundle_builder build
+bundles.minimal-install: prereqs.minimal-app-install \
+	bundle_builder.minimal-install
+	$(MAKE) -C src/bundles install BUNDLE_BUILDER_INSTALLED=1
+# See src/Makefile for why Windows waits for the bundles
 ifdef WIN32
-	$(MAKE) -C prereqs/win32 app-install
+app.minimal-install: bundles.minimal-install
+else
+app.minimal-install: prereqs.minimal-python-app-install
 endif
-	$(MAKE) -C prereqs/Python install
-	$(MAKE) -C prereqs/pips install
-	$(MAKE) -C prereqs/Python app-install
-	$(MAKE) -C prereqs/pips app-install
-	$(MAKE) -C prereqs/ambertools app-install
-	$(MAKE) -C src/bundles install
 	$(MAKE) -C src/apps/ChimeraX install
+# For the toolshed reload at the end of the bundles' install
+warm-libraries.minimal: prereqs.minimal-app-install
+	$(MAKE) warm-libraries
 
 test src.test: testimports
 	$(MAKE) -C src test
