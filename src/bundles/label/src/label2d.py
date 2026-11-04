@@ -27,10 +27,10 @@
 #
 def label2d(session, labels = None, *, text = None, color = None, bg_color = None,
             size = None, font = None, bold = None, italic = None,
-            xpos = None, ypos = None, visibility = None, margin = None,
+            xpos = None, ypos = None, center = None, visibility = None, margin = None,
             outline = None, frames = None):
     keywords = ('text', 'color', 'bg_color', 'size', 'font', 'bold', 'italic',
-                'xpos', 'ypos', 'visibility', 'margin', 'outline')
+                'xpos', 'ypos', 'center', 'visibility', 'margin', 'outline')
     loc = locals()
     kw = {attr:loc[attr] for attr in keywords if loc[attr] is not None}
     if labels is None:
@@ -46,7 +46,7 @@ def label2d(session, labels = None, *, text = None, color = None, bg_color = Non
 #
 def label_create(session, name, text = '', color = None, bg_color = None,
                  size = 24, font = 'Arial', bold = None, italic = None,
-                 xpos = 0.5, ypos = 0.5, visibility = True, margin = 0,
+                 xpos = 0.5, ypos = 0.5, center = None, visibility = True, margin = 0,
                  outline = 0):
     '''Create a label at a fixed position in the graphics window.
 
@@ -70,6 +70,8 @@ def label_create(session, name, text = '', color = None, bg_color = None,
       Placement of left edge of text. Range 0 - 1 covers full width of graphics window.
     ypos : float
       Placement of bottom edge of text. Range 0 - 1 covers full height of graphics window.
+    center : bool
+      Place the label's center at xpos/ypos instead of lower left corner
     visibility : bool
       Whether or not to display the label.
     margin : float
@@ -87,7 +89,7 @@ def label_create(session, name, text = '', color = None, bg_color = None,
             raise UserError('Label "%s" already exists' % name)
 
     kw = {'text':text, 'color':color, 'size':size, 'font':font,
-          'bold':bold, 'italic':italic, 'xpos':xpos, 'ypos':ypos, 'visibility':visibility,
+          'bold':bold, 'italic':italic, 'xpos':xpos, 'ypos':ypos, 'center':center, 'visibility':visibility,
           'margin':margin, 'outline_width':outline}
 
     from chimerax.core.colors import Color
@@ -114,11 +116,11 @@ def label_create(session, name, text = '', color = None, bg_color = None,
 #
 def label_change(session, labels, *, text = None, color = None, bg_color = None,
                  size = None, font = None, bold = None, italic = None,
-                 xpos = None, ypos = None, visibility = None, margin = None,
+                 xpos = None, ypos = None, center = None, visibility = None, margin = None,
                  outline = None, frames = None):
     '''Change label parameters.'''
     kw = {'text':text, 'color':color, 'bg_color':bg_color, 'size':size, 'font':font,
-          'bold':bold, 'italic':italic, 'xpos':xpos, 'ypos':ypos, 'visibility':visibility,
+          'bold':bold, 'italic':italic, 'xpos':xpos, 'ypos':ypos, 'center':center, 'visibility':visibility,
           'margin':margin, 'outline':outline, 'frames':frames}
     return [_update_label(session, l, **kw) for l in labels]
 
@@ -127,7 +129,7 @@ def label_change(session, labels, *, text = None, color = None, bg_color = None,
 #
 def _update_label(session, l, *, text = None, color = None, bg_color = None,
                  size = None, font = None, bold = None, italic = None,
-                 xpos = None, ypos = None, visibility = None, margin = None,
+                 xpos = None, ypos = None, center = None, visibility = None, margin = None,
                  outline = None, frames = None):
     if font is not None: l.font = font
     if bold is not None: l.bold = bold
@@ -141,19 +143,21 @@ def _update_label(session, l, *, text = None, color = None, bg_color = None,
         if size is not None: l.size = size
         if xpos is not None: l.xpos = xpos
         if ypos is not None: l.ypos = ypos
+        if center is not None: l.center = center
         if visibility is not None: l.visibility = visibility
         if margin is not None: l.margin = margin
         if outline is not None: l.outline_width = outline
         l.update_drawing()
     else:
-        _InterpolateLabel(session, l, color, bg_color, size, xpos, ypos, visibility, margin, outline, frames)
+        _InterpolateLabel(session, l, color, bg_color, size, xpos, ypos, center, visibility, margin, outline,
+            frames)
 
 
 # -----------------------------------------------------------------------------
 #
 class _InterpolateLabel:
-    def __init__(self, session, label, color, bg_color, size, xpos, ypos, visibility, margin, outline_width,
-            frames):
+    def __init__(self, session, label, color, bg_color, size, xpos, ypos, center, visibility, margin,
+        outline_width, frames):
         self.label = label
         from numpy import array_equal
         # even if color/background not changing, need color1/2 and bg1/2 for visibility changes
@@ -274,6 +278,9 @@ def label_under_window_position(session, win_x, win_y):
         d = lbl.drawing
         if d.display and d.parents_displayed:
             lw,lh = d.size
+            if lbl.center:
+                dx += lw/2
+                dy += lh/2
             if dx >=0 and dx < lw and dy >=0 and dy < lh:
                 return lbl
     return None
@@ -378,6 +385,7 @@ def register_label_command(logger):
              ('italic', BoolArg),
              ('xpos', FloatArg),
              ('ypos', FloatArg),
+             ('center', BoolArg),
              ('visibility', BoolArg),
              ('margin', NonNegativeFloatArg),
              ('outline', NonNegativeFloatArg)]
@@ -542,7 +550,7 @@ def session_labels(session, create=False):
 class Label:
     def __init__(self, session, name, text = '', color = None, background = None,
                  size = 24, font = 'Arial', bold = False, italic = False,
-                 xpos = 0.5, ypos = 0.5, visibility = True, margin = 0, outline_width = 0,
+                 xpos = 0.5, ypos = 0.5, center = False, visibility = True, margin = 0, outline_width = 0,
                  scalebar_width = None, scalebar_height = None):
 
         self.session = session
@@ -561,6 +569,7 @@ class Label:
         self.italic = italic
         self.xpos = xpos
         self.ypos = ypos
+        self.center = center
         self.visibility = visibility
         self.margin = margin	# Logical pixels.
         self.outline_width = outline_width
@@ -709,7 +718,12 @@ class LabelModel(Model):
     @property
     def _placement(self):
         l = self.label
-        x,y = (-1 + 2*l.xpos, -1 + 2*l.ypos)    # Convert 0-1 position to -1 to 1.
+        if l.center:
+            sx, sy = l.drawing.size
+            xpos, ypos = l.xpos - sx/2, l.ypos - sy/2
+        else:
+            xpos, ypos = l.xpos, l.ypos
+        x,y = (-1 + 2*xpos, -1 + 2*ypos)    # Convert 0-1 position to -1 to 1.
         y *= self._aspect
         w,h = [2*s for s in self.size]		# Convert [0,1] size [-1,1] size.
         return (x,y), (w,h)
@@ -870,7 +884,7 @@ class LabelModel(Model):
             arg_to_attr = {}
             base_attrs = ('name', 'background', 'scalebar_width', 'scalebar_height')
         lattrs = base_attrs + ('text', 'color', 'size', 'font', 'bold', 'italic', 'xpos', 'ypos',
-            'visibility')
+            'center', 'visibility')
         l = self.label
         lstate = {attr:getattr(l, arg_to_attr.get(attr, attr)) for attr in lattrs}
         data = {'label state': lstate,
