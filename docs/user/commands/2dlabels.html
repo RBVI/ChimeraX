@@ -122,6 +122,7 @@ See also the <a href="https://www.rbvi.ucsf.edu/chimerax/gallery.html#switch" ta
 [&nbsp;<b>size</b>&nbsp;&nbsp;<i>font-size</i>&nbsp;]
 [&nbsp;<b>xpos</b>&nbsp;&nbsp;<i>x-position</i>&nbsp;]
 [&nbsp;<b>ypos</b>&nbsp;&nbsp;<i>y-position</i>&nbsp;]
+[&nbsp;<b>center</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>font</b>&nbsp;&nbsp;<i>font-name</i>&nbsp;]
 [&nbsp;<b>bold</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>italic</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
@@ -171,10 +172,12 @@ The label <b>size</b> must be an integer greater than zero
 (default <b>24</b>).
 The <b>xpos</b> and <b>ypos</b> options specify the X and Y
 coordinates of the lower lefthand corner of the label 
-(defaults are <b>0.5</b> and <b>0.5</b>). The X axis is horizontal 
-and the Y axis is vertical, and both range from 0 to 1 in the 
-visible portion of the graphics window. It is possible to place a label 
-partially or completely outside the visible area, however.
+(defaults are <b>0.5</b> and <b>0.5</b>). If the <b>center</b> option is <b>true</b>
+(default <b>false</b>)
+then <b>xpos</b> and <b>ypos</b> specify the center of the label instead.
+The X axis is horizontal and the Y axis is vertical, and both range from
+0 to 1 in the visible portion of the graphics window. It is possible to
+place a label partially or completely outside the visible area, however.
 The available <b>font</b> settings (default <b>Arial</b>)
 can be listed with <a href="#listfonts"><b>2dlabels listfonts</b></a>.
 Font names with spaces must be enclosed in quotation marks.
@@ -199,6 +202,7 @@ The <b>visibility</b> option specifies whether the label should be displayed.
 [&nbsp;<b>size</b>&nbsp;&nbsp;<i>font-size</i>&nbsp;]
 [&nbsp;<b>xpos</b>&nbsp;&nbsp;<i>x-position</i>&nbsp;]
 [&nbsp;<b>ypos</b>&nbsp;&nbsp;<i>y-position</i>&nbsp;]
+[&nbsp;<b>center</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>font</b>&nbsp;&nbsp;<i>font-name</i>&nbsp;]
 [&nbsp;<b>bold</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>italic</b>&nbsp;&nbsp;true&nbsp;|&nbsp;false&nbsp;]
