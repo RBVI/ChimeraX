@@ -321,6 +321,36 @@ def patch_pyside_init(pyside_dir):
     write(path, s)
 
 
+def replace_strings(data, needle, patch):
+    """Replace each NUL-terminated string in data that contains needle with
+    patch(string), padded with spaces to the same length so nothing else in
+    the library moves."""
+    pos = 0
+    while True:
+        i = data.find(needle, pos)
+        if i < 0:
+            return data
+        start = data.rfind(b"\0", 0, i) + 1
+        end = data.find(b"\0", i)
+        old = data[start:end]
+        new = patch(old)
+        data = data[:start] + new + b" " * (len(old) - len(new)) + data[end:]
+        pos = end
+
+
+def replace_library(path, data):
+    tmp = path + ".tmp"
+    with open(tmp, "wb") as f:
+        f.write(data)
+    os.chmod(tmp, os.stat(path).st_mode)
+    if sys.platform == "darwin":
+        # Editing the library invalidates its signature, and Apple silicon
+        # kills a process that loads it.  Sign it ad hoc, as the
+        # ambertools prereq does; release builds are signed again later.
+        subprocess.run(["codesign", "--force", "-s", "-", tmp], check=True)
+    os.replace(tmp, path)
+
+
 def patch_bootstrap(shiboken_dir, files_dir):
     # The bootstrap is a NUL-terminated source string inside libshiboken.
     # Overwrite it in place with a version that imports lazily, padded with
@@ -340,23 +370,16 @@ def patch_bootstrap(shiboken_dir, files_dir):
         data = f.read()
     if MARK.encode() in data:
         return
-    i = data.find(b"\ndef bootstrap():\n")
-    if i < 0 or data.count(b"\ndef bootstrap():\n") != 1:
-        sys.exit(f"{path}: embedded signature_bootstrap not found exactly once")
-    start = data.rfind(b"\0", 0, i) + 1
-    end = data.find(b"\0", i)
-    old = data[start:end]
-    if not old.startswith(b"# Copyright") or b"def find_incarnated_files():" not in old:
-        sys.exit(f"{path}: embedded signature_bootstrap has an unexpected layout")
-    if len(new_bytes) > len(old):
-        sys.exit(f"replacement bootstrap is {len(new_bytes)} bytes, embedded one is {len(old)}")
-    patched = data[:start] + new_bytes + b" " * (len(old) - len(new_bytes)) + data[end:]
-    assert len(patched) == len(data)
-    tmp = path + ".tmp"
-    with open(tmp, "wb") as f:
-        f.write(patched)
-    os.chmod(tmp, os.stat(path).st_mode)
-    os.replace(tmp, path)
+    # A universal macOS library has one copy per architecture.
+    if b"\ndef bootstrap():\n" not in data:
+        sys.exit(f"{path}: embedded signature_bootstrap not found")
+    def patch(old):
+        if not old.startswith(b"# Copyright") or b"def find_incarnated_files():" not in old:
+            sys.exit(f"{path}: embedded signature_bootstrap has an unexpected layout")
+        if len(new_bytes) > len(old):
+            sys.exit(f"replacement bootstrap is {len(new_bytes)} bytes, embedded one is {len(old)}")
+        return new_bytes
+    replace_library(path, replace_strings(data, b"\ndef bootstrap():\n", patch))
 
 
 def patch_qtcore_snippet(pyside_dir):
@@ -376,24 +399,17 @@ def patch_qtcore_snippet(pyside_dir):
         data = f.read()
     if warn_new in data:
         return
-    if data.count(import_line) != 1:
-        sys.exit(f"{path}: embedded textwrap import not found exactly once")
-    i = data.find(import_line)
-    start = data.rfind(b"\0", 0, i) + 1
-    end = data.find(b"\0", i)
-    old = data[start:end]
-    if old.count(warn_old) != 1:
-        sys.exit(f"{path}: embedded snippet has an unexpected layout")
-    new = old.replace(import_line, b"").replace(warn_old, warn_new) + b"# " + MARK.encode()
-    if len(new) > len(old):
-        sys.exit(f"{path}: patched snippet is longer than the original")
-    patched = data[:start] + new + b" " * (len(old) - len(new)) + data[end:]
-    assert len(patched) == len(data)
-    tmp = path + ".tmp"
-    with open(tmp, "wb") as f:
-        f.write(patched)
-    os.chmod(tmp, os.stat(path).st_mode)
-    os.replace(tmp, path)
+    # A universal macOS library has one copy per architecture.
+    if import_line not in data:
+        sys.exit(f"{path}: embedded textwrap import not found")
+    def patch(old):
+        if old.count(import_line) != 1 or old.count(warn_old) != 1:
+            sys.exit(f"{path}: embedded snippet has an unexpected layout")
+        new = old.replace(import_line, b"").replace(warn_old, warn_new) + b"# " + MARK.encode()
+        if len(new) > len(old):
+            sys.exit(f"{path}: patched snippet is longer than the original")
+        return new
+    replace_library(path, replace_strings(data, import_line, patch))
 
 
 def main():
