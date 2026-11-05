@@ -1,0 +1,16 @@
+--- numpy/__init__.py
++++ numpy/__init__.py
+@@ -845,7 +845,12 @@
+         except ValueError:
+             pass
+ 
+-    if sys.platform == "darwin":
++    # ChimeraX: the polyfit sanity check imports numpy.linalg (and
++    # numpy._typing) and solves a least-squares problem on every import.  It
++    # catches numpy built against the buggy Accelerate of macOS < 13.3; the
++    # arm64 wheels need macOS 14 and its new Accelerate, and the Intel ones
++    # use OpenBLAS.
++    if False and sys.platform == "darwin":
+         from . import exceptions
+         with warnings.catch_warnings(record=True) as w:
+             _mac_os_check()
