@@ -170,7 +170,8 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
                   arrow_scale=None, xsection=None, sides=None,
                   bar_scale=None, bar_sides=None, ss_ends=None,
                   mode_helix=None, mode_strand=None, radius=None,
-                  divisions=None, spline_normals=None, undo_state=None, worm=None):
+                  divisions=None, spline_normals=None, undo_state=None, worm=None,
+                  helix_inside_color=None):
     '''Set cartoon style options for secondary structures in specified structures.
 
     Parameters
@@ -207,6 +208,9 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
         "tube" uses a tube along an arc so that the alpha carbons are on the surface of the tube.
     mode_strand : string
         Same argument values are mode_helix.
+    helix_inside_color : color or "default"
+        Color the inward-facing side of helix ribbons for each specified structure.
+        "default" restores residue ribbon colors on both sides.
     radius: floating point number
         Radius of helices as cylinders
     '''
@@ -271,6 +275,9 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
             print(indent, "barbell parameters:",
                   "sides=%d" % param["sides"],
                   "scale=%.2g" % param["ratio"])
+            from chimerax.core.colors import color_name
+            c = mgr.helix_inside_color
+            print(indent, "helix inside color=%s" % ("default" if c is None else color_name(c)))
             print(indent, "worm=%s" % m.worm_ribbon)
         return
     is_helix = residues.is_helix
@@ -289,6 +296,12 @@ def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, 
     if undo_state is None:
         from chimerax.core.undo import UndoState
         undo_state = UndoState("cartoon style")
+    if helix_inside_color is not None:
+        c = None if helix_inside_color == "default" else tuple(helix_inside_color.uint8x4())
+        for m in structures:
+            mgr = m.ribbon_xs_mgr
+            undo_state.add(mgr, "set_helix_inside_color", mgr.helix_inside_color, c, "M")
+            mgr.set_helix_inside_color(c)
     if is_coil.any():
         # set coil parameters
         for m in structures:
@@ -728,7 +741,7 @@ class EvenIntArg(Annotation):
 #
 def register_command(logger):
     from chimerax.core.commands import register, Or, CmdDesc, TupleOf, NoArg, StringArg, EmptyArg, RepeatOf
-    from chimerax.core.commands import Bounded, FloatArg, PositiveFloatArg, EnumOf, BoolArg, IntArg
+    from chimerax.core.commands import Bounded, FloatArg, PositiveFloatArg, EnumOf, BoolArg, IntArg, ColorArg
     from chimerax.atomic import AtomsArg, AtomicStructuresArg, ResiduesArg
     desc = CmdDesc(optional=[("atoms", AtomsArg)],
                    keyword=[("smooth", Or(Bounded(FloatArg, 0.0, 1.0),
@@ -762,6 +775,7 @@ def register_command(logger):
                             ("bar_sides", Bounded(EvenIntArg, 3, 24)),
                             ("ss_ends", EnumOf(["default", "short", "long"])),
                             ("mode_helix", EnumOf(list(_ModeHelixMap.keys()))),
+                            ("helix_inside_color", Or(EnumOf(["default"]), ColorArg)),
 #                            ("mode_strand", EnumOf(list(_ModeStrandMap.keys()))),
                             ("radius", Or(PositiveFloatArg, EnumOf(["auto"]))),
                             ("spline_normals", BoolArg),
