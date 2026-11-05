@@ -122,6 +122,9 @@ ifeq ($(OS),Windows)
 else
 	PATH="$(APP_SCRIPT_DIR):$$PATH" CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt $(PLATO_WHEELS)
 endif
+	# The Qt shim is developed in this tree; install it over the released
+	# wheel so its changes take effect without publishing a new version.
+	$(APP_PIP_INSTALL) --no-deps --no-build-isolation --no-cache-dir --force-reinstall ../qtshim
 ifdef USE_PYSIDE6
 	$(APP_PIP_INSTALL) $(shell grep PySide6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 	$(APP_PIP_INSTALL) $(shell grep shiboken6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
