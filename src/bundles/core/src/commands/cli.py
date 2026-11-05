@@ -2621,7 +2621,6 @@ def register(
 def _get_help_url(words):
     # return help: URLs so links work in log as well as help viewer
     import os
-    from urllib.parse import urlunparse
 
     cname = words[0]
     if cname.startswith("~"):
@@ -2636,9 +2635,10 @@ def _get_help_url(words):
     for hd in help_directories:
         cpath = os.path.join(hd, cmd_subpath)
         if os.path.exists(cpath):
-            return urlunparse(
-                ("help", "", "user/commands/%s.html" % cname, "", "", frag)
-            )
+            # What urlunparse() makes of these parts, without importing
+            # urllib.parse at startup
+            url = "help:user/commands/%s.html" % cname
+            return url + "#" + frag if frag else url
     return None
 
 
