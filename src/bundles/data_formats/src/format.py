@@ -142,16 +142,25 @@ class DataFormat(State):
         self.synopsis = synopsis if synopsis else format_name
         self.allow_directory = allow_directory
         self.default_for = default_for
+        # Sanitized when first used, since startup creates hundreds of formats
+        self._reference_url = reference_url
+        self._reference_url_sanitized = False
 
-        if reference_url and reference_url != "None":
-            # sanitize URL
-            from urllib import parse
-            r = list(parse.urlsplit(reference_url))
-            r[1:5] = [parse.quote(p) for p in r[1:5]]
-            reference_url = parse.urlunsplit(r)
-        else:
-            reference_url = None
-        self.reference_url = reference_url
+    @property
+    def reference_url(self):
+        if not self._reference_url_sanitized:
+            reference_url = self._reference_url
+            if reference_url and reference_url != "None":
+                # sanitize URL
+                from urllib import parse
+                r = list(parse.urlsplit(reference_url))
+                r[1:5] = [parse.quote(p) for p in r[1:5]]
+                reference_url = parse.urlunsplit(r)
+            else:
+                reference_url = None
+            self._reference_url = reference_url
+            self._reference_url_sanitized = True
+        return self._reference_url
 
     def take_snapshot(self, session, flags):
         return { attr_name: getattr(self, attr_name) for attr_name in self.attr_names }
