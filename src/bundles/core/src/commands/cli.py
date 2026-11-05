@@ -2655,7 +2655,6 @@ def register(
 def _get_help_url(words):
     # return help: URLs so links work in log as well as help viewer
     import os
-    from urllib.parse import urlunparse
 
     cname = words[0]
     if cname.startswith("~"):
@@ -2666,13 +2665,14 @@ def _get_help_url(words):
     from .. import toolshed
 
     help_directories = toolshed.get_help_directories()
-    cmd_subpath = os.path.join("user", "commands", "%s.html" % cname)
+    cmd_subpath = os.path.join("user", "commands", f"{cname}.html")
     for hd in help_directories:
         cpath = os.path.join(hd, cmd_subpath)
         if os.path.exists(cpath):
-            return urlunparse(
-                ("help", "", "user/commands/%s.html" % cname, "", "", frag)
-            )
+            import html
+
+            url = f"help:user/commands/{html.escape(cname)}.html"
+            return f"{url}#{html.escape(frag)}" if frag else url
     return None
 
 
