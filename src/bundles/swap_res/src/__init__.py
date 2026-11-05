@@ -22,7 +22,13 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .swap_res import swap_aa, get_rotamers
+def __getattr__(name):
+    # Importing swap_res imports chimerax.atomic; wait until it is used.
+    if name in ('swap_aa', 'get_rotamers'):
+        from . import swap_res
+        return getattr(swap_res, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 from chimerax.core.toolshed import BundleAPI
 
