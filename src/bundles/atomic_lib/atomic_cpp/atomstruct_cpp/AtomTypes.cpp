@@ -1731,15 +1731,17 @@ t0 = t1;
                         protonatable_Ns.insert(a);
                     else if (best_assignment != NULL) {
                         // distinguish N2+/Npl
-                        if (aro && is_N2plus(best_assignment, a->bonds())) {
-                            // non-ring bond == 0
+                        if (is_N2plus(best_assignment, a->bonds())) {
                             a->set_computed_idatm_type("N2+");
-                            // type bonded isolated O as O3-
-                            if (a->bonds().size() == 3) {
-                                for (auto nb: a->neighbors()) {
-                                    if (nb->element() == Element::O
-                                    && nb->bonds().size() == 1)
-                                        nb->set_computed_idatm_type("O3-");
+                            if (aro)  {
+                                // non-ring bond is single
+                                // type bonded isolated O as O3-
+                                if (a->bonds().size() == 3) {
+                                    for (auto nb: a->neighbors()) {
+                                        if (nb->element() == Element::O
+                                        && nb->bonds().size() == 1)
+                                            nb->set_computed_idatm_type("O3-");
+                                    }
                                 }
                             }
                         }
