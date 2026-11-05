@@ -128,8 +128,9 @@ endif
 ifdef USE_PYSIDE6
 	$(APP_PIP_INSTALL) $(shell grep PySide6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 	$(APP_PIP_INSTALL) $(shell grep shiboken6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
-	$(APP_PYTHON_EXE) patch_pyside6.py
 endif
+	# pyproject.toml always installs PySide6 now, not only with USE_PYSIDE6
+	$(APP_PYTHON_EXE) patch_pyside6.py
 ifneq (,$(SOURCE_WHEELS))
 	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
 endif
