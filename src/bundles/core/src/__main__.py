@@ -609,6 +609,24 @@ def _load_numpy_docstrings():
     _load_docstrings()
 
 
+def _connect_to_window_server():
+    # Qt's first use of AppKit waits ~20 ms for the window server
+    # connection.  Make the connection on another thread while Python
+    # imports and initializes the session, so it is ready by then.
+    # CGMainDisplayID() is thread safe; ctypes releases the GIL around
+    # loading the framework and calling it.
+    def connect():
+        import ctypes
+        try:
+            cg = ctypes.CDLL("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")
+            cg.CGMainDisplayID()
+        except (OSError, AttributeError):
+            pass
+
+    from threading import Thread
+    Thread(target=connect, name="window server connection", daemon=True).start()
+
+
 def init(argv, event_loop=True):
     import sys
 
@@ -643,6 +661,8 @@ def init(argv, event_loop=True):
         os.environ["SSL_CERT_FILE"] = _certifi_where()
 
     opts, args = parse_arguments(argv)
+    if opts.gui and not opts.offscreen and sys.platform == "darwin":
+        _connect_to_window_server()
     if opts.gui and "CHIMERAX_STARTUP_PREFETCH" in os.environ:
         # Note the settings and caches this startup reads (see below).
         from chimerax.core.startup_prefetch import watch_opened_files
