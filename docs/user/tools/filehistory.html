@@ -37,15 +37,51 @@ Clicking an image or name reopens the data, if it still exists,
 using the same options as used previously.
 Simply pausing the cursor over an image or filename without clicking
 shows the data's full pathname or database information.
+</p><p>
+<a name="sections"></a>
+Thumbnails can be grouped into named <b>sections</b>, for example one per project.
+Once any section has been defined, each section is shown with its name as a heading,
+and files that are not in any section are shown first under <b>Recent</b>,
+most recently used first.
+Files in a section stay in the position where they were placed
+even when they are reopened. A thumbnail can be dragged with the mouse
+into a section and dropped at a specific position, or dragged onto
+<b>Recent</b> to remove it from its section.
+Several thumbnails can be selected by <b>Ctrl</b>-clicking
+(<b>&#8984;</b>-clicking on Mac) to add or remove individual thumbnails, or
+<b>Shift</b>-clicking to select a range;
+dragging any selected thumbnail moves all of them, keeping their order.
+Clicking the background clears the selection.
+</p><p>
+The sections are saved in a separate file from the history itself
+so that they are preserved if an older version of ChimeraX
+(which does not know about sections) is used.
+</p><p>
 The tool's <a href="../window.html#context-menu">context menu</a> includes:
 </p>
 <ul>
-<li><b>Show full file names</b> &ndash; whether to the show the entire
+<li><b>Open</b> &ndash; open the file under the mouse
+(same as clicking it), or all selected files
+</li><li><b>Move to section</b> &ndash; move the file under the mouse,
+or all selected files, into a section, <b>Recent</b>, or a <b>New section...</b> to be named
+</li><li><b>Remove from history</b> &ndash; remove the file under the mouse,
+or all selected files, from the history (the file itself is not deleted)
+</li><li><b>Add new files to this section</b> &ndash;
+newly opened or saved files are placed in the section under the mouse
+instead of <b>Recent</b>; the heading of that section notes
+<i>(new files added here)</i>
+</li><li><b>Rename section...</b>, <b>Move section up</b>, <b>Move section down</b>
+&ndash; organize the section under the mouse
+</li><li><b>Remove section</b> &ndash; remove the section under the mouse;
+its files move back to <b>Recent</b>
+</li><li><b>New section...</b> &ndash; define a new, initially empty section
+</li><li><b>Show full file names</b> &ndash; whether to the show the entire
 name of each file instead of shortening the long names with ellipses (...);
 saved as a <a href="../preferences.html#other">preference</a>
 </li><li><b>Remove deleted files</b> &ndash;
 remove references to files that no longer exist
-</li><li><b>Clear file history</b> &ndash; remove all contents
+</li><li><b>Clear file history</b> &ndash; remove all files
+(any sections are kept, but emptied)
 </li></ul>
 <p>
 The history is stored in a file in a platform-dependent standard location
@@ -62,6 +98,6 @@ Each image shows the corresponding data in the absence of other models.
 
 <hr>
 <address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
-November 2025</address>
+October 2026</address>
 
 </body></html>
