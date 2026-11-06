@@ -21,6 +21,8 @@
   <CModule name="_mmcif" usesNumpy="true">
     <SourceFile>mmcif_cpp/_mmcif.cpp</SourceFile>
     <SourceFile>mmcif_cpp/mmcif.cpp</SourceFile>
+    <SourceFile>mmcif_cpp/mmcif_atom_site.cpp</SourceFile>
+    <SourceFile>mmcif_cpp/mmcif_secondary.cpp</SourceFile>
     <SourceFile>mmcif_cpp/template.cpp</SourceFile>
     <SourceFile>mmcif_cpp/corecif.cpp</SourceFile>
     <IncludeDir>mmcif_cpp/include</IncludeDir>
