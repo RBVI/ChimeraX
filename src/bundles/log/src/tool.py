@@ -14,17 +14,6 @@
 from chimerax.core.tools import ToolInstance
 from chimerax.core.logger import HtmlLog
 
-_cxcmd_css = """
-.cxcmd {
-    display: block;
-    font-weight: bold;
-    margin-top: .5em;
-    background-color: BACKGROUND;
-}
-a.no_underline {
-    text-decoration: none;
-}
-"""
 _cxcmd_as_doc_css = """
 .cxcmd_as_doc {
     display: inline;
@@ -43,97 +32,6 @@ _cxcmd_as_cmd_css = """
 """
 
 
-def cxcmd_css(exec_links):
-    from chimerax.core.colors import scheme_color
-
-    background = scheme_color("command")
-    base_css = _cxcmd_css.replace("BACKGROUND", background)
-    if exec_links:
-        return base_css + _cxcmd_as_cmd_css
-    return base_css + _cxcmd_as_doc_css
-
-
-context_menu_html = """
-<nav id="context-menu" class="context-menu">
-    <ul class="context-menu-items">
-        <li class="context-menu-item">
-            <a href="log:image" class="context-menu-link"> Insert image </a>
-        </li>
-        <li class="context-menu-item">
-            <a href="log:save" class="context-menu-link"> Save </a>
-        </li>
-        <li class="context-menu-item">
-            <a href="log:clear" class="context-menu-link"> Clear </a>
-        </li>
-        <li>
-        <li class="context-menu-item">
-            <a href="log:copy" class="context-menu-link"> Copy selection </a>
-        </li>
-        <li class="context-menu-item">
-            <a href="log:select-all" class="context-menu-link"> Select all </a>
-        </li>
-        <hr style="margin:0;">
-        <li class="context-menu-item">
-            <a href="log:help" class="context-menu-link"> Help </a>
-        </li>
-    </ul>
-</nav>
-"""
-
-context_menu_script = """
-<script>
-function init_menus() {
-    "use strict";
-
-    var context_menu = document.querySelector(".context-menu");
-    var context_menu_shown = false;
-    var active_css = "context-menu-active";
-
-    function show_context_menu() {
-        if (!context_menu_shown) {
-            context_menu_shown = true;
-            context_menu.classList.add(active_css);
-        }
-    }
-
-    function hide_context_menu() {
-        if (context_menu_shown) {
-            context_menu_shown = false;
-            context_menu.classList.remove(active_css);
-        }
-    }
-
-    function position_menu(menu, e) {
-        var x = e.pageX;
-        var y = e.pageY;
-
-        menu.style.left = x + "px";
-        menu.style.top = y + "px";
-    }
-
-    function init() {
-        document.addEventListener("contextmenu", function (e) {
-                e.preventDefault();
-                show_context_menu();
-                position_menu(context_menu, e);
-        });
-
-        document.addEventListener("click", function (e) {
-                var button = e.which;
-                if (button === 1)	// left button used
-                        hide_context_menu();
-        });
-
-        context_menu.addEventListener("mouseleave", hide_context_menu);
-        window.scrollTo(0, document.body.scrollHeight);
-    }
-
-    init();
-}
-</script>
-"""
-
-
 class Log(ToolInstance, HtmlLog):
     SESSION_ENDURING = True
     SESSION_SAVE = True
@@ -146,6 +44,13 @@ class Log(ToolInstance, HtmlLog):
         self.suppress_scroll = False
         self._log_file = None
         self.page_source = ""
+        # offsets in page_source where each message starts, and the
+        # earliest offset changed since the log view was last updated
+        self._msg_starts = []
+        self._dirty_from = None
+        self._source_replaced = False
+        from threading import RLock
+        self._source_lock = RLock()
         from chimerax.ui import MainToolWindow
 
         class LogToolWindow(MainToolWindow):
@@ -157,7 +62,7 @@ class Log(ToolInstance, HtmlLog):
 
                 menu.addAction("Clear", self.tool_instance.clear)
                 menu.addAction("Copy Selection", lambda:
-                    self.session.ui.clipboard().setText(log_window.selectedText()))
+                    self.session.ui.clipboard().setText(log_window.selected_text()))
                 link_action = menu.addAction("Executable Command Links")
                 link_action.setCheckable(True)
                 link_action.setChecked(self.tool_instance.settings.exec_cmd_links)
@@ -170,9 +75,8 @@ class Log(ToolInstance, HtmlLog):
                 raise_action.setChecked(self.tool_instance.settings.session_restore_clears)
                 raise_action.triggered.connect(lambda checked, settings=self.tool_instance.settings:
                     setattr(settings, "session_restore_clears", checked))
-                menu.addAction("Select All", lambda:
-                    log_window.page().triggerAction(log_window.page().SelectAll))
-                menu.addAction("Save As...", log_window.cm_save)
+                menu.addAction("Select All", log_window.selectAll)
+                menu.addAction("Save As...", self.tool_instance.cm_save)
 
                 errors_action = note_menu.addAction("Errors Shown in Dialog")
                 errors_action.setCheckable(True)
@@ -195,88 +99,23 @@ class Log(ToolInstance, HtmlLog):
         self.tool_window = LogToolWindow(self, close_destroys=False)
 
         parent = self.tool_window.ui_area
-        from chimerax.ui.widgets import ChimeraXHtmlView
+        from .view import LogView
+        from chimerax import app_dirs
+        from chimerax.core.fetch import html_user_agent
 
-        from Qt.QtWebEngineCore import QWebEnginePage
+        def command_color():
+            from chimerax.core.colors import scheme_color
+            return scheme_color("command")
 
-        class MyPage(QWebEnginePage):
-            def acceptNavigationRequest(self, qurl, nav_type, is_main_frame):
-                if qurl.scheme() in ("http", "https"):
-                    session = self.session
-
-                    def show_url(url):
-                        from chimerax.help_viewer import show_url
-
-                        show_url(session, url)
-
-                    session.ui.thread_safe(show_url, qurl.toString())
-                    return False
-                return True
-
-        class HtmlWindow(ChimeraXHtmlView):
-            def __init__(self, session, parent, log):
-                from chimerax.ui.widgets.htmlview import create_chimerax_profile
-
-                profile = create_chimerax_profile(
-                    parent, interceptor=self.link_intercept
-                )
-                super().__init__(
-                    session,
-                    parent,
-                    size_hint=(575, 500),
-                    tool_window=log.tool_window,
-                    profile=profile,
-                )
-                page = MyPage(self._profile, self)
-                page.session = self.session
-                self.setPage(page)
-                s = page.settings()
-                s.setAttribute(s.WebAttribute.LocalStorageEnabled, True)
-                self.log = log
-                ## The below three lines shoule be sufficent to allow the ui_area
-                ## to Handle the context menu, but apparently not for QWebView widgets,
-                ## so we define contextMenuEvent as a workaround.
-                # defer context menu to parent
-                # from Qt.QtCore import Qt
-                # self.setContextMenuPolicy(Qt.NoContextMenu)
-
-            def link_intercept(self, request_info, *args, **kw):
-                # for #2289, don't scroll log when a link in it is clicked
-                qurl = request_info.requestUrl()
-                scheme = qurl.scheme()
-                if scheme == "cxcmd":
-                    from Qt.QtCore import QUrl
-                    from Qt import using_pyqt6, using_pyside6
-
-                    if using_pyqt6:
-                        no_formatting = QUrl.UrlFormattingOption.None_
-                    else:
-                        no_formatting = QUrl.ComponentFormattingOption(0)
-                    cmd = qurl.toString(no_formatting)[6:].lstrip()  # skip cxcmd:
-                    self.log.suppress_scroll = cmd and (
-                        cmd.split(maxsplit=1)[0] not in ("log", "echo")
-                    )
-                from chimerax.ui.widgets.htmlview import chimerax_intercept
-
-                chimerax_intercept(
-                    request_info, *args, session=self.session, view=self, **kw
-                )
-
-            def cm_save(self):
-                from chimerax.ui.open_save import SaveDialog
-
-                fmt = session.data_formats["HTML"]
-                save_dialog = SaveDialog(session, self, "Save Log", data_formats=[fmt])
-                if not save_dialog.exec():
-                    return
-                filename = save_dialog.selectedFiles()[0]
-                if not filename:
-                    from chimerax.core.errors import UserError
-
-                    raise UserError("No file specified for save log contents")
-                self.log.save(filename)
-
-        self.log_window = lw = HtmlWindow(session, parent, self)
+        self.log_window = LogView(
+            parent,
+            link_cb=self._link_clicked,
+            command_color_cb=command_color,
+            context_menu_cb=self.tool_window._show_context_menu,
+            size_hint=(575, 500),
+            user_agent=html_user_agent(app_dirs),
+        )
+        self.log_window.exec_links = self.settings.exec_cmd_links
         from Qt.QtCore import QTimer
 
         self.regulating_timer = QTimer()
@@ -296,21 +135,78 @@ class Log(ToolInstance, HtmlLog):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.log_window, 0, 0)
         parent.setLayout(layout)
-        # self.log_window.EnableHistory(False)
-        self.page_source = ""
         self.tool_window.manage(placement="side")
         session.logger.add_log(self)
-
-        # Don't record html history as log changes.
-        def clear_history(okay, lw=lw):
-            lw.history().clear()
-
-        lw.loadFinished.connect(clear_history)
         self.show_page_source()
 
     def cm_set_cmd_links(self, checked):
         self.settings.exec_cmd_links = checked
-        self._show()
+        self.log_window.exec_links = checked
+        self.log_window.rerender()
+
+    def cm_save(self):
+        from chimerax.ui.open_save import SaveDialog
+
+        fmt = self.session.data_formats["HTML"]
+        save_dialog = SaveDialog(self.session, self.log_window, "Save Log", data_formats=[fmt])
+        if not save_dialog.exec():
+            return
+        filename = save_dialog.selectedFiles()[0]
+        if not filename:
+            from chimerax.core.errors import UserError
+
+            raise UserError("No file specified for save log contents")
+        self.save(filename)
+
+    def _link_clicked(self, qurl):
+        session = self.session
+        scheme = qurl.scheme()
+        if scheme in ("cxcmd", "help"):
+            from Qt.QtCore import QUrl
+            from Qt import using_pyqt6
+
+            if using_pyqt6:
+                no_formatting = QUrl.UrlFormattingOption.None_
+            else:
+                no_formatting = QUrl.ComponentFormattingOption.FullyEncoded
+            url = qurl.toString(no_formatting)
+            if scheme == "cxcmd":
+                from urllib.parse import unquote
+
+                cmd = unquote(url.split(":", 1)[1]).lstrip()  # skip cxcmd:
+                # for #2289, don't scroll log when a link in it is clicked
+                self.suppress_scroll = bool(cmd) and (
+                    cmd.split(maxsplit=1)[0] not in ("log", "echo")
+                )
+
+                def run_cmd(cmd=cmd):
+                    from chimerax.core.commands import run
+
+                    run(session, cmd)
+
+                session.ui.thread_safe(run_cmd)
+            else:
+
+                def show_help(topic=url):
+                    from chimerax.help_viewer.cmd import help
+
+                    help(session, topic)
+
+                session.ui.thread_safe(show_help)
+            return
+        if scheme not in ("http", "https", "file", ""):
+            # e.g., mailto:
+            from Qt.QtGui import QDesktopServices
+
+            QDesktopServices.openUrl(qurl)
+            return
+
+        def show_url(url=qurl.toString()):
+            from chimerax.help_viewer import show_url
+
+            show_url(session, url)
+
+        session.ui.thread_safe(show_url)
 
     def show_error_message(self, msg, bug=False):
         ed = self.error_dialog
@@ -379,7 +275,6 @@ class Log(ToolInstance, HtmlLog):
         Parameters documented in HtmlLog base class
         """
 
-        start_len = len(self.page_source)
         if image_info[0] is not None:
             from chimerax.core.logger import image_info_to_html
 
@@ -432,66 +327,89 @@ class Log(ToolInstance, HtmlLog):
                 color = scheme_color("warning")
                 msg = f'<p style="color:{color}">{msg}</p>'
 
-            # compact repeated output, e.g. ISOLDE's 'stepto' command
-            #
-            # printing to stderr can produce extremely piecemeal logging (e.g. consecutive loggings of
-            # a space character), so only try to compact if "<br>" or "<div" is in msg
-            if (
-                "<br>" in msg and not msg.replace("<br>", " ").isspace()
-            ) or "<div" in msg:
-                compaction_start_text = "[Repeated "
-                compaction_end_text = " time(s)]"
-                compaction_start = None
-                if self.page_source.endswith(compaction_end_text):
-                    # possibly already compacting some output
-                    try:
-                        bracket_start = self.page_source.rindex(compaction_start_text)
-                    except ValueError:
-                        pass
-                    else:
-                        if self.page_source[bracket_start:].startswith(
-                            compaction_start_text
-                        ):
-                            try:
-                                compaction_number = int(
-                                    self.page_source[
-                                        bracket_start
-                                        + len(compaction_start_text) : -len(
-                                            compaction_end_text
-                                        )
-                                    ]
-                                )
-                            except ValueError:
-                                pass
-                            else:
-                                compaction_start = bracket_start
-                if compaction_start is None:
-                    test_text = self.page_source
-                else:
-                    test_text = self.page_source[:compaction_start]
-                if test_text.endswith(msg):
+            with self._source_lock:
+                # compact repeated output, e.g. ISOLDE's 'stepto' command
+                #
+                # printing to stderr can produce extremely piecemeal logging (e.g. consecutive loggings of
+                # a space character), so only try to compact if "<br>" or "<div" is in msg
+                if (
+                    "<br>" in msg and not msg.replace("<br>", " ").isspace()
+                ) or "<div" in msg:
+                    compaction_start_text = "[Repeated "
+                    compaction_end_text = " time(s)]"
+                    compaction_start = None
+                    if self.page_source.endswith(compaction_end_text):
+                        # possibly already compacting some output
+                        try:
+                            bracket_start = self.page_source.rindex(compaction_start_text)
+                        except ValueError:
+                            pass
+                        else:
+                            if self.page_source[bracket_start:].startswith(
+                                compaction_start_text
+                            ):
+                                try:
+                                    compaction_number = int(
+                                        self.page_source[
+                                            bracket_start
+                                            + len(compaction_start_text) : -len(
+                                                compaction_end_text
+                                            )
+                                        ]
+                                    )
+                                except ValueError:
+                                    pass
+                                else:
+                                    compaction_start = bracket_start
                     if compaction_start is None:
-                        self.page_source += (
-                            compaction_start_text + "1" + compaction_end_text
-                        )
+                        test_text = self.page_source
                     else:
-                        self.page_source = self.page_source[
-                            :compaction_start
-                        ] + "%s%d%s" % (
-                            compaction_start_text,
-                            compaction_number + 1,
-                            compaction_end_text,
+                        test_text = self.page_source[:compaction_start]
+                    if test_text.endswith(msg):
+                        self._mark_dirty(
+                            len(self.page_source) if compaction_start is None else compaction_start
                         )
+                        if compaction_start is None:
+                            self.page_source += (
+                                compaction_start_text + "1" + compaction_end_text
+                            )
+                        else:
+                            self.page_source = self.page_source[
+                                :compaction_start
+                            ] + "%s%d%s" % (
+                                compaction_start_text,
+                                compaction_number + 1,
+                                compaction_end_text,
+                            )
+                    else:
+                        self._append_message(msg)
                 else:
                     self._append_message(msg)
-            else:
-                self._append_message(msg)
         self.show_page_source()
         return True
 
     def _append_message(self, msg):
-        self.page_source += msg
+        with self._source_lock:
+            start = len(self.page_source)
+            self.page_source += msg
+            self._msg_starts.append(start)
+            self._mark_dirty(start)
         self._log_to_file(msg)
+
+    def _mark_dirty(self, offset):
+        with self._source_lock:
+            if self._dirty_from is None or offset < self._dirty_from:
+                self._dirty_from = offset
+
+    def _set_page_source(self, *messages):
+        with self._source_lock:
+            self.page_source = ""
+            self._msg_starts = []
+            for msg in messages:
+                self._msg_starts.append(len(self.page_source))
+                self.page_source += msg
+            self._mark_dirty(0)
+            self._source_replaced = True
 
     def _log_to_file(self, msg):
         file = self._log_file
@@ -520,28 +438,27 @@ class Log(ToolInstance, HtmlLog):
 
     def _actually_show(self):
         self.regulating_timer.stop()
-        if self.suppress_scroll:
-            sp = self.log_window.page().scrollPosition()
-            height = str(sp.y())
-            self.suppress_scroll = False
-        else:
-            height = "document.body.scrollHeight"
-        css = cxcmd_css(self.settings.exec_cmd_links) + self.session.ui.dark_css()
-        html = (
-            f"<style>{css}</style>\n"
-            f'<body onload="window.scrollTo(0, {height});">\n'
-            f"{self.page_source}"
-            "</body>"
+        with self._source_lock:
+            source, starts, dirty_from, replaced = (
+                self.page_source,
+                list(self._msg_starts),
+                self._dirty_from,
+                self._source_replaced,
+            )
+            self._dirty_from = None
+            self._source_replaced = False
+        self.log_window.set_content(
+            source, starts, dirty_from, replaced=replaced,
+            scroll_to_end=not self.suppress_scroll
         )
-        lw = self.log_window
-        lw.setHtml(html)
+        self.suppress_scroll = False
 
     def plain_text(self):
         """Convert HTML to plain text"""
         return log_html_to_plain_text(self.page_source)
 
     def clear(self):
-        self.page_source = ""
+        self._set_page_source()
         self.show_page_source()
 
     def save(self, path, *, executable_links=None):
@@ -661,7 +578,8 @@ class Log(ToolInstance, HtmlLog):
                         retain = version
                     else:
                         retain = version + "<br>" + self.page_source[index:]
-                    self.page_source = retain + prev_ses_html
+                    self._set_page_source(retain, prev_ses_html)
+                    self.show_page_source()
                 from chimerax.core.triggerset import DEREGISTER
 
                 return DEREGISTER
