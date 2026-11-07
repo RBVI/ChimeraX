@@ -42,7 +42,8 @@ def test_api_and_package_return_the_original_annotation(fresh_bundle):
     session = SimpleNamespace(alignments=SimpleNamespace(
         alignments=[alignment], alignments_map={'example': alignment}))
     parsed, _, rest = argument.parse('example trailing', session)
-    assert parsed is alignment and rest == 'trailing'
+    # Like next_token(), the rest keeps its leading whitespace.
+    assert parsed is alignment and rest == ' trailing'
 
 
 def test_provider_argument_factories_load_on_first_use(fresh_bundle):
