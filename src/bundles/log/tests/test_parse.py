@@ -2,10 +2,28 @@ from chimerax.log.parse import (
     tokenize, Html, Command, Disclosure, select_command_variant,
     starts_block, starts_table, strip_line_end,
     parse_style, replace_inline_blocks, css_length, css_border, drop_redundant_breaks,
+    replace_system_colors,
 )
 
 _cmd = ('<div class="cxcmd"><div class="cxcmd_as_doc"><a href="help:user/commands/open.html">open</a>'
         ' 3fx2</div><div class="cxcmd_as_cmd"><a href="cxcmd:open 3fx2">open 3fx2</a></div></div>')
+
+
+def test_system_colors_only_change_color_attributes():
+    colors = {'canvas': '#ffffff', 'canvastext': '#000000'}
+    html = ('<td title="style=\'color:Canvas\' >" style="background-color:Canvas; COLOR: canvasTEXT !important; '
+            'font-family:Canvas">Canvas &lt;td style="color:Canvas"&gt;</td>'
+            '<font color=CanvasText>text</font><!-- <td style="color:Canvas"> -->')
+    expected = html.replace('background-color:Canvas', 'background-color:#ffffff').replace(
+        'COLOR: canvasTEXT !important', 'COLOR: #000000 !important').replace(
+        'color=CanvasText', 'color=#000000')
+    assert replace_system_colors(html, colors) == expected
+
+
+def test_system_colors_handle_whitespace_and_preserve_other_css():
+    html = "<td\nstyle='background:canvas; color:red; background-image:url(Canvas); border-color: CanvasText'>x</td>"
+    assert replace_system_colors(html, {'canvas': '#fff', 'canvastext': '#000'}) == html.replace(
+        'background:canvas', 'background:#fff').replace('border-color: CanvasText', 'border-color: #000')
 
 
 def test_tokenize_plain():

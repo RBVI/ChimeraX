@@ -51,6 +51,50 @@ _redundant_br_re = re.compile(
 _starts_table_re = re.compile(r'\s*<table\b', re.IGNORECASE)
 _trailing_br_re = re.compile(r'\s*<br\s*/?>\s*$', re.IGNORECASE)
 _ends_block_re = re.compile(r'(?:</%s\s*>|<hr\b[^>]*>)\s*$' % _block_tags, re.IGNORECASE)
+_html_tag_re = re.compile(r'<!--.*?-->|<[a-z][a-z0-9:-]*\b(?:[^\'">]|\'[^\']*\'|"[^"]*")*>',
+                          re.IGNORECASE | re.DOTALL)
+_attribute_re = re.compile(r'''([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?''')
+_color_declaration_re = re.compile(
+    r'((?:^|;)\s*(?:color|background(?:-color)?|border(?:-(?:top|right|bottom|left))?-color)\s*:\s*)'
+    r'([a-z]+)(\s*(?:!important\s*)?)(?=;|$)', re.IGNORECASE)
+
+
+def replace_system_colors(html, colors):
+    """Resolve CSS system colors for Qt without changing text or saved HTML.
+
+    Only color declarations and HTML color attributes are rewritten. The
+    original source remains available for export and palette-change rerenders.
+    'colors' maps lowercase system names to concrete HTML colors.
+    """
+    lower = html.lower()
+    if not any(name in lower for name in colors):
+        return html
+
+    def tag(match):
+        text = match.group()
+        if text.startswith('<!--'):
+            return text
+
+        def attribute(match):
+            name = match[1].lower()
+            group = next((i for i in (2, 3, 4) if match[i] is not None), None)
+            if group is None or name not in ('style', 'color', 'bgcolor'):
+                return match.group()
+            value = match[group]
+            if name == 'style':
+                value = _color_declaration_re.sub(
+                    lambda m: m[1] + colors.get(m[2].lower(), m[2]) + m[3], value)
+            else:
+                value = colors.get(value.lower(), value)
+            start, end = match.span(group)
+            return match.group()[:start - match.start()] + value + match.group()[end - match.start():]
+
+        # Skip the element name; consume all attributes, including unrelated
+        # quoted values, so embedded 'style=' text cannot become an attribute.
+        start = next((i for i, char in enumerate(text) if char.isspace()), -1)
+        return text if start < 0 else text[:start] + _attribute_re.sub(attribute, text[start:])
+
+    return _html_tag_re.sub(tag, html)
 
 
 @dataclass

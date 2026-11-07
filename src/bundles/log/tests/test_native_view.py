@@ -29,6 +29,21 @@ def test_first_disclosure_and_color_swatch_render(view):
     assert '<img ' in next(iter(view._swatches.values()))
 
 
+def test_system_color_table_tracks_palette_without_rewriting_source(view):
+    from Qt.QtGui import QColor, QPalette
+    html = '<table><tr><td style="background-color:Canvas;color:CanvasText">readable</td></tr></table>'
+    for background, foreground in (('#ffffff', '#000000'), ('#121212', '#ffffff')):
+        palette = view.palette()
+        palette.setColor(QPalette.ColorRole.Base, QColor(background))
+        palette.setColor(QPalette.ColorRole.Text, QColor(foreground))
+        view.setPalette(palette)
+        view.set_content(html, [0], 0)
+        cursor = view.document().find('readable')
+        assert cursor.currentTable().cellAt(cursor).format().background().color().name() == background
+        assert cursor.charFormat().foreground().color().name() == foreground
+        assert view._source == html
+
+
 def test_first_remote_image_reply_updates_document_and_releases_reply(view):
     from Qt.QtCore import QBuffer, QByteArray, QUrl
     from Qt.QtGui import QImage, QTextDocument
