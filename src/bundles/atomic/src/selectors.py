@@ -232,9 +232,12 @@ def add_select_menu_items(session):
     idatm_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
     idatm_menu.triggered.connect(lambda act, mw=mw: mw.select_by_mode(act.text()))
     from Qt.QtGui import QAction
-    from . import Atom
-    for idatm in Atom.idatm_info_map.keys():
-        idatm_menu.addAction(QAction(idatm, mw))
+    def populate_idatm():
+        from . import Atom
+        for idatm in Atom.idatm_info_map:
+            idatm_menu.addAction(QAction(idatm, mw))
+    from chimerax.ui.gui import _defer_menu_contents
+    _defer_menu_contents(idatm_menu, populate_idatm)
 
     parent_menus = [_residues_menu_name]
     select_residues_menu = mw.add_select_submenu(parent_menus[:-1], parent_menus[-1])
@@ -274,30 +277,38 @@ def make_elements_menu(parent, *, _session=None, _parent_menus=None):
     for element_name in ["C", "H", "N", "O", "P", "S"]:
         elements_menu.addAction(element_name)
 
-    from . import Element
-    known_elements = [nm for nm in Element.names if len(nm) < 3]
-    known_elements.sort()
-    from math import sqrt
-    num_menus = int(sqrt(len(known_elements)) + 0.5)
-    incr = len(known_elements) / num_menus
-    start_index = 0
     if _session and _parent_menus:
         other_menu = add_submenu(_parent_menus, "Other")
     else:
         other_menu = elements_menu.addMenu("Other")
-    for i in range(num_menus):
-        if i < num_menus-1:
-            end_index = int((i+1) * incr + 0.5)
-        else:
-            end_index = len(known_elements) - 1
-        range_string = "%s-%s" % (known_elements[start_index], known_elements[end_index])
-        if _session and _parent_menus:
-            submenu = add_submenu(_parent_menus + ["Other"], range_string)
-        else:
-            submenu = other_menu.addMenu(range_string)
-        for en in known_elements[start_index:end_index+1]:
-            submenu.addAction(en)
-        start_index = end_index + 1
+
+    def populate_other():
+        from . import Element
+        known_elements = [nm for nm in Element.names if len(nm) < 3]
+        known_elements.sort()
+        from math import sqrt
+        num_menus = int(sqrt(len(known_elements)) + 0.5)
+        incr = len(known_elements) / num_menus
+        start_index = 0
+        for i in range(num_menus):
+            if i < num_menus-1:
+                end_index = int((i+1) * incr + 0.5)
+            else:
+                end_index = len(known_elements) - 1
+            range_string = "%s-%s" % (known_elements[start_index], known_elements[end_index])
+            if _session and _parent_menus:
+                submenu = add_submenu(_parent_menus + ["Other"], range_string)
+            else:
+                submenu = other_menu.addMenu(range_string)
+            for en in known_elements[start_index:end_index+1]:
+                submenu.addAction(en)
+            start_index = end_index + 1
+
+    if _session and _parent_menus:
+        from chimerax.ui.gui import _defer_menu_contents
+        _defer_menu_contents(other_menu, populate_other)
+    else:
+        populate_other()
     return elements_menu
 
 def _update_select_chains_menu(session):
