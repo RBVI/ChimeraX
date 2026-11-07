@@ -168,7 +168,8 @@ def test_build_waits_before_constructing_widgets(monkeypatch):
         raise StopBuild
     monkeypatch.setattr(gui, 'MainWindow', main_window)
     ui = SimpleNamespace(session=object(),
-        _wait_for_font_cache=lambda: calls.append('joined'))
+        _wait_for_font_cache=lambda: calls.append('joined'),
+        _create_main_window=lambda: gui.UI._create_main_window(ui))
     with pytest.raises(StopBuild):
         gui.UI.build(ui)
     assert calls == ['joined', 'window']
