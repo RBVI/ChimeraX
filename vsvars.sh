@@ -13,20 +13,23 @@
 # port of VSINSTALLDIR/Common7/Tools/vsvars32.bat to bash
 # and merged with Visual Studio 2008's version and 64-bit version
 if [ ! -z "$AUTOMATIC_DISCOVERY" ]; then
+	# -products '*' also finds Visual Studio Build Tools, which vswhere
+	# leaves out by default; without it a Build Tools only install finds no
+	# compiler and the first C extension fails with "cl.exe failed: None".
 	if [ -e "$(cygpath --absolute C:/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/Installer)" ]; then
 		export VSWHEREPATH="$(cygpath --absolute C:/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/Installer)"
 		if ! command -v vswhere &>/dev/null; then
 			export PATH="$PATH:$VSWHEREPATH"
 		fi
 
-		VCTBinDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/bin/Hostx64/x64" | tail -n 1)"
-		VCTRedistDirCRLF="$(vswhere.exe -find "VC/Redist/MSVC/*/x64" | tail -n 1)"
-		VCTLibDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/lib/x64" | tail -n 1)"
-		VCTATLMFCLibDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/atlmfc/lib/x64" | tail -n 1)"
-		VCTATLMFCIncDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/atlmfc/include" | tail -n 1)"
-		VCTIncludeDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/include" | tail -n 1)"
-		VCTRefDirCRLF="$(vswhere.exe -find "VC/Tools/MSVC/*/lib/x86/store/references" | tail -n 1)"
-		CRTPathCRLF="$(vswhere.exe -find "VC/Redist/MSVC/*/x64/Microsoft*CRT" | tail -n 1)"
+		VCTBinDirCRLF="$(vswhere.exe -products '*' -find "VC/Tools/MSVC/*/bin/Hostx64/x64" | tail -n 1)"
+		VCTRedistDirCRLF="$(vswhere.exe -products '*' -find "VC/Redist/MSVC/*/x64" | tail -n 1)"
+		VCTLibDirCRLF="$(vswhere.exe -products '*' -find "VC/Tools/MSVC/*/lib/x64" | tail -n 1)"
+		VCTATLMFCLibDirCRLF="$(vswhere.exe -products '*' -find "VC/Tools/MSVC/*/atlmfc/lib/x64" | tail -n 1)"
+		VCTATLMFCIncDirCRLF="$(vswhere.exe -products '*' -find "VC/Tools/MSVC/*/atlmfc/include" | tail -n 1)"
+		VCTIncludeDirCRLF="$(vswhere.exe -products '*' -find "VC/Tools/MSVC/*/include" | tail -n 1)"
+		VCTRefDirCRLF="$(vswhere.exe -products '*' -find "VC/Tools/MSVC/*/lib/x86/store/references" | tail -n 1)"
+		CRTPathCRLF="$(vswhere.exe -products '*' -find "VC/Redist/MSVC/*/x64/Microsoft*CRT" | tail -n 1)"
 		WindowsSDKDirCRLF="$(regtool -W get '/HKLM/SOFTWARE/Microsoft/Microsoft SDKs/Windows/v10.0/InstallationFolder')"
 		WindowsSDKVerCRLF="$(regtool -W get '/HKLM/SOFTWARE/Microsoft/Microsoft SDKs/Windows/v10.0/ProductVersion')"
 		WindowsSDKVer="${WindowsSDKVerCRLF%$'\r'}.0"
