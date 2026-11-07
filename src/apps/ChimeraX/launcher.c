@@ -60,6 +60,57 @@ static char** prefetch_entries;
 static size_t prefetch_count;
 static volatile LONG64 prefetch_next;
 
+// PrefetchVirtualMemory (Windows 8): looked up at run time.
+typedef struct {
+	PVOID VirtualAddress;
+	SIZE_T NumberOfBytes;
+} prefetch_range;
+typedef BOOL (WINAPI *prefetch_virtual_memory_fn)(HANDLE, ULONG_PTR, prefetch_range*, ULONG);
+static prefetch_virtual_memory_fn prefetch_virtual_memory;
+
+/*
+ * A DLL is loaded through its executable image section, which Windows
+ * caches apart from the file's data, so reading a DLL as data helps its
+ * later load only partly: loading Qt6Core, Qt6Gui and Qt6Widgets with only
+ * ChimeraX's files cold took 0.58 s, 0.31 s after reading them as data, and
+ * 0.08 s after mapping them as images (SEC_IMAGE) and prefetching the view.
+ * Mapping a view does not involve the loader, so nothing runs and no module
+ * is registered; the cached image section is reused by the real load.
+ * With image prefetching the VM's cold start went from 3.64 s without
+ * prefetching to 2.90 s; reading DLLs as data had given 3.34 s.
+ */
+static int
+prefetch_image(const wchar_t* path)
+{
+	HANDLE file = CreateFileW(path, GENERIC_READ | GENERIC_EXECUTE,
+		FILE_SHARE_READ | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (file == INVALID_HANDLE_VALUE)
+		return 0;
+	HANDLE section = CreateFileMappingW(file, NULL, PAGE_READONLY | SEC_IMAGE, 0, 0, NULL);
+	CloseHandle(file);
+	if (section == NULL)
+		return 0;
+	unsigned char* view = MapViewOfFile(section, FILE_MAP_READ, 0, 0, 0);
+	CloseHandle(section);
+	if (view == NULL)
+		return 0;
+	IMAGE_DOS_HEADER* dos = (IMAGE_DOS_HEADER*) view;
+	IMAGE_NT_HEADERS* nt = (IMAGE_NT_HEADERS*) (view + dos->e_lfanew);
+	SIZE_T size = nt->OptionalHeader.SizeOfImage;
+	if (prefetch_virtual_memory != NULL) {
+		prefetch_range range = { view, size };
+		(void) prefetch_virtual_memory(GetCurrentProcess(), 1, &range, 0);
+	} else {
+		// Fault the pages in one at a time.
+		volatile unsigned char sink = 0;
+		for (SIZE_T offset = 0; offset < size; offset += 4096)
+			sink ^= view[offset];
+		(void) sink;
+	}
+	UnmapViewOfFile(view);
+	return 1;
+}
+
 static void
 read_range(HANDLE file, char* buffer, unsigned long long offset, unsigned long long length)
 {
@@ -83,6 +134,11 @@ prefetch_entry(char* entry, char* buffer)
 		*ranges++ = '\0';
 	wchar_t path[PREFETCH_PATH];
 	if (MultiByteToWideChar(CP_UTF8, 0, entry, -1, path, PREFETCH_PATH) == 0)
+		return;
+	size_t length = wcslen(path);
+	if (length > 4 && (_wcsicmp(path + length - 4, L".dll") == 0
+			|| _wcsicmp(path + length - 4, L".pyd") == 0)
+			&& prefetch_image(path))
 		return;
 	HANDLE file = CreateFileW(path, GENERIC_READ,
 		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
@@ -202,6 +258,11 @@ start_prefetch(void)
 	// runtime's copy of the environment, which Python's os.environ reads.
 	if (_wputenv_s(L"CHIMERAX_STARTUP_PREFETCH", prefetch_list) != 0)
 		return;
+
+	HMODULE kernel = GetModuleHandleW(L"kernel32.dll");
+	if (kernel != NULL)
+		prefetch_virtual_memory = (prefetch_virtual_memory_fn)
+			(void (*)(void)) GetProcAddress(kernel, "PrefetchVirtualMemory");
 
 	HANDLE thread = CreateThread(NULL, 0, prefetch_files, NULL, 0, NULL);
 	if (thread != NULL)
