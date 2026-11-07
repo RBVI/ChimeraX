@@ -59,14 +59,15 @@ class InstalledBundleCache(list):
         _debug("InstalledBundleCache.load: rebuilding cache")
         from importlib.metadata import distributions
         dist_bundle_map = {}
+        requirements = {}
         # work around https://github.com/pypa/setuptools/issues/4170
         # all packages are duplicated when an editable package is installed
         seen_bundles = set()
         for d in distributions():
             # Read metadata once, and avoid converting all headers to JSON
             # just to inspect classifiers (including non-ChimeraX packages).
-            metadata = d.metadata
-            if not any(c.startswith('ChimeraX')
+            metadata = _bundle_metadata(d)
+            if metadata is None or not any(c.startswith('ChimeraX')
                        for c in metadata.get_all('Classifier', [])):
                 continue
             _debug("InstalledBundleCache.load: package %s" % d)
@@ -77,11 +78,12 @@ class InstalledBundleCache(list):
                     continue
                 seen_bundles.add(bi.name)
                 dist_bundle_map[d] = bi
+                requirements[d] = metadata.get_all('Requires-Dist')
         #
         # The ordering of the bundles is important because we want
         # to call the initialize() method in the correct order.
         #
-        self.extend(self._order_bundles(dist_bundle_map, logger))
+        self.extend(self._order_bundles(dist_bundle_map, logger, requirements=requirements))
 
         #
         # Save all our hard work
@@ -240,7 +242,7 @@ class InstalledBundleCache(list):
             self._help_directories = hd
         return self._help_directories
 
-    def _order_bundles(self, dist_bundle_map, logger):
+    def _order_bundles(self, dist_bundle_map, logger, *, requirements=None):
         from packaging.requirements import Requirement, InvalidRequirement
         # First we build a list of distribution names that
         # map to bundles.  This is so we can ignore dependencies
@@ -276,7 +278,11 @@ class InstalledBundleCache(list):
         dist_needs = {}
         for d, bi in dist_bundle_map.items():
             dist_needs[d] = needs = []
-            for req in d.requires or ():
+            reqs = None if requirements is None else requirements.get(d)
+            if reqs is None:
+                # Legacy egg providers can keep dependencies in requires.txt.
+                reqs = d.requires
+            for req in reqs or ():
                 try:
                     r = Requirement(req)
                 except InvalidRequirement:
@@ -384,6 +390,33 @@ def _report_difference(logger, before, after):
 #
 
 
+def _bundle_metadata(d):
+    """Skip unrelated wheel metadata before running the email header parser.
+
+    Use importlib's own parser on the text already read, retaining its handling
+    of multiline fields and long descriptions. Custom distribution providers
+    and legacy egg metadata retain their normal discovery path.
+    """
+    from importlib.metadata import Distribution, PathDistribution
+    if type(d) is not PathDistribution:
+        return d.metadata
+    text = d.read_text('METADATA')
+    if text is None:
+        return d.metadata
+    # A positive match is only a filter: the parsed Classifier fields still
+    # decide whether this is a bundle. Do not scan large description bodies.
+    header_end = text.find('\n\n')
+    headers = text if header_end < 0 else text[:header_end]
+    if 'chimerax' not in headers.casefold():
+        return None
+
+    class MetadataText:
+        def read_text(self, filename):
+            return text if filename == 'METADATA' else None
+
+    return Distribution.metadata.fget(MetadataText())
+
+
 def _make_bundle_info(d, installed, logger, *, metadata=None):
     """Convert distribution into a list of :py:class:`BundleInfo` instances."""
     from .info import BundleInfo, ToolInfo, CommandInfo, SelectorInfo, FormatInfo
@@ -399,7 +432,7 @@ def _make_bundle_info(d, installed, logger, *, metadata=None):
     bi = None
     description = None
     kw = {"name": name, "version": version}
-    kw['packages'] = _get_installed_packages(d, logger)
+    kw['packages'] = _get_installed_packages(d, logger, name=name)
     for metadata_type, data in metadata.items():
         if metadata_type == "Summary":
             kw['synopsis'] = data.strip()
@@ -578,7 +611,7 @@ def _make_bundle_info(d, installed, logger, *, metadata=None):
     return bi
 
 
-def _get_installed_packages(d, logger):
+def _get_installed_packages(d, logger, *, name=None):
     """Return set of tuples representing the packages in the distribution.
 
     For example, 'foo.bar' from foo/bar/__init__.py becomes ('foo', 'bar')
@@ -586,7 +619,23 @@ def _get_installed_packages(d, logger):
     packages = []
     finder_file = None
     path_file = None
-    for path in d.files:
+    from importlib.metadata import PathDistribution, PackagePath
+    record = d.read_text('RECORD') if type(d) is PathDistribution else None
+    if record is None:
+        paths = d.files or ()
+    else:
+        # Most records describe data or compiled files. Constructing a
+        # PackagePath for every one (and parsing their hashes/sizes) dwarfs
+        # the work of discovering the handful of Python packages we need.
+        import csv
+        import io
+        paths = (PackagePath(row[0]) for row in csv.reader(io.StringIO(record))
+                 if row and (row[0].endswith('/__init__.py') or row[0] == '__init__.py'
+                             or row[0].endswith(('.pth', 'finder.py'))))
+        # importlib's files property drops entries removed after installation.
+        # Preserve that behavior, but only stat paths relevant to discovery.
+        paths = (path for path in paths if d.locate_file(path).exists())
+    for path in paths:
         if path.name.startswith("__editable___") and path.name.endswith('finder.py'):
             finder_file = path
             continue
@@ -600,7 +649,7 @@ def _get_installed_packages(d, logger):
     # source directory tree and add any directory that has an init.py to the
     # list. While we add ALL packages to the installed packages list, for ChimeraX's
     # purposes, things only really break if we don't know where our bundles are.
-    if not packages and "chimerax" in d.name.lower():
+    if not packages and "chimerax" in (d.name if name is None else name).lower():
         if not finder_file and not path_file:
             logger.warning("tried to get metadata for package installed in editable mode (%r) "
                            "but could not find the package's finder.py or path file" % d.name)
