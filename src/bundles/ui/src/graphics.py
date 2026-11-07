@@ -96,9 +96,6 @@ class GraphicsWindow(QWindow):
         import sys
         if sys.platform != 'win32':
             return
-        from chimerax.ui.widgets import HtmlView
-        if HtmlView.require_native_window:
-            return  # Already applied this fix.
         r = self.view.render
         if r.opengl_vendor() == 'Intel':
             ver = r.opengl_version()
@@ -112,6 +109,11 @@ class GraphicsWindow(QWindow):
 
                 # TODO: This fix may fail if HtmlView widgets are created
                 #       before the graphics is checked.  Worked in tests on one machine.
+                # Import HtmlView only here: it loads QtWebEngine, which
+                # nothing else needs at startup.
+                from chimerax.ui.widgets import HtmlView
+                if HtmlView.require_native_window:
+                    return  # Already applied this fix.
                 HtmlView.require_native_window = True
                 msg = ('Your computer has Intel graphics driver %d with a known bug '
                        'that causes all Qt user interface panels to be blank. '
