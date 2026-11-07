@@ -38,6 +38,11 @@ def initialize_qt():
     initialize_shared_opengl_contexts()
     from . import desktop_settings
     desktop_settings.select_platform_theme()
+    # Select before QApplication construction so native-style setup is avoided.
+    if sys.platform == 'darwin' and QApplication.instance() is None:
+        import os
+        if not os.environ.get('QT_STYLE_OVERRIDE'):
+            QApplication.setStyle('Fusion')
 
 def initialize_qt_plugins_location():
     # remove the build tree plugin path, and add install tree plugin path
