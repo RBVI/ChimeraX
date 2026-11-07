@@ -507,9 +507,11 @@ class Session:
         silent=False,
         minimal=False,
         offscreen_rendering=False,
+        _defer_state=False,
     ):
         self._snapshot_methods = {}  # For saving classes with no State base class.
         self._state_containers = {}  # stuff to save in sessions.
+        self._deferred_attributes = {}
 
         self.app_name = app_name
         self.debug = debug
@@ -541,10 +543,42 @@ class Session:
         for trigger in task_triggers:
             self.triggers.add_trigger(trigger)
 
+        self._state_initialized = minimal
+        self._state_initializing = False
+        self._state_initialization_error = None
         if minimal:
             # During build process ChimeraX is run before graphics module is installed.
             return
 
+        from threading import RLock
+        self._state_initialization_lock = RLock()
+        if not _defer_state:
+            self._initialize_state()
+
+    def _initialize_state(self):
+        """Finish standalone startup state once, before the UI becomes usable."""
+        if self._state_initialized:
+            return
+        with self._state_initialization_lock:
+            if self._state_initialized:
+                return
+            if self._state_initialization_error is not None:
+                error, traceback = self._state_initialization_error
+                raise error.with_traceback(traceback)
+            if self._state_initializing:
+                raise RuntimeError('Session state initialization reentered')
+            self._state_initializing = True
+            try:
+                self._construct_state_managers()
+            except BaseException as error:
+                self._state_initialization_error = (error, error.__traceback__)
+                raise
+            else:
+                self._state_initialized = True
+            finally:
+                self._state_initializing = False
+
+    def _construct_state_managers(self):
         # Register session save routines.
         from chimerax.graphics.gsession import register_graphics_session_save
 
@@ -616,8 +650,45 @@ class Session:
             else:
                 container.clear()
 
+    def _defer_attributes(self, names, initialize):
+        """Construct bundle state on first access, without substituting proxy objects.
+
+        The initializer must assign every named attribute. State manager queries
+        and session saving/restoring also resolve pending initializers, so their
+        registration and trigger handlers are present before serialization.
+        """
+        names = tuple(names)
+        for name in names:
+            if name in self.__dict__ or name in self._deferred_attributes:
+                raise ValueError("Session attribute already registered: " + name)
+        if not hasattr(self, "_deferred_attribute_lock"):
+            from threading import RLock
+            self._deferred_attribute_lock = RLock()
+        self._deferred_attributes.update(dict.fromkeys(names, initialize))
+
+    def __getattr__(self, name):
+        initialize = self.__dict__.get("_deferred_attributes", {}).get(name)
+        if initialize is not None:
+            with self._deferred_attribute_lock:
+                initialize = self._deferred_attributes.get(name)
+                if initialize is not None:
+                    initialize(self)
+                if name in self.__dict__:
+                    return self.__dict__[name]
+                raise RuntimeError("Initializer did not assign session attribute: " + name)
+        raise AttributeError(f"{type(self).__name__!r} object has no attribute {name!r}")
+
+    def __dir__(self):
+        return sorted(set(object.__dir__(self)) | self.__dict__.get("_deferred_attributes", {}).keys())
+
+    def _resolve_deferred_attributes(self):
+        for name in list(self._deferred_attributes):
+            getattr(self, name)
+
     def __setattr__(self, name, value):
         object.__setattr__(self, name, value)
+        if not name.startswith("_"):
+            self._deferred_attributes.pop(name, None)
         if (
             not name.startswith("_")
             and self.snapshot_methods(value, base_type=StateManager) is not None
@@ -625,6 +696,9 @@ class Session:
             self.add_state_manager(name, value)
 
     def __delattr__(self, name):
+        if name in self._deferred_attributes:
+            del self._deferred_attributes[name]
+            return
         if name in self._state_containers:
             self.remove_state_manager(name)
         object.__delattr__(self, name)
@@ -646,14 +720,20 @@ class Session:
                     f'developer warning: container "{tag}" snapshot methods are missing include_state method'
                 )
         self._state_containers[tag] = container
+        self._deferred_attributes.pop(tag, None)
 
     def get_state_manager(self, tag):
+        if tag in self._deferred_attributes:
+            getattr(self, tag)
         return self._state_containers[tag]
 
     def remove_state_manager(self, tag):
+        if tag in self._deferred_attributes:
+            getattr(self, tag)
         del self._state_containers[tag]
 
     def state_managers(self, class_obj):
+        self._resolve_deferred_attributes()
         # there can be multiple instances of some kinds of state managers (rotamers, alt locs),
         # so allow getting those by type rather than tag
         return [
@@ -661,6 +741,7 @@ class Session:
         ]
 
     def state_managers_by_tag(self, class_obj):
+        self._resolve_deferred_attributes()
         # in the unusual case where you need to call a Session API requiring a tag,
         # and you don't already know the tag
         return {
@@ -693,6 +774,7 @@ class Session:
 
     def save(self, stream, version, include_maps=False):
         """Serialize session to binary stream."""
+        self._resolve_deferred_attributes()
         from . import serialize
 
         flags = State.SESSION
@@ -804,6 +886,7 @@ class Session:
             self.metadata.update(metadata)
             return
 
+        self._resolve_deferred_attributes()
         mgr = _RestoreManager()
         bundle_infos = fdeserialize(stream)
         try:
