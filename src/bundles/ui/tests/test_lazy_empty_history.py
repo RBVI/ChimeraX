@@ -59,3 +59,21 @@ def test_empty_section_still_uses_history_view(history_view):
     view.update()
     assert view._empty_window is None
     assert view._stack.currentWidget() is view._history_window
+
+
+def test_welcome_title_renders_directly_and_keeps_quickstart_link(history_view, monkeypatch):
+    from chimerax.core import commands
+    from Qt.QtCore import Qt
+
+    view, history = history_view
+    history.files.clear()
+    view.update()
+    empty = view._empty_window
+    assert empty._title.text() == 'ChimeraX'
+    assert empty._title.graphicsEffect() is None
+    assert empty._title.alignment() == Qt.AlignmentFlag.AlignCenter
+    assert empty._link.text() == '<a href="help:quickstart">Get started</a>'
+    calls = []
+    monkeypatch.setattr(commands, 'run', lambda session, command: calls.append((session, command)))
+    empty._link.linkActivated.emit('help:quickstart')
+    assert calls == [(view.session, 'help help:quickstart')]

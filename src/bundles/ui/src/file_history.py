@@ -640,12 +640,8 @@ class EmptyHistoryWindow(QWidget):
             pal = title.palette()
             pal.setColor(QPalette.ColorRole.WindowText, QColor(scheme_color('new_user_canvas_text')))
             title.setPalette(pal)
-            from Qt.QtWidgets import QGraphicsDropShadowEffect
-            shadow = QGraphicsDropShadowEffect(title)
-            shadow.setBlurRadius(2)
-            shadow.setOffset(0, 0)
-            shadow.setColor(QColor('black'))
-            title.setGraphicsEffect(shadow)
+            # Paint the title directly. A graphics effect renders it offscreen
+            # and processes pending layout/font work during the first paint.
             self._link = link = QLabel('<a href="help:quickstart">Get started</a>')
             link.setAlignment(Qt.AlignmentFlag.AlignCenter)
             link.setTextInteractionFlags(Qt.TextInteractionFlag.LinksAccessibleByMouse)
