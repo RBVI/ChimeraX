@@ -54,12 +54,12 @@ class UserColors(SortedDict, StateManager):
 
     def __init__(self):
         SortedDict.__init__(self)
-        self.update(BuiltinColors)
+        self.update(_get_builtin_colors())
 
     def take_snapshot(self, session, flags):
         # only save differences from builtin colors
         cmap = {name: color for name, color in self.items()
-                if name not in BuiltinColors or color != BuiltinColors[name]}
+                if name not in _get_builtin_colors() or color != _get_builtin_colors()[name]}
         data = {
             'colors': cmap,
             'version': USER_COLORS_STATE_VERSION,
@@ -75,22 +75,22 @@ class UserColors(SortedDict, StateManager):
     def reset_state(self, session):
         """Reset state to data-less state"""
         self.clear()
-        self.update(BuiltinColors)
+        self.update(_get_builtin_colors())
 
     def list(self, all=False):
         if all:
             return list(self.keys())
         return [name for name, color in self.items()
-                if name not in BuiltinColors or color != BuiltinColors[name]]
+                if name not in _get_builtin_colors() or color != _get_builtin_colors()[name]]
 
     def add(self, key, value):
-        if key in BuiltinColors:
+        if key in _get_builtin_colors():
             from .errors import UserError
             raise UserError('Can not override builtin color')
         self[key] = value
 
     def remove(self, key):
-        if key in BuiltinColors:
+        if key in _get_builtin_colors():
             raise ValueError('Can not remove builtin color')
         del self[key]
 
@@ -173,7 +173,7 @@ class Color(State):
                 self.rgba = array(values, dtype=float32)
             else:
                 try:
-                    self.rgba = BuiltinColors[rgba].rgba[:]  # copy
+                    self.rgba = _get_builtin_colors()[rgba].rgba[:]  # copy
                 except KeyError:
                     raise ValueError("No built-in color named %s" % rgba)
         else:
@@ -446,16 +446,16 @@ def _builtin_colormaps():
     cmaps['cyan-gray-maroon'] = Colormap(None, ((0.059, 0.78, 0.81, 1), (.7, .7, .7, 1), (0.62, 0.125, 0.37, 1)))
     cmaps['lipophilicity'] = Colormap(None, ((0, 139 / 255, 139 / 255, 1), (1, 1, 1, 1), (184 / 255, 134 / 255, 11 / 255, 1)))  # dark cyan, white, dark goldenrod
     _alphafold_colors = [
-            BuiltinColors[name] for name in ('red', 'orange', 'yellow', 'cornflowerblue', 'blue')]
+            _get_builtin_colors()[name] for name in ('red', 'orange', 'yellow', 'cornflowerblue', 'blue')]
     cmaps['alphafold'] = Colormap((0, 50, 70, 90, 100), _alphafold_colors)
     cmaps['esmfold'] = Colormap((0, 0.5, 0.7, 0.9, 1.0), _alphafold_colors)
     _pae_colors = [
-            BuiltinColors[name] for name in ('blue', 'cornflowerblue', 'yellow', 'orange', 'gray', 'lightgray', 'white')]
+            _get_builtin_colors()[name] for name in ('blue', 'cornflowerblue', 'yellow', 'orange', 'gray', 'lightgray', 'white')]
     cmaps['pae'] = Colormap((0, 5, 10, 15, 20, 25, 30), _pae_colors)
     _pae_green_colors = ((0.118, 0.275, 0.118, 1), (0.142, 0.571, 0.142, 1), (0.216, 0.693, 0.216, 1), (0.338, 0.788, 0.338, 1), (0.510, 0.867, 0.510, 1), (0.730, 0.937, 0.730, 1), (1.000, 1.000, 1.000, 1))
     cmaps['paegreen'] = Colormap((0, 5, 10, 15, 20, 25, 30), _pae_green_colors)
     _pae_contacts_colors = [
-            BuiltinColors[name] for name in ('blue', 'cornflowerblue', 'yellow', 'orange', 'red')]
+            _get_builtin_colors()[name] for name in ('blue', 'cornflowerblue', 'yellow', 'orange', 'red')]
     cmaps['paecontacts'] = Colormap((0, 5, 10, 15, 20), _pae_contacts_colors)
 
     # Add some aliases
@@ -847,7 +847,7 @@ def color_name(color_or_rgba8, *, always_include_hex_alpha=False):
     global _color_names
     if _color_names is None:
         _color_names = {
-            tuple(color.uint8x4()): name for name, color in BuiltinColors.items()
+            tuple(color.uint8x4()): name for name, color in _get_builtin_colors().items()
         }
     if isinstance(color_or_rgba8, Color):
         rgba8 = color_or_rgba8.uint8x4()
@@ -1102,13 +1102,22 @@ class ColorValue(configfile.Value):
         return str_value
 
 
-BuiltinColors = _builtin_colors()
 # Palette arrays are not needed to create the initial window. Keep the same
 # shared SortedDict once requested, including its aliases and mutable values.
 from _thread import allocate_lock as _allocate_lock
 # Reloading the module should also invalidate the previous catalog.
 globals().pop('BuiltinColormaps', None)
+globals().pop('BuiltinColors', None)
 _colormaps_lock = _allocate_lock()
+_colors_lock = _allocate_lock()
+
+
+def _get_builtin_colors():
+    if 'BuiltinColors' not in globals():
+        with _colors_lock:
+            if 'BuiltinColors' not in globals():
+                globals()['BuiltinColors'] = _builtin_colors()
+    return globals()['BuiltinColors']
 
 
 def _get_builtin_colormaps():
@@ -1122,13 +1131,15 @@ def _get_builtin_colormaps():
 
 
 def __getattr__(name):
+    if name == 'BuiltinColors':
+        return _get_builtin_colors()
     if name == 'BuiltinColormaps':
         return _get_builtin_colormaps()
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def __dir__():
-    return sorted(set(globals()) | {'BuiltinColormaps'})
+    return sorted(set(globals()) | {'BuiltinColors', 'BuiltinColormaps'})
 
 
 class ColorScheme(IntEnum):
@@ -1227,4 +1238,4 @@ _scheme_colors = {
 
 # Preserve wildcard imports without eagerly constructing the palette catalog.
 __all__ = [name for name in globals() if not name.startswith('_')]
-__all__.append('BuiltinColormaps')
+__all__.extend(('BuiltinColors', 'BuiltinColormaps'))
