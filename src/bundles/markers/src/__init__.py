@@ -75,5 +75,26 @@ class _MarkersAPI(BundleAPI):
 
 bundle_api = _MarkersAPI()
 
-from .markers import MarkerSet, create_link, selected_markers, selected_links
-from .mouse import mark_map_center
+_lazy_exports = dict.fromkeys(('MarkerSet', 'create_link', 'selected_markers', 'selected_links'), 'markers')
+_lazy_exports['mark_map_center'] = 'mouse'
+_lazy_modules = set(_lazy_exports.values())
+
+
+def __getattr__(name):
+    from importlib import import_module
+    if name in _lazy_modules:
+        value = import_module('.' + name, __name__)
+    elif name in _lazy_exports:
+        value = getattr(import_module('.' + _lazy_exports[name], __name__), name)
+    else:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(_lazy_exports) | _lazy_modules)
+
+
+__all__ = [name for name in globals() if not name.startswith('_')]
+__all__ += [*_lazy_exports, *_lazy_modules]
