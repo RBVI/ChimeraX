@@ -6,6 +6,9 @@
 # include <windows.h>
 #endif
 #include <locale.h>
+#ifdef __APPLE__
+# include "startup_qt.h"
+#endif
 
 #if defined(__APPLE__) || defined(__linux__)
 # define STARTUP_PREFETCH 1
@@ -288,6 +291,9 @@ app_main(int argc, wchar_t** wargv)
 {
 #ifdef STARTUP_PREFETCH
 	start_prefetch();
+#endif
+#ifdef __APPLE__
+	start_qt_preload(argc, wargv);
 #endif
 	int debug = 0;
 	for (int i = 1; i < argc; ++i) {

@@ -60,6 +60,10 @@ endif
 
 all: $(PROG)
 
+ifeq ($(OS),Darwin)
+launcher.$(OBJ_EXT): startup_qt.h
+endif
+
 ifdef WIN32
 install:	install-desktop install-console install-others
 
