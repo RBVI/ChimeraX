@@ -41,7 +41,7 @@ def test_discovery_reads_classifiers_without_converting_metadata(monkeypatch):
     monkeypatch.setattr(installed, "_make_bundle_info", make_info)
     monkeypatch.setattr(
         installed.InstalledBundleCache, "_order_bundles",
-        lambda self, mapping, logger: list(mapping.values()),
+        lambda self, mapping, logger, **kw: list(mapping.values()),
     )
     cache = installed.InstalledBundleCache()
     cache.load(logger=None, write_cache=False)
@@ -300,3 +300,89 @@ def test_reader_validates_open_snapshot_timestamp(monkeypatch, tmp_path):
     assert not InstalledBundleCache()._read_cache(str(cache_file))
     assert timestamps == [100]
     assert cache_file.stat().st_mtime == 200
+
+
+def test_wheel_metadata_keeps_importlib_header_and_description_handling(tmp_path):
+    from importlib.metadata import PathDistribution
+    from chimerax.core.toolshed.installed import _bundle_metadata
+    directory = tmp_path / 'example.dist-info'
+    directory.mkdir()
+    (directory / 'METADATA').write_text(
+        'Metadata-Version: 2.1\nName: ChimeraX-Example\nVersion: 1\n'
+        'Classifier: ChimeraX :: Bundle :: example\n'
+        'Requires-Dist: ChimeraX-Core>=1\n'
+        'Summary: A long\n        folded summary\n\n'
+        'A multiline description.\nSecond line.\n')
+    dist = PathDistribution(directory)
+    result = _bundle_metadata(dist)
+    assert list(result.items()) == list(dist.metadata.items())
+    assert result.get_all('Requires-Dist') == ['ChimeraX-Core>=1']
+    assert result['Description'] == 'A multiline description.\nSecond line.\n'
+
+
+def test_unrelated_wheel_is_rejected_before_parsing_its_description(tmp_path, monkeypatch):
+    from importlib.metadata import Distribution, PathDistribution
+    from chimerax.core.toolshed.installed import _bundle_metadata
+    directory = tmp_path / 'other.dist-info'
+    directory.mkdir()
+    (directory / 'METADATA').write_text('Name: unrelated\nVersion: 1\n\nChimeraX in the body')
+    def forbidden(self):
+        raise AssertionError('Unrelated metadata must not reach the parser')
+    monkeypatch.setattr(Distribution, 'metadata', property(forbidden))
+    assert _bundle_metadata(PathDistribution(directory)) is None
+
+
+def test_record_scanning_preserves_packages_with_csv_quoting_and_skips_data(tmp_path, monkeypatch):
+    import csv
+    from importlib.metadata import Distribution, PathDistribution
+    from chimerax.core.toolshed.installed import _get_installed_packages
+    directory = tmp_path / 'example.dist-info'
+    directory.mkdir()
+    entries = ['chimerax/example/__init__.py', 'chimerax/example/sub/__init__.py',
+               'odd,name/__init__.py', 'other\nname/__init__.py',
+               'chimerax/example/data.txt', 'chimerax/example/_native.so']
+    for entry in entries:
+        file = tmp_path / entry
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.touch()
+    entries.append('removed/package/__init__.py')
+    with (directory / 'RECORD').open('w', newline='') as stream:
+        csv.writer(stream).writerows((name, '', '') for name in entries)
+    dist = PathDistribution(directory)
+    expected = [('chimerax', 'example'), ('chimerax', 'example', 'sub'),
+                ('odd,name',), ('other\nname',)]
+    def forbidden(self):
+        raise AssertionError('Do not create path objects for the complete RECORD')
+    monkeypatch.setattr(Distribution, 'files', property(forbidden))
+    assert _get_installed_packages(dist, None, name='ChimeraX-Example') == expected
+
+
+def test_record_scanning_keeps_editable_path_files(tmp_path):
+    from importlib.metadata import PathDistribution
+    from chimerax.core.toolshed.installed import _get_installed_packages
+    directory = tmp_path / 'example.dist-info'
+    directory.mkdir()
+    (directory / 'RECORD').write_text('example.pth,,\n')
+    source = tmp_path / 'source'
+    package = source / 'chimerax' / 'example'
+    package.mkdir(parents=True)
+    (package / '__init__.py').touch()
+    (tmp_path / 'example.pth').write_text(str(source) + '\n')
+    dist = PathDistribution(directory)
+    assert _get_installed_packages(dist, None, name='ChimeraX-Example') == [('chimerax', 'example')]
+
+
+def test_dependency_order_uses_cached_requires_and_keeps_legacy_fallback():
+    from chimerax.core.toolshed.installed import InstalledBundleCache
+    class Wheel:
+        @property
+        def requires(self):
+            raise AssertionError('Metadata dependencies were already read')
+    class Legacy:
+        requires = ['ChimeraX-Base']
+    wheel, legacy = Wheel(), Legacy()
+    base = SimpleNamespace(name='ChimeraX-Base', inits={})
+    child = SimpleNamespace(name='ChimeraX-Child', inits={})
+    mapping = {legacy: child, wheel: base}
+    ordered = InstalledBundleCache()._order_bundles(mapping, None, requirements={wheel: [], legacy: None})
+    assert ordered == [base, child]
