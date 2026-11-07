@@ -31,6 +31,8 @@ CHIMERAX_STARTUP_PREFETCH environment variable and, when the list exists,
 asks the kernel to read those files ahead while Python starts.  This module
 writes that list: the shared libraries, Python modules, and data files read
 by the time the GUI is up, roughly in the order they were first needed.
+On macOS, the bin and MacOS entry points are hard links but existing launchers
+hash their distinct paths. Record both lists when they name the same executable.
 
 Each line is a file name.  On Linux, a memory-mapped file (shared library,
 font, ICU data) is followed by a tab and the byte ranges this process
@@ -45,8 +47,8 @@ import sys
 
 ENV_VAR = "CHIMERAX_STARTUP_PREFETCH"
 
-# macOS loads its own libraries from the dyld shared cache, which is always
-# resident, so only list files that are read from disk.
+# macOS system libraries are supplied by the dyld shared cache rather than
+# ordinary individual library files. This list covers the app's separate files.
 _SYSTEM_PREFIXES = ("/System/", "/usr/lib/") if sys.platform == "darwin" else ()
 
 # Qt reads the metadata of every plugin in these directories at startup,
@@ -265,21 +267,70 @@ def _list_text(files, ranges):
     return "".join(line + "\n" for line in lines)
 
 
+def _launcher_list_name(executable):
+    # Match the launcher's FNV-1a hash of realpath(executable).
+    value = 0xcbf29ce484222325
+    for byte in os.fsencode(os.path.realpath(executable)):
+        value = ((value ^ byte) * 0x100000001b3) & 0xffffffffffffffff
+    return 'startup-prefetch-%016x' % value
+
+
+def _list_destinations(path):
+    """Keep both hard-linked macOS launchers supplied with the same list.
+
+    Existing launchers key their list by pathname, so the bin and MacOS
+    entry points use different files even when they are the same executable.
+    Mirror only the launcher's default cache path, never a caller's override.
+    """
+    paths = [path]
+    if sys.platform != 'darwin':
+        return paths
+    executable = os.path.realpath(sys.executable)
+    parent = os.path.dirname(executable)
+    entry = os.path.basename(parent)
+    if entry not in ('bin', 'MacOS') or os.path.basename(executable) != 'ChimeraX':
+        return paths
+    cache_dir = os.path.join(os.path.expanduser('~'), 'Library', 'Caches', 'ChimeraX')
+    if os.path.abspath(path) != os.path.join(cache_dir, _launcher_list_name(executable)):
+        return paths
+    other = os.path.join(os.path.dirname(parent),
+                        'MacOS' if entry == 'bin' else 'bin', 'ChimeraX')
+    try:
+        if not os.path.samefile(executable, other):
+            return paths
+    except OSError:
+        return paths
+    alternate = os.path.join(cache_dir, _launcher_list_name(other))
+    if alternate != path:
+        paths.append(alternate)
+    return paths
+
+
+def _write_list_text(path, text):
+    try:
+        with open(path, encoding='utf-8') as f:
+            if f.read() == text:
+                return
+    except (OSError, UnicodeDecodeError):
+        pass
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    # Rename each complete list so a concurrent launcher cannot read a partial one.
+    temp = "%s.%d.tmp" % (path, os.getpid())
+    with open(temp, 'w', encoding='utf-8') as f:
+        f.write(text)
+    os.replace(temp, path)
+
+
 def _write_list(path, modules, opened=()):
     try:
         text = _list_text(startup_files(modules, opened=opened), mapped_ranges())
-        try:
-            with open(path, encoding="utf-8") as f:
-                if f.read() == text:
-                    return
-        except (OSError, UnicodeDecodeError):
-            pass
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        # Write a new file and rename it so the launcher never reads part of a list.
-        temp = "%s.%d.tmp" % (path, os.getpid())
-        with open(temp, "w", encoding="utf-8") as f:
-            f.write(text)
-        os.replace(temp, path)
+        paths = _list_destinations(path)
     except Exception:
         # Prefetching is only an optimization.
-        pass
+        return
+    for destination in paths:
+        try:
+            _write_list_text(destination, text)
+        except Exception:
+            # Failure to update one entry point must not suppress the other.
+            pass

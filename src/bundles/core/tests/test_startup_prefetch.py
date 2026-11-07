@@ -112,6 +112,81 @@ def test_write_failures_are_ignored(tmp_path, monkeypatch):
     startup_prefetch._write_list(os.path.join(blocker, 'list'), [])
 
 
+@pytest.fixture
+def mac_launchers(tmp_path, monkeypatch):
+    contents = tmp_path / 'ChimeraX.app' / 'Contents'
+    cli = contents / 'bin' / 'ChimeraX'
+    dock = contents / 'MacOS' / 'ChimeraX'
+    touch(cli)
+    dock.parent.mkdir()
+    os.link(cli, dock)
+    monkeypatch.setattr(sys, 'platform', 'darwin')
+    monkeypatch.setattr(sys, 'executable', str(cli))
+    monkeypatch.setattr(os.path, 'expanduser', lambda path: str(tmp_path))
+    cache = tmp_path / 'Library' / 'Caches' / 'ChimeraX'
+    return cli, dock, cache
+
+
+def test_both_mac_entry_points_record_lists_read_by_existing_launchers(mac_launchers, monkeypatch):
+    cli, dock, cache = mac_launchers
+    first = cache / startup_prefetch._launcher_list_name(cli)
+    second = cache / startup_prefetch._launcher_list_name(dock)
+    assert first != second
+    assert startup_prefetch._list_destinations(str(first)) == [str(first), str(second)]
+    monkeypatch.setattr(sys, 'executable', str(dock))
+    assert startup_prefetch._list_destinations(str(second)) == [str(second), str(first)]
+
+
+def test_existing_unchanged_list_does_not_prevent_repairing_missing_entry_point(mac_launchers, monkeypatch):
+    cli, dock, cache = mac_launchers
+    first = cache / startup_prefetch._launcher_list_name(cli)
+    second = cache / startup_prefetch._launcher_list_name(dock)
+    monkeypatch.setattr(startup_prefetch, 'startup_files', lambda *args, **kw: ['/library'])
+    monkeypatch.setattr(startup_prefetch, 'mapped_ranges', lambda: {})
+    first.parent.mkdir(parents=True)
+    first.write_text('/library\n')
+    os.utime(first, (1, 1))
+    startup_prefetch._write_list(str(first), [])
+    assert first.stat().st_mtime == 1
+    assert second.read_text() == '/library\n'
+    assert set(p.name for p in cache.iterdir()) == {first.name, second.name}
+
+
+def test_custom_prefetch_destinations_do_not_touch_user_cache(mac_launchers, tmp_path):
+    assert startup_prefetch._list_destinations(str(tmp_path / 'isolated/list')) == [
+        str(tmp_path / 'isolated/list')]
+
+
+@pytest.mark.parametrize('case', ['missing', 'different_file', 'linux'])
+def test_alias_is_limited_to_same_mac_executable(mac_launchers, monkeypatch, case):
+    cli, dock, cache = mac_launchers
+    path = str(cache / startup_prefetch._launcher_list_name(cli))
+    if case == 'missing':
+        dock.unlink()
+    elif case == 'different_file':
+        dock.unlink()
+        touch(dock)
+    else:
+        monkeypatch.setattr(sys, 'platform', 'linux')
+    assert startup_prefetch._list_destinations(path) == [path]
+
+
+def test_failure_updating_one_list_does_not_suppress_the_other(mac_launchers, monkeypatch):
+    cli, dock, cache = mac_launchers
+    first = str(cache / startup_prefetch._launcher_list_name(cli))
+    second = str(cache / startup_prefetch._launcher_list_name(dock))
+    calls = []
+    def write(path, text):
+        calls.append(path)
+        if path == first:
+            raise OSError('read only')
+    monkeypatch.setattr(startup_prefetch, 'startup_files', lambda *args, **kw: [])
+    monkeypatch.setattr(startup_prefetch, 'mapped_ranges', lambda: {})
+    monkeypatch.setattr(startup_prefetch, '_write_list_text', write)
+    startup_prefetch._write_list(first, [])
+    assert calls == [first, second]
+
+
 def test_page_spans_join_nearby_pages():
     assert startup_prefetch._page_spans([], 4096) == []
     assert startup_prefetch._page_spans([3, 1, 2], 4096, gap=1) == [(4096, 3 * 4096)]
