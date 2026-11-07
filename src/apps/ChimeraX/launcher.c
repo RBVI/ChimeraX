@@ -169,6 +169,11 @@ prefetch_entry(char* entry, char* buffer)
 static DWORD WINAPI
 prefetch_worker(LPVOID unused)
 {
+	// On a warm start the files are already cached, and reading them only
+	// takes CPU from startup: 4 normal priority threads made a warm start
+	// 67 ms slower in a 4-core VM.  Cold, the threads mostly wait on I/O,
+	// which keeps its normal priority.
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
 	char* buffer = malloc(PREFETCH_BUFFER);
 	if (buffer == NULL)
 		return 0;
