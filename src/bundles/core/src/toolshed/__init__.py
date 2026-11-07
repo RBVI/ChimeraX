@@ -887,7 +887,9 @@ class Toolshed:
             return
         for bi in self._installed_bundle_info:
             bi.update_library_path()  # for bundles with dynamic libraries
-        failed = self._init_managers(session)
+        initialize_managers = getattr(session.ui, '_initialize_managers', None)
+        failed = (self._init_managers(session) if initialize_managers is None
+                  else initialize_managers(self))
         failed += self._init_custom(session)
         bad_packages = set()
         for bi in failed:
