@@ -30,27 +30,30 @@ def get_lib() -> str:
 # ensure atomic_libs C++ shared libs are linkable by us
 import chimerax.atomic_lib
 
-from .molobject import Atom, Bond, Chain, CoordSet, Element, Pseudobond, Residue, Sequence, \
-    StructureSeq, PseudobondManager, Ring, ChangeTracker, StructureData
-from .molobject import SeqMatchMap, estimate_assoc_params, try_assoc, StructAssocError
-from .molobject import next_chain_id, chain_id_characters
-# pbgroup must precede molarray since molarray uses interatom_pseudobonds in global scope
-from .pbgroup import PseudobondGroup, all_pseudobond_groups, all_pseudobonds
-from .pbgroup import interatom_pseudobonds, selected_pseudobonds
-from .molarray import Collection, Atoms, AtomicStructures, Bonds, Chains, CoordSets, Pseudobonds, \
-    Structures, PseudobondGroups, Residues, concatenate
-from .structure import AtomicStructure, Structure, LevelOfDetail
-from .structure import selected_atoms, selected_bonds, selected_residues, selected_chains
-from .structure import all_atoms, all_bonds, all_residues, all_atomic_structures, all_structures
-from .structure import structure_atoms, structure_residues, structure_graphics_updater, level_of_detail
-from .structure import PickedAtom, PickedBond, PickedResidue, PickedPseudobond
-from .structure import uniprot_ids
+_data_model_exports = {
+    'molobject': (
+        'Atom', 'Bond', 'Chain', 'CoordSet', 'Element', 'Pseudobond', 'Residue', 'Sequence',
+        'StructureSeq', 'PseudobondManager', 'Ring', 'ChangeTracker', 'StructureData',
+        'SeqMatchMap', 'estimate_assoc_params', 'try_assoc', 'StructAssocError', 'next_chain_id',
+        'chain_id_characters'),
+    'pbgroup': (
+        'PseudobondGroup', 'all_pseudobond_groups', 'all_pseudobonds', 'interatom_pseudobonds',
+        'selected_pseudobonds'),
+    'molarray': (
+        'Collection', 'Atoms', 'AtomicStructures', 'Bonds', 'Chains', 'CoordSets', 'Pseudobonds',
+        'Structures', 'PseudobondGroups', 'Residues', 'concatenate'),
+    'structure': (
+        'AtomicStructure', 'Structure', 'LevelOfDetail', 'selected_atoms', 'selected_bonds',
+        'selected_residues', 'selected_chains', 'all_atoms', 'all_bonds', 'all_residues',
+        'all_atomic_structures', 'all_structures', 'structure_atoms', 'structure_residues',
+        'structure_graphics_updater', 'level_of_detail', 'PickedAtom', 'PickedBond',
+        'PickedResidue', 'PickedPseudobond', 'uniprot_ids'),
+}
 from .changes import check_for_changes
 from .triggers import get_triggers
 
-# Initialization needs the atomic data model, but not surface algorithms,
-# command annotations, custom drawings, or residue templates. Keep the public
-# objects themselves (including their class identity) when resolving exports.
+# Resolve public exports to the real objects, preserving class identity.
+# Empty sessions only need settings, trigger registration, and menu labels.
 _lazy_exports = {
     **dict.fromkeys(('buried_area', 'MolecularSurface', 'surfaces_with_atoms'), 'molsurf'),
     'biological_unit_matrices': 'pdbmatrices',
@@ -64,10 +67,28 @@ _lazy_exports = {
     'TmplResidue': 'cytmpl',
 }
 _lazy_modules = set(_lazy_exports.values())
+_model_names = {name for names in _data_model_exports.values() for name in names}
+_lazy_modules.update(_data_model_exports)
 
 
 def __getattr__(name):
     from importlib import import_module
+    if name == 'cytmpl' or _lazy_exports.get(name) == 'cytmpl':
+        # Template lookup can be the first atomic operation in a session.
+        import_module('._data_model', __name__)
+    if name == 'interatom_pseudobonds':
+        # molarray binds this function while its class body is being created.
+        # It must also support a direct import of that submodule.
+        return getattr(import_module('.pbgroup', __name__), name)
+    if name in _model_names:
+        import_module('._data_model', __name__)
+        if name in globals():
+            return globals()[name]
+        # A collection property requests interatom_pseudobonds while this
+        # thread is still importing the data model. Other threads wait for
+        # the importlib module lock above before seeing any public exports.
+        module = next(module for module, names in _data_model_exports.items() if name in names)
+        return getattr(import_module('.' + module, __name__), name)
     if name in _lazy_exports:
         value = getattr(import_module('.' + _lazy_exports[name], __name__), name)
     elif name in _lazy_modules:
@@ -79,37 +100,43 @@ def __getattr__(name):
 
 
 def __dir__():
-    return sorted(set(globals()) | set(_lazy_exports) | _lazy_modules)
+    return sorted(set(globals()) | set(_lazy_exports) | _lazy_modules | _model_names)
 
 def initialize_atomic(session):
     from . import settings
     settings.settings = settings._AtomicSettings(session, "atomic")
 
-    from chimerax import atomic_lib, pdb_lib # ensure libs we need are linked
-    import os.path
-    res_templates_dir = os.path.join(atomic_lib.__path__[0], 'data')
-    Residue.set_templates_dir(res_templates_dir)
-    
-    import chimerax
-    if hasattr(chimerax, 'app_dirs'):
-        Residue.set_user_templates_dir(chimerax.app_dirs.user_data_dir)
-
-    session.change_tracker = ChangeTracker()
-    session.pb_manager = PseudobondManager(session)
+    if not hasattr(session, '_atomic_initialized'):
+        session._atomic_initialized = False
+        session._defer_attributes(('change_tracker', 'pb_manager'), _initialize_atomic_state)
 
     session._atomic_command_handler = session.triggers.add_handler("command finished",
         lambda *args: check_for_changes(session))
 
     # for efficiency when destroying many structures, batch the updating of Collections
     from chimerax.core.models import BEGIN_DELETE_MODELS, END_DELETE_MODELS
-    session.triggers.add_handler(BEGIN_DELETE_MODELS, Structure.begin_destructor_batching)
-    session.triggers.add_handler(END_DELETE_MODELS, Structure.end_destructor_batching)
+    def destructor_batching(begin, *args):
+        if session._atomic_initialized:
+            method = Structure.begin_destructor_batching if begin else Structure.end_destructor_batching
+            method(*args)
+    session.triggers.add_handler(BEGIN_DELETE_MODELS, lambda *args: destructor_batching(True, *args))
+    session.triggers.add_handler(END_DELETE_MODELS, lambda *args: destructor_batching(False, *args))
 
     if session.ui.is_gui:
         session.ui.triggers.add_handler('ready', lambda *args, ses=session:
             _AtomicBundleAPI._add_gui_items(ses))
         session.ui.triggers.add_handler('ready', lambda *args, ses=session:
             settings.register_settings_options(ses))
+
+
+def _initialize_atomic_state(session):
+    from . import _data_model
+    # Retain an already created tracker if a later initialization step failed.
+    if 'change_tracker' not in vars(session):
+        session.change_tracker = ChangeTracker()
+    if 'pb_manager' not in vars(session):
+        session.pb_manager = PseudobondManager(session)
+    session._atomic_initialized = True
 
 
 from chimerax.core.toolshed import BundleAPI
@@ -177,6 +204,7 @@ class _AtomicBundleAPI(BundleAPI):
             from .inspectors import item_options
             return item_options(session, name, **kw)
         else:
+            from . import _data_model
             class_obj = {'atoms': Atom, 'residues': Residue, 'chains': Chain, 'structures': Structure }[name]
             from chimerax.render_by_attr import RenderAttrInfo
             class Info(RenderAttrInfo):
@@ -382,4 +410,4 @@ bundle_api = _AtomicBundleAPI()
 
 # Preserve wildcard imports, including the submodules previously imported above.
 __all__ = [name for name in globals() if not name.startswith('_')]
-__all__ += [name for name in (*_lazy_exports, *_lazy_modules) if name not in __all__]
+__all__ += [name for name in (*_lazy_exports, *_lazy_modules, *_model_names) if name not in __all__]

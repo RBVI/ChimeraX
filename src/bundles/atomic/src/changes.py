@@ -27,7 +27,8 @@ def check_for_changes(session):
 
     This is called once per frame, and whenever otherwise needed.
     """
-    ct = getattr(session, 'change_tracker', None)
+    # An empty session has no atomic changes and need not load the data model.
+    ct = vars(session).get('change_tracker')
     if not ct or not ct.changed:
         return
     ul = session.update_loop

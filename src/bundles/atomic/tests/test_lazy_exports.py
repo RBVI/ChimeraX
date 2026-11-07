@@ -61,9 +61,61 @@ def test_exports_keep_identity_and_session_class_lookup():
         assert atomic.bundle_api.get_class(name) is getattr(atomic, name)
 
 
+def test_data_model_exports_keep_the_original_classes_and_functions():
+    from chimerax import atomic
+    for module_name, names in atomic._data_model_exports.items():
+        implementation = importlib.import_module('.' + module_name, atomic.__name__)
+        for name in names:
+            assert getattr(atomic, name) is getattr(implementation, name)
+
+
+def test_package_initialization_does_not_load_the_data_model(monkeypatch):
+    # A separate package name permits checking cold imports in this process
+    # without unloading native types that other tests may already be using.
+    import builtins
+    name = '_atomic_cold_import'
+    path = Path(__file__).parents[1] / 'src' / '__init__.py'
+    spec = importlib.util.spec_from_file_location(name, path,
+        submodule_search_locations=[str(path.parent)])
+    module = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, name, module)
+    original = builtins.__import__
+    def importing(target, *args, **kwargs):
+        if target in ('molobject', 'pbgroup', 'molarray', 'structure', '_data_model'):
+            raise AssertionError('An empty atomic bundle must not load ' + target)
+        return original(target, *args, **kwargs)
+    monkeypatch.setattr(builtins, '__import__', importing)
+    spec.loader.exec_module(module)
+    assert not module._model_names.intersection(vars(module))
+    assert module._model_names <= set(dir(module))
+
+
 def test_star_import_keeps_optional_objects_and_modules():
     from chimerax import atomic
     namespace = {}
     exec('from chimerax.atomic import *', namespace)
     for name in (*atomic._lazy_exports, *atomic._lazy_modules):
         assert namespace[name] is getattr(atomic, name)
+
+
+@pytest.mark.parametrize('module_name', ['molobject', 'pbgroup', 'molarray', 'structure'])
+def test_direct_submodule_imports_work_in_a_fresh_interpreter(module_name):
+    import subprocess
+    code = f'''import importlib
+module = importlib.import_module('chimerax.atomic.{module_name}')
+from chimerax.atomic import Atoms, PseudobondGroup, Structure
+from chimerax.atomic import molobject, molarray, pbgroup, structure
+assert Atoms is molarray.Atoms
+assert PseudobondGroup is pbgroup.PseudobondGroup is molobject.PseudobondGroup
+assert Structure is structure.Structure
+'''
+    subprocess.run([sys.executable, '-I', '-c', code], check=True, capture_output=True, text=True)
+
+
+def test_template_lookup_as_the_first_atomic_operation():
+    import subprocess
+    code = '''from chimerax.atomic import TmplResidue
+template = TmplResidue.get_template('ALA')
+assert template is not None and len(template.atoms) >= 5
+'''
+    subprocess.run([sys.executable, '-I', '-c', code], check=True, capture_output=True, text=True)

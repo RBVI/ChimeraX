@@ -62,6 +62,9 @@ class Structure(Model, StructureData):
 
     def __init__(self, session, *, name = "structure", c_pointer = None, restore_data = None,
                  auto_style = True, log_info = True, break_triangle_waters = True):
+        # Resolve atomic state before constructing a native structure, including
+        # callers that import this submodule directly.
+        session.pb_manager
         from .molarray import Residues
         from numpy import array
         from .ribbon import XSectionManager
