@@ -56,9 +56,17 @@
 #  define PREFETCH_PATH 32768
 
 static wchar_t prefetch_list[PREFETCH_PATH];
-static char** prefetch_entries;
-static size_t prefetch_count;
-static volatile LONG64 prefetch_next;
+
+// Files to read, and files whose metadata only is looked up (a tab and no
+// ranges).  Each queue has its own threads, so the quick metadata lookups
+// run ahead of startup instead of waiting behind large DLLs: with one queue
+// they did not help, with their own threads a cold start was 0.3 s faster.
+typedef struct {
+	char** entries;
+	size_t count;
+	volatile LONG64 next;
+} prefetch_queue;
+static prefetch_queue prefetch_data, prefetch_metadata;
 
 // PrefetchVirtualMemory (Windows 8): looked up at run time.
 typedef struct {
@@ -76,12 +84,17 @@ static prefetch_virtual_memory_fn prefetch_virtual_memory;
  * 0.08 s after mapping them as images (SEC_IMAGE) and prefetching the view.
  * Mapping a view does not involve the loader, so nothing runs and no module
  * is registered; the cached image section is reused by the real load.
+ * A DLL's ranges in the list are offsets in its image (the pages startup
+ * touched), not in the file.  Prefetching only those instead of whole
+ * images halved the bytes read (75 MB of 150 MB) for the same cold start.
  * With image prefetching the VM's cold start went from 3.64 s without
  * prefetching to 2.90 s; reading DLLs as data had given 3.34 s.
  */
 static int
-prefetch_image(const wchar_t* path)
+prefetch_image(const wchar_t* path, const char* ranges)
 {
+	if (prefetch_virtual_memory == NULL)
+		return 0;
 	HANDLE file = CreateFileW(path, GENERIC_READ | GENERIC_EXECUTE,
 		FILE_SHARE_READ | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (file == INVALID_HANDLE_VALUE)
@@ -97,16 +110,44 @@ prefetch_image(const wchar_t* path)
 	IMAGE_DOS_HEADER* dos = (IMAGE_DOS_HEADER*) view;
 	IMAGE_NT_HEADERS* nt = (IMAGE_NT_HEADERS*) (view + dos->e_lfanew);
 	SIZE_T size = nt->OptionalHeader.SizeOfImage;
-	if (prefetch_virtual_memory != NULL) {
-		prefetch_range range = { view, size };
-		(void) prefetch_virtual_memory(GetCurrentProcess(), 1, &range, 0);
-	} else {
-		// Fault the pages in one at a time.
-		volatile unsigned char sink = 0;
-		for (SIZE_T offset = 0; offset < size; offset += 4096)
-			sink ^= view[offset];
-		(void) sink;
+
+	// The ranges startup touched, as offsets in the image; else all of it.
+	size_t count = 1;
+	if (ranges != NULL)
+		for (const char* c = ranges; *c; ++c)
+			if (*c == ',')
+				++count;
+	prefetch_range* spans = malloc(count * sizeof (prefetch_range));
+	if (spans == NULL) {
+		UnmapViewOfFile(view);
+		return 1;
 	}
+	size_t n = 0;
+	if (ranges == NULL) {
+		spans[n].VirtualAddress = view;
+		spans[n++].NumberOfBytes = size;
+	} else {
+		const char* p = ranges;
+		while (*p != '\0' && n < count) {
+			char* end;
+			unsigned long long offset = _strtoui64(p, &end, 10);
+			if (*end != '+')
+				break;
+			unsigned long long length = _strtoui64(end + 1, &end, 10);
+			if (offset < size) {
+				if (length > size - offset)
+					length = size - offset;
+				spans[n].VirtualAddress = view + offset;
+				spans[n++].NumberOfBytes = (SIZE_T) length;
+			}
+			if (*end != ',')
+				break;
+			p = end + 1;
+		}
+	}
+	// Not by touching the pages: a section's pages may not all be readable.
+	(void) prefetch_virtual_memory(GetCurrentProcess(), n, spans, 0);
+	free(spans);
 	UnmapViewOfFile(view);
 	return 1;
 }
@@ -137,9 +178,22 @@ prefetch_entry(char* entry, char* buffer)
 		return;
 	size_t length = wcslen(path);
 	if (length > 4 && (_wcsicmp(path + length - 4, L".dll") == 0
-			|| _wcsicmp(path + length - 4, L".pyd") == 0)
-			&& prefetch_image(path))
+			|| _wcsicmp(path + length - 4, L".pyd") == 0)) {
+		if (prefetch_image(path, ranges))
+			return;
+		// A DLL's ranges are image offsets: read the whole file instead.
+		ranges = NULL;
+	}
+	if (ranges != NULL && *ranges == '\0') {
+		// A tab and no ranges: Python checks this file's size and time (a
+		// module's source, before using its .pyc).  Look them up as Python
+		// does, without read access, which would have Defender scan the file.
+		WIN32_FILE_ATTRIBUTE_DATA attributes;
+		(void) GetFileAttributesExW(path, GetFileExInfoStandard, &attributes);
 		return;
+	}
+	if (buffer == NULL)
+		return;	// A metadata thread: it has no buffer to read into.
 	HANDLE file = CreateFileW(path, GENERIC_READ,
 		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
 		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -167,22 +221,24 @@ prefetch_entry(char* entry, char* buffer)
 }
 
 static DWORD WINAPI
-prefetch_worker(LPVOID unused)
+prefetch_worker(LPVOID arg)
 {
+	prefetch_queue* queue = arg;
 	// On a warm start the files are already cached, and reading them only
 	// takes CPU from startup: 4 normal priority threads made a warm start
 	// 67 ms slower in a 4-core VM.  Cold, the threads mostly wait on I/O,
 	// which keeps its normal priority.
 	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
-	char* buffer = malloc(PREFETCH_BUFFER);
-	if (buffer == NULL)
+	// Metadata lookups read nothing.
+	char* buffer = NULL;
+	if (queue == &prefetch_data && (buffer = malloc(PREFETCH_BUFFER)) == NULL)
 		return 0;
 	for (;;) {
 		// Take entries in list order, which is roughly the order startup needs them.
-		LONG64 i = InterlockedIncrement64(&prefetch_next) - 1;
-		if ((size_t) i >= prefetch_count)
+		LONG64 i = InterlockedIncrement64(&queue->next) - 1;
+		if ((size_t) i >= queue->count)
 			break;
-		prefetch_entry(prefetch_entries[i], buffer);
+		prefetch_entry(queue->entries[i], buffer);
 	}
 	free(buffer);
 	return 0;
@@ -213,8 +269,9 @@ prefetch_files(LPVOID unused)
 	for (char* c = text; *c; ++c)
 		if (*c == '\n')
 			++lines;
-	prefetch_entries = malloc(lines * sizeof (char*));
-	if (prefetch_entries == NULL)
+	prefetch_data.entries = malloc(lines * sizeof (char*));
+	prefetch_metadata.entries = malloc(lines * sizeof (char*));
+	if (prefetch_data.entries == NULL || prefetch_metadata.entries == NULL)
 		return 0;
 	char* save = NULL;
 	for (char* line = strtok_s(text, "\n", &save); line != NULL; line = strtok_s(NULL, "\n", &save)) {
@@ -222,15 +279,23 @@ prefetch_files(LPVOID unused)
 		if (n > 0 && line[n - 1] == '\r')
 			line[n - 1] = '\0';
 		// Absolute paths only: "X:\..." or "\\server\...".
-		if ((line[0] != '\0' && line[1] == ':') || (line[0] == '\\' && line[1] == '\\'))
-			prefetch_entries[prefetch_count++] = line;
+		if (!((line[0] != '\0' && line[1] == ':') || (line[0] == '\\' && line[1] == '\\')))
+			continue;
+		n = strlen(line);
+		prefetch_queue* queue = n > 0 && line[n - 1] == '\t' ? &prefetch_metadata : &prefetch_data;
+		queue->entries[queue->count++] = line;
 	}
-	for (int i = 1; i < PREFETCH_THREADS; ++i) {
-		HANDLE thread = CreateThread(NULL, 0, prefetch_worker, NULL, 0, NULL);
+	for (int i = 0; i < PREFETCH_THREADS; ++i) {
+		HANDLE thread = CreateThread(NULL, 0, prefetch_worker, &prefetch_metadata, 0, NULL);
 		if (thread != NULL)
 			CloseHandle(thread);
 	}
-	return prefetch_worker(NULL);
+	for (int i = 1; i < PREFETCH_THREADS; ++i) {
+		HANDLE thread = CreateThread(NULL, 0, prefetch_worker, &prefetch_data, 0, NULL);
+		if (thread != NULL)
+			CloseHandle(thread);
+	}
+	return prefetch_worker(&prefetch_data);
 }
 
 static void
