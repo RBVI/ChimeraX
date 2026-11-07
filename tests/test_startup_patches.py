@@ -79,3 +79,15 @@ def test_qt_keyboard_modifiers_without_textwrap():
     if out[0] == "True":
         pytest.skip("patch_pyside6.py patch_qtcore_snippet not applied")
     assert out == ["False", "True", "True", "True", "True"]
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="appdirs uses pywin32 only on Windows")
+def test_appdirs_finds_windows_folders_without_pywin32():
+    backend, win32com = _run("""
+        import sys, appdirs
+        print(appdirs._get_win_folder.__name__, "win32com" in sys.modules)
+        """)
+    if backend == "_get_win_folder_with_pywin32":
+        pytest.skip("appdirs.patch not applied")
+    assert backend == "_get_win_folder_with_ctypes"
+    assert win32com == "False"

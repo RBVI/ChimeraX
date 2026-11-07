@@ -1,0 +1,22 @@
+--- appdirs.py
++++ appdirs.py
+@@ -556,13 +556,15 @@
+     return dir
+ 
+ if system == "win32":
++    # ChimeraX: prefer ctypes.  Both call SHGetFolderPath, but importing
++    # win32com.shell loads pythoncom and win32api, about 13 ms of every start.
+     try:
+-        import win32com.shell
+-        _get_win_folder = _get_win_folder_with_pywin32
++        from ctypes import windll
++        _get_win_folder = _get_win_folder_with_ctypes
+     except ImportError:
+         try:
+-            from ctypes import windll
+-            _get_win_folder = _get_win_folder_with_ctypes
++            import win32com.shell
++            _get_win_folder = _get_win_folder_with_pywin32
+         except ImportError:
+             try:
+                 import com.sun.jna

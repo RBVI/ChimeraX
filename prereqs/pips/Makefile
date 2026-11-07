@@ -31,6 +31,8 @@ PATCHES += numpy_lazy_linalg.patch
 PATCHES += numpy_lazy_docstrings.patch
 # numpy imports platform and textwrap only where used.
 PATCHES += numpy_lazy_stdlib.patch
+# appdirs finds Windows folders with ctypes instead of importing pywin32.
+PATCHES += appdirs.patch
 # numpy skips its import-time check for the Accelerate bugs of old macOS.
 PATCHES += numpy_skip_mac_os_check.patch
 ifeq ($(OS),Windows)
