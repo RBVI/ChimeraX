@@ -141,7 +141,10 @@ class UI(QApplication):
             QApplication.__init__(self, [ad.appname])
         else:
             from .startup import initialize_application
-            construct = lambda: QApplication.__init__(self, [ad.appname])
+            from .native_application import prepare_application_constructor
+            construct = prepare_application_constructor(self, QApplication, [ad.appname])
+            if construct is None:
+                construct = lambda: QApplication.__init__(self, [ad.appname])
             core_settings = initialize_application(session,
                 construct, _initialize_session_settings)
             if color_scheme is None:
