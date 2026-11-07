@@ -72,7 +72,9 @@ def test_critical_save_flushes_before_replacement(tmp_path, monkeypatch):
     from chimerax.core import safesave
     path = tmp_path / 'settings'
     flushed = []
-    monkeypatch.setattr(safesave.os, 'fsync', lambda fd: flushed.append(fd))
+    # os.fsync takes a descriptor or a file object; record the descriptor.
+    monkeypatch.setattr(safesave.os, 'fsync',
+        lambda fd: flushed.append(fd if isinstance(fd, int) else fd.fileno()))
     with safesave.SaveTextFile(str(path), critical=True) as output:
         output.write('persist')
         descriptor = output.fileno()

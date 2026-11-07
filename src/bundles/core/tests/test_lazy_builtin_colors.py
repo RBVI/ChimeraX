@@ -45,6 +45,10 @@ def test_failed_catalog_creation_can_retry_without_publishing_partial_values(mon
 
 def test_wildcard_import_and_explicit_catalog_assignment_keep_identity(monkeypatch):
     from chimerax.core import colors
+    # The wildcard import also resolves BuiltinColormaps, which is built from
+    # the color catalog; build it from the real catalog first, as any earlier
+    # use in the process would have, so the test does not depend on order.
+    colors.BuiltinColormaps
     custom = {'red': colors.Color((0, 1, 0, 1))}
     monkeypatch.setitem(vars(colors), 'BuiltinColors', custom)
     namespace = {}
