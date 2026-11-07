@@ -370,8 +370,12 @@ def patch_bootstrap(shiboken_dir, files_dir):
         data = f.read()
     if MARK.encode() in data:
         return
+    # The Windows library embeds the source with CRLF line endings.  The
+    # replacement keeps LF; Python compiles either.
     # A universal macOS library has one copy per architecture.
-    if b"\ndef bootstrap():\n" not in data:
+    needle = next((n for n in (b"\ndef bootstrap():\n", b"\r\ndef bootstrap():\r\n")
+                   if n in data), None)
+    if needle is None:
         sys.exit(f"{path}: embedded signature_bootstrap not found")
     def patch(old):
         if not old.startswith(b"# Copyright") or b"def find_incarnated_files():" not in old:
@@ -379,7 +383,7 @@ def patch_bootstrap(shiboken_dir, files_dir):
         if len(new_bytes) > len(old):
             sys.exit(f"replacement bootstrap is {len(new_bytes)} bytes, embedded one is {len(old)}")
         return new_bytes
-    replace_library(path, replace_strings(data, b"\ndef bootstrap():\n", patch))
+    replace_library(path, replace_strings(data, needle, patch))
 
 
 def patch_qtcore_snippet(pyside_dir):
