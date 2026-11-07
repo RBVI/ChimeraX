@@ -419,11 +419,6 @@ class UI(QApplication):
             self.session.tools.start_tools(final_autostart)
 
         self.triggers.activate_trigger('ready', None)
-        # Tool construction can process paint events. Attach native menus only
-        # after all startup tools are ready and the complete window is painted.
-        mw._native_menus_ready = True
-        if getattr(mw, '_native_menu_to_attach', None) is not None:
-            mw.update()
 
     def event(self, event):
         from Qt.QtCore import QEvent
@@ -1360,42 +1355,10 @@ class MainWindow(QMainWindow, HtmlLog):
         self.tool_instance_to_windows.setdefault(tw.tool_instance,[]).append(tw)
 
     def _populate_menus(self, session):
-        from Qt.QtCore import Qt
-        attr = Qt.ApplicationAttribute.AA_DontUseNativeMenuBar
-        native_menu = sys.platform == 'darwin' and not QApplication.testAttribute(attr)
-        if native_menu:
-            # Keep native menu initialization out of the first window paint.
-            QApplication.setAttribute(attr, True)
-            try:
-                mb = self.menuBar()
-            finally:
-                QApplication.setAttribute(attr, False)
-            mb.hide()
-            self._native_menu_to_attach = mb
-        else:
-            mb = self.menuBar()
-        self._populate_menu_contents(session, mb)
-
-    def paintEvent(self, event):
-        QMainWindow.paintEvent(self, event)
-        if (getattr(self, '_native_menus_ready', False)
-                and getattr(self, '_native_menu_to_attach', None) is not None):
-            from Qt.QtCore import QTimer
-            mb = self._native_menu_to_attach
-            self._native_menu_to_attach = None
-            def attach(mb=mb):
-                # Switching an existing bar to native mode does not populate
-                # or attach its platform menu. Create a native bar normally,
-                # preserving the existing menus and all their callbacks.
-                from Qt.QtWidgets import QMenuBar
-                native = QMenuBar(self)
-                for action in mb.actions():
-                    menu = action.menu()
-                    if menu is not None:
-                        menu.setParent(native)
-                    native.addAction(action)
-                self.setMenuBar(native)
-            QTimer.singleShot(0, attach)
+        # Actions and Tools populate on demand. Create the menu bar normally
+        # so macOS can attach it before the first paint; replacing it afterward
+        # requires another native window exposure and repaint.
+        self._populate_menu_contents(session, self.menuBar())
 
     def _populate_menu_contents(self, session, mb):
         from Qt.QtGui import QKeySequence, QAction
@@ -1438,10 +1401,11 @@ class MainWindow(QMainWindow, HtmlLog):
 
         actions_menu = mb.addMenu("&Actions")
         actions_menu.setObjectName("Actions")
-        self._populate_actions_menu(actions_menu)
+        _defer_menu_contents(actions_menu, lambda: self._populate_actions_menu(actions_menu))
 
         self.tools_menu = mb.addMenu("&Tools")
         self.tools_menu.setToolTipsVisible(True)
+        self._toolbar_visibility = {}
         self.update_tools_menu(session)
         self.tools_menu.aboutToShow.connect(self._update_running_tools)
 
@@ -2041,17 +2005,21 @@ class MainWindow(QMainWindow, HtmlLog):
 
     def update_tools_menu(self, session):
         self._checkbutton_tools = {}
-        from Qt.QtWidgets import QMenu
-        from Qt.QtGui import QAction
-        tools_menu = self.tools_menu
-        tools_menu.clear()
+        self.tools_menu.clear()
         categories = {}
+        # Tool windows need this metadata for their context menus even before
+        # the Tools menu opens. QAction construction can wait until then.
         self._tools_cache = set()
         for bi in session.toolshed.bundle_info(session.logger):
             for tool in bi.tools:
                 self._tools_cache.add(tool)
                 for cat in tool.categories:
                     categories.setdefault(cat, {})[tool.name] = (bi, tool)
+        _defer_menu_contents(self.tools_menu, lambda: self._populate_tools_menu(session, categories))
+
+    def _populate_tools_menu(self, session, categories):
+        from Qt.QtGui import QAction
+        tools_menu = self.tools_menu
         cat_keys = sorted(categories.keys())
         one_menu = len(cat_keys) == 1
         from chimerax.core.commands import run, StringArg
@@ -2069,7 +2037,8 @@ class MainWindow(QMainWindow, HtmlLog):
                 tool_action.setToolTip(cat_info[tool_name][1].synopsis)
                 if use_checkbuttons:
                     tool_action.setCheckable(True)
-                    tool_action.setChecked(tool_name in active_tool_names)
+                    tool_action.setChecked(self._toolbar_visibility.get(
+                        tool_name, tool_name in active_tool_names))
                     tool_action.triggered.connect(
                         lambda checked, *, ses=session, run=run, tool_name=tool_name:
                         run(ses, "ui tool %s %s" % (("show" if checked else "hide"),
@@ -2089,6 +2058,7 @@ class MainWindow(QMainWindow, HtmlLog):
         self._tools_menu_separator = tools_menu.addSection("Running Tools")
 
     def _update_running_tools(self, *args):
+        _ensure_menu_contents(self.tools_menu)
         # clear out old running tools
         seen_sep = False
         max_text_len = 0
@@ -2123,8 +2093,10 @@ class MainWindow(QMainWindow, HtmlLog):
             self.tools_menu.addAction(action)
 
     def _set_tool_checkbuttons(self, toolbar, visibility):
-        if toolbar.windowTitle() in self._checkbutton_tools:
-            self._checkbutton_tools[toolbar.windowTitle()].setChecked(visibility)
+        title = toolbar.windowTitle()
+        self._toolbar_visibility[title] = visibility
+        if title in self._checkbutton_tools:
+            self._checkbutton_tools[title].setChecked(visibility)
 
     def add_menu_entry(self, menu_names, entry_name, callback, *, tool_tip=None, insertion_point=None,
             shortcut=None):
@@ -2234,6 +2206,9 @@ class MainWindow(QMainWindow, HtmlLog):
         if insert_positions is None:
             insert_positions = [None]*len(menu_names)
         for menu_name, insert_pos in zip(menu_names, insert_positions):
+            # Bundle extensions must see the built-in entries before looking
+            # up a submenu or an insertion point, even before its first show.
+            _ensure_menu_contents(parent_menu)
             obj_name = remove_keyboard_navigation(menu_name)
             menu = _find_child_menu(parent_menu, obj_name)
             add = (menu is None)
@@ -2277,6 +2252,7 @@ class MainWindow(QMainWindow, HtmlLog):
                 else:
                     parent_menu.insertMenu(insert_action, menu)
             parent_menu = menu
+        _ensure_menu_contents(parent_menu)
         return parent_menu
 
     def _tool_window_destroy(self, tool_window):
@@ -2323,12 +2299,42 @@ class MainWindow(QMainWindow, HtmlLog):
                         self._hide_tools_shown_states[window] = False
                     window._mw_set_shown(False)
 
+def _defer_menu_contents(menu, populate):
+    """Build menu entries on first show or access through the menu APIs."""
+    if not hasattr(menu, '_chimerax_menu_builder'):
+        menu.aboutToShow.connect(lambda: _ensure_menu_contents(menu))
+    menu._chimerax_menu_builder = populate
+    # Native macOS menus can disable empty submenus. Keep an entry until
+    # aboutToShow replaces it with the real contents, before display.
+    menu._chimerax_menu_placeholder = menu.addAction('\N{HORIZONTAL ELLIPSIS}')
+
+
+def _ensure_menu_contents(menu):
+    populate = getattr(menu, '_chimerax_menu_builder', None)
+    if populate is None:
+        return
+    # Clear the callback first, since populating may itself use menu APIs.
+    menu._chimerax_menu_builder = None
+    placeholder = menu._chimerax_menu_placeholder
+    menu._chimerax_menu_placeholder = None
+    menu.removeAction(placeholder)
+    placeholder.deleteLater()
+    populate()
+
+
 def _find_child_menu(w, name):
     # Qt 5.15 does not support the options argument to QObject.findChild().
     #menu = w.findChild(QMenu, name, Qt.FindDirectChildrenOnly)
     from Qt.QtWidgets import QMenu
-    cm = [c for c in w.children() if isinstance(c, QMenu) and c.objectName() == name]
-    return cm[0] if cm else None
+    menus = [c for c in w.children() if isinstance(c, QMenu)]
+    for menu in menus:
+        if menu.objectName() == name:
+            return menu
+    # Built-in Actions submenus have titles but no explicit object names.
+    for menu in menus:
+        if not menu.objectName() and remove_keyboard_navigation(menu.title()) == name:
+            return menu
+    return None
 
 def _open_dropped_file(session, path):
     if not path:
