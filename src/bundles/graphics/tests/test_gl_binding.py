@@ -89,7 +89,8 @@ def test_error_raises_gl_error(monkeypatch):
     gl.glUseProgram(3)		# No error the second time.
 
 
-def test_qt_contexts_use_the_binding_and_osmesa_uses_pyopengl(monkeypatch):
+def test_qt_contexts_use_the_binding_and_offscreen_uses_pyopengl(monkeypatch):
+    import os
     from chimerax.graphics import gl, opengl
     monkeypatch.setattr(opengl, "_initialized_pyopengl", False)
     monkeypatch.setattr(opengl, "GL", None)
@@ -98,6 +99,8 @@ def test_qt_contexts_use_the_binding_and_osmesa_uses_pyopengl(monkeypatch):
 
     pytest.importorskip("OpenGL.GL")
     monkeypatch.setattr(opengl, "_initialized_pyopengl", False)
-    monkeypatch.setattr(opengl, "_configure_pyopengl_to_use_osmesa", lambda: None)
+    # Offscreen rendering selects PyOpenGL's EGL platform; restore it afterwards.
+    monkeypatch.setenv("PYOPENGL_PLATFORM", os.environ.get("PYOPENGL_PLATFORM", ""))
     opengl._initialize_pyopengl(offscreen=True)
+    assert os.environ["PYOPENGL_PLATFORM"] == "egl"
     assert opengl.GL.__name__ == "OpenGL.GL"
