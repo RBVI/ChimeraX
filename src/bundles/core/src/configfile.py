@@ -242,9 +242,16 @@ then it looked for the old value and migrates it.
 If the old value isn't present, then the new default value is used.
 """
 from .errors import UserError
-import numpy
+import sys
 
 only_use_defaults = False   # if True, do not read nor write configuration data
+
+
+def _default_string(value):
+    # A NumPy scalar can only exist after NumPy supplies its generic class.
+    # Ordinary settings must not import the numerical library themselves.
+    generic = getattr(sys.modules.get('numpy'), 'generic', ())
+    return str(value) if isinstance(value, generic) else repr(value)
 
 
 class ConfigFile:
@@ -493,7 +500,7 @@ class Value:
         else:
             self.from_str = from_str
         if to_str is None:
-            self.to_str = lambda x: str(x) if isinstance(x, numpy.generic) else repr(x)
+            self.to_str = _default_string
         else:
             self.to_str = to_str
 
