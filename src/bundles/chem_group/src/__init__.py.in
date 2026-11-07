@@ -22,11 +22,27 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-from .chem_group import find_group
+# Menu registration does not need the molecular search implementation.
+_lazy_exports = ('find_group', 'group_info', 'N', 'C', 'O', 'H', 'R', 'X',
+    'single_bond', 'heavy', 'non_oxygen_single_bond', 'RingAtom')
+_lazy_modules = {'chem_group'}
 
-# the below in case you want to add your own custom group to group_info...
-from .chem_group import group_info, N, C, O, H, R, X, \
-    single_bond, heavy, non_oxygen_single_bond, RingAtom
+
+def __getattr__(name):
+    from importlib import import_module
+    if name in _lazy_modules:
+        value = import_module('.' + name, __name__)
+    elif name in _lazy_exports:
+        value = getattr(import_module('.chem_group', __name__), name)
+    else:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    globals()[name] = value
+    return value
+
+
+def __dir__():
+    return sorted(set(globals()) | set(_lazy_exports) | _lazy_modules)
+
 
 from chimerax.core.toolshed import BundleAPI
 
@@ -85,3 +101,6 @@ class ChemGroupAPI(BundleAPI):
         add_selector(chemistry_menu, "Nucleic Acid", "nucleic-acid")
 
 bundle_api = ChemGroupAPI()
+
+__all__ = [name for name in globals() if not name.startswith("_")]
+__all__ += [*_lazy_exports, *_lazy_modules]
