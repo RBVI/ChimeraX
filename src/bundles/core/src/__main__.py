@@ -628,6 +628,13 @@ def _connect_to_window_server():
 
 
 def init(argv, event_loop=True):
+    from .startup_gc import StartupGC
+
+    with StartupGC(freeze_allowed=__name__ == "__main__") as startup_gc:
+        return _init(argv, event_loop, startup_gc)
+
+
+def _init(argv, event_loop, startup_gc):
     import sys
 
     # MacOS 10.12+ generates drop event for command-line argument before main()
@@ -661,6 +668,8 @@ def init(argv, event_loop=True):
         os.environ["SSL_CERT_FILE"] = _certifi_where()
 
     opts, args = parse_arguments(argv)
+    if opts.gui and not opts.offscreen and event_loop and opts.event_loop:
+        startup_gc.pause()
     if opts.gui and not opts.offscreen and sys.platform == "darwin":
         _connect_to_window_server()
     if opts.gui and "CHIMERAX_STARTUP_PREFETCH" in os.environ:
@@ -938,6 +947,10 @@ def init(argv, event_loop=True):
                 continue
             start_tools.append(tools[0][1])
         sess.tools.start_tools(start_tools)
+
+    # Bundles and default tools are ready. User commands, scripts, and files
+    # must run with the collector restored, even if they do not return.
+    startup_gc.resume()
 
     if opts.commands:
         if not opts.silent:
