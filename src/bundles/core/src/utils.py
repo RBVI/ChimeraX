@@ -27,7 +27,6 @@ utils: Generically useful stuff that doesn't fit elsewhere
 ==========================================================
 """
 import os
-import subprocess
 import sys
 
 from contextlib import contextmanager
@@ -250,6 +249,7 @@ def make_link(target, source) -> None:
     """An OS-agnostic way to make a symbolic link that does not require permissions
     on Windows to use."""
     if sys.platform == "win32":
+        import subprocess
         subprocess.run(['mklink', '/J', source, target])
     else:
         os.symlink(target, source)
