@@ -63,9 +63,9 @@ if sys.platform.startswith("win"):
     os.EX_NOPERM = 77  # permission denied
     os.EX_CONFIG = 78  # configuration error
 
-    import platform
-
-    if "LANG" in os.environ and sys.stdout is not None and platform.system().startswith("CYGWIN_NT"):
+    # Import platform only when needed: on Windows, platform.system() queries
+    # WMI, about 9 ms of every start.  LANG is normally unset outside a shell.
+    if "LANG" in os.environ and sys.stdout is not None and __import__("platform").system().startswith("CYGWIN_NT"):
         # Double check that stdout matches what LANG asks for.
         # This is a problem when running in nogui mode from inside a cygwin
         # shell -- the console is supposed to use UTF-8 encoding in Python
