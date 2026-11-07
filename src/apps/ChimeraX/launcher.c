@@ -56,6 +56,10 @@
 #  define PREFETCH_PATH 32768
 
 static wchar_t prefetch_list[PREFETCH_PATH];
+// The executable's directory (ChimeraX.app\bin); a list shipped in its
+// share directory names files relative to it.
+static wchar_t prefetch_root[PREFETCH_PATH];
+static char prefetch_root8[3 * PREFETCH_PATH];
 
 // Files to read, and files whose metadata only is looked up (a tab and no
 // ranges).  Each queue has its own threads, so the quick metadata lookups
@@ -250,6 +254,17 @@ prefetch_files(LPVOID unused)
 	HANDLE f = CreateFileW(prefetch_list, GENERIC_READ,
 		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
 		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	int shipped = 0;
+	if (f == INVALID_HANDLE_VALUE && prefetch_root[0] != L'\0') {
+		// Until a start records this user's list, use one shipped with the
+		// application, if any, whose names are relative to it.
+		wchar_t path[PREFETCH_PATH];
+		if (_snwprintf_s(path, PREFETCH_PATH, _TRUNCATE, L"%ls\\share\\startup-prefetch", prefetch_root) > 0) {
+			f = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+				NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+			shipped = f != INVALID_HANDLE_VALUE;
+		}
+	}
 	if (f == INVALID_HANDLE_VALUE)
 		return 0;
 	LARGE_INTEGER size;
@@ -278,9 +293,20 @@ prefetch_files(LPVOID unused)
 		size_t n = strlen(line);
 		if (n > 0 && line[n - 1] == '\r')
 			line[n - 1] = '\0';
-		// Absolute paths only: "X:\..." or "\\server\...".
-		if (!((line[0] != '\0' && line[1] == ':') || (line[0] == '\\' && line[1] == '\\')))
-			continue;
+		// Absolute paths: "X:\..." or "\\server\...", or in a shipped list,
+		// names relative to the application directory.
+		if (!((line[0] != '\0' && line[1] == ':') || (line[0] == '\\' && line[1] == '\\'))) {
+			if (!shipped || line[0] == '\0')
+				continue;
+			size_t root_length = strlen(prefetch_root8);
+			char* entry = malloc(root_length + 1 + strlen(line) + 1);
+			if (entry == NULL)
+				break;
+			memcpy(entry, prefetch_root8, root_length);
+			entry[root_length] = '\\';
+			strcpy(entry + root_length + 1, line);
+			line = entry;
+		}
 		n = strlen(line);
 		prefetch_queue* queue = n > 0 && line[n - 1] == '\t' ? &prefetch_metadata : &prefetch_data;
 		queue->entries[queue->count++] = line;
@@ -313,6 +339,16 @@ start_prefetch(void)
 		return;
 	if (WideCharToMultiByte(CP_UTF8, 0, exe, -1, exe8, sizeof exe8, NULL, NULL) == 0)
 		return;
+	// ChimeraX.app\bin\ChimeraX.exe -> ChimeraX.app\bin
+	wcscpy_s(prefetch_root, PREFETCH_PATH, exe);
+	wchar_t* slash = wcsrchr(prefetch_root, L'\\');
+	if (slash != NULL)
+		*slash = L'\0';
+	else
+		prefetch_root[0] = L'\0';
+	if (WideCharToMultiByte(CP_UTF8, 0, prefetch_root, -1, prefetch_root8,
+			sizeof prefetch_root8, NULL, NULL) == 0)
+		prefetch_root[0] = L'\0';
 
 	// One list per executable: FNV-1a hash of its path.
 	uint64_t hash = 0xcbf29ce484222325ULL;
@@ -381,6 +417,9 @@ prefetch_files(void* unused)
 static char** prefetch_entries;
 static size_t prefetch_count;
 static size_t prefetch_next;
+// The application directory (ChimeraX.app); a list shipped in its share
+// directory names files relative to it.
+static char prefetch_root[PATH_MAX];
 
 static void
 read_range(int fd, char* buffer, off_t offset, off_t length)
@@ -446,6 +485,15 @@ static void*
 prefetch_files(void* unused)
 {
 	FILE* f = fopen(prefetch_list, "r");
+	int shipped = 0;
+	if (f == NULL && prefetch_root[0] != '\0') {
+		// Until a start records this user's list, use one shipped with the
+		// application, if any, whose names are relative to it.
+		char path[PATH_MAX];
+		int n = snprintf(path, sizeof path, "%s/share/startup-prefetch", prefetch_root);
+		if (n > 0 && n < (int) sizeof path && (f = fopen(path, "r")) != NULL)
+			shipped = 1;
+	}
 	if (f == NULL)
 		return NULL;
 	struct stat st;
@@ -467,9 +515,20 @@ prefetch_files(void* unused)
 	if (prefetch_entries == NULL)
 		return NULL;
 	char* save = NULL;
-	for (char* line = strtok_r(text, "\n", &save); line != NULL; line = strtok_r(NULL, "\n", &save))
-		if (line[0] == '/')
+	size_t root_length = strlen(prefetch_root);
+	for (char* line = strtok_r(text, "\n", &save); line != NULL; line = strtok_r(NULL, "\n", &save)) {
+		if (line[0] == '/') {
 			prefetch_entries[prefetch_count++] = line;
+		} else if (shipped && line[0] != '\0') {
+			char* entry = malloc(root_length + 1 + strlen(line) + 1);
+			if (entry == NULL)
+				break;
+			memcpy(entry, prefetch_root, root_length);
+			entry[root_length] = '/';
+			strcpy(entry + root_length + 1, line);
+			prefetch_entries[prefetch_count++] = entry;
+		}
+	}
 
 	pthread_attr_t attr;
 	if (pthread_attr_init(&attr) == 0) {
@@ -499,6 +558,18 @@ start_prefetch(void)
 # endif
 	if (realpath(exe, real_exe) == NULL)
 		return;
+#  ifndef __APPLE__
+	// ChimeraX.app/bin/ChimeraX -> ChimeraX.app
+	strcpy(prefetch_root, real_exe);
+	for (int up = 0; up < 2; ++up) {
+		char* slash = strrchr(prefetch_root, '/');
+		if (slash == NULL || slash == prefetch_root) {
+			prefetch_root[0] = '\0';
+			break;
+		}
+		*slash = '\0';
+	}
+#  endif
 
 	const char* home = getenv("HOME");
 	char cache_dir[PATH_MAX];
