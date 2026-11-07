@@ -396,9 +396,23 @@ class UI(QApplication):
         im = pixmap.toImage()
         return im
 
+    def _initialize_managers(self, toolshed):
+        if sys.platform != 'darwin' or not getattr(self, '_native_qapplication', False):
+            return toolshed._init_managers(self.session)
+        from .manager_startup import initialize_managers
+        return initialize_managers(toolshed, self.session)
+
+    def _create_main_window(self):
+        window = getattr(self, '_prepared_main_window', None)
+        if window is None:
+            return MainWindow(self, self.session)
+        del self._prepared_main_window
+        window._finish_build(self, self.session)
+        return window
+
     def build(self):
         self._wait_for_font_cache()
-        self.main_window = mw = MainWindow(self, self.session)
+        self.main_window = mw = self._create_main_window()
         # key event forwarding from the main window itself seems to have
         # no benefit, and occasionally causes double command execution
         # for slow commands, so only forward from graphics window
@@ -666,9 +680,17 @@ from Qt.QtWidgets import QMainWindow, QStackedWidget, QLabel, QToolButton, QWidg
 # regular messages are not converted to plain text before log() discards them.
 class MainWindow(QMainWindow, HtmlLog):
 
-    def __init__(self, ui, session):
+    def __init__(self, ui, session, *, _defer_build=False):
         self.session = session
         QMainWindow.__init__(self)
+        self._build_pending = True
+        if not _defer_build:
+            self._finish_build(ui, session)
+
+    def _finish_build(self, ui, session):
+        if not self._build_pending:
+            raise RuntimeError('Main window has already been built')
+        self._build_pending = False
         self.setWindowTitle("ChimeraX")
 
         sizing_scheme, size_data = session.ui.settings.initial_window_size
