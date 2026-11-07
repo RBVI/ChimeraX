@@ -71,6 +71,9 @@ class _NativeApplication:
             ('objc_msgSend', objc))
         self._initialize_text_system = _text_system_initializer(
             get_class, selector, get_class_method, send_boolean)
+        from .writing_tools import disable_writing_tools
+        if disable_writing_tools(self._framework, objc):
+            self._initialize_text_system = None
         self._pool = self._send(self._send(pool_class, allocate), initialize)
         if not self._pool:
             raise OSError('Native autorelease pool unavailable')
