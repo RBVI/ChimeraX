@@ -74,6 +74,7 @@ _QT_PLUGIN_DIRS = ("platforms", "imageformats", "iconengines", "styles")
 _MAX_DATA_FILE_SIZE = 16 * 1024 * 1024
 
 _opened = None
+_noted = None
 
 
 def watch_opened_files():
@@ -83,10 +84,11 @@ def watch_opened_files():
     audit hook sees.  Files Qt reads from C++ (icons, plugins) are found
     from the modules and libraries that were loaded instead.
     """
-    global _opened
+    global _opened, _noted
     if _opened is not None or not os.environ.get(ENV_VAR):
         return
     _opened = []
+    _noted = []
     opened = _opened
 
     def audit(event, args, opened=opened):
@@ -98,24 +100,35 @@ def watch_opened_files():
     sys.addaudithook(audit)
 
 
+def note_file(path):
+    """Remember a file startup looked up without opening it from Python,
+    such as a toolbar icon found with os.path.exists.  On a cold start
+    each lookup reads file metadata from disk: the toolbar's ~100 icons
+    took a Windows VM 0.27 s."""
+    noted = _noted
+    if noted is not None:
+        noted.append(path)
+
+
 def record_startup_files():
     """Write the list of files this startup used, if the launcher asked.
 
     The module list is taken now, on the calling (main) thread.  Finding the
     files and writing the list happens on a background thread.
     """
-    global _opened
+    global _opened, _noted
     path = os.environ.get(ENV_VAR)
     opened = _opened or []
+    noted = _noted or []
     # Stop collecting: later opens are the user's work, not startup.
-    _opened = None
+    _opened = _noted = None
     if not path:
         return None
     modules = [(name, getattr(m, "__file__", None)) for name, m in list(sys.modules.items())]
     import threading
 
     thread = threading.Thread(
-        target=_write_list, args=(path, modules, opened), daemon=True,
+        target=_write_list, args=(path, modules, opened, noted), daemon=True,
         name="startup prefetch list")
     thread.start()
     return thread
@@ -495,10 +508,20 @@ def _write_list_text(path, text):
     os.replace(temp, path)
 
 
-def _write_list(path, modules, opened=()):
+def _write_list(path, modules, opened=(), noted=()):
     try:
-        files, sources = _with_sources(startup_files(modules, opened=opened))
-        text = _list_text(files, mapped_ranges(), sources)
+        if sys.platform == "win32":
+            # Files looked up but not read here (toolbar icons) are needed
+            # before the launcher's data queue reaches them; its metadata
+            # threads look them up early instead.
+            files, metadata = _with_sources(startup_files(modules, opened=opened))
+            lookups = [f for f in dict.fromkeys(noted) if os.path.isfile(f)]
+            lookup_set = set(lookups)
+            files = [f for f in files if f not in lookup_set] + lookups
+            metadata |= lookup_set
+        else:
+            files, metadata = _with_sources(startup_files(modules, opened=list(opened) + list(noted)))
+        text = _list_text(files, mapped_ranges(), metadata)
         paths = _list_destinations(path)
     except Exception:
         # Prefetching is only an optimization.
