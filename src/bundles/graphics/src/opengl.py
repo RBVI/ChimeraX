@@ -27,7 +27,7 @@ OpenGL classes
 ==============
 
 All calls to OpenGL are made through this module.  With Qt OpenGL contexts
-they go through the small ctypes binding in gl.py; offscreen OSMesa rendering
+they go through the small ctypes binding in gl.py; offscreen EGL rendering
 and call logging use PyOpenGL.
 
 The Render class manages shader, view matrices, and lighting.  The Buffer
@@ -438,7 +438,7 @@ def _initialize_pyopengl(log_opengl_calls = False, offscreen = False):
 
     global GL
     if offscreen or log_opengl_calls:
-        # OSMesa contexts are not Qt contexts, and call logging is a PyOpenGL feature.
+        # EGL offscreen contexts are not Qt contexts, and call logging is a PyOpenGL feature.
         import OpenGL.GL
         GL = OpenGL.GL
     else:
