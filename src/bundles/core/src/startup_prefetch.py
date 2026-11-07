@@ -40,6 +40,10 @@ touched, "offset+length,offset+length,...", since startup uses only part of
 most libraries: about 70 MB of the 200 MB of the application's files a
 start maps.  Reading only those ranges, from several threads, made a cold
 start ~120 ms faster than asking the kernel to read whole files ahead.
+
+On Windows the DLLs come from EnumProcessModules and their touched ranges
+from QueryWorkingSetEx, mapped from image pages to file offsets through the
+PE section headers.  Windows' own DLLs are left out, as are macOS's.
 """
 
 import os
@@ -49,7 +53,17 @@ ENV_VAR = "CHIMERAX_STARTUP_PREFETCH"
 
 # macOS system libraries are supplied by the dyld shared cache rather than
 # ordinary individual library files. This list covers the app's separate files.
-_SYSTEM_PREFIXES = ("/System/", "/usr/lib/") if sys.platform == "darwin" else ()
+if sys.platform == "darwin":
+    _SYSTEM_PREFIXES = ("/System/", "/usr/lib/")
+elif sys.platform == "win32":
+    # Windows' own DLLs are shared with every program and usually resident.
+    _SYSTEM_PREFIXES = (os.path.normcase(os.environ.get("SystemRoot", r"C:\Windows")) + os.sep,)
+else:
+    _SYSTEM_PREFIXES = ()
+
+
+def _is_system(path):
+    return bool(_SYSTEM_PREFIXES) and os.path.normcase(path).startswith(_SYSTEM_PREFIXES)
 
 # Qt reads the metadata of every plugin in these directories at startup,
 # including plugins it never loads.
@@ -114,6 +128,14 @@ def startup_files(modules, images=None, opened=(), search_path=None):
     Python modules, the data files Python opened, and the icons of the
     ChimeraX packages that were imported.  'modules' is a sequence of
     (module name, file name) in import order.
+
+    On Windows only the DLLs loaded before the first extension module come
+    first.  Each later DLL goes just before the first module of its package
+    (Qt6Core.dll before PySide6, numpy.libs before numpy), and DLLs with no
+    such module go last.  With every DLL first, the launcher's threads read
+    ~80 MB of libraries before the Python modules needed at once, and a cold
+    start in a Windows 11 VM was 0.5 s slower than without prefetching;
+    in first-use order it was 0.75 s faster.
     """
     if images is None:
         images = loaded_images()
@@ -123,10 +145,22 @@ def startup_files(modules, images=None, opened=(), search_path=None):
 
     files = []
     plugin_dirs = []
+    windows = sys.platform == "win32"
+    deferred = {}	# Windows: package key -> DLLs to read before its first module
+    seen_extension = False
     for image in images:
-        if not image or image.startswith(_SYSTEM_PREFIXES):
+        if not image or _is_system(image):
             continue
-        files.append(image)
+        if windows:
+            if image.lower().endswith(".pyd"):
+                # Extension modules are listed with the modules, in import order.
+                seen_extension = True
+            elif seen_extension:
+                deferred.setdefault(_package_key(image, search_path), []).append(image)
+            else:
+                files.append(image)
+        else:
+            files.append(image)
         parent = os.path.dirname(image)
         if os.path.basename(os.path.dirname(parent)) == "plugins":
             plugins = os.path.dirname(parent)
@@ -136,7 +170,13 @@ def startup_files(modules, images=None, opened=(), search_path=None):
     for directory in search_path:
         files.extend(_directory_files(directory, ".pth"))
     for directory in plugin_dirs:
-        files.extend(_directory_files(directory))
+        if windows:
+            # Qt looks at its plugins when the application is created, after
+            # Python and numpy start; read them with the other Qt files.
+            for filename in _directory_files(directory):
+                deferred.setdefault(_package_key(filename, search_path), []).append(filename)
+        else:
+            files.extend(_directory_files(directory))
     package_dirs = []
     for name, filename in modules:
         if not filename:
@@ -148,6 +188,8 @@ def startup_files(modules, images=None, opened=(), search_path=None):
                 filename = cache_from_source(filename)
             except (NotImplementedError, ValueError):
                 continue
+        if deferred:
+            files.extend(deferred.pop(_package_key(filename, search_path), ()))
         files.append(filename)
     for filename in opened:
         filename = os.fsdecode(filename)
@@ -159,16 +201,44 @@ def startup_files(modules, images=None, opened=(), search_path=None):
                 pass
     for directory in package_dirs:
         files.extend(_directory_files(os.path.join(directory, "icons")))
+    for libraries in deferred.values():
+        files.extend(libraries)
 
     seen = set()
     result = []
     for filename in files:
-        if filename in seen:
+        key = os.path.normcase(filename)
+        if key in seen:
             continue
-        seen.add(filename)
+        seen.add(key)
         if os.path.isfile(filename):
             result.append(filename)
     return result
+
+
+def _package_key(path, search_path):
+    """The top-level package a file belongs to, for grouping a DLL with the
+    modules that load it: (search path directory, "numpy") for numpy and
+    numpy.libs, or (the file's directory, None) outside the search path."""
+    path = os.path.normcase(os.path.abspath(path))
+    best = None
+    for directory in search_path:
+        if not directory:
+            continue
+        directory = os.path.normcase(os.path.abspath(directory))
+        # The longest match: site-packages, not the Lib directory above it.
+        if path.startswith(directory + os.sep) and (best is None or len(directory) > len(best)):
+            best = directory
+    if best is not None:
+        top = path[len(best) + 1:].split(os.sep, 1)[0]
+        if top.endswith(".libs"):
+            top = top[:-len(".libs")]
+        if os.sep in path[len(best) + 1:]:
+            return (best, top)
+    directory = os.path.dirname(path)
+    if os.path.basename(directory) == "__pycache__":
+        directory = os.path.dirname(directory)
+    return (directory, None)
 
 
 def _directory_files(directory, suffix=""):
@@ -201,7 +271,44 @@ def loaded_images():
         except OSError:
             pass
         return images
+    if sys.platform == "win32":
+        return [path for path, base, size in _windows_modules()]
     return []
+
+
+def _windows_modules():
+    """[(path, base address, image size), ...] of this process's DLLs in load order."""
+    import ctypes
+    from ctypes import wintypes
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    process = wintypes.HANDLE(-1)	# GetCurrentProcess()
+    enum = k32.K32EnumProcessModules
+    enum.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.HMODULE), wintypes.DWORD,
+                     ctypes.POINTER(wintypes.DWORD)]
+    name = k32.K32GetModuleFileNameExW
+    name.argtypes = [wintypes.HANDLE, wintypes.HMODULE, wintypes.LPWSTR, wintypes.DWORD]
+
+    class MODULEINFO(ctypes.Structure):
+        _fields_ = [("base", ctypes.c_void_p), ("size", wintypes.DWORD), ("entry", ctypes.c_void_p)]
+    info = k32.K32GetModuleInformation
+    info.argtypes = [wintypes.HANDLE, wintypes.HMODULE, ctypes.POINTER(MODULEINFO), wintypes.DWORD]
+    count = 1024
+    while True:
+        handles = (wintypes.HMODULE * count)()
+        needed = wintypes.DWORD()
+        if not enum(process, handles, ctypes.sizeof(handles), ctypes.byref(needed)):
+            return []
+        if needed.value <= ctypes.sizeof(handles):
+            break
+        count = needed.value // ctypes.sizeof(wintypes.HMODULE) + 64
+    modules = []
+    buffer = ctypes.create_unicode_buffer(32768)
+    for handle in handles[:needed.value // ctypes.sizeof(wintypes.HMODULE)]:
+        mi = MODULEINFO()
+        if (name(process, handle, buffer, len(buffer))
+                and info(process, handle, ctypes.byref(mi), ctypes.sizeof(mi))):
+            modules.append((buffer.value, mi.base, mi.size))
+    return modules
 
 
 # Join touched ranges separated by less than this, to keep the list short.
@@ -216,6 +323,11 @@ def mapped_ranges():
     process, unlike mincore(), which also counts pages other processes or
     earlier sessions left in the page cache.
     """
+    if sys.platform == "win32":
+        try:
+            return _windows_mapped_ranges()
+        except Exception:
+            return {}
     if not sys.platform.startswith("linux"):
         return {}
     page = os.sysconf("SC_PAGE_SIZE")
@@ -241,6 +353,85 @@ def mapped_ranges():
     except OSError:
         return {}
     return {name: _page_spans(present, page) for name, present in pages.items() if present}
+
+
+def _windows_mapped_ranges():
+    """Touched file ranges of this process's non-system DLLs (Windows).
+
+    QueryWorkingSetEx says which pages of each image are in this process's
+    working set.  An image page maps to a file offset through the PE
+    section headers; pages with no file data (zero-filled) are skipped.
+    """
+    import ctypes
+    from ctypes import wintypes
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    page = 4096
+
+    class WS(ctypes.Structure):
+        _fields_ = [("address", ctypes.c_void_p), ("attributes", ctypes.c_size_t)]
+    query = k32.K32QueryWorkingSetEx
+    query.argtypes = [wintypes.HANDLE, ctypes.c_void_p, wintypes.DWORD]
+    process = wintypes.HANDLE(-1)
+    ranges = {}
+    for path, base, size in _windows_modules():
+        if _is_system(path) or not base or not size:
+            continue
+        sections = _pe_sections(base)
+        if sections is None:
+            continue
+        header_size, sections = sections
+        npages = (size + page - 1) // page
+        entries = (WS * npages)()
+        for i in range(npages):
+            entries[i].address = base + i * page
+        if not query(process, entries, ctypes.sizeof(entries)):
+            continue
+        file_pages = set()
+        for i in range(npages):
+            if not entries[i].attributes & 1:	# Valid: in the working set
+                continue
+            span = _file_range(i * page, page, header_size, sections)
+            if span is not None:
+                offset, length = span
+                file_pages.update(range(offset // page, (offset + length + page - 1) // page))
+        if file_pages:
+            ranges[path] = _page_spans(file_pages, page)
+    return ranges
+
+
+def _pe_sections(base):
+    """(SizeOfHeaders, [(VirtualAddress, VirtualSize, PointerToRawData, SizeOfRawData)])
+    read from the mapped image at 'base', or None."""
+    import ctypes
+    if ctypes.string_at(base, 2) != b"MZ":
+        return None
+    nt = base + ctypes.c_uint32.from_address(base + 0x3C).value
+    if ctypes.string_at(nt, 4) != b"PE\0\0":
+        return None
+    nsections = ctypes.c_uint16.from_address(nt + 6).value
+    optional_size = ctypes.c_uint16.from_address(nt + 20).value
+    header_size = ctypes.c_uint32.from_address(nt + 24 + 60).value	# OptionalHeader.SizeOfHeaders
+    table = nt + 24 + optional_size
+    sections = []
+    for i in range(nsections):
+        entry = table + 40 * i
+        vsize, va, raw_size, raw_offset = (ctypes.c_uint32.from_address(entry + o).value
+                                           for o in (8, 12, 16, 20))
+        sections.append((va, vsize, raw_offset, raw_size))
+    return header_size, sections
+
+
+def _file_range(rva, length, header_size, sections):
+    """File (offset, length) holding image bytes [rva, rva+length), or None."""
+    if rva < header_size:
+        return rva, min(length, header_size - rva)
+    for va, vsize, raw_offset, raw_size in sections:
+        if va <= rva < va + max(vsize, raw_size):
+            within = rva - va
+            if within >= raw_size:
+                return None	# zero-filled part of the section
+            return raw_offset + within, min(length, raw_size - within)
+    return None
 
 
 def _page_spans(pages, page_size, gap=_RANGE_GAP):
@@ -316,7 +507,8 @@ def _write_list_text(path, text):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     # Rename each complete list so a concurrent launcher cannot read a partial one.
     temp = "%s.%d.tmp" % (path, os.getpid())
-    with open(temp, 'w', encoding='utf-8') as f:
+    # LF line endings on every platform; the launcher splits lines on LF.
+    with open(temp, 'w', encoding='utf-8', newline='\n') as f:
         f.write(text)
     os.replace(temp, path)
 

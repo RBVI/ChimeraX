@@ -10,7 +10,12 @@
 # include "startup_qt.h"
 #endif
 
-#if defined(__APPLE__) || defined(__linux__)
+#if defined(_WIN32)
+# define STARTUP_PREFETCH 1
+# include <stdint.h>
+# include <stdlib.h>
+# include <string.h>
+#elif defined(__APPLE__) || defined(__linux__)
 # define STARTUP_PREFETCH 1
 # include <fcntl.h>
 # include <limits.h>
@@ -32,15 +37,177 @@
  * startup used (chimerax.core.startup_prefetch) in the file named by
  * CHIMERAX_STARTUP_PREFETCH.  On later starts, read them ahead from
  * background threads before Python initializes, so the reads overlap with
- * startup instead of blocking it.  Windows has its own application
- * prefetcher.
+ * startup instead of blocking it.
  *
  * On Linux a line may end with a tab and the byte ranges startup touched,
  * "offset+length,...", and the files are read with several threads.  Asking
  * the kernel to read whole files ahead (posix_fadvise WILLNEED) from one
  * thread fell well behind startup: a cold start took 0.51 s with it, 0.39 s
  * reading the touched ranges with 4 threads, and 0.36 s warm.
+ *
+ * Windows' own prefetcher (SysMain) did not make this unnecessary: with
+ * only ChimeraX's files cold, reading the startup ranges from 4 threads
+ * took a Windows 11 VM's cold start from 4.5 s to 3.7 s.  The list lives
+ * in %LOCALAPPDATA%\UCSF\ChimeraX\Cache, and its lines are UTF-8.
  */
+# ifdef _WIN32
+#  define PREFETCH_THREADS 4
+#  define PREFETCH_BUFFER (1 << 20)
+#  define PREFETCH_PATH 32768
+
+static wchar_t prefetch_list[PREFETCH_PATH];
+static char** prefetch_entries;
+static size_t prefetch_count;
+static volatile LONG64 prefetch_next;
+
+static void
+read_range(HANDLE file, char* buffer, unsigned long long offset, unsigned long long length)
+{
+	while (length > 0) {
+		OVERLAPPED at = { 0 };
+		at.Offset = (DWORD) offset;
+		at.OffsetHigh = (DWORD) (offset >> 32);
+		DWORD want = length < PREFETCH_BUFFER ? (DWORD) length : PREFETCH_BUFFER, got = 0;
+		if (!ReadFile(file, buffer, want, &got, &at) || got == 0)
+			break;
+		offset += got;
+		length -= got;
+	}
+}
+
+static void
+prefetch_entry(char* entry, char* buffer)
+{
+	char* ranges = strchr(entry, '\t');
+	if (ranges != NULL)
+		*ranges++ = '\0';
+	wchar_t path[PREFETCH_PATH];
+	if (MultiByteToWideChar(CP_UTF8, 0, entry, -1, path, PREFETCH_PATH) == 0)
+		return;
+	HANDLE file = CreateFileW(path, GENERIC_READ,
+		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
+		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (file == INVALID_HANDLE_VALUE)
+		return;
+	if (ranges == NULL) {
+		LARGE_INTEGER size;
+		if (GetFileSizeEx(file, &size))
+			read_range(file, buffer, 0, (unsigned long long) size.QuadPart);
+	} else {
+		char* p = ranges;
+		while (*p != '\0') {
+			char* end;
+			unsigned long long offset = _strtoui64(p, &end, 10);
+			if (*end != '+')
+				break;
+			unsigned long long length = _strtoui64(end + 1, &end, 10);
+			read_range(file, buffer, offset, length);
+			if (*end != ',')
+				break;
+			p = end + 1;
+		}
+	}
+	CloseHandle(file);
+}
+
+static DWORD WINAPI
+prefetch_worker(LPVOID unused)
+{
+	char* buffer = malloc(PREFETCH_BUFFER);
+	if (buffer == NULL)
+		return 0;
+	for (;;) {
+		// Take entries in list order, which is roughly the order startup needs them.
+		LONG64 i = InterlockedIncrement64(&prefetch_next) - 1;
+		if ((size_t) i >= prefetch_count)
+			break;
+		prefetch_entry(prefetch_entries[i], buffer);
+	}
+	free(buffer);
+	return 0;
+}
+
+static DWORD WINAPI
+prefetch_files(LPVOID unused)
+{
+	HANDLE f = CreateFileW(prefetch_list, GENERIC_READ,
+		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
+		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (f == INVALID_HANDLE_VALUE)
+		return 0;
+	LARGE_INTEGER size;
+	char* text = NULL;
+	if (GetFileSizeEx(f, &size) && size.QuadPart > 0 && size.QuadPart < (1 << 26)
+			&& (text = malloc((size_t) size.QuadPart + 1)) != NULL) {
+		DWORD got = 0;
+		if (!ReadFile(f, text, (DWORD) size.QuadPart, &got, NULL))
+			got = 0;
+		text[got] = '\0';
+	}
+	CloseHandle(f);
+	if (text == NULL)
+		return 0;
+
+	size_t lines = 1;
+	for (char* c = text; *c; ++c)
+		if (*c == '\n')
+			++lines;
+	prefetch_entries = malloc(lines * sizeof (char*));
+	if (prefetch_entries == NULL)
+		return 0;
+	char* save = NULL;
+	for (char* line = strtok_s(text, "\n", &save); line != NULL; line = strtok_s(NULL, "\n", &save)) {
+		size_t n = strlen(line);
+		if (n > 0 && line[n - 1] == '\r')
+			line[n - 1] = '\0';
+		// Absolute paths only: "X:\..." or "\\server\...".
+		if ((line[0] != '\0' && line[1] == ':') || (line[0] == '\\' && line[1] == '\\'))
+			prefetch_entries[prefetch_count++] = line;
+	}
+	for (int i = 1; i < PREFETCH_THREADS; ++i) {
+		HANDLE thread = CreateThread(NULL, 0, prefetch_worker, NULL, 0, NULL);
+		if (thread != NULL)
+			CloseHandle(thread);
+	}
+	return prefetch_worker(NULL);
+}
+
+static void
+start_prefetch(void)
+{
+	if (GetEnvironmentVariableW(L"CHIMERAX_NO_STARTUP_PREFETCH", NULL, 0) > 0)
+		return;
+	static wchar_t exe[PREFETCH_PATH], local[PREFETCH_PATH];
+	static char exe8[3 * PREFETCH_PATH];
+	DWORD n = GetModuleFileNameW(NULL, exe, PREFETCH_PATH);
+	if (n == 0 || n >= PREFETCH_PATH)
+		return;
+	n = GetEnvironmentVariableW(L"LOCALAPPDATA", local, PREFETCH_PATH);
+	if (n == 0 || n >= PREFETCH_PATH)
+		return;
+	if (WideCharToMultiByte(CP_UTF8, 0, exe, -1, exe8, sizeof exe8, NULL, NULL) == 0)
+		return;
+
+	// One list per executable: FNV-1a hash of its path.
+	uint64_t hash = 0xcbf29ce484222325ULL;
+	for (const unsigned char* c = (const unsigned char*) exe8; *c; ++c) {
+		hash ^= *c;
+		hash *= 0x100000001b3ULL;
+	}
+	if (_snwprintf_s(prefetch_list, PREFETCH_PATH, _TRUNCATE,
+			L"%ls\\UCSF\\ChimeraX\\Cache\\startup-prefetch-%016llx",
+			local, (unsigned long long) hash) < 0)
+		return;
+	// Python records this startup's files here.  _wputenv_s updates the C
+	// runtime's copy of the environment, which Python's os.environ reads.
+	if (_wputenv_s(L"CHIMERAX_STARTUP_PREFETCH", prefetch_list) != 0)
+		return;
+
+	HANDLE thread = CreateThread(NULL, 0, prefetch_files, NULL, 0, NULL);
+	if (thread != NULL)
+		CloseHandle(thread);
+}
+# else
 static char prefetch_list[PATH_MAX];
 
 # ifdef __APPLE__
@@ -242,6 +409,7 @@ start_prefetch(void)
 	(void) pthread_create(&thread, &attr, prefetch_files, NULL);
 	pthread_attr_destroy(&attr);
 }
+# endif /* _WIN32 */
 #endif
 
 /*

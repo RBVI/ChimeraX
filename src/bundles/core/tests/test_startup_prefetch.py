@@ -216,3 +216,100 @@ def test_mapped_ranges_cover_part_of_this_interpreters_libraries():
         for offset, length in spans:
             assert offset % page == 0 and length % page == 0 and length > 0
             assert offset < size
+
+
+def _fake_image():
+    """A mapped PE image with a 0x400-byte header page and two sections:
+    .text at RVA 0x1000 (0x2000 bytes from file offset 0x400) and .bss at
+    RVA 0x3000 with no file data."""
+    import ctypes
+    import struct
+    image = ctypes.create_string_buffer(0x4000)
+    struct.pack_into('<2s', image, 0, b'MZ')
+    struct.pack_into('<I', image, 0x3C, 0x80)
+    nt = 0x80
+    struct.pack_into('<4s', image, nt, b'PE\0\0')
+    struct.pack_into('<HH', image, nt + 4, 0x8664, 2)		# Machine, NumberOfSections
+    struct.pack_into('<H', image, nt + 20, 240)			# SizeOfOptionalHeader
+    struct.pack_into('<I', image, nt + 24 + 60, 0x400)		# SizeOfHeaders
+    table = nt + 24 + 240
+    struct.pack_into('<8sIIII', image, table, b'.text', 0x2000, 0x1000, 0x2000, 0x400)
+    struct.pack_into('<8sIIII', image, table + 40, b'.bss', 0x1000, 0x3000, 0, 0)
+    return image
+
+
+def test_pe_sections_are_read_from_a_mapped_image():
+    import ctypes
+    image = _fake_image()
+    header_size, sections = startup_prefetch._pe_sections(ctypes.addressof(image))
+    assert header_size == 0x400
+    assert sections == [(0x1000, 0x2000, 0x400, 0x2000), (0x3000, 0x1000, 0, 0)]
+    assert startup_prefetch._pe_sections(ctypes.addressof(ctypes.create_string_buffer(64))) is None
+
+
+def test_image_pages_map_to_file_offsets():
+    sections = [(0x1000, 0x2000, 0x400, 0x2000), (0x3000, 0x1000, 0, 0)]
+    file_range = startup_prefetch._file_range
+    assert file_range(0, 4096, 0x400, sections) == (0, 0x400)		# headers
+    assert file_range(0x1000, 4096, 0x400, sections) == (0x400, 4096)	# .text
+    assert file_range(0x2000, 4096, 0x400, sections) == (0x1400, 4096)
+    assert file_range(0x3000, 4096, 0x400, sections) is None		# .bss: no file data
+    assert file_range(0x5000, 4096, 0x400, sections) is None		# past the image
+
+
+def test_windows_system_dlls_are_left_out(monkeypatch):
+    monkeypatch.setattr(startup_prefetch, '_SYSTEM_PREFIXES', (os.path.normcase('/sysroot') + os.sep,))
+    assert startup_prefetch._is_system('/sysroot/System32/kernel32.dll')
+    assert not startup_prefetch._is_system('/app/bin/python314.dll')
+
+
+@pytest.mark.skipif(sys.platform != 'win32', reason='uses QueryWorkingSetEx')
+def test_windows_mapped_ranges_cover_part_of_the_python_dll():
+    ranges = startup_prefetch.mapped_ranges()
+    python_dll = [name for name in ranges if os.path.basename(name).lower().startswith('python3')]
+    assert python_dll
+    for name in python_dll:
+        size = os.path.getsize(name)
+        spans = ranges[name]
+        assert spans == sorted(spans)
+        assert all(0 <= offset < size and length > 0 for offset, length in spans)
+        assert sum(length for _, length in spans) <= size + 4096
+
+
+def test_list_is_written_with_lf_line_endings(tmp_path):
+    path = tmp_path / 'list'
+    startup_prefetch._write_list_text(str(path), 'a\nb\n')
+    assert path.read_bytes() == b'a\nb\n'
+
+
+def test_windows_dlls_are_listed_just_before_their_package(tmp_path, monkeypatch):
+    monkeypatch.setattr(sys, 'platform', 'win32')
+    monkeypatch.setattr(startup_prefetch, '_SYSTEM_PREFIXES', ())
+    bin_dir = tmp_path / 'bin'
+    site = bin_dir / 'Lib' / 'site-packages'
+    python_dll = touch(bin_dir / 'python314.dll')
+    vcruntime = touch(bin_dir / 'vcruntime140.dll')
+    ctypes_pyd = touch(bin_dir / 'DLLs' / '_ctypes.pyd')
+    libffi = touch(bin_dir / 'DLLs' / 'libffi-8.dll')
+    openblas = touch(site / 'numpy.libs' / 'openblas.dll')
+    numpy_init = touch(site / 'numpy' / '__init__.py')
+    numpy_pyc = touch(type(site)(cache_from_source(numpy_init)))
+    multiarray = touch(site / 'numpy' / '_core' / '_multiarray.pyd')
+    gallium = touch(bin_dir / 'libgallium_wgl.dll')
+    # EnumProcessModules order: Python's DLLs, then extension modules as they load.
+    images = [python_dll, vcruntime, ctypes_pyd, libffi, openblas, multiarray, gallium]
+    modules = [('_ctypes', ctypes_pyd), ('numpy', numpy_init), ('numpy._core._multiarray', multiarray)]
+    search_path = [str(bin_dir / 'DLLs'), str(bin_dir / 'Lib'), str(bin_dir), str(site)]
+    files = startup_prefetch.startup_files(modules, images=images, search_path=search_path)
+    assert files == [python_dll, vcruntime, libffi, ctypes_pyd, openblas, numpy_pyc,
+                     multiarray, gallium]
+
+
+def test_package_key_uses_the_innermost_search_directory(tmp_path):
+    lib = tmp_path / 'Lib'
+    site = lib / 'site-packages'
+    path = [str(lib), str(site)]
+    key = startup_prefetch._package_key
+    assert key(str(site / 'numpy.libs' / 'x.dll'), path) == key(str(site / 'numpy' / 'core.pyd'), path)
+    assert key(str(site / 'PySide6' / 'Qt6Core.dll'), path) == (os.path.normcase(str(site)), 'PySide6')
+    assert key(str(tmp_path / 'DLLs' / 'libffi.dll'), path) == key(str(tmp_path / 'DLLs' / '_ctypes.pyd'), path)
