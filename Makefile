@@ -87,6 +87,19 @@ warm-bytecode:
 	$(BACKGROUND_PRIORITY) $(APP_PYTHON_EXE) -m compileall -q -j0 \
 		$(wildcard $(addprefix $(APP_PYSITEDIR)/,$(DOCS_IMPORTS))) > /dev/null 2>&1 || true
 
+# Record the startup prefetch list that the Linux and Windows launchers read
+# until a user's first start records its own (the application's
+# share/startup-prefetch).  It starts the GUI for a few seconds, so it needs a
+# display: on a headless Linux machine run it under xvfb-run.  Not run by
+# install; the macOS launcher does not read a shipped list.
+.PHONY: startup-prefetch-list
+startup-prefetch-list:
+ifeq ($(OS),Darwin)
+	@echo "startup-prefetch-list: not used on macOS"
+else
+	$(CHIMERAX_EXE) --script $(TOP)/utils/record_startup_prefetch_list.py
+endif
+
 # Independent steps after the bundles are installed, run in parallel.  (Since
 # src is installed with DEFER_TOOLSHED_RELOAD, the toolshed is reloaded here.)
 POST_SRC_INSTALL = docs.post-install pip-check.post-install \
