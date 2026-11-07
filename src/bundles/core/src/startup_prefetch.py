@@ -42,8 +42,9 @@ start maps.  Reading only those ranges, from several threads, made a cold
 start ~120 ms faster than asking the kernel to read whole files ahead.
 
 On Windows the DLLs come from EnumProcessModules and their touched ranges
-from QueryWorkingSetEx, mapped from image pages to file offsets through the
-PE section headers.  Windows' own DLLs are left out, as are macOS's.
+from QueryWorkingSetEx.  A Windows DLL's ranges are offsets in its loaded
+image, not in the file: the launcher prefetches them through an image
+mapping.  Windows' own DLLs are left out, as are macOS's.
 """
 
 import os
@@ -241,6 +242,28 @@ def _package_key(path, search_path):
     return (directory, None)
 
 
+def _with_sources(files):
+    """Put each cached module's source file just before its .pyc, for the
+    launcher to look up but not read: Python checks its size and time before
+    using the .pyc, and on a cold start those metadata reads, one module
+    at a time, took a Windows VM ~0.3 s.  Returns (files, set of sources).
+    Windows only: on Linux these lookups are cheap even cold, and listing
+    the sources made a cold start 10 +/- 9 ms slower."""
+    if sys.platform != "win32":
+        return files, set()
+    result = []
+    sources = set()
+    for filename in files:
+        directory, name = os.path.split(filename)
+        if name.endswith(".pyc") and os.path.basename(directory) == "__pycache__":
+            source = os.path.join(os.path.dirname(directory), name.split(".", 1)[0] + ".py")
+            if source not in sources and os.path.isfile(source):
+                result.append(source)
+                sources.add(source)
+        result.append(filename)
+    return result, sources
+
+
 def _directory_files(directory, suffix=""):
     try:
         names = sorted(os.listdir(directory))
@@ -356,11 +379,13 @@ def mapped_ranges():
 
 
 def _windows_mapped_ranges():
-    """Touched file ranges of this process's non-system DLLs (Windows).
+    """Touched ranges of this process's non-system DLLs (Windows), as byte
+    offsets in the loaded image rather than in the file.
 
     QueryWorkingSetEx says which pages of each image are in this process's
-    working set.  An image page maps to a file offset through the PE
-    section headers; pages with no file data (zero-filled) are skipped.
+    working set.  The launcher maps each DLL as an image and prefetches
+    these ranges of the view, which warms the image section the loader
+    reuses.  Reading DLLs as file data warmed them only partly.
     """
     import ctypes
     from ctypes import wintypes
@@ -376,62 +401,16 @@ def _windows_mapped_ranges():
     for path, base, size in _windows_modules():
         if _is_system(path) or not base or not size:
             continue
-        sections = _pe_sections(base)
-        if sections is None:
-            continue
-        header_size, sections = sections
         npages = (size + page - 1) // page
         entries = (WS * npages)()
         for i in range(npages):
             entries[i].address = base + i * page
         if not query(process, entries, ctypes.sizeof(entries)):
             continue
-        file_pages = set()
-        for i in range(npages):
-            if not entries[i].attributes & 1:	# Valid: in the working set
-                continue
-            span = _file_range(i * page, page, header_size, sections)
-            if span is not None:
-                offset, length = span
-                file_pages.update(range(offset // page, (offset + length + page - 1) // page))
-        if file_pages:
-            ranges[path] = _page_spans(file_pages, page)
+        pages = [i for i in range(npages) if entries[i].attributes & 1]	# Valid
+        if pages:
+            ranges[path] = _page_spans(pages, page)
     return ranges
-
-
-def _pe_sections(base):
-    """(SizeOfHeaders, [(VirtualAddress, VirtualSize, PointerToRawData, SizeOfRawData)])
-    read from the mapped image at 'base', or None."""
-    import ctypes
-    if ctypes.string_at(base, 2) != b"MZ":
-        return None
-    nt = base + ctypes.c_uint32.from_address(base + 0x3C).value
-    if ctypes.string_at(nt, 4) != b"PE\0\0":
-        return None
-    nsections = ctypes.c_uint16.from_address(nt + 6).value
-    optional_size = ctypes.c_uint16.from_address(nt + 20).value
-    header_size = ctypes.c_uint32.from_address(nt + 24 + 60).value	# OptionalHeader.SizeOfHeaders
-    table = nt + 24 + optional_size
-    sections = []
-    for i in range(nsections):
-        entry = table + 40 * i
-        vsize, va, raw_size, raw_offset = (ctypes.c_uint32.from_address(entry + o).value
-                                           for o in (8, 12, 16, 20))
-        sections.append((va, vsize, raw_offset, raw_size))
-    return header_size, sections
-
-
-def _file_range(rva, length, header_size, sections):
-    """File (offset, length) holding image bytes [rva, rva+length), or None."""
-    if rva < header_size:
-        return rva, min(length, header_size - rva)
-    for va, vsize, raw_offset, raw_size in sections:
-        if va <= rva < va + max(vsize, raw_size):
-            within = rva - va
-            if within >= raw_size:
-                return None	# zero-filled part of the section
-            return raw_offset + within, min(length, raw_size - within)
-    return None
 
 
 def _page_spans(pages, page_size, gap=_RANGE_GAP):
@@ -447,11 +426,14 @@ def _page_spans(pages, page_size, gap=_RANGE_GAP):
     return [tuple(span) for span in spans]
 
 
-def _list_text(files, ranges):
+def _list_text(files, ranges, metadata_only=()):
     lines = []
     for f in files:
         spans = ranges.get(f)
-        if spans:
+        if f in metadata_only:
+            # A tab and no ranges: the launcher opens the file, reads nothing.
+            lines.append(f + "\t")
+        elif spans:
             lines.append(f + "\t" + ",".join("%d+%d" % span for span in spans))
         else:
             lines.append(f)
@@ -515,7 +497,8 @@ def _write_list_text(path, text):
 
 def _write_list(path, modules, opened=()):
     try:
-        text = _list_text(startup_files(modules, opened=opened), mapped_ranges())
+        files, sources = _with_sources(startup_files(modules, opened=opened))
+        text = _list_text(files, mapped_ranges(), sources)
         paths = _list_destinations(path)
     except Exception:
         # Prefetching is only an optimization.
