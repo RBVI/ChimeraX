@@ -43,6 +43,7 @@ from Qt.QtWidgets import QTextBrowser
 from .parse import (
     tokenize, Command, Disclosure, select_command_variant, replace_inline_blocks, drop_redundant_breaks,
     css_length, css_border, starts_block, starts_table, strip_line_end,
+    replace_system_colors,
 )
 
 TOGGLE_SCHEME = "cxlog-toggle"
@@ -174,6 +175,15 @@ class LogView(QTextBrowser):
     def _prepare(self, html):
         html = select_command_variant(html, self.exec_links)
         html = drop_redundant_breaks(html)
+        palette = self.palette()
+        html = replace_system_colors(html, {
+            'canvas': palette.color(QPalette.ColorRole.Base).name(),
+            'canvastext': palette.color(QPalette.ColorRole.Text).name(),
+            'linktext': palette.color(QPalette.ColorRole.Link).name(),
+            'visitedtext': palette.color(QPalette.ColorRole.LinkVisited).name(),
+            'buttonface': palette.color(QPalette.ColorRole.Button).name(),
+            'buttontext': palette.color(QPalette.ColorRole.ButtonText).name(),
+        })
         return replace_inline_blocks(html, self._swatch_html)
 
     def _insert_html(self, cursor, html):
