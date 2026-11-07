@@ -407,6 +407,11 @@ def start_driver_warmup(app):
     except RuntimeError:
         return False
     _driver_warmup = thread
+    # If startup fails before the first graphics context, Python exits while
+    # the thread may still be in Qt.  atexit handlers run before the
+    # QApplication is destroyed.
+    import atexit
+    atexit.register(_wait_for_driver_warmup)
     return True
 
 def _wait_for_driver_warmup():

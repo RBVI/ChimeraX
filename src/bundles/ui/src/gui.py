@@ -157,6 +157,10 @@ class UI(QApplication):
         self._font_cache_thread = _start_font_cache(self)
         if self._font_cache_thread is not None:
             self.aboutToQuit.connect(self._wait_for_font_cache)
+            # aboutToQuit is not emitted when startup fails; don't let the
+            # thread use Qt while Python destroys the QApplication.
+            import atexit
+            atexit.register(self._wait_for_font_cache)
         from chimerax.graphics.opengl import start_driver_warmup
         start_driver_warmup(self)
         import sys
