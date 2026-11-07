@@ -479,6 +479,21 @@ class BundleInfo:
         cached = getattr(self, '_package_search_locations', None)
         if cached is not None and cached[0] == name:
             return cached[1]
+        # With the parent package imported (chimerax), a subpackage is a
+        # directory on its path.  find_spec would also probe for each
+        # __init__ file variant: on a cold Windows start the toolbar's
+        # lookups for ~60 bundles took ~0.4 s.  It remains the fallback,
+        # for packages found elsewhere such as editable installs.
+        import os.path
+        import sys
+        parent_name, _, child = name.rpartition('.')
+        parent_paths = getattr(sys.modules.get(parent_name), '__path__', None) if parent_name else None
+        if parent_paths is not None:
+            locations = tuple(d for d in (os.path.join(p, child) for p in parent_paths)
+                              if os.path.isdir(d))
+            if locations:
+                self._package_search_locations = (name, locations)
+                return locations
         from importlib.util import find_spec
         try:
             s = find_spec(name)
@@ -562,8 +577,13 @@ class BundleInfo:
         p = self._bundle_path(subpath)
         if p is None:
             return None
-        import os.path
-        return p if os.path.exists(p) else None
+        # _bundle_path only returns a path that exists.
+        import sys
+        prefetch = sys.modules.get('chimerax.core.startup_prefetch')
+        if prefetch is not None:
+            # Startup looks up toolbar icons this way; prefetch them.
+            prefetch.note_file(p)
+        return p
 
     def start_tool(self, session, tool_name, *args, **kw):
         """Supported API. Create and return a tool instance.
