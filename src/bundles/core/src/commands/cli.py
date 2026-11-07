@@ -1840,7 +1840,6 @@ def quote_if_necessary(s, additional_special_map={}):
     So :py:class:`StringArg` treats it like a single value"""
     if not s:
         return '""'
-    import unicodedata
 
     has_single_quote = s[0] == "'" or _internal_single_quote.search(s) is not None
     has_double_quote = s[0] == '"' or _internal_double_quote.search(s) is not None
@@ -1881,6 +1880,8 @@ def quote_if_necessary(s, additional_special_map={}):
         elif ch.strip() == "":
             # non-space and non-newline spaces
             has_special = True
+            # unicodedata is an extension module; menus quote names at startup.
+            import unicodedata
             result.append("\\N{%s}" % unicodedata.name(ch))
         else:
             result.append(ch)
