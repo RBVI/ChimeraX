@@ -27,6 +27,9 @@ def server_namespace(run):
 
 @pytest.fixture
 def helper(monkeypatch):
+    if not hasattr(socket, 'AF_UNIX'):
+        # The helper is for macOS and talks over a Unix socket.
+        pytest.skip('Python has no Unix sockets on this platform')
     calls, authorizations, errors = [], [], []
     state = SimpleNamespace(fail=False)
     temporary_directory = purge.tempfile.TemporaryDirectory
