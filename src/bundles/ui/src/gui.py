@@ -1370,7 +1370,8 @@ class MainWindow(QMainWindow, HtmlLog):
         # Actions and Tools populate on demand. Create the menu bar normally
         # so macOS can attach it before the first paint; replacing it afterward
         # requires another native window exposure and repaint.
-        self._populate_menu_contents(session, self.menuBar())
+        from .native_menu import menu_bar
+        self._populate_menu_contents(session, menu_bar(self))
 
     def _populate_menu_contents(self, session, mb):
         from Qt.QtGui import QKeySequence, QAction
