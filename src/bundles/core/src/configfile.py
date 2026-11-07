@@ -242,7 +242,7 @@ then it looked for the old value and migrates it.
 If the old value isn't present, then the new default value is used.
 """
 from .errors import UserError
-import numpy
+import sys
 
 only_use_defaults = False   # if True, do not read nor write configuration data
 
@@ -468,20 +468,27 @@ class ConfigFile:
 # change to the repr of numpy scalars.
 # If clients of the ConfigFile API all used Value() instances with Annotations,
 # then this wouldn't have been an issue.  But they don't.
-def _deepcopy_numpy(obj):
+def _default_string(value):
+    numpy = sys.modules.get('numpy')
+    if getattr(numpy, 'generic', None) is None:
+        return repr(value)
+    return repr(_deepcopy_numpy(value, numpy))
+
+
+def _deepcopy_numpy(obj, numpy):
     """Recursively copy object while converting numpy values to Python values."""
     if isinstance(obj, dict):
         return {
-            k: _deepcopy_numpy(v) for k, v in obj.items()
+            k: _deepcopy_numpy(v, numpy) for k, v in obj.items()
         }
     if isinstance(obj, list):
-        return [_deepcopy_numpy(item) for item in obj]
+        return [_deepcopy_numpy(item, numpy) for item in obj]
     if isinstance(obj, tuple):
         return tuple(
-            _deepcopy_numpy(item) for item in obj
+            _deepcopy_numpy(item, numpy) for item in obj
         )
     if isinstance(obj, set):
-        return {_deepcopy_numpy(item) for item in obj}
+        return {_deepcopy_numpy(item, numpy) for item in obj}
     if isinstance(obj, numpy.bool_):
         return bool(obj)
     if isinstance(obj, numpy.integer):
@@ -522,7 +529,7 @@ class Value:
         else:
             self.from_str = from_str
         if to_str is None:
-            self.to_str = lambda x: repr(_deepcopy_numpy(x))
+            self.to_str = _default_string
         else:
             self.to_str = to_str
 
