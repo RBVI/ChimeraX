@@ -750,6 +750,7 @@ class MainWindow(QMainWindow, HtmlLog):
         # HTML tools are created and may require native windows for those tools.
         if sys.platform == 'darwin':
             self.rapid_access_shown = True
+            _disable_window_animation(self)
 
         # full screen works very poorly on Windows as of 6/16/20 (see ticket #3409)
         # so withdrawn in favor of just "maximized" for now
@@ -2298,6 +2299,30 @@ class MainWindow(QMainWindow, HtmlLog):
                     if self.hide_tools and not window.floating:
                         self._hide_tools_shown_states[window] = False
                     window._mw_set_shown(False)
+
+def _disable_window_animation(widget):
+    """Show a macOS window immediately instead of animating its appearance."""
+    if sys.platform != 'darwin' or QApplication.platformName() != 'cocoa':
+        return False
+    import ctypes
+    try:
+        objc = ctypes.CDLL('/usr/lib/libobjc.A.dylib')
+        selector = objc.sel_registerName
+        selector.argtypes = [ctypes.c_char_p]
+        selector.restype = ctypes.c_void_p
+        send = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p)(
+            ('objc_msgSend', objc))
+        # Qt's macOS winId is the NSView; the setting belongs to its NSWindow.
+        window = send(int(widget.winId()), selector(b'window'))
+        if not window:
+            return False
+        set_behavior = ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_long)(
+            ('objc_msgSend', objc))
+        set_behavior(window, selector(b'setAnimationBehavior:'), 2)  # NSWindowAnimationBehaviorNone
+    except (OSError, AttributeError):
+        return False
+    return True
+
 
 def _defer_menu_contents(menu, populate):
     """Build menu entries on first show or access through the menu APIs."""
