@@ -368,21 +368,32 @@ def start_driver_warmup(app):
 
     QOpenGLContext::globalShareContext() is called through ctypes so the
     thread runs without the GIL, and the context is moved to the main thread,
-    where Qt deletes it.  Linux only; returns whether the thread was started.
+    where Qt deletes it.  Linux and Windows; returns whether the thread was
+    started.
     '''
     global _driver_warmup
     import sys
-    if sys.platform != 'linux' or _driver_warmup is not None:
+    if sys.platform not in ('linux', 'win32') or _driver_warmup is not None:
         return False
     from Qt.QtCore import QCoreApplication, Qt
     if not QCoreApplication.testAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts):
         return False
     import ctypes
     try:
-        gui = ctypes.CDLL('libQt6Gui.so.6')
-        core = ctypes.CDLL('libQt6Core.so.6')
-        share_context = gui._ZN14QOpenGLContext18globalShareContextEv
-        move_to_thread = core._ZN7QObject12moveToThreadEP7QThread
+        if sys.platform == 'win32':
+            # Qt's DLLs are next to PySide's modules; MSVC-decorated names.
+            import os
+            from PySide6 import QtGui
+            qt_dir = os.path.dirname(QtGui.__file__)
+            gui = ctypes.CDLL(os.path.join(qt_dir, 'Qt6Gui.dll'))
+            core = ctypes.CDLL(os.path.join(qt_dir, 'Qt6Core.dll'))
+            share_context = getattr(gui, '?globalShareContext@QOpenGLContext@@SAPEAV1@XZ')
+            move_to_thread = getattr(core, '?moveToThread@QObject@@QEAAXPEAVQThread@@@Z')
+        else:
+            gui = ctypes.CDLL('libQt6Gui.so.6')
+            core = ctypes.CDLL('libQt6Core.so.6')
+            share_context = gui._ZN14QOpenGLContext18globalShareContextEv
+            move_to_thread = core._ZN7QObject12moveToThreadEP7QThread
         from shiboken6 import getCppPointer
         main_thread = getCppPointer(app.thread())[0]
     except (OSError, AttributeError, ImportError, TypeError):

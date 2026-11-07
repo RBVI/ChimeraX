@@ -71,10 +71,27 @@ def test_unavailable_method_keeps_synchronous_fallback(native_font, monkeypatch)
     assert calls == []
 
 
-def test_windows_does_not_start_native_work(native_font, monkeypatch):
+def test_windows_warms_fonts_through_qt6gui_dll(native_font, monkeypatch):
+    import ctypes
+    import os
     import sys
     font, ui, calls, fonts = native_font
     monkeypatch.setattr(sys, 'platform', 'win32')
+    height = ctypes.CDLL('x')._ZNK12QFontMetrics6heightEv   # the fixture's fake
+    opened = []
+    def record(path):
+        opened.append(path)
+        return SimpleNamespace(**{'?height@QFontMetrics@@QEBAHXZ': height})
+    monkeypatch.setattr(ctypes, 'CDLL', record)
+    font._start_font_cache(ui).join(timeout=5)
+    assert len(opened) == 1 and os.path.basename(opened[0]) == 'Qt6Gui.dll'
+    assert calls == [1234, 1234]
+
+
+def test_other_platforms_do_not_start_native_work(native_font, monkeypatch):
+    import sys
+    font, ui, calls, fonts = native_font
+    monkeypatch.setattr(sys, 'platform', 'freebsd14')
     assert font._start_font_cache(ui) is None
     assert calls == []
 

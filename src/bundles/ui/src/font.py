@@ -10,12 +10,13 @@ def _start_font_cache(ui):
 
     QFontMetrics is reentrant, but PySide's height() wrapper retains the GIL.
     Call the same public Qt method through CDLL so Python startup can proceed.
-    Resolve through the loaded binding's own Qt dependency on macOS, and
-    libQt6Gui on Linux. If the native symbol is unavailable, ordinary layout
-    initializes fonts instead.
+    Resolve through the loaded binding's own Qt dependency on macOS,
+    libQt6Gui on Linux, and Qt6Gui.dll next to PySide's modules on Windows.
+    If the native symbol is unavailable, ordinary layout initializes fonts
+    instead.
     """
     import sys
-    if sys.platform not in ('darwin', 'linux'):
+    if sys.platform not in ('darwin', 'linux', 'win32'):
         return None
     from Qt import using_pyside6
     if not using_pyside6:
@@ -32,9 +33,13 @@ def _start_font_cache(ui):
         if sys.platform == 'linux':
             # QFontMetrics::height is exported by libQt6Gui, which QtGui.abi3.so loads.
             library = ctypes.CDLL('libQt6Gui.so.6')
+        elif sys.platform == 'win32':
+            import os
+            library = ctypes.CDLL(os.path.join(os.path.dirname(native_gui.__file__), 'Qt6Gui.dll'))
         else:
             library = ctypes.CDLL(native_gui.__file__)
-        height = library._ZNK12QFontMetrics6heightEv
+        height = getattr(library, '?height@QFontMetrics@@QEBAHXZ' if sys.platform == 'win32'
+                         else '_ZNK12QFontMetrics6heightEv')
         height.argtypes = [ctypes.c_void_p]
         height.restype = ctypes.c_int
         metrics = [QFontMetrics(ui.font()), QFontMetrics(QFont(STATUS_FONT))]

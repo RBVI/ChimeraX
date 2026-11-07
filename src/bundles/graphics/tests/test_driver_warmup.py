@@ -50,7 +50,7 @@ def test_waiting_without_warmup_does_nothing(warmup):
     assert calls == []
 
 
-@pytest.mark.parametrize('platform', ['darwin', 'win32'])
+@pytest.mark.parametrize('platform', ['darwin', 'freebsd14'])
 def test_other_platforms_do_not_warm_up(warmup, monkeypatch, platform):
     import sys
     opengl, app, calls = warmup
@@ -72,3 +72,30 @@ def test_missing_qt_symbols_fall_back(warmup, monkeypatch):
     assert not opengl.start_driver_warmup(app)
     opengl._wait_for_driver_warmup()
     assert calls == []
+
+
+def test_windows_uses_the_qt_dlls_next_to_pyside(warmup, monkeypatch):
+    import ctypes
+    import os
+    import sys
+    opengl, app, calls = warmup
+    monkeypatch.setattr(sys, 'platform', 'win32')
+    def share():
+        calls.append(('share',))
+        return 1234
+    def move(context, thread):
+        calls.append(('move', context, thread))
+    libs = {
+        'Qt6Gui.dll': SimpleNamespace(**{'?globalShareContext@QOpenGLContext@@SAPEAV1@XZ': share}),
+        'Qt6Core.dll': SimpleNamespace(**{'?moveToThread@QObject@@QEAAXPEAVQThread@@@Z': move}),
+    }
+    opened = []
+    def cdll(path):
+        opened.append(path)
+        return libs[os.path.basename(path)]
+    monkeypatch.setattr(ctypes, 'CDLL', cdll)
+    assert opengl.start_driver_warmup(app)
+    opengl._wait_for_driver_warmup()
+    assert [os.path.basename(p) for p in opened] == ['Qt6Gui.dll', 'Qt6Core.dll']
+    assert len({os.path.dirname(p) for p in opened}) == 1
+    assert calls == [('share',), ('move', 1234, 99)]
