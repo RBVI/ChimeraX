@@ -627,6 +627,22 @@ def _connect_to_window_server():
     Thread(target=connect, name="window server connection", daemon=True).start()
 
 
+def _initialize_session_settings(sess):
+    from chimerax.core import core_settings, attributes
+    from chimerax.core.session import register_misc_commands
+
+    core_settings.init(sess)
+    register_misc_commands(sess)
+    attributes.RegAttrManager(sess)
+    return core_settings
+
+
+def _defer_gui_session_state(opts, event_loop):
+    return (sys.platform == 'darwin' and opts.gui and not opts.offscreen
+        and not opts.safe_mode and not opts.uninstall and event_loop and opts.event_loop
+        and os.environ.get('QT_QPA_PLATFORM') in (None, '', 'cocoa'))
+
+
 def init(argv, event_loop=True):
     from .startup_gc import StartupGC
 
@@ -748,10 +764,12 @@ def _init(argv, event_loop, startup_gc):
 
     from chimerax.core import session
 
+    defer_state = _defer_gui_session_state(opts, event_loop)
     sess = session.Session(
         app_name,
         debug=opts.debug,
         silent=opts.silent,
+        _defer_state=defer_state,
         minimal=opts.safe_mode,
     )
 
@@ -774,17 +792,7 @@ def _init(argv, event_loop, startup_gc):
                 return os.EX_UNAVAILABLE
             raise
 
-    from chimerax.core import core_settings
-
-    core_settings.init(sess)
-
-    from chimerax.core.session import register_misc_commands
-
-    register_misc_commands(sess)
-
-    from chimerax.core import attributes
-
-    attributes.RegAttrManager(sess)
+    core_settings = None if defer_state else _initialize_session_settings(sess)
 
     if opts.uninstall:
         return uninstall(sess)
@@ -809,9 +817,11 @@ def _init(argv, event_loop, startup_gc):
     if opts.gui:
         from chimerax.ui import gui
         color_scheme = opts.color_scheme
-        if color_scheme is None:
+        if color_scheme is None and not defer_state:
             color_scheme = core_settings.settings.color_scheme
-        sess.ui = gui.UI(sess, color_scheme=color_scheme)
+        initialize_settings = (lambda: _initialize_session_settings(sess)) if defer_state else None
+        sess.ui = gui.UI(sess, color_scheme=color_scheme,
+            _initialize_session_settings=initialize_settings)
  
     # Set ui options
     sess.ui.stereo = opts.stereo

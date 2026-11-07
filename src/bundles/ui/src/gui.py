@@ -97,7 +97,7 @@ class UI(QApplication):
         To execute a function in a thread-safe manner
        """
 
-    def __init__(self, session, *, color_scheme=None):
+    def __init__(self, session, *, color_scheme=None, _initialize_session_settings=None):
         self.is_gui = True
         self.has_graphics = True
         self.main_window = None
@@ -137,7 +137,15 @@ class UI(QApplication):
             os.environ['QTWEBENGINE_CHROMIUM_FLAGS'] = '--widevine-path=/dev/null'
 
         from chimerax import app_dirs as ad
-        QApplication.__init__(self, [ad.appname])
+        if _initialize_session_settings is None:
+            QApplication.__init__(self, [ad.appname])
+        else:
+            from .startup import initialize_application
+            construct = lambda: QApplication.__init__(self, [ad.appname])
+            core_settings = initialize_application(session,
+                construct, _initialize_session_settings)
+            if color_scheme is None:
+                color_scheme = core_settings.settings.color_scheme
         from . import desktop_settings
         desktop_settings.apply_settings(self)
         from chimerax.graphics.opengl import start_driver_warmup
