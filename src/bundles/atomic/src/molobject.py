@@ -496,6 +496,8 @@ class PseudobondManager(StateManager):
     '''Per-session singleton pseudobond manager keeps track of all :class:`.PseudobondGroupData` objects.'''
 
     def __init__(self, session):
+        # Register the concrete group class before native code can create one.
+        from . import pbgroup
         self.session = session
         f = c_function('pseudobond_create_global_manager', args = (ctypes.c_void_p,),
             ret = ctypes.c_void_p)
@@ -568,6 +570,7 @@ class PseudobondManager(StateManager):
                        args = (ctypes.c_void_p,), ret = ctypes.py_object)
         ptr_map = f(self._c_pointer)
         # mapping is ptr->int, change to int->obj
+        from .pbgroup import PseudobondGroup
         obj_map = {}
         for ptr, ses_id in ptr_map.items():
             # shouldn't be _creating_ any objects, so pass None as the type
@@ -1526,6 +1529,7 @@ class StructureData:
     ]
 
     def __init__(self, mol_pointer=None, *, logger=None):
+        from . import _data_model  # Also configure templates for direct submodule callers.
         if mol_pointer is None:
             # Create a new structure
             from .structure import AtomicStructure
@@ -2492,23 +2496,18 @@ class SeqMatchMap(State):
 # tell the C++ layer about class objects whose Python objects can be instantiated directly
 # from C++ with just a pointer, and put functions in those classes for getting the instance
 # from the pointer (needed by Collections)
-from .pbgroup import PseudobondGroup
-#for class_obj in [Atom, Bond, CoordSet, Element, PseudobondGroup, Pseudobond, Residue, Ring]:
-for class_obj in [Bond, ChangeTracker, CoordSet, PseudobondGroup, Pseudobond, Ring]:
+def _register_cpp_class(class_obj, pointer_class=None):
     cname = class_obj.__name__.lower()
-    func_name = "set_" + cname + "_pyclass"
-    f = c_function(func_name, args = (ctypes.py_object,))
-    f(class_obj)
+    c_function("set_" + cname + "_pyclass", args=(ctypes.py_object,))(class_obj)
+    pointer_class = class_obj if pointer_class is None else pointer_class
+    pointer_class.c_ptr_to_py_inst = lambda ptr: c_function(cname + "_py_inst",
+        args=(ctypes.c_void_p,), ret=ctypes.py_object)(ctypes.c_void_p(int(ptr)))
+    pointer_class.c_ptr_to_existing_py_inst = lambda ptr: c_function(cname + "_existing_py_inst",
+        args=(ctypes.c_void_p,), ret=ctypes.py_object)(ctypes.c_void_p(int(ptr)))
 
-    if class_obj == PseudobondGroup:
-        # put these funcs in PseudobondGroupData not PseudobondGroup
-        class_obj = PseudobondGroupData
-    func_name = cname + "_py_inst"
-    class_obj.c_ptr_to_py_inst = lambda ptr, *, fname=func_name: c_function(fname,
-        args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))
-    func_name = cname + "_existing_py_inst"
-    class_obj.c_ptr_to_existing_py_inst = lambda ptr, *, fname=func_name: c_function(fname,
-        args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))
+
+for class_obj in [Bond, ChangeTracker, CoordSet, Pseudobond, Ring]:
+    _register_cpp_class(class_obj)
 
 # Chain/StructureSeq/Sequence classes could theoretically be handled the same as the
 # above classes, but the fact that classes are not first-class objects in C++ makes
@@ -2528,3 +2527,12 @@ StructureData.c_ptr_to_py_inst = lambda ptr: c_function("structure_py_inst",
     args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))
 StructureData.c_ptr_to_existing_py_inst = lambda ptr: c_function("structure_existing_py_inst",
     args = (ctypes.c_void_p,), ret = ctypes.py_object)(ctypes.c_void_p(int(ptr)))
+
+
+def __getattr__(name):
+    # Preserve the former incidental export without a circular module import.
+    if name == 'PseudobondGroup':
+        from .pbgroup import PseudobondGroup
+        globals()[name] = PseudobondGroup
+        return PseudobondGroup
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

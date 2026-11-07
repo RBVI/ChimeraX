@@ -499,3 +499,9 @@ def hidden_structures(structures):
 def _pseudobond_geometry(segments = 9, sides = 10):
     from chimerax import surface
     return surface.dashed_cylinder_geometry(segments, height = 0.5, nc = sides)
+
+# Register after defining the concrete class; molobject no longer imports this
+# module while it is itself partially initialized. Direct submodule imports
+# therefore work in either order. Pointer methods belong to the data base class.
+from .molobject import _register_cpp_class
+_register_cpp_class(PseudobondGroup, PseudobondGroupData)

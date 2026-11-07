@@ -26,6 +26,11 @@
 import chimerax.atomic_lib  # noqa
 import chimerax.pdb_lib  # noqa
 
+# The native reader caches Bonds from the atomic module dictionary at import.
+# Resolve the lazy export before loading it, including when mmCIF is the first
+# molecular format opened in a session.
+from chimerax.atomic import Bonds as _Bonds  # noqa
+
 from .mmcif import (  # noqa
     get_cif_tables, get_mmcif_tables, get_mmcif_tables_from_metadata,
     open_mmcif, fetch_mmcif, citations,
