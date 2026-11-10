@@ -1731,15 +1731,17 @@ t0 = t1;
                         protonatable_Ns.insert(a);
                     else if (best_assignment != NULL) {
                         // distinguish N2+/Npl
-                        if (aro && is_N2plus(best_assignment, a->bonds())) {
-                            // non-ring bond == 0
+                        if (is_N2plus(best_assignment, a->bonds())) {
                             a->set_computed_idatm_type("N2+");
-                            // type bonded isolated O as O3-
-                            if (a->bonds().size() == 3) {
-                                for (auto nb: a->neighbors()) {
-                                    if (nb->element() == Element::O
-                                    && nb->bonds().size() == 1)
-                                        nb->set_computed_idatm_type("O3-");
+                            if (aro)  {
+                                // non-ring bond is single
+                                // type bonded isolated O as O3-
+                                if (a->bonds().size() == 3) {
+                                    for (auto nb: a->neighbors()) {
+                                        if (nb->element() == Element::O
+                                        && nb->bonds().size() == 1)
+                                            nb->set_computed_idatm_type("O3-");
+                                    }
                                 }
                             }
                         }
@@ -2341,6 +2343,59 @@ t0 = t1;
 #ifdef TIME_PASSES
 t1 = clock();
 std::cerr << "pass 11 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
+
+    // "pass 12":  yet another non-IDATM pass. Check that "uncertain" Npl atoms
+    // (not templated, not in a planar ring, not hand assigned) are not in fact N2+
+    for (auto a: untyped_atoms) {
+
+        if (a->idatm_type() != "Npl")
+            continue;
+        
+        if (ring_assigned_Ns.find(a) != ring_assigned_Ns.end())
+            continue;
+
+        if (a->idatm_is_explicit())
+            continue;
+
+        // I don't think 2-hydrogen Npls can be N2+, but even if they can they should
+        // be done in a later pass since there is too much of a chance of a race 
+        // condition where the 2-hydrogen Npls get turned into N2+ rather than the
+        // 2+ heavy-atom neighbor Npls, which are the ones likely to actually be N2+
+        if (heavys[a] < 2)
+            continue;
+
+        const int search_limit = 4;
+        int wave = 0;
+        std::set<Atom*> seen = { a };
+        std::set<Atom*> current_wave = { a };
+        while (wave++ < search_limit) {
+            std::set<Atom*> next_wave;
+            for (auto cur: current_wave) {
+                for (auto nb: cur->neighbors()) {
+                    Atom::IdatmInfoMap::const_iterator nbi = info_map.find(nb->idatm_type());
+                    if (nbi == info_map.end() || (*nbi).second.geometry != 3)
+                        continue;
+                    if (nb->idatm_type() == "Npl")
+                        continue;
+                    if (seen.find(nb) != seen.end())
+                        continue;
+                    next_wave.insert(nb);
+                    seen.insert(nb);
+                }
+            }
+            if (next_wave.empty()) {
+                if (wave % 2 == 0)
+                    a->set_computed_idatm_type("N2+");
+                break;
+            }
+            current_wave = next_wave;
+        }
+    }
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 12 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
 t0 = t1;
 #endif
 

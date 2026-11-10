@@ -42,7 +42,7 @@ jobs:
           ref: ${{ inputs.branch || 'develop' }}
       - name: Set up Homebrew
         id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@d482da0e602890d3160aade42e72c8556103bf04
+        uses: Homebrew/actions/setup-homebrew@c262868c096d909fc278daa87ed9772967331ea3
       - run: |
           brew install python@3.10
           python3.10 -m pip install lief dmgbuild
