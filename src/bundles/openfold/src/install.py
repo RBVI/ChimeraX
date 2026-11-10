@@ -106,8 +106,8 @@ class InstallOpenFold:
         elif branch in ('chimerax_openfold_0.5.1', 'chimerax_openfold_0.5'):
             prefix = '20261026/cpython-3.13.18+20261026'
         else:
-            from chimerax.core.errors import UserError
-            raise UserError(f"Don't know which Python version to use for ChimeraX OpenFold branch {self._branch}")
+            # Unknown branch, possibly a newer OpenFold.  Use Python 3.13
+            prefix = '20261026/cpython-3.13.18+20261026'
             
         platform_urls = {
             ('darwin', 'arm64'): prefix + '-aarch64-apple-darwin-install_only.tar.gz',
@@ -184,10 +184,12 @@ class InstallOpenFold:
         logger = self._session.logger
         logger.info('Now installing machine learning package torch.')
         # TODO: We should try to match the system cuda version.
-        if self._branch in ('chimerax_openfold_0.5', 'chimerax_openfold_0.5.1'):
+        if self._branch == 'chimerax_openfold_preview2':
+            torch_version = '2.7.1'
+        elif self._branch in ('chimerax_openfold_0.5', 'chimerax_openfold_0.5.1'):
             torch_version = '2.11.0'	# Newer triton is not compatible with Torch 2.7.1
         else:
-            torch_version = '2.7.1'
+            torch_version = '2.11.0'	# Unknown branch, use newer Torch
         command = [self._venv_python_executable(), '-m', 'pip', 'install', f'torch=={torch_version}',
                    '--index-url', 'https://download.pytorch.org/whl/cu128']
         logger.info(' '.join(command))
