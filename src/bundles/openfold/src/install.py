@@ -62,7 +62,6 @@ class InstallOpenFold:
         self.finished_callback = None
         self.success = None
 
-        #python_install_success = self._create_openfold_virtual_environment(directory)
         python_install_success = self._install_python_for_openfold(directory)
         if python_install_success:
             self._install_openfold()
@@ -129,38 +128,10 @@ class InstallOpenFold:
 
         url = astral_download_url + purl
         return url
-
-    # ------------------------------------------------------------------------------
-    # We no longer use the ChimeraX Python for running OpenFold.
-    # Instead we install a dedicate OpenFold Python using _install_python_for_openfold().
-    # This change was made because ChimeraX updated to Python 3.14 and the
-    # current RBVI OpenFold did not run with Python < 3.14 due to PyPi deepspeed module issues.
-    # ChimeraX ticket #20576
-    #
-    def _create_openfold_virtual_environment(self, directory):
-        # Create Python virtual environment using ChimeraX Python as base for installing OpenFold.
-        from chimerax.core.python_utils import chimerax_python_executable
-        python_exe = chimerax_python_executable()
-        command = [python_exe, '-m', 'venv', '--system-site-packages', directory]
-        from subprocess import run
-        p = run(command, capture_output = True, creationflags = _no_subprocess_window())
-
-        # Report success or failure of creating virtual environment.
-        logger = self._session.logger
-        if p.returncode == 0:
-            logger.info(f'Successfully created OpenFold Python virtual environment {directory}.')
-        else:
-            cmd = ' '.join(command)
-            logger.error('Creating Python virtual environment failed.'
-                         f'\nCommand: {cmd}'
-                         f'\nstdout: {p.stdout}'
-                         f'\nstderr: {p.stderr}')
-            return False
-        return True
     
     # ------------------------------------------------------------------------------
     #
-    def _venv_python_executable(self):
+    def _openfold_python_executable(self):
         return find_executable(self._directory, 'python')
 
     # ------------------------------------------------------------------------------
@@ -190,7 +161,7 @@ class InstallOpenFold:
             torch_version = '2.11.0'	# Newer triton is not compatible with Torch 2.7.1
         else:
             torch_version = '2.11.0'	# Unknown branch, use newer Torch
-        command = [self._venv_python_executable(), '-m', 'pip', 'install', f'torch=={torch_version}',
+        command = [self._openfold_python_executable(), '-m', 'pip', 'install', f'torch=={torch_version}',
                    '--index-url', 'https://download.pytorch.org/whl/cu128']
         logger.info(' '.join(command))
 
@@ -219,7 +190,7 @@ class InstallOpenFold:
 
         # Install from RBVI fork of OpenFold using zip so git not needed.
         openfold_ver = f'https://github.com/RBVI/openfold-3/archive/{self._branch}.zip'
-        command = [self._venv_python_executable(), '-m', 'pip', 'install', openfold_ver]
+        command = [self._openfold_python_executable(), '-m', 'pip', 'install', openfold_ver]
         logger.info(' '.join(command))
 
         # Echo subprocess output to the ChimeraX Log.
@@ -250,7 +221,7 @@ class InstallOpenFold:
     # ------------------------------------------------------------------------------
     #
     def _install_kalign(self):
-        python_exe = self._venv_python_executable()
+        python_exe = self._openfold_python_executable()
         from os.path import join, dirname
         logger = self._session.logger
         logger.info(f'Installing kalign sequence alignment program to {dirname(python_exe)}')
@@ -284,7 +255,7 @@ class InstallOpenFold:
 
         from os.path import join, dirname
         download_path = join(dirname(__file__), 'download_weights.py')
-        command = [self._venv_python_executable(), download_path]
+        command = [self._openfold_python_executable(), download_path]
         logger.info(' '.join(command))
 
         # Echo subprocess output to the ChimeraX Log.
@@ -408,17 +379,17 @@ def _no_subprocess_window():
             
 # ------------------------------------------------------------------------------
 #
-def find_executable(venv_directory, exe_name):
+def find_executable(openfold_install_directory, exe_name):
     from os.path import join, exists
     from sys import platform
     if platform == 'win32':
         # Python venv executable location.
-        exe = join(venv_directory, 'Scripts', exe_name + '.exe')
+        exe = join(openfold_install_directory, 'Scripts', exe_name + '.exe')
         if not exists(exe):
             # Astral Python executable location
-            exe = join(venv_directory, exe_name + '.exe')
+            exe = join(openfold_install_directory, exe_name + '.exe')
     else:
-        exe = join(venv_directory, 'bin', exe_name)
+        exe = join(openfold_install_directory, 'bin', exe_name)
     return exe
             
 # ------------------------------------------------------------------------------
