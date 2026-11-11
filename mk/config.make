@@ -219,7 +219,14 @@ APP_BOOTSTRAP_PIP = $(APP_PYTHON_EXE) -m pip
 # Python (prereqs/Python), not in the app.  Unlike pip, it does not compile
 # bytecode, which is fine: clean_app removes all of it from the app at the end
 # of the build.
+ifeq ($(WINDOWS_ENV),Cygwin)
+# uv is a native Windows program, so it needs a Windows path.  MSYS2 converts
+# POSIX path arguments for native programs, but Cygwin does not, and uv then
+# fails with "No virtual environment or system Python installation found".
+APP_PIP_INSTALL = $(PYTHON_EXE) -m uv pip install --python '$(shell cygpath -m '$(APP_PYTHON_BIN)')'
+else
 APP_PIP_INSTALL = $(PYTHON_EXE) -m uv pip install --python $(APP_PYTHON_BIN)
+endif
 else
 APP_PIP = $(APP_EXE) -m uv pip
 APP_BOOTSTRAP_PIP = $(APP_PYTHON_EXE) -m uv pip
