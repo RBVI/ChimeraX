@@ -466,6 +466,35 @@ class ConfigFile:
         return value
 
 
+# For backwards compatibilty with numpy 1, compenstate for numpy 2's
+# change to the repr of numpy scalars.
+# If clients of the ConfigFile API all used Value() instances with Annotations,
+# then this wouldn't have been an issue.  But they don't.
+def _deepcopy_numpy(obj):
+    """Recursively copy object while converting numpy values to Python values."""
+    if isinstance(obj, dict):
+        return {
+            k: _deepcopy_numpy(v) for k, v in obj.items()
+        }
+    if isinstance(obj, list):
+        return [_deepcopy_numpy(item) for item in obj]
+    if isinstance(obj, tuple):
+        return tuple(
+            _deepcopy_numpy(item) for item in obj
+        )
+    if isinstance(obj, set):
+        return {_deepcopy_numpy(item) for item in obj}
+    if isinstance(obj, numpy.bool_):
+        return bool(obj)
+    if isinstance(obj, numpy.integer):
+        return int(obj)
+    if isinstance(obj, numpy.floating):
+        return float(obj)
+    if isinstance(obj, numpy.complexfloating):
+        return complex(obj)
+    return obj
+
+
 class Value:
     """Placeholder for default value and conversion functions
 
@@ -495,7 +524,7 @@ class Value:
         else:
             self.from_str = from_str
         if to_str is None:
-            self.to_str = lambda x: str(x) if isinstance(x, numpy.generic) else repr(x)
+            self.to_str = lambda x: str(_deepcopy_numpy(x))
         else:
             self.to_str = to_str
 

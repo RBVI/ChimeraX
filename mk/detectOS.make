@@ -17,6 +17,8 @@ OS=$(shell uname -s)
 ifeq ($(filter $(OS),Linux Darwin),)
 OS=$(shell uname -o)
 ifneq ($(filter $(OS),Cygwin Msys),)
+# Which POSIX layer the build runs under: Cygwin or Msys
+WINDOWS_ENV := $(OS)
 OS=Windows
 endif
 endif

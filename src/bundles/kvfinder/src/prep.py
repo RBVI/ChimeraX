@@ -80,7 +80,7 @@ def prep_input(structure, include_atoms, origin, extent, show_box, box_name, pro
 
         if show_box:
             from tempfile import NamedTemporaryFile
-            with NamedTemporaryFile("wt", suffix=".bild") as bild_f:
+            with NamedTemporaryFile("wt", suffix=".bild", delete_on_close=False) as bild_f:
                 print(".color .7 .7 .7", file=bild_f)
                 corner_info = [(list(origin), list(range(3)))]
                 while corner_info:
@@ -95,6 +95,7 @@ def prep_input(structure, include_atoms, origin, extent, show_box, box_name, pro
                             next_variable.remove(index)
                             corner_info.append((next_base, next_variable))
                 bild_f.flush()
+                bild_f.close()
                 from chimerax.core.commands import run, StringArg
                 session = structure.session
                 run(session, "open %s id %s name '%s'" % (StringArg.unparse(bild_f.name),
