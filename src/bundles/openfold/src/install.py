@@ -137,40 +137,53 @@ class InstallOpenFold:
     # ------------------------------------------------------------------------------
     #
     def _install_openfold(self):
-        if self._need_cuda_torch():
-            # The standard PyPi torch is cpu only, so get cuda-enabled torch from pytorch.org.
-            self._pip_install_cuda_torch()
+        cuda_version = self._torch_cuda_version()
+        if cuda_version:
+            self._pip_install_torch(cuda_version)  # Get specific cuda version from PyTorch repository.
         else:
-            self._pip_install_openfold()
+            self._pip_install_openfold()           # Use PyPi torch.
+
+    # ------------------------------------------------------------------------------              
+    #                                                                                             
+    def _torch_cuda_version(self):                                                                
+        from sys import platform
+        have_nvidia = have_nvidia_driver()
+        if platform == 'darwin' or (platform == 'win32' and not have_nvidia):
+            return None # Use PyPi torch on Mac and Windows without Nvidia
+
+        if have_nvidia:
+            nvidia_version = _nvidia_driver_version()
+            cuda_version = 'cu128' if nvidia_version is None or nvidia_version < 580 else 'cu132'
+        else:
+            cuda_version = 'cpu'        # Get Linux CPU torch from PyTorch repo.
+        return cuda_version
 
     # ------------------------------------------------------------------------------
     #
-    def _need_cuda_torch(self):
-        return have_nvidia_driver()
-
-    # ------------------------------------------------------------------------------
-    #
-    def _pip_install_cuda_torch(self):
-        # Run pip install of torch in virtual environment
+    def _pip_install_torch(self, cuda_version = 'cu132'):
+        # Run pip install of torch from PyTorch repo
         logger = self._session.logger
         logger.info('Now installing machine learning package torch.')
-        # TODO: We should try to match the system cuda version.
         if self._branch == 'chimerax_openfold_preview2':
             torch_version = '2.7.1'
+            if cuda_version != 'cpu':
+                cuda_version = 'cu128'  # Newest cuda that has torch 2.7.1
         elif self._branch in ('chimerax_openfold_0.5', 'chimerax_openfold_0.5.1'):
-            torch_version = '2.11.0'	# Newer triton is not compatible with Torch 2.7.1
+            # For cuda 12.8 use torch 2.11.0 which is newest available.
+            # For cuda 13.2 use torch 2.15.0.
+            torch_version = '2.11.0' if cuda_version == 'cu128' else '2.15.0'
         else:
             torch_version = '2.11.0'	# Unknown branch, use newer Torch
         command = [self._openfold_python_executable(), '-m', 'pip', 'install', f'torch=={torch_version}',
-                   '--index-url', 'https://download.pytorch.org/whl/cu128']
+                   f'--index-url', 'https://download.pytorch.org/whl/{cuda_version}']
         logger.info(' '.join(command))
 
         # Echo subprocess output to the ChimeraX Log.
-        log_subprocess_output(self._session, command, self._finished_install_cuda_torch, wait = self._wait)
+        log_subprocess_output(self._session, command, self._finished_install_torch, wait = self._wait)
     
     # ------------------------------------------------------------------------------
     #
-    def _finished_install_cuda_torch(self, success):
+    def _finished_install_torch(self, success):
         # Report success of failure of pip install of torch
         logger = self._session.logger
         if success:
@@ -355,15 +368,41 @@ class log_subprocess_output:
 # ------------------------------------------------------------------------------
 #
 def have_nvidia_driver():
+    nvidia_smi_path = _nvidia_smi_path()
+    return nvidia_smi_path is not None
+
+# ------------------------------------------------------------------------------                  
+#                                                                                                 
+def _nvidia_smi_path():
+    nvidia_smi_path = {
+        'win32': 'C:\\Windows\\System32\\nvidia-smi.exe',
+        'linux': '/usr/bin/nvidia-smi',
+    }
     from sys import platform
-    if platform == 'win32':
-        nvidia_smi_path = 'C:\\Windows\\System32\\nvidia-smi.exe'
-    elif platform == 'linux':
-        nvidia_smi_path = '/usr/bin/nvidia-smi'
-    else:
-        return False
+    path = nvidia_smi_path.get(platform)
     from os.path import exists
-    return exists(nvidia_smi_path)
+    if path is not None and not exists(path):
+        path = None
+    return path
+
+# ------------------------------------------------------------------------------                  
+#                                                                                                 
+def _nvidia_driver_version():
+    nvidia_smi_path = _nvidia_smi_path()
+    try:
+        # Run nvidia-smi in query XML mode
+        import subprocess
+        xml_output = subprocess.check_output(["nvidia-smi", "-q", "-x"],
+                                             universal_newlines=True,
+                                             creationflags = _no_subprocess_window())
+        from xml.etree import ElementTree
+        root = ElementTree.fromstring(xml_output)
+        # Driver version is located at /nvidia_smi_log/driver_version
+        driver_version = root.find("driver_version").text
+        major_version = int(driver_version.split('.')[0])
+        return major_version
+    except Exception as e:
+        return None
 
 # ------------------------------------------------------------------------------
 #
@@ -391,7 +430,7 @@ def find_executable(openfold_install_directory, exe_name):
     else:
         exe = join(openfold_install_directory, 'bin', exe_name)
     return exe
-            
+
 # ------------------------------------------------------------------------------
 #
 def register_openfold_install_command(logger):
