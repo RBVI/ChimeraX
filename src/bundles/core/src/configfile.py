@@ -524,7 +524,7 @@ class Value:
         else:
             self.from_str = from_str
         if to_str is None:
-            self.to_str = lambda x: str(_deepcopy_numpy(x))
+            self.to_str = lambda x: repr(_deepcopy_numpy(x))
         else:
             self.to_str = to_str
 
