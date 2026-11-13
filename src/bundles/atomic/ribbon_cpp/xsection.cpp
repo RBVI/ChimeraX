@@ -31,6 +31,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <utility>
 
 #include "parse.h"		// Use parse_residues()
 #include "xsection.h"
@@ -41,6 +42,7 @@ public:
   int num_vertices, num_triangles;
   float *vertices, *normals;
   int *triangles;
+  std::vector<unsigned char> inside;  // Empty unless inside coloring is requested.
   Mesh(int nv)
   {
     num_vertices = nv;
@@ -105,12 +107,18 @@ public:
     { return v_end; }
   int num_triangles() const
     { return t_end; }
-  void arrays(float *va, float *na, int *ta)
+  void arrays(float *va, float *na, int *ta, unsigned char *inside = nullptr)
   {
     int v_offset = 0;
     for (auto mi = meshes.begin() ; mi != meshes.end() ; ++mi)
       {
 	Mesh *m = *mi;
+        if (inside)
+          {
+            for (int i = 0; i < m->num_vertices; ++i)
+              inside[i] = !m->inside.empty() && m->inside[i];
+            inside += m->num_vertices;
+          }
 	int nv3 = 3*m->num_vertices, nt3 = 3*m->num_triangles;
 	memcpy(va, m->vertices, nv3 * sizeof(float));
 	va += nv3;
@@ -134,13 +142,16 @@ private:
 
 class RibbonXSection {
 private:
+    const RibbonXSection *_color_xsection() const;
+    mutable RibbonXSection *_colored_xsection;
     void _generate_normals();
     Mesh* _extrude_smooth(const float* centers, const float* tangents,
 			  const float* normals, const float* radial_scale, int num_pts,
 			  bool cap_front, bool cap_back, int offset) const;
     Mesh* _extrude_faceted(const float* centers, const float* tangents,
 			   const float* normals, const float* radial_scale, int num_pts,
-			   bool cap_front, bool cap_back, int offset) const;
+			   bool cap_front, bool cap_back, int offset,
+                           bool smooth_arrow = false) const;
     void _normalize_normals(FArray& v) const;
     void _tessellate();
 
@@ -163,7 +174,8 @@ public:
 
     Mesh* extrude(const float* centers, const float* tangents,
 		  const float* normals, const float* radial_scale, int num_pts,
-		  bool cap_front, bool cap_back, int vertex_offset = 0) const;
+		  bool cap_front, bool cap_back, int vertex_offset = 0,
+                  int inside_side = 0) const;
     RibbonXSection* scale(float x_scale, float y_scale) const;
     RibbonXSection* arrow(float x1_scale, float y1_scale, float x2_scale, float y2_scale) const;
 };
@@ -210,6 +222,7 @@ RibbonXSection::RibbonXSection(FArray* coords, FArray* coords2,
     // Note that although xs_coords2 and xs_normals2 both have "2" in their names,
     // they are used completely unrelatedly.
 
+    _colored_xsection = nullptr;
     import_array1();
     if (coords != NULL && coords->dimension() == 0)
         coords = NULL;
@@ -264,14 +277,33 @@ RibbonXSection::RibbonXSection(FArray* coords, FArray* coords2,
 
 RibbonXSection::~RibbonXSection()
 {
-    return;
+    delete _colored_xsection;
 }
 
 Mesh*
 RibbonXSection::extrude(const float* centers, const float* tangents,
                         const float* normals, const float* radial_scale, int num_pts,
-                        bool cap_front, bool cap_back, int vertex_offset) const
+                        bool cap_front, bool cap_back, int vertex_offset, int inside_side) const
 {
+    if (inside_side)
+      {
+        const RibbonXSection *xs = _color_xsection();
+        Mesh *m = xs->_extrude_faceted(centers, tangents, normals, radial_scale, num_pts,
+                                      cap_front, cap_back, vertex_offset, !is_faceted);
+        m->inside.resize(m->num_vertices, 0);  // Caps retain residue colors.
+        int n = xs->xs_coords.size(0);
+        const float *coords = xs->xs_coords.values();
+        for (int j = 0; j < n; ++j)
+          {
+            int next = (j + 1) % n;
+            bool inside = inside_side * (coords[2*j+1] + coords[2*next+1]) > 0;
+            // The existing faceted extrusion supplies separate endpoint copies
+            // for each edge.  Matching lighting normals keep smooth sections smooth.
+            std::fill_n(m->inside.begin() + 2*j*num_pts, num_pts, inside);
+            std::fill_n(m->inside.begin() + (2*next+1)*num_pts, num_pts, inside);
+          }
+        return m;
+      }
     if (is_faceted)
         return _extrude_faceted(centers, tangents, normals, radial_scale, num_pts,
                                 cap_front, cap_back, vertex_offset);
@@ -432,6 +464,66 @@ RibbonXSection::_generate_normals()
         _normalize_normals(xs_normals);
         _normalize_normals(xs_normals2);
     }
+}
+
+// Cache a section with vertices at every crossing of the thickness midplane.
+// Each entry is an original vertex or an interpolation along its outgoing edge.
+// Extrusion then needs only one color per edge, without clipping any 3D triangles.
+const RibbonXSection *
+RibbonXSection::_color_xsection() const
+{
+    if (_colored_xsection)
+        return _colored_xsection;
+    int n = xs_coords.size(0);
+    const float *c = xs_coords.values(), *c2 = xs_coords2.values();
+    const float *n1 = xs_normals.values(), *n2 = xs_normals2.values();
+    std::vector<std::pair<int, float>> points;
+    std::vector<int> original_indices(n);
+    for (int i = 0; i < n; ++i)
+      {
+        int j = (i + 1) % n;
+        original_indices[i] = points.size();
+        points.emplace_back(i, 0);
+        float y = c[2*i+1], next_y = c[2*j+1];
+        if ((y < 0 && next_y > 0) || (y > 0 && next_y < 0))
+            points.emplace_back(i, y / (y - next_y));
+      }
+    int64_t size[2] = {static_cast<int64_t>(points.size()), 2};
+    FArray coords(2, size), coords2, normals(2, size), normals2(2, size);
+    if (is_arrow)
+        coords2 = FArray(2, size);
+    for (size_t v = 0; v < points.size(); ++v)
+      {
+        int i = points[v].first, j = (i + 1) % n;
+        float f = points[v].second;
+        for (int k = 0; k < 2; ++k)
+          {
+            coords.values()[2*v+k] = c[2*i+k] + f * (c[2*j+k] - c[2*i+k]);
+            if (is_arrow)
+                coords2.values()[2*v+k] = c2[2*i+k] + f * (c2[2*j+k] - c2[2*i+k]);
+            // A seam has the interpolated lighting normal of the original edge.
+            // At an original vertex, preserve its outgoing and incoming normals.
+            float outgoing = n1[2*i+k];
+            float incoming = is_faceted ? n2[2*i+k] : outgoing;
+            if (f != 0)
+                incoming = outgoing = outgoing + f * ((is_faceted ? n2[2*j+k] : n1[2*j+k]) - outgoing);
+            normals.values()[2*v+k] = outgoing;
+            normals2.values()[2*v+k] = incoming;
+          }
+        if (f != 0)
+          {
+            coords.values()[2*v+1] = 0;
+            if (is_arrow)
+                coords2.values()[2*v+1] = 0;
+          }
+      }
+    // Preserve the original cap tessellation, including nonconvex barbell caps.
+    // Inserted seam points lie on cap edges and need no additional cap triangles.
+    IArray tess(2, tessellation.sizes());
+    for (int64_t i = 0; i < tessellation.size(); ++i)
+        tess.values()[i] = original_indices[tessellation.values()[i]];
+    _colored_xsection = new RibbonXSection(&coords, &coords2, &normals, &normals2, true, &tess);
+    return _colored_xsection;
 }
 
 Mesh*
@@ -607,7 +699,7 @@ RibbonXSection::_extrude_smooth(const float* centers, const float* tangents,
 Mesh*
 RibbonXSection::_extrude_faceted(const float* centers, const float* tangents,
                                  const float* normals, const float* radial_scale, int num_pts,
-                                 bool cap_front, bool cap_back, int offset) const
+                                 bool cap_front, bool cap_back, int offset, bool smooth_arrow) const
 {
 // std::cerr << "extrude_faceted " << xs_coords2.dimension() << "\n";
 // dump_farray("xs_coords", xs_coords, 2);
@@ -661,7 +753,7 @@ RibbonXSection::_extrude_faceted(const float* centers, const float* tangents,
         if (xs_coords2.dimension() != 0) {
             cp2 = xs_coords2_values + j * 2;
             // arrow_length = num_pts_per_spline / 2;
-            arrow_length = num_pts_per_spline - 1;
+            arrow_length = num_pts_per_spline - (smooth_arrow ? 0 : 1);
             c_step[0] = (cp2[0] - cp1[0]) / arrow_length;
             c_step[1] = (cp2[1] - cp1[1]) / arrow_length;
         }
@@ -1036,10 +1128,11 @@ extern "C" PyObject *
 geometry_arrays(PyObject *, PyObject *args, PyObject *keywds)
 {
   Geometry *g;
-  const char *kwlist[] = {"geometry", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&"),
+  int include_inside = 0;
+  const char *kwlist[] = {"geometry", "include_inside", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&|p"),
 				   (char **)kwlist,
-				   parse_geometry_pointer, &g))
+				   parse_geometry_pointer, &g, &include_inside))
     return NULL;
 
   int nv = g->num_vertices(), nt = g->num_triangles();
@@ -1048,7 +1141,11 @@ geometry_arrays(PyObject *, PyObject *args, PyObject *keywds)
   PyObject *normals = python_float_array(nv, 3, &na);
   int *ta;
   PyObject *triangles = python_int_array(nt, 3, &ta);
-  g->arrays(va, na, ta);
+  unsigned char *inside = nullptr;
+  PyObject *inside_array = include_inside ? python_bool_array(nv, &inside) : nullptr;
+  g->arrays(va, na, ta, inside);
+  if (include_inside)
+    return python_tuple(vertices, normals, triangles, inside_array);
   
   return python_tuple(vertices, normals, triangles);
 }
@@ -1065,7 +1162,7 @@ static void ribbon_extrusions(const float *coords, const float *tangents, const 
 			      const float *radial_scale,
 			      int num_coords, const int *ranges, int num_ranges, int num_res,
 			      const RibbonXSections &xs_front, const RibbonXSections &xs_back,
-			      Geometry &geometry)
+			      Geometry &geometry, const int *inside_sides)
 {
   int nsp = num_coords / num_res;  	// Path points per residue
   int nlp = nsp/2, nrp = (nsp + 1)/2;	// Left and right half points per residue
@@ -1092,7 +1189,8 @@ static void ribbon_extrusions(const float *coords, const float *tangents, const 
 	  int num_pts = e-s;
 	  const float *front_c = coords + 3*s, *front_t = tangents + 3*s, *front_n = normals + 3*s;
 	  const float *front_r = (radial_scale ? radial_scale + s : NULL);
-	  Mesh *mleft = xs_front[i]->extrude(front_c, front_t, front_n, front_r, num_pts, capped, mid_cap);
+          int front_side = inside_sides ? inside_sides[2*i] : 0;
+	  Mesh *mleft = xs_front[i]->extrude(front_c, front_t, front_n, front_r, num_pts, capped, mid_cap, 0, front_side);
 	  geometry.add_mesh(mleft);
 	  
 	  // Right half
@@ -1102,7 +1200,8 @@ static void ribbon_extrusions(const float *coords, const float *tangents, const 
 	  num_pts = e-s;
 	  const float *back_c = coords + 3*s, *back_t = tangents + 3*s, *back_n = normals + 3*s;
 	  const float *back_r = (radial_scale ? radial_scale + s : NULL);
-	  Mesh *mright = xs_back[i]->extrude(back_c, back_t, back_n, back_r, num_pts, mid_cap, next_cap);
+          int back_side = inside_sides ? inside_sides[2*i+1] : 0;
+	  Mesh *mright = xs_back[i]->extrude(back_c, back_t, back_n, back_r, num_pts, mid_cap, next_cap, 0, back_side);
 	  geometry.add_mesh(mright);
 	  
 	  capped = next_cap;
@@ -1140,13 +1239,13 @@ extern "C" PyObject *
 ribbon_extrusions(PyObject *, PyObject *args, PyObject *keywds)
 {
   FArray centers, tangents, normals, radial_scale;
-  IArray ranges;
+  IArray ranges, inside_sides;
   int num_res;
   RibbonXSections xs_front, xs_back;
   Geometry *g;
   const char *kwlist[] = {"centers", "tangents", "normals", "ranges", "num_res",
-			  "xs_front", "xs_back", "geometry", "radial_scale", NULL};
-  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&iO&O&O&|O&"),
+			  "xs_front", "xs_back", "geometry", "radial_scale", "inside_sides", NULL};
+  if (!PyArg_ParseTupleAndKeywords(args, keywds, const_cast<char *>("O&O&O&O&iO&O&O&|O&O&"),
 				   (char **)kwlist,
 				   parse_float_n3_array, &centers,
 				   parse_float_n3_array, &tangents,
@@ -1156,7 +1255,8 @@ ribbon_extrusions(PyObject *, PyObject *args, PyObject *keywds)
 				   parse_rxsection_array, &xs_front,
 				   parse_rxsection_array, &xs_back,
 				   parse_geometry_pointer, &g,
-				   parse_float_n_array, &radial_scale))
+				   parse_float_n_array, &radial_scale,
+                                   parse_int_n2_array, &inside_sides))
     return NULL;
 
   if (!centers.is_contiguous() || !tangents.is_contiguous() || !normals.is_contiguous() ||
@@ -1181,9 +1281,17 @@ ribbon_extrusions(PyObject *, PyObject *args, PyObject *keywds)
 		   centers.size_string().c_str(), radial_scale.size_string().c_str());
       return NULL;
     }
+  if (inside_sides.dimension() != 0 &&
+      (!inside_sides.is_contiguous() || inside_sides.size(0) != num_res))
+    {
+      PyErr_SetString(PyExc_TypeError,
+                      "ribbon_extrusions(): Inside sides must be contiguous and match residues");
+      return NULL;
+    }
+  const int *sides = inside_sides.dimension() == 0 ? nullptr : inside_sides.values();
   const float *r = (radial_scale.dimension() == 1 ? radial_scale.values() : NULL);
   ribbon_extrusions(centers.values(), tangents.values(), normals.values(), r, centers.size(0),
-		    ranges.values(), ranges.size(0), num_res, xs_front, xs_back, *g);
+		    ranges.values(), ranges.size(0), num_res, xs_front, xs_back, *g, sides);
   
   return python_none();
 }
