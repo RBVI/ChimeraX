@@ -95,6 +95,8 @@ class OpenFoldPredictionGUI(ToolInstance):
         
         tw.manage(placement="side")
 
+        self._check_for_newer_openfold()
+
     # ---------------------------------------------------------------------------
     #
     @classmethod
@@ -500,10 +502,16 @@ class OpenFoldPredictionGUI(ToolInstance):
 
     # ---------------------------------------------------------------------------
     #
-    def _need_to_install_openfold(self):
+    @property
+    def _settings(self):
         from .settings import _openfold_settings
         settings = _openfold_settings(self.session)
-        openfold_dir = settings.openfold_install_location
+        return settings
+    
+    # ---------------------------------------------------------------------------
+    #
+    def _need_to_install_openfold(self):
+        openfold_dir = self._settings.openfold_install_location
         from .install import find_executable
         openfold_exe = find_executable(openfold_dir, 'run_openfold')
         from os.path import isdir, isfile
@@ -549,9 +557,7 @@ class OpenFoldPredictionGUI(ToolInstance):
                 options.append('zipArchive true')
         if self._samples.value != 1:
             options.append(f'samples {self._samples.value}')
-        from .settings import _openfold_settings
-        settings = _openfold_settings(self.session)
-        if self._install_directory.value != settings.openfold_install_location:
+        if self._install_directory.value != self._settings.openfold_install_location:
             options.append(f'installLocation {quote_path_if_necessary(self._install_directory.value)}')
         self._run_prediction(options = ' '.join(options))
 
@@ -721,9 +727,6 @@ class OpenFoldPredictionGUI(ToolInstance):
         self._options_panel = p = CollapsiblePanel(parent, title = None)
         f = p.content_area
 
-        from .settings import _openfold_settings
-        settings = _openfold_settings(self.session)
-
         from chimerax.ui.widgets import EntriesRow
 
         # Results directory
@@ -736,6 +739,7 @@ class OpenFoldPredictionGUI(ToolInstance):
         # Number of predicted structures
         ns = EntriesRow(f, 'Number of predicted structures', 1)
         self._samples = sam = ns.values[0]
+        settings = self._settings
         sam.value = settings.samples
 
         # Use MSA cache
@@ -771,9 +775,7 @@ class OpenFoldPredictionGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def default_results_directory(self):
-        from .settings import _openfold_settings
-        settings = _openfold_settings(self.session)
-        return settings.openfold_results_location
+        return self._settings.openfold_results_location
 
     # ---------------------------------------------------------------------------
     #
@@ -798,8 +800,7 @@ class OpenFoldPredictionGUI(ToolInstance):
     # ---------------------------------------------------------------------------
     #
     def _save_default_options(self, install_dir_only = False):
-        from .settings import _openfold_settings
-        settings = _openfold_settings(self.session)
+        settings = self._settings
         if not install_dir_only:
             settings.openfold_results_location = self._results_directory.value
             settings.samples = self._samples.value
@@ -813,17 +814,23 @@ class OpenFoldPredictionGUI(ToolInstance):
         
     # ---------------------------------------------------------------------------
     #
-    def _install_openfold(self):
-
-        openfold_dir = self._install_directory.value
+    def _install_openfold(self, *, old_version = None):
+        openfold_dir = self._install_directory.value if old_version is None else None
         from os.path import expanduser
         if not openfold_dir:
             openfold_dir = expanduser('~/openfold3_0.5.1')
         param_dir = expanduser('~/.openfold3')
-        message = ('Do you want to install OpenFold?\n\n'
-                   'This will take about 3 Gbytes of disk space and ten minutes or more depending on network speed.'
-                   f' OpenFold and its required packages will be installed in folder {openfold_dir} (1 GByte)'
-                   f'  and its model parameters (2 GBytes) will be installed in {param_dir}')
+        if old_version is None:
+            message = 'Do you want to install OpenFold?'
+        else:
+            ver_string = ".".join(str(v) for v in old_version)
+            message = f'There is a newer OpenFold version 0.5.1 available.  Do you want to install it?  You have version {ver_string}\n\nYou can install it later with ChimeraX command "openfold install".'
+            self._settings.announced_0_5_1_available = True
+        from .install import installation_size
+        gbytes = installation_size()
+        message += (f'\n\nThis will take about {"%.1f"%(gbytes+2)} Gbytes of disk space and ten minutes or more depending on network speed.'
+                    f' OpenFold and its required packages will be installed in folder {openfold_dir} ({"%.1f"%gbytes} GByte)'
+                    f'  and its model parameters (2 GBytes) will be installed in {param_dir}')
         from chimerax.ui.ask import ask
         answer = ask(self.session, message, title = 'Install OpenFold',
                      help_url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold_help.html#install')
@@ -843,8 +850,10 @@ class OpenFoldPredictionGUI(ToolInstance):
     def _show_installing_openfold(self):
         '''Replace "Install OpenFold" button with text "Installing OpenFold..."'''
         layout = self._button_row.layout()
-        layout.removeWidget(self._install_openfold_button)
-        self._install_openfold_button.setVisible(False)
+        iob = self._install_openfold_button
+        if iob is not None:
+            layout.removeWidget(iob)
+            iob.setVisible(False)
         from Qt.QtWidgets import QLabel
         self._installing_label = QLabel('Installing OpenFold...')
         layout.insertWidget(0, self._installing_label)
@@ -860,7 +869,8 @@ class OpenFoldPredictionGUI(ToolInstance):
         self._installing_label = None
         if success:
             self._save_default_options(install_dir_only = True)
-        else:
+            self._settings.installed_0_5_1 = True
+        elif self._install_openfold_button is not None:
             layout.insertWidget(0, self._install_openfold_button)
             self._install_openfold_button.setVisible(True)
 
@@ -878,6 +888,21 @@ class OpenFoldPredictionGUI(ToolInstance):
                                                  options = QFileDialog.Option.ShowDirsOnly)
         if path:
             self._install_directory.value = path
+            
+    # ------------------------------------------------------------------------------
+    #
+    def _check_for_newer_openfold(self):
+        settings = self._settings
+        if settings.installed_0_5_1:
+            return	# Already installed.
+        if settings.announced_0_5_1_available:
+            return	# Already told the user newer OpenFold is available
+        from .install import _openfold_version
+        version = _openfold_version(settings.openfold_install_location)
+        if version is None or version >= (0,5,1):
+            return
+
+        self._install_openfold(old_version = version)
 
     # ---------------------------------------------------------------------------
     #

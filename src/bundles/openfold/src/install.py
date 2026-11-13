@@ -175,7 +175,7 @@ class InstallOpenFold:
         else:
             torch_version = '2.11.0'	# Unknown branch, use newer Torch
         command = [self._openfold_python_executable(), '-m', 'pip', 'install', f'torch=={torch_version}',
-                   f'--index-url', 'https://download.pytorch.org/whl/{cuda_version}']
+                   '--index-url', f'https://download.pytorch.org/whl/{cuda_version}']
         logger.info(' '.join(command))
 
         # Echo subprocess output to the ChimeraX Log.
@@ -430,6 +430,38 @@ def find_executable(openfold_install_directory, exe_name):
     else:
         exe = join(openfold_install_directory, 'bin', exe_name)
     return exe
+
+# ------------------------------------------------------------------------------
+#
+def _openfold_version(install_path):
+    from sys import platform
+    if platform == 'win32':
+        dist_pattern = f'{install_path}/Lib/site-packages/openfold3-*.dist-info'
+    else:
+        dist_pattern = f'{install_path}/lib/python*/site-packages/openfold3-*.dist-info'
+    from glob import glob
+    dist_paths = glob(dist_pattern)
+    for dist_path in dist_paths:
+        i = dist_path.find('site-packages')
+        if i > 0:
+            version_string = dist_path[i+24:-10]
+            try:
+                version = tuple(int(v) for v in version_string.split('.')[:3])
+                return version
+            except Exception:
+                pass
+
+# ------------------------------------------------------------------------------
+#
+def installation_size():
+    from sys import platform
+    if platform == 'darwin':
+        size = 1.5
+    elif platform == 'linux':
+        size = 6.4 if have_nvidia_driver() else 2.0
+    elif platform == 'win32':
+        size = 5.4 if have_nvidia_driver() else 1.8
+    return size
 
 # ------------------------------------------------------------------------------
 #

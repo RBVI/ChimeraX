@@ -40,6 +40,8 @@ class _OpenFoldSettings(Settings):
     }
     AUTO_SAVE = {
         'active_server_jobs': [],  # Directories of openfold runs sent to server
+        'announced_0_5_1_available': False,
+        'installed_0_5_1': False,
     }
 
 # -----------------------------------------------------------------------------
