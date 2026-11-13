@@ -247,7 +247,8 @@ class HBondsGUI(QWidget):
                 info_options.add_option(self.__log_option)
 
             if show_save_file:
-                self.__save_file_option = BooleanOption("File", False, None)
+                self.__save_file_option = BooleanOption("File", None if settings else False, None,
+                    attr_name="save_file", settings=settings)
                 info_options.add_option(self.__save_file_option)
 
     def get_command(self):
@@ -282,11 +283,13 @@ class HBondsGUI(QWidget):
                 fname = QFileDialog.getSaveFileName(self, "Save H-Bonds File")[0]
                 if fname:
                     command_values['save_file'] = fname
+                    settings['save_file'] = True
                 else:
                     from chimerax.core.errors import CancelOperation
                     raise CancelOperation("H-bonds save file cancelled")
             else:
                 command_values['save_file'] = None
+                settings['save_file'] = False
         else:
             command_values['save_file'] = None
 

@@ -36,12 +36,16 @@ PATCHES += openmm_metadata.patch
 endif
 endif
 
-# maturin's PEP517 backend (used to build pynmrstar's sdist, which has no cp314
-# wheel) shells out to the `maturin` console script by bare name. With
-# --no-build-isolation there is no ephemeral build venv whose bin is on PATH, so
-# we must prepend the directory pip installed the script into ourselves. On a
-# macOS framework build that is Versions/$(PYTHON_VERSION)/bin, not Contents/bin.
-APP_SCRIPT_DIR = $(shell $(APP_PYTHON_EXE) -c "import sysconfig; print(sysconfig.get_path('scripts'))")
+ifeq ($(OSARCH),LinuxArm64)
+# pynmrstar publishes no Linux aarch64 wheel, so there (and only there) it
+# builds from its sdist with the maturin backend. Since we use
+# --no-build-isolation, maturin has to be installed beforehand, along with
+# puccinialin (which bootstraps a Rust toolchain when none is present). The
+# backend shells out to the `maturin` console script by bare name, so the
+# directory pip installed the script into has to be on PATH too.
+PYNMRSTAR_BUILD_TOOLS = maturin puccinialin
+PYNMRSTAR_BUILD_ENV = PATH="$(shell $(APP_PYTHON_EXE) -c "import sysconfig; print(sysconfig.get_path('scripts'))"):$$PATH"
+endif
 
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 
@@ -84,40 +88,42 @@ app-install: app_requirements.txt $(PLATO_WHEELS) $(SCIPY_WHEEL) $(CYTHON_WHEEL)
 else
 app-install: app_requirements.txt $(PLATO_WHEELS)
 endif
-	# Install Cython first so ndindex builds on Linux ARM64
-ifdef CYTHON_WHEEL
-	$(APP_PIP_INSTALL) ./$(CYTHON_WHEEL)
+	# What the builds of packages in app_requirements.txt need, installed first
+	# (in one install, since each takes a while to start):
+	# - Cython, so ndindex builds on Linux ARM64
+	# - numpy
+	# - On Linux ARM64, what pynmrstar's sdist needs
+	# - On Darwin Intel, cffi
+	# - On macOS, our scipy wheel, rather than the one the requirements would
+	#   pick
+	$(APP_PIP_INSTALL) \
+		$(if $(CYTHON_WHEEL),./$(CYTHON_WHEEL),$(shell grep Cython $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')) \
+		$(shell grep numpy app_requirements.txt | sed -e 's/[\ #",]//g') \
+		$(PYNMRSTAR_BUILD_TOOLS) \
+		$(if $(filter DarwinIntel64,$(OSARCH)),cffi) \
+		$(if $(filter Darwin,$(OS)),./$(SCIPY_WHEEL))
+	# With our own wheels too, in the same install
+ifeq ($(OS),Windows)
+	# OpenMM itself is an explicit requirement. Its CUDA plugin's NVIDIA
+	# dependencies are removed by openmm_metadata.patch below; avoid downloading
+	# and installing hundreds of MB just to uninstall them again.
+	sed '/^openmm-cuda-12==/d' app_requirements.txt > app_requirements-with-deps.txt
+	sed -n '/^openmm-cuda-12==/p' app_requirements.txt > app_requirements-no-deps.txt
+	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements-with-deps.txt $(PLATO_WHEELS)
+	$(APP_PIP_INSTALL) --no-deps -r app_requirements-no-deps.txt
 else
-	$(APP_PIP_INSTALL) $(shell grep Cython $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
+	$(PYNMRSTAR_BUILD_ENV) CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt $(PLATO_WHEELS)
 endif
-	$(APP_PIP_INSTALL) $(shell grep numpy app_requirements.txt | sed -e 's/[\ #",]//g')
-	# pynmrstar 3.5.1 has no cp314 wheel, so it builds from its sdist using the
-	# maturin backend. Since we use --no-build-isolation, pip and uv won't create
-	# isolated, ephemeral environments with it, and we have to install it.
-	# puccinialin (which bootstraps a Rust toolchain when none is present) must
-	# also already be in the environment before pynmrstar builds.
-	# On Darwin Intel, we also need cffi
-	$(APP_PIP_INSTALL) maturin puccinialin
-ifeq ($(OSARCH),DarwinIntel64)
-	$(APP_PIP_INSTALL) cffi
-endif
-ifeq ($(OS),Darwin)
-	$(APP_PIP_INSTALL) ./$(SCIPY_WHEEL)
-endif
-	PATH="$(APP_SCRIPT_DIR):$$PATH" CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt
 ifdef USE_PYSIDE6
 	$(APP_PIP_INSTALL) $(shell grep PySide6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 	$(APP_PIP_INSTALL) $(shell grep shiboken6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
 endif
-	# Remove the Qt modules, tools and data ChimeraX does not use
-	$(APP_PYTHON_EXE) prune_pyside6.py
 ifneq (,$(SOURCE_WHEELS))
 	LANG=$(LANG) $(PIP_INSTALL) --no-build-isolation --no-binary $(subst $(SPACE),$(COMMA),$(SOURCE_WHEELS)) $(SOURCE_VERSIONS)
 endif
 ifdef DEV_DEPENDENCIES
 	$(APP_PIP_INSTALL) --no-build-isolation -r dev_requirements.txt
 endif
-	$(APP_PIP_INSTALL) $(PLATO_WHEELS)
 	-for p in $(PATCHES); do \
 		patch --ignore-whitespace -d $(APP_PYSITEDIR) -N -p0 < $$p ; \
 	done
@@ -126,11 +132,12 @@ ifneq ($(OSARCH),LinuxArm64)
 	# openmm-cuda-12 brings in ~600MB of CUDA dependencies it does not use
 	$(APP_PIP) uninstall -y nvidia-cuda-runtime-cu12 nvidia-cuda-nvcc-cu12 nvidia-cuda-nvrtc-cu12 nvidia-cuda-cupti-cu12 nvidia-cufft-cu12
 endif
-ifeq ($(OSARCH),Linux)
 	$(APP_PIP) uninstall -y nvidia-nvjitlink-cu12
 endif
-endif
-	$(APP_PIP) uninstall -y maturin puccinialin
+	# Build-only tools.  On macOS, uv comes along when the build tree's
+	# Python.framework is copied into the app, but is only run from the build
+	# tree's Python.
+	$(APP_PIP) uninstall -y $(PYNMRSTAR_BUILD_TOOLS) uv
 
 app_requirements.txt: ../../pyproject.toml
 	$(APP_PYTHON_BIN) make_requirements.py
@@ -167,7 +174,7 @@ app-upgrade: app_requirements.txt
 
 clean:
 	-rm -f pip.log
-	-rm -f app_requirements.txt
+	-rm -f app_requirements.txt app_requirements-with-deps.txt app_requirements-no-deps.txt
 	make -C package_checker clean
 
 outdated:
@@ -205,5 +212,4 @@ $(CYTHON_WHEEL):
 	$(APP_PYTHON_EXE) -m pip download --platform=macosx_10_9_x86_64 --only-binary=:all: --no-deps Cython==$(CYTHON_VERSION)
 
 $(CXSERVICES_WHEEL):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/cxservices/cxservices-$(CXSERVICES_VER)-$(CXSERVICES_DEPLOYMENT_VER)-py3-none-any.whl
-	mv cxservices-$(CXSERVICES_VER)-$(CXSERVICES_DEPLOYMENT_VER)-py3-none-any.whl $(CXSERVICES_WHEEL)
+	$(call FETCH_PREREQ_TO,$@,$(PREREQS_ARCHIVE)/cxservices/cxservices-$(CXSERVICES_VER)-$(CXSERVICES_DEPLOYMENT_VER)-py3-none-any.whl)

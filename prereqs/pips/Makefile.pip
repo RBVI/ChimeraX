@@ -6,4 +6,3 @@ PIP	= $(PYTHON_EXE) -m pip
 APP_PIP	= $(APP_PYTHON_EXE) -m pip
 endif
 PIP_INSTALL = $(PIP) install
-APP_PIP_INSTALL = $(APP_PIP) install

@@ -1,0 +1,68 @@
+# Clustal X coloring scheme hard-encoded in Chimera.
+# To use a custom scheme, edit a copy of this file (file name is not 
+# important) and load the new scheme into Multalign Viewer.
+# If no rgbindex is specified, the 8 colors defined below will be used.
+
+@rgbindex
+RED          0.9 0.2 0.1
+BLUE         0.1 0.5 0.9
+GREEN        0.1 0.8 0.1
+CYAN         0.1 0.7 0.7
+PINK         0.9 0.5 0.5
+MAGENTA      0.8 0.3 0.8
+YELLOW       0.69 0.69 0.0
+ORANGE       0.9 0.6 0.3
+
+@consensus
+% = 60% w:l:v:i:m:a:f:c:y:h:p
+# = 80% w:l:v:i:m:a:f:c:y:h:p
+- = 50% e:d
++ = 60% k:r
+g = 50% g
+n = 50% n
+q = 50% q:e
+p = 50% p
+t = 50% t:s
+A = 85% a
+C = 85% c
+D = 85% d
+E = 85% e
+F = 85% f
+G = 85% g
+H = 85% h
+I = 85% i
+K = 85% k
+L = 85% l
+M = 85% m
+N = 85% n
+P = 85% p
+Q = 85% q
+R = 85% r
+S = 85% s
+T = 85% t
+V = 85% v
+W = 85% w
+Y = 85% y
+
+@color
+g = ORANGE
+p = YELLOW
+t = GREEN if t:S:T:%:#
+s = GREEN if t:S:T:#
+n = GREEN if n:N:D
+q = GREEN if q:Q:E:+:K:R
+w = BLUE if %:#:A:C:F:H:I:L:M:V:W:Y:P:p
+l = BLUE if %:#:A:C:F:H:I:L:M:V:W:Y:P:p
+v = BLUE if %:#:A:C:F:H:I:L:M:V:W:Y:P:p
+i = BLUE if %:#:A:C:F:H:I:L:M:V:W:Y:P:p
+m = BLUE if %:#:A:C:F:H:I:L:M:V:W:Y:P:p
+a = BLUE if %:#:A:C:F:H:I:L:M:V:W:Y:P:p:T:S:s:G
+f = BLUE if %:#:A:C:F:H:I:L:M:V:W:Y:P:p
+c = BLUE if %:#:A:F:H:I:L:M:V:W:Y:S:P:p
+c = PINK if C
+h = CYAN if %:#:A:C:F:H:I:L:M:V:W:Y:P:p
+y = CYAN if %:#:A:C:F:H:I:L:M:V:W:Y:P:p
+e = MAGENTA if -:D:E:q:Q
+d = MAGENTA if -:D:E:n:N
+k = RED if +:K:R:Q
+r = RED if +:K:R:Q

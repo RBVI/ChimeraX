@@ -27,6 +27,7 @@
 
 cimport cydecl
 import collections
+from contextlib import contextmanager
 from tinyarray import array, zeros
 from cython.operator import dereference
 from ctypes import c_void_p, byref
@@ -542,7 +543,6 @@ cdef class CyAtom:
         if self._deleted: raise RuntimeError("Atom already deleted")
         return _translate_struct_cat(self.cpp_atom.structure_category()).decode()
 
-    from contextlib import contextmanager
     @contextmanager
     def suppress_alt_loc_change_notifications(self):
         """Suppress alt loc change notifications while the code body runs.
@@ -653,12 +653,12 @@ cdef class CyAtom:
         return self.cpp_atom.has_alt_loc(ord(loc[0]))
 
     def is_backbone(self, bb_extent=CyAtom.BBE_MAX):
-        '''Supported API. Whether this Atom is considered backbone, given the 'extent' criteria.n\n
+        '''Supported API. Whether this Atom is considered backbone, given the 'extent' criteria.\n
         Possible 'extent' values are:\n\n
         BBE_MIN\n
-            Only the atoms needed to connect the residue chain (and their hydrogens)
+            Only the atoms needed to connect the residue chain (and their hydrogens)\n\n
         BBE_MAX\n
-            All non-sidechain atoms
+            All non-sidechain atoms\n\n
         BBE_RIBBON\n
             The backbone atoms that a ribbon depiction hides
         '''

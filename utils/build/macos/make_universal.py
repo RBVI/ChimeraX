@@ -290,8 +290,6 @@ def has_suffix(path, suffixes):
 omit = [
     "_CodeSignature",
     "debugpy",
-    "libtcl8.6.dylib",  # Causes notarization failure. Not used.
-    "libtk8.6.dylib",  # Causes notarization failure. Not used.
     #    "libHoloPlayCore.dylib",  # 0.1.0 has no ARM symbols (looking_glass)
     #    "libopenvr_api_32.dylib",  # VR is not even supported on macOS
     #    # These amber libs are always amd64 even on arm64 macos

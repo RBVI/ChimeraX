@@ -29,9 +29,8 @@ uv-build: uv-install
 
 install reinstall app-install: wheel
 	# newer versions of pip won't install over the same version number (which depends on the last commit
-	# number), so to install something that hasn't been committed, uninstall first.
-	$(PYTHON) -m pip uninstall --yes ChimeraX-Core
-	$(PYTHON) -m pip install dist/*.whl
+	# number), so to install something that hasn't been committed, force the reinstall.
+	$(APP_PIP_INSTALL) --no-deps --reinstall dist/*.whl
 
 build: install
 	$(MAKE) sync
@@ -45,7 +44,8 @@ else
 endif
 
 wheel: clean src/buildinfo.py src/commands/_atomspec.py
-	$(PYTHON) -m build --no-isolation --wheel
+	# Same backend as "python -m build", without its extra processes
+	$(PYTHON) -m chimerax.bundle_builder --build .
 
 sync:
 	cp -av dist/*.whl $(build_prefix)/sync/

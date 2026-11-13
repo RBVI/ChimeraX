@@ -8,7 +8,7 @@ DISTCLEAN = src/gaff2.xml src/moriarty_and_case_ligands.zip
 wheel install install-app: src/gaff2.xml src/moriarty_and_case_ligands.zip
 
 src/gaff2.xml:
-	cd src ; $(FETCH_PREREQ) $(PREREQS_ARCHIVE)/tug_ligands/gaff2.xml
+	$(call FETCH_PREREQ_TO,$@,$(PREREQS_ARCHIVE)/tug_ligands/gaff2.xml)
 
 src/moriarty_and_case_ligands.zip:
-	cd src ; $(FETCH_PREREQ) $(PREREQS_ARCHIVE)/tug_ligands/moriarty_and_case_ligands.zip
+	$(call FETCH_PREREQ_TO,$@,$(PREREQS_ARCHIVE)/tug_ligands/moriarty_and_case_ligands.zip)

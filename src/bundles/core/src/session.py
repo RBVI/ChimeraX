@@ -1310,14 +1310,23 @@ def save_x3d(session, path, transparent_background=False):
 
 
 def register_misc_commands(session):
-    from .commands.toolshed import register_command
+    from .commands.cli import delay_registration
 
-    register_command(session.logger)
-    from .commands import devel as devel_cmd
-    from .commands import pip as pip_cmd
+    def deferred_registration(module_name):
+        def register_commands():
+            from importlib import import_module
+            module = import_module(".commands." + module_name, __package__)
+            module.register_command(session.logger)
+        return register_commands
 
-    devel_cmd.register_command(session.logger)
-    pip_cmd.register_command(session.logger)
+    # Keep command names discoverable without importing developer/package
+    # management implementations before the first interactive window.
+    for name in ("toolshed", "devel"):
+        delay_registration(name, deferred_registration(name), logger=session.logger)
+    register_pip = deferred_registration("pip")
+    delay_registration("pip", register_pip, logger=session.logger)
+    # Either spelling must register pip and its alias, whichever is used first.
+    delay_registration("devel pip", register_pip, logger=session.logger)
 
     from .commands import CmdDesc, OpenFileNameArg, SaveFileNameArg, register
 

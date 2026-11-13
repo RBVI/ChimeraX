@@ -542,6 +542,10 @@ class SequenceViewer(ToolInstance):
         image_action = QAction("Save Image...", file_menu)
         image_action.triggered.connect(lambda: self.seq_canvas.save_image())
         file_menu.addAction(image_action)
+        file_menu.addSeparator()
+        lcs_action = QAction("Load Color Scheme...", file_menu)
+        lcs_action.triggered.connect(lambda: self.show_load_color_scheme_dialog())
+        file_menu.addAction(lcs_action)
         scf_action = QAction("Load Sequence Coloring File...", file_menu)
         scf_action.triggered.connect(lambda: self.load_scf_file(None))
         file_menu.addAction(scf_action)
@@ -735,6 +739,21 @@ class SequenceViewer(ToolInstance):
         settings_action.triggered.connect(self.show_settings)
         menu.addAction(settings_action)
 
+    def load_color_scheme(self, scheme, *, make_default=False):
+        from .settings import RC_CUSTOM_SCHEMES, builtin_residue_colorings
+        if scheme not in builtin_residue_colorings:
+            existing_custom_schemes = getattr(self.settings, RC_CUSTOM_SCHEMES)
+
+            if scheme not in existing_custom_schemes:
+                # verify the file is okay...
+                from .clustalX import clustal_info
+                categories, colorings = clustal_info(scheme)
+
+                # file seems okay
+                setattr(self.settings, RC_CUSTOM_SCHEMES, existing_schemes + [scheme])
+
+        self.seq_canvas.set_letter_coloring(scheme, make_default)
+
     def load_scf_file(self, path, color_structures=None):
         """color_structures=None means use user's preference setting"""
         self.region_manager.load_scf_file(path, color_structures)
@@ -818,6 +837,14 @@ class SequenceViewer(ToolInstance):
                 self.tool_window.create_child_window("%s Features" % seq.name, close_destroys=False))
             self._feature_browsers[seq].tool_window.manage(None)
         self._feature_browsers[seq].tool_window.shown = True
+
+    def show_load_color_scheme_dialog(self):
+        if not hasattr(self, "color_scheme_dialog"):
+            from .color_scheme import ColorSchemeDialog
+            self.color_scheme_dialog = ColorSchemeDialog(self,
+                self.tool_window.create_child_window("Load Color Scheme", close_destroys=False))
+            self.color_scheme_dialog.tool_window.manage(None)
+        self.color_scheme_dialog.tool_window.shown = True
 
     def show_match_dialog(self):
         if not hasattr(self, "match_dialog"):

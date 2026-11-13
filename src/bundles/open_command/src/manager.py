@@ -200,6 +200,8 @@ class OpenManager(ProviderManager):
         except NoOpenerError:
             # fetch-only type (e.g. cellPACK)
             args = {}
+            if not self._fetchers[database_name][format_name].bundle_info.installed:
+                raise OpenerNotInstalledError("Opener for format '%s' is not installed" % format_name)
         args.update(provider_info.bundle_info.run_provider(self.session,
             database_name.lower(), self).fetch_args)
         return args

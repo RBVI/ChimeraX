@@ -79,6 +79,9 @@ Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int n
     _ribbon_rgba({160,160,0,255}), _ss_id(-1), _ss_type(SS_COIL), _structure(as), _ring_display(false),
     _rings_are_thin(false), _worm_radius(1.0)
 {
+    if (chain.empty())
+        throw std::logic_error("chain ID cannot be empty string");
+
     if (!as->lower_case_chains) {
         for (auto c: _chain_id) {
             if (std::islower(c)) {
@@ -601,6 +604,10 @@ Residue::set_chain_id(ChainID chain_id)
     if (chain_id != _chain_id) {
         if (_chain != nullptr)
             throw std::logic_error("Cannot set polymeric chain ID directly from Residue; must use Chain");
+
+        if (chain_id.empty())
+            throw std::logic_error("chain ID cannot be empty string");
+
         _chain_id = chain_id;
         if (!structure()->lower_case_chains) {
             for (auto c: chain_id) {

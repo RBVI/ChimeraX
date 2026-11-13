@@ -272,9 +272,12 @@ class Fit:
                        FM.transformation_matrix_message(mmap, v, self.fit_transform(mmap)))
         else:
             mols = self.fit_molecules()
-            message = FM.atom_fit_message(mols, v, self.stats)
-            message += '\n'.join([FM.transformation_matrix_message(m,v,self.fit_transform(m))
-                                  for m in mols])
+            if mols:
+                message = FM.atom_fit_message(mols, v, self.stats)
+                message += '\n'.join([FM.transformation_matrix_message(m,v,self.fit_transform(m))
+                                      for m in mols])
+            else:
+                message = 'Fit map or model was closed'
 
         return message
 
@@ -285,6 +288,8 @@ class Fit:
         from chimerax.map import Volume
         vols = [m for m in self.models if isinstance(m, Volume)]
         mmap = vols[0] if vols else None
+        if mmap and mmap.deleted:
+            mmap = None
         return mmap
 
     # -------------------------------------------------------------------------

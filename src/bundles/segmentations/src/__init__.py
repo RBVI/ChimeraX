@@ -13,9 +13,22 @@
 __version__ = "3.5.12"
 
 from chimerax.core import runtime_env_is_chimerax_app as _runtime_env_is_chimerax_app
-from chimerax.segmentations.segmentation import Segmentation, open_grids_as_segmentation
 
 __all__ = ["Segmentation", "open_grids_as_segmentation"]
+
+
+def __getattr__(name):
+    if name in ("Segmentation", "open_grids_as_segmentation"):
+        from importlib import import_module
+        value = getattr(import_module('.segmentation', __name__), name)
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    return sorted(set(globals()) | set(__all__))
+
 
 if _runtime_env_is_chimerax_app():
     from chimerax.segmentations.bundle import SegmentationsBundle

@@ -44,7 +44,6 @@ Ubuntu 24.04 containter that can build ChimeraX
 	liblzma-dev \
 	libmysqlclient-dev \
 	libnss3-dev \
-	libosmesa6-dev \
 	libpango1.0-dev \
 	libpcre3-dev \
 	libpng-dev \

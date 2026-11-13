@@ -24,9 +24,7 @@ file = "README.md"
 
 [project.optional-dependencies]
 gui = [
-  "maturin", # required to build pynmrstar
-  "puccinialin", # required to build pynmrstar
-  "pynmrstar==3.5.1",
+  "pynmrstar==3.6.2",
   "openvr==2.12.1401",
   "PyOpenGL==3.1.10",
   "PyOpenGL-accelerate==3.1.10",
@@ -66,7 +64,7 @@ wheel = [
   "beautifulsoup4==4.15.0",
   "colorama==0.4.6",
   "Cython==3.2.9",
-  "filelock==3.32.7",
+  "filelock==4.2.4",
   "grako==3.16.5",
   "html2text==2025.4.15",
   "ihm==2.2",
@@ -83,7 +81,7 @@ wheel = [
   "lz4==4.4.5",
   "matplotlib==3.11.2",
   "mcp==1.30.0",
-  "msgpack==1.2.1",
+  "msgpack==1.2.3",
   "netCDF4==1.7.4",
   "networkx==3.3",
   "numpy==2.4.6",

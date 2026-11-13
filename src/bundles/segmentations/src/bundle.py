@@ -1,5 +1,4 @@
 from chimerax.core.toolshed import BundleAPI
-from chimerax.segmentations.segmentation import Segmentation, open_grids_as_segmentation
 
 
 class SegmentationsBundle(BundleAPI):
@@ -33,11 +32,10 @@ class SegmentationsBundle(BundleAPI):
 
     @staticmethod
     def get_class(name):
-        class_names = {
-            "Segmentation": Segmentation,
-            # "SegmentationJob": SegmentationJob
-        }
-        return class_names.get(name, None)
+        if name == "Segmentation":
+            from chimerax.segmentations.segmentation import Segmentation
+            return Segmentation
+        return None
 
     @staticmethod
     def start_tool(*args):

@@ -1,0 +1,79 @@
+name: Build shared Linux bundles
+on:
+  workflow_call:
+    inputs:
+      release_type:
+        type: string
+        required: true
+      branch:
+        type: string
+        required: false
+    secrets:
+      PREBUILT_CACHE_SECRET:
+        required: true
+
+env:
+  # Build the bundles without starting ChimeraX (see src/bundles/Makefile.bundle)
+  NO_DOGFOODING: "1"
+
+jobs:
+  build-linux-bundles:
+    name: Build shared Linux bundles
+    runs-on: ubuntu-22.04
+    container:
+      image: rockylinux:9
+    env:
+      SHELL: /bin/bash
+      PATH: /usr/bin:/usr/sbin:/bin:/sbin
+      PYOPENGL_PLATFORM: egl
+      # The system strip mangles libraries that patchelf has rewritten, like
+      # numpy's OpenBLAS; binutils 2.43 and later don't (see clean_app.py)
+      STRIP: /opt/rh/gcc-toolset-15/root/usr/bin/strip
+    steps:
+      - run: export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+      # Mirror speed varies wildly between runs; download in parallel from the
+      # fastest mirror. set_up_centos.sh already runs dnf update, so don't do it
+      # twice, and git-all drags in Perl, Tk and Subversion that we don't need.
+      - name: Configure dnf and install git and a newer strip
+        run: |
+          printf 'max_parallel_downloads=10\nfastestmirror=True\ninstall_weak_deps=False\n' >> /etc/dnf/dnf.conf
+          dnf install -y git gcc-toolset-15-binutils
+          $STRIP --version
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.branch || 'develop' }}
+      # buildinfo.py breaks without this
+      - run: chown -R $(id -u):$(id -g) $PWD
+      - run: ${PWD}/utils/set_up_centos.sh
+      - name: Fetch Plato prerequisites
+        uses: ./utils/ci/consolidated_cache
+        with:
+          platform: linux
+          architecture: x86_64
+          cache_key: ${{ secrets.PREBUILT_CACHE_SECRET }}
+      # Only the shared wheels and headers are on the downstream critical path.
+      # Documentation, tests, and distribution packaging run in consumer jobs.
+      - name: Build shared wheels and headers
+        env:
+          BUILD_TYPE: ${{ inputs.release_type }}
+          PYQT_LICENSE: commercial
+          NO_PREBUILT: '1'
+        run: |
+          export MAKEOPTS="-j$(nproc)"
+          make build-dirs
+          make -j$(nproc) prereqs-install
+          make build-app-dirs
+          make -j$(nproc) src.install
+      - name: Tar bundles and includes for other builds
+        run: |
+          export BUNDLE_REPO_DIR=$(git rev-parse --show-toplevel)/build/sync
+          tar -cvzf linux-bundles.tar.gz -C $BUNDLE_REPO_DIR .
+          tar -cvzf linux-include.tar.gz -C build include
+      - name: Cache the bundles and includes
+        # Keep this key across failed-job retries, but not across nightly runs.
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            linux-bundles.tar.gz
+            linux-include.tar.gz
+          key: linux-bundles-x64-${{ github.run_id }}-${{ inputs.branch || 'develop' }}-${{ inputs.release_type }}

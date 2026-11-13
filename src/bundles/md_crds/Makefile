@@ -6,6 +6,8 @@ CLEAN_ALWAYS += src/dcd/MDToolsMarch97/__pycache__ \
 
 wheel install app-install uv-wheel uv-install:	xdrfile_lib
 
+prebuild: xdrfile_lib
+
 xdrfile_lib:
 	$(MAKE) -C gromacs all
 

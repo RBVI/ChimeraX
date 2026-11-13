@@ -48,7 +48,7 @@ user interface.
 
 The prereqs subdirectory contains Makefiles to build the various third party packages.  Most of the ChimeraX
 build time is making these prereq packages.  To save time on subsequent builds the installed packages are
-archived in a file ``prereqs/prebuilt-<OS>.tar.bz2``.
+archived in a file ``prereqs/prebuilt-<OS>.tar.zst`` (``.tar.bz2`` if zstd is not installed).
 
 
 Nightly Builds

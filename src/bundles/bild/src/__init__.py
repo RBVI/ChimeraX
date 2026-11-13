@@ -38,11 +38,19 @@ class _MyAPI(BundleAPI):
     @staticmethod
     def run_provider(session, name, mgr, **kw):
         from chimerax.open_command import OpenerInfo
+        from chimerax.core.commands import ColorArg
 
         class BildOpenerInfo(OpenerInfo):
             def open(self, session, data, file_name, **kw):
                 from . import bild
-                return bild.read_bild(session, data, file_name)
+                return bild.read_bild(session, data, file_name, **kw)
+
+            @property
+            def open_args(self):
+                return {
+                    'color': ColorArg
+                }
+
         return BildOpenerInfo()
 
 

@@ -62,8 +62,9 @@ UV_SUBDIR_BUILD = $(SUBDIRS:=.uv-build)
 .PHONY: $(SUBDIR_BUILD) $(UV_SUBDIR_BUILD)
 
 build: $(SUBDIR_BUILD)
+# SUBDIR_BUILD_PREFIX may be set per target, e.g., to $(LOW_PRIORITY)
 $(SUBDIR_BUILD):
-	$(MAKE) -C $(subst .build,,$@) build
+	$(SUBDIR_BUILD_PREFIX) $(MAKE) -C $(subst .build,,$@) build
 
 uv-build: $(UV_SUBDIR_BUILD)
 $(UV_SUBDIR_BUILD):

@@ -69,7 +69,8 @@ CoordSet::operator=(const CoordSet& source) {
         } else {
             // This should be a copy operation; let the copy code handle this since atoms haven't
             // been created yet
-            assert(_structure->atoms().size() == 0);
+            if (_structure->atoms().size() > 0)
+                throw std::runtime_error("Atoms already created during coordset cross-copy");
         }
     }
     return *this;

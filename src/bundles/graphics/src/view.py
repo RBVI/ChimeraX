@@ -452,12 +452,7 @@ class View:
         rgba = self.image_rgba(width=width, height=height, supersample=supersample,
                                transparent_background=transparent_background,
                                camera=camera, drawings=drawings)
-        ncomp = 4 if transparent_background else 3
-        from PIL import Image
-        # Flip y-axis since PIL image has row 0 at top,
-        # opengl has row 0 at bottom.
-        pi = Image.fromarray(rgba[::-1, :, :ncomp])
-        return pi
+        return image_from_rgba(rgba, transparent_background)
 
     def image_rgba(self, width=None, height=None, supersample=None,
                    transparent_background=False, camera=None, drawings=None):
@@ -498,7 +493,7 @@ class View:
         # the on-screen sizes.  This is used for 2d label sizing.
         r.image_save = True
             
-        if supersample is None:
+        if supersample is None or supersample == 1:
             self.draw(c, drawings, swap_buffers = False)
             rgba = r.frame_buffer_image(w, h)
         else:
@@ -1144,3 +1139,17 @@ class _RedrawNeeded:
         self.shape_changed = False
         self.shadow_shape_change = False
         self.transparency_changed = False
+
+def image_from_rgba(rgba, transparent_background = False):
+    '''
+    Return a PIL image of a numpy uint8 (h, w, 4) rgba array read from OpenGL.
+    The y-axis is flipped since PIL image has row 0 at top, opengl has row 0
+    at bottom.  Without a transparent background the alpha channel is dropped.
+    '''
+    from PIL import Image
+    if transparent_background:
+        return Image.fromarray(rgba[::-1])
+    # Flip and drop alpha in one pass of Pillow's raw decoder.  Image.fromarray()
+    # of rgba[::-1, :, :3] copies that array one byte at a time.
+    h, w = rgba.shape[:2]
+    return Image.frombytes('RGB', (w, h), rgba, 'raw', 'RGBX', 0, -1)

@@ -17,10 +17,6 @@ while IFS=$'\n' read -r line; do
 done < <(find src/bundles/**/docs -maxdepth 3 -type d -name "user" | sort)
 
 PREFIX="devel"
-if [[ $DEV_DOCS_IN_ROOT ]]; then
-	# For readthedocs
-	PREFIX=""
-fi
 
 if [[ ! $INTERNAL_CHIMERAX ]]; then
 	mkdir ${ROOT}/docs/${PREFIX}/chimerax
@@ -37,6 +33,11 @@ fi
 
 cd ${ROOT}
 ln -s ${ROOT}/src/apps docs/${PREFIX}/
+
+# The mmcif docs link to its C++ readcif library's docs
+mkdir -p docs/${PREFIX}/cpp/mmcif
+ln -s ${ROOT}/src/bundles/mmcif/mmcif_cpp/readcif_cpp/docs docs/${PREFIX}/cpp/mmcif/readcif
+ln -s ${ROOT}/src/bundles/mmcif/mmcif_cpp/readcif_cpp/cifgrep docs/${PREFIX}/cpp/mmcif/cifgrep
 
 mkdir ${ROOT}/docs/${PREFIX}/modules
 cd ${ROOT}/docs/${PREFIX}/modules

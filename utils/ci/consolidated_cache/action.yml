@@ -11,6 +11,9 @@ inputs:
   cache_key:
     description: remote cache key
     required: true
+  cache_native_python:
+    description: Cache Python built against this host (disable for Flatpak SDK builds)
+    default: 'true'
 
 runs:
   using: "composite"
@@ -62,11 +65,7 @@ runs:
           prereqs/Python/cpython-${{ steps.python.outputs.patch }}+${{ steps.python.outputs.release }}-*-install_only.tar.gz
         key: ${{ runner.os }}-${{ inputs.architecture }}-python-${{ steps.python.outputs.patch }}-${{ steps.python.outputs.release }}
 
-    # Linux builds Python from source against the system OpenSSL, so the compiled
-    # interpreter is not cached (it is distro-specific and would go stale as the
-    # runner's OpenSSL/glibc/compiler change).  Cache only the source download
-    # from python.org so the build skips re-fetching it; the source tarball is
-    # distro-independent, so the key needs no distro tag.
+    # Keep the source for cold builds as well as the compiled native archive.
     - name: Restore cached Python source (Linux)
       id: cache-python-linux
       if: ${{ inputs.platform == 'linux' }}
@@ -75,6 +74,21 @@ runs:
         path: |
           prereqs/Python/Python-${{ steps.python.outputs.patch }}.tar.xz
         key: python-src-${{ steps.python.outputs.patch }}
+
+    - name: Fingerprint the native Python build environment
+      id: python-native
+      if: ${{ inputs.platform == 'linux' && inputs.cache_native_python == 'true' }}
+      shell: bash
+      run: |
+        key=$(python3 utils/ci/python_cache_key.py)
+        echo "key=$key" >> "$GITHUB_OUTPUT"
+
+    - name: Cache compiled native Python
+      if: ${{ inputs.platform == 'linux' && inputs.cache_native_python == 'true' }}
+      uses: actions/cache@v6
+      with:
+        path: prereqs/Python/python-${{ steps.python.outputs.patch }}-Linux*.tar.zst
+        key: ${{ steps.python-native.outputs.key }}
 
     # Single source of truth for the mmtf-cpp and msgpack versions is the mmtf
     # bundle's Makefile.  Read the pinned values from there so the cache key,

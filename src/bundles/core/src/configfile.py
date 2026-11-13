@@ -273,7 +273,7 @@ class ConfigFile:
         self._tool_name = tool_name
         # affirm that properties don't conflict with methods
         for method in dir(self):
-            assert(method not in self.PROPERTY_INFO)
+            assert method not in self.PROPERTY_INFO
         # convert all property information to Values
         for name, value in self.PROPERTY_INFO.items():
             if not isinstance(value, Value):
@@ -333,8 +333,11 @@ class ConfigFile:
         if only_use_defaults:
             raise UserError("Custom configuration is disabled")
         from .safesave import SaveTextFile
-        with SaveTextFile(self._filename) as f:
-            self._config.write(f)
+        try:
+            with SaveTextFile(self._filename) as f:
+                self._config.write(f)
+        except OSError as err:
+            raise UserError(f"Unable able to save settings for '{self._tool_name}': {err}")
 
     def reset(self):
         """Revert all properties to their default state"""
@@ -463,6 +466,35 @@ class ConfigFile:
         return value
 
 
+# For backwards compatibilty with numpy 1, compenstate for numpy 2's
+# change to the repr of numpy scalars.
+# If clients of the ConfigFile API all used Value() instances with Annotations,
+# then this wouldn't have been an issue.  But they don't.
+def _deepcopy_numpy(obj):
+    """Recursively copy object while converting numpy values to Python values."""
+    if isinstance(obj, dict):
+        return {
+            k: _deepcopy_numpy(v) for k, v in obj.items()
+        }
+    if isinstance(obj, list):
+        return [_deepcopy_numpy(item) for item in obj]
+    if isinstance(obj, tuple):
+        return tuple(
+            _deepcopy_numpy(item) for item in obj
+        )
+    if isinstance(obj, set):
+        return {_deepcopy_numpy(item) for item in obj}
+    if isinstance(obj, numpy.bool_):
+        return bool(obj)
+    if isinstance(obj, numpy.integer):
+        return int(obj)
+    if isinstance(obj, numpy.floating):
+        return float(obj)
+    if isinstance(obj, numpy.complexfloating):
+        return complex(obj)
+    return obj
+
+
 class Value:
     """Placeholder for default value and conversion functions
 
@@ -492,7 +524,7 @@ class Value:
         else:
             self.from_str = from_str
         if to_str is None:
-            self.to_str = lambda x: str(x) if isinstance(x, numpy.generic) else repr(x)
+            self.to_str = lambda x: repr(_deepcopy_numpy(x))
         else:
             self.to_str = to_str
 
@@ -533,18 +565,18 @@ if __name__ == '__main__':
 
     prefs = _ToolPreferences(session)  # noqa
 
-    assert(not prefs.on_disk())
+    assert not prefs.on_disk()
 
     prefs.log_level = 4
     prefs.save()
     # confirm log level is in file
-    assert(0 == os.system("grep -q log_level '%s'" % prefs._filename))
+    assert 0 == os.system("grep -q log_level '%s'" % prefs._filename)
     raise SystemExit(42)
 
     prefs.log_level = 1
     prefs.save()
     # confirm log level is not in file
-    assert(0 != os.system("grep -q log_level '%s'" % prefs._filename))
+    assert 0 != os.system("grep -q log_level '%s'" % prefs._filename)
 
     # finished with configuration file
     os.remove(prefs._filename)

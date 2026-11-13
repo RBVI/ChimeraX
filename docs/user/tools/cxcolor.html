@@ -1,0 +1,108 @@
+<html lang="en"><!--
+=== UCSF ChimeraX Copyright ===
+Copyright 2016 Regents of the University of California.
+All rights reserved.  This software provided pursuant to a
+license agreement containing restrictions on its disclosure,
+duplication and use.  For details see:
+http://www.rbvi.ucsf.edu/chimerax/docs/licensing.html
+This notice must be embedded in or attached to all copies,
+including partial copies, of the software or any revisions
+or derivations thereof.
+=== UCSF ChimeraX Copyright ===
+--><head><meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="../userdocs.css">
+<title>Residue Letter Coloring</title>
+<style>@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }</style>
+</head><body>
+
+<a name="top"></a>
+<a href="../index.html">
+<img width="60px" src="../ChimeraX-docs-icon.svg" alt="ChimeraX docs icon" class="clRighticon" title="User Guide Index"></a>
+
+<h3>Residue Letter Coloring</h3>
+<p>
+The <b>Clustal X</b> coloring scheme in
+<a href="sequenceviewer.html" target="_top"><b>Sequence Viewer</b></a>
+depends on both residue type and the pattern of conservation within a column. 
+The Clustal X scheme is described in the color parameter file
+<a href="colprot.par">colprot.par</a>.
+This scheme is encoded in ChimeraX and cannot be changed by users. 
+</p><p></p><p>
+However, arbitrary color schemes 
+can be defined using the same <a href="#format">file format</a> and loaded with 
+<a href="sequenceviewer.html#context"><b>File... 
+Load Color Scheme</b></a> in the <b>Sequence Viewer</b> menu.
+When a scheme is loaded, the residue codes are colored accordingly
+and the name of the custom coloring file is added to the list of
+choices for <a href="sequenceviewer.html#coloring"><b>Residue 
+lettering color scheme</b></a> in the 
+<a href="sequenceviewer.html#settings-appearance"><b>Appearance</b> preferences</a>.
+The dialog for loading the
+file includes an option to <b>Make this scheme the default</b>.
+The location of each custom coloring file is saved
+as part of including it in the list of available color schemes.
+If a custom coloring file is later
+renamed, moved, or deleted, trying to load the corresponding scheme
+will generate an error.
+</p>
+
+<a name="format">
+<h3>Color Parameter File Format</h3></a>
+<p>
+<b>Sequence Viewer</b> uses the same format of color parameter
+file as the program Clustal X.  Examples:
+</p><ul>
+<li> <a href="colprot.par" type="text/plain">colprot.par</a>
+(describes Clustal X residue letter coloring)
+</li><li> <a href="custom.par" type="text/plain">custom.par</a>
+(an example of custom coloring)
+</li></ul>
+Such files have three sections:  
+<ol>
+<li>Colors are defined in the optional <b>@rgbindex</b> section.  
+If the section is present, it must include all of the colors 
+used in the file. Each line in this section consists of a color name
+and the red, green, and blue components of the color, for example:
+<pre>GREEN        0.1 0.8 0.1
+</pre>
+The color names are relevant only to the rules within the file; 
+for example, GREEN as defined in this file 
+cannot be accessed by ChimeraX users and can differ from the color
+named green in ChimeraX.
+<br><br>
+</li><li>The <b>@consensus</b> section assigns single-character symbols to
+column consensus conditions.  The symbols can be uppercase or 
+lowercase letters, which should not be confused with the single-letter
+residue codes (although they are sometimes the same for mnemonic reasons).
+For example,
+<pre>+ = 60% k:r
+</pre> 
+means that "+" symbolizes the case where lysine and arginine
+together comprise at least 60% of the column of aligned amino acids, and
+<pre>n = 50% n
+N = 85% n
+</pre>
+means that "n" symbolizes the case where asparagine comprises
+at least 50% of the column and "N" symbolizes the
+case where asparagine comprises at least 85% of the column.
+<br><br>
+</li><li>The <b>@color</b> section then assigns colors to particular 
+residues under particular consensus conditions.
+Thus,
+<pre>n = GREEN if n:N:D
+</pre>
+means that an asparagine in the alignment (which could be shown with n or N)
+should be colored GREEN if any of the conditions n, N, or D apply to
+the column in which it resides.  When none of the conditions apply, the
+residue is retains its default color (white or black, depending on the
+<a href="sequenceviewer.html#background-color">background color of the sequence viewer</a>).
+</li></ol>
+The color parameter file format is described in detail in the
+<a href="https://www.cs.mcgill.ca/~birch/birchhomedir/doc/clustalx/clustalx.html#C" target="_blank"><b>Colors</b> section</a> of the Clustal X manual.
+<p></p>
+
+<hr>
+<address>UCSF Resource for Biocomputing, Visualization, and Informatics / 
+October 2026</address>
+
+</body></html>

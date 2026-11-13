@@ -117,15 +117,14 @@ class GraphicsWindow(QWindow):
                 self.session.logger.warning(msg)
 
     def handle_drag_and_drop(self, event):
-        from Qt.QtCore import QEvent
-        t = event.type()
         ui = self.session.ui
         if hasattr(ui, 'main_window'):
             mw = ui.main_window
-            if t == QEvent.Type.DragEnter:
+            from Qt.QtGui import QDragEnterEvent, QDropEvent
+            if isinstance(event, QDragEnterEvent):
                 mw.dragEnterEvent(event)
                 return True
-            elif t == QEvent.Type.Drop:
+            elif isinstance(event, QDropEvent):
                 mw.dropEvent(event)
                 return True
 

@@ -107,7 +107,8 @@ Atom::aniso_u() const
 {
     if (_alt_loc != ' ') {
         _Alt_loc_map::const_iterator i = _alt_loc_map.find(_alt_loc);
-        assert(i != _alt_loc_map.end());
+        if (i == _alt_loc_map.end())
+            throw std::runtime_error("No such altloc");
         return (*i).second.aniso_u.get();
     }
     return _aniso_u;
@@ -118,7 +119,8 @@ Atom::aniso_u(char alt_loc) const
 {
     if (alt_loc != ' ') {
         _Alt_loc_map::const_iterator i = _alt_loc_map.find(alt_loc);
-        assert(i != _alt_loc_map.end());
+        if (i == _alt_loc_map.end())
+            throw std::runtime_error("No such altloc");
         return (*i).second.aniso_u.get();
     }
     return _aniso_u;
@@ -129,6 +131,8 @@ Atom::bfactor() const
 {
     if (_alt_loc != ' ') {
         _Alt_loc_map::const_iterator i = _alt_loc_map.find(_alt_loc);
+        if (i == _alt_loc_map.end())
+            throw std::runtime_error("No such altloc");
         return (*i).second.bfactor;
     }
     return structure()->active_coord_set()->get_bfactor(this);
@@ -171,7 +175,8 @@ Atom::clear_aniso_u()
 {
     if (_alt_loc != ' ') {
         _Alt_loc_map::iterator i = _alt_loc_map.find(_alt_loc);
-        assert(i != _alt_loc_map.end());
+        if (i == _alt_loc_map.end())
+            throw std::runtime_error("No such altloc");
         if ((*i).second.aniso_u.use_count() > 0) {
             (*i).second.aniso_u.reset();
             change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_ANISO_U);
@@ -1381,7 +1386,8 @@ Atom::set_aniso_u(float u11, float u12, float u13, float u22, float u23, float u
         a = _aniso_u;
     } else {
         _Alt_loc_map::iterator i = _alt_loc_map.find(_alt_loc);
-        assert(i != _alt_loc_map.end());
+        if (i == _alt_loc_map.end())
+            throw std::runtime_error("No such altloc");
         a = (*i).second.create_aniso_u();
     }
     (*a)[0] = u11;

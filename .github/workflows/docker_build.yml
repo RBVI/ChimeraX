@@ -16,6 +16,10 @@ on:
       DOCKERHUB_TOKEN:
         required: true
 
+env:
+  # Build the bundles without starting ChimeraX (see src/bundles/Makefile.bundle)
+  NO_DOGFOODING: "1"
+
 jobs:
   build-docker:
     runs-on: ubuntu-24.04
@@ -38,7 +42,8 @@ jobs:
           path: |
             linux-bundles.tar.gz
             linux-include.tar.gz
-          key: linux-bundles-x64-${{ inputs.release_type }}-${{ github.sha }}
+          fail-on-cache-miss: true
+          key: linux-bundles-x64-${{ github.run_id }}-${{ inputs.branch || 'develop' }}-${{ inputs.release_type }}
       - name: Unpack the bundles tarball to wheels
         run: |
           mkdir wheels
@@ -56,6 +61,7 @@ jobs:
           cp -rp include ChimeraX.app
           make -C src/apps install BUILD_TYPE="${{ inputs.release_type }}"
           make -C docs install BUILD_TYPE="${{ inputs.release_type }}"
+          make clean-app
           make dockerize
       - name: Put the build date, commit, and version in the environment
         run: |

@@ -17,7 +17,7 @@ from Qt.QtCore import Qt
 
 class SaveOptionsWidget(QFrame):
     tip_text = "To save multiple structures into <i>multiple</i> files," \
-            ' include the literal strings "[NAME]" and/or "[NUMBER]" in the file name you provide.' \
+            ' include the literal strings "[NAME]" and/or "[ID]" in the file name you provide.' \
             "  Those strings will be replaced with the model name / ID number in the final file names."
 
     def __init__(self, session):

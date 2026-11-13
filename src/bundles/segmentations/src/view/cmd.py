@@ -1,17 +1,16 @@
 from chimerax.core.commands import CmdDesc, register, BoolArg, EnumOf
 from chimerax.core.models import REMOVE_MODELS
 
-from chimerax.map import Volume
-
 import chimerax.segmentations.triggers
 from chimerax.segmentations.triggers import Trigger
 
-from chimerax.segmentations.view import views, FourPanelView
+from chimerax.segmentations.view import views
 from chimerax.segmentations.ui import find_segmentation_tool
 from chimerax.segmentations.settings import get_settings
 
 
 def any_open_volumes(session) -> bool:
+    from chimerax.map import Volume
     return any(isinstance(v, Volume) for v in session.models)
 
 
@@ -25,6 +24,7 @@ def view_layout(
         session.ui.main_window.restore_default_main_view()
         chimerax.segmentations.triggers.activate_trigger(Trigger.ViewLayoutChanged, layout)
     elif layout in views and session.ui.main_window.view_layout != "orthoplanes":
+        from chimerax.segmentations.view import FourPanelView
         if not layout:
             session.ui.main_window.main_view = FourPanelView(session)
         else:

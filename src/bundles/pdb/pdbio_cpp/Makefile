@@ -43,7 +43,7 @@ ifdef WIN32
 	rm -f $(PYMOD_NAME).{exp,lib,pdb} vc*.pdb
 endif
 
-PDBio.o: $(includedir)/pdb/PDB.h $(includedir)/atomstruct/Atom.h \
+PDBio_read.o: $(includedir)/pdb/PDB.h $(includedir)/atomstruct/Atom.h \
 	$(includedir)/atomstruct/AtomicStructure.h $(includedir)/atomstruct/Bond.h \
 	$(includedir)/atomstruct/connect.h $(includedir)/atomstruct/CoordSet.h \
 	$(includedir)/atomstruct/destruct.h $(includedir)/atomstruct/Residue.h \

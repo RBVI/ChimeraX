@@ -1,0 +1,46 @@
+# color lookup table - this is optional, if no rgbindex is specified, 8
+# hardcoded colors will be used.
+@rgbindex
+R	0.0 0.500 1.00
+K	0.0 0.435 0.87
+NDQE	0.0 0.390 0.78
+H	0.0 0.355 0.71
+P	0.0 0.180 0.36
+Y	0.0 0.145 0.29
+W	0.0 0.100 0.20
+S	0.0 0.090 0.18
+T	0.0 0.080 0.16
+G	0.0 0.045 0.09
+A	0.40 0.0 0.0
+M	0.42 0.0 0.0
+C	0.56 0.0 0.0
+F	0.62 0.0 0.0
+L	0.84 0.0 0.0
+V	0.93 0.0 0.0
+I	1.00 0.0 0.0
+X	0.00 1.000 0.0
+
+@consensus
+
+@color
+r = R
+k = K
+n = NDQE
+d = NDQE
+q = NDQE
+e = NDQE
+h = H
+p = P
+y = Y
+w = W
+s = S
+t = T
+g = G
+a = A
+m = M
+c = C
+f = F
+l = L
+v = V
+i = I
+x = X

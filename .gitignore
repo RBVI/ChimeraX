@@ -40,6 +40,7 @@ build
 !utils/build
 pip.log
 prebuilt*.bz2
+prebuilt*.zst
 ChimeraX.app
 chimerax
 imex.h
@@ -153,7 +154,6 @@ prereqs/ffmpeg/x264-*.tar.xz
 prereqs/ffmpeg/yasm-*.tar.bz2
 prereqs/openmm/openmm-*.tar.bz2
 prereqs/openssl/*.gz
-prereqs/osmesa/*.bz2
 prereqs/p7zip/*.bz2
 prereqs/p7zip/*.xz
 prereqs/p7zip/7za
@@ -161,6 +161,7 @@ prereqs/pytables/tables-*.tar.gz
 prereqs/Python/Python-*/
 prereqs/Python/Python.framework
 prereqs/Python/python-*.tar.bz2
+prereqs/Python/python-*.tar.zst
 prereqs/Python/*.xz
 prereqs/Python/relocatable-python
 prereqs/PyQt/*commercial*
@@ -168,6 +169,7 @@ prereqs/PyQt/qt/*.xz
 prereqs/zlib/*.gz
 docs/devel/apps
 docs/devel/chimerax
+docs/devel/cpp
 docs/devel/modules
 docs/license.html
 docs/license.txt
@@ -186,6 +188,8 @@ wheel/pyproject.toml
 prereqs/pips/scipy*.whl
 prereqs/pips/tinyarray-1.2.4*
 prereqs/pips/app_requirements.txt
+prereqs/pips/app_requirements-with-deps.txt
+prereqs/pips/app_requirements-no-deps.txt
 src/bundles/add_charge/pyproject.toml
 src/bundles/addh/pyproject.toml
 src/bundles/alignment_algs/pyproject.toml

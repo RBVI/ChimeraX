@@ -56,12 +56,26 @@ endif
 # Location for fetching third party binaries.
 PREREQS_ARCHIVE = https://cxtoolshed.rbvi.ucsf.edu/prereqs
 FETCH_PREREQ = curl --silent --show-error --fail -O
+# Fetch URL $(2) to file $(1), which is never left partly written (make would
+# otherwise take the file left by an interrupted fetch as up to date)
+FETCH_PREREQ_TO = curl --silent --show-error --fail -o $(1).part $(2) && mv $(1).part $(1)
 PREREQS_UPLOAD = plato.cgl.ucsf.edu:/usr/local/projects/chimerax/www/data/prereqs
 
 # On macOS and Windows, there are no prebuilt prerequisites, so
 # we don't need to waste the minute or so tarring Python
 ifneq (,$(filter $(OS),Darwin Windows))
 NO_PREBUILT = 1
+endif
+
+# Archives of locally built prerequisites (the prebuilt tarball and Linux's
+# compiled Python).  zstd compresses them in parallel, smaller than bzip2 and
+# 20x faster; bzip2 is the fallback when zstd isn't installed.
+ifneq (,$(shell command -v zstd 2>/dev/null))
+PREREQ_TAR_EXT = tar.zst
+PREREQ_TAR_COMPRESS = --use-compress-program='zstd -9 -T0'
+else
+PREREQ_TAR_EXT = tar.bz2
+PREREQ_TAR_COMPRESS = --bzip2
 endif
 
 # On macOS and Windows, relocatable CPython is sourced from python-build-standalone
@@ -72,6 +86,8 @@ PYTHON_BUILD_STANDALONE_RELEASE = 20261021
 PYTHON_BUILD_STANDALONE_BASE = https://github.com/astral-sh/python-build-standalone/releases/download
 # GitHub release downloads redirect to a CDN, so the fetch must follow redirects.
 FETCH_PYTHON = curl --silent --show-error --fail --location --insecure -O
+FETCH_PYTHON_TO = curl --silent --show-error --fail --location --insecure \
+	-o $(1).part $(2) && mv $(1).part $(1)
 # Linux is built from CPython source instead, so it dynamically links the
 # distribution's system OpenSSL (which the distro patches for CVEs independently
 # of ChimeraX releases).  The source tarball comes from python.org.
@@ -199,6 +215,18 @@ APP_PYSITEDIR = $(APP_PYTHON_LIBRARY_DIR)/site-packages
 ifndef UV_BUILD
 APP_PIP = $(APP_EXE) -m pip
 APP_BOOTSTRAP_PIP = $(APP_PYTHON_EXE) -m pip
+# uv is many times faster than pip.  It is installed in the build tree's
+# Python (prereqs/Python), not in the app.  Unlike pip, it does not compile
+# bytecode, which is fine: clean_app removes all of it from the app at the end
+# of the build.
+ifeq ($(WINDOWS_ENV),Cygwin)
+# uv is a native Windows program, so it needs a Windows path.  MSYS2 converts
+# POSIX path arguments for native programs, but Cygwin does not, and uv then
+# fails with "No virtual environment or system Python installation found".
+APP_PIP_INSTALL = $(PYTHON_EXE) -m uv pip install --python '$(shell cygpath -m '$(APP_PYTHON_BIN)')'
+else
+APP_PIP_INSTALL = $(PYTHON_EXE) -m uv pip install --python $(APP_PYTHON_BIN)
+endif
 else
 APP_PIP = $(APP_EXE) -m uv pip
 APP_BOOTSTRAP_PIP = $(APP_PYTHON_EXE) -m uv pip
@@ -209,9 +237,31 @@ ifneq ($(MACOSV1),10)
 APP_BOOTSTRAP_PIP = env SYSTEM_VERSION_COMPAT=0 $(APP_PYTHON_EXE) -m uv pip
 endif
 endif
+APP_PIP_INSTALL = $(APP_BOOTSTRAP_PIP) install
 endif
 
 PYLINT = $(PYTHON_EXE) -m flake8
+
+# Prefix for commands that should yield the CPU to others.  (On macOS, a
+# "taskpolicy -c utility" clamp is stronger, but it confines work to the
+# efficiency cores and throttles its I/O, which makes it far too slow for
+# work that anything waits on soon.)
+ifeq ($(OS),Windows)
+LOW_PRIORITY =
+else
+LOW_PRIORITY = nice -n 10
+endif
+# Prefix for work with plenty of time to finish, which on macOS keeps it on
+# the efficiency cores, out of the way of the work others wait on
+ifeq ($(OS),Darwin)
+BACKGROUND_PRIORITY = taskpolicy -c utility
+# The same for building bundles, but only for their compilers: bundle_builder
+# itself (Python, and largely serial) is slowed by it far more than they are
+BACKGROUND_COMPILE_PRIORITY = CHIMERAX_BUILD_SPAWN_PREFIX='$(BACKGROUND_PRIORITY)' $(LOW_PRIORITY)
+else
+BACKGROUND_PRIORITY = $(LOW_PRIORITY)
+BACKGROUND_COMPILE_PRIORITY = $(LOW_PRIORITY)
+endif
 
 # common makefile targets
 .PHONY: all install app-install clean

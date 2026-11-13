@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libcups2t64 \
         libdbus-1-3 \
         libdrm2 \
+        libegl-mesa0 \
         libegl1 \
         libexpat1 \
         libffi8 \
@@ -32,6 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libgdk-pixbuf-2.0-0 \
         libgfortran5 \
         libgl1 \
+        libgl1-mesa-dri \
         libglib2.0-0t64 \
         libglu1-mesa \
         libgomp1 \
@@ -45,7 +47,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libnspr4 \
         libnss3 \
         libopenjp2-7 \
-        libosmesa6 \
         libpango-1.0-0 \
         libpangocairo-1.0-0 \
         libpcsclite1 \

@@ -30,7 +30,8 @@ libncursesw6
 libnspr4
 libnss3
 libopenjp2-7
-libosmesa6
+libegl-mesa0
+libgl1-mesa-dri
 libpango-1.0-0
 libpangocairo-1.0-0
 libpulse-mainloop-glib0

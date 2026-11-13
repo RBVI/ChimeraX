@@ -9,7 +9,7 @@ from Qt.QtWidgets import (
     QSplitter,
 )
 
-views = ["fourup", "sidebyside", "overunder"]
+from . import views
 
 
 class FourPanelView(QWidget):

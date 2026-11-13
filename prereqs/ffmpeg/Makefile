@@ -24,7 +24,7 @@ ifeq ($(OS),Darwin)
 endif
 
 $(FFMPEG_PREBUILT):
-	$(FETCH_PREREQ) $(PREREQS_ARCHIVE)/ffmpeg/$(FFMPEG_PREBUILT)
+	$(call FETCH_PREREQ_TO,$@,$(PREREQS_ARCHIVE)/ffmpeg/$(FFMPEG_PREBUILT))
 
 clean:
 	rm -f $(FFMPEG_PREBUILT)
