@@ -2843,11 +2843,19 @@ class Buffer:
         vertex array object including the element buffer.
         '''
         ne = self.buffered_array.size if count is None else count
+        # glDrawElements*() can only handle a maximum of 2**31-1 since it uses GLsizei which is int32.
+        # Larger values gives and "invalid value" error.  If we raise an error here that halts the graphics
+        # which is difficult for the user to restart.  It is probably best to just draw a subset of the
+        # elements and instead try to report the error when a triangle array that is too large is set.
+        if ne > 2147483647:
+            ne = 2147483647
+
         if offset is None:
             eo = None
         else:
             import ctypes
             eo = ctypes.c_void_p(offset * self.array_element_bytes())
+
         if ninst is None:
             GL.glDrawElements(element_type, ne, GL.GL_UNSIGNED_INT, eo)
         else:

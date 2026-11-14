@@ -703,6 +703,8 @@ class Drawing:
         self._vertices = vertices
         self._normals = normals
         self._triangles = triangles
+        if triangles is not None and triangles.size > 2147483647:
+            raise ValueError(f'Maximum number of triangles in one object is 715827882, tried to create {len(triangles)} triangles.  This limit is because OpenGL glDrawElements() uses a 32-bit signed integer for the array of triangle vertex indices. ')
         self._vertex_colors = None
         self._edge_mask = edge_mask
         self._triangle_mask = triangle_mask
