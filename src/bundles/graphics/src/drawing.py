@@ -925,7 +925,7 @@ class Drawing:
 
         # Update drawing and highlight triangle buffers
         if ('_triangles' in changes or
-            'display_style' in changes or
+            '_display_style' in changes or
             '_triangle_mask' in changes or
             (self.display_style == self.Mesh and '_edge_mask' in changes) or
             '_highlighted_triangles_mask' in changes):
@@ -1301,7 +1301,7 @@ class Drawing:
 
     _effects_buffers = set(
         ('_vertices', '_normals', '_vertex_colors', 'texture_coordinates',
-         '_triangles', 'display_style', '_displayed_positions', '_colors', '_positions',
+         '_triangles', '_display_style', '_displayed_positions', '_colors', '_positions',
          '_edge_mask', '_triangle_mask', '_highlighted_triangles_mask', '_highlighted_positions'))
 
     EDGE0_DISPLAY_MASK = 1
