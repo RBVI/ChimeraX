@@ -11,8 +11,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.13
-          #  release_type: candidate
+          - branch: release/v1.13
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: astral-pbs
@@ -29,8 +29,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.13
-          #  release_type: candidate
+          - branch: release/v1.13
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: astral-pbs
@@ -47,8 +47,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.13
-          #  release_type: candidate
+          - branch: release/v1.13
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: astral-pbs
@@ -65,8 +65,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.13
-          #  release_type: candidate
+          - branch: release/v1.13
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: astral-pbs
@@ -83,8 +83,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.13
-          #  release_type: candidate
+          - branch: release/v1.13
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: astral-pbs
@@ -101,8 +101,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.13
-          #  release_type: candidate
+          - branch: release/v1.13
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: astral-pbs
@@ -118,8 +118,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.13
-          #  release_type: candidate
+          - branch: release/v1.13
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: astral-pbs
@@ -136,8 +136,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.13
-          #  release_type: candidate
+          - branch: release/v1.13
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: astral-pbs
@@ -153,8 +153,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.13
-          #  release_type: candidate
+          - branch: release/v1.13
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: astral-pbs
@@ -170,8 +170,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.13
-          #  release_type: candidate
+          - branch: release/v1.13
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: astral-pbs
@@ -187,8 +187,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.13
-          #  release_type: candidate
+          - branch: release/v1.13
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: astral-pbs
@@ -205,8 +205,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.13
-          #  release_type: candidate
+          - branch: release/v1.13
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: astral-pbs
@@ -222,8 +222,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          #- branch: release/v1.13
-          #  release_type: candidate
+          - branch: release/v1.13
+            release_type: candidate
           - branch: develop
             release_type: daily
           #- branch: astral-pbs
