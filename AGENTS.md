@@ -107,11 +107,23 @@ description = "My custom tool"
 - **mk/**: Build system configuration files
 - **docs/**: Developer and user documentation
 
-## Important: No Build or Test Commands
 
-**Do not run compilation, build, or test commands.** This is a GUI application that is difficult to validate without eyes. The developer will test changes manually. Running build commands or test harnesses wastes context with irrelevant output.
+## Tips
+**Compilation, build, and test commands can be very verbose.** This is a GUI application that is difficult to validate without eyes. Always redirect build and test commands to a log file and search for the output you require. Do not pollute your context with bare runs printing to stdout.
 
-Do not ask "would you like me to build/test this?" - just make the code changes and move on.
+**Avoid overindexing on microoptimizations.** When analyzing the performance of an algorithm and looking for ways to improve runtime, consider alternative algorithms, newer algorithms, parallelization, and avoiding repeated work. 
+
+**End to end testing counts.** While local speed increases are always appreciated, the user-perceptible latency of an action is the most important consideration, from command to output.
+
+**Preserve product quality while optimizing.** It is not acceptable to use a worse solution to improve runtime, e.g. using lower precision calculations. Before making changes, explain the suggestion and the rationale for approval.
+
+**Do not excessively comment code.** Agent-generated comments can form a feedback loop where the agent becomes convinced that the comment it just wrote is the law of the land. Comment sparingly, comment about intent, do not simply restate what the code does.
+
+**Keep changes as small as possible.** Commit early, commit often, and commit in small enough chunks that a human can review the output.
+
+**All commits must build.** Do not leave the source code in a broken state between commits.
+
+**Suggest improvements to local code when given a bug.** But do not autonomously change APIs or contracts.
 
 ## Development Notes
 
