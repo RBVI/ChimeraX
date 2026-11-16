@@ -156,11 +156,13 @@ chain_attr_name_mapping = [
 ]
 
 
-def fetch_pdb_info(entry_chain_list):
+# RCSB rejects entries() queries naming more than this many ids
+MAX_ENTRIES_PER_QUERY = 1000
+
+
+def _fetch_entries(entry_ids):
     # Can't just sub in a list, since Python uses single quotes around strings by default
-    query = query_template % ",".join(
-        ['"%s"' % entry_chain.split("_")[0] for entry_chain in entry_chain_list]
-    )
+    query = query_template % ",".join(['"%s"' % entry_id for entry_id in entry_ids])
     req = Request(
         "https://data.rcsb.org/graphql",
         data=json.dumps({"query": query}).encode("utf-8"),
@@ -173,9 +175,19 @@ def fetch_pdb_info(entry_chain_list):
     info = json.loads(data)
     if "errors" in info:
         raise ValueError("Fetching BLAST PDB info had errors: %s" % info["errors"])
+    return info["data"]["entries"]
+
+
+def fetch_pdb_info(entry_chain_list):
+    # Many chains share an entry, so query each entry only once
+    entry_ids = list(
+        dict.fromkeys(entry_chain.split("_")[0] for entry_chain in entry_chain_list)
+    )
     by_entry = {}
-    for entry_data in info["data"]["entries"]:
-        by_entry[entry_data["rcsb_id"]] = entry_data
+    for start in range(0, len(entry_ids), MAX_ENTRIES_PER_QUERY):
+        batch = entry_ids[start : start + MAX_ENTRIES_PER_QUERY]
+        for entry_data in _fetch_entries(batch):
+            by_entry[entry_data["rcsb_id"]] = entry_data
     pdb_info = {}
     for info_key in entry_chain_list:
         entry, chain = info_key.split("_")
