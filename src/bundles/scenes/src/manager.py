@@ -149,6 +149,21 @@ class SceneManager(StateManager):
     def scene_relevant_models(self):
         return [m for m in self.session.models if m.SESSION_SAVE]
 
+    @property
+    def scene_state_managers(self):
+        """
+        Session state managers, by tag, that take part in scenes.  A state manager opts in
+        by defining restore_scene(scene_data), where scene_data is what its
+        take_snapshot(session, State.SCENE) returned, or None if the manager did not exist
+        when the scene was saved.  It may also define
+        interpolate_scene(scene1_data, scene2_data, fraction, *, switchover=False).
+        """
+        return {
+            tag: mgr
+            for tag, mgr in self.session.state_managers_by_tag(StateManager).items()
+            if mgr is not self and hasattr(mgr, 'restore_scene')
+        }
+
     def _remove_models_cb(self, trig_name, models):
         """
         Callback for removing models from scenes.
@@ -308,6 +323,14 @@ class SceneManager(StateManager):
             if data1 is None and data2 is None:
                 continue
             model.interpolate_scene(data1, data2, fraction, switchover=(fraction >= 0.5))
+
+        for tag, mgr in self.scene_state_managers.items():
+            data1 = scene1.scene_managers.get(tag)
+            data2 = scene2.scene_managers.get(tag)
+            if hasattr(mgr, 'interpolate_scene'):
+                mgr.interpolate_scene(data1, data2, fraction, switchover=(fraction >= 0.5))
+            elif fraction >= 0.5:
+                mgr.restore_scene(data2)
 
     def _models_actually_moved(self, v1, v2):
         """

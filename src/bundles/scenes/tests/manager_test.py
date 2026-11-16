@@ -99,3 +99,55 @@ def test_clear_scenes(scene_manager):
 
     scene_triggers.remove_handler(trigger_handler1)
     scene_triggers.remove_handler(trigger_handler2)
+
+def test_state_managers_take_part_in_scenes(test_production_session, scene_manager, monkeypatch):
+    from chimerax.core.state import State, StateManager
+    from chimerax.scenes.scene import Scene
+
+    class Recorder(StateManager):
+        def __init__(self):
+            self.value = None
+            self.interpolated = []
+
+        def take_snapshot(self, session, flags):
+            assert flags == State.SCENE
+            return self.value
+
+        @classmethod
+        def restore_snapshot(cls, session, data):
+            return cls()
+
+        def reset_state(self, session):
+            pass
+
+        def restore_scene(self, scene_data):
+            self.value = scene_data
+
+        def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+            self.interpolated.append((scene1_data, scene2_data, fraction, switchover))
+
+    session = test_production_session
+    monkeypatch.setattr(Scene, "take_thumbnail", lambda self: "")
+    scene_manager.save_scene("before")
+    recorder = Recorder()
+    session.add_state_manager("scene recorder", recorder)
+    try:
+        assert scene_manager.scene_state_managers["scene recorder"] is recorder
+        assert scene_manager not in scene_manager.scene_state_managers.values()
+        recorder.value = "saved"
+        scene_manager.save_scene("after")
+
+        scene_manager.restore_scene("before")
+        assert recorder.value is None
+        scene_manager.restore_scene("after")
+        assert recorder.value == "saved"
+
+        scene_manager.interpolate_scenes("before", "after", 0.75)
+        assert recorder.interpolated == [(None, "saved", 0.75, True)]
+
+        data = scene_manager.get_scene("after").take_snapshot(session, State.SESSION)
+        assert Scene.restore_snapshot(session, data).scene_managers["scene recorder"] == "saved"
+        del data["scene_managers"]
+        assert Scene.restore_snapshot(session, data).scene_managers == {}
+    finally:
+        session.remove_state_manager("scene recorder")

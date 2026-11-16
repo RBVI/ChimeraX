@@ -129,6 +129,7 @@ class Scene(State):
             # Should not happen because of check in restore_snapshot() unless we forget
             # to add code for restoring a newer version here
             raise NotImplementedError("Support for version %d scenes not implemented" % version)
+        self.scene_managers = scene_data.get('scene_managers', {})
 
     def init_from_session(self):
         """
@@ -155,6 +156,10 @@ class Scene(State):
             else:
                 model_scene_data = (True, model.__class__.take_snapshot(model, self.session, flags=State.SCENE))
             self.scene_models[model] = model_scene_data
+        self.scene_managers = {
+            tag: mgr.take_snapshot(self.session, State.SCENE)
+            for tag, mgr in self.session.scenes.scene_state_managers.items()
+        }
 
     def take_thumbnail(self):
         """
@@ -198,6 +203,10 @@ class Scene(State):
                 model.restore_scene(scene_data)
             else:
                 Model.restore_scene(model, scene_data)
+        # State managers restore after the models they decorate.  A manager
+        # that didn't exist when the scene was saved gets None.
+        for tag, mgr in self.session.scenes.scene_state_managers.items():
+            mgr.restore_scene(self.scene_managers.get(tag))
 
     def models_removed(self, models: [str]):
         """
@@ -226,7 +235,8 @@ class Scene(State):
             'thumbnail': self.thumbnail,
             'main_view_data': self.main_view_data,
             'named_view': self.named_view.take_snapshot(session, flags),
-            'scene_models': self.scene_models
+            'scene_models': self.scene_models,
+            'scene_managers': self.scene_managers,
         }
 
     @staticmethod
