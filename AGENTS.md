@@ -127,6 +127,16 @@ description = "My custom tool"
 
 ## Development Notes
 
+### Python linting
+
+- Install the pinned linter with `python -m pip install -r utils/lint-requirements.txt`; this does not require building ChimeraX.
+- Run `python -m ruff check --config pyproject.toml PATH...` on changed Python files, including new files. Use the explicit configuration so local runs and CI share the same policy across bundles.
+- CI checks whole changed files, so existing findings in those files may surface. Fix relevant issues; do not blanket-suppress findings or mix unrelated cleanup into the change. A manual workflow run checks the full tree to inventory remaining debt.
+- The initial rules catch syntax errors, undefined names, invalid control flow, always-true tuple assertions, literal identity comparisons, mutable defaults, and loop-variable closure bugs. Formatting, import sorting, unused imports, and unused variables are intentionally outside this policy.
+- Keep suppressions specific to a rule and explain the reason. Do not automatically apply fixes or reformat unrelated code. Add rules only when they encode an agreed decision with actionable, low-noise findings.
+
+### Bundle conventions
+
 - Bundle APIs must be implemented in `src/__init__.py`
 - Use `APP_PYTHON_EXE` variable for the ChimeraX Python executable
 - Tests use pytest with special ChimeraX session fixtures
