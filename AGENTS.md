@@ -119,7 +119,7 @@ description = "My custom tool"
 
 **Do not excessively comment code.** Agent-generated comments can form a feedback loop where the agent becomes convinced that the comment it just wrote is the law of the land. Comment sparingly, comment about intent, do not simply restate what the code does.
 
-**Keep changes as small as possible.** Commit early, commit often, and commit in small enough chunks that a human can review the output.
+**Keep changes as small as possible.** Commit early and often. Each commit should be the smallest coherent, buildable change, including its tests and necessary documentation, that a human can review. Keep coupled changes together and record prerequisite commits when integration order matters.
 
 **All commits must build.** Do not leave the source code in a broken state between commits.
 
