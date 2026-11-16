@@ -645,7 +645,9 @@ class BlastResultsWorker(QThread):
     parsing_results = Signal()
 
     report_hits = Signal(list)
-    report_sequences = Signal(dict)
+    # PySide converts Signal(dict) payloads to QVariantMap, which silently
+    # drops our integer keys; object passes the dict through untouched.
+    report_sequences = Signal(object)
 
     def __init__(
         self, session, job, database=None, results=None, sequence=None, atomspec=None
