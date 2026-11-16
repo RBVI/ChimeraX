@@ -1,0 +1,25 @@
+name: Bundle version bumps
+
+on:
+  pull_request:
+    branches: [develop, release/*]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check-bundle-versions:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The check reads both ends of the range; blobs are fetched on demand.
+          fetch-depth: 0
+          filter: blob:none
+          ref: ${{ github.event.pull_request.head.sha }}
+      # Pull requests only: direct pushes to develop are deliberately not checked.
+      - name: Require a version bump for every changed bundle
+        run: python3 utils/ci/check_bundle_versions.py --base "$BASE"
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}

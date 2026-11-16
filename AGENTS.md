@@ -135,6 +135,14 @@ description = "My custom tool"
 - The initial rules catch syntax errors, undefined names, invalid control flow, always-true tuple assertions, literal identity comparisons, mutable defaults, and loop-variable closure bugs. Formatting, import sorting, unused imports, and unused variables are intentionally outside this policy.
 - Keep suppressions specific to a rule and explain the reason. Do not automatically apply fixes or reformat unrelated code. Add rules only when they encode an agreed decision with actionable, low-noise findings.
 
+### Bundle versions
+
+- **Agents must bump a bundle's version whenever they change that bundle.** Any change outside the bundle's `tests/` directory counts, however small. This applies to commits made directly on `develop` too, where CI does not check.
+- The version lives in `src/__init__.py` (`__version__`), in `pyproject.toml`, or in `bundle_info.xml`(`.in`), depending on the bundle. Core is exempt; its version comes from the build.
+- One bump per bundle covers a whole pull request or batch of commits; do not bump per commit.
+- Before handing work back, run `python3 utils/ci/check_bundle_versions.py` and fix anything it reports. It compares `HEAD` with `origin/develop` unless given `--base`, and reads commits, not the working tree.
+- CI fails a pull request that changes a bundle without bumping it. Direct pushes to `develop` are not checked, which is a courtesy to human developers, not an exemption for agents.
+
 ### Bundle conventions
 
 - Bundle APIs must be implemented in `src/__init__.py`
