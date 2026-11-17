@@ -88,7 +88,9 @@ class _PhenixBundle(BundleAPI):
                             raise UserError("Must specify an atomic model to read the probe dots into")
                 from .validation import read_probe_dots
                 read_probe_dots(session, data, file_name, structure_model, **kw)
-                return [], "Added probe dots to %s" % structure_model
+                return [], "Read %d Probe annotations for %d atom pairs" % (sum([len(ld)
+                    for p2 in structure_model.probe_dot_data.values() for ld in p2.values()]) / 2,
+                    len(structure_model.probe_dot_data) / 2)
 
             @property
             def open_args(self):

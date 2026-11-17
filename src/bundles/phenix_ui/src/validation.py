@@ -22,8 +22,9 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-def read_probe_dots(session, data, file_name, structure_model, **kw):
-    from chimerax.core.errors import UserError
+from chimerax.core.errors import UserError
+
+def read_probe_dots(session, data, file_name, structure, **kw):
     from chimerax.core.colors import Color
     pale_green = Color("pale green").uint8x4()
     cornflower_blue = Color("cornflower blue").uint8x4()
@@ -37,8 +38,8 @@ def read_probe_dots(session, data, file_name, structure_model, **kw):
     orange_red = Color("orange red").uint8x4()
 
     session.logger.status("Reading Probe file")
-    from numpy import array, concatenate, empty, float32, int32, array_equal
-    dot_data = []
+    from numpy import array
+    structure.probe_dot_data = dot_data = {}
     line_num = 0
     for line in data:
         line_num += 1
@@ -50,7 +51,7 @@ def read_probe_dots(session, data, file_name, structure_model, **kw):
         node_gap = float(fields[6])
         spike_xyz = array([float(f) for f in fields[7:10]])
         node_xyz = array([float(f) for f in fields[-5:-2]])
-        #probe_atoms = tuple(fields[3:5])
+        a1, a2 = fields[3:5]
         if markup_type == "hb":
             color = pale_green
         elif node_gap > 0.35:
@@ -71,66 +72,15 @@ def read_probe_dots(session, data, file_name, structure_model, **kw):
             color = red
         else:
             color = orange_red
-        dot_data.append((node_xyz, spike_xyz, color))
+        line_data = (node_xyz, spike_xyz, color)
+        dot_data.setdefault(a1, {}).setdefault(a2, []).append(line_data)
+        dot_data.setdefault(a2, {}).setdefault(a1, []).append(line_data)
 
     session.logger.status("Creating Probe depictions")
-    from chimerax.core.models import Model
-    probe_model = Model("Probe markups", session)
-    structure_model.add([probe_model])
-    drawing = probe_model.new_drawing('Probe markup')
-    # 'shape' command defaults to 3810 triangles for a sphere of radius 1; scale down for the radius
-    # we're using
-    radius = 0.05
-    from chimerax.geometry import sphere, translation, norm, vector_rotation
-    from chimerax.surface import calculate_vertex_normals
-    from chimerax.shape.shape import cylinder_divisions, cylinder_geometry
-    # number of triangles has to be even
-    varray1, tarray1 = sphere.sphere_triangulation(2 * round(radius * 3810) // 2)
-    varray1 *= radius
-    varrays = []
-    narrays = []
-    tarrays = []
-    rgba8s = []
-    num_vertices = len(varray1)
-    spike_radius = radius / 4
-    t_offset = 0
-    for node_xyz, spike_xyz, rgba8 in dot_data:
-        varray = translation(node_xyz).transform_points(varray1)
-        narray = calculate_vertex_normals(varray, tarray1)
-        varrays.append(varray)
-        narrays.append(narray)
-        tarrays.append(tarray1 + t_offset)
-        t_offset += num_vertices
-        rgba8s.extend([rgba8] * num_vertices)
-        if array_equal(node_xyz, spike_xyz):
-            # no spike
-            continue
-        # replicating the behavior of shape._line_orientation here for our specific set of values...
-        axis = array((0,0,1), float32)
-        center = 0.5 * (node_xyz + spike_xyz)
-        vector = spike_xyz - node_xyz
-        rotation = vector_rotation((0,0,1), vector)
-        height = norm(vector)
-        # now replicating the behavior of what shape.shape_cylinder does with those values...
-        nz, nc = cylinder_divisions(spike_radius, height, 72)
-        spike_varray, spike_tarray = cylinder_geometry(spike_radius, height, nz, nc, True)
-        spike_varray = (translation(center) * rotation).transform_points(spike_varray)
-        spike_narray = calculate_vertex_normals(spike_varray, spike_tarray)
-        varrays.append(spike_varray)
-        narrays.append(spike_narray)
-        tarrays.append(spike_tarray + t_offset)
-        t_offset += len(spike_varray)
-        rgba8s.extend([rgba8] * len(spike_varray))
-
-    num_all_vertices = sum([len(varray) for varray in varrays])
-    num_all_triangles = sum([len(tarray) for tarray in tarrays])
-    vertices = empty((num_all_vertices, 3), dtype=float32)
-    normals = empty((num_all_vertices, 3), dtype=float32)
-    triangles = empty((num_all_triangles, 3), dtype=int32)
-
-    probe_model.set_geometry(concatenate(varrays, out=vertices), concatenate(narrays, out=normals),
-        concatenate(tarrays, out=triangles))
-    probe_model.vertex_colors = array(rgba8s)
+    if hasattr(structure, 'probe_markup_group') and structure.probe_markup_group is not None \
+    and not structure.probe_markup_group.deleted:
+        session.models.close(structure.probe_markup_group)
+    structure.probe_markup_group = None
 
     # Insert fake attribute (ala Chain.identity) to allow matching to probe identifiers
     # (particulary since probe identifiers can be for non-existent hydrogens).
@@ -140,6 +90,87 @@ def read_probe_dots(session, data, file_name, structure_model, **kw):
     from chimerax.atomic import Atom
     Atom.probe_id = property(probe_id)
     session.logger.status("")
+
+def phenix_validation_clash(session, probe1, probe2):
+    from chimerax.atomic import all_atomic_structures
+    from chimerax.core.models import Model
+    for structure in all_atomic_structures(session):
+        if hasattr(structure, 'probe_markup_group'):
+            if structure.probe_markup_group is None or structure.probe_markup_group.deleted:
+                probe_group = Model("Probe markups", session)
+                structure.add([probe_group])
+                structure.probe_markup_group = probe_group
+                probe_group.shown_markups = {}
+            break
+    else:
+        raise UserError("Structure with Phenix clash info has been closed")
+    probes = (probe1, probe2)
+    markups = structure.probe_markup_group.shown_markups
+    if probes in markups and not markups[probes].deleted:
+        probe_model = markups[probes]
+    else:
+        probe_model = Model("%s\N{LEFT RIGHT ARROW}%s" % probes, session)
+        structure.probe_markup_group.add(probe_model)
+        markups[probes] = probe_model
+        # 'shape' command defaults to 3810 triangles for a sphere of radius 1; scale down for the radius
+        # we're using
+        radius = 0.05
+        from chimerax.geometry import sphere, translation, norm, vector_rotation
+        from chimerax.surface import calculate_vertex_normals
+        from chimerax.shape.shape import cylinder_divisions, cylinder_geometry
+        # number of triangles has to be even
+        varray1, tarray1 = sphere.sphere_triangulation(2 * round(radius * 3810) // 2)
+        varray1 *= radius
+        varrays = []
+        narrays = []
+        tarrays = []
+        rgba8s = []
+        num_vertices = len(varray1)
+        spike_radius = radius / 4
+        t_offset = 0
+        from numpy import array, concatenate, empty, float32, int32, array_equal
+        for node_xyz, spike_xyz, rgba8 in structure.probe_dot_data.get(probe1, {}).get(probe2, []):
+            varray = translation(node_xyz).transform_points(varray1)
+            narray = calculate_vertex_normals(varray, tarray1)
+            varrays.append(varray)
+            narrays.append(narray)
+            tarrays.append(tarray1 + t_offset)
+            t_offset += num_vertices
+            rgba8s.extend([rgba8] * num_vertices)
+            if array_equal(node_xyz, spike_xyz):
+                # no spike
+                continue
+            # replicating the behavior of shape._line_orientation here for our specific set of values...
+            axis = array((0,0,1), float32)
+            center = 0.5 * (node_xyz + spike_xyz)
+            vector = spike_xyz - node_xyz
+            rotation = vector_rotation((0,0,1), vector)
+            height = norm(vector)
+            # now replicating the behavior of what shape.shape_cylinder does with those values...
+            nz, nc = cylinder_divisions(spike_radius, height, 72)
+            spike_varray, spike_tarray = cylinder_geometry(spike_radius, height, nz, nc, True)
+            spike_varray = (translation(center) * rotation).transform_points(spike_varray)
+            spike_narray = calculate_vertex_normals(spike_varray, spike_tarray)
+            varrays.append(spike_varray)
+            narrays.append(spike_narray)
+            tarrays.append(spike_tarray + t_offset)
+            t_offset += len(spike_varray)
+            rgba8s.extend([rgba8] * len(spike_varray))
+
+        num_all_vertices = sum([len(varray) for varray in varrays])
+        num_all_triangles = sum([len(tarray) for tarray in tarrays])
+        vertices = empty((num_all_vertices, 3), dtype=float32)
+        normals = empty((num_all_vertices, 3), dtype=float32)
+        triangles = empty((num_all_triangles, 3), dtype=int32)
+
+        probe_model.set_geometry(concatenate(varrays, out=vertices), concatenate(narrays, out=normals),
+            concatenate(tarrays, out=triangles))
+        probe_model.vertex_colors = array(rgba8s)
+
+    probe_model.display = True
+    probe_spec = '@@probe_id="%s" @@probe_id="%s"' % probes
+    from chimerax.core.commands import run
+    run(session, "sel %s ; view sel zalign sel ; turn y 90" % probe_spec, log=False)
 
 class ProbeTester():
     def __init__(self, atom):
@@ -212,3 +243,34 @@ class ProbeTester():
             h_test = h_test[:-1]
         return a_test == h_test
 
+
+def register_command(logger):
+    from chimerax.core.commands import CmdDesc, register
+    from chimerax.core.commands import (CenterArg, OpenFolderNameArg, BoolArg, RepeatOf, StringArg, IntArg,
+        OpenFileNameArg, EnumOf, Or, PositiveFloatArg, PositiveIntArg)
+    from chimerax.map import MapArg
+    from chimerax.atomic import AtomicStructureArg
+    desc = CmdDesc(
+        required = [('probe1', StringArg), ('probe2', StringArg),],
+        #keyword = [
+        #           ('ligand', Or(AtomicStructureArg, OpenFileNameArg, StringArg)),
+        #           ('center', CenterArg),
+        #           ('in_map', MapArg),
+        #           ('resolution', PositiveFloatArg),
+        #           # put the above four first so that they show up in usage before the optional keywords
+        #           ('block', BoolArg),
+        #           ('clashes', BoolArg),
+        #           ('chain_id', StringArg),
+        #           ('conformers', PositiveIntArg),
+        #           ('extent_type', EnumOf(["length", "angstroms"])),
+        #           ('extent_value', PositiveFloatArg),
+        #           ('hbonds', BoolArg),
+        #           ('phenix_location', OpenFolderNameArg),
+        #           ('residue_number', IntArg),
+        #           ('verbose', BoolArg),
+        #           ('option_arg', RepeatOf(StringArg)),
+        #           ('position_arg', RepeatOf(StringArg)),
+        #],
+        synopsis = 'Show Phenix validation clash results'
+    )
+    register('phenix validation clash', desc, phenix_validation_clash, logger=logger)

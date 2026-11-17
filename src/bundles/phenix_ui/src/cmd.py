@@ -50,3 +50,6 @@ def register_command(logger):
 
     from . import ligand_fit
     ligand_fit.register_command(logger)
+
+    from . import validation
+    validation.register_command(logger)
