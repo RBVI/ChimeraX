@@ -1776,6 +1776,5 @@ def register_openfold_predict_command(logger):
                    ],
         required_arguments = ['file'],
         synopsis = 'Write an AlphaFold 3 JSON input file',
-        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold.html'
     )
     register('af3input', desc, af3input, logger=logger)
