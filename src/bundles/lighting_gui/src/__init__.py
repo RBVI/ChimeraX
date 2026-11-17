@@ -22,7 +22,7 @@
 # copies, of the software or any revisions or derivations thereof.
 # === UCSF ChimeraX Copyright ===
 
-__version__ = "1.0"
+__version__ = "1.1"
 
 from chimerax.core.toolshed import BundleAPI
 from chimerax.core.tools import get_singleton

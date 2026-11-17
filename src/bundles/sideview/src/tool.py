@@ -18,6 +18,7 @@
 #   "delete" - called to clean up before instance is deleted
 #
 from Qt.QtGui import QWindow, QSurface
+from Qt.QtWidgets import QGroupBox
 from chimerax.core.tools import ToolInstance
 from chimerax.geometry import Place
 from chimerax.graphics import View, Camera, Drawing
@@ -412,6 +413,63 @@ class SideViewCanvas(QWindow):
         return self.session.ui.forward_keystroke(event)
 
 
+class DepthCueControls(QGroupBox):
+    """Depth cue settings alongside the planes that determine their extent."""
+
+    def __init__(self, session, parent=None):
+        super().__init__("Depth cue", parent)
+        from Qt.QtWidgets import QCheckBox, QDoubleSpinBox, QFormLayout
+        from chimerax.ui.widgets import ColorButton
+        from chimerax.core.core_triggers import LIGHTING_CHANGED
+
+        self.session = session
+        layout = QFormLayout(self)
+        self.enabled = QCheckBox()
+        self.enabled.toggled.connect(
+            lambda checked: self._run(f"depthCue {str(checked).lower()}"))
+        layout.addRow("Enabled:", self.enabled)
+        self.start = QDoubleSpinBox()
+        self.end = QDoubleSpinBox()
+        for entry, keyword, label in (
+            (self.start, "depthCueStart", "Start:"),
+            (self.end, "depthCueEnd", "End:"),
+        ):
+            entry.setRange(0, 1)
+            entry.setDecimals(2)
+            entry.setSingleStep(0.01)
+            entry.setKeyboardTracking(False)
+            entry.valueChanged.connect(
+                lambda value, k=keyword: self._run(f"{k} {value}"))
+            layout.addRow(label, entry)
+        self.color = ColorButton(max_size=(48, 24))
+        self.color.color_changed.connect(self._on_color_changed)
+        layout.addRow("Color:", self.color)
+        self._sync()
+        self._handler = session.triggers.add_handler(LIGHTING_CHANGED, self._sync)
+
+    def _run(self, arguments):
+        from chimerax.core.commands import run
+        run(self.session, f"lighting {arguments}")
+
+    def _on_color_changed(self, color):
+        self._run(f"depthCueColor #{int(color[0]):02x}{int(color[1]):02x}{int(color[2]):02x}")
+
+    def _sync(self, *args):
+        lighting = self.session.main_view.lighting
+        for widget, value, setter in (
+            (self.enabled, lighting.depth_cue, "setChecked"),
+            (self.start, lighting.depth_cue_start, "setValue"),
+            (self.end, lighting.depth_cue_end, "setValue"),
+        ):
+            widget.blockSignals(True)
+            getattr(widget, setter)(value)
+            widget.blockSignals(False)
+        self.color.color = tuple(round(c * 255) for c in lighting.depth_cue_color)
+
+    def remove_handler(self):
+        self.session.triggers.remove_handler(self._handler)
+
+
 class SideViewUI(ToolInstance):
     SESSION_ENDURING = True
     help = "help:user/tools/sideview.html"
@@ -476,10 +534,13 @@ class SideViewUI(ToolInstance):
         ga.addWidget(self.opengl_canvas.widget)
         layout.addWidget(ga, 1)
         layout.addLayout(button_layout)
+        self.depth_cue = DepthCueControls(session, parent)
+        layout.addWidget(self.depth_cue)
         parent.setLayout(layout)
         self.tool_window.manage(placement="side")
 
     def delete(self):
+        self.depth_cue.remove_handler()
         self.opengl_canvas.close()
         self.view.delete()
         self.view = None
