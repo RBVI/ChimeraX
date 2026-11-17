@@ -2353,7 +2353,7 @@ t0 = t1;
         if (a->idatm_type() != "Npl")
             continue;
         
-        if (ring_assigned_Ns.find(a) != ring_assigned_Ns.end())
+        if (planar_ring_atoms.find(a) != planar_ring_atoms.end())
             continue;
 
         if (a->idatm_is_explicit())
@@ -2367,30 +2367,43 @@ t0 = t1;
             continue;
 
         const int search_limit = 4;
-        int wave = 0;
-        std::set<Atom*> seen = { a };
-        std::set<Atom*> current_wave = { a };
-        while (wave++ < search_limit) {
-            std::set<Atom*> next_wave;
-            for (auto cur: current_wave) {
-                for (auto nb: cur->neighbors()) {
-                    Atom::IdatmInfoMap::const_iterator nbi = info_map.find(nb->idatm_type());
-                    if (nbi == info_map.end() || (*nbi).second.geometry != 3)
-                        continue;
-                    if (nb->idatm_type() == "Npl")
-                        continue;
-                    if (seen.find(nb) != seen.end())
-                        continue;
-                    next_wave.insert(nb);
-                    seen.insert(nb);
+        for (auto anb: a->neighbors()) {
+            Atom::IdatmInfoMap::const_iterator anbi = info_map.find(anb->idatm_type());
+            if (anbi == info_map.end() || (*anbi).second.geometry != 3)
+                continue;
+            int wave = 0;
+            std::set<Atom*> seen = { a, anb };
+            std::set<Atom*> current_wave = { anb };
+            bool branch_ended = false;
+            while (wave++ < search_limit) {
+                std::set<Atom*> next_wave;
+                for (auto cur: current_wave) {
+                    int wave_size = next_wave.size();
+                    for (auto nb: cur->neighbors()) {
+                        Atom::IdatmInfoMap::const_iterator nbi = info_map.find(nb->idatm_type());
+                        if (nbi == info_map.end() || (*nbi).second.geometry != 3)
+                            continue;
+                        if (nb->idatm_type() == "Npl")
+                            continue;
+                        if (seen.find(nb) != seen.end())
+                            continue;
+                        next_wave.insert(nb);
+                        seen.insert(nb);
+                    }
+                    if (next_wave.size() == wave_size) {
+                        if (wave % 2 == 1) {
+                            a->set_computed_idatm_type("N2+");
+                        }
+                        branch_ended = true;
+                        break;
+                    }
                 }
+                if (branch_ended)
+                    break;
+                current_wave = next_wave;
             }
-            if (next_wave.empty()) {
-                if (wave % 2 == 0)
-                    a->set_computed_idatm_type("N2+");
+            if (a->idatm_type() == "N2+")
                 break;
-            }
-            current_wave = next_wave;
         }
     }
 #ifdef TIME_PASSES
