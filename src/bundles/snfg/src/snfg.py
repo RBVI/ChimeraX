@@ -26,19 +26,24 @@
 SNFG (Symbol Nomenclature for Glycans) visualization for ChimeraX.
 
 Displays carbohydrate residues as colored 3D geometric shapes placed at
-sugar ring centroids, following the SNFG standard.
+sugar ring centroids, following the SNFG standard.  The symbols are child
+drawings of the structure they depict, like ribbons and nucleotides.
 """
 
+import weakref
+
 import numpy as np
-from chimerax.core.models import Model, Surface
-from chimerax.core.state import State
+from chimerax.core.state import State, StateManager
 from chimerax.atomic import AtomicShapeDrawing, AtomicShapeInfo
+from chimerax.graphics import Drawing
 from chimerax.surface import calculate_vertex_normals
 
 from .definitions import (
     COLORS, MONOSACCHARIDE_SYMBOLS, PDB_TO_SNFG, DEFAULT_SIZE
 )
 from .shapes import get_shape_geometry
+
+CONNECTION_COLOR = (180, 180, 180)
 
 
 class SNFGShapesDrawing(AtomicShapeDrawing):
@@ -49,79 +54,12 @@ class SNFGShapesDrawing(AtomicShapeDrawing):
     and selecting atoms highlights the symbol.
     """
 
-    SESSION_VERSION = 2
-
     def __init__(self, name="SNFG shapes"):
         super().__init__(name)
         self._residue_to_shape_index = {}  # residue → shape index
         self._shape_residues = []  # ordered list parallel to self._shapes
         self._shape_centroids = []  # centroids for connection drawing
         self._shape_sizes = []  # current size per shape, parallel to self._shapes
-
-    def add_residue_shape(self, residue, shape_type, color_name, size=DEFAULT_SIZE):
-        """Add a glycan symbol shape for a residue.
-
-        Parameters
-        ----------
-        residue : Residue
-            The carbohydrate residue to visualize.
-        shape_type : str
-            SNFG shape type (sphere, cube, diamond, etc.).
-        color_name : str
-            SNFG color name.
-        size : float
-            Size of the symbol in Angstroms.
-
-        Returns
-        -------
-        int or None
-            Shape index, or None if residue has no ring centroid.
-        """
-        if residue in self._residue_to_shape_index:
-            return self._residue_to_shape_index[residue]
-
-        # Get geometry (shapes are centered at origin)
-        vertices, triangles = get_shape_geometry(shape_type, size)
-
-        # Get ring centroid
-        centroid = _ring_centroid(residue)
-        if centroid is None:
-            return None
-
-        # Get ring plane normal and linkage direction for orientation
-        ring_normal = _ring_plane_normal(residue)
-        linkage_dir = _find_linkage_direction(residue, centroid)
-
-        # Compute rotation to align shape with ring plane
-        rotation = _compute_shape_rotation(shape_type, ring_normal, linkage_dir)
-        if rotation is not None:
-            vertices = np.dot(vertices, rotation.T)
-
-        # Translate to centroid
-        vertices = vertices + centroid
-
-        # Calculate normals
-        normals = calculate_vertex_normals(vertices, triangles)
-
-        # Get color
-        rgb = COLORS.get(color_name, (190, 190, 190))
-        color = np.array((*rgb, 255), dtype=np.uint8)
-
-        # Description for picking tooltip
-        description = f"SNFG {residue.name} ({residue})"
-
-        # Add shape with residue's atoms for selection support
-        shape_index = len(self._shapes)
-        self.add_shape(vertices, normals, triangles, color,
-                      atoms=residue.atoms, description=description)
-
-        # Track residue → shape mapping
-        self._residue_to_shape_index[residue] = shape_index
-        self._shape_residues.append(residue)
-        self._shape_centroids.append(centroid)
-        self._shape_sizes.append(float(size))
-
-        return shape_index
 
     def add_residues_batch(self, residue_info_list):
         """Add multiple residue shapes efficiently.
@@ -267,45 +205,6 @@ class SNFGShapesDrawing(AtomicShapeDrawing):
             if s.atoms:
                 s.atoms.intra_bonds.selected = False
 
-    def take_snapshot(self, session, flags):
-        """Save session state."""
-        data = super().take_snapshot(session, flags)
-        data['snfg_version'] = SNFGShapesDrawing.SESSION_VERSION
-        data['shape_residues'] = self._shape_residues
-        data['shape_centroids'] = self._shape_centroids
-        data['shape_sizes'] = list(self._shape_sizes)
-        return data
-
-    @classmethod
-    def restore_snapshot(cls, session, data):
-        """Restore from session."""
-        # AtomicShapeDrawing.restore_snapshot hardcodes ``AtomicShapeDrawing('')``,
-        # so delegating to super() would drop the SNFGShapesDrawing subclass
-        # (and methods like apply_shape_sizes) on session reload. Build the
-        # right type ourselves and replay the AtomicShapeDrawing state restore.
-        from chimerax.graphics.gsession import DrawingState
-        from chimerax.atomic.shapedrawing import _AtomicShape
-        d = cls()
-        DrawingState.set_state_from_snapshot(d, session, data['drawing'])
-        d._shapes = [_AtomicShape(*args) for args in data['shapes']]
-        d._selected_shapes.update([d._shapes[i] for i in data['selected']])
-        if any(s.atoms for s in d._shapes):
-            def post_shape_handler(trigger, trigger_data, drawing=d):
-                from chimerax.core.triggerset import DEREGISTER
-                drawing._add_handler_if_needed()
-                return DEREGISTER
-            session.triggers.add_handler("end restore session", post_shape_handler)
-        d._shape_residues = data.get('shape_residues', [])
-        d._shape_centroids = data.get('shape_centroids', [])
-        d._shape_sizes = list(data.get('shape_sizes', []))
-        if len(d._shape_sizes) != len(d._shape_residues):
-            d._shape_sizes = [DEFAULT_SIZE] * len(d._shape_residues)
-        # Rebuild residue → shape index mapping
-        d._residue_to_shape_index = {
-            res: i for i, res in enumerate(d._shape_residues)
-        }
-        return d
-
     def _shape_vertex_range(self, shape_idx):
         """Return (start, end) vertex indices for a shape, derived from its triangles."""
         if self.triangles is None or shape_idx >= len(self._shapes):
@@ -359,312 +258,224 @@ class SNFGShapesDrawing(AtomicShapeDrawing):
             if saved_edge_mask is not None:
                 self.edge_mask = saved_edge_mask
 
-    def apply_alpha_scale(self, alpha_scale):
-        """Scale the alpha channel of every vertex color by ``alpha_scale``."""
-        if self.vertex_colors is None or len(self.vertex_colors) == 0:
+    def set_alpha(self, alpha):
+        """Set the opacity (0-1) of every symbol."""
+        colors = self.vertex_colors
+        if colors is None or len(colors) == 0:
             return
-        colors = self.vertex_colors.copy()
-        scaled = np.clip(colors[:, 3].astype(np.float32) * alpha_scale, 0.0, 255.0)
-        colors[:, 3] = np.rint(scaled).astype(np.uint8)
-        self.vertex_colors = colors
-
-    def reset_alpha(self):
-        """Reset every vertex color's alpha channel to 255 (fully opaque)."""
-        if self.vertex_colors is None or len(self.vertex_colors) == 0:
+        a = int(round(255 * min(max(alpha, 0.0), 1.0)))
+        if (colors[:, 3] == a).all():
             return
-        if (self.vertex_colors[:, 3] == 255).all():
-            return
-        colors = self.vertex_colors.copy()
-        colors[:, 3] = 255
+        colors = colors.copy()
+        colors[:, 3] = a
         self.vertex_colors = colors
 
 
-class SNFGConnectionsDrawing(Surface):
-    """Drawing for the connection lines between SNFG symbols.
+class SNFGDepiction:
+    """The SNFG symbols and connections drawn inside one structure."""
 
-    Visibility is controlled by ``display`` like a normal Model child, so the
-    parent ``SNFGModel.display`` correctly cascades and scene interpolation
-    flips connections on/off cleanly at the scene-pair switchover rather than
-    risking a brief mid-transition flash from a stale alpha value.
-    """
-
-    SCENE_VERSION = 2
-    # The connection geometry is built procedurally at runtime, so the base
-    # Model snapshot path won't capture it unless we opt in to save the
-    # underlying Drawing state (vertices/triangles/normals).
-    SESSION_SAVE_DRAWING = True
-
-    def __init__(self, session, name="SNFG connections"):
-        super().__init__(name, session)
-        self.color = (180, 180, 180, 255)  # Gray connections
-
-    def take_snapshot(self, session, flags):
-        if flags == State.SCENE:
-            return {
-                'model state': Model.take_snapshot(self, session, flags),
-                'connections_scene_version': SNFGConnectionsDrawing.SCENE_VERSION,
-            }
-        return super().take_snapshot(session, flags)
-
-    @classmethod
-    def restore_snapshot(cls, session, data):
-        # Surface.restore_snapshot hardcodes ``Surface(...)``, which would drop
-        # the subclass on session reload. Build the right type ourselves.
-        m = cls(session, name=data.get('name', 'SNFG connections'))
-        m.set_state_from_snapshot(session, data)
-        return m
-
-    def restore_scene(self, scene_data):
-        Model.restore_scene(self, scene_data['model state'])
-
-    # No custom interpolate_scene: visibility is in ``display`` (handled by
-    # Model.interpolate_scene's dedupe-exempt setattr) and color is constant.
-
-
-class SNFGModel(Model):
-    """Container model for all SNFG drawings associated with a structure."""
-
-    SCENE_VERSION = 1
-    SESSION_VERSION = 1
-
-    def __init__(self, session, structure):
-        super().__init__("SNFG symbols", session)
+    def __init__(self, structure):
         self.structure = structure
-        self._hidden_residues = set()  # Track which residues we hid
-        self._connections_drawing = None
+        self.sizes = {}  # residue → symbol size, for every depicted residue
+        self.show_atoms = False
+        self.alpha = 1.0
+        self.hidden_residues = set()  # residues whose atoms we hid
+        self.shapes = SNFGShapesDrawing()
+        self.connections = Drawing("SNFG connections")
+        structure.add_drawing(self.shapes)
+        structure.add_drawing(self.connections)
+        self._changes_handler = structure.triggers.add_handler(
+            'changes', self._structure_changed)
 
-        # Create the shapes drawing for all glycan symbols
-        self._shapes_drawing = SNFGShapesDrawing()
-        self.add([self._shapes_drawing])
+    def delete(self):
+        self.structure.triggers.remove_handler(self._changes_handler)
+        self.structure.remove_drawing(self.shapes)
+        self.structure.remove_drawing(self.connections)
 
-    def take_snapshot(self, session, flags):
-        if flags == State.SCENE:
-            # Nest Model attrs under 'model state' so scene visibility detection
-            # (scenes/manager.py _get_visible_models_in_scene) can find display.
-            sd = self._shapes_drawing
-            sizes = {}
-            for residue in sd._shape_residues:
-                if residue.deleted:
-                    continue
-                idx = sd._residue_to_shape_index.get(residue)
-                if idx is not None:
-                    sizes[residue] = sd._shape_sizes[idx]
-            return {
-                'model state': Model.take_snapshot(self, session, flags),
-                'snfg_residue_sizes': sizes,
-                'snfg_scene_version': SNFGModel.SCENE_VERSION,
-            }
-        data = super().take_snapshot(session, flags)
-        data['snfg_session_version'] = SNFGModel.SESSION_VERSION
-        data['structure'] = self.structure
-        data['hidden_residues'] = list(self._hidden_residues)
-        data['shapes_drawing'] = self._shapes_drawing.take_snapshot(session, flags)
-        # Don't store a reference to _connections_drawing here: it's a child
-        # Model whose own snapshot already references this SNFGModel as its
-        # parent, and a back-reference would create a save-DAG cycle. We
-        # rediscover it from child_models() after the model tree is restored.
-        return data
+    def set_residues(self, sizes):
+        """Depict the residues in ``sizes`` (residue → size), reusing the
+        existing symbols when only their sizes differ.
 
-    @classmethod
-    def restore_snapshot(cls, session, data):
-        structure = data.get('structure')
-        inst = cls(session, structure)
-        Model.set_state_from_snapshot(inst, session, data)
-        inst._hidden_residues = set(data.get('hidden_residues', []))
-        shapes_data = data.get('shapes_drawing')
-        if shapes_data is not None:
-            inst.remove_drawing(inst._shapes_drawing)
-            inst._shapes_drawing = SNFGShapesDrawing.restore_snapshot(session, shapes_data)
-            inst.add([inst._shapes_drawing])
-        # _connections_drawing will be re-linked once children finish restoring;
-        # see _link_connections_drawing(), called lazily.
-        return inst
-
-    def _link_connections_drawing(self):
-        """Find the SNFGConnectionsDrawing among our children and bind it.
-
-        Used after session restore (where we don't store a back-reference to
-        avoid a save-DAG cycle) and any other path where the child Model is
-        present but ``_connections_drawing`` is None.
+        Returns the number of residues that have a symbol.
         """
-        if self._connections_drawing is not None:
-            return self._connections_drawing
-        for d in self.child_drawings():
-            if isinstance(d, SNFGConnectionsDrawing):
-                self._connections_drawing = d
-                return d
-        return None
+        sizes = {r: s for r, s in sizes.items() if not r.deleted}
+        if sizes.keys() == self.sizes.keys():
+            self.shapes.apply_shape_sizes([sizes[r] for r in self.shapes.residues()])
+            self.sizes = sizes
+        else:
+            self._build(sizes)
+        return len(self.sizes)
 
-    def restore_scene(self, scene_data):
-        Model.restore_scene(self, scene_data['model state'])
-        self._apply_scene_sizes(scene_data)
-        # Reset to fully opaque so any leftover fade alpha from the previous
-        # frame's interpolation doesn't carry over.
-        self._shapes_drawing.reset_alpha()
+    def _build(self, sizes):
+        info = []
+        for residue, size in sizes.items():
+            symbol = identify_sugar(residue)
+            if symbol is not None:
+                info.append((residue, *symbol, size))
+        self.shapes.clear_shapes()
+        self.shapes.add_residues_batch(info)
+        self.sizes = {r: sizes[r] for r in self.shapes.residues()}
+        self._build_connections()
+        self.set_appearance(self.show_atoms, self.alpha)
 
-    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
-        if scene1_data is None and scene2_data is None:
-            return
-        if scene1_data is None or scene2_data is None:
-            target = scene2_data if scene1_data is None else scene1_data
-            alpha_scale = fraction if scene1_data is None else (1.0 - fraction)
-            self.restore_scene(target)
-            self._shapes_drawing.apply_alpha_scale(alpha_scale)
-            return
-        Model.interpolate_scene(self, scene1_data['model state'], scene2_data['model state'],
-                                fraction, switchover=switchover)
-        self._interpolate_shape_sizes(scene1_data, scene2_data, fraction, switchover)
-        self._shapes_drawing.reset_alpha()
+    def set_appearance(self, show_atoms, alpha=1.0):
+        """Connections are only drawn when the sugar atoms are hidden."""
+        self.show_atoms = show_atoms
+        self.alpha = alpha
+        self.shapes.set_alpha(alpha)
+        self.connections.color = (*CONNECTION_COLOR, int(round(255 * alpha)))
+        self.connections.display = not show_atoms
 
-    def _apply_scene_sizes(self, scene_data):
-        sizes_map = scene_data.get('snfg_residue_sizes')
-        if not sizes_map:
-            return
-        sd = self._shapes_drawing
-        target = list(sd._shape_sizes)
-        for residue, size in sizes_map.items():
-            idx = sd._residue_to_shape_index.get(residue)
-            if idx is not None:
-                target[idx] = size
-        sd.apply_shape_sizes(target)
-
-    def _interpolate_shape_sizes(self, scene1_data, scene2_data, fraction, switchover):
-        sizes1 = scene1_data.get('snfg_residue_sizes', {})
-        sizes2 = scene2_data.get('snfg_residue_sizes', {})
-        if not sizes1 and not sizes2:
-            return
-        sd = self._shapes_drawing
-        target = list(sd._shape_sizes)
-        for residue, idx in sd._residue_to_shape_index.items():
-            s1 = sizes1.get(residue)
-            s2 = sizes2.get(residue)
-            if s1 is not None and s2 is not None:
-                target[idx] = (1.0 - fraction) * s1 + fraction * s2
-            elif s2 is not None and switchover:
-                target[idx] = s2
-            elif s1 is not None and not switchover:
-                target[idx] = s1
-        sd.apply_shape_sizes(target)
-
-    def add_residue(self, residue, shape_type, color_name, size=DEFAULT_SIZE):
-        """Add an SNFG symbol for a residue."""
-        return self._shapes_drawing.add_residue_shape(
-            residue, shape_type, color_name, size
-        )
-
-    def add_residues_batch(self, residue_info_list):
-        """Add multiple SNFG symbols efficiently.
-
-        Parameters
-        ----------
-        residue_info_list : list of (residue, shape_type, color_name, size) tuples
-        """
-        return self._shapes_drawing.add_residues_batch(residue_info_list)
-
-    def remove_residue(self, residue):
-        """Remove the SNFG symbol for a residue.
-
-        Note: This requires rebuilding all shapes. For bulk removal,
-        consider clearing and re-adding instead.
-        """
-        if not self._shapes_drawing.has_residue(residue):
-            return
-
-        # Collect info for all residues except the one to remove
-        residues_to_keep = []
-        for r in self._shapes_drawing.residues():
-            if r != residue and not r.deleted:
-                symbol = identify_sugar(r)
-                if symbol:
-                    shape_type, color_name = symbol
-                    residues_to_keep.append((r, shape_type, color_name, DEFAULT_SIZE))
-
-        # Clear and rebuild
-        self._shapes_drawing.clear_shapes()
-        if residues_to_keep:
-            self._shapes_drawing.add_residues_batch(residues_to_keep)
-
-    def has_residue(self, residue):
-        """Check if a residue has an SNFG symbol."""
-        return self._shapes_drawing.has_residue(residue)
-
-    def hide_atoms(self):
-        """Hide atoms for all residues with SNFG symbols."""
-        for residue in self._shapes_drawing.residues():
-            if residue.deleted:
-                continue
-            atoms = residue.atoms
-            # Only hide if currently displayed
-            displayed = atoms.displays
-            if displayed.any():
-                self._hidden_residues.add(residue)
-                atoms.displays = False
-
-    def show_atoms(self):
-        """Restore visibility for atoms we previously hid."""
-        for residue in self._hidden_residues:
-            if residue.deleted:
-                continue
-            residue.atoms.displays = True
-        self._hidden_residues.clear()
-
-    def update_connections(self, visible=True):
-        """Draw connections between linked sugar residues.
-
-        The connections drawing is created on first call and retained across
-        subsequent calls so scenes can track it by Python identity. Visibility
-        is controlled by the alpha component of ``color`` (0 or 255) so that
-        scene interpolation can fade the tubes in/out.
-        """
-        # After session restore _connections_drawing is None even when the
-        # child Model is back in place; rebind it before use.
-        self._link_connections_drawing()
-        # Find connections between sugar residues
+    def _build_connections(self):
+        """Draw connections between linked sugar residues."""
+        shapes = self.shapes
+        seen = set()
         connections = []
-        sugar_residues = set(self._shapes_drawing.residues())
-
-        for residue in sugar_residues:
-            if residue.deleted:
-                continue
-            centroid = self._shapes_drawing.get_centroid(residue)
-            if centroid is None:
-                continue
-
-            # Look for bonds to atoms in other sugar residues
+        for residue in shapes.residues():
             for atom in residue.atoms:
                 for neighbor in atom.neighbors:
-                    other_res = neighbor.residue
-                    if other_res != residue and other_res in sugar_residues:
-                        other_centroid = self._shapes_drawing.get_centroid(other_res)
-                        if other_centroid is not None:
-                            # Add connection (use frozenset to avoid duplicates)
-                            pair = frozenset([residue, other_res])
-                            conn = (centroid, other_centroid)
-                            connections.append((pair, conn))
-
-        # Remove duplicates
-        seen = set()
-        unique_connections = []
-        for pair, conn in connections:
-            if pair not in seen:
-                seen.add(pair)
-                unique_connections.append(conn)
-
-        if not unique_connections:
-            if self._connections_drawing is not None:
-                self._connections_drawing.display = visible
-            return
-
-        vertices, triangles = _cylinder_connections(unique_connections, radius=0.2)
+                    other = neighbor.residue
+                    if other is residue or not shapes.has_residue(other):
+                        continue
+                    pair = frozenset([residue, other])
+                    if pair not in seen:
+                        seen.add(pair)
+                        connections.append((shapes.get_centroid(residue),
+                                            shapes.get_centroid(other)))
+        vertices, triangles = _cylinder_connections(connections, radius=0.2)
         if len(vertices) == 0:
+            self.connections.set_geometry(None, None, None)
             return
         normals = calculate_vertex_normals(vertices, triangles)
+        self.connections.set_geometry(vertices, normals, triangles)
 
-        if self._connections_drawing is None:
-            self._connections_drawing = SNFGConnectionsDrawing(self.session)
-            self.add([self._connections_drawing])
-        self._connections_drawing.set_geometry(vertices, normals, triangles)
-        self._connections_drawing.display = visible
+    def hide_atoms(self):
+        """Hide the atoms of every residue that has a symbol."""
+        for residue in self.sizes:
+            atoms = residue.atoms
+            if atoms.displays.any():
+                self.hidden_residues.add(residue)
+                atoms.displays = False
+
+    def restore_atoms(self):
+        """Show the atoms we previously hid."""
+        for residue in self.hidden_residues:
+            if not residue.deleted:
+                residue.atoms.displays = True
+        self.hidden_residues.clear()
+
+    def _structure_changed(self, trigger_name, data):
+        structure, changes = data
+        if changes.num_deleted_atoms():
+            self.hidden_residues = {r for r in self.hidden_residues if not r.deleted}
+        elif ('coord changed' not in changes.atom_reasons()
+              and 'active_coordset changed' not in changes.structure_reasons()):
+            return
+        self._build({r: s for r, s in self.sizes.items() if not r.deleted})
+        if not self.sizes:
+            _manager(structure.session).remove(structure)
+
+
+class SNFGManager(StateManager):
+    """Saves and restores SNFG depictions in sessions and scenes."""
+
+    VERSION = 1
+
+    def __init__(self, session):
+        self._structures = weakref.WeakSet()
+
+    def depiction(self, structure, create=False):
+        depiction = getattr(structure, '_snfg_depiction', None)
+        if depiction is None and create:
+            depiction = structure._snfg_depiction = SNFGDepiction(structure)
+            self._structures.add(structure)
+        return depiction
+
+    def depictions(self):
+        return {s: s._snfg_depiction for s in self._structures if not s.deleted}
+
+    def remove(self, structure):
+        depiction = self.depiction(structure)
+        if depiction is None:
+            return
+        self._structures.discard(structure)
+        del structure._snfg_depiction
+        if not structure.deleted:
+            depiction.delete()
+
+    def _restore(self, structure, state, alpha=1.0):
+        depiction = self.depiction(structure, create=True)
+        depiction.hidden_residues = {r for r in state['hidden'] if not r.deleted}
+        depiction.set_appearance(state['show_atoms'], alpha)
+        if not depiction.set_residues(state['sizes']):
+            self.remove(structure)
+
+    def take_snapshot(self, session, flags):
+        depictions = {
+            structure: {
+                'sizes': dict(d.sizes),
+                'show_atoms': d.show_atoms,
+                'hidden': list(d.hidden_residues),
+            }
+            for structure, d in self.depictions().items()
+        }
+        if flags == State.SCENE:
+            return depictions
+        return {'version': self.VERSION, 'depictions': depictions}
+
+    @classmethod
+    def restore_snapshot(cls, session, data):
+        mgr = _manager(session)
+        for structure, state in data['depictions'].items():
+            if structure is not None and not structure.deleted:
+                mgr._restore(structure, state)
+        return mgr
+
+    def reset_state(self, session):
+        for structure in self.depictions():
+            self.remove(structure)
+
+    def restore_scene(self, scene_data):
+        """Scene interface; ``scene_data`` is None for a scene saved before
+        any structure had SNFG symbols.  Atom visibility is restored by the
+        structures themselves."""
+        scene_data = scene_data or {}
+        for structure in self.depictions():
+            if structure not in scene_data:
+                self.remove(structure)
+        for structure, state in scene_data.items():
+            if not structure.deleted:
+                self._restore(structure, state)
+
+    def interpolate_scene(self, scene1_data, scene2_data, fraction, *, switchover=False):
+        scene1_data = scene1_data or {}
+        scene2_data = scene2_data or {}
+        for structure in {*scene1_data, *scene2_data, *self.depictions()}:
+            if structure.deleted:
+                continue
+            state1 = scene1_data.get(structure)
+            state2 = scene2_data.get(structure)
+            if state1 is None and state2 is None:
+                self.remove(structure)
+            elif state1 is None:
+                self._restore(structure, state2, alpha=fraction)
+            elif state2 is None:
+                self._restore(structure, state1, alpha=1.0 - fraction)
+            else:
+                state = dict(state2 if switchover else state1)
+                sizes1, sizes2 = state1['sizes'], state2['sizes']
+                state['sizes'] = {
+                    r: ((1.0 - fraction) * sizes1[r] + fraction * sizes2[r]
+                        if r in sizes1 and r in sizes2 else size)
+                    for r, size in state['sizes'].items()
+                }
+                self._restore(structure, state)
+
+
+def _manager(session):
+    if not hasattr(session, 'snfg'):
+        session.snfg = SNFGManager(session)
+    return session.snfg
 
 
 def _cylinder_connections(connections, radius=0.2, divisions=8):
@@ -1010,7 +821,11 @@ def identify_sugar(residue):
 
     Returns (shape_type, color_name) tuple, or None if not a recognized sugar.
     """
-    res_name = residue.name.upper()
+    return _symbol_for_name(residue.name)
+
+
+def _symbol_for_name(res_name):
+    res_name = res_name.upper()
 
     # Try direct PDB code lookup
     if res_name in PDB_TO_SNFG:
@@ -1030,40 +845,12 @@ def identify_sugar(residue):
     return None
 
 
-def find_sugar_residues(structures):
-    """
-    Find all carbohydrate residues in the given structures.
-
-    Returns a list of (residue, shape_type, color_name) tuples.
-    """
-    results = []
-
-    for structure in structures:
-        for residue in structure.residues:
-            symbol = identify_sugar(residue)
-            if symbol is not None:
-                shape_type, color_name = symbol
-                results.append((residue, shape_type, color_name))
-
-    return results
-
-
-def get_snfg_model(session, structure, create=True):
-    """
-    Get or create the SNFG model for a structure.
-    """
-    # Look for existing SNFG model
-    for model in structure.child_models():
-        if isinstance(model, SNFGModel) and model.structure == structure:
-            return model
-
-    if not create:
-        return None
-
-    # Create new SNFG model
-    snfg_model = SNFGModel(session, structure)
-    structure.add([snfg_model])
-    return snfg_model
+def sugar_residues(structure):
+    """Return the carbohydrate residues of a structure as a Residues collection."""
+    residues = structure.residues
+    names = residues.names
+    sugar_names = [name for name in set(names) if _symbol_for_name(name) is not None]
+    return residues.filter(np.isin(names, sugar_names))
 
 
 def show_snfg(session, structures=None, size=DEFAULT_SIZE, replace=True,
@@ -1086,48 +873,45 @@ def show_snfg(session, structures=None, size=DEFAULT_SIZE, replace=True,
         If False (default), hide sugar atoms.
     log : bool
         If True (default), log a summary message to the session logger.
+
+    Returns the number of symbols shown.
     """
     if structures is None:
         from chimerax.atomic import all_atomic_structures
         structures = all_atomic_structures(session)
 
+    mgr = _manager(session)
     total_shown = 0
 
     for structure in structures:
-        snfg_model = get_snfg_model(session, structure, create=True)
-        # Re-showing a previously-hidden SNFG model: just toggle display back on.
-        snfg_model.display = True
+        depiction = mgr.depiction(structure)
+        sizes = {}
+        if depiction is not None:
+            if replace:
+                depiction.restore_atoms()
+                mgr.remove(structure)
+            else:
+                sizes.update(depiction.sizes)
+        existing = set(sizes)
+        for residue in sugar_residues(structure):
+            sizes.setdefault(residue, size)
+        if not sizes:
+            continue
 
-        if replace:
-            # Restore any previously hidden atoms before clearing
-            snfg_model.show_atoms()
-            # Clear existing shapes; keep the connections drawing alive so
-            # scenes can continue to track its identity across show/hide cycles.
-            snfg_model._shapes_drawing.clear_shapes()
-
-        sugars = find_sugar_residues([structure])
-
-        # Collect residues to add (filter out those already present)
-        residue_info = []
-        for residue, shape_type, color_name in sugars:
-            if not snfg_model.has_residue(residue):
-                residue_info.append((residue, shape_type, color_name, size))
-
-        # Batch add all residues for efficiency
-        if residue_info:
-            total_shown += snfg_model.add_residues_batch(residue_info)
-
-        # Hide or show atoms based on parameter
+        depiction = mgr.depiction(structure, create=True)
+        depiction.set_appearance(show_atoms)
+        if not depiction.set_residues(sizes):
+            mgr.remove(structure)
+            continue
+        total_shown += len(depiction.sizes.keys() - existing)
         if show_atoms:
-            snfg_model.show_atoms()
+            depiction.restore_atoms()
         else:
-            snfg_model.hide_atoms()
-        # Always (re)build connections so the drawing exists and is registered
-        # with the scene system; alpha encodes whether it's visually present.
-        snfg_model.update_connections(visible=not show_atoms)
+            depiction.hide_atoms()
 
     if log:
         session.logger.info(f"Showing SNFG symbols for {total_shown} carbohydrate residues")
+    return total_shown
 
 
 def hide_snfg(session, structures=None, log=True):
@@ -1142,36 +926,39 @@ def hide_snfg(session, structures=None, log=True):
         Structures to process. If None, use all open structures.
     log : bool
         If True (default), log a summary message to the session logger.
+
+    Returns the number of symbols hidden.
     """
     if structures is None:
         from chimerax.atomic import all_atomic_structures
         structures = all_atomic_structures(session)
 
+    mgr = _manager(session)
     total_hidden = 0
 
     for structure in structures:
-        snfg_model = get_snfg_model(session, structure, create=False)
-        if snfg_model is not None:
-            total_hidden += len(snfg_model._shapes_drawing._shape_residues)
-            # Restore atom visibility, then hide the SNFG model rather than
-            # deleting it so scenes keep tracking the same Model object across
-            # hide/show cycles (required for scene fade interpolation).
-            snfg_model.show_atoms()
-            snfg_model.display = False
+        depiction = mgr.depiction(structure)
+        if depiction is not None:
+            total_hidden += len(depiction.sizes)
+            depiction.restore_atoms()
+            mgr.remove(structure)
 
     if log:
         session.logger.info(f"Hidden SNFG symbols for {total_hidden} carbohydrate residues")
+    return total_hidden
 
 
 def snfg_command(session, action='show', structures=None, size=DEFAULT_SIZE,
                  atoms=True, log=True):
     """
     Command handler for 'snfg' command.
+
+    Returns the number of symbols shown or hidden.
     """
     if action == 'show':
-        show_snfg(session, structures, size, show_atoms=atoms, log=log)
+        return show_snfg(session, structures, size, show_atoms=atoms, log=log)
     elif action == 'hide':
-        hide_snfg(session, structures, log=log)
+        return hide_snfg(session, structures, log=log)
     else:
         from chimerax.core.errors import UserError
         raise UserError(f"Unknown action '{action}'. Use 'show' or 'hide'.")
@@ -1193,3 +980,19 @@ def register_command(logger):
         synopsis='Show or hide SNFG glycan symbols'
     )
     register('snfg', desc, snfg_command, logger=logger)
+
+
+def _glycan_selector(session, models, results):
+    from chimerax.atomic import Structure
+    for m in models:
+        if isinstance(m, Structure):
+            atoms = sugar_residues(m).atoms
+            if len(atoms) > 0:
+                results.add_model(m)
+                results.add_atoms(atoms, bonds=True)
+
+
+def register_selector(logger):
+    """Register the glycan selector."""
+    from chimerax.core.commands import register_selector
+    register_selector("glycan", _glycan_selector, logger, desc="glycan residues")

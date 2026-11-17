@@ -182,6 +182,28 @@ include = ["src"]
 exclude = ["ChimeraX.app/**"]
 ignore = ["src/bundles/**/build"]
 
+[tool.ruff]
+target-version = "py314"
+force-exclude = true
+extend-exclude = [
+  "ChimeraX.app", "wheel", "prereqs", "docs", "src/bundles/core/toolshed/unused",
+  # Colab scripts contain IPython shell syntax and are not Python modules.
+  "src/bundles/alphafold/src/colabfold_predict.py",
+  "src/bundles/alphafold/src/colabfold_predict_test.py",
+  "src/bundles/alphafold/src/alphafold21_predict_colab.py",
+  "src/bundles/alphafold/src/alphafold22_predict_colab.py",
+  "src/bundles/alphafold/src/alphafold_predict_colab.py",
+]
+
+[tool.ruff.lint]
+# Correctness only; formatting remains governed by the existing YAPF settings.
+select = ["E9", "F63", "F7", "F82", "B006", "B023"]
+
+# These are fragments assembled into a script, not standalone modules.
+[tool.ruff.lint.per-file-ignores]
+"src/bundles/modeller/src/script_head.py" = ["F821"]
+"src/bundles/modeller/src/script_tail.py" = ["F821"]
+
 [tool.yapf]
 # All changes must be PEP8 compatible
 blank_line_before_nested_class_or_def = true

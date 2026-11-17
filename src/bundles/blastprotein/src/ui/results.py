@@ -601,8 +601,11 @@ class BlastProteinResults(ToolInstance):
         """
         Collect the names and sequences of selected matches. All sequences
         should have the same length because they include the gaps inserted by
-        the BLAST alignment.
+        the BLAST alignment. With no selection, every match in the table is
+        shown.
         """
+        if not selections:
+            selections = self.table.data
         ids = [hit["id"] for hit in selections]
         ids.insert(0, 0)
         names = []
@@ -645,7 +648,9 @@ class BlastResultsWorker(QThread):
     parsing_results = Signal()
 
     report_hits = Signal(list)
-    report_sequences = Signal(dict)
+    # PySide converts Signal(dict) payloads to QVariantMap, which silently
+    # drops our integer keys; object passes the dict through untouched.
+    report_sequences = Signal(object)
 
     def __init__(
         self, session, job, database=None, results=None, sequence=None, atomspec=None

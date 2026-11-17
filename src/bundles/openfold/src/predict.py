@@ -795,9 +795,9 @@ class OpenFoldRun:
         return struct_files
         
     def _prediction_command(self):
-        openfold_venv = self._settings.openfold_install_location
+        openfold_install_dir = self._settings.openfold_install_location
         from .install import find_executable
-        openfold_exe = find_executable(openfold_venv, 'run_openfold')
+        openfold_exe = find_executable(openfold_install_dir, 'run_openfold')
 
         command = [openfold_exe, 'predict']
 
@@ -1296,7 +1296,8 @@ def _check_venv_valid(session, install_location):
     from os.path import join, exists
     venv_config_path = join(install_location, 'pyvenv.cfg')
     if not exists(venv_config_path):
-        # Maybe the user installed OpenFold themselves.  Don't complain in that case.
+        # ChimeraX 1.13 and newer versions install separate Python instead
+        # of using a virtual environment tied to the ChimeraX Python.
         return True
 
     with open(venv_config_path, 'r') as f:
