@@ -77,7 +77,7 @@ Residue::Residue(Structure *as, const ResName& name, const ChainID& chain, int n
     _alt_loc(' '), _chain(nullptr), _chain_id(chain), _insertion_code(insert), _mmcif_chain_id(chain),
     _name(name), _number(num), _ribbon_adjust(-1.0), _ribbon_display(false), _ribbon_hide_backbone(true),
     _ribbon_rgba({160,160,0,255}), _ss_id(-1), _ss_type(SS_COIL), _structure(as), _ring_display(false),
-    _rings_are_thin(false), _worm_radius(1.0)
+    _rings_are_thin(false), _worm_radius(1.0), _has_helix_inside_color(false)
 {
     if (chain.empty())
         throw std::logic_error("chain ID cannot be empty string");
@@ -472,6 +472,8 @@ Residue::session_restore(int version, int** ints, float** floats)
     _ribbon_rgba.session_restore(ints, floats);
     if (version > 14)
         _ring_rgba.session_restore(ints, floats);
+    if (version >= 22)
+        _helix_inside_rgba.session_restore(ints, floats);
 
     auto& int_ptr = *ints;
     auto& float_ptr = *floats;
@@ -526,6 +528,7 @@ Residue::session_restore(int version, int** ints, float** floats)
         _rings_are_thin = int_ptr[7];
         num_atoms = int_ptr[8];
     }
+    _has_helix_inside_color = version >= 22 && int_ptr[9];
     int_ptr += SESSION_NUM_INTS(version);
 
     _ribbon_adjust = float_ptr[0];
@@ -543,6 +546,7 @@ Residue::session_save(int** ints, float** floats) const
 {
     _ribbon_rgba.session_save(ints, floats);
     _ring_rgba.session_save(ints, floats);
+    _helix_inside_rgba.session_save(ints, floats);
 
     auto& int_ptr = *ints;
     auto& float_ptr = *floats;
@@ -556,6 +560,7 @@ Residue::session_save(int** ints, float** floats) const
     int_ptr[6] = (int)_ring_display;
     int_ptr[7] = (int)_rings_are_thin;
     int_ptr[8] = atoms().size();
+    int_ptr[9] = (int)_has_helix_inside_color;
     int_ptr += SESSION_NUM_INTS();
 
     float_ptr[0] = _ribbon_adjust;

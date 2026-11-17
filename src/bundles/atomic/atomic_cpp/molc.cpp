@@ -3224,6 +3224,30 @@ extern "C" EXPORT void set_residue_ribbon_color(void *residues, size_t n, uint8_
     }
 }
 
+extern "C" EXPORT void residue_helix_inside_color(void *residues, size_t n, PyObject **colors)
+{
+    Residue **r = static_cast<Residue **>(residues);
+    try {
+        for (size_t i = 0; i != n; ++i) {
+            PyObject *color;
+            if (r[i]->has_helix_inside_color()) {
+                const Rgba &c = r[i]->helix_inside_color();
+                color = Py_BuildValue("(iiii)", c.r, c.g, c.b, c.a);
+                if (color == nullptr)
+                    return;
+            } else {
+                color = Py_None;
+                Py_INCREF(color);
+            }
+            // The output is an initialized numpy object array.
+            Py_XDECREF(colors[i]);
+            colors[i] = color;
+        }
+    } catch (...) {
+        molc_error();
+    }
+}
+
 extern "C" EXPORT void residue_clear_hide_bits(void *residues, size_t n, int32_t bit_mask, npy_bool atoms_only)
 {
     Residue **r = static_cast<Residue **>(residues);

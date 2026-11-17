@@ -62,7 +62,10 @@ PyObject *rxsection_arrow(PyObject *s, PyObject *args, PyObject *keywds);
 // Compute ribbon extrusions for a spline path with varying cross-sections adding them
 // to geometry.
 //  
-//  ribbon_extrusions(center, tangents, normals, ranges, num_res, xs_front, xs_back, geometry)
+//  ribbon_extrusions(center, tangents, normals, ranges, num_res, xs_front, xs_back,
+//                    geometry, radial_scale=None, inside_sides=None)
+//  Optional N-by-2 inside_sides gives the material side (-1/0/+1) for each
+//  residue's front and back half.  Zero keeps normal residue coloring.
 //
 PyObject *ribbon_extrusions(PyObject *s, PyObject *args, PyObject *keywds);
 
@@ -76,6 +79,8 @@ PyObject *geometry_add_range(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *geometry_set_range_offset(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *geometry_ranges(PyObject *s, PyObject *args, PyObject *keywds);
 PyObject *geometry_empty(PyObject *s, PyObject *args, PyObject *keywds);
+// geometry_arrays(geometry, include_inside=False) returns vertices, normals, triangles,
+// and optionally a boolean mask of inside surface vertices.
 PyObject *geometry_arrays(PyObject *s, PyObject *args, PyObject *keywds);
 
 // Color vertices according to residue ribbon colors.

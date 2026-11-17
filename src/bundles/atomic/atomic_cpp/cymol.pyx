@@ -1504,6 +1504,25 @@ cdef class CyResidue:
         self.cpp_res.set_ribbon_color(rgba[0], rgba[1], rgba[2], rgba[3])
 
     @property
+    def helix_inside_color(self):
+        """Inward helix ribbon RGBA color, or None to use the ribbon color."""
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        if not self.cpp_res.has_helix_inside_color():
+            return None
+        color = self.cpp_res.helix_inside_color()
+        return (color.r, color.g, color.b, color.a)
+
+    @helix_inside_color.setter
+    def helix_inside_color(self, rgba):
+        if self._deleted: raise RuntimeError("Residue already deleted")
+        if rgba is None:
+            self.cpp_res.clear_helix_inside_color()
+        else:
+            if len(rgba) != 4:
+                raise ValueError("Residue.helix_inside_color: 'rgba' must be length 4")
+            self.cpp_res.set_helix_inside_color(rgba[0], rgba[1], rgba[2], rgba[3])
+
+    @property
     def ring_display(self):
         "Whether to display the residue's rings as filled. Boolean value."
         if self._deleted: raise RuntimeError("Residue already deleted")

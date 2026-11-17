@@ -69,6 +69,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
     # Accumulate ribbon information for all polymer chains.
     geometry = TriangleAccumulator()
     polyres = []
+    inside_colors = []	# Per-residue inside colors for each chain in polyres
     roffset = 0
     tethered_atoms = []
     backbone_atoms = []
@@ -179,8 +180,17 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
             radial_scale = None
 
         # Compute ribbon triangles
+        inside = residues.helix_inside_colors
+        has_inside = array([c is not None for c in inside], bool)
+        colors = zeros((len(residues), 4), uint8)
+        if has_inside.any():
+            colors[has_inside] = list(inside[has_inside])
+        inside_kw = {}
+        if has_inside.any() and not worm and not arc_helix:
+            inside_kw = dict(inside_sections=(xs_mgr.xs_helix, xs_mgr.xs_helix_arrow),
+                             helix_ranges=helix_ranges, inside_residues=has_inside)
         _ribbon_geometry(path, display_ranges, len(residues), xs_front, xs_back, geometry,
-                         radial_scale=radial_scale)
+                         radial_scale=radial_scale, **inside_kw)
 
         if timing:
             geotime += time() - t0
@@ -199,6 +209,7 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
             tethertime += time()-t0
         
         polyres.append(residues)
+        inside_colors.append(colors)
 
         roffset += len(residues)
         geometry.set_range_offset(roffset)
@@ -209,7 +220,14 @@ def _make_ribbon_graphics(structure, ribbons_drawing):
     # Set ribbon drawing geometry, colors, residue triangle ranges, and tethers
     if not geometry.empty():
         # Set drawing geometry
-        va, na, ta = geometry.vertex_normal_triangle_arrays()
+        from numpy import vstack
+        va, na, ta, inside = geometry.vertex_normal_triangle_arrays(include_inside=True)
+        if inside.any():
+            ribbons_drawing._helix_inside_mask = inside
+            ribbons_drawing._helix_inside_colors = _vertex_inside_colors(
+                inside, geometry.triangle_ranges, vstack(inside_colors))
+        else:
+            ribbons_drawing._helix_inside_mask = ribbons_drawing._helix_inside_colors = None
         ribbons_drawing.set_geometry(va, na, ta)
         # ribbons_drawing.display_style = rp.Mesh
 
@@ -470,14 +488,63 @@ def _worm_radii(residues, segment_divisions):
     spline_worm_radii = scoords[:,0].copy()  # Make it contiguous
     return spline_worm_radii
 
+def _helix_inside_sides(path, num_res, helix_ranges):
+    """Choose one material side per complete helix, independent of display gaps.
+
+    Local spline curvature can reverse near inflections or distorted residues.
+    It must not swap colors across a continuous ribbon face.  Use the total
+    signed bending of the whole helix to choose a side, then retain that side.
+    """
+    from numpy import int32
+    _, tangents, normals = path
+    # Only interior samples are used below.  The binormal is perpendicular to
+    # the tangent, so no tangential projection or curvature normalization is needed.
+    curvature = tangents[2:] - tangents[:-2]
+    facing = (cross(tangents[1:-1], normals[1:-1]) * curvature).sum(axis=1)
+    nsp = len(tangents) // num_res
+    sides = zeros(num_res, int32)
+    for start, end in helix_ranges:
+        # Sample between the terminal residue centers, excluding extensions
+        # that join coils.
+        values = facing[start * nsp + nsp // 2 - 1:(end - 1) * nsp + nsp // 2]
+        score = values.sum()
+        if abs(score) > EPSILON:
+            sides[start:end] = 1 if score > 0 else -1
+    return sides
+
+
+def _vertex_inside_colors(inside, triangle_ranges, residue_colors):
+    """Return the inside color of each masked vertex, from the residue that made it."""
+    from numpy import flatnonzero, lexsort, searchsorted
+    # Each residue's vertices are the contiguous range vs:ve.  Sorting empty
+    # ranges before others with the same start keeps them from being found.
+    order = lexsort((triangle_ranges[:, 4], triangle_ranges[:, 3]))
+    starts = triangle_ranges[order, 3]
+    vertices = flatnonzero(inside)
+    res = triangle_ranges[order[searchsorted(starts, vertices, 'right') - 1], 0]
+    return residue_colors[res]
+
+
 def _ribbon_geometry(path, ranges, num_res, xs_front, xs_back, geometry,
-                     radial_scale = None):
+                     radial_scale=None, inside_sections=None, helix_ranges=(),
+                     inside_residues=None):
     centers, tangents, normals = path
     xsf = [xs._xs_pointer for xs in xs_front]
     xsb = [xs._xs_pointer for xs in xs_back]
-    radial_scale_kw = {} if radial_scale is None else {'radial_scale': radial_scale}
+    extrusion_kw = {} if radial_scale is None else {'radial_scale': radial_scale}
+    if inside_sections is not None:
+        from numpy import int32
+        sides = _helix_inside_sides(path, num_res, helix_ranges)
+        if inside_residues is not None:
+            # The side is chosen for the whole helix; only colored residues use it.
+            sides[~inside_residues] = 0
+        inside_pointers = {xs._xs_pointer for xs in inside_sections}
+        # Each half can have a different section, such as coil at a helix end.
+        extrusion_kw['inside_sides'] = array([
+            (side if front in inside_pointers else 0, side if back in inside_pointers else 0)
+            for side, front, back in zip(sides, xsf, xsb)], dtype=int32)
     _ribbons.ribbon_extrusions(centers, tangents, normals, ranges,
-                               num_res, xsf, xsb, geometry._geom_cpp, **radial_scale_kw)
+                               num_res, xsf, xsb, geometry._geom_cpp, **extrusion_kw)
     
 # Compute triangle geometry for ribbon.
 # Only certain ranges of residues are considered, since not all
@@ -540,8 +607,8 @@ class TriangleAccumulator:
     def set_range_offset(self, roffset):
         _ribbons.geometry_set_range_offset(self._geom_cpp, roffset)
 
-    def vertex_normal_triangle_arrays(self):
-        return _ribbons.geometry_arrays(self._geom_cpp)
+    def vertex_normal_triangle_arrays(self, include_inside=False):
+        return _ribbons.geometry_arrays(self._geom_cpp, include_inside=include_inside)
 
     @property
     def triangle_ranges(self):
@@ -618,8 +685,12 @@ class RibbonsDrawing(Drawing):
         self._triangle_ranges_sorted = None	# Sorted ranges for first_intercept() calc
         self._residues = None			# Residues used with _triangle_ranges
         self._residues_count = 0		# For detecting deleted residues
+        self._helix_inside_mask = None	# Vertices on the inward side of helices
+        self._helix_inside_colors = None	# RGBA8 color of each masked vertex
         
     def clear(self):
+        self._helix_inside_mask = None
+        self._helix_inside_colors = None
         self.set_geometry(None, None, None)
         self.remove_all_drawings()
         self._tethers_drawing = None
@@ -657,6 +728,8 @@ class RibbonsDrawing(Drawing):
 #        for i,ts,te,vs,ve in self._triangle_ranges:
 #            vc[vs:ve,:] = rcolor[i]
 
+        if self._helix_inside_mask is not None:
+            vc[self._helix_inside_mask] = self._helix_inside_colors
         self.vertex_colors = vc
 
         if timing:

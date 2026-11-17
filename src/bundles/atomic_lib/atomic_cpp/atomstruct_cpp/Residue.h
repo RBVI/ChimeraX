@@ -73,6 +73,8 @@ private:
     friend class Bond;
 
     static int  SESSION_NUM_INTS(int version=CURRENT_SESSION_VERSION) {
+        if (version >= 22)
+            return 10;
         return version < 6 ? 10 : (version < 10 ? 9 : (version < 14 ? 8 : (version < 15 ? 7 : 9)));
     }
     static int  SESSION_NUM_FLOATS(int version=CURRENT_SESSION_VERSION) { return version < 20 ? 1 : 2; }
@@ -97,6 +99,8 @@ private:
     bool  _rings_are_thin;
     Rgba  _ring_rgba;
     float  _worm_radius;
+    Rgba  _helix_inside_rgba;
+    bool  _has_helix_inside_color;
 public:
     void  add_atom(Atom*, bool copying_or_restoring=false);
     const Atoms&  atoms() const { return _atoms; }
@@ -123,7 +127,7 @@ public:
         return SESSION_NUM_FLOATS(version) + Rgba::session_num_floats();
     }
     int  session_num_ints(int version=CURRENT_SESSION_VERSION) const {
-        return SESSION_NUM_INTS(version) + (version < 15 ? 1 : 2) * Rgba::session_num_ints() + atoms().size();
+        return SESSION_NUM_INTS(version) + (version < 15 ? 1 : version < 22 ? 2 : 3) * Rgba::session_num_ints() + atoms().size();
     }
     void  session_restore(int, int**, float**);
     void  session_save(int**, float**) const;
@@ -184,6 +188,13 @@ public:
     // graphics related
     float  ribbon_adjust() const;
     const Rgba&  ribbon_color() const { return _ribbon_rgba; }
+    const Rgba&  helix_inside_color() const { return _helix_inside_rgba; }
+    bool  has_helix_inside_color() const { return _has_helix_inside_color; }
+    void  clear_helix_inside_color();
+    void  set_helix_inside_color(const Rgba& rgba);
+    void  set_helix_inside_color(Rgba::Channel r, Rgba::Channel g, Rgba::Channel b, Rgba::Channel a) {
+        set_helix_inside_color(Rgba({r, g, b, a}));
+    }
     bool  ribbon_display() const { return _ribbon_display; }
     bool  ribbon_hide_backbone() const { return _ribbon_hide_backbone; }
     bool  selected() const;  // True if any atom selected
@@ -343,6 +354,26 @@ Residue::set_ribbon_color(const Rgba& rgba) {
     change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_RIBBON_COLOR);
     _structure->set_gc_color();
     _ribbon_rgba = rgba;
+}
+
+inline void
+Residue::set_helix_inside_color(const Rgba& rgba) {
+    if (_has_helix_inside_color && rgba == _helix_inside_rgba)
+        return;
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_HELIX_INSIDE_COLOR);
+    // Enabling an inside color also changes the ribbon tessellation.
+    _structure->set_gc_ribbon();
+    _helix_inside_rgba = rgba;
+    _has_helix_inside_color = true;
+}
+
+inline void
+Residue::clear_helix_inside_color() {
+    if (!_has_helix_inside_color)
+        return;
+    change_tracker()->add_modified(structure(), this, ChangeTracker::REASON_HELIX_INSIDE_COLOR);
+    _structure->set_gc_ribbon();
+    _has_helix_inside_color = false;
 }
 
 inline void

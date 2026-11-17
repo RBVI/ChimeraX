@@ -541,6 +541,8 @@ void Structure::_copy(Structure* s, PositionMatrix coord_adjust,
         cr->set_mmcif_chain_id(mmcif_cid);
         cr->set_ribbon_display(r->ribbon_display());
         cr->set_ribbon_color(r->ribbon_color());
+        if (r->has_helix_inside_color())
+            cr->set_helix_inside_color(r->helix_inside_color());
         cr->set_ring_display(r->ring_display());
         cr->set_ring_color(r->ring_color());
         cr->set_thin_rings(r->thin_rings());

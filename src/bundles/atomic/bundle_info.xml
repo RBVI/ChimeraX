@@ -1,9 +1,9 @@
 <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
-<BundleInfo name="ChimeraX-Atomic" version="1.71.1"
+<BundleInfo name="ChimeraX-Atomic" version="1.72"
             package="chimerax.atomic"
             purePython="false"
             customInit="true"
-            minSessionVersion="1" maxSessionVersion="5">
+            minSessionVersion="1" maxSessionVersion="6">
 
   <Author>UCSF RBVI</Author>
   <Email>chimerax@cgl.ucsf.edu</Email>
@@ -62,7 +62,7 @@
   <!-- Edit bundle_info.xml.in, not bundle_info.xml; then run make_selectors.py  -->
   <Dependencies>
     <Dependency name="ChimeraX-Core" version="~=1.0"/>
-    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=15.0"/>
+    <Dependency name="ChimeraX-AtomicLibrary" build="true" version="~=15.1"/>
     <Dependency name="ChimeraX-ConnectStructure" version="~=2.0"/>
     <Dependency name="ChimeraX-Geometry" version="~=1.0"/>
     <Dependency name="ChimeraX-Graphics" version="~=1.0"/>

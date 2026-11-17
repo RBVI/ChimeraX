@@ -166,6 +166,31 @@ def cartoon_tether(session, structures=None, scale=None, shape=None, sides=None,
     session.undo.register(undo_state)
 
 
+def cartoon_helix_inside_color(session, color, atoms=None):
+    """Color inward-facing helix ribbon surfaces for the specified residues.
+
+    Atom specifications can select whole models, individual chains, or residues.
+    The color "default" restores each residue's normal ribbon color.
+    """
+    if atoms is None:
+        from chimerax.atomic import all_residues
+        residues = all_residues(session)
+    else:
+        residues = atoms.unique_residues
+    rgba = None if color == "default" else tuple(int(c) for c in color.uint8x4())
+    # Keep a list so undo can skip individual residues deleted in the meantime.
+    residues = list(residues)
+    old_colors = [r.helix_inside_color for r in residues]
+    new_colors = [rgba] * len(residues)
+    from chimerax.core.undo import UndoState
+    undo_state = UndoState("cartoon helix inside color")
+    undo_state.add(residues, "helix_inside_color", old_colors, new_colors, "S",
+                   deleted_check=lambda r: r.deleted)
+    for r in residues:
+        r.helix_inside_color = rgba
+    session.undo.register(undo_state)
+
+
 def cartoon_style(session, atoms=None, width=None, thickness=None, arrows=None, arrows_helix=None,
                   arrow_scale=None, xsection=None, sides=None,
                   bar_scale=None, bar_sides=None, ss_ends=None,
@@ -728,7 +753,7 @@ class EvenIntArg(Annotation):
 #
 def register_command(logger):
     from chimerax.core.commands import register, Or, CmdDesc, TupleOf, NoArg, StringArg, EmptyArg, RepeatOf
-    from chimerax.core.commands import Bounded, FloatArg, PositiveFloatArg, EnumOf, BoolArg, IntArg
+    from chimerax.core.commands import Bounded, FloatArg, PositiveFloatArg, EnumOf, BoolArg, IntArg, ColorArg
     from chimerax.atomic import AtomsArg, AtomicStructuresArg, ResiduesArg
     desc = CmdDesc(optional=[("atoms", AtomsArg)],
                    keyword=[("smooth", Or(Bounded(FloatArg, 0.0, 1.0),
@@ -770,6 +795,11 @@ def register_command(logger):
                    hidden=["ss_ends", "mode_strand", "spline_normals"],
                    synopsis='set cartoon style for secondary structures in specified models')
     register("cartoon style", desc, cartoon_style, logger=logger)
+    desc = CmdDesc(required=[("color", Or(EnumOf(["default"]), ColorArg))],
+                   optional=[("atoms", AtomsArg)],
+                   synopsis='color inward-facing helix ribbons for specified chains or residues',
+                   url='help:user/commands/cartoon.html#helixInsideColor')
+    register("cartoon helixInsideColor", desc, cartoon_helix_inside_color, logger=logger)
     desc = CmdDesc(optional=[("atoms", AtomsArg)],
                    synopsis='undisplay cartoon for specified residues')
     register("cartoon hide", desc, uncartoon, logger=logger)
