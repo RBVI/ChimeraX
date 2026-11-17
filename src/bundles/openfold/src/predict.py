@@ -316,7 +316,7 @@ template_preprocessor_settings:
             if mc.type == 'ligand':
                 component = {'ligand': {"id": mc.chain_ids}}
                 if mc.ccd_code:
-                    component['ligand']['ccd_codes'] = [mc.ccd_code]
+                    component['ligand']['ccdCodes'] = [mc.ccd_code]
                 elif mc.smiles_string:
                     smiles = mc.smiles_string.replace('\\', '\\\\')  # Escape backslashes
                     component['ligand']['smiles'] = smiles
