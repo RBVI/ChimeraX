@@ -36,12 +36,19 @@ PATCHES += openmm_metadata.patch
 endif
 endif
 
-# maturin's PEP517 backend (used to build pynmrstar's sdist, which has no cp314
-# wheel) shells out to the `maturin` console script by bare name. With
-# --no-build-isolation there is no ephemeral build venv whose bin is on PATH, so
-# we must prepend the directory pip installed the script into ourselves. On a
-# macOS framework build that is Versions/$(PYTHON_VERSION)/bin, not Contents/bin.
-APP_SCRIPT_DIR = $(shell $(APP_PYTHON_EXE) -c "import sysconfig; print(sysconfig.get_path('scripts'))")
+ifneq (,$(filter $(OSARCH),LinuxArm64 DarwinIntel64))
+# Two packages build from their sdists with the maturin backend, each on one
+# platform only:
+# - pynmrstar publishes no Linux aarch64 wheel
+# - cryptography (which mcp requires, through pyjwt) publishes no Intel macOS
+#   wheel; its build needs cffi as well
+# Since we use --no-build-isolation, maturin has to be installed beforehand,
+# along with puccinialin (which bootstraps a Rust toolchain when none is
+# present). The backend shells out to the `maturin` console script by bare
+# name, so the directory pip installed the script into has to be on PATH too.
+MATURIN_BUILD_TOOLS = maturin puccinialin
+MATURIN_BUILD_ENV = PATH="$(shell $(APP_PYTHON_EXE) -c "import sysconfig; print(sysconfig.get_path('scripts'))"):$$PATH"
+endif
 
 CXSERVICES_WHEEL = cxservices-$(CXSERVICES_VER)-py3-none-any.whl
 
@@ -88,18 +95,14 @@ endif
 	# (in one install, since each takes a while to start):
 	# - Cython, so ndindex builds on Linux ARM64
 	# - numpy
-	# - pynmrstar 3.5.1 has no cp314 wheel, so it builds from its sdist using
-	#   the maturin backend. Since we use --no-build-isolation, pip and uv won't
-	#   create isolated, ephemeral environments with it, and we have to install
-	#   it. puccinialin (which bootstraps a Rust toolchain when none is present)
-	#   must also already be in the environment before pynmrstar builds.
-	# - On Darwin Intel, cffi
+	# - On Linux ARM64, what pynmrstar's sdist needs
+	# - On Darwin Intel, what cryptography's sdist needs, cffi included
 	# - On macOS, our scipy wheel, rather than the one the requirements would
 	#   pick
 	$(APP_PIP_INSTALL) \
 		$(if $(CYTHON_WHEEL),./$(CYTHON_WHEEL),$(shell grep Cython $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')) \
 		$(shell grep numpy app_requirements.txt | sed -e 's/[\ #",]//g') \
-		maturin puccinialin \
+		$(MATURIN_BUILD_TOOLS) \
 		$(if $(filter DarwinIntel64,$(OSARCH)),cffi) \
 		$(if $(filter Darwin,$(OS)),./$(SCIPY_WHEEL))
 	# With our own wheels too, in the same install
@@ -109,10 +112,10 @@ ifeq ($(OS),Windows)
 	# and installing hundreds of MB just to uninstall them again.
 	sed '/^openmm-cuda-12==/d' app_requirements.txt > app_requirements-with-deps.txt
 	sed -n '/^openmm-cuda-12==/p' app_requirements.txt > app_requirements-no-deps.txt
-	PATH="$(APP_SCRIPT_DIR):$$PATH" CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements-with-deps.txt $(PLATO_WHEELS)
+	CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements-with-deps.txt $(PLATO_WHEELS)
 	$(APP_PIP_INSTALL) --no-deps -r app_requirements-no-deps.txt
 else
-	PATH="$(APP_SCRIPT_DIR):$$PATH" CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt $(PLATO_WHEELS)
+	$(MATURIN_BUILD_ENV) CFLAGS+=$(WHEEL_CFLAGS) $(APP_PIP_INSTALL) --no-build-isolation -r app_requirements.txt $(PLATO_WHEELS)
 endif
 ifdef USE_PYSIDE6
 	$(APP_PIP_INSTALL) $(shell grep PySide6 $(TOP)/pyproject.toml | sed -e 's/[\ #",]//g')
@@ -137,7 +140,7 @@ endif
 	# Build-only tools.  On macOS, uv comes along when the build tree's
 	# Python.framework is copied into the app, but is only run from the build
 	# tree's Python.
-	$(APP_PIP) uninstall -y maturin puccinialin uv
+	$(APP_PIP) uninstall -y $(MATURIN_BUILD_TOOLS) uv
 
 app_requirements.txt: ../../pyproject.toml
 	$(APP_PYTHON_BIN) make_requirements.py

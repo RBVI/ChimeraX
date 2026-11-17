@@ -29,7 +29,7 @@ Displays carbohydrate residues as colored 3D geometric shapes following
 the SNFG standard (Varki et al., 2015).
 """
 
-__version__ = "1.0"
+__version__ = "1.1"
 
 from chimerax.core.toolshed import BundleAPI
 
@@ -42,16 +42,18 @@ class _SNFGAPI(BundleAPI):
         register_command(logger)
 
     @staticmethod
+    def register_selector(selector_name, logger):
+        from .snfg import register_selector
+        register_selector(logger)
+
+    @staticmethod
     def get_class(class_name):
-        if class_name == 'SNFGModel':
-            from .snfg import SNFGModel
-            return SNFGModel
-        elif class_name == 'SNFGShapesDrawing':
-            from .snfg import SNFGShapesDrawing
-            return SNFGShapesDrawing
-        elif class_name == 'SNFGConnectionsDrawing':
-            from .snfg import SNFGConnectionsDrawing
-            return SNFGConnectionsDrawing
+        if class_name == 'SNFGManager':
+            from .snfg import SNFGManager
+            return SNFGManager
+        elif class_name in ('SNFGModel', 'SNFGConnectionsDrawing'):
+            from . import legacy
+            return getattr(legacy, class_name)
         return None
 
 

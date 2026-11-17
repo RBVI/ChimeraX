@@ -107,13 +107,43 @@ description = "My custom tool"
 - **mk/**: Build system configuration files
 - **docs/**: Developer and user documentation
 
-## Important: No Build or Test Commands
 
-**Do not run compilation, build, or test commands.** This is a GUI application that is difficult to validate without eyes. The developer will test changes manually. Running build commands or test harnesses wastes context with irrelevant output.
+## Tips
+**Compilation, build, and test commands can be very verbose.** This is a GUI application that is difficult to validate without eyes. Always redirect build and test commands to a log file and search for the output you require. Do not pollute your context with bare runs printing to stdout.
 
-Do not ask "would you like me to build/test this?" - just make the code changes and move on.
+**Avoid overindexing on microoptimizations.** When analyzing the performance of an algorithm and looking for ways to improve runtime, consider alternative algorithms, newer algorithms, parallelization, and avoiding repeated work. 
+
+**End to end testing counts.** While local speed increases are always appreciated, the user-perceptible latency of an action is the most important consideration, from command to output.
+
+**Preserve product quality while optimizing.** It is not acceptable to use a worse solution to improve runtime, e.g. using lower precision calculations. Before making changes, explain the suggestion and the rationale for approval.
+
+**Do not excessively comment code.** Agent-generated comments can form a feedback loop where the agent becomes convinced that the comment it just wrote is the law of the land. Comment sparingly, comment about intent, do not simply restate what the code does.
+
+**Keep changes as small as possible.** Commit early and often. Each commit should be the smallest coherent, buildable change, including its tests and necessary documentation, that a human can review. Keep coupled changes together and record prerequisite commits when integration order matters.
+
+**All commits must build.** Do not leave the source code in a broken state between commits.
+
+**Suggest improvements to local code when given a bug.** But do not autonomously change APIs or contracts.
 
 ## Development Notes
+
+### Python linting
+
+- Install the pinned linter with `python -m pip install -r utils/lint-requirements.txt`; this does not require building ChimeraX.
+- Run `python -m ruff check --config pyproject.toml PATH...` on changed Python files, including new files. Use the explicit configuration so local runs and CI share the same policy across bundles.
+- CI checks whole changed files, so existing findings in those files may surface. Fix relevant issues; do not blanket-suppress findings or mix unrelated cleanup into the change. A manual workflow run checks the full tree to inventory remaining debt.
+- The initial rules catch syntax errors, undefined names, invalid control flow, always-true tuple assertions, literal identity comparisons, mutable defaults, and loop-variable closure bugs. Formatting, import sorting, unused imports, and unused variables are intentionally outside this policy.
+- Keep suppressions specific to a rule and explain the reason. Do not automatically apply fixes or reformat unrelated code. Add rules only when they encode an agreed decision with actionable, low-noise findings.
+
+### Bundle versions
+
+- **Agents must bump a bundle's version whenever they change that bundle.** Any change outside the bundle's `tests/` directory counts, however small. This applies to commits made directly on `develop` too, where CI does not check.
+- The version lives in `src/__init__.py` (`__version__`), in `pyproject.toml`, or in `bundle_info.xml`(`.in`), depending on the bundle. Core is exempt; its version comes from the build.
+- One bump per bundle covers a whole pull request or batch of commits; do not bump per commit.
+- Before handing work back, run `python3 utils/ci/check_bundle_versions.py` and fix anything it reports. It compares `HEAD` with `origin/develop` unless given `--base`, and reads commits, not the working tree.
+- CI fails a pull request that changes a bundle without bumping it. Direct pushes to `develop` are not checked, which is a courtesy to human developers, not an exemption for agents.
+
+### Bundle conventions
 
 - Bundle APIs must be implemented in `src/__init__.py`
 - Use `APP_PYTHON_EXE` variable for the ChimeraX Python executable

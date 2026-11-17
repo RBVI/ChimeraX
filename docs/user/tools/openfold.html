@@ -41,7 +41,7 @@ Abramson J, Adler J, <i>et al.</i>
 The ChimeraX <b>OpenFold</b> tool installs and runs 
 <a href="https://github.com/aqlaboratory/openfold-3"
 target="_blank">OpenFold</a> 
-(current version OpenFold3-preview)
+(current version OpenFold3 0.5.1 in ChimeraX from November 16, 2026 or newer)
 on the local machine. The prediction runs on Mac, Linux, and Windows 
 without requiring an Nvidia GPU, typically taking on the order of minutes, and
 is run in background so that ChimeraX can be used for other tasks.
@@ -91,9 +91,9 @@ creates a Python virtual environment to install the
 target="_blank">ChimeraX OpenFold fork Github</a>.
 OpenFold uses Torch and other packages; 
 the total installation including OpenFold and the trained neural 
-network weights is about 3 GB and may take 10 minutes or 
-more to download and install, depending on network speed.
-OpenFold (current version OpenFold3-preview)
+network weights is about 8 GB with Nvidia GPU support or 4 GB without Nvidia GPU support
+and may take 10 minutes or  more to download and install, depending on network speed.
+OpenFold (current version OpenFold3 0.5.1 in ChimeraX from November 16, 2026 or newer)
 is installed in ~/openfold3 in the user's home directory.
 This directory will be created, or if it already exists must be empty.
 The OpenFold network parameters are downloaded
@@ -465,8 +465,9 @@ machine-learning package if it detects Nvidia graphics. It decides if you
 have Nvidia graphics by seeing if the file C:/Windows/System32/nvidia-smi.exe
 exists. Otherwise it gets a CPU-only version of torch. If you install an 
 Nvidia graphics driver after installing OpenFold, you will have to reinstall
-OpenFold to get the CUDA version. The installed torch is for CUDA 12.6 or newer.
-If your computer has a version of CUDA older than 12.6 but newer than 11.8,
+OpenFold to get the CUDA version. The installed Torch 2.15.0 is for CUDA 13.2 or newer
+if your computer Nvidia driver supports CUDA 13, otherwise Torch 2.11.0 with CUDA 12.8 is used.
+If your computer has CUDA 11
 you can run the following commands in a Windows Command Prompt to install 
 a CUDA 11.8 version of torch. For other CUDA versions refer to the
 <a href="https://pytorch.org/get-started/locally/" target="_blank">Torch 
@@ -476,9 +477,9 @@ installation page</a> for the correct pip install command.
 	  &gt; pip.exe install torch --index-url https://download.pytorch.org/whl/cu118</pre>
 </p><p>
 <b>Nvidia GPU support on Linux</b>.
-On Linux, the installed OpenFold will work with CUDA 12.6 or newer if you 
-have Nvidia graphics.  If you have an older system CUDA version it may still 
-work, or you can refer to the
+On Linux, the installed OpenFold will work Torch 2.15.0 with CUDA 13.2 or newer if you 
+have Nvidia graphics supporting CUDA 13, otherwise it will use Torch 2.11.0 with CUDA 12.8.
+If you have an older system CUDA 11 it may still work, or you can refer to the
 <a href="https://pytorch.org/get-started/locally/">Torch installation page</a>
 for the correct pip install command and replace torch with the following shell commands.
 	<pre>	  $ cd ~/openfold3/bin

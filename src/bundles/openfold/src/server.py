@@ -516,8 +516,8 @@ def _start_server():
     p.add_argument('--port', type = int, default = 30173,
                    help = 'Port number for connecting to server.  Default 30173.')
     from os.path import expanduser
-    p.add_argument('--openfold_exe', default = expanduser('~/openfold3/bin/run_openfold'),
-                   help = 'Path to the openfold executable.  Default is ~/openfold3/bin/run_openfold')
+    p.add_argument('--openfold_exe', default = expanduser('~/openfold3_0.5.1/bin/run_openfold'),
+                   help = 'Path to the openfold executable.  Default is ~/openfold3_0.5.1/bin/run_openfold')
     p.add_argument('--jobs_directory', default = expanduser('~/openfold_server_jobs'),
                    help = 'Directory where to place prediction job zip files and directories.  The directory will be created if it does not exist.  A log file openfold_server_log will also be created in this directory.  Default is ~/openfold_server_jobs')
     p.add_argument('--cpu', action = 'store_true', default = False,

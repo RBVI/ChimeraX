@@ -703,6 +703,8 @@ class Drawing:
         self._vertices = vertices
         self._normals = normals
         self._triangles = triangles
+        if triangles is not None and triangles.size > 2147483647:
+            raise ValueError(f'Maximum number of triangles in one object is 715827882, tried to create {len(triangles)} triangles.  This limit is because OpenGL glDrawElements() uses a 32-bit signed integer for the array of triangle vertex indices. ')
         self._vertex_colors = None
         self._edge_mask = edge_mask
         self._triangle_mask = triangle_mask
@@ -925,7 +927,7 @@ class Drawing:
 
         # Update drawing and highlight triangle buffers
         if ('_triangles' in changes or
-            'display_style' in changes or
+            '_display_style' in changes or
             '_triangle_mask' in changes or
             (self.display_style == self.Mesh and '_edge_mask' in changes) or
             '_highlighted_triangles_mask' in changes):
@@ -1301,7 +1303,7 @@ class Drawing:
 
     _effects_buffers = set(
         ('_vertices', '_normals', '_vertex_colors', 'texture_coordinates',
-         '_triangles', 'display_style', '_displayed_positions', '_colors', '_positions',
+         '_triangles', '_display_style', '_displayed_positions', '_colors', '_positions',
          '_edge_mask', '_triangle_mask', '_highlighted_triangles_mask', '_highlighted_positions'))
 
     EDGE0_DISPLAY_MASK = 1

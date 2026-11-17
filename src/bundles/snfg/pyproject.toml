@@ -35,3 +35,6 @@ classifiers = ["Development Status :: 2 - Pre-Alpha"]
 [tool.chimerax.command.snfg]
 category = "Depiction"
 description = "Show/hide SNFG glycan symbols"
+
+[tool.chimerax.selector.glycan]
+description = "glycan residues"
