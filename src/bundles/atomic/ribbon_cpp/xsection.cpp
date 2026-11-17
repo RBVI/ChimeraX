@@ -510,12 +510,6 @@ RibbonXSection::_color_xsection() const
             normals.values()[2*v+k] = outgoing;
             normals2.values()[2*v+k] = incoming;
           }
-        if (f != 0)
-          {
-            coords.values()[2*v+1] = 0;
-            if (is_arrow)
-                coords2.values()[2*v+1] = 0;
-          }
       }
     // Preserve the original cap tessellation, including nonconvex barbell caps.
     // Inserted seam points lie on cap edges and need no additional cap triangles.

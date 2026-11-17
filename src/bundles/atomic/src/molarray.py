@@ -1255,6 +1255,16 @@ class Residues(Collection):
     set with such an array (or equivalent sequence), or with a single
     RGBA value.
     ''')
+    helix_inside_colors = cvec_property('residue_helix_inside_color', pyobject, read_only=True, doc =
+    """A numpy object array of RGBA tuples or None (use the residue ribbon color).""")
+
+    @helix_inside_colors.setter
+    def helix_inside_colors(self, colors):
+        if len(colors) != len(self):
+            raise ValueError("Number of helix inside colors must match number of residues")
+        for residue, color in zip(self, colors):
+            residue.helix_inside_color = color
+
     ribbon_adjusts = cvec_property('residue_ribbon_adjust', float32, doc =
     '''A numpy float array of adjustment factors for the position of ribbon
     control points.  Factors range from zero to one, with zero being using the

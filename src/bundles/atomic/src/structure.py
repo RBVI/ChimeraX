@@ -30,7 +30,7 @@ from chimerax.graphics import Drawing, Pick
 
 # If STRUCTURE_STATE_VERSION changes, then bump the bundle's
 # (maximum) session version number.
-STRUCTURE_STATE_VERSION = 5
+STRUCTURE_STATE_VERSION = 6
 
 # Auto-styling tunables
 MULTI_SHADOW_THRESHOLD = 300_000  # reduce amount of shadow rays if more than threshold atoms
@@ -53,7 +53,7 @@ class Structure(Model, StructureData):
     ATOM_SCENE_ATTRS = ['colors', 'coords', 'displays', 'draw_modes', 'radii', 'selected']
     BOND_SCENE_ATTRS = ['colors', 'displays', 'halfbonds', 'radii', 'selected']
     RESIDUE_SCENE_ATTRS = ['ribbon_adjusts', 'ribbon_colors', 'ribbon_displays', 'ribbon_hide_backbones',
-        'ring_colors', 'ring_displays', 'thin_rings', 'worm_radii']
+        'ring_colors', 'ring_displays', 'thin_rings', 'worm_radii', 'helix_inside_colors']
     STRUCTURE_SCENE_ATTRS = ['active_coordset_id', 'ball_scale', 'res_numbering', 'ribbon_mode_helix',
         'ribbon_mode_strand', 'ribbon_orientation', 'ribbon_show_spine', 'ribbon_tether_opacity',
         'ribbon_tether_scale', 'ribbon_tether_sides', 'ribbon_tether_shape', 'worm_ribbon']
@@ -340,7 +340,10 @@ class Structure(Model, StructureData):
         for attr_level, attr_info in switch_data.items():
             interp_info = {}
             for attr_name, attr_vals in attr_info.items():
-                if attr_name in self.simply_interpolable_attrs or attr_name.endswith("colors"):
+                # Optional inside colors switch with the scene; None means to
+                # follow the residue ribbon color and cannot be interpolated.
+                if (attr_name != "helix_inside_colors" and
+                        (attr_name in self.simply_interpolable_attrs or attr_name.endswith("colors"))):
                     if attr_name == "coords":
                         try:
                             if scene1_data["structure"]["active_coordset_id"] \

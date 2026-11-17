@@ -103,11 +103,12 @@ Connecting <a href="#tether">tethers</a> are drawn
 where displayed backbone atoms are offset from the cartoon.
 </blockquote>
 <p>
-The <b>cartoon</b> <a href="#subcommands">subcommands</a>, however,
-control per-model settings:
+The <b>cartoon</b> <a href="#subcommands">subcommands</a> include:
 </p>
 <ul>
-<li><a href="#style"><b>cartoon style</b></a>
+<li><a href="#helixInsideColor"><b>cartoon helixInsideColor</b></a>
+&ndash; inward-facing helix color for specified chains or residues
+</li><li><a href="#style"><b>cartoon style</b></a>
 &ndash; width, thickness, and shape; protein secondary structure representations
 </li><li><a href="#tether"><b>cartoon tether</b></a>
 &ndash; appearance of connectors between cartoon and offset backbone atoms
@@ -147,10 +148,38 @@ The depiction of a peptide helix or strand starts at the CA atom of its first
 <p></p>
 
 <a name="subcommands"></a>
-<a name="style"></a>
 <p class="nav">
 [<a href="#top">back to top: cartoon</a>]
-</p><h3>Cartoon Subcommands: Style, Tether</h3>
+</p>
+<a name="helixInsideColor"></a>
+<h3 class="usage"><a href="usageconventions.html">Usage</a>:
+<b>cartoon helixInsideColor</b>
+<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;<b>default</b>
+[&nbsp;<a href="atomspec.html"><i>atom-spec</i></a>&nbsp;]
+</h3>
+<blockquote>
+<p>
+Set a separate color for the inward-facing surface of helix ribbons.
+For example, <b>cartoon helixInsideColor white #1/A</b> colors the
+inside of the helix ribbons in chain A of model #1 white, and
+<b>cartoon helixInsideColor gold #1/B</b> colors those in chain B gold.
+An atom specification can select models, chains, or individual residues;
+omitting it applies the color to all residues.
+</p><p>
+Color boundaries are sharp, and the inside color stays on the same material
+side throughout each helix, including distorted or locally flat regions.
+Lighting remains smooth. The outward-facing surface and end caps retain the
+normal residue cartoon colors, as do strands and coil.
+This setting applies to the specified residues when they are in helices,
+in the <b>default</b> and <b>wrap</b> helix modes. It has no effect on worms
+or helices shown as tubes or cylinders.
+The initial setting, <b>default</b>, uses normal residue cartoon colors on
+both sides. Use <b>cartoon helixInsideColor default #1/A</b> to restore it
+for chain A of model #1.
+</p>
+</blockquote>
+<a name="style"></a>
+<h3>Cartoon Subcommands: Style, Tether</h3>
 <p>
 The subcommands <a href="#style"><b>cartoon style</b></a> and 
 <a href="#tether"><b>cartoon tether</b></a> control per-model settings.
@@ -261,23 +290,6 @@ The initial default cross-section is <b>oval</b> for helix and coil,
 The following <b>cartoon style</b> <i>model-options</i>
 have only a single value per model:
 </p>
-<blockquote>
-<a name="helixInsideColor"></a>
-<b>helixInsideColor</b>&nbsp;&nbsp;<a href="colornames.html"><i>color-spec</i></a>&nbsp;|&nbsp;default
-<br>
-Set a separate color for the inward-facing surface of helix ribbons.
-For example, <b>cartoon style #1 helixInsideColor white</b> colors the
-inside of the helix ribbons in model #1 white. Color boundaries are sharp,
-and the inside color stays on the same material side throughout each helix,
-including distorted or locally flat regions. Lighting remains smooth.
-The outward-facing surface
-and end caps retain the normal residue cartoon colors, as do strands and coil.
-This setting applies to all helices in each specified model, in the
-<b>default</b> and <b>wrap</b> helix modes. It has no effect on worms or
-helices shown as tubes or cylinders.
-The initial setting, <b>default</b>, uses normal residue cartoon colors on
-both sides. Use <b>cartoon style #1 helixInsideColor default</b> to restore it.
-</blockquote>
 <blockquote>
 <a name="hmode"></a>
 <b>modeHelix</b>&nbsp;&nbsp;tube&nbsp;|&nbsp;cylinder&nbsp;|&nbsp;wrap&nbsp;|&nbsp;default

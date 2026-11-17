@@ -113,6 +113,7 @@ public:
     static const std::string  REASON_RESIDUES;
     static const std::string  REASON_RIBBON_ADJUST;
     static const std::string  REASON_RIBBON_COLOR;
+    static const std::string  REASON_HELIX_INSIDE_COLOR;
     static const std::string  REASON_RIBBON_DISPLAY;
     static const std::string  REASON_RIBBON_HIDE_BACKBONE;
     static const std::string  REASON_RIBBON_TETHER;
