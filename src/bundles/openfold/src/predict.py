@@ -303,7 +303,8 @@ template_preprocessor_settings:
         return input, msa_path_yaml
 
     def alphafold3_json(self):
-        self._make_unique_uppercase_chain_ids()
+        # AlphaFold 3 requires chain ids to be all uppercase letter 
+        _af3_chain_ids(self._molecular_components)
 
         components = []
         for mc in self._molecular_components:
@@ -316,7 +317,7 @@ template_preprocessor_settings:
             if mc.type == 'ligand':
                 component = {'ligand': {"id": mc.chain_ids}}
                 if mc.ccd_code:
-                    component['ligand']['ccd_codes'] = [mc.ccd_code]
+                    component['ligand']['ccdCodes'] = [mc.ccd_code]
                 elif mc.smiles_string:
                     smiles = mc.smiles_string.replace('\\', '\\\\')  # Escape backslashes
                     component['ligand']['smiles'] = smiles
@@ -331,33 +332,6 @@ template_preprocessor_settings:
         }
 
         return input
-
-    def _make_unique_uppercase_chain_ids(self):
-        '''AlphaFold 3 requires chain ids to be upper case letters.'''
-        ids = set()
-        for mc in self._molecular_components:
-            for id in mc.chain_ids:
-                ids.add(id)
-
-        from string import ascii_uppercase
-        suffixes = 'L' + ascii_uppercase	# "LABC...Z"  Try L first as a hint that original was lowercase.
-        for mc in self._molecular_components:
-            cids = []
-            for id in mc.chain_ids:
-                upper_id = id.upper()
-                if upper_id != id and upper_id in ids:
-                    for suffix in suffixes:
-                        if f'{upper_id}{suffix}' not in ids:
-                            break
-                    new_id = f'{upper_id}{suffix}'
-                    if new_id in ids:
-                        raise RuntimeError(f'Could not replace {id} with uppercase {upper_id} with A,B,C... suffix to produce a unique all uppercase chain id as required by AlphaFold 3')
-                    cids.append(new_id)
-                    ids.add(new_id)
-                else:
-                    cids.append(upper_id)
-            if cids != mc.chain_ids:
-                mc.chain_ids = cids
                     
     def _msa_cache_files(self, msa_cache_directory):
         if msa_cache_directory:
@@ -1223,9 +1197,10 @@ def _read_json(*path_components):
 
 # ------------------------------------------------------------------------------
 #
+_chain_id_suffixes = [''] + [str(i) for i in range(1,1000)]
 def _next_chain_id(used_already, chain_id = None):
     letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    suffixes = ['', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+    suffixes = _chain_id_suffixes
     if chain_id is None:
         for suffix in suffixes:
             for cid in letters:
@@ -1632,7 +1607,7 @@ def af3input(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
     ligand_components, covalent_ligands = _ligand_components(ligands, exclude_ligands.split(','),
                                                              ligand_ccd, ligand_smiles, used_chain_ids)
     molecular_components = polymer_components + ligand_components
-
+    
     if len(molecular_components) == 0 and len(for_each_smiles_ligand) == 0:
         from chimerax.core.errors import UserError
         raise UserError('No molecules specified for AlphaFold 3 input file')
@@ -1663,6 +1638,36 @@ def af3input(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
         path = file if len(predictions) == 1 else f'{file_base}_{p.name}{file_suffix}'
         with open(file, 'w') as f:
             f.write(json_text)
+
+# ------------------------------------------------------------------------------
+#
+def _af3_chain_ids(molecular_components):
+    '''
+    AlphaFold 3 only allows upper case A-Z characters in chain ids.
+    No digits or lower case.
+    Convert lowercase and digits to upper case letters making ids unique.
+    '''
+    used_chain_ids = set(cid for mc in molecular_components for cid in mc.chain_ids)
+    for mc in molecular_components:
+        mc.chain_ids = [_af3_chain_id(chain_id, used_chain_ids) for chain_id in mc.chain_ids]
+
+# ------------------------------------------------------------------------------
+#
+def _af3_chain_id(chain_id, used_chain_ids):
+    if chain_id.isalpha() and chain_id.isupper():
+        return chain_id
+    new_chain_id = ''.join(c for c in chain_id if c.isalpha() and c.isupper())
+    if new_chain_id and new_chain_id not in used_chain_ids:
+        used_chain_ids.add(new_chain_id)
+        return new_chain_id
+    from string import ascii_uppercase
+    suffixes = list(ascii_uppercase) + [c1+c2 for c1 in ascii_uppercase for c2 in ascii_uppercase]
+    for suffix in suffixes:
+        if new_chain_id + suffix not in used_chain_ids:
+            new_chain_id += suffix
+            used_chain_ids.add(new_chain_id)
+            return new_chain_id
+    raise ValueError(f'Ran out of available chain identifiers trying to convert {chain_id} to uppercase letters as required by AlphaFold 3')
 
 # ------------------------------------------------------------------------------
 #
@@ -1776,6 +1781,5 @@ def register_openfold_predict_command(logger):
                    ],
         required_arguments = ['file'],
         synopsis = 'Write an AlphaFold 3 JSON input file',
-        url = 'https://www.rbvi.ucsf.edu/chimerax/data/openfold-feb2026/openfold.html'
     )
     register('af3input', desc, af3input, logger=logger)

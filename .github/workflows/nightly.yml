@@ -1,22 +1,61 @@
 name: Nightly Build
 on:
   workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to build
+        type: choice
+        required: true
+        default: all
+        options:
+          - all
+          - windows
+          - mac-arm
+          - mac-intel
+          - mac-universal
+          - ubuntu
+          - rocky9
+          - rocky10
+          - flatpak
+          - flatpak-arm
+          - docker
+      release_type:
+        description: Build type to run
+        type: choice
+        required: true
+        default: both
+        options:
+          - both
+          - daily
+          - candidate
   schedule:
     - cron: "0 4 * * *" # 4AM UTC / 08PM PST / 09PM PDT
 
 jobs:
+  select-builds:
+    name: Select build types
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - id: matrix
+        env:
+          RELEASE_TYPE: ${{ inputs.release_type || 'both' }}
+        run: |
+          matrix=$(jq -cn --arg type "$RELEASE_TYPE" '{
+            include: [
+              {branch: "release/v1.13", release_type: "candidate"},
+              {branch: "develop", release_type: "daily"}
+            ] | map(select($type == "both" or .release_type == $type))
+          }')
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
   build-linux-bundles:
     name: Build shared Linux bundles
+    if: ${{ contains(' all ubuntu rocky9 rocky10 flatpak docker ', format(' {0} ', inputs.platform || 'all')) }}
+    needs: [select-builds]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - branch: release/v1.13
-            release_type: candidate
-          - branch: develop
-            release_type: daily
-          #- branch: astral-pbs
-          #  release_type: techpreview
+      matrix: ${{ fromJSON(needs.select-builds.outputs.matrix) }}
     uses: ./.github/workflows/linux_bundles_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -24,17 +63,11 @@ jobs:
     secrets: inherit
   build-rocky9-docker:
     name: Build ChimeraX for Rocky 9
-    needs: [build-linux-bundles]
+    if: ${{ contains(' all rocky9 ', format(' {0} ', inputs.platform || 'all')) }}
+    needs: [select-builds, build-linux-bundles]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - branch: release/v1.13
-            release_type: candidate
-          - branch: develop
-            release_type: daily
-          #- branch: astral-pbs
-          #  release_type: techpreview
+      matrix: ${{ fromJSON(needs.select-builds.outputs.matrix) }}
     uses: ./.github/workflows/rocky9_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -42,17 +75,11 @@ jobs:
     secrets: inherit
   build-rocky10-docker:
     name: Build ChimeraX for Rocky 10
-    needs: [build-linux-bundles]
+    if: ${{ contains(' all rocky10 ', format(' {0} ', inputs.platform || 'all')) }}
+    needs: [select-builds, build-linux-bundles]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - branch: release/v1.13
-            release_type: candidate
-          - branch: develop
-            release_type: daily
-          #- branch: astral-pbs
-          #  release_type: techpreview
+      matrix: ${{ fromJSON(needs.select-builds.outputs.matrix) }}
     uses: ./.github/workflows/rocky10_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -60,17 +87,11 @@ jobs:
     secrets: inherit
   build-ubuntu:
     name: Build ChimeraX for Ubuntu
-    needs: [build-linux-bundles]
+    if: ${{ contains(' all ubuntu ', format(' {0} ', inputs.platform || 'all')) }}
+    needs: [select-builds, build-linux-bundles]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - branch: release/v1.13
-            release_type: candidate
-          - branch: develop
-            release_type: daily
-          #- branch: astral-pbs
-          #  release_type: techpreview
+      matrix: ${{ fromJSON(needs.select-builds.outputs.matrix) }}
     uses: ./.github/workflows/ubuntu_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -78,17 +99,11 @@ jobs:
     secrets: inherit
   build-docker:
     name: Build ChimeraX Docker image
-    needs: [build-linux-bundles]
+    if: ${{ contains(' all docker ', format(' {0} ', inputs.platform || 'all')) }}
+    needs: [select-builds, build-linux-bundles]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - branch: release/v1.13
-            release_type: candidate
-          - branch: develop
-            release_type: daily
-          #- branch: astral-pbs
-          #  release_type: techpreview
+      matrix: ${{ fromJSON(needs.select-builds.outputs.matrix) }}
     uses: ./.github/workflows/docker_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -96,17 +111,11 @@ jobs:
     secrets: inherit
   build-flatpak:
     name: Build ChimeraX FlatPak
-    needs: [build-linux-bundles]
+    if: ${{ contains(' all flatpak ', format(' {0} ', inputs.platform || 'all')) }}
+    needs: [select-builds, build-linux-bundles]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - branch: release/v1.13
-            release_type: candidate
-          - branch: develop
-            release_type: daily
-          #- branch: astral-pbs
-          #  release_type: techpreview
+      matrix: ${{ fromJSON(needs.select-builds.outputs.matrix) }}
     uses: ./.github/workflows/flatpak_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -114,16 +123,11 @@ jobs:
     secrets: inherit
   build-docker-arm:
     name: Build ARM ChimeraX Docker image
+    if: ${{ contains(' all docker ', format(' {0} ', inputs.platform || 'all')) }}
+    needs: [select-builds]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - branch: release/v1.13
-            release_type: candidate
-          - branch: develop
-            release_type: daily
-          #- branch: astral-pbs
-          #  release_type: techpreview
+      matrix: ${{ fromJSON(needs.select-builds.outputs.matrix) }}
     uses: ./.github/workflows/docker_arm_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -131,17 +135,11 @@ jobs:
     secrets: inherit
   docker-manifest:
     name: Create multi-arch Docker manifest
-    needs: [build-docker, build-docker-arm]
+    if: ${{ contains(' all docker ', format(' {0} ', inputs.platform || 'all')) }}
+    needs: [select-builds, build-docker, build-docker-arm]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - branch: release/v1.13
-            release_type: candidate
-          - branch: develop
-            release_type: daily
-          #- branch: astral-pbs
-          #  release_type: techpreview
+      matrix: ${{ fromJSON(needs.select-builds.outputs.matrix) }}
     uses: ./.github/workflows/docker_manifest.yml
     with:
       branch: ${{ matrix.branch }}
@@ -149,16 +147,11 @@ jobs:
     secrets: inherit
   build-flatpak-arm:
     name: Build ARM ChimeraX FlatPak
+    if: ${{ contains(' all flatpak-arm ', format(' {0} ', inputs.platform || 'all')) }}
+    needs: [select-builds]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - branch: release/v1.13
-            release_type: candidate
-          - branch: develop
-            release_type: daily
-          #- branch: astral-pbs
-          #  release_type: techpreview
+      matrix: ${{ fromJSON(needs.select-builds.outputs.matrix) }}
     uses: ./.github/workflows/flatpak_arm_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -166,16 +159,11 @@ jobs:
     secrets: inherit
   build-arm-macos:
     name: Build ChimeraX for arm64 macOS
+    if: ${{ contains(' all mac-arm mac-universal ', format(' {0} ', inputs.platform || 'all')) }}
+    needs: [select-builds]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - branch: release/v1.13
-            release_type: candidate
-          - branch: develop
-            release_type: daily
-          #- branch: astral-pbs
-          #  release_type: techpreview
+      matrix: ${{ fromJSON(needs.select-builds.outputs.matrix) }}
     uses: ./.github/workflows/mac_arm_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -183,16 +171,11 @@ jobs:
     secrets: inherit
   build-intel-macos:
     name: Build ChimeraX for Intel macOS
+    if: ${{ contains(' all mac-intel mac-universal ', format(' {0} ', inputs.platform || 'all')) }}
+    needs: [select-builds]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - branch: release/v1.13
-            release_type: candidate
-          - branch: develop
-            release_type: daily
-          #- branch: astral-pbs
-          #  release_type: techpreview
+      matrix: ${{ fromJSON(needs.select-builds.outputs.matrix) }}
     uses: ./.github/workflows/mac_intel_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -200,17 +183,11 @@ jobs:
     secrets: inherit
   build-mac-universal:
     name: Build Universal ChimeraX for macOS
-    needs: [build-arm-macos, build-intel-macos]
+    if: ${{ contains(' all mac-universal ', format(' {0} ', inputs.platform || 'all')) }}
+    needs: [select-builds, build-arm-macos, build-intel-macos]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - branch: release/v1.13
-            release_type: candidate
-          - branch: develop
-            release_type: daily
-          #- branch: astral-pbs
-          #  release_type: techpreview
+      matrix: ${{ fromJSON(needs.select-builds.outputs.matrix) }}
     uses: ./.github/workflows/mac_universal_build.yml
     with:
       branch: ${{ matrix.branch }}
@@ -218,16 +195,11 @@ jobs:
     secrets: inherit
   build-windows:
     name: Build ChimeraX for Windows
+    if: ${{ contains(' all windows ', format(' {0} ', inputs.platform || 'all')) }}
+    needs: [select-builds]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - branch: release/v1.13
-            release_type: candidate
-          - branch: develop
-            release_type: daily
-          #- branch: astral-pbs
-          #  release_type: techpreview
+      matrix: ${{ fromJSON(needs.select-builds.outputs.matrix) }}
     uses: ./.github/workflows/windows_build.yml
     with:
       branch: ${{ matrix.branch }}

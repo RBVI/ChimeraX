@@ -38,14 +38,13 @@ from Qt.QtGui import QWindow, QSurface
 from Qt.QtWidgets import (
     QHBoxLayout,
     QWidget,
-    QLabel,
     QComboBox,
     QSlider,
     QFormLayout,
     QCheckBox,
-    QTabWidget,
-    QSizePolicy,
-    QPushButton,
+    QVBoxLayout,
+    QDoubleSpinBox,
+    QDialogButtonBox,
 )
 
 from chimerax.core.tools import ToolInstance
@@ -167,7 +166,7 @@ class LightArrowDrawing(Drawing):
 
 
 class LabeledSlider(QWidget):
-    """A slider with a label showing its current value."""
+    """A slider with an editable numeric value."""
 
     def __init__(self, min_val, max_val, default_val, decimals=2, parent=None):
         super().__init__(parent)
@@ -182,22 +181,41 @@ class LabeledSlider(QWidget):
         self.slider.setValue(int(default_val * self.scale))
         self.slider.valueChanged.connect(self._on_value_changed)
 
-        self.value_label = QLabel(f"{default_val:.{decimals}f}")
-        self.value_label.setMinimumWidth(40)
+        self.value_entry = QDoubleSpinBox()
+        self.value_entry.setDecimals(decimals)
+        self.value_entry.setRange(min_val, max_val)
+        self.value_entry.setSingleStep(1 / self.scale)
+        self.value_entry.setValue(default_val)
+        self.value_entry.setKeyboardTracking(False)
+        self.value_entry.valueChanged.connect(self._on_entry_changed)
+        self.value_entry.editingFinished.connect(self.slider.sliderReleased.emit)
 
         layout.addWidget(self.slider, 1)
-        layout.addWidget(self.value_label)
+        layout.addWidget(self.value_entry)
 
     def _on_value_changed(self, value):
         real_value = value / self.scale
-        self.value_label.setText(f"{real_value:.{self.decimals}f}")
+        self.value_entry.blockSignals(True)
+        self.value_entry.setValue(real_value)
+        self.value_entry.blockSignals(False)
+
+    def _on_entry_changed(self, value):
+        self.slider.setValue(round(value * self.scale))
 
     def value(self):
         return self.slider.value() / self.scale
 
     def setValue(self, val):
-        self.slider.setValue(int(val * self.scale))
-        self.value_label.setText(f"{val:.{self.decimals}f}")
+        # Commands may set values outside the initial slider range.
+        scaled = round(val * self.scale)
+        self.slider.setRange(min(self.slider.minimum(), scaled),
+                             max(self.slider.maximum(), scaled))
+        self.value_entry.blockSignals(True)
+        self.value_entry.setRange(min(self.value_entry.minimum(), val),
+                                  max(self.value_entry.maximum(), val))
+        self.value_entry.setValue(val)
+        self.value_entry.blockSignals(False)
+        self.slider.setValue(scaled)
 
     def valueChanged(self):
         """Return the valueChanged signal from the internal slider."""
@@ -226,27 +244,29 @@ class LightingGUI(ToolInstance):
         self.tool_window = MainToolWindow(self)
         parent = self.tool_window.ui_area
 
-        # Main layout: controls on left, preview on right
-        main_layout = QHBoxLayout(parent)
-
-        # Left side: tabbed controls
-        self.tab_widget = QTabWidget()
-        self.tab_widget.setMaximumWidth(280)
-
-        # Create tab contents
-        lighting_tab = self._create_lighting_tab()
-        shininess_tab = self._create_shininess_tab()
-        depth_cue_tab = self._create_depth_cue_tab()
-
-        self.tab_widget.addTab(lighting_tab, "Lighting")
-        self.tab_widget.addTab(shininess_tab, "Shininess")
-        self.tab_widget.addTab(depth_cue_tab, "Depth Cue")
-
-        # Right side: preview sphere with light direction arrows
+        layout = QVBoxLayout(parent)
+        main_layout = QHBoxLayout()
+        controls = QWidget()
+        controls_layout = QVBoxLayout(controls)
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+        form = QFormLayout()
+        self._add_lighting_controls(form)
+        self._add_material_controls(form)
+        controls_layout.addLayout(form)
+        controls_layout.addStretch(1)
         self.preview_widget = LightingPreviewWidget(parent, session, self)
+        main_layout.addWidget(controls)
+        main_layout.addWidget(self.preview_widget.widget, 1)
+        layout.addLayout(main_layout)
 
-        main_layout.addWidget(self.tab_widget, 0)  # Fixed width controls
-        main_layout.addWidget(self.preview_widget.widget, 1)  # Expandable preview
+        buttons = QDialogButtonBox()
+        defaults = buttons.addButton("Default lighting", QDialogButtonBox.ButtonRole.ResetRole)
+        defaults.clicked.connect(self._on_restore_defaults)
+        buttons.addButton(QDialogButtonBox.StandardButton.Close).clicked.connect(
+            lambda: self.display(False))
+        buttons.addButton(QDialogButtonBox.StandardButton.Help).clicked.connect(
+            lambda: run(self.session, "help user/tools/lighting.html"))
+        layout.addWidget(buttons)
 
         # Sync UI with current state
         self._sync_from_session()
@@ -260,11 +280,8 @@ class LightingGUI(ToolInstance):
 
         self.tool_window.manage()
 
-    def _create_lighting_tab(self):
-        """Create the Lighting controls tab."""
-        tab = QWidget()
-        tab.setAutoFillBackground(True)
-        layout = QFormLayout(tab)
+    def _add_lighting_controls(self, layout):
+        """Create lighting controls."""
 
         # Preset dropdown
         self.preset_combo = QComboBox()
@@ -281,7 +298,7 @@ class LightingGUI(ToolInstance):
         layout.addRow("Key intensity:", self.key_intensity)
 
         # Key light color
-        self.key_color = ColorButton()
+        self.key_color = ColorButton(max_size=(48, 24))
         self.key_color.color_changed.connect(self._on_key_color_changed)
         layout.addRow("Key color:", self.key_color)
 
@@ -292,7 +309,7 @@ class LightingGUI(ToolInstance):
         layout.addRow("Fill intensity:", self.fill_intensity)
 
         # Fill light color
-        self.fill_color = ColorButton()
+        self.fill_color = ColorButton(max_size=(48, 24))
         self.fill_color.color_changed.connect(self._on_fill_color_changed)
         layout.addRow("Fill color:", self.fill_color)
 
@@ -307,7 +324,7 @@ class LightingGUI(ToolInstance):
         layout.addRow("Ambient intensity:", self.ambient_intensity)
 
         # Ambient light color
-        self.ambient_color = ColorButton()
+        self.ambient_color = ColorButton(max_size=(48, 24))
         self.ambient_color.color_changed.connect(self._on_ambient_color_changed)
         layout.addRow("Ambient color:", self.ambient_color)
 
@@ -315,72 +332,74 @@ class LightingGUI(ToolInstance):
         self.silhouette_enabled.stateChanged.connect(self._on_silhouette_enabled_changed)
         layout.addRow("Silhouettes:", self.silhouette_enabled)
 
-        restore_button = QPushButton("Restore Defaults")
-        restore_button.clicked.connect(self._on_restore_defaults)
-        layout.addRow(restore_button)
+    def _add_material_controls(self, layout):
+        self.material_preset = QComboBox()
+        self.material_preset.setPlaceholderText("--")
+        self.material_preset.addItems(("default", "shiny", "dull", "chimera"))
+        self.material_preset.setCurrentIndex(-1)
+        self._material_preset_values = None
+        self.material_preset.activated.connect(self._on_material_preset_changed)
+        layout.addRow("Material preset:", self.material_preset)
 
-        return tab
+        self._material_sliders = {}
+        for attr, keyword, label, maximum, default in (
+            ("specular_exponent", "exponent", "Sharpness:", 128, 30),
+            ("specular_reflectivity", "specularReflectivity", "Specular reflectivity:", 2, 0.3),
+            ("diffuse_reflectivity", "reflectivity", "Diffuse reflectivity:", 2, 0.8),
+            ("ambient_reflectivity", "ambientReflectivity", "Ambient reflectivity:", 2, 0.8),
+        ):
+            slider = LabeledSlider(0, maximum, default)
+            slider.valueChanged().connect(
+                lambda value, a=attr, s=slider: self._on_material_changed(a, s.value()))
+            slider.sliderReleased().connect(
+                lambda k=keyword, s=slider: run(self.session, f"material {k} {s.value()}"))
+            self._material_sliders[attr] = slider
+            layout.addRow(label, slider)
+        self.sharpness = self._material_sliders["specular_exponent"]
+        self.reflectivity = self._material_sliders["specular_reflectivity"]
 
-    def _create_shininess_tab(self):
-        """Create the Shininess (material) controls tab."""
-        tab = QWidget()
-        tab.setAutoFillBackground(True)
-        layout = QFormLayout(tab)
+        self._material_checkboxes = {}
+        for attr, keyword, label in (
+            ("transparent_cast_shadows", "transparentCastShadows", "Transparent shadows:"),
+            ("meshes_cast_shadows", "meshesCastShadows", "Mesh shadows:"),
+        ):
+            checkbox = QCheckBox()
+            checkbox.toggled.connect(
+                lambda checked, k=keyword: run(self.session, f"material {k} {str(checked).lower()}"))
+            self._material_checkboxes[attr] = checkbox
+            layout.addRow(label, checkbox)
+    def _on_material_preset_changed(self, index):
+        run(self.session, f"material {self.material_preset.itemText(index)}")
+        self.material_preset.setCurrentIndex(index)
+        self._material_preset_values = self._material_values()
 
-        # Sharpness (specular exponent)
-        # Chimera range: 1-128, default 30
-        self.sharpness = LabeledSlider(1, 128, 30, decimals=0)
-        self.sharpness.valueChanged().connect(self._on_sharpness_changed)
-        self.sharpness.sliderReleased().connect(self._on_sharpness_released)
-        layout.addRow("Sharpness:", self.sharpness)
+    def _material_values(self):
+        mat = self.session.main_view.material
+        return tuple(getattr(mat, attr) for attr in
+                     (*self._material_sliders, *self._material_checkboxes))
 
-        # Reflectivity (specular reflectivity)
-        # Chimera range: 0.1-10, default 1.0
-        # ChimeraX default is 0.3, but we'll use similar range
-        self.reflectivity = LabeledSlider(0.0, 2.0, 0.3, decimals=2)
-        self.reflectivity.valueChanged().connect(self._on_reflectivity_changed)
-        self.reflectivity.sliderReleased().connect(self._on_reflectivity_released)
-        layout.addRow("Reflectivity:", self.reflectivity)
+    def _lighting_values(self):
+        lp = self.session.main_view.lighting
+        return tuple(tuple(np.atleast_1d(getattr(lp, attr))) for attr in (
+            "key_light_intensity", "fill_light_intensity", "ambient_light_intensity",
+            "key_light_color", "fill_light_color", "ambient_light_color",
+            "key_light_direction", "fill_light_direction", "shadows", "multishadow",
+            "multishadow_depth_bias", "multishadow_map_size"))
 
-        return tab
-
-    def _create_depth_cue_tab(self):
-        """Create the Depth Cue controls tab."""
-        tab = QWidget()
-        tab.setAutoFillBackground(True)
-        layout = QFormLayout(tab)
-
-        # Enable checkbox
-        self.depth_cue_enabled = QCheckBox()
-        self.depth_cue_enabled.stateChanged.connect(self._on_depth_cue_enabled_changed)
-        layout.addRow("Enabled:", self.depth_cue_enabled)
-
-        # Start (0-1, default 0.5)
-        self.depth_cue_start = LabeledSlider(0, 1, 0.5, decimals=2)
-        self.depth_cue_start.valueChanged().connect(self._on_depth_cue_start_changed)
-        self.depth_cue_start.sliderReleased().connect(self._on_depth_cue_start_released)
-        layout.addRow("Start:", self.depth_cue_start)
-
-        # End (0-1, default 1.0)
-        self.depth_cue_end = LabeledSlider(0, 1, 1.0, decimals=2)
-        self.depth_cue_end.valueChanged().connect(self._on_depth_cue_end_changed)
-        self.depth_cue_end.sliderReleased().connect(self._on_depth_cue_end_released)
-        layout.addRow("End:", self.depth_cue_end)
-
-        # Depth cue color
-        self.depth_cue_color = ColorButton()
-        self.depth_cue_color.color_changed.connect(self._on_depth_cue_color_changed)
-        layout.addRow("Color:", self.depth_cue_color)
-
-        return tab
+    def _on_material_changed(self, attr, value):
+        self.material_preset.setCurrentIndex(-1)
+        setattr(self.session.main_view.material, attr, value)
+        self.session.main_view.update_lighting = True
+        self.session.main_view.redraw_needed = True
+        self._sync_preview()
 
     def _on_lighting_changed(self, trigger_name, preset):
         self.preset_combo.blockSignals(True)
         if preset is not None:
-            idx = self.preset_combo.findText(preset)
+            idx = self.preset_combo.findText("simple" if preset == "default" else preset)
             if idx >= 0:
                 self.preset_combo.setCurrentIndex(idx)
-        else:
+        elif self._last_lighting_values != self._lighting_values():
             self.preset_combo.setCurrentIndex(-1)
         self.preset_combo.blockSignals(False)
         self._sync_from_session()
@@ -400,21 +419,18 @@ class LightingGUI(ToolInstance):
         self.ambient_intensity.setValue(lp.ambient_light_intensity)
 
         # Colors (0-255 for ColorButton)
-        self.key_color.color = tuple(int(c * 255) for c in lp.key_light_color)
-        self.fill_color.color = tuple(int(c * 255) for c in lp.fill_light_color)
-        self.ambient_color.color = tuple(int(c * 255) for c in lp.ambient_light_color)
+        self.key_color.color = tuple(round(c * 255) for c in lp.key_light_color)
+        self.fill_color.color = tuple(round(c * 255) for c in lp.fill_light_color)
+        self.ambient_color.color = tuple(round(c * 255) for c in lp.ambient_light_color)
 
-        # Material
-        self.sharpness.setValue(mat.specular_exponent)
-        self.reflectivity.setValue(mat.specular_reflectivity)
-
+        for attr, slider in self._material_sliders.items():
+            slider.setValue(getattr(mat, attr))
+        for attr, checkbox in self._material_checkboxes.items():
+            checkbox.setChecked(getattr(mat, attr))
+        if self._material_preset_values != self._material_values():
+            self.material_preset.setCurrentIndex(-1)
         self.silhouette_enabled.setChecked(v.silhouette.enabled)
-
-        # Depth cue
-        self.depth_cue_enabled.setChecked(lp.depth_cue)
-        self.depth_cue_start.setValue(lp.depth_cue_start)
-        self.depth_cue_end.setValue(lp.depth_cue_end)
-        self.depth_cue_color.color = tuple(int(c * 255) for c in lp.depth_cue_color)
+        self._last_lighting_values = self._lighting_values()
 
         self._block_signals(False)
 
@@ -426,12 +442,11 @@ class LightingGUI(ToolInstance):
         self.key_intensity.slider.blockSignals(block)
         self.fill_intensity.slider.blockSignals(block)
         self.ambient_intensity.slider.blockSignals(block)
-        self.sharpness.slider.blockSignals(block)
-        self.reflectivity.slider.blockSignals(block)
+        for slider in self._material_sliders.values():
+            slider.slider.blockSignals(block)
+        for checkbox in self._material_checkboxes.values():
+            checkbox.blockSignals(block)
         self.silhouette_enabled.blockSignals(block)
-        self.depth_cue_enabled.blockSignals(block)
-        self.depth_cue_start.slider.blockSignals(block)
-        self.depth_cue_end.slider.blockSignals(block)
 
     def _sync_preview(self):
         """Sync the preview sphere with main view lighting."""
@@ -452,8 +467,8 @@ class LightingGUI(ToolInstance):
 
         # Copy material parameters
         mat = preview.view.material
-        mat.specular_exponent = main_mat.specular_exponent
-        mat.specular_reflectivity = main_mat.specular_reflectivity
+        for attr in self._material_sliders:
+            setattr(mat, attr, getattr(main_mat, attr))
 
         # Update arrow directions
         preview.update_arrow_directions()
@@ -521,6 +536,8 @@ class LightingGUI(ToolInstance):
         run(self.session, "material default")
         self._sync_from_session()
         self._detect_preset()
+        self.material_preset.setCurrentText("default")
+        self._material_preset_values = self._material_values()
 
     def _on_key_intensity_changed(self, value):
         self._clear_preset()
@@ -534,7 +551,7 @@ class LightingGUI(ToolInstance):
         run(self.session, f"lighting intensity {self.key_intensity.value()}")
 
     def _on_key_color_changed(self, color):
-        run(self.session, f"lighting color {color[0]},{color[1]},{color[2]}")
+        run(self.session, f"lighting color #{int(color[0]):02x}{int(color[1]):02x}{int(color[2]):02x}")
         self._sync_preview()
 
     def _on_fill_intensity_changed(self, value):
@@ -549,7 +566,7 @@ class LightingGUI(ToolInstance):
         run(self.session, f"lighting fillIntensity {self.fill_intensity.value()}")
 
     def _on_fill_color_changed(self, color):
-        run(self.session, f"lighting fillColor {color[0]},{color[1]},{color[2]}")
+        run(self.session, f"lighting fillColor #{int(color[0]):02x}{int(color[1]):02x}{int(color[2]):02x}")
         self._sync_preview()
 
     def _on_ambient_intensity_changed(self, value):
@@ -564,59 +581,12 @@ class LightingGUI(ToolInstance):
         run(self.session, f"lighting ambientIntensity {self.ambient_intensity.value()}")
 
     def _on_ambient_color_changed(self, color):
-        run(self.session, f"lighting ambientColor {color[0]},{color[1]},{color[2]}")
+        run(self.session, f"lighting ambientColor #{int(color[0]):02x}{int(color[1]):02x}{int(color[2]):02x}")
         self._sync_preview()
-
-    # === Shininess callbacks ===
-
-    def _on_sharpness_changed(self, value):
-        exponent = value / self.sharpness.scale
-        self.session.main_view.material.specular_exponent = exponent
-        self.session.main_view.update_lighting = True
-        self.session.main_view.redraw_needed = True
-        self._sync_preview()
-
-    def _on_sharpness_released(self):
-        run(self.session, f"material exponent {self.sharpness.value()}")
-
-    def _on_reflectivity_changed(self, value):
-        reflectivity = value / self.reflectivity.scale
-        self.session.main_view.material.specular_reflectivity = reflectivity
-        self.session.main_view.update_lighting = True
-        self.session.main_view.redraw_needed = True
-        self._sync_preview()
-
-    def _on_reflectivity_released(self):
-        run(self.session, f"material reflectivity {self.reflectivity.value()}")
 
     def _on_silhouette_enabled_changed(self, state):
         enabled = state == Qt.CheckState.Checked.value
-        run(self.session, f"graphics silhouettes {'true' if enabled else 'false'}")
-
-    # === Depth Cue callbacks ===
-
-    def _on_depth_cue_enabled_changed(self, state):
-        enabled = state == Qt.CheckState.Checked.value
-        run(self.session, f"lighting depthCue {'true' if enabled else 'false'}")
-
-    def _on_depth_cue_start_changed(self, value):
-        start = value / self.depth_cue_start.scale
-        self.session.main_view.lighting.depth_cue_start = start
-        self.session.main_view.redraw_needed = True
-
-    def _on_depth_cue_start_released(self):
-        run(self.session, f"lighting depthCueStart {self.depth_cue_start.value()}")
-
-    def _on_depth_cue_end_changed(self, value):
-        end = value / self.depth_cue_end.scale
-        self.session.main_view.lighting.depth_cue_end = end
-        self.session.main_view.redraw_needed = True
-
-    def _on_depth_cue_end_released(self):
-        run(self.session, f"lighting depthCueEnd {self.depth_cue_end.value()}")
-
-    def _on_depth_cue_color_changed(self, color):
-        run(self.session, f"lighting depthCueColor {color[0]},{color[1]},{color[2]}")
+        run(self.session, f"graphics silhouettes {str(enabled).lower()}")
 
     def delete(self):
         from chimerax.core.core_triggers import LIGHTING_CHANGED
