@@ -194,7 +194,10 @@ def distance_save(session, save_file_name):
     grp = session.pb_manager.get_group("distances", create=False)
     if grp:
         pbs = list(grp.pseudobonds)
-        pbs.sort(key=lambda pb: pb.length)
+        # Doesn't seem to be any reason to sort on distance, whereas if comparing conformations
+        # it is convenient to put the distances in a consistent order
+        #pbs.sort(key=lambda pb: pb.length)
+        pbs.sort(key=lambda pb: pb.atoms)
         fmt = "%s <-> %s:  " + session.pb_dist_monitor.distance_format
         for pb in pbs:
             a1, a2 = pb.atoms
