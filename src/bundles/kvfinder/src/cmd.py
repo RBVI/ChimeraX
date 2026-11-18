@@ -64,9 +64,10 @@ def cmd_kvfinder(session, structures=None, *, box_atoms=None, box_extent=None, b
     for s in structures:
         session.logger.status("Find Cavities for %s: preparing KVFinder input" % s)
         insert_codes = s.residues.insertion_codes
+        has_insert_codes = False
         if len(insert_codes[insert_codes != '']) > 0:
-            session.logger.warning("%s contains residue insertion codes; KVFinder may not work correctly"
-                % s)
+            has_insert_codes = True
+            session.logger.warning("%s contains residue insertion codes; KVFinder may not work correctly" % s)
         if replace:
             for child in s.child_models():
                 if child.name == cavity_box_name:
@@ -80,6 +81,7 @@ def cmd_kvfinder(session, structures=None, *, box_atoms=None, box_extent=None, b
         num_cavities, cavity_matrix = pyKVFinder.detect(struct_input, vertices, grid_spacing,
             probe_in, probe_out, removal_distance, volume_cutoff, None, 5.0, box_origin is not None,
             surface_type, None, False)
+        insert_code_problem = False
         for ignore_backbone in [True, False]:
             # Avoid unneeded function call, as recommended by pyKVFinder authors
             # https://github.com/LBC-LNBio/pyKVFinder/issues/207
@@ -89,13 +91,25 @@ def cmd_kvfinder(session, structures=None, *, box_atoms=None, box_extent=None, b
             else:
                 contact_res_info = {}
             processed_res_info = {}
-            for cav_id, res_info in contact_res_info.items():
-                processed_res_info[cav_id] = Residues([s.find_residue(cid, int(pos))
-                    for pos, cid, name in res_info])
+            try:
+                for cav_id, res_info in contact_res_info.items():
+                    processed_res_info[cav_id] = Residues([s.find_residue(cid, int(pos))
+                        for pos, cid, name in res_info])
+            except AttributeError as e:
+                if "_c_pointer" in str(e):
+                    insert_code_problem = True
+                    session.logger.error("Find Cavities / kvfinder could not process %s due to the presence"
+                        " of residue insertion codes.  You may be able to get Find Cavities / kvfinder"
+                        " to work by renumbering the residues with the command 'renumber %s relative false'"
+                        " and then trying again." % (s, s.atomspec))
+                    break
+                raise
             if ignore_backbone:
                 non_backbone_contacting = processed_res_info
             else:
                 contacting = processed_res_info
+        if insert_code_problem:
+            continue
 
         placement = None
         if replace:
