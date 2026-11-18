@@ -30,6 +30,7 @@
 #include "Structure.h"
 #include "PBGroup.h"
 
+#include <logger/logger.h>
 #include <pysupport/convert.h>
 
 #include <Python.h>
@@ -105,6 +106,19 @@ AS_PBManager::get_group(const std::string& name, int create)
     if (create == GRP_NONE)
         return nullptr;
 
+    if ((name == structure()->PBG_METAL_COORDINATION || name == structure()->PBG_HYDROGEN_BONDS)) {
+        if (create != GRP_PER_CS) {
+            logger::warning(structure()->logger(), structure()->PBG_METAL_COORDINATION, " and ",
+                    structure()->PBG_HYDROGEN_BONDS, " pseudobond groups must be per-coordinate-set;"
+                    " changing type to per-coordinate set");
+            create = GRP_PER_CS;
+        }
+    } else if (name == structure()->PBG_MISSING_STRUCTURE && create != GRP_NORMAL) {
+        logger::warning(structure()->logger(), structure()->PBG_MISSING_STRUCTURE,
+                " pseudobond groups cannot be per-coordinate-set;"
+                " changing type to not be per-coordinate set");
+        create = GRP_NORMAL;
+    }
     grp = new Proxy_PBGroup(this, name, structure(), create);
     if (name == structure()->PBG_METAL_COORDINATION)
         grp->set_color(147, 112, 219);
