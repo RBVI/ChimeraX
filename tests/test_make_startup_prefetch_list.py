@@ -25,3 +25,18 @@ def test_a_sibling_directory_with_the_same_prefix_is_not_inside(tmp_path):
     app = tmp_path / "ChimeraX.app"
     sibling = os.path.join(str(tmp_path), "ChimeraX.app-old", "lib", "x.so")
     assert tool.relative_list(sibling + "\n", str(app)) == ""
+
+
+def test_packaged_list_omits_relative_and_out_of_tree_symlink_entries(tmp_path):
+    app = tmp_path / "ChimeraX.app"
+    app.mkdir()
+    outside = tmp_path / "outside"
+    outside.touch()
+    link = app / "external"
+    try:
+        link.symlink_to(outside)
+    except OSError:
+        # Creating symlinks can require a privilege on Windows.
+        link = outside
+    local = app / "local"
+    assert tool.relative_list(f"relative\n{link}\n{local}\t\n", app) == "local\t\n"

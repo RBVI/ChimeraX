@@ -4,10 +4,10 @@
 
 The launcher reads ahead the files a start needs from a list that
 chimerax.core.startup_prefetch records in the user's cache after each GUI
-start.  Until the first start records one, Linux and Windows launchers use
+start.  Until the first start records one, the launchers use
 a list shipped in the application's share directory instead, whose file
 names are relative to the application directory: ChimeraX.app on Linux,
-ChimeraX.app/bin on Windows (the launcher's directory).
+ChimeraX.app/Contents on macOS, or the launcher's directory on Windows.
 
 Record a list by starting the built application once with its GUI for more
 than 3 seconds, then convert it:
@@ -22,12 +22,21 @@ import sys
 
 
 def relative_list(text, app_dir):
-    root = os.path.normcase(os.path.abspath(app_dir)) + os.sep
+    root = os.path.realpath(app_dir)
     lines = []
-    for line in text.splitlines():
+    for line in text.split("\n"):
         path, tab, rest = line.partition("\t")
-        if os.path.normcase(os.path.abspath(path)).startswith(root):
-            relative = os.path.abspath(path)[len(root):]
+        if not os.path.isabs(path) or "\r" in path:
+            continue
+        absolute = os.path.abspath(path)
+        resolved = os.path.realpath(absolute)
+        try:
+            if os.path.normcase(os.path.commonpath((root, resolved))) != os.path.normcase(root):
+                continue
+            relative = os.path.relpath(absolute, app_dir)
+        except ValueError:  # Different drives on Windows.
+            continue
+        if relative != os.curdir and not relative.startswith(os.pardir + os.sep):
             lines.append(relative + tab + rest)
     return "".join(line + "\n" for line in lines)
 

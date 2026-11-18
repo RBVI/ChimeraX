@@ -312,28 +312,15 @@ def test_noted_files_are_listed_until_recorded(tmp_path, monkeypatch, no_watch):
 
 def test_bundle_paths_found_at_startup_are_noted(tmp_path, monkeypatch, no_watch):
     from chimerax.core.toolshed.info import BundleInfo
-    icon = touch(tmp_path / 'pkg' / 'icons' / 'tool.png')
-    bundle = BundleInfo('ChimeraX-Test', installed=True, packages=[(('chimerax', 'test'), str(tmp_path / 'pkg'))])
-    monkeypatch.setattr(bundle, '_package_locations', lambda: (str(tmp_path / 'pkg'),))
+    package = tmp_path / 'startup_prefetch_test_bundle'
+    icon = touch(package / 'icons' / 'tool.png')
+    (package / '__init__.py').write_text('')
+    monkeypatch.syspath_prepend(str(tmp_path))
+    bundle = BundleInfo('ChimeraX-Test', installed=True, api_package_name=package.name)
     monkeypatch.setattr(startup_prefetch, '_noted', [])
     assert bundle.get_path('icons/tool.png') == icon
     assert bundle.get_path('icons/missing.png') is None
     assert startup_prefetch._noted == [icon]
-
-
-def test_package_locations_use_the_imported_parent_path(tmp_path, monkeypatch):
-    import types
-    from chimerax.core.toolshed.info import BundleInfo
-    parent = types.ModuleType('cxtestparent')
-    parent.__path__ = [str(tmp_path / 'a'), str(tmp_path / 'b')]
-    (tmp_path / 'b' / 'child').mkdir(parents=True)
-    monkeypatch.setitem(sys.modules, 'cxtestparent', parent)
-    import importlib.util
-    def no_find_spec(name):
-        raise AssertionError('find_spec should not be needed')
-    monkeypatch.setattr(importlib.util, 'find_spec', no_find_spec)
-    bundle = BundleInfo('ChimeraX-Test', installed=True, api_package_name='cxtestparent.child')
-    assert bundle._package_locations() == (str(tmp_path / 'b' / 'child'),)
 
 
 def test_windows_lists_noted_files_for_lookup_only(tmp_path, monkeypatch):
@@ -347,3 +334,16 @@ def test_windows_lists_noted_files_for_lookup_only(tmp_path, monkeypatch):
     target = tmp_path / 'list'
     startup_prefetch._write_list(str(target), [], opened=[icon], noted=[icon, icon])
     assert target.read_text() == f'{library}\n{icon}\t\n'
+
+
+@pytest.mark.parametrize("byteorder", ["little", "big"])
+def test_pagemap_uses_native_byte_order_and_excludes_swapped_pages(byteorder):
+    entries = b"".join(value.to_bytes(8, byteorder)
+                       for value in (0, 1 << 62, 1 << 63, 1 << 63 | 7))
+    assert list(startup_prefetch._resident_pages(entries, byteorder)) == [2, 3]
+
+
+def test_list_skips_paths_that_cannot_be_represented(tmp_path):
+    good = str(tmp_path / "regular")
+    invalid = [str(tmp_path / ("bad" + separator + "entry")) for separator in "\t\r\n"]
+    assert startup_prefetch._list_text([good, "relative", *invalid], {}) == good + "\n"

@@ -28,6 +28,7 @@
 #endif
 
 #ifdef STARTUP_PREFETCH
+#define MAX_PREFETCH_LIST_SIZE (4 * 1024 * 1024)
 /*
  * A cold start reads the shared libraries and Python modules it needs one
  * page fault or one small file at a time.  ChimeraX records the files a GUI
@@ -266,7 +267,7 @@ prefetch_files(LPVOID unused)
 		return 0;
 	LARGE_INTEGER size;
 	char* text = NULL;
-	if (GetFileSizeEx(f, &size) && size.QuadPart > 0 && size.QuadPart < (1 << 26)
+	if (GetFileSizeEx(f, &size) && size.QuadPart > 0 && size.QuadPart <= MAX_PREFETCH_LIST_SIZE
 			&& (text = malloc((size_t) size.QuadPart + 1)) != NULL) {
 		DWORD got = 0;
 		if (!ReadFile(f, text, (DWORD) size.QuadPart, &got, NULL))
@@ -308,12 +309,19 @@ prefetch_files(LPVOID unused)
 		prefetch_queue* queue = n > 0 && line[n - 1] == '\t' ? &prefetch_metadata : &prefetch_data;
 		queue->entries[queue->count++] = line;
 	}
-	for (int i = 0; i < PREFETCH_THREADS; ++i) {
+	SYSTEM_INFO system;
+	GetSystemInfo(&system);
+	DWORD workers = system.dwNumberOfProcessors / 2;
+	if (workers < 1)
+		workers = 1;
+	if (workers > PREFETCH_THREADS)
+		workers = PREFETCH_THREADS;
+	for (DWORD i = 0; i < workers && prefetch_metadata.count > 0; ++i) {
 		HANDLE thread = CreateThread(NULL, 0, prefetch_worker, &prefetch_metadata, 0, NULL);
 		if (thread != NULL)
 			CloseHandle(thread);
 	}
-	for (int i = 1; i < PREFETCH_THREADS; ++i) {
+	for (DWORD i = 1; i < workers; ++i) {
 		HANDLE thread = CreateThread(NULL, 0, prefetch_worker, &prefetch_data, 0, NULL);
 		if (thread != NULL)
 			CloseHandle(thread);
@@ -373,12 +381,50 @@ start_prefetch(void)
 }
 # else
 static char prefetch_list[PATH_MAX];
+static char prefetch_root[PATH_MAX];
+
+static FILE*
+open_list_file(const char* path)
+{
+	int fd = open(path, O_RDONLY | O_CLOEXEC | O_NONBLOCK);
+	if (fd < 0)
+		return NULL;
+	struct stat st;
+	FILE* f = NULL;
+	if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode)
+			&& st.st_size > 0 && st.st_size <= MAX_PREFETCH_LIST_SIZE)
+		f = fdopen(fd, "r");
+	if (f == NULL)
+		close(fd);
+	return f;
+}
+
+static FILE*
+open_prefetch_list(int* shipped)
+{
+	FILE* f = open_list_file(prefetch_list);
+	*shipped = 0;
+	if (f == NULL && prefetch_root[0] != '\0') {
+		char path[PATH_MAX];
+		int n = snprintf(path, sizeof path, "%s/share/startup-prefetch", prefetch_root);
+		if (n > 0 && n < (int) sizeof path) {
+			f = open_list_file(path);
+			*shipped = f != NULL;
+		}
+	}
+	return f;
+}
 
 # ifdef __APPLE__
 static void
-prefetch_file(const char* path)
+prefetch_file(const char* path, int metadata_only)
 {
-	int fd = open(path, O_RDONLY | O_CLOEXEC);
+	if (metadata_only) {
+		struct stat st;
+		(void) stat(path, &st);
+		return;
+	}
+	int fd = open(path, O_RDONLY | O_CLOEXEC | O_NONBLOCK);
 	if (fd < 0)
 		return;
 	struct stat st;
@@ -394,16 +440,28 @@ prefetch_file(const char* path)
 static void*
 prefetch_files(void* unused)
 {
-	FILE* f = fopen(prefetch_list, "r");
+	int shipped;
+	FILE* f = open_prefetch_list(&shipped);
 	if (f == NULL)
 		return NULL;
-	char line[PATH_MAX + 2];
-	while (fgets(line, sizeof line, f) != NULL) {
-		size_t len = strcspn(line, "\n");
-		line[len] = '\0';
-		if (line[0] == '/')
-			prefetch_file(line);
+	char* line = NULL;
+	size_t capacity = 0;
+	while (getline(&line, &capacity, f) >= 0) {
+		line[strcspn(line, "\r\n")] = '\0';
+		char* ranges = strchr(line, '\t');
+		int metadata_only = ranges != NULL && ranges[1] == '\0';
+		if (ranges != NULL)
+			*ranges = '\0';
+		if (shipped) {
+			char path[PATH_MAX];
+			int n = snprintf(path, sizeof path, "%s/%s", prefetch_root, line);
+			if (line[0] != '\0' && n > 0 && n < (int) sizeof path)
+				prefetch_file(path, metadata_only);
+		} else if (line[0] == '/') {
+			prefetch_file(line, metadata_only);
+		}
 	}
+	free(line);
 	fclose(f);
 	return NULL;
 }
@@ -414,9 +472,6 @@ prefetch_files(void* unused)
 static char** prefetch_entries;
 static size_t prefetch_count;
 static size_t prefetch_next;
-// The application directory (ChimeraX.app); a list shipped in its share
-// directory names files relative to it.
-static char prefetch_root[PATH_MAX];
 
 static void
 read_range(int fd, char* buffer, off_t offset, off_t length)
@@ -437,13 +492,16 @@ prefetch_entry(char* entry, char* buffer)
 	char* ranges = strchr(entry, '\t');
 	if (ranges != NULL)
 		*ranges++ = '\0';
-	int fd = open(entry, O_RDONLY | O_CLOEXEC);
+	int fd = open(entry, O_RDONLY | O_CLOEXEC | O_NONBLOCK);
 	if (fd < 0)
 		return;
+	struct stat st;
+	if (fstat(fd, &st) != 0 || !S_ISREG(st.st_mode) || st.st_size < 0) {
+		close(fd);
+		return;
+	}
 	if (ranges == NULL) {
-		struct stat st;
-		if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode))
-			read_range(fd, buffer, 0, st.st_size);
+		read_range(fd, buffer, 0, st.st_size);
 	} else {
 		char* p = ranges;
 		while (*p != '\0') {
@@ -452,7 +510,12 @@ prefetch_entry(char* entry, char* buffer)
 			if (*end != '+')
 				break;
 			unsigned long long length = strtoull(end + 1, &end, 10);
-			read_range(fd, buffer, (off_t) offset, (off_t) length);
+			if (offset < (unsigned long long) st.st_size) {
+				unsigned long long available = st.st_size - offset;
+				if (length > available)
+					length = available;
+				read_range(fd, buffer, (off_t) offset, (off_t) length);
+			}
 			if (*end != ',')
 				break;
 			p = end + 1;
@@ -481,21 +544,14 @@ prefetch_worker(void* unused)
 static void*
 prefetch_files(void* unused)
 {
-	FILE* f = fopen(prefetch_list, "r");
-	int shipped = 0;
-	if (f == NULL && prefetch_root[0] != '\0') {
-		// Until a start records this user's list, use one shipped with the
-		// application, if any, whose names are relative to it.
-		char path[PATH_MAX];
-		int n = snprintf(path, sizeof path, "%s/share/startup-prefetch", prefetch_root);
-		if (n > 0 && n < (int) sizeof path && (f = fopen(path, "r")) != NULL)
-			shipped = 1;
-	}
+	int shipped;
+	FILE* f = open_prefetch_list(&shipped);
 	if (f == NULL)
 		return NULL;
 	struct stat st;
 	char* text = NULL;
 	if (fstat(fileno(f), &st) == 0 && st.st_size > 0
+			&& st.st_size <= MAX_PREFETCH_LIST_SIZE
 			&& (text = malloc((size_t) st.st_size + 1)) != NULL) {
 		size_t n = fread(text, 1, (size_t) st.st_size, f);
 		text[n] = '\0';
@@ -530,7 +586,9 @@ prefetch_files(void* unused)
 	pthread_attr_t attr;
 	if (pthread_attr_init(&attr) == 0) {
 		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-		for (int i = 1; i < PREFETCH_THREADS; ++i) {
+		long cpus = sysconf(_SC_NPROCESSORS_ONLN);
+		long workers = cpus > 1 ? cpus / 2 : 1;
+		for (int i = 1; i < PREFETCH_THREADS && i < workers; ++i) {
 			pthread_t thread;
 			(void) pthread_create(&thread, &attr, prefetch_worker, NULL);
 		}
@@ -555,8 +613,7 @@ start_prefetch(void)
 # endif
 	if (realpath(exe, real_exe) == NULL)
 		return;
-#  ifndef __APPLE__
-	// ChimeraX.app/bin/ChimeraX -> ChimeraX.app
+	// Packaged launchers are in bin or MacOS, below the prefetch root.
 	strcpy(prefetch_root, real_exe);
 	for (int up = 0; up < 2; ++up) {
 		char* slash = strrchr(prefetch_root, '/');
@@ -566,7 +623,6 @@ start_prefetch(void)
 		}
 		*slash = '\0';
 	}
-#  endif
 
 	const char* home = getenv("HOME");
 	char cache_dir[PATH_MAX];

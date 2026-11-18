@@ -353,7 +353,7 @@ _RANGE_GAP = 64 * 1024
 
 def mapped_ranges():
     """Return {file name: [(offset, length), ...]} of the pages of each
-    memory-mapped file that this process has touched (Linux only).
+    memory-mapped file that this process has touched (Linux and Windows).
 
     /proc/self/pagemap says which pages of each mapping are present in this
     process, unlike mincore(), which also counts pages other processes or
@@ -384,11 +384,16 @@ def mapped_ranges():
                 entries = pagemap.read(npages * 8)
                 present = pages.setdefault(name, set())
                 first = offset // page
-                # The top byte of each 64-bit entry: bit 63 present, bit 62 swapped.
-                present.update(first + i for i, b in enumerate(entries[7::8]) if b & 0xC0)
+                present.update(first + i for i in _resident_pages(entries, sys.byteorder))
     except OSError:
         return {}
     return {name: _page_spans(present, page) for name, present in pages.items() if present}
+
+
+def _resident_pages(entries, byteorder):
+    # Linux pagemap uses native-endian 64-bit words. Bit 63 is present.
+    high_byte = 7 if byteorder == "little" else 0
+    return (i for i, b in enumerate(entries[high_byte::8]) if b & 0x80)
 
 
 def _windows_mapped_ranges():
@@ -402,8 +407,10 @@ def _windows_mapped_ranges():
     """
     import ctypes
     from ctypes import wintypes
+    from mmap import PAGESIZE
+
     k32 = ctypes.WinDLL("kernel32", use_last_error=True)
-    page = 4096
+    page = PAGESIZE
 
     class WS(ctypes.Structure):
         _fields_ = [("address", ctypes.c_void_p), ("attributes", ctypes.c_size_t)]
@@ -442,6 +449,8 @@ def _page_spans(pages, page_size, gap=_RANGE_GAP):
 def _list_text(files, ranges, metadata_only=()):
     lines = []
     for f in files:
+        if not os.path.isabs(f) or any(c in f for c in "\t\r\n"):
+            continue
         spans = ranges.get(f)
         if f in metadata_only:
             # A tab and no ranges: the launcher opens the file, reads nothing.

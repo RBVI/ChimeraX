@@ -4,13 +4,13 @@
 Run with the built application's launcher, which names the list to record,
 after the GUI is up:
 
-    ChimeraX.app/bin/ChimeraX --script utils/record_startup_prefetch_list.py
+    ChimeraX --script utils/record_startup_prefetch_list.py
 
 It records this start's files as chimerax.core.startup_prefetch does after
 every GUI start, converts the list to names relative to the application
 directory (make_startup_prefetch_list.py), writes it to the application's
-share/startup-prefetch, which the Linux and Windows launchers read until a
-user's own list exists, and exits.
+share/startup-prefetch, which the launcher reads until a user's own list
+exists, and exits.
 """
 import os
 import sys
@@ -20,14 +20,16 @@ def _app_dir():
     executable = os.path.realpath(sys.executable)
     if sys.platform == "win32":
         return os.path.dirname(executable)                    # ChimeraX.app\bin
-    return os.path.dirname(os.path.dirname(executable))       # ChimeraX.app
+    # ChimeraX.app on Linux, ChimeraX.app/Contents on macOS.
+    return os.path.dirname(os.path.dirname(executable))
 
 
 def _record():
     from chimerax.core import startup_prefetch
     path = os.environ.get(startup_prefetch.ENV_VAR)
     if not path:
-        session.logger.error("Start ChimeraX with its launcher to record a prefetch list.")
+        print("Start ChimeraX with its launcher to record a prefetch list.",
+              file=sys.__stderr__, flush=True)
         os._exit(1)
     thread = startup_prefetch.record_startup_files()
     if thread is not None:
