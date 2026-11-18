@@ -2347,7 +2347,7 @@ t0 = t1;
 #endif
 
     // "pass 12":  yet another non-IDATM pass. Check that "uncertain" Npl atoms
-    // (not templated, not in a planar ring, not hand assigned) are not in fact N2+
+    // (not templated, not in a planar ring, not hand assigned) are not in fact N2/N2+
     for (auto a: untyped_atoms) {
 
         if (a->idatm_type() != "Npl")
@@ -2392,7 +2392,7 @@ t0 = t1;
                     }
                     if (next_wave.size() == wave_size) {
                         if (wave % 2 == 1) {
-                            a->set_computed_idatm_type("N2+");
+                            a->set_computed_idatm_type(a->neighbors().size() > 2 ? "N2+" : "N2");
                         }
                         branch_ended = true;
                         break;
@@ -2402,7 +2402,7 @@ t0 = t1;
                     break;
                 current_wave = next_wave;
             }
-            if (a->idatm_type() == "N2+")
+            if (a->idatm_type() != "Npl")
                 break;
         }
     }
