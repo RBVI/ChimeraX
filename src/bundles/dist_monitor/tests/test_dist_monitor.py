@@ -1,9 +1,9 @@
 expected_file_contents = """Model 1 is 3fx2
 
 Distance information:
-/A HOH 300 O <-> HOH 396 O:  3.672
-/A ASP 62 OD2 <-> TYR 98 OH:  5.736
 /A ASP 62 OD1 <-> TYR 100 OH:  8.906
+/A ASP 62 OD2 <-> TYR 98 OH:  5.736
+/A HOH 300 O <-> HOH 396 O:  3.672
 """
 
 def test_dist_monitor(test_production_session, tmp_path):
