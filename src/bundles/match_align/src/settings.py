@@ -34,5 +34,12 @@ def get_settings(session):
     # don't initialize a zillion times, which would also overwrite
     # any changed but not saved settings
     if _settings is None:
-        _settings = _MatchAlignSettings(session, "match->align")
+        # Windows doesn't allow '>' in file names, so change to an actual right arrow there; leave the same
+        # on other platforms for backwards compatibility since this has been out in the wild for awhile
+        import sys
+        if sys.platform.startswith("win"):
+            settings_name = "match\N{RIGHTWARDS ARROW}align"
+        else:
+            settings_name = "match->align"
+        _settings = _MatchAlignSettings(session, settings_name)
     return _settings
