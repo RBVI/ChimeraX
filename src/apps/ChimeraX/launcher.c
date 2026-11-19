@@ -7,7 +7,7 @@
 #endif
 #include <locale.h>
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__linux__)
 # define STARTUP_PREFETCH 1
 # include <fcntl.h>
 # include <limits.h>
@@ -17,7 +17,9 @@
 # include <string.h>
 # include <sys/stat.h>
 # include <unistd.h>
-# include <mach-o/dyld.h>
+# ifdef __APPLE__
+#  include <mach-o/dyld.h>
+# endif
 #endif
 
 #ifdef STARTUP_PREFETCH
@@ -39,10 +41,14 @@ prefetch_file(const char* path)
 		return;
 	struct stat st;
 	if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode) && st.st_size > 0) {
+# ifdef __APPLE__
 		struct radvisory ra;
 		ra.ra_offset = 0;
 		ra.ra_count = st.st_size > INT_MAX ? INT_MAX : (int) st.st_size;
 		(void) fcntl(fd, F_RDADVISE, &ra);
+# else
+		(void) posix_fadvise(fd, 0, 0, POSIX_FADV_WILLNEED);
+# endif
 	}
 	close(fd);
 }
@@ -76,18 +82,32 @@ start_prefetch(void)
 	if (getenv("CHIMERAX_NO_STARTUP_PREFETCH") != NULL)
 		return;
 	char exe[PATH_MAX], real_exe[PATH_MAX];
+# ifdef __APPLE__
 	uint32_t size = sizeof exe;
 	if (_NSGetExecutablePath(exe, &size) != 0)
 		return;
+# else
+	strcpy(exe, "/proc/self/exe");
+# endif
 	if (realpath(exe, real_exe) == NULL)
 		return;
 
 	const char* home = getenv("HOME");
 	char cache_dir[PATH_MAX];
 	int n;
+# ifdef __APPLE__
 	if (home == NULL || home[0] == '\0')
 		return;
 	n = snprintf(cache_dir, sizeof cache_dir, "%s/Library/Caches/ChimeraX", home);
+# else
+	const char* xdg = getenv("XDG_CACHE_HOME");
+	if (xdg != NULL && xdg[0] == '/')
+		n = snprintf(cache_dir, sizeof cache_dir, "%s/ChimeraX", xdg);
+	else if (home != NULL && home[0] != '\0')
+		n = snprintf(cache_dir, sizeof cache_dir, "%s/.cache/ChimeraX", home);
+	else
+		return;
+# endif
 	if (n < 0 || n >= (int) sizeof cache_dir)
 		return;
 

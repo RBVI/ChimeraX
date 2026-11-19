@@ -53,6 +53,9 @@ OBJS	= $(SRCS:.c=.$(OBJ_EXT))
 endif
 INCS	+= $(PYTHON_INCLUDE_DIRS)
 LIBS	+= $(PYTHON_LIB)
+ifeq ($(OS),Linux)
+LIBS	+= -lpthread
+endif
 
 all: $(PROG)
 
