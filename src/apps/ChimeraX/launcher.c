@@ -7,7 +7,12 @@
 #endif
 #include <locale.h>
 
-#if defined(__APPLE__) || defined(__linux__)
+#ifdef _WIN32
+# define STARTUP_PREFETCH 1
+# include <stdint.h>
+# include <stdlib.h>
+# include <wchar.h>
+#elif defined(__APPLE__) || defined(__linux__)
 # define STARTUP_PREFETCH 1
 # include <fcntl.h>
 # include <limits.h>
@@ -31,6 +36,110 @@
  * ahead, from a background thread, before Python initializes, so the reads
  * overlap with startup.
  */
+# ifdef _WIN32
+#  define PREFETCH_PATH 32768
+#  define PREFETCH_BUFFER (1 << 20)
+
+static wchar_t prefetch_list[PREFETCH_PATH];
+
+typedef struct {
+	PVOID address;
+	SIZE_T size;
+} prefetch_range;
+typedef BOOL (WINAPI *prefetch_memory_fn)(HANDLE, ULONG_PTR, prefetch_range*, ULONG);
+
+static BOOL
+prefetch_image(HANDLE file, prefetch_memory_fn prefetch_memory)
+{
+	HANDLE section = CreateFileMappingW(file, NULL, PAGE_READONLY | SEC_IMAGE, 0, 0, NULL);
+	if (section == NULL)
+		return FALSE;
+	const unsigned char* view = MapViewOfFile(section, FILE_MAP_READ, 0, 0, 0);
+	CloseHandle(section);
+	if (view == NULL)
+		return FALSE;
+	// Mapping an image warms the cache used by the loader without running it.
+	const IMAGE_DOS_HEADER* dos = (const IMAGE_DOS_HEADER*) view;
+	const IMAGE_NT_HEADERS* nt = (const IMAGE_NT_HEADERS*) (view + dos->e_lfanew);
+	prefetch_range range = { (PVOID) view, nt->OptionalHeader.SizeOfImage };
+	BOOL warmed = prefetch_memory(GetCurrentProcess(), 1, &range, 0);
+	UnmapViewOfFile(view);
+	return warmed;
+}
+
+static DWORD WINAPI
+prefetch_files(LPVOID unused)
+{
+	FILE* list = _wfopen(prefetch_list, L"rt, ccs=UTF-8");
+	if (list == NULL)
+		return 0;
+	SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+	HMODULE kernel = GetModuleHandleW(L"kernel32.dll");
+	prefetch_memory_fn prefetch_memory = kernel == NULL ? NULL :
+		(prefetch_memory_fn) (void (*)(void)) GetProcAddress(kernel, "PrefetchVirtualMemory");
+	wchar_t* line = malloc(PREFETCH_PATH * sizeof *line);
+	char* buffer = malloc(PREFETCH_BUFFER);
+	while (line != NULL && buffer != NULL && fgetws(line, PREFETCH_PATH, list) != NULL) {
+		wchar_t* newline = wcschr(line, L'\n');
+		if (newline == NULL) {
+			wint_t ch;
+			while ((ch = fgetwc(list)) != L'\n' && ch != WEOF)
+				;
+			continue;
+		}
+		*newline = L'\0';
+		if (!((line[1] == L':' && (line[2] == L'\\' || line[2] == L'/'))
+				|| (line[0] == L'\\' && line[1] == L'\\')))
+			continue;
+		HANDLE file = CreateFileW(line, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE
+			| FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+		if (file == INVALID_HANDLE_VALUE)
+			continue;
+		const wchar_t* extension = wcsrchr(line, L'.');
+		BOOL warmed = prefetch_memory != NULL && extension != NULL
+			&& (_wcsicmp(extension, L".dll") == 0 || _wcsicmp(extension, L".pyd") == 0)
+			&& prefetch_image(file, prefetch_memory);
+		if (!warmed && GetFileType(file) == FILE_TYPE_DISK) {
+			DWORD got;
+			while (ReadFile(file, buffer, PREFETCH_BUFFER, &got, NULL) && got != 0)
+				;
+		}
+		CloseHandle(file);
+	}
+	free(buffer);
+	free(line);
+	fclose(list);
+	return 0;
+}
+
+static void
+start_prefetch(void)
+{
+	if (GetEnvironmentVariableW(L"CHIMERAX_NO_STARTUP_PREFETCH", NULL, 0) != 0)
+		return;
+	static wchar_t executable[PREFETCH_PATH], cache[PREFETCH_PATH];
+	DWORD n = GetModuleFileNameW(NULL, executable, PREFETCH_PATH);
+	if (n == 0 || n >= PREFETCH_PATH)
+		return;
+	n = GetEnvironmentVariableW(L"LOCALAPPDATA", cache, PREFETCH_PATH);
+	if (n == 0 || n >= PREFETCH_PATH)
+		return;
+	uint64_t hash = 0xcbf29ce484222325ULL;
+	for (const wchar_t* ch = executable; *ch; ++ch) {
+		hash ^= (uint16_t) *ch;
+		hash *= 0x100000001b3ULL;
+	}
+	if (_snwprintf_s(prefetch_list, PREFETCH_PATH, _TRUNCATE,
+			L"%ls\UCSF\ChimeraX\Cache\startup-prefetch-%016llx",
+			cache, (unsigned long long) hash) < 0)
+		return;
+	if (_wputenv_s(L"CHIMERAX_STARTUP_PREFETCH", prefetch_list) != 0)
+		return;
+	HANDLE thread = CreateThread(NULL, 0, prefetch_files, NULL, 0, NULL);
+	if (thread != NULL)
+		CloseHandle(thread);
+}
+# else
 static char prefetch_list[PATH_MAX];
 
 static void
@@ -132,6 +241,7 @@ start_prefetch(void)
 	(void) pthread_create(&thread, &attr, prefetch_files, NULL);
 	pthread_attr_destroy(&attr);
 }
+# endif
 #endif
 
 /*

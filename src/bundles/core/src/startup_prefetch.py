@@ -38,9 +38,19 @@ import sys
 
 ENV_VAR = "CHIMERAX_STARTUP_PREFETCH"
 
-# macOS loads its own libraries from the dyld shared cache, which is always
-# resident, so only list files that are read from disk.
-_SYSTEM_PREFIXES = ("/System/", "/usr/lib/") if sys.platform == "darwin" else ()
+# macOS system libraries are supplied by the dyld shared cache rather than
+# ordinary individual library files. This list covers the app's separate files.
+if sys.platform == "darwin":
+    _SYSTEM_PREFIXES = ("/System/", "/usr/lib/")
+elif sys.platform == "win32":
+    # Windows' own DLLs are shared with every program and usually resident.
+    _SYSTEM_PREFIXES = (os.path.normcase(os.environ.get("SystemRoot", r"C:\Windows")) + os.sep,)
+else:
+    _SYSTEM_PREFIXES = ()
+
+
+def _is_system(path):
+    return bool(_SYSTEM_PREFIXES) and os.path.normcase(path).startswith(_SYSTEM_PREFIXES)
 
 # Qt reads the metadata of every plugin in these directories at startup,
 # including plugins it never loads.
@@ -105,6 +115,9 @@ def startup_files(modules, images=None, opened=(), search_path=None):
     Python modules, the data files Python opened, and the icons of the
     ChimeraX packages that were imported.  'modules' is a sequence of
     (module name, file name) in import order.
+
+    On Windows, put each DLL just before the first module from its package.
+    DLLs with no matching module go last, except for bootstrap libraries.
     """
     if images is None:
         images = loaded_images()
@@ -114,10 +127,22 @@ def startup_files(modules, images=None, opened=(), search_path=None):
 
     files = []
     plugin_dirs = []
+    windows = sys.platform == "win32"
+    deferred = {}	# Windows: package key -> DLLs to read before its first module
+    seen_extension = False
     for image in images:
-        if not image or image.startswith(_SYSTEM_PREFIXES):
+        if not image or _is_system(image):
             continue
-        files.append(image)
+        if windows:
+            if image.lower().endswith(".pyd"):
+                # Extension modules are listed with the modules, in import order.
+                seen_extension = True
+            elif seen_extension:
+                deferred.setdefault(_package_key(image, search_path), []).append(image)
+            else:
+                files.append(image)
+        else:
+            files.append(image)
         parent = os.path.dirname(image)
         if os.path.basename(os.path.dirname(parent)) == "plugins":
             plugins = os.path.dirname(parent)
@@ -127,7 +152,13 @@ def startup_files(modules, images=None, opened=(), search_path=None):
     for directory in search_path:
         files.extend(_directory_files(directory, ".pth"))
     for directory in plugin_dirs:
-        files.extend(_directory_files(directory))
+        if windows:
+            # Qt looks at its plugins when the application is created, after
+            # Python and numpy start; read them with the other Qt files.
+            for filename in _directory_files(directory):
+                deferred.setdefault(_package_key(filename, search_path), []).append(filename)
+        else:
+            files.extend(_directory_files(directory))
     package_dirs = []
     for name, filename in modules:
         if not filename:
@@ -139,6 +170,8 @@ def startup_files(modules, images=None, opened=(), search_path=None):
                 filename = cache_from_source(filename)
             except (NotImplementedError, ValueError):
                 continue
+        if deferred:
+            files.extend(deferred.pop(_package_key(filename, search_path), ()))
         files.append(filename)
     for filename in opened:
         filename = os.fsdecode(filename)
@@ -150,16 +183,44 @@ def startup_files(modules, images=None, opened=(), search_path=None):
                 pass
     for directory in package_dirs:
         files.extend(_directory_files(os.path.join(directory, "icons")))
+    for libraries in deferred.values():
+        files.extend(libraries)
 
     seen = set()
     result = []
     for filename in files:
-        if filename in seen:
+        key = os.path.normcase(filename)
+        if key in seen:
             continue
-        seen.add(filename)
+        seen.add(key)
         if os.path.isfile(filename):
             result.append(filename)
     return result
+
+
+def _package_key(path, search_path):
+    """The top-level package a file belongs to, for grouping a DLL with the
+    modules that load it: (search path directory, "numpy") for numpy and
+    numpy.libs, or (the file's directory, None) outside the search path."""
+    path = os.path.normcase(os.path.abspath(path))
+    best = None
+    for directory in search_path:
+        if not directory:
+            continue
+        directory = os.path.normcase(os.path.abspath(directory))
+        # The longest match: site-packages, not the Lib directory above it.
+        if path.startswith(directory + os.sep) and (best is None or len(directory) > len(best)):
+            best = directory
+    if best is not None:
+        top = path[len(best) + 1:].split(os.sep, 1)[0]
+        if top.endswith(".libs"):
+            top = top[:-len(".libs")]
+        if os.sep in path[len(best) + 1:]:
+            return (best, top)
+    directory = os.path.dirname(path)
+    if os.path.basename(directory) == "__pycache__":
+        directory = os.path.dirname(directory)
+    return (directory, None)
 
 
 def _directory_files(directory, suffix=""):
@@ -192,7 +253,37 @@ def loaded_images():
         except OSError:
             pass
         return images
+    if sys.platform == "win32":
+        return _windows_images()
     return []
+
+
+def _windows_images():
+    import ctypes
+    from ctypes import wintypes
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    process = wintypes.HANDLE(-1)	# GetCurrentProcess()
+    enum = k32.K32EnumProcessModules
+    enum.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.HMODULE), wintypes.DWORD,
+                     ctypes.POINTER(wintypes.DWORD)]
+    name = k32.K32GetModuleFileNameExW
+    name.argtypes = [wintypes.HANDLE, wintypes.HMODULE, wintypes.LPWSTR, wintypes.DWORD]
+
+    count = 1024
+    while True:
+        handles = (wintypes.HMODULE * count)()
+        needed = wintypes.DWORD()
+        if not enum(process, handles, ctypes.sizeof(handles), ctypes.byref(needed)):
+            return []
+        if needed.value <= ctypes.sizeof(handles):
+            break
+        count = needed.value // ctypes.sizeof(wintypes.HMODULE) + 64
+    modules = []
+    buffer = ctypes.create_unicode_buffer(32768)
+    for handle in handles[:needed.value // ctypes.sizeof(wintypes.HMODULE)]:
+        if 0 < name(process, handle, buffer, len(buffer)) < len(buffer):
+            modules.append(buffer.value)
+    return modules
 
 
 def _launcher_list_name(executable):
