@@ -547,8 +547,13 @@ class BundleInfo:
         p = self._bundle_path(subpath)
         if p is None:
             return None
-        import os.path
-        return p if os.path.exists(p) else None
+        # _bundle_path only returns a path that exists.
+        import sys
+        prefetch = sys.modules.get('chimerax.core.startup_prefetch')
+        if prefetch is not None:
+            # Startup looks up toolbar icons this way; prefetch them.
+            prefetch.note_file(p)
+        return p
 
     def start_tool(self, session, tool_name, *args, **kw):
         """Supported API. Create and return a tool instance.
