@@ -67,17 +67,21 @@ def test_flatpak_never_restores_host_python():
         assert "cache_native_python: 'false'" in cache
 
 
-@pytest.mark.parametrize("name", ["nightly.yml", "release.yml"])
-def test_linux_consumers_wait_only_for_shared_build(name):
+@pytest.mark.parametrize("name, setup_jobs", [
+    pytest.param("nightly.yml", ["select-builds"], id="nightly.yml"),
+    pytest.param("release.yml", [], id="release.yml"),
+])
+def test_linux_consumers_wait_only_for_shared_build(name, setup_jobs):
     jobs = dict(re.findall(r"^  ([\w-]+):\n(.*?)(?=^  [\w-]+:|\Z)",
                            workflow(name), re.MULTILINE | re.DOTALL))
     producer = jobs["build-linux-bundles"]
     assert "uses: ./.github/workflows/linux_bundles_build.yml" in producer
-    assert "needs:" not in producer
+    expected = [f"    needs: [{', '.join(setup_jobs)}]"] if setup_jobs else []
+    assert re.findall(r"^    needs:.*$", producer, re.MULTILINE) == expected
+    consumer_needs = f"    needs: [{', '.join([*setup_jobs, 'build-linux-bundles'])}]"
     for job in ("build-rocky9-docker", "build-rocky10-docker", "build-ubuntu",
                 "build-docker", "build-flatpak"):
-        assert "needs: [build-linux-bundles]" in jobs[job]
-        assert "needs: [build-rocky9-docker]" not in jobs[job]
+        assert re.findall(r"^    needs:.*$", jobs[job], re.MULTILINE) == [consumer_needs]
 
 
 def test_shared_build_handoff_is_run_scoped_and_retry_stable():
