@@ -2371,6 +2371,8 @@ t0 = t1;
             Atom::IdatmInfoMap::const_iterator anbi = info_map.find(anb->idatm_type());
             if (anbi == info_map.end() || (*anbi).second.geometry != 3)
                 continue;
+            if (anb->idatm_type() == "Npl" || anb->idatm_type() == "Car")
+                continue;
             int wave = 0;
             std::set<Atom*> seen = { a, anb };
             std::set<Atom*> current_wave = { anb };
@@ -2383,12 +2385,11 @@ t0 = t1;
                         Atom::IdatmInfoMap::const_iterator nbi = info_map.find(nb->idatm_type());
                         if (nbi == info_map.end() || (*nbi).second.geometry != 3)
                             continue;
-                        if (nb->idatm_type() == "Npl")
+                        if (nb->idatm_type() == "Npl" || nb->idatm_type() == "Car")
                             continue;
                         if (seen.find(nb) != seen.end())
                             continue;
                         next_wave.insert(nb);
-                        seen.insert(nb);
                     }
                     if (next_wave.size() == wave_size) {
                         if (wave % 2 == 1) {
