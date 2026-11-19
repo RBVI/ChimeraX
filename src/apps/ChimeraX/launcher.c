@@ -7,6 +7,113 @@
 #endif
 #include <locale.h>
 
+#ifdef __APPLE__
+# define STARTUP_PREFETCH 1
+# include <fcntl.h>
+# include <limits.h>
+# include <pthread.h>
+# include <stdint.h>
+# include <stdlib.h>
+# include <string.h>
+# include <sys/stat.h>
+# include <unistd.h>
+# include <mach-o/dyld.h>
+#endif
+
+#ifdef STARTUP_PREFETCH
+/*
+ * A cold start reads the shared libraries and Python modules it needs one
+ * page fault or one small file at a time.  ChimeraX records the files a GUI
+ * startup used (chimerax.core.startup_prefetch) in the file named by
+ * CHIMERAX_STARTUP_PREFETCH.  On later starts, ask the kernel to read them
+ * ahead, from a background thread, before Python initializes, so the reads
+ * overlap with startup.
+ */
+static char prefetch_list[PATH_MAX];
+
+static void
+prefetch_file(const char* path)
+{
+	int fd = open(path, O_RDONLY | O_CLOEXEC | O_NONBLOCK);
+	if (fd < 0)
+		return;
+	struct stat st;
+	if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode) && st.st_size > 0) {
+		struct radvisory ra;
+		ra.ra_offset = 0;
+		ra.ra_count = st.st_size > INT_MAX ? INT_MAX : (int) st.st_size;
+		(void) fcntl(fd, F_RDADVISE, &ra);
+	}
+	close(fd);
+}
+
+static void*
+prefetch_files(void* unused)
+{
+	FILE* f = fopen(prefetch_list, "r");
+	if (f == NULL)
+		return NULL;
+	char line[PATH_MAX + 2];
+	while (fgets(line, sizeof line, f) != NULL) {
+		size_t len = strcspn(line, "\n");
+		if (line[len] == '\0') {
+			int ch;
+			while ((ch = fgetc(f)) != '\n' && ch != EOF)
+				;
+			continue;
+		}
+		line[len] = '\0';
+		if (line[0] == '/')
+			prefetch_file(line);
+	}
+	fclose(f);
+	return NULL;
+}
+
+static void
+start_prefetch(void)
+{
+	if (getenv("CHIMERAX_NO_STARTUP_PREFETCH") != NULL)
+		return;
+	char exe[PATH_MAX], real_exe[PATH_MAX];
+	uint32_t size = sizeof exe;
+	if (_NSGetExecutablePath(exe, &size) != 0)
+		return;
+	if (realpath(exe, real_exe) == NULL)
+		return;
+
+	const char* home = getenv("HOME");
+	char cache_dir[PATH_MAX];
+	int n;
+	if (home == NULL || home[0] == '\0')
+		return;
+	n = snprintf(cache_dir, sizeof cache_dir, "%s/Library/Caches/ChimeraX", home);
+	if (n < 0 || n >= (int) sizeof cache_dir)
+		return;
+
+	// One list per executable: FNV-1a hash of its real path.
+	uint64_t hash = 0xcbf29ce484222325ULL;
+	for (const unsigned char* c = (const unsigned char*) real_exe; *c; ++c) {
+		hash ^= *c;
+		hash *= 0x100000001b3ULL;
+	}
+	n = snprintf(prefetch_list, sizeof prefetch_list,
+		"%s/startup-prefetch-%016llx", cache_dir, (unsigned long long) hash);
+	if (n < 0 || n >= (int) sizeof prefetch_list)
+		return;
+	// Python records this startup's files here.
+	setenv("CHIMERAX_STARTUP_PREFETCH", prefetch_list, 1);
+
+	pthread_attr_t attr;
+	pthread_t thread;
+	if (pthread_attr_init(&attr) != 0)
+		return;
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	(void) pthread_create(&thread, &attr, prefetch_files, NULL);
+	pthread_attr_destroy(&attr);
+}
+#endif
+
 /*
  * Mimic:
  *
@@ -52,6 +159,9 @@ _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 int
 app_main(int argc, wchar_t** wargv)
 {
+#ifdef STARTUP_PREFETCH
+	start_prefetch();
+#endif
 	int debug = 0;
 	for (int i = 1; i < argc; ++i) {
 		if (wcscmp(wargv[i], L"--debug") == 0) {
