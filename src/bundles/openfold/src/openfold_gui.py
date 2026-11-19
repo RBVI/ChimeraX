@@ -557,6 +557,10 @@ class OpenFoldPredictionGUI(ToolInstance):
                 options.append('zipArchive true')
         if self._samples.value != 1:
             options.append(f'samples {self._samples.value}')
+        if self._random_seed.value != 42 or self._num_seeds.value != 1:
+            start_seed, num_seeds = self._random_seed.value, self._num_seeds.value
+            seeds = ','.join(str(start_seed + s) for s in range(num_seeds))
+            options.append(f'seeds {seeds}')
         if self._install_directory.value != self._settings.openfold_install_location:
             options.append(f'installLocation {quote_path_if_necessary(self._install_directory.value)}')
         self._run_prediction(options = ' '.join(options))
@@ -737,11 +741,17 @@ class OpenFoldPredictionGUI(ToolInstance):
         dir.value = self.default_results_directory()
 
         # Number of predicted structures
-        ns = EntriesRow(f, 'Number of predicted structures', 1)
-        self._samples = sam = ns.values[0]
+        ns = EntriesRow(f, 'Number of predicted structures', 1, 'Random seed', 42, 'Number of seeds', 1)
+        self._samples, self._random_seed, self._num_seeds = sam, seed, num_seeds = ns.values
+        sam.pixel_width = 30
         settings = self._settings
         sam.value = settings.samples
-
+        sam.default_value = 1
+        seed.default_value = 42
+        seed.pixel_width = 30
+        num_seeds.default_value = 1
+        num_seeds.pixel_width = 30
+        
         # Use MSA cache
         mc = EntriesRow(f, True, 'Use multiple sequence alignment cache')
         self._use_msa_cache = uc = mc.values[0]
