@@ -57,7 +57,7 @@ def test_only_chimerax_packages_contribute_icons(tmp_path):
 
 
 def test_loaded_images_include_this_interpreter():
-    if not sys.platform.startswith(('darwin', 'linux')):
+    if sys.platform not in ('darwin', 'linux', 'win32'):
         pytest.skip('Only macOS and Linux list loaded images')
     images = startup_prefetch.loaded_images()
     assert images
@@ -196,3 +196,34 @@ def test_linux_loaded_images_ignore_anonymous_mappings(monkeypatch):
     )
     with patch.object(startup_prefetch, 'open', mock_open(read_data=maps.read()), create=True):
         assert startup_prefetch.loaded_images() == ['/lib/library with spaces.so']
+
+
+
+def test_windows_system_dlls_are_left_out(monkeypatch):
+    monkeypatch.setattr(startup_prefetch, '_SYSTEM_PREFIXES', (os.path.normcase('/sysroot') + os.sep,))
+    assert startup_prefetch._is_system('/sysroot/System32/kernel32.dll')
+    assert not startup_prefetch._is_system('/app/bin/python314.dll')
+
+
+
+def test_windows_dlls_are_listed_just_before_their_package(tmp_path, monkeypatch):
+    monkeypatch.setattr(sys, 'platform', 'win32')
+    monkeypatch.setattr(startup_prefetch, '_SYSTEM_PREFIXES', ())
+    bin_dir = tmp_path / 'bin'
+    site = bin_dir / 'Lib' / 'site-packages'
+    python_dll = touch(bin_dir / 'python314.dll')
+    vcruntime = touch(bin_dir / 'vcruntime140.dll')
+    ctypes_pyd = touch(bin_dir / 'DLLs' / '_ctypes.pyd')
+    libffi = touch(bin_dir / 'DLLs' / 'libffi-8.dll')
+    openblas = touch(site / 'numpy.libs' / 'openblas.dll')
+    numpy_init = touch(site / 'numpy' / '__init__.py')
+    numpy_pyc = touch(type(site)(cache_from_source(numpy_init)))
+    multiarray = touch(site / 'numpy' / '_core' / '_multiarray.pyd')
+    gallium = touch(bin_dir / 'libgallium_wgl.dll')
+    # EnumProcessModules order: Python's DLLs, then extension modules as they load.
+    images = [python_dll, vcruntime, ctypes_pyd, libffi, openblas, multiarray, gallium]
+    modules = [('_ctypes', ctypes_pyd), ('numpy', numpy_init), ('numpy._core._multiarray', multiarray)]
+    search_path = [str(bin_dir / 'DLLs'), str(bin_dir / 'Lib'), str(bin_dir), str(site)]
+    files = startup_prefetch.startup_files(modules, images=images, search_path=search_path)
+    assert files == [python_dll, vcruntime, libffi, ctypes_pyd, openblas, numpy_pyc,
+                     multiarray, gallium]
