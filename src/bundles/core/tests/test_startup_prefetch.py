@@ -57,7 +57,7 @@ def test_only_chimerax_packages_contribute_icons(tmp_path):
 
 
 def test_loaded_images_include_this_interpreter():
-    if sys.platform != 'darwin':
+    if not sys.platform.startswith(('darwin', 'linux')):
         pytest.skip('Only macOS and Linux list loaded images')
     images = startup_prefetch.loaded_images()
     assert images
@@ -183,3 +183,16 @@ def test_failure_updating_one_list_does_not_suppress_the_other(mac_launchers, mo
     monkeypatch.setattr(startup_prefetch, '_write_list_text', write)
     startup_prefetch._write_list(first, [])
     assert calls == [first, second]
+
+
+def test_linux_loaded_images_ignore_anonymous_mappings(monkeypatch):
+    from io import StringIO
+    from unittest.mock import mock_open, patch
+
+    monkeypatch.setattr(sys, 'platform', 'linux')
+    maps = StringIO(
+        '1000-2000 r-xp 00000000 08:01 1 /lib/library with spaces.so\n'
+        '2000-3000 rw-p 00000000 00:00 0 [heap]\n'
+    )
+    with patch.object(startup_prefetch, 'open', mock_open(read_data=maps.read()), create=True):
+        assert startup_prefetch.loaded_images() == ['/lib/library with spaces.so']

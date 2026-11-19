@@ -181,6 +181,17 @@ def loaded_images():
         dyld._dyld_get_image_name.argtypes = [ctypes.c_uint32]
         names = (dyld._dyld_get_image_name(i) for i in range(dyld._dyld_image_count()))
         return [os.fsdecode(name) for name in names if name]
+    if sys.platform.startswith("linux"):
+        images = []
+        try:
+            with open("/proc/self/maps") as f:
+                for line in f:
+                    fields = line.split(None, 5)
+                    if len(fields) == 6 and fields[5].startswith("/"):
+                        images.append(fields[5].rstrip("\n"))
+        except OSError:
+            pass
+        return images
     return []
 
 
