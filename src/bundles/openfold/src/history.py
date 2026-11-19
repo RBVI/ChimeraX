@@ -294,7 +294,9 @@ class PredictionDirectory:
         have_stdout = exists(stdout_path)
         done_time = getctime(stdout_path) if have_stdout else submit_time
         self.run_time = self._run_time(submit_time, done_time) # Seconds
-        self.status = 'done' if struct_files else ('failed' if have_stdout else '')
+        self.msa_only = self._msa_only()
+        msa_only_success = (self.msa_only and self._got_msa())
+        self.status = 'done' if msa_only_success or struct_files else ('failed' if have_stdout else '')
 
     def _structure_files(self):
         return self._result_files(suffix = '_model.cif')
@@ -340,10 +342,26 @@ class PredictionDirectory:
         if t is None:
             t = done_time - submit_time
         return t
-    
+
+    def _msa_only(self):
+        from os.path import join
+        cmd_file = join(self.directory, 'command')
+        with open(cmd_file, 'r') as f:
+            command = f.read()
+        return '--msa_and_templates_only=true' in command
+
+    def _got_msa(self):
+        from os.path import join, isdir
+        msa_dir = join(self.directory, 'colabfold_msas', 'main')
+        from os import listdir
+        return isdir(msa_dir) and len(listdir(msa_dir)) > 0
+
     def open_structures(self, session, align = True):
         models = []
         paths = self._structure_files()
+        if len(paths) == 0:
+            session.logger.info(f'No predicted structures in {self.directory}')
+            return
         for path in paths:
             structures, status = session.open_command.open_data(path, log_info = False)
             models.extend(structures)
