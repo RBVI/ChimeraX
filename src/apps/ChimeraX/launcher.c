@@ -7,11 +7,10 @@
 #endif
 #include <locale.h>
 
-#ifdef _WIN32
+#if defined(_WIN32)
 # define STARTUP_PREFETCH 1
 # include <stdint.h>
 # include <stdlib.h>
-# include <wchar.h>
 # include <string.h>
 #elif defined(__APPLE__) || defined(__linux__)
 # define STARTUP_PREFETCH 1
@@ -34,9 +33,20 @@
  * A cold start reads the shared libraries and Python modules it needs one
  * page fault or one small file at a time.  ChimeraX records the files a GUI
  * startup used (chimerax.core.startup_prefetch) in the file named by
- * CHIMERAX_STARTUP_PREFETCH.  On later starts, ask the kernel to read them
- * ahead, from a background thread, before Python initializes, so the reads
- * overlap with startup.
+ * CHIMERAX_STARTUP_PREFETCH.  On later starts, read them ahead from
+ * background threads before Python initializes, so the reads overlap with
+ * startup instead of blocking it.
+ *
+ * On Linux a line may end with a tab and the byte ranges startup touched,
+ * "offset+length,...", and the files are read with several threads.  Asking
+ * the kernel to read whole files ahead (posix_fadvise WILLNEED) from one
+ * thread fell well behind startup: a cold start took 0.51 s with it, 0.39 s
+ * reading the touched ranges with 4 threads, and 0.36 s warm.
+ *
+ * Windows' own prefetcher (SysMain) did not make this unnecessary: with
+ * only ChimeraX's files cold, reading the startup ranges from 4 threads
+ * took a Windows 11 VM's cold start from 4.5 s to 3.7 s.  The list lives
+ * in %LOCALAPPDATA%\UCSF\ChimeraX\Cache, and its lines are UTF-8.
  */
 # ifdef _WIN32
 #  define PREFETCH_THREADS 4
@@ -44,6 +54,11 @@
 #  define PREFETCH_PATH 32768
 
 static wchar_t prefetch_list[PREFETCH_PATH];
+// The executable's directory (ChimeraX.app\bin); a list shipped in its
+// share directory names files relative to it.
+static wchar_t prefetch_root[PREFETCH_PATH];
+static char prefetch_root8[3 * PREFETCH_PATH];
+
 // Files to read, and files whose metadata only is looked up (a tab and no
 // ranges).  Each queue has its own threads, so the quick metadata lookups
 // run ahead of startup instead of waiting behind large DLLs: with one queue
@@ -237,6 +252,17 @@ prefetch_files(LPVOID unused)
 	HANDLE f = CreateFileW(prefetch_list, GENERIC_READ,
 		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL,
 		OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	int shipped = 0;
+	if (f == INVALID_HANDLE_VALUE && prefetch_root[0] != L'\0') {
+		// Until a start records this user's list, use one shipped with the
+		// application, if any, whose names are relative to it.
+		wchar_t path[PREFETCH_PATH];
+		if (_snwprintf_s(path, PREFETCH_PATH, _TRUNCATE, L"%ls\\share\\startup-prefetch", prefetch_root) > 0) {
+			f = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+				NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+			shipped = f != INVALID_HANDLE_VALUE;
+		}
+	}
 	if (f == INVALID_HANDLE_VALUE)
 		return 0;
 	LARGE_INTEGER size;
@@ -269,9 +295,22 @@ prefetch_files(LPVOID unused)
 		size_t n = strlen(line);
 		if (n > 0 && line[n - 1] == '\r')
 			line[n - 1] = '\0';
-		if (!((line[0] != '\0' && line[1] == ':' && (line[2] == '\\' || line[2] == '/'))
-				|| (line[0] == '\\' && line[1] == '\\')))
+		int absolute = (line[0] != '\0' && line[1] == ':' && (line[2] == '\\' || line[2] == '/'))
+			|| (line[0] == '\\' && line[1] == '\\');
+		if (shipped) {
+			if (absolute || line[0] == '\0')
+				continue;
+			size_t root_length = strlen(prefetch_root8);
+			char* entry = malloc(root_length + 1 + strlen(line) + 1);
+			if (entry == NULL)
+				break;
+			memcpy(entry, prefetch_root8, root_length);
+			entry[root_length] = '\\';
+			strcpy(entry + root_length + 1, line);
+			line = entry;
+		} else if (!absolute) {
 			continue;
+		}
 		n = strlen(line);
 		prefetch_queue* queue = n > 0 && line[n - 1] == '\t' ? &prefetch_metadata : &prefetch_data;
 		queue->entries[queue->count++] = line;
@@ -300,6 +339,12 @@ prefetch_files(LPVOID unused)
 		WaitForSingleObject(threads[i], INFINITE);
 		CloseHandle(threads[i]);
 	}
+	if (shipped) {
+		for (size_t i = 0; i < prefetch_data.count; ++i)
+			free(prefetch_data.entries[i]);
+		for (size_t i = 0; i < prefetch_metadata.count; ++i)
+			free(prefetch_metadata.entries[i]);
+	}
 	free(prefetch_data.entries);
 	free(prefetch_metadata.entries);
 	free(text);
@@ -318,6 +363,17 @@ start_prefetch(void)
 	n = GetEnvironmentVariableW(L"LOCALAPPDATA", local, PREFETCH_PATH);
 	if (n == 0 || n >= PREFETCH_PATH)
 		return;
+	// ChimeraX.app\bin\ChimeraX.exe -> ChimeraX.app\bin
+	wcscpy_s(prefetch_root, PREFETCH_PATH, exe);
+	wchar_t* slash = wcsrchr(prefetch_root, L'\\');
+	if (slash != NULL)
+		*slash = L'\0';
+	else
+		prefetch_root[0] = L'\0';
+	if (WideCharToMultiByte(CP_UTF8, 0, prefetch_root, -1, prefetch_root8,
+			sizeof prefetch_root8, NULL, NULL) == 0)
+		prefetch_root[0] = L'\0';
+
 	// One list per executable: FNV-1a hash of its path.
 	uint64_t hash = 0xcbf29ce484222325ULL;
 	for (const wchar_t* c = exe; *c; ++c) {
@@ -344,49 +400,8 @@ start_prefetch(void)
 }
 # else
 static char prefetch_list[PATH_MAX];
+static char prefetch_root[PATH_MAX];
 
-# ifdef __APPLE__
-
-static void
-prefetch_file(const char* path)
-{
-	int fd = open(path, O_RDONLY | O_CLOEXEC | O_NONBLOCK);
-	if (fd < 0)
-		return;
-	struct stat st;
-	if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode) && st.st_size > 0) {
-		struct radvisory ra;
-		ra.ra_offset = 0;
-		ra.ra_count = st.st_size > INT_MAX ? INT_MAX : (int) st.st_size;
-		(void) fcntl(fd, F_RDADVISE, &ra);
-	}
-	close(fd);
-}
-
-static void*
-prefetch_files(void* unused)
-{
-	FILE* f = fopen(prefetch_list, "r");
-	if (f == NULL)
-		return NULL;
-	char line[PATH_MAX + 2];
-	while (fgets(line, sizeof line, f) != NULL) {
-		size_t len = strcspn(line, "\n");
-		if (line[len] == '\0') {
-			int ch;
-			while ((ch = fgetc(f)) != '\n' && ch != EOF)
-				;
-			continue;
-		}
-		line[len] = '\0';
-		if (line[0] == '/')
-			prefetch_file(line);
-	}
-	fclose(f);
-	return NULL;
-}
-
-# else
 static FILE*
 open_list_file(const char* path)
 {
@@ -403,6 +418,73 @@ open_list_file(const char* path)
 	return f;
 }
 
+static FILE*
+open_prefetch_list(int* shipped)
+{
+	FILE* f = open_list_file(prefetch_list);
+	*shipped = 0;
+	if (f == NULL && prefetch_root[0] != '\0') {
+		char path[PATH_MAX];
+		int n = snprintf(path, sizeof path, "%s/share/startup-prefetch", prefetch_root);
+		if (n > 0 && n < (int) sizeof path) {
+			f = open_list_file(path);
+			*shipped = f != NULL;
+		}
+	}
+	return f;
+}
+
+# ifdef __APPLE__
+static void
+prefetch_file(const char* path, int metadata_only)
+{
+	if (metadata_only) {
+		struct stat st;
+		(void) stat(path, &st);
+		return;
+	}
+	int fd = open(path, O_RDONLY | O_CLOEXEC | O_NONBLOCK);
+	if (fd < 0)
+		return;
+	struct stat st;
+	if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode) && st.st_size > 0) {
+		struct radvisory ra;
+		ra.ra_offset = 0;
+		ra.ra_count = st.st_size > INT_MAX ? INT_MAX : (int) st.st_size;
+		(void) fcntl(fd, F_RDADVISE, &ra);
+	}
+	close(fd);
+}
+
+static void*
+prefetch_files(void* unused)
+{
+	int shipped;
+	FILE* f = open_prefetch_list(&shipped);
+	if (f == NULL)
+		return NULL;
+	char* line = NULL;
+	size_t capacity = 0;
+	while (getline(&line, &capacity, f) >= 0) {
+		line[strcspn(line, "\r\n")] = '\0';
+		char* ranges = strchr(line, '\t');
+		int metadata_only = ranges != NULL && ranges[1] == '\0';
+		if (ranges != NULL)
+			*ranges = '\0';
+		if (shipped) {
+			char path[PATH_MAX];
+			int n = snprintf(path, sizeof path, "%s/%s", prefetch_root, line);
+			if (line[0] != '\0' && n > 0 && n < (int) sizeof path)
+				prefetch_file(path, metadata_only);
+		} else if (line[0] == '/') {
+			prefetch_file(line, metadata_only);
+		}
+	}
+	free(line);
+	fclose(f);
+	return NULL;
+}
+# else
 #  define PREFETCH_THREADS 4
 #  define PREFETCH_BUFFER (1 << 20)
 
@@ -481,7 +563,8 @@ prefetch_worker(void* unused)
 static void*
 prefetch_files(void* unused)
 {
-	FILE* f = open_list_file(prefetch_list);
+	int shipped;
+	FILE* f = open_prefetch_list(&shipped);
 	if (f == NULL)
 		return NULL;
 	struct stat st;
@@ -506,9 +589,18 @@ prefetch_files(void* unused)
 		return NULL;
 	}
 	char* save = NULL;
+	size_t root_length = strlen(prefetch_root);
 	for (char* line = strtok_r(text, "\n", &save); line != NULL; line = strtok_r(NULL, "\n", &save)) {
-		if (line[0] == '/') {
+		if (!shipped && line[0] == '/') {
 			prefetch_entries[prefetch_count++] = line;
+		} else if (shipped && line[0] != '\0' && line[0] != '/') {
+			char* entry = malloc(root_length + 1 + strlen(line) + 1);
+			if (entry == NULL)
+				break;
+			memcpy(entry, prefetch_root, root_length);
+			entry[root_length] = '/';
+			strcpy(entry + root_length + 1, line);
+			prefetch_entries[prefetch_count++] = entry;
 		}
 	}
 
@@ -523,6 +615,9 @@ prefetch_files(void* unused)
 	prefetch_worker(NULL);
 	for (int i = 0; i < started; ++i)
 		pthread_join(threads[i], NULL);
+	if (shipped)
+		for (size_t i = 0; i < prefetch_count; ++i)
+			free(prefetch_entries[i]);
 	free(prefetch_entries);
 	free(text);
 	return NULL;
@@ -544,6 +639,16 @@ start_prefetch(void)
 # endif
 	if (realpath(exe, real_exe) == NULL)
 		return;
+	// Packaged launchers are in bin or MacOS, below the prefetch root.
+	strcpy(prefetch_root, real_exe);
+	for (int up = 0; up < 2; ++up) {
+		char* slash = strrchr(prefetch_root, '/');
+		if (slash == NULL || slash == prefetch_root) {
+			prefetch_root[0] = '\0';
+			break;
+		}
+		*slash = '\0';
+	}
 
 	const char* home = getenv("HOME");
 	char cache_dir[PATH_MAX];
@@ -585,7 +690,7 @@ start_prefetch(void)
 	(void) pthread_create(&thread, &attr, prefetch_files, NULL);
 	pthread_attr_destroy(&attr);
 }
-# endif
+# endif /* _WIN32 */
 #endif
 
 /*
