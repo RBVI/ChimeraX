@@ -187,11 +187,12 @@ class NumberEntry:
         self._line_edit = le = QLineEdit(self.format % value, parent)
         le.setMaximumWidth(pixel_width)
         self.return_pressed = le.returnPressed
+        self.default_value = None
     def _get_value(self):
         try:
             v = self.string_to_value(self._line_edit.text())
         except ValueError:
-            v = None
+            v = self.default_value
         return v
     def _set_value(self, value):
         v = self.format % value if value is not None else ''
