@@ -227,3 +227,49 @@ def test_windows_dlls_are_listed_just_before_their_package(tmp_path, monkeypatch
     files = startup_prefetch.startup_files(modules, images=images, search_path=search_path)
     assert files == [python_dll, vcruntime, libffi, ctypes_pyd, openblas, numpy_pyc,
                      multiarray, gallium]
+
+
+def test_page_spans_join_nearby_pages():
+    assert startup_prefetch._page_spans([], 4096) == []
+    assert startup_prefetch._page_spans([3, 1, 2], 4096, gap=1) == [(4096, 3 * 4096)]
+    # Pages 10 and 12 are one page apart, closer than the gap.
+    assert startup_prefetch._page_spans([10, 12, 40], 4096, gap=8192) == [
+        (10 * 4096, 3 * 4096), (40 * 4096, 4096)]
+    assert startup_prefetch._page_spans([10, 12], 4096, gap=4096) == [
+        (10 * 4096, 4096), (12 * 4096, 4096)]
+
+
+def test_list_gives_ranges_after_a_tab(tmp_path):
+    library = str(tmp_path / "libQt6Core.so.6")
+    module = str(tmp_path / "a.pyc")
+    text = startup_prefetch._list_text([library, module],
+                                      {library: [(0, 8192), (65536, 4096)]})
+    assert text == f"{library}\t0+8192,65536+4096\n{module}\n"
+
+
+
+@pytest.mark.skipif(not sys.platform.startswith('linux'), reason='uses /proc/self/pagemap')
+def test_mapped_ranges_cover_part_of_this_interpreters_libraries():
+    import mmap
+    ranges = startup_prefetch.mapped_ranges()
+    assert ranges
+    page = mmap.PAGESIZE
+    for name, spans in ranges.items():
+        size = os.path.getsize(name)
+        assert spans == sorted(spans)
+        for offset, length in spans:
+            assert offset % page == 0 and length % page == 0 and length > 0
+            assert offset < size
+
+
+@pytest.mark.parametrize("byteorder", ["little", "big"])
+def test_pagemap_uses_native_byte_order_and_excludes_swapped_pages(byteorder):
+    entries = b"".join(value.to_bytes(8, byteorder)
+                       for value in (0, 1 << 62, 1 << 63, 1 << 63 | 7))
+    assert list(startup_prefetch._resident_pages(entries, byteorder)) == [2, 3]
+
+
+def test_list_skips_paths_that_cannot_be_represented(tmp_path):
+    good = str(tmp_path / "regular")
+    invalid = [str(tmp_path / ("bad" + separator + "entry")) for separator in "\t\r\n"]
+    assert startup_prefetch._list_text([good, "relative", *invalid], {}) == good + "\n"
