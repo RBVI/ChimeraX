@@ -1,4 +1,4 @@
-from chimerax.graphics.view import _draw_until_rendering_complete
+from chimerax.graphics.view import _draw_until_rendering_complete, image_from_rgba
 
 
 class _Renderer:
@@ -38,3 +38,16 @@ def test_waiting_is_a_no_op_for_non_progressive_renderer():
     )
 
     assert len(draws) == 1
+
+
+def test_image_from_rgba_handles_reversed_vulkan_screen_readback():
+    from numpy import array, uint8
+
+    screen = array([[[100, 50, 25, 255]], [[25, 50, 100, 128]]], dtype=uint8)
+    rgba = screen[::-1]
+
+    image = image_from_rgba(rgba)
+
+    assert image.mode == "RGB"
+    assert image.getpixel((0, 0)) == (100, 50, 25)
+    assert image.getpixel((0, 1)) == (25, 50, 100)

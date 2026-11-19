@@ -1474,13 +1474,14 @@ class _RedrawNeeded:
 
 def image_from_rgba(rgba, transparent_background = False):
     '''
-    Return a PIL image of a numpy uint8 (h, w, 4) rgba array read from OpenGL.
-    The y-axis is flipped since PIL image has row 0 at top, opengl has row 0
-    at bottom.  Without a transparent background the alpha channel is dropped.
+    Return a PIL image from a bottom-up uint8 (h, w, 4) RGBA array.
+    Without a transparent background the alpha channel is dropped.
     '''
     from PIL import Image
     if transparent_background:
         return Image.fromarray(rgba[::-1])
+    if not rgba.flags.c_contiguous:
+        return Image.fromarray(rgba[::-1, :, :3])
     # Flip and drop alpha in one pass of Pillow's raw decoder.  Image.fromarray()
     # of rgba[::-1, :, :3] copies that array one byte at a time.
     h, w = rgba.shape[:2]

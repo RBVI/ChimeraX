@@ -58,7 +58,7 @@ and `looking_glass/tests/test_vulkan_quilt.py`.
 
 - Hardware shutter-glasses stereo still requires the OpenGL stereo context.
   Synchronized sequential stereo needs platform-specific presentation support.
-- OpenGL has an OSMesa headless context. Vulkan can capture offscreen images
+- OpenGL has an EGL headless context. Vulkan can capture offscreen images
   using the window-backed device, but has no headless initialization path.
 - OpenXR with Vulkan requires an RGBA8 sRGB swapchain. The OpenGL path
   negotiates among several formats.
