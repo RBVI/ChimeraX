@@ -286,6 +286,76 @@ def _windows_images():
     return modules
 
 
+# Join touched ranges separated by less than this, to keep the list short.
+_RANGE_GAP = 64 * 1024
+
+
+def mapped_ranges():
+    """Return {file name: [(offset, length), ...]} of the pages of each
+    memory-mapped file that this process has touched (Linux).
+
+    /proc/self/pagemap says which pages of each mapping are present in this
+    process, unlike mincore(), which also counts pages other processes or
+    earlier sessions left in the page cache.
+    """
+    if not sys.platform.startswith("linux"):
+        return {}
+    page = os.sysconf("SC_PAGE_SIZE")
+    pages = {}
+    try:
+        with open("/proc/self/maps") as maps, open("/proc/self/pagemap", "rb") as pagemap:
+            for line in maps:
+                fields = line.split(None, 5)
+                if len(fields) < 6 or not fields[5].startswith("/"):
+                    continue
+                name = fields[5].rstrip("\n")
+                if name.endswith(" (deleted)"):
+                    continue
+                start, end = (int(a, 16) for a in fields[0].split("-"))
+                offset = int(fields[2], 16)
+                npages = (end - start) // page
+                pagemap.seek((start // page) * 8)
+                entries = pagemap.read(npages * 8)
+                present = pages.setdefault(name, set())
+                first = offset // page
+                present.update(first + i for i in _resident_pages(entries, sys.byteorder))
+    except OSError:
+        return {}
+    return {name: _page_spans(present, page) for name, present in pages.items() if present}
+
+
+def _resident_pages(entries, byteorder):
+    # Linux pagemap uses native-endian 64-bit words. Bit 63 is present.
+    high_byte = 7 if byteorder == "little" else 0
+    return (i for i, b in enumerate(entries[high_byte::8]) if b & 0x80)
+
+
+def _page_spans(pages, page_size, gap=_RANGE_GAP):
+    """Byte ranges [(offset, length), ...] covering the given page numbers,
+    joining ranges separated by less than 'gap' bytes."""
+    spans = []
+    for p in sorted(pages):
+        o = p * page_size
+        if spans and o - (spans[-1][0] + spans[-1][1]) < gap:
+            spans[-1][1] = o + page_size - spans[-1][0]
+        else:
+            spans.append([o, page_size])
+    return [tuple(span) for span in spans]
+
+
+def _list_text(files, ranges):
+    lines = []
+    for f in files:
+        if not os.path.isabs(f) or any(c in f for c in "\t\r\n"):
+            continue
+        spans = ranges.get(f)
+        if spans:
+            lines.append(f + "\t" + ",".join("%d+%d" % span for span in spans))
+        else:
+            lines.append(f)
+    return "".join(line + "\n" for line in lines)
+
+
 def _launcher_list_name(executable):
     # Match the launcher's FNV-1a hash of realpath(executable).
     value = 0xcbf29ce484222325
@@ -343,8 +413,7 @@ def _write_list_text(path, text):
 
 def _write_list(path, modules, opened=()):
     files = startup_files(modules, opened=opened)
-    text = "".join(f + "\n" for f in files
-                   if os.path.isabs(f) and not any(c in f for c in "\r\n"))
+    text = _list_text(files, mapped_ranges())
     for destination in _list_destinations(path):
         try:
             _write_list_text(destination, text)
