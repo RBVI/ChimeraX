@@ -31,6 +31,20 @@ CHIMERAX_STARTUP_PREFETCH environment variable and, when the list exists,
 asks the kernel to read those files ahead while Python starts.  This module
 writes that list: the shared libraries, Python modules, and data files read
 by the time the GUI is up, roughly in the order they were first needed.
+On macOS, the bin and MacOS entry points are hard links but existing launchers
+hash their distinct paths. Record both lists when they name the same executable.
+
+Each line is a file name.  On Linux, a memory-mapped file (shared library,
+font, ICU data) is followed by a tab and the byte ranges this process
+touched, "offset+length,offset+length,...", since startup uses only part of
+most libraries: about 70 MB of the 200 MB of the application's files a
+start maps.  Reading only those ranges, from several threads, made a cold
+start ~120 ms faster than asking the kernel to read whole files ahead.
+
+On Windows the DLLs come from EnumProcessModules and their touched ranges
+from QueryWorkingSetEx.  A Windows DLL's ranges are offsets in its loaded
+image, not in the file: the launcher prefetches them through an image
+mapping.  Windows' own DLLs are left out, as are macOS's.
 """
 
 import os
@@ -116,8 +130,13 @@ def startup_files(modules, images=None, opened=(), search_path=None):
     ChimeraX packages that were imported.  'modules' is a sequence of
     (module name, file name) in import order.
 
-    On Windows, put each DLL just before the first module from its package.
-    DLLs with no matching module go last, except for bootstrap libraries.
+    On Windows only the DLLs loaded before the first extension module come
+    first.  Each later DLL goes just before the first module of its package
+    (Qt6Core.dll before PySide6, numpy.libs before numpy), and DLLs with no
+    such module go last.  With every DLL first, the launcher's threads read
+    ~80 MB of libraries before the Python modules needed at once, and a cold
+    start in a Windows 11 VM was 0.5 s slower than without prefetching;
+    in first-use order it was 0.75 s faster.
     """
     if images is None:
         images = loaded_images()
@@ -223,6 +242,28 @@ def _package_key(path, search_path):
     return (directory, None)
 
 
+def _with_sources(files):
+    """Put each cached module's source file just before its .pyc, for the
+    launcher to look up but not read: Python checks its size and time before
+    using the .pyc, and on a cold start those metadata reads, one module
+    at a time, took a Windows VM ~0.3 s.  Returns (files, set of sources).
+    Windows only: on Linux these lookups are cheap even cold, and listing
+    the sources made a cold start 10 +/- 9 ms slower."""
+    if sys.platform != "win32":
+        return files, set()
+    result = []
+    sources = set()
+    for filename in files:
+        directory, name = os.path.split(filename)
+        if name.endswith(".pyc") and os.path.basename(directory) == "__pycache__":
+            source = os.path.join(os.path.dirname(directory), name.split(".", 1)[0] + ".py")
+            if source not in sources and os.path.isfile(source):
+                result.append(source)
+                sources.add(source)
+        result.append(filename)
+    return result, sources
+
+
 def _directory_files(directory, suffix=""):
     try:
         names = sorted(os.listdir(directory))
@@ -254,11 +295,12 @@ def loaded_images():
             pass
         return images
     if sys.platform == "win32":
-        return _windows_images()
+        return [path for path, base, size in _windows_modules()]
     return []
 
 
-def _windows_images():
+def _windows_modules():
+    """[(path, base address, image size), ...] of this process's DLLs in load order."""
     import ctypes
     from ctypes import wintypes
     k32 = ctypes.WinDLL("kernel32", use_last_error=True)
@@ -269,6 +311,10 @@ def _windows_images():
     name = k32.K32GetModuleFileNameExW
     name.argtypes = [wintypes.HANDLE, wintypes.HMODULE, wintypes.LPWSTR, wintypes.DWORD]
 
+    class MODULEINFO(ctypes.Structure):
+        _fields_ = [("base", ctypes.c_void_p), ("size", wintypes.DWORD), ("entry", ctypes.c_void_p)]
+    info = k32.K32GetModuleInformation
+    info.argtypes = [wintypes.HANDLE, wintypes.HMODULE, ctypes.POINTER(MODULEINFO), wintypes.DWORD]
     count = 1024
     while True:
         handles = (wintypes.HMODULE * count)()
@@ -281,8 +327,10 @@ def _windows_images():
     modules = []
     buffer = ctypes.create_unicode_buffer(32768)
     for handle in handles[:needed.value // ctypes.sizeof(wintypes.HMODULE)]:
-        if 0 < name(process, handle, buffer, len(buffer)) < len(buffer):
-            modules.append(buffer.value)
+        mi = MODULEINFO()
+        if (name(process, handle, buffer, len(buffer))
+                and info(process, handle, ctypes.byref(mi), ctypes.sizeof(mi))):
+            modules.append((buffer.value, mi.base, mi.size))
     return modules
 
 
@@ -292,12 +340,17 @@ _RANGE_GAP = 64 * 1024
 
 def mapped_ranges():
     """Return {file name: [(offset, length), ...]} of the pages of each
-    memory-mapped file that this process has touched (Linux).
+    memory-mapped file that this process has touched (Linux and Windows).
 
     /proc/self/pagemap says which pages of each mapping are present in this
     process, unlike mincore(), which also counts pages other processes or
     earlier sessions left in the page cache.
     """
+    if sys.platform == "win32":
+        try:
+            return _windows_mapped_ranges()
+        except Exception:
+            return {}
     if not sys.platform.startswith("linux"):
         return {}
     page = os.sysconf("SC_PAGE_SIZE")
@@ -330,6 +383,43 @@ def _resident_pages(entries, byteorder):
     return (i for i, b in enumerate(entries[high_byte::8]) if b & 0x80)
 
 
+def _windows_mapped_ranges():
+    """Touched ranges of this process's non-system DLLs (Windows), as byte
+    offsets in the loaded image rather than in the file.
+
+    QueryWorkingSetEx says which pages of each image are in this process's
+    working set.  The launcher maps each DLL as an image and prefetches
+    these ranges of the view, which warms the image section the loader
+    reuses.  Reading DLLs as file data warmed them only partly.
+    """
+    import ctypes
+    from ctypes import wintypes
+    from mmap import PAGESIZE
+
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    page = PAGESIZE
+
+    class WS(ctypes.Structure):
+        _fields_ = [("address", ctypes.c_void_p), ("attributes", ctypes.c_size_t)]
+    query = k32.K32QueryWorkingSetEx
+    query.argtypes = [wintypes.HANDLE, ctypes.c_void_p, wintypes.DWORD]
+    process = wintypes.HANDLE(-1)
+    ranges = {}
+    for path, base, size in _windows_modules():
+        if _is_system(path) or not base or not size:
+            continue
+        npages = (size + page - 1) // page
+        entries = (WS * npages)()
+        for i in range(npages):
+            entries[i].address = base + i * page
+        if not query(process, entries, ctypes.sizeof(entries)):
+            continue
+        pages = [i for i in range(npages) if entries[i].attributes & 1]	# Valid
+        if pages:
+            ranges[path] = _page_spans(pages, page)
+    return ranges
+
+
 def _page_spans(pages, page_size, gap=_RANGE_GAP):
     """Byte ranges [(offset, length), ...] covering the given page numbers,
     joining ranges separated by less than 'gap' bytes."""
@@ -343,13 +433,16 @@ def _page_spans(pages, page_size, gap=_RANGE_GAP):
     return [tuple(span) for span in spans]
 
 
-def _list_text(files, ranges):
+def _list_text(files, ranges, metadata_only=()):
     lines = []
     for f in files:
         if not os.path.isabs(f) or any(c in f for c in "\t\r\n"):
             continue
         spans = ranges.get(f)
-        if spans:
+        if f in metadata_only:
+            # A tab and no ranges: the launcher opens the file, reads nothing.
+            lines.append(f + "\t")
+        elif spans:
             lines.append(f + "\t" + ",".join("%d+%d" % span for span in spans))
         else:
             lines.append(f)
@@ -412,11 +505,16 @@ def _write_list_text(path, text):
 
 
 def _write_list(path, modules, opened=()):
-    files = startup_files(modules, opened=opened)
-    text = _list_text(files, mapped_ranges())
-    for destination in _list_destinations(path):
+    try:
+        files, metadata = _with_sources(startup_files(modules, opened=opened))
+        text = _list_text(files, mapped_ranges(), metadata)
+        paths = _list_destinations(path)
+    except Exception:
+        # Prefetching is only an optimization.
+        return
+    for destination in paths:
         try:
             _write_list_text(destination, text)
-        except (OSError, UnicodeError):
+        except Exception:
             # Failure to update one entry point must not suppress the other.
             pass

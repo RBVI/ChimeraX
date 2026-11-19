@@ -273,3 +273,50 @@ def test_list_skips_paths_that_cannot_be_represented(tmp_path):
     good = str(tmp_path / "regular")
     invalid = [str(tmp_path / ("bad" + separator + "entry")) for separator in "\t\r\n"]
     assert startup_prefetch._list_text([good, "relative", *invalid], {}) == good + "\n"
+
+
+@pytest.mark.skipif(sys.platform != 'win32', reason='uses QueryWorkingSetEx')
+def test_windows_mapped_ranges_cover_part_of_the_python_dll():
+    ranges = startup_prefetch.mapped_ranges()
+    python_dll = [name for name in ranges if os.path.basename(name).lower().startswith('python3')]
+    assert python_dll
+    for name in python_dll:
+        spans = ranges[name]
+        # Offsets are in the loaded image, which may be larger than the file.
+        assert spans == sorted(spans)
+        assert all(offset % 4096 == 0 and length > 0 for offset, length in spans)
+
+
+def test_list_is_written_with_lf_line_endings(tmp_path):
+    path = tmp_path / 'list'
+    startup_prefetch._write_list_text(str(path), 'a\nb\n')
+    assert path.read_bytes() == b'a\nb\n'
+
+
+def test_package_key_uses_the_innermost_search_directory(tmp_path):
+    lib = tmp_path / 'Lib'
+    site = lib / 'site-packages'
+    path = [str(lib), str(site)]
+    key = startup_prefetch._package_key
+    assert key(str(site / 'numpy.libs' / 'x.dll'), path) == key(str(site / 'numpy' / 'core.pyd'), path)
+    assert key(str(site / 'PySide6' / 'Qt6Core.dll'), path) == (os.path.normcase(str(site)), 'PySide6')
+    assert key(str(tmp_path / 'DLLs' / 'libffi.dll'), path) == key(str(tmp_path / 'DLLs' / '_ctypes.pyd'), path)
+
+
+def test_module_sources_are_opened_but_not_read(tmp_path, monkeypatch):
+    monkeypatch.setattr(sys, 'platform', 'win32')
+    source = touch(tmp_path / 'pkg' / 'mod.py')
+    cached = touch(type(tmp_path)(cache_from_source(source)))
+    library = touch(tmp_path / 'lib.so')
+    files, sources = startup_prefetch._with_sources([library, cached])
+    assert files == [library, source, cached]
+    assert sources == {source}
+    text = startup_prefetch._list_text(files, {library: [(0, 4096)]}, sources)
+    assert text == f'{library}\t0+4096\n{source}\t\n{cached}\n'
+
+
+@pytest.mark.parametrize('platform', ['darwin', 'linux'])
+def test_only_windows_lists_sources(monkeypatch, tmp_path, platform):
+    monkeypatch.setattr(sys, 'platform', platform)
+    cached = touch(type(tmp_path)(cache_from_source(touch(tmp_path / 'mod.py'))))
+    assert startup_prefetch._with_sources([cached]) == ([cached], set())
