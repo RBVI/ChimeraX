@@ -16,6 +16,7 @@ def touch(path, size=1):
 @pytest.fixture
 def no_watch(monkeypatch):
     monkeypatch.setattr(startup_prefetch, '_opened', None)
+    monkeypatch.setattr(startup_prefetch, '_noted', None)
 
 
 def test_files_are_listed_in_startup_order_without_duplicates(tmp_path, monkeypatch):
@@ -320,3 +321,44 @@ def test_only_windows_lists_sources(monkeypatch, tmp_path, platform):
     monkeypatch.setattr(sys, 'platform', platform)
     cached = touch(type(tmp_path)(cache_from_source(touch(tmp_path / 'mod.py'))))
     assert startup_prefetch._with_sources([cached]) == ([cached], set())
+
+
+def test_noted_files_are_listed_until_recorded(tmp_path, monkeypatch, no_watch):
+    target = tmp_path / 'cache' / 'startup-prefetch-noted'
+    monkeypatch.setenv(startup_prefetch.ENV_VAR, str(target))
+    icon = touch(tmp_path / 'icons' / 'tool.png')
+    later = touch(tmp_path / 'icons' / 'later.png')
+    startup_prefetch.note_file(icon)	# not watching yet: ignored
+    startup_prefetch.watch_opened_files()
+    startup_prefetch.note_file(icon)
+    startup_prefetch.record_startup_files().join(10)
+    startup_prefetch.note_file(later)	# after recording: ignored
+    listed = [line.split('\t')[0] for line in target.read_text().splitlines()]
+    assert icon in listed
+    assert later not in listed
+
+
+def test_bundle_paths_found_at_startup_are_noted(tmp_path, monkeypatch, no_watch):
+    from chimerax.core.toolshed.info import BundleInfo
+    package = tmp_path / 'startup_prefetch_test_bundle'
+    icon = touch(package / 'icons' / 'tool.png')
+    (package / '__init__.py').write_text('')
+    monkeypatch.syspath_prepend(str(tmp_path))
+    bundle = BundleInfo('ChimeraX-Test', installed=True, api_package_name=package.name)
+    monkeypatch.setattr(startup_prefetch, '_noted', [])
+    assert bundle.get_path('icons/tool.png') == icon
+    assert bundle.get_path('icons/missing.png') is None
+    assert startup_prefetch._noted == [icon]
+
+
+def test_windows_lists_noted_files_for_lookup_only(tmp_path, monkeypatch):
+    monkeypatch.setattr(sys, 'platform', 'win32')
+    monkeypatch.setattr(sys, 'path', [])
+    monkeypatch.setattr(startup_prefetch, '_SYSTEM_PREFIXES', ())
+    monkeypatch.setattr(startup_prefetch, 'mapped_ranges', lambda: {})
+    library = touch(tmp_path / 'lib.dll')
+    icon = touch(tmp_path / 'icons' / 'tool.png')
+    monkeypatch.setattr(startup_prefetch, 'loaded_images', lambda: [library])
+    target = tmp_path / 'list'
+    startup_prefetch._write_list(str(target), [], opened=[icon], noted=[icon, icon])
+    assert target.read_text() == f'{library}\n{icon}\t\n'
