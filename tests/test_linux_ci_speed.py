@@ -73,11 +73,21 @@ def test_linux_consumers_wait_only_for_shared_build(name):
                            workflow(name), re.MULTILINE | re.DOTALL))
     producer = jobs["build-linux-bundles"]
     assert "uses: ./.github/workflows/linux_bundles_build.yml" in producer
-    assert "needs:" not in producer
-    for job in ("build-rocky9-docker", "build-rocky10-docker", "build-ubuntu",
-                "build-docker", "build-flatpak"):
-        assert "needs: [build-linux-bundles]" in jobs[job]
-        assert "needs: [build-rocky9-docker]" not in jobs[job]
+    consumers = ("build-rocky9-docker", "build-rocky10-docker", "build-ubuntu",
+                 "build-docker", "build-flatpak")
+
+    def needs(job):
+        match = re.search(r"^    needs: \[([^\]]*)\]$", jobs[job], re.MULTILINE)
+        if match is None:
+            assert not re.search(r"^    needs:", jobs[job], re.MULTILINE)
+            return set()
+        return {dependency.strip() for dependency in match[1].split(",") if dependency.strip()}
+
+    # Nightly gets its build matrix from select-builds. Release has no selector.
+    selector = {"select-builds"} if name == "nightly.yml" else set()
+    assert needs("build-linux-bundles") == selector
+    for job in consumers:
+        assert needs(job) == selector | {"build-linux-bundles"}
 
 
 def test_shared_build_handoff_is_run_scoped_and_retry_stable():
