@@ -865,7 +865,7 @@ t0 = t1;
                                     continue;
                                 if (sqlen > p4n2c)
                                     continue;
-                                if (bondee->idatm_type() == "Cac")
+                                if (bondee->idatm_type() == "Cac" || bondee->idatm_type() == "C1")
                                     continue;
                                 if (bondee->idatm_type() == "C2" || bondee->idatm_type() == "C") {
                                     bool grand_sp2 = false;
@@ -2380,7 +2380,7 @@ t0 = t1;
             while (wave++ < search_limit) {
                 std::set<Atom*> next_wave;
                 for (auto cur: current_wave) {
-                    int wave_size = next_wave.size();
+                    auto wave_size = next_wave.size();
                     for (auto nb: cur->neighbors()) {
                         Atom::IdatmInfoMap::const_iterator nbi = info_map.find(nb->idatm_type());
                         if (nbi == info_map.end() || (*nbi).second.geometry != 3)
