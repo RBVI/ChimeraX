@@ -24,7 +24,11 @@ class GraphicsWindow(QWindow):
 
         QWindow.__init__(self)
         from Qt.QtWidgets import QWidget
-        self.widget = w = QWidget.createWindowContainer(self, parent)
+        import sys
+        if sys.platform == 'darwin':
+            self.widget = w = _DeferredWindowContainer(self, parent)
+        else:
+            self.widget = w = QWidget.createWindowContainer(self, parent)
         w.setAcceptDrops(True)
         # If Vulkan or Metal were to be supported this would have to change
         # and then maybe the multitouch code would also have to change if
@@ -170,7 +174,36 @@ class GraphicsWindow(QWindow):
     def exposeEvent(self, event):
         self.view.redraw_needed = True
 
-from Qt.QtWidgets import QLabel
+from Qt.QtWidgets import QLabel, QWidget
+
+
+class _DeferredWindowContainer(QWidget):
+    """Keep a hidden 3D view out of the native window hierarchy until shown."""
+
+    def __init__(self, window, parent):
+        super().__init__(parent)
+        self._window = window
+        self._container = None
+        # Before embedding, no Qt container owns the QWindow yet.
+        self.destroyed.connect(window.deleteLater)
+
+    def showEvent(self, event):
+        # Native resize/expose events arrive later. Commands following a
+        # model open already need the actual viewport for camera fitting
+        # and picking, including after a resize while File History is shown.
+        self._window.view.resize(self.width(), self.height())
+        if self._container is None:
+            from Qt.QtWidgets import QVBoxLayout
+            container = QWidget.createWindowContainer(self._window, self)
+            self._container = container
+            container.setAcceptDrops(True)
+            layout = QVBoxLayout(self)
+            layout.setContentsMargins(0, 0, 0, 0)
+            layout.addWidget(container)
+            self.setFocusProxy(container)
+        super().showEvent(event)
+
+
 class Popup(QLabel):
 
     def __init__(self, graphics_window):
