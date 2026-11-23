@@ -3182,7 +3182,7 @@ class SelZoneDialog(QDialog):
         target_area.setLayout(target_layout)
         target_layout.addWidget(QLabel("Select"))
         self.target_button = QPushButton("atoms")
-        menu = QMenu()
+        menu = QMenu(self.target_button)
         menu.triggered.connect(lambda action: self.target_button.setText(action.text()))
         menu.addAction("atoms")
         menu.addAction("residues")
