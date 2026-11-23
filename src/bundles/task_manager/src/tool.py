@@ -14,7 +14,7 @@ import string
 import datetime
 from typing import Dict, Optional, Union
 
-from Qt.QtCore import QThread, QObject, Signal, Slot, Qt
+from Qt.QtCore import QTimer
 from Qt.QtWidgets import (
     QPushButton, QSizePolicy
     , QVBoxLayout, QHBoxLayout, QComboBox
@@ -105,24 +105,16 @@ class TaskManager(ToolInstance):
         self.parent.layout().addWidget(self.table)
         self.parent.layout().addWidget(self.control_widget)
         self.parent.layout().addWidget(self.button_container)
-        self.thread = QThread()
-        self.worker = TaskManagerWorker(self)
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
-        self.worker.update_table.connect(self._refresh_table)
-        self.thread.start()
+        self._refresh_timer = QTimer(self.parent)
+        self._refresh_timer.timeout.connect(self._refresh_table)
+        self._refresh_timer.start(1000)
         self.tool_window.manage('side')
 
     def delete(self):
         try:
-            self.worker.blockSignals(True)
+            self._refresh_timer.stop()
         except RuntimeError:
-            pass  # The underlying C++ object has already been deleted by DeleteLater
-        try:
-            if self.thread is not None and self.thread.isRunning():
-                self.thread.exit()
-        except RuntimeError:
-            pass # The underlying C++ object has already been deleted by DeleteLater
+            pass  # The underlying C++ object has already been deleted
         super().delete()
 
     def _refresh_table(self, *args):
@@ -154,17 +146,3 @@ class TaskManager(ToolInstance):
     def kill_task(self, tasks):
         for task in tasks:
             run(self.session, "taskman kill %s" % task.id)
-
-
-class TaskManagerWorker(QObject):
-    update_table = Signal()
-
-    def __init__(self, tool):
-        super().__init__()
-        self.tool = tool
-
-    @Slot()
-    def run(self) -> None:
-        while True:
-            self.update_table.emit()
-            QThread.sleep(1)
