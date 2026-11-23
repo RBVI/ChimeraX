@@ -5,6 +5,8 @@ covered pixels and depths with a double precision ray cast.
 Requires a desktop OpenGL context, otherwise the tests are skipped.
 '''
 
+import os
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -13,10 +15,22 @@ import pytest
 SIZE = 64
 
 
+def _no_display():
+    # Without a display Qt's default xcb platform aborts the process when the
+    # QApplication is created, which pytest cannot turn into a skip.
+    return (sys.platform.startswith('linux')
+            and not os.environ.get('QT_QPA_PLATFORM')
+            and not os.environ.get('DISPLAY')
+            and not os.environ.get('WAYLAND_DISPLAY'))
+
+
 @pytest.fixture(scope='module')
 def renderer():
-    from Qt.QtGui import QOffscreenSurface, QOpenGLContext, QSurfaceFormat
     from Qt.QtWidgets import QApplication
+    if QApplication.instance() is None and _no_display():
+        pytest.skip('No display for an OpenGL context')
+
+    from Qt.QtGui import QOffscreenSurface, QOpenGLContext, QSurfaceFormat
     from OpenGL import GL
 
     app = QApplication.instance() or QApplication([])
@@ -33,6 +47,13 @@ def renderer():
     if not context.makeCurrent(surface):
         surface.destroy()
         pytest.skip('Offscreen OpenGL surface unavailable')
+    # create() succeeds with an older context when 3.3 core is unavailable,
+    # e.g. Windows' software OpenGL 1.1 on GPU-less CI machines.
+    if (context.format().version() < (3, 3)
+            or not bool(GL.glGenFramebuffers)):
+        context.doneCurrent()
+        surface.destroy()
+        pytest.skip('OpenGL 3.3 core context unavailable')
 
     # Float depth so that depth readback does not limit the comparison.
     fbo = GL.glGenFramebuffers(1)
