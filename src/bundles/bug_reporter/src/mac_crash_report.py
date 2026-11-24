@@ -44,10 +44,13 @@ def check_for_crash_on_mac(session):
 
     report = recent_chimera_crash(last)
 
-    if report and report.find('sip_api_visit_wrappers') != -1:
-        # Suppress reporting this common crash on exit, PyQt bug,
-        # ChimeraX ticket #5225
-        report = None
+    if report:
+        # Suppress reporting this common crashes we can't fix.
+        if ('sip_api_visit_wrappers' in report or  # Crash on exit, PyQt bug, ticket #5225
+            'QPlatformIntegrationFactory::create' in report or  # Startup-crash, ticket #21402
+            'NSAccessibility' in report  # Triggered often by AI agents, ticket #21387
+           ):
+            report = None
         
     return report
 
