@@ -25,10 +25,13 @@
 def openfold_predict(session, sequences = [], ligands = None, exclude_ligands = 'HOH',
                   protein = [], dna = [], rna = [],
                   ligand_ccd = [], ligand_smiles = [], for_each_smiles_ligand = [],
-                  name = None, samples = 1, seeds = [42], results_directory = None,
+                  name = None, samples = 1, seeds = [42],
+                  recycles = 3, diffusion_steps = 200,
+                  results_directory = None,
                   device = None, precision = None,
                   use_server = False, server_host = None, server_port = None,
                   msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/OpenFoldMSA',
+                  max_msa_sequences = 16384,
                   zip_archive = False, open = True, install_location = None, wait = None):
 
     if install_location is not None:
@@ -69,10 +72,11 @@ def openfold_predict(session, sequences = [], ligands = None, exclude_ligands = 
         predictions = _each_ligand_predictions(for_each_ligand, molecular_components, align_to)
             
     br = OpenFoldRun(session, predictions, name = name, run_directory = results_directory,
-                     samples = samples, seeds = seeds,
+                     samples = samples, seeds = seeds, recycles = recycles, diffusion_steps = diffusion_steps,
                      device = device, precision = precision,
                      use_server = use_server, server_host = server_host, server_port = server_port,
                      msa_only = msa_only, use_msa_cache = use_msa_cache, msa_cache_dir = msa_cache_dir,
+                     max_msa_sequences = max_msa_sequences,
                      zip_archive = zip_archive, open = open, wait = wait)
 
     msa_run = _msa_run(session, name, molecular_components, msa_cache_dir, wait) if for_each_ligand else None
@@ -292,15 +296,14 @@ class OpenFoldPrediction:
         from os.path import join
         msas_dir = _posix_path(join(msa_dir, 'colabfold_msas'))
         templates_dir = _posix_path(join(msa_dir, 'colabfold_templates'))
-        msa_path_yaml = f'''msa_computation_settings:
-  msa_output_directory: {msas_dir}
-  cleanup_msa_dir: False
-  save_mappings: True 
-
-template_preprocessor_settings:
-  output_directory: {templates_dir}
-'''
-        return input, msa_path_yaml
+        msa_path_settings = {'msa_computation_settings':
+                             {'msa_output_directory': msas_dir,
+                              'cleanup_msa_dir': False,
+                              'save_mappings': True},
+                             'template_preprocessor_settings':
+                             {'output_directory': templates_dir}
+                             }
+        return input, msa_path_settings
 
     def alphafold3_json(self):
         # AlphaFold 3 requires chain ids to be all uppercase letter 
@@ -458,16 +461,19 @@ class OpenFoldMolecule:
 #
 class OpenFoldRun:
     def __init__(self, session, structures, name = None, run_directory = None,
-                 samples = 1, seeds = [42],
+                 samples = 1, seeds = [42], recycles = 3, diffusion_steps = 200,
                  device = 'default', precision = None,
                  use_server = False, server_host = None, server_port = None,
                  msa_only = False, use_msa_cache = True, msa_cache_dir = '~/Downloads/ChimeraX/OpenFoldMSA',
+                 max_msa_sequences = 16384,
                  zip_archive = False, open = True, wait = False):
 
         self._session = session
         self._predictions = [structures] if isinstance(structures, OpenFoldPrediction) else structures
         self.name = name
         self._samples = samples		# Number of predicted structures
+        self._recycles = recycles	# Number of pairformer iterations after first one.
+        self._diffusion_steps = diffusion_steps
         self._device = device		# gpu, cpu or default, or None (uses settings value)
         self._use_server = use_server	# True or False
         if use_server:
@@ -507,6 +513,7 @@ class OpenFoldRun:
         self._msa_cache_dir = expanduser(msa_cache_dir)
         self._use_msa_server = True
         self.cached_msa_dir = None
+        self._max_msa_sequences = max_msa_sequences
 
     def start(self, finished_callback = None):
         self._finished_callback = finished_callback
@@ -542,7 +549,7 @@ class OpenFoldRun:
         for i,p in enumerate(self._predictions):
             if p.name is None:
                 p.name = f'query_{i+1}'
-            query, msa_path_yaml = p.input(msa_cache_dir, copy_msa_to_directory)
+            query, msa_path_settings = p.input(msa_cache_dir, copy_msa_to_directory)
             queries.update(query)
         input = {'queries' : queries}
         import json
@@ -552,13 +559,26 @@ class OpenFoldRun:
         with open(json_path, 'w') as f:
             f.write(json_text)
 
-        # TODO: All predictions have to have the same MSA directory.  Verify this.
-        runner_yaml_path = join(dir, 'msa_path.yaml')
-        with open(runner_yaml_path, 'w') as f:
-            f.write(msa_path_yaml)
-                
         self._input_path = json_path
         self._use_msa_server = (self._use_msa_server and self._need_msa_server)
+
+        # TODO: All predictions have to have the same MSA directory.  Verify this.
+        self._write_settings(msa_path_settings)
+
+    def _write_settings(self, msa_path_settings):
+        from copy import deepcopy
+        settings = deepcopy(msa_path_settings)
+        if self._recycles != 3:
+            _add_yaml_setting(settings, ['model_update', 'custom', 'architecture', 'shared', 'num_recycles'], self._recycles)
+        if self._diffusion_steps != 200:
+            _add_yaml_setting(settings, ['model_update', 'custom', 'architecture', 'shared', 'diffusion', 'no_full_rollout_steps'], self._diffusion_steps)
+        if self._max_msa_sequences != 16384:
+            _add_yaml_setting(settings, ['dataset_config_kwargs', 'msa', 'max_rows'], self._max_msa_sequences)
+        from os.path import join
+        runner_yaml_path = join(self._run_directory, 'settings.yaml')
+        with open(runner_yaml_path, 'w') as f:
+            yaml = '\n'.join(_settings_to_yaml_lines(settings))
+            f.write(yaml)
 
     def _write_ligands_file(self, filename = 'ligands'):
         name_and_smiles = [(p.name, p.ligand_smiles_string) for p in self._predictions
@@ -780,7 +800,7 @@ class OpenFoldRun:
         command.append(f'--query_json={basename(self._input_path)}')
 
         # Save MSAs and templates in the prediction directory or read from cache
-        command.append('--runner_yaml=msa_path.yaml')
+        command.append('--runner_yaml=settings.yaml')
 
         if self._msa_only:
             command.append('--msa_and_templates_only=true')
@@ -1194,6 +1214,29 @@ def _read_json(*path_components):
     with open(path, 'r') as f:
         results = json.load(f)
     return results
+
+# ------------------------------------------------------------------------------
+#
+def _add_yaml_setting(settings, names, value):
+    if len(names) == 1:
+        settings[names[0]] = value
+    else:
+        if names[0] not in settings:
+            settings[names[0]] = {}
+        _add_yaml_setting(settings[names[0]], names[1:], value)
+
+# ------------------------------------------------------------------------------
+#
+def _settings_to_yaml_lines(settings, indent = '  '):
+    '''Convert nested settings dictionaries to yaml string.'''
+    lines = []
+    for key, value in settings.items():
+        if isinstance(value, dict):
+            lines.append(f'{key}:')
+            lines.extend(indent + line for line in _settings_to_yaml_lines(value))
+        else:
+            lines.append(f'{key}: {value}')
+    return lines
 
 # ------------------------------------------------------------------------------
 #
@@ -1742,6 +1785,8 @@ def register_openfold_predict_command(logger):
                    ('name', StringArg),
                    ('samples', IntArg),
                    ('seeds', IntsArg),
+                   ('recycles', IntArg),
+                   ('diffusion_steps', IntArg),
                    ('results_directory', SaveFolderNameArg),
                    ('device', EnumOf(['default', 'cpu', 'gpu'])),
                    ('precision', EnumOf(['32-true', 'bf16-mixed', '16-true', 'bf16-true'])),
@@ -1750,6 +1795,7 @@ def register_openfold_predict_command(logger):
                    ('server_port', IntArg),
                    ('use_msa_cache', BoolArg),
                    ('msa_only', BoolArg),
+                   ('max_msa_sequences', IntArg),
                    ('zip_archive', BoolArg),
                    ('open', BoolArg),
                    ('install_location', SaveFolderNameArg),

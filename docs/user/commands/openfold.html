@@ -123,8 +123,11 @@ if the computer Nvidia driver supports CUDA 13, otherwise Torch 2.11.0 with CUDA
 [&nbsp;<b>precision</b>&nbsp;&nbsp;32-true&nbsp;|&nbsp;16-true&nbsp;|&nbsp;bf16-true&nbsp;|&nbsp;bf16-mixed&nbsp;]
 [&nbsp;<b>samples</b>&nbsp;&nbsp;<i>N</i>&nbsp;]
 [&nbsp;<b>seeds</b>&nbsp;&nbsp;<i>seed-list</i>&nbsp;]
+[&nbsp;<b>recycles</b>&nbsp;&nbsp;<i>num-recycles</i>&nbsp;]
+[&nbsp;<b>diffusionSteps</b>&nbsp;&nbsp;<i>num-diffusion-steps</i>&nbsp;]
 [&nbsp;<b>useMsaCache</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>msaOnly</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
+[&nbsp;<b>maxMsaSequences</b>&nbsp;&nbsp;<i>num-sequences</i>&nbsp;]
 [&nbsp;<b>zipArchive</b>&nbsp;&nbsp;true&nbsp;|&nbsp;<b>false</b>&nbsp;]
 [&nbsp;<b>open</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false&nbsp;]
 [&nbsp;<b>installLocation</b>&nbsp;&nbsp;<i>directory</i>&nbsp;]
@@ -233,6 +236,12 @@ than creating the first structure.
 &ndash; provide a comma-separated list of one or more random-number seeds 
 (integers) to initialize the calculation. A prediction will be made with
 each seed. The default seed is <b>42</b>.
+</li><li><b>recycles</b>&nbsp;&nbsp;<i>num-recycles</i>
+<br>
+&ndash; Number of iterations of the PairFormer trunk.  Default <b>3</b>.  AlphaFold 3 uses 10 by default.  More recycles may give a more accurate structure.
+</li><li><b>diffusionSteps</b>&nbsp;&nbsp;<i>num-diffusion-steps</i>
+<br>
+&ndash; Number of diffusion steps to position atoms.  Default <b>200</b>.  More diffusion steps may give a more accurate structure.
 </li><li><b>useMsaCache</b>&nbsp;&nbsp;<b>true</b>&nbsp;|&nbsp;false
 <br>
 &ndash; whether to cache (and potentially reuse) the deep sequence alignments 
@@ -248,6 +257,9 @@ cannot be used for an assembly of those proteins.
 </li><li><b>msaOnly</b> true | <b>false</b>
 <br>
 &ndash; whether to just calculate and cache the multiple sequence alignment and templates using the Colabfold server.  This allows computing the MSA and templates separately from the structure.  It can be useful to precompute MSAs and templates when running structure predictions on a cluster which does not have internet access.  The MSAs and templates are placed in the run directory and the created json input file uses them.
+</li><li><b>maxMsaSequences</b>&nbsp;&nbsp;<i>num-sequences</i>
+<br>
+&ndash; Maximum number of sequences in the multiple sequence alignment (MSA).  Default <b>16384</b>.  Fewer sequences (e.g. 100 or below) can give more heterogeneous predictions.
 </li><li><b>zipArchive</b> true | <b>false</b>
 <br>
 &ndash; whether to make a zip archive from the run directory.  This is most often useful in combination with the msaOnly option to create input files necessary to run on another computer.
