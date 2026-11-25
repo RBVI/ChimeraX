@@ -249,13 +249,15 @@ class FormatsManager(ProviderManager):
                 suffix_formats = self._suffix_to_formats[suffix.lower()]
             except KeyError:
                 return None
-            relevant_formats = []
+            installed = []
+            not_installed = []
             for fmt in suffix_formats:
                 try:
                     provider_info = info_func(fmt)
                 except error_type:
                     continue
-                relevant_formats.append(fmt)
+                (installed if provider_info.bundle_info.installed else not_installed).append(fmt)
+            relevant_formats = installed if installed else not_installed
 
             if len(relevant_formats) == 1:
                 return relevant_formats[0]
