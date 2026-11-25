@@ -2413,6 +2413,32 @@ std::cerr << "pass 12 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n
 t0 = t1;
 #endif
 
+    // "pass 13":  yet another non-IDATM pass. Simple correction: N2 atoms connected to
+    // two Car atoms must be Npl instead
+    for (auto a: untyped_atoms) {
+
+        if (a->idatm_type() != "N2")
+            continue;
+        
+        if (planar_ring_atoms.find(a) != planar_ring_atoms.end())
+            continue;
+
+        bool all_Car = true;
+        for (auto nb: a->neighbors())
+            if (nb->idatm_type() != "Car") {
+                all_Car = false;
+                break;
+            }
+
+        if (all_Car)
+            a->set_computed_idatm_type("Npl");
+    }
+#ifdef TIME_PASSES
+t1 = clock();
+std::cerr << "pass 13 took " << (t1 - t0) / (float)CLOCKS_PER_SEC << " seconds\n";
+t0 = t1;
+#endif
+
     // since the rings() "ignore" arg pointed to a local variable, the
     // rings cannot be reused...
     _recompute_rings = true;
