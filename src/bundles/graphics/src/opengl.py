@@ -482,6 +482,11 @@ class Render:
         # OpenGL texture size limit
         self._max_3d_texture_size = None
 
+        # Whether drawings with impostors are drawn by ray casting.
+        self.use_impostors = True
+        # Set during the depth prepass that precedes drawing at equal depth.
+        self.impostor_depth_prepass = False
+
     def delete(self):
         if self._opengl_context._deleted:
             raise RuntimeError('Render.delete(): OpenGL context deleted before Render instance')
@@ -662,7 +667,7 @@ class Render:
         if depth_only:
             d = ~(self.SHADER_INSTANCING | self.SHADER_SHIFT_AND_SCALE |
                   self.SHADER_TRANSPARENT_ONLY | self.SHADER_OPAQUE_ONLY |
-                  self.SHADER_CLIP_PLANES)
+                  self.SHADER_CLIP_PLANES | self.SHADER_IMPOSTOR_SPHERE)
         else:
             d = 0
         self.disable_capabilities = d
@@ -684,6 +689,8 @@ class Render:
         '''
         options |= self.enable_capabilities
         options &= ~self.disable_capabilities
+        if self.impostor_depth_prepass and options & self.SHADER_IMPOSTOR_SPHERE:
+            options |= self.SHADER_IMPOSTOR_DEPTH_PREPASS
         p = self._opengl_shader(options)
         return p
 
@@ -865,7 +872,8 @@ class Render:
             if self.SHADER_CLIP_PLANES & p.capabilities:
                 cmm = self.current_model_matrix
                 if cmm:
-                    p.set_matrix('model_matrix', cmm.opengl_matrix())
+                    if self._clip_uses_model_matrix(p):
+                        p.set_matrix('model_matrix', cmm.opengl_matrix())
                     self.set_clip_parameters()
             if self.SHADER_STEREO_360 & p.capabilities:
                 cmm = self.current_model_matrix
@@ -874,10 +882,11 @@ class Render:
                     p.set_matrix('model_matrix', cmm.opengl_matrix())
                 if cvm:
                     p.set_matrix('view_matrix', cvm.opengl_matrix())
-            if self.SHADER_VOLUME_RAYCASTING & p.capabilities:
+            if (self.SHADER_VOLUME_RAYCASTING & p.capabilities or
+                (self.SHADER_CLIP_PLANES & p.capabilities and not self._clip_uses_model_matrix(p))):
                 cvm = self.current_view_matrix
                 if cvm:
-                    # Raycasting needs inverse view matrix (camera to scene)
+                    # Raycasting and impostor clipping need inverse view matrix (camera to scene)
                     inv_vm = cvm.inverse(is_orthonormal=True)
                     p.set_matrix('inverse_view_matrix', inv_vm.opengl_matrix())
             if not self.lighting.move_lights_with_camera:
@@ -891,6 +900,11 @@ class Render:
         if p is not None and p.capabilities & self.SHADER_DEPTH_CUE:
             self.set_depth_cue_parameters()
 
+    def _clip_uses_model_matrix(self, shader):
+        # Impostors clip ray cast surface points per fragment in scene
+        # coordinates using the inverse view matrix, so do not use model_matrix.
+        return not shader.capabilities & self.SHADER_IMPOSTOR_SPHERE
+
     def set_clip_parameters(self, clip_planes = None):
         if clip_planes is not None:
             self._clip_planes = clip_planes
@@ -902,7 +916,8 @@ class Render:
         m = self.current_model_matrix
         cp = self._clip_planes
         if self.SHADER_CLIP_PLANES & p.capabilities and m is not None and cp:
-            p.set_matrix('model_matrix', m.opengl_matrix())
+            if self._clip_uses_model_matrix(p):
+                p.set_matrix('model_matrix', m.opengl_matrix())
             p.set_integer('num_clip_planes', len(cp))
             p.set_float4('clip_planes', cp, len(cp))
             for i in range(len(cp)):
@@ -1679,7 +1694,7 @@ class Multishadow:
             return False
         mat = r.material
         msp = (lp.multishadow, lp.multishadow_map_size, lp.multishadow_depth_bias,
-               mat.transparent_cast_shadows, mat.meshes_cast_shadows)
+               mat.transparent_cast_shadows, mat.meshes_cast_shadows, r.use_impostors)
         if self._multishadow_current_params != msp:
             self.multishadow_update_needed = True
 
@@ -1832,7 +1847,8 @@ class Multishadow:
 
         maxs = self.max_multishadows()
         shader.set_integer("shadow_count", min(maxs, len(m)))
-        if shader.capabilities & Render.SHADER_LIGHTING_NORMALS:
+        if shader.capabilities & (Render.SHADER_LIGHTING_NORMALS |
+                                  Render.SHADER_IMPOSTOR_SPHERE):
             shader.set_float("shadow_depth", self._multishadow_depth)
 
 class Offscreen:
@@ -2147,6 +2163,8 @@ shader_options = (
     "SHADER_ALL_WHITE",
     "SHADER_VOLUME_RAYCASTING",
     "SHADER_SHOW_DEPTH_BUFFER",
+    "SHADER_IMPOSTOR_SPHERE",
+    "SHADER_IMPOSTOR_DEPTH_PREPASS",
 )
 for i, sopt in enumerate(shader_options):
     setattr(Render, sopt, 1 << i)
@@ -2671,6 +2689,14 @@ class Bindings:
         # print('bound shader variable', vname, attr_id, nattr, ncomp)
         return attr_id
 
+
+def draw_vertex_index_instances(vertex_count, instance_count):
+    '''
+    Draw triangles whose vertex positions are computed by the vertex shader
+    from gl_VertexID.  The bound vertex array object supplies only instance
+    attributes.
+    '''
+    GL.glDrawArraysInstanced(GL.GL_TRIANGLES, 0, vertex_count, instance_count)
 
 def deactivate_bindings():
     GL.glBindVertexArray(0)

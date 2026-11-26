@@ -295,6 +295,21 @@ def graphics_silhouettes(session, enable=None, width=None, color=None, depth_jum
         session.logger.info(msg)
 
 
+def graphics_impostors(session, enable=None):
+    """Draw atoms by ray casting instead of triangles.  With no options reports the current setting.
+
+    Parameters
+    ----------
+    enable : bool
+        Whether to draw drawings that have impostors by ray casting.
+    """
+    v = session.main_view
+    if enable is None:
+        session.logger.info("Impostors are %s" % ("on" if v.use_impostors else "off"))
+        return
+    v.use_impostors = enable
+
+
 def graphics_selection(session, color=None, width=None):
     """Set selection outline parameters.  With no options reports the current settings.
 
@@ -401,6 +416,12 @@ def register_command(logger):
         synopsis="set silhouette parameters",
     )
     register("graphics silhouettes", desc, graphics_silhouettes, logger=logger)
+
+    desc = CmdDesc(
+        optional=[("enable", BoolArg)],
+        synopsis="draw atoms by ray casting",
+    )
+    register("graphics impostors", desc, graphics_impostors, logger=logger)
 
     desc = CmdDesc(
         keyword=[("width", FloatArg), ("color", ColorArg)],
