@@ -995,6 +995,8 @@ class OpenFoldRun:
                 self._report_multi_prediction_results()
             else:
                 # One prediction
+                self._report_msa_depth(stderr)
+                self._report_templates(stderr)
                 self._report_confidence(self._predictions[0])
                 self._report_runtime()
                 self._cite()
@@ -1156,6 +1158,33 @@ class OpenFoldRun:
         from os.path import join
         return join(self._run_directory, 'colabfold_templates')
 
+    def _report_msa_depth(self, stderr):
+        rest_of_line = _find_line(stderr, 'Number of sequences in MSA: ')
+        try:
+            msa_depth = int(rest_of_line)
+        except Exception:
+            return
+        self._session.logger.info(f'MSA has {msa_depth} sequences')
+
+    def _report_templates(self, stderr):
+        rest_of_lines = _find_lines(stderr, 'Using templates for chain ')
+        if len(rest_of_lines) == 0:
+            return
+
+        # Group chains using the same templates
+        tc = {} # Map template names to chain id
+        for line in rest_of_lines:
+            if ':' in line:
+                chain_id, template_names = line.split(': ', maxsplit=1)
+                if template_names in tc:
+                    tc[template_names].append(chain_id)
+                else:
+                    tc[template_names] = [chain_id]
+        chain_templates = ', '.join(f'{",".join(chain_ids)}: {tname}' for tname, chain_ids in tc.items())
+
+        if chain_templates:
+            self._session.logger.info(f'Using chain templates {chain_templates}')
+                    
     def _report_confidence(self, prediction):
         from os.path import join, exists
         lines = []
@@ -1202,6 +1231,34 @@ class OpenFoldRun:
             msg = 'Please cite <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11601547/">OpenFold-1 Democratizing Biomolecular Interaction Modeling. BioRxiv https://doi.org/10.1101/2024.11.19.624167</a> if you use these predictions.'
             session.logger.info(msg, is_html = True)
             session._cite_openfold = True  # Only log this message once per session.
+
+# ------------------------------------------------------------------------------
+#
+def _find_line(text, prefix):
+    i0 = text.find(prefix)
+    if i0 == -1:
+        return None
+    i1 = text[i0:].find('\n')
+    if i1 == -1:
+        return text[i0:]
+    rest_of_line = text[i0+len(prefix):i0+i1]
+    return rest_of_line
+
+# ------------------------------------------------------------------------------
+#
+def _find_lines(text, prefix):
+    rest_of_lines = []
+    while text:
+        i0 = text.find(prefix)
+        if i0 == -1:
+            break
+        i1 = text[i0:].find('\n')
+        if i1 == -1:
+            rest_of_lines.append(text[i0:])
+            break
+        rest_of_lines.append(text[i0+len(prefix):i0+i1])
+        text = text[i0+i1+1:]
+    return rest_of_lines
 
 # ------------------------------------------------------------------------------
 #
