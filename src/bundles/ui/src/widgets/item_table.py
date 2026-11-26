@@ -649,6 +649,7 @@ class ItemTable(QTableView):
             self.sortByColumn(col_num, qt_enum_from_int(Qt.SortOrder, order))
         sel_model = self.selectionModel()
         scroll_to = None
+        self.clearSelection()
         for i in selected:
             index = self._table_model.index(i,0)
             index = self.model().mapFromSource(index)
