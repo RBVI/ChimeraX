@@ -108,7 +108,8 @@ class _Renderer:
                prepass = False, depth_func = 'LESS'):
         '''Return (covered, window depth) arrays indexed [row from bottom, column].'''
         from OpenGL import GL
-        defines = ['USE_IMPOSTOR_' + shape, 'USE_SHIFT_AND_SCALE']
+        defines = ['USE_IMPOSTOR_' + shape,
+                   'USE_SHIFT_AND_SCALE' if shape == 'SPHERE' else 'USE_INSTANCING']
         if clip_plane is not None:
             defines.append('USE_CLIP_PLANES')
         if prepass:
@@ -127,7 +128,13 @@ class _Renderer:
             matrix('inverse_view_matrix', np.eye(4))
             GL.glUniform1i(GL.glGetUniformLocation(p, 'num_clip_planes'), 1)
             GL.glUniform4f(GL.glGetUniformLocation(p, 'clip_planes'), *clip_plane)
-        GL.glVertexAttrib4f(4, *start, radius)
+        if shape == 'SPHERE':
+            GL.glVertexAttrib4f(4, *start, radius)
+        else:
+            m = _cylinder_placement(start, end, radius)
+            for column in range(4):
+                GL.glVertexAttrib4f(5 + column, *m[:, column])
+            GL.glUniform3f(GL.glGetUniformLocation(p, 'impostor_cylinder'), 1.0, 0.0, 0.0)
 
         GL.glClearColor(0, 0, 0, 0)
         GL.glClearDepth(1.0)
@@ -153,6 +160,20 @@ def _perspective(near, far, half_width):
                      (0, 0, -1, 0)))
 
 
+def _cylinder_placement(start, end, radius):
+    '''Placement of a unit height cylinder from start to end, like half-bond placements.'''
+    start, end = np.array(start, float), np.array(end, float)
+    z = end - start
+    axis = z / np.linalg.norm(z)
+    x = np.cross(axis, (0, 1, 0) if abs(axis[1]) < 0.9 else (1, 0, 0))
+    x *= radius / np.linalg.norm(x)
+    y = np.cross(axis, x)
+    m = np.eye(4)
+    m[:3, :3] = np.column_stack((x, y, z))
+    m[:3, 3] = (start + end) / 2
+    return m
+
+
 def _pixel_rays(projection):
     c = (np.arange(SIZE) + 0.5) / SIZE * 2 - 1
     x, y = np.meshgrid(c, c)		# [row from bottom, column]
@@ -176,14 +197,32 @@ def _reference(shape, start, end, radius, projection, clip_plane = None, margin 
     near = (p[2, 3] + p[3, 3]) / (p[3, 2] + p[2, 2])
     far = p[2, 3] / (p[2, 2] + 1)
     start, end = np.array(start, float), np.array(end, float)
-    c = start
-    b = d @ c
-    rho2 = c @ c - b * b
-    disc = radius * radius - rho2
-    root = np.sqrt(np.maximum(disc, 0))
-    roots = [b - root, b + root]
-    inside = [np.ones_like(b, bool)] * 2
-    margins = [disc / radius**2]
+    if shape == 'SPHERE':
+        c = start
+        b = d @ c
+        rho2 = c @ c - b * b
+        disc = radius * radius - rho2
+        root = np.sqrt(np.maximum(disc, 0))
+        roots = [b - root, b + root]
+        inside = [np.ones_like(b, bool)] * 2
+        margins = [disc / radius**2]
+    else:
+        axis = end - start
+        half = np.linalg.norm(axis) / 2
+        axis /= 2 * half
+        delta = -(start + end) / 2
+        dpa = d @ axis
+        d_perp = d - dpa[..., None] * axis
+        delta_perp = delta - (delta @ axis) * axis
+        a = np.sum(d_perp * d_perp, axis=-1)
+        b = d_perp @ delta_perp
+        rho2 = delta_perp @ delta_perp - b * b / a
+        disc = radius * radius - rho2
+        dt = np.sqrt(np.maximum(disc, 0) / a)
+        roots = [-b / a - dt, -b / a + dt]
+        along = [delta @ axis + t * dpa for t in roots]
+        inside = [np.abs(s) <= half for s in along]
+        margins = [disc / radius**2] + [(half - np.abs(s)) / radius for s in along]
 
     hit = disc >= 0
     covered = np.zeros(d.shape[:2], bool)
@@ -222,21 +261,29 @@ def _assert_matches(renderer, shape, start, end, radius, projection, clip_plane 
     return ref_covered, robust
 
 
-@pytest.mark.parametrize('shape', ['SPHERE'])
+@pytest.mark.parametrize('shape', ['SPHERE', 'CYLINDER'])
 def test_thin_shape_far_from_eye(renderer, shape):
-    # A 0.2 radius atom at 1000 from the eye.  The squared distance has a
+    # A 0.2 radius stick at 1000 from the eye.  The squared distance has a
     # float32 spacing near r^2, so a textbook discriminant loses the surface.
     projection = _perspective(990, 1010, half_width = 3e-4)
-    _assert_matches(renderer, shape, (0.05, -0.03, -1000), None, 0.2, projection)
+    if shape == 'SPHERE':
+        _assert_matches(renderer, shape, (0.05, -0.03, -1000), None, 0.2, projection)
+    else:
+        _assert_matches(renderer, shape, (-0.2, 0.03, -1000), (0.2, -0.03, -1000.1), 0.1,
+                        projection)
 
 
-@pytest.mark.parametrize('shape', ['SPHERE'])
+@pytest.mark.parametrize('shape', ['SPHERE', 'CYLINDER'])
 def test_clip_plane_reveals_back_surface(renderer, shape):
     # An oblique plane removes the front surface but not the back surface,
     # which must be drawn as for triangles.
     projection = _perspective(1, 100, half_width = 0.25)
-    start, end, radius = (0.3, -0.2, -10), None, 1.0
-    center = start
+    if shape == 'SPHERE':
+        start, end, radius = (0.3, -0.2, -10), None, 1.0
+        center = start
+    else:
+        start, end, radius = (-1.5, 0.2, -10), (1.5, -0.2, -10.5), 0.6
+        center = (np.array(start) + end) / 2
     plane = _plane((0.5, 0.2, -1), center)
     ref_covered, robust = _assert_matches(renderer, shape, start, end, radius, projection,
                                           clip_plane = plane)
@@ -260,7 +307,7 @@ def test_hit_beyond_far_plane_is_not_drawn(renderer):
     assert (robust & behind_far & ~ref_covered).sum() > 20, 'too few hits beyond the far plane'
 
 
-@pytest.mark.parametrize('shape', ['SPHERE'])
+@pytest.mark.parametrize('shape', ['SPHERE', 'CYLINDER'])
 def test_depth_prepass_slack(renderer, shape):
     # The depth prepass is pushed back by a few depth units so that the
     # lit pass, computed by another shader variant, passes GL_LEQUAL.

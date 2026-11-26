@@ -23,7 +23,7 @@ def _sphere_drawing():
 
 def test_solid_drawing_uses_impostor():
     d = _sphere_drawing()
-    assert d._impostor_to_draw(_Renderer()) == 'sphere'
+    assert d._impostor_to_draw(_Renderer()) == ('sphere', 1)
 
 
 def test_no_impostor_by_default():
@@ -70,13 +70,23 @@ def test_impostor_keeps_triangles():
     assert d.bounds() is not None
 
 
+def test_cylinder_impostor():
+    from chimerax.surface import cylinder_geometry
+    va, na, ta = cylinder_geometry(nc = 10, caps = False, height = 0.5)
+    d = Drawing('cylinders')
+    d.set_geometry(va, na, ta)
+    d.set_cylinder_impostor(0.5)
+    assert d._impostor_to_draw(_Renderer()) == ('cylinder', 0.5)
+
+
 def test_clear_impostor():
     d = _sphere_drawing()
     d.clear_impostor()
     assert d._impostor_to_draw(_Renderer()) is None
 
 
-def test_multishadow_sets_shadow_depth_for_impostor_without_normals():
+@pytest.mark.parametrize('impostor_cap', [Render.SHADER_IMPOSTOR_SPHERE, Render.SHADER_IMPOSTOR_CYLINDER])
+def test_multishadow_sets_shadow_depth_for_impostor_without_normals(impostor_cap):
     from types import SimpleNamespace
     from unittest.mock import Mock
     from chimerax.graphics.opengl import Multishadow
@@ -86,7 +96,7 @@ def test_multishadow_sets_shadow_depth_for_impostor_without_normals():
     ms._multishadow_depth = 12.5
     ms._max_multishadows = 64
     shader = SimpleNamespace(
-        capabilities=Render.SHADER_LIGHTING | Render.SHADER_MULTISHADOW | Render.SHADER_IMPOSTOR_SPHERE,
+        capabilities=Render.SHADER_LIGHTING | Render.SHADER_MULTISHADOW | impostor_cap,
         set_integer=Mock(),
         set_float=Mock(),
     )
@@ -130,7 +140,7 @@ def _shader_chooser(**attrs):
 
 def test_only_impostor_prepass_shaders_get_depth_slack():
     r = _shader_chooser(impostor_depth_prepass=True)
-    for shape in (Render.SHADER_IMPOSTOR_SPHERE,):
+    for shape in (Render.SHADER_IMPOSTOR_SPHERE, Render.SHADER_IMPOSTOR_CYLINDER):
         assert Render.shader(r, shape) & Render.SHADER_IMPOSTOR_DEPTH_PREPASS
     assert not Render.shader(r, Render.SHADER_LIGHTING) & Render.SHADER_IMPOSTOR_DEPTH_PREPASS
     r.impostor_depth_prepass = False

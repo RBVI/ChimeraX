@@ -667,7 +667,8 @@ class Render:
         if depth_only:
             d = ~(self.SHADER_INSTANCING | self.SHADER_SHIFT_AND_SCALE |
                   self.SHADER_TRANSPARENT_ONLY | self.SHADER_OPAQUE_ONLY |
-                  self.SHADER_CLIP_PLANES | self.SHADER_IMPOSTOR_SPHERE)
+                  self.SHADER_CLIP_PLANES | self.SHADER_IMPOSTOR_SPHERE |
+                  self.SHADER_IMPOSTOR_CYLINDER)
         else:
             d = 0
         self.disable_capabilities = d
@@ -689,7 +690,8 @@ class Render:
         '''
         options |= self.enable_capabilities
         options &= ~self.disable_capabilities
-        if self.impostor_depth_prepass and options & self.SHADER_IMPOSTOR_SPHERE:
+        if (self.impostor_depth_prepass and
+            options & (self.SHADER_IMPOSTOR_SPHERE | self.SHADER_IMPOSTOR_CYLINDER)):
             options |= self.SHADER_IMPOSTOR_DEPTH_PREPASS
         p = self._opengl_shader(options)
         return p
@@ -903,7 +905,8 @@ class Render:
     def _clip_uses_model_matrix(self, shader):
         # Impostors clip ray cast surface points per fragment in scene
         # coordinates using the inverse view matrix, so do not use model_matrix.
-        return not shader.capabilities & self.SHADER_IMPOSTOR_SPHERE
+        return not shader.capabilities & (self.SHADER_IMPOSTOR_SPHERE |
+                                          self.SHADER_IMPOSTOR_CYLINDER)
 
     def set_clip_parameters(self, clip_planes = None):
         if clip_planes is not None:
@@ -1848,7 +1851,8 @@ class Multishadow:
         maxs = self.max_multishadows()
         shader.set_integer("shadow_count", min(maxs, len(m)))
         if shader.capabilities & (Render.SHADER_LIGHTING_NORMALS |
-                                  Render.SHADER_IMPOSTOR_SPHERE):
+                                  Render.SHADER_IMPOSTOR_SPHERE |
+                                  Render.SHADER_IMPOSTOR_CYLINDER):
             shader.set_float("shadow_depth", self._multishadow_depth)
 
 class Offscreen:
@@ -2164,6 +2168,7 @@ shader_options = (
     "SHADER_VOLUME_RAYCASTING",
     "SHADER_SHOW_DEPTH_BUFFER",
     "SHADER_IMPOSTOR_SPHERE",
+    "SHADER_IMPOSTOR_CYLINDER",
     "SHADER_IMPOSTOR_DEPTH_PREPASS",
 )
 for i, sopt in enumerate(shader_options):
