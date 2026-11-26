@@ -172,12 +172,28 @@ void sphere_slope_bounds(vec3 center, float radius,
   upper = (center.xy * depth + radius * root) / denom;
 }
 
-// Camera coordinates of a viewport corner, on the corner pixel ray.  Used for
-// shapes crossing the eye plane, which have no finite perspective projection.
-vec4 impostor_viewport_corner()
+float impostor_near_plane_z()
 {
-  vec4 e = inverse(projection_matrix) * vec4(impostor_corner(), 0.0, 1.0);
-  return vec4(e.xyz / e.w, 1.0);
+  mat4 p = projection_matrix;
+  return (p[3][2] + p[3][3]) / (-p[2][3] - p[2][2]);
+}
+
+vec4 near_clipped_box_proxy(vec3 lower, vec3 upper, float near_z)
+{
+  // Proxy for geometry within an eye-space box crossing the near or eye plane.
+  // Only the part beyond the near plane is drawn (as with triangles), which
+  // projects to a finite rectangle.  Slope xy/-z is monotonic in x, y and z
+  // over the box, so its extremes are at the box corners.
+  if (lower.z > near_z)
+    return vec4(0.0, 0.0, 1.0, 1.0); // Entirely in front of the near plane: clipped.
+  float front_z = min(upper.z, near_z);
+  vec2 slope_lower = min(lower.xy / -lower.z, lower.xy / -front_z);
+  slope_lower = min(slope_lower, min(upper.xy / -lower.z, upper.xy / -front_z));
+  vec2 slope_upper = max(lower.xy / -lower.z, lower.xy / -front_z);
+  slope_upper = max(slope_upper, max(upper.xy / -lower.z, upper.xy / -front_z));
+  vec2 slope = 0.5 * (slope_lower + slope_upper) +
+               impostor_corner() * 0.5025 * (slope_upper - slope_lower);
+  return vec4(slope * -front_z, front_z, 1.0);
 }
 #endif
 
@@ -210,8 +226,9 @@ void main(void)
   } else {
     // Smallest axis-aligned rectangle enclosing the perspective projection of
     // the sphere.  Unlike a symmetric billboard, its bounds shift off-axis.
+    float near_z = impostor_near_plane_z();
     float depth = -center_eye.z;
-    if (depth > radius * 1.000001) {
+    if (center_eye.z + radius <= near_z && depth > radius * 1.001) {
       vec2 slope_min, slope_max;
       sphere_slope_bounds(center_eye, radius, slope_min, slope_max);
       vec2 slope_mid = 0.5 * (slope_min + slope_max);
@@ -221,8 +238,10 @@ void main(void)
       // does not remove it while the front of the sphere is in view.
       float front_z = center_eye.z + radius;
       veye = vec4(slope * -front_z, front_z, 1.0);
+    } else if (center_eye.z - radius > near_z) {
+      veye = vec4(0.0, 0.0, 1.0, 1.0); // Entirely in front of the near plane: clipped.
     } else
-      veye = impostor_viewport_corner();  // Sphere crosses the eye plane.
+      veye = near_clipped_box_proxy(center_eye - radius, center_eye + radius, near_z);
   }
   impostor_center = center_eye;
   impostor_radius = radius;
@@ -261,8 +280,11 @@ void main(void)
   // spheres, so their bounds enclose the finite cylinder (including caps).
   // A single bounding-sphere magnification made close bonds cover huge areas.
   bool cyl_ortho = (projection_matrix[3][3] != 0.0);
+  float cyl_near_z = cyl_ortho ? 0.0 : impostor_near_plane_z();
+  float cyl_max_z = max(p0_eye.z, p1_eye.z);
+  float cyl_min_z = min(p0_eye.z, p1_eye.z);
   vec4 veye;
-  if (cyl_ortho || max(p0_eye.z, p1_eye.z) < -cyl_radius * 1.000001) {
+  if (cyl_ortho || (cyl_max_z + cyl_radius <= cyl_near_z && cyl_max_z < -cyl_radius * 1.001)) {
     vec2 along = cyl_ortho ? p1_eye.xy - p0_eye.xy :
       p1_eye.xy / -p1_eye.z - p0_eye.xy / -p0_eye.z;
     float along_length = length(along);
@@ -288,11 +310,14 @@ void main(void)
     vec2 xy = 0.5 * (lower + upper) + impostor_corner() * 0.5025 * (upper - lower);
     // Place the quad at the front of the cylinder so the far clip plane
     // does not remove it while the front of the cylinder is in view.
-    float front_z = max(p0_eye.z, p1_eye.z) + cyl_radius;
+    float front_z = cyl_max_z + cyl_radius;
     vec2 eye_xy = (across * xy.x + along * xy.y) * (cyl_ortho ? 1.0 : -front_z);
     veye = vec4(eye_xy, front_z, 1.0);
+  } else if (cyl_min_z - cyl_radius > cyl_near_z) {
+    veye = vec4(0.0, 0.0, 1.0, 1.0); // Entire capsule is in front of the near plane.
   } else
-    veye = impostor_viewport_corner();  // Cylinder may cross the eye plane.
+    veye = near_clipped_box_proxy(min(p0_eye, p1_eye) - cyl_radius,
+                                  max(p0_eye, p1_eye) + cyl_radius, cyl_near_z);
 
   impostor_cyl_center = cyl_center;
   impostor_cyl_axis = cyl_dir;
