@@ -29,6 +29,7 @@ def clean_app(chimerax_root, keep_debug_info=False):
                         sysconfig.get_path("stdlib"),
                         sysconfig.get_path("scripts")),
             pool.submit(remove_babel_locales, site_packages),
+            pool.submit(remove_unused_pyopengl, site_packages),
         ]
         for step in steps:
             step.result()
@@ -198,6 +199,62 @@ def remove_babel_locales(site_packages):
         freed += os.lstat(path).st_size
         os.remove(path)
     print(f"clean_app: removed {freed / 1e6:.0f} MB of Babel locale data")
+    return freed
+
+
+# ChimeraX uses desktop OpenGL with Qt (or EGL for Linux offscreen rendering),
+# rather than OpenGL ES, GLUT, GLE's extrusion API, or Tk's Togl widget.
+UNUSED_OPENGL_APIS = ("AGL", "GLE", "GLES1", "GLES2", "GLES3", "GLUT", "Tk")
+# Keep ARB and KHR: OpenGL.GL's core version modules and shader helpers
+# import them internally.  Keep EXT too: openvr's actors use its anisotropic
+# texture filtering constants.  These other extension families are unused.
+UNUSED_OPENGL_EXTENSIONS = (
+    "AMD", "ANGLE", "APPLE", "ARM", "ATI", "DFX", "DMP", "FJ", "GREMEDY",
+    "HP", "IBM", "IMG", "INGR", "INTEL", "MESA", "MESAX", "NV", "NVX",
+    "OES", "OML", "OVR", "PGI", "QCOM", "REND", "S3", "SGI", "SGIS",
+    "SGIX", "SUN", "SUNX", "VIV", "WIN",
+)
+UNUSED_OPENGL_DLL = re.compile(r"(freeglut|glut|opengle|gle)\d.*\.dll",
+                              re.IGNORECASE)
+
+
+def remove_unused_pyopengl(site_packages):
+    """Remove unused PyOpenGL APIs and their matching raw bindings.
+
+    Preserve GLU (error strings), WGL (Windows vsync and OpenXR), GLX
+    (Linux OpenXR), EGL, OSMesa, all platform loaders and array handlers,
+    and OpenGL_accelerate.  This trims distribution size, without changing
+    the OpenGL.GL imports that determine startup time and memory use.
+    """
+    opengl = os.path.join(site_packages, "OpenGL")
+    if not os.path.isdir(opengl) or os.path.islink(opengl):
+        return 0
+    paths = []
+    for base in (opengl, os.path.join(opengl, "raw")):
+        if os.path.islink(base):
+            continue
+        paths.extend(os.path.join(base, name) for name in UNUSED_OPENGL_APIS)
+        gl = os.path.join(base, "GL")
+        if not os.path.islink(gl):
+            paths.extend(os.path.join(gl, name)
+                         for name in UNUSED_OPENGL_EXTENSIONS)
+    # The wheel includes Windows GLE/GLUT libraries.  Keep their licenses,
+    # and leave any unrelated libraries alone.
+    dlls = os.path.join(opengl, "DLLS")
+    if os.path.isdir(dlls) and not os.path.islink(dlls):
+        paths.extend(os.path.join(dlls, fn) for fn in os.listdir(dlls)
+                     if UNUSED_OPENGL_DLL.fullmatch(fn))
+    freed = 0
+    for path in paths:
+        if os.path.islink(path) or os.path.isfile(path):
+            freed += os.lstat(path).st_size
+            os.remove(path)
+        elif os.path.isdir(path):
+            for root, _, files in os.walk(path):
+                freed += sum(os.lstat(os.path.join(root, fn)).st_size
+                             for fn in files)
+            shutil.rmtree(path)
+    print(f"clean_app: removed {freed / 1e6:.2f} MB of unused PyOpenGL APIs")
     return freed
 
 
